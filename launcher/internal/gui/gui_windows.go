@@ -587,10 +587,21 @@ func (w *window) editSettings() {
 	w.supervisor.SetSettings(next)
 	w.writePlayerFile(next)
 	w.refresh()
-	w.say("settings saved. Restart to apply them to a running server.")
-	if !w.supervisor.Running() {
-		go w.start()
+
+	// A setting reaches the game server through server.cfg and the command
+	// line, both of which it reads once at startup. Saving one while the
+	// server runs used to change nothing until the player pressed Restart
+	// themselves, and the log line saying so was easy to miss.
+	if w.supervisor.Running() {
+		w.say("settings saved. Restarting the server to apply them.")
+		go func() {
+			w.supervisor.Stop()
+			w.start()
+		}()
+		return
 	}
+	w.say("settings saved.")
+	go w.start()
 }
 
 // repair is what the dialog's Repair button calls. Everything the launcher
