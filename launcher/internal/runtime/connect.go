@@ -1,11 +1,15 @@
 package runtime
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"net/url"
+	"os"
+	"slices"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/m-this/tf2-archipelago/launcher/internal/settings"
 )
@@ -100,6 +104,47 @@ func LocalAddresses() []string {
 	}
 	return found
 }
+
+// RconAddresses are the addresses this machine's own game server may answer
+// rcon on, in the order worth trying.
+//
+// srcds binds rcon to the address it believes it is on: 0.0.0.0 where the
+// launcher passed -ip, and otherwise whatever the hostname resolves to, which
+// is 127.0.1.1 on Debian and this machine's address on the network elsewhere.
+// A LAN server is not passed -ip, because that address is also the one it
+// compares joining players against, so which of these answers depends on the
+// reach. Trying them in turn costs a refused connection on loopback, which is
+// immediate.
+func RconAddresses(s settings.Settings) []string {
+	port := strconv.Itoa(s.SrcdsPort)
+	addresses := []string{net.JoinHostPort("127.0.0.1", port)}
+	host, err := os.Hostname()
+	if err != nil {
+		return addresses
+	}
+	// Bounded: a name server that never answers must not hold up the command
+	// the player typed. Loopback is already in the list to fall back on.
+	ctx, cancel := context.WithTimeout(context.Background(), hostLookupTimeout)
+	defer cancel()
+	resolved, err := net.DefaultResolver.LookupIPAddr(ctx, host)
+	if err != nil {
+		return addresses
+	}
+	for _, ip := range resolved {
+		if ip.IP.To4() == nil {
+			continue
+		}
+		address := net.JoinHostPort(ip.IP.String(), port)
+		if !slices.Contains(addresses, address) {
+			addresses = append(addresses, address)
+		}
+	}
+	return addresses
+}
+
+// hostLookupTimeout is how long RconAddresses waits for this machine's own
+// name to resolve. It is a hosts file lookup on every machine that has one.
+const hostLookupTimeout = 2 * time.Second
 
 // missionSwitchedPrefix is what the plugin logs whenever it loads a mission of
 // the run, which the launcher reads to learn which one is on. The rest of the

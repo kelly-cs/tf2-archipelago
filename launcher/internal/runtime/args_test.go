@@ -1,6 +1,7 @@
 package runtime
 
 import (
+	"net"
 	"slices"
 	"strings"
 	"testing"
@@ -165,5 +166,54 @@ func TestNoTokenKeepsTheServerOnTheNetwork(t *testing.T) {
 	}
 	if slices.Contains(args, "+sv_setsteamaccount") {
 		t.Error("a token was passed to a server that has none")
+	}
+}
+
+// -ip 0.0.0.0 is also the address the engine believes it is on, and a LAN
+// server refuses every player whose address is not in the same class C as
+// that one. Told 0.0.0.0, it refuses the whole network: the player sees "LAN
+// servers are restricted to local clients (class C)" and the server says
+// nothing at all.
+func TestALanServerKeepsItsOwnAddress(t *testing.T) {
+	s := baseSettings()
+	s.SrcdsReach = settings.ReachLan
+	if args := srcdsArgs(s, "srcds_run"); slices.Contains(args, "-ip") {
+		t.Errorf("-ip on a LAN server: %v", args)
+	}
+
+	// A server with no token is a LAN server whatever it was asked for.
+	s.SrcdsReach = settings.ReachPort
+	s.SrcdsToken = "0"
+	if args := srcdsArgs(s, "srcds_run"); slices.Contains(args, "-ip") {
+		t.Errorf("-ip on a server with no token: %v", args)
+	}
+}
+
+// A server that leaves the network has no such comparison to make, and binding
+// every interface is what keeps rcon answering on loopback.
+func TestAnOpenServerBindsEveryInterface(t *testing.T) {
+	s := baseSettings()
+	s.SrcdsReach = settings.ReachPort
+	s.SrcdsToken = "C7A1B2E3D4F5A6B7C8D9E0F1A2B3C4D5"
+	if got := value(srcdsArgs(s, "srcds_run"), "-ip"); got != "0.0.0.0" {
+		t.Errorf("-ip = %q, want 0.0.0.0", got)
+	}
+}
+
+// Whatever the server bound, the launcher has to find it: loopback first,
+// because that is where a server told -ip 0.0.0.0 answers.
+func TestRconAddressesStartAtLoopback(t *testing.T) {
+	s := baseSettings()
+	addresses := RconAddresses(s)
+	if len(addresses) == 0 {
+		t.Fatal("no address to try")
+	}
+	if addresses[0] != "127.0.0.1:27015" {
+		t.Errorf("first address = %q, want 127.0.0.1:27015", addresses[0])
+	}
+	for _, address := range addresses {
+		if _, port, err := net.SplitHostPort(address); err != nil || port != "27015" {
+			t.Errorf("address %q: port %q, %v", address, port, err)
+		}
 	}
 }

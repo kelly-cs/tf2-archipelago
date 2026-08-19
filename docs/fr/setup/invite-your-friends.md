@@ -155,10 +155,13 @@ sautée entièrement et où aucun token n'est nécessaire.
 
 Vérifiez ensuite le reste dans cet ordre :
 
-1. **En `lan`**, tout le monde est sur le même réseau, et vous avez donné
-   l'adresse que `ip -4 addr` montre pour ce réseau. Le mode LAN refuse les
-   adresses hors des plages privées, et un réseau invité sur le même routeur en
-   est une autre.
+1. **En `lan`**, le joueur voit `LAN servers are restricted to local clients
+   (class C)`. C'est le serveur qui dit que l'adresse d'où il vient n'est pas
+   dans la même classe C, les trois mêmes premiers nombres, que la sienne : un
+   réseau invité sur le même routeur en est une autre, un VPN aussi, et le
+   réseau d'un conteneur aussi. Donnez l'adresse que `ip -4 addr` montre pour
+   le réseau où tout le monde est, ou quittez `lan` : `port` avec un token n'a
+   pas cette règle.
 2. **En `steam`**, l'adresse est celle de cette session-ci. Elle change à chaque
    démarrage, et une ancienne ne mène nulle part.
 3. **En `port`**, le port est redirigé en UDP autant qu'en TCP. Une règle TCP

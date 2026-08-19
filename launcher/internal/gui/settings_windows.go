@@ -34,7 +34,7 @@ const labelWidth = 150
 // or a login token is.
 //
 // It returns the edited settings and whether the player accepted them.
-func runSettingsDialog(owner walk.Form, s settings.Settings, repair func() ([]string, error)) (settings.Settings, bool, error) {
+func runSettingsDialog(owner walk.Form, s settings.Settings, repair func() ([]string, error), reset func() error) (settings.Settings, bool, error) {
 	var (
 		dialog *walk.Dialog
 		accept *walk.PushButton
@@ -426,6 +426,11 @@ func runSettingsDialog(owner walk.Form, s settings.Settings, repair func() ([]st
 						ToolTipText: "Throw SteamCMD and the mods away and fetch them again. Keeps the game files and the run.",
 						OnClicked:   func() { runRepair(dialog, repair) },
 					},
+					declarative.PushButton{
+						Text:        "Reset settings",
+						ToolTipText: "Put every setting back to what a fresh install has. Keeps the game files and where they are.",
+						OnClicked:   func() { runReset(dialog, reset) },
+					},
 					declarative.HSpacer{},
 					declarative.PushButton{AssignTo: &accept, Text: "Save", OnClicked: func() {
 						// Read every field before the dialog closes: closing it
@@ -810,6 +815,31 @@ func runRepair(owner walk.Form, repair func() ([]string, error)) {
 			"Removed:\n"+strings.Join(removed, "\n")+"\n\nPress Start when you are ready.",
 			walk.MsgBoxIconInformation)
 	}
+}
+
+// runReset puts every setting back to its default, for a player whose answers
+// have drifted somewhere they cannot see and cannot undo.
+//
+// It closes the dialog rather than redrawing it. Every field on screen still
+// holds the old answer, and Save would write all of them straight back over
+// the reset.
+func runReset(owner walk.Form, reset func() error) {
+	answer := walk.MsgBox(owner, "Reset settings",
+		"This puts every setting back to what a fresh install has: the room, "+
+			"the server name and its passwords, the missions, the bots, who can join.\n\n"+
+			"It keeps the game files and where they are, so nothing is downloaded again.",
+		walk.MsgBoxOKCancel|walk.MsgBoxIconQuestion)
+	if answer != walk.DlgCmdOK {
+		return
+	}
+	if err := reset(); err != nil {
+		walk.MsgBox(owner, "Reset settings", err.Error(), walk.MsgBoxIconError)
+		return
+	}
+	walk.MsgBox(owner, "Reset settings",
+		"Every setting is back to its default. Open Settings again to go through them.",
+		walk.MsgBoxIconInformation)
+	owner.(*walk.Dialog).Cancel()
 }
 
 // tokenComplaint says what is wrong with a reach and a token together, or ""
