@@ -8,6 +8,7 @@ import (
 	"net"
 	"strings"
 	"testing"
+	"time"
 )
 
 // fakeServer speaks enough of the protocol to answer one client: it accepts
@@ -108,5 +109,60 @@ func TestDialReportsAServerThatIsNotThere(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "cannot reach") {
 		t.Errorf("unhelpful error: %v", err)
+	}
+}
+
+// A server that answers nothing at all, the way a live one did for a command
+// that does not exist. The player used to get "i/o timeout" and no idea why.
+func silentServer(t *testing.T, password string) string {
+	t.Helper()
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("cannot listen: %v", err)
+	}
+	t.Cleanup(func() { _ = listener.Close() })
+
+	go func() {
+		conn, err := listener.Accept()
+		if err != nil {
+			return
+		}
+		defer func() { _ = conn.Close() }()
+		for {
+			id, kind, body, err := readPacket(conn)
+			if err != nil {
+				return
+			}
+			if kind != typeAuth {
+				continue // the command and its terminator both go unanswered
+			}
+			writePacket(conn, 0, typeResponse, "")
+			if body != password {
+				writePacket(conn, -1, 2, "")
+				return
+			}
+			writePacket(conn, id, 2, "")
+		}
+	}()
+	return listener.Addr().String()
+}
+
+func TestExecSaysWhenTheServerPrintedNothing(t *testing.T) {
+	previous := timeout
+	timeout = 300 * time.Millisecond
+	t.Cleanup(func() { timeout = previous })
+
+	client, err := Dial(silentServer(t, "secret"), "secret")
+	if err != nil {
+		t.Fatalf("Dial: %v", err)
+	}
+	defer func() { _ = client.Close() }()
+
+	_, err = client.Exec("ap_game_status")
+	if err == nil {
+		t.Fatal("a silent server did not fail")
+	}
+	if !strings.Contains(err.Error(), "printed nothing") || !strings.Contains(err.Error(), "sm_ap_") {
+		t.Errorf("the error does not say what happened: %v", err)
 	}
 }

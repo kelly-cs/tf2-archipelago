@@ -10,8 +10,10 @@ import (
 	"archive/zip"
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"net/http"
 	"os"
 	"os/exec"
@@ -330,13 +332,38 @@ func extractFile(file *zip.File, target string) error {
 		return err
 	}
 	defer func() { _ = src.Close() }()
-	dst, err := os.OpenFile(target, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, file.Mode())
+	dst, err := openForWrite(target, file.Mode())
 	if err != nil {
 		return err
 	}
 	defer func() { _ = dst.Close() }()
 	_, err = io.Copy(dst, src)
 	return err
+}
+
+// openForWrite opens the target, waiting for a game server that has not let go
+// of it yet.
+//
+// Windows refuses to open a file another process has mapped, and srcds holds
+// rip.ext.dll for a moment after it exits. Every start reinstalls the mods, so
+// a Restart pressed straight after a Stop failed the whole install on a file
+// that was about to be free.
+func openForWrite(target string, mode os.FileMode) (*os.File, error) {
+	delay := 200 * time.Millisecond
+	var err error
+	for attempt := range openAttemptsMax {
+		var file *os.File
+		file, err = os.OpenFile(target, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, mode)
+		if err == nil {
+			return file, nil
+		}
+		if attempt == openAttemptsMax-1 || !errors.Is(err, fs.ErrPermission) {
+			break
+		}
+		time.Sleep(delay)
+		delay *= 2
+	}
+	return nil, err
 }
 
 // gameInstalled reports whether the TF2 server is installed, by looking for
@@ -447,3 +474,7 @@ func removeWithRetry(target string) error {
 // removeAttemptsMax spans about six seconds of doubling waits, which covers a
 // process on its way out. Longer than that is a file lock a wait will not fix.
 const removeAttemptsMax = 6
+
+// openAttemptsMax is the same wait for a file the game server has not released
+// yet, on the way in rather than on the way out.
+const openAttemptsMax = 6

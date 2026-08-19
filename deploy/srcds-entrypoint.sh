@@ -134,7 +134,7 @@ install_server_cfg() {
 	// the scoreboard before the next one loads, and whether the bots'
 	// purchases reach the chat.
 	tf2ap_start_mission "${SRCDS_START_MISSION:-}"
-	tf2ap_next_mission_delay ${TF2AP_NEXT_MISSION_DELAY:-20}
+	tf2ap_next_mission_delay ${TF2AP_NEXT_MISSION_DELAY:-30}
 	tf2ap_bot_upgrades_chat ${TF2AP_BOT_UPGRADES_CHAT:-0}
 
 	// LAN mode skips Steam authentication. The server has no Game Server Login

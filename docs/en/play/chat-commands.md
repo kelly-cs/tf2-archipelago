@@ -136,7 +136,7 @@ overwrites that file once it exists.
 | `tf2ap_debug` | `0` | Write every bridge call and every game event in the chat and the console |
 | `tf2ap_bridge_url` | `http://127.0.0.1:24680` | Where the bridge is. Loopback only. Do not change it. |
 | `tf2ap_start_mission` | empty | The mission the server starts on, as a popfile name. The launcher and the image write it from their settings. |
-| `tf2ap_next_mission_delay` | `20` | Seconds between a mission clear and the next mission. `0` leaves the game's own cycle to it. |
+| `tf2ap_next_mission_delay` | `30` | Seconds between a mission clear and the next mission. `0` leaves the game's own cycle to it. |
 | `tf2ap_bot_upgrades_chat` | `0` | Write what the defender bots buy at the upgrade station in the chat. One line per purchase. |
 
 Errors reach the chat whatever `tf2ap_announce` is set to. A failure that

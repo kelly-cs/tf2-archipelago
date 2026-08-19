@@ -157,6 +157,11 @@ options de partie et donne un déblocage à chaque vague réussie.
 Il joue aussi les autres joueurs : ils trouvent des objets, vous en envoient et
 meurent. Chaque ligne arrive dans le journal et dans le chat du jeu.
 
+La partie démarre comme une vraie : une classe, un emplacement d'arme et une
+mission. Le serveur verrouille donc dès la première vague ce qu'une vraie seed
+verrouille. Ce que les joueurs simulés vous envoient est du remplissage. Les
+déblocages viennent des vagues que vous terminez, et de rien d'autre.
+
 Rien ne quitte la machine, et vous n'avez besoin ni de room ni de seed. Servez-
 vous en pour essayer le serveur, et pour tester quand quelque chose cloche.
 

@@ -144,7 +144,7 @@ n'écrase jamais ce fichier une fois qu'il existe.
 | `tf2ap_debug` | `0` | Écrit chaque appel au bridge et chaque événement de jeu dans le chat et la console |
 | `tf2ap_bridge_url` | `http://127.0.0.1:24680` | Où se trouve le bridge. Loopback uniquement. Ne le changez pas. |
 | `tf2ap_start_mission` | vide | La mission de départ du serveur, par nom de popfile. Le lanceur et l'image l'écrivent depuis leurs réglages. |
-| `tf2ap_next_mission_delay` | `20` | Secondes entre la fin d'une mission et la suivante. `0` laisse faire la rotation du jeu. |
+| `tf2ap_next_mission_delay` | `30` | Secondes entre la fin d'une mission et la suivante. `0` laisse faire la rotation du jeu. |
 | `tf2ap_bot_upgrades_chat` | `0` | Écrit dans le chat ce que les bots défenseurs achètent à la station d'améliorations. Une ligne par achat. |
 
 Les erreurs atteignent le chat quel que soit le réglage de

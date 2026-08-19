@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"os"
 	"strings"
 	"time"
 )
@@ -30,8 +31,11 @@ const (
 	terminatorOffset = 1000
 
 	authRequestID int32 = 1
-	timeout             = 10 * time.Second
 )
+
+// timeout bounds a dial and one command. A var so a test can shorten the wait
+// on the path where nothing comes back at all.
+var timeout = 10 * time.Second
 
 // ErrBadPassword is the server refusing the password. It reads the password at
 // boot, so a value changed since then needs a restart.
@@ -83,9 +87,19 @@ func (c *Client) Exec(command string) (string, error) {
 	}
 
 	var reply strings.Builder
-	for range packetCountMax {
+	for packets := range packetCountMax {
 		answeredID, _, body, err := c.read()
 		if err != nil {
+			// The terminator is an empty command, and a server that drops it
+			// leaves the read to expire. A live server did that on a command
+			// that does not exist, and "i/o timeout" is not what the player
+			// needs to read. Silence for the whole window, on a connection
+			// that authenticated, is a command that printed nothing.
+			if packets == 0 && errors.Is(err, os.ErrDeadlineExceeded) {
+				return "", fmt.Errorf(
+					"the server printed nothing for %q within %s. Check the spelling: "+
+						"the plugin's commands start with sm_ap_", command, timeout)
+			}
 			return "", err
 		}
 		if answeredID == terminator {

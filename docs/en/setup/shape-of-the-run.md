@@ -108,7 +108,7 @@ beside it. The room takes that player with no port to open.
 | `SRCDS_MAXPLAYERS` | `32` | Server slots. Team Fortress 2 refuses to host MvM with fewer, and caps RED at six itself. Do not lower it. |
 | `SRCDS_STARTMAP` | `mvm_decoy` | The map that the server starts on |
 | `SRCDS_START_MISSION` | empty | The mission the server loads once the map is up, as a popfile name |
-| `TF2AP_NEXT_MISSION_DELAY` | `20` | Seconds between a mission clear and the next mission |
+| `TF2AP_NEXT_MISSION_DELAY` | `30` | Seconds between a mission clear and the next mission |
 
 The run picks the mission from there. If the loaded mission is not part of the
 run, or the run has not unlocked it, the server moves to the first unlocked

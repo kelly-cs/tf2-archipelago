@@ -118,7 +118,7 @@ fichier à côté. La room accueille ce joueur sans ouvrir de port.
 | `SRCDS_MAXPLAYERS` | `32` | Emplacements du serveur. Team Fortress 2 refuse d'héberger MvM avec moins, et plafonne RED à six lui-même. Ne le baissez pas. |
 | `SRCDS_STARTMAP` | `mvm_decoy` | La carte sur laquelle le serveur démarre |
 | `SRCDS_START_MISSION` | vide | La mission que le serveur charge une fois la carte prête, par nom de popfile |
-| `TF2AP_NEXT_MISSION_DELAY` | `20` | Secondes entre la fin d'une mission et la suivante |
+| `TF2AP_NEXT_MISSION_DELAY` | `30` | Secondes entre la fin d'une mission et la suivante |
 
 La partie choisit la mission à partir de là. Si la mission chargée ne fait pas
 partie de la partie, le serveur passe à la première mission débloquée. Il fait

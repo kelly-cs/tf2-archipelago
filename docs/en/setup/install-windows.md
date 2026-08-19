@@ -153,6 +153,11 @@ hands out an unlock for every wave you clear.
 It also plays the other players: they find things, send you things and die.
 Every line of that reaches the log and the game's chat.
 
+The run starts the way a generated one does: one class, one weapon slot and
+one mission. The server locks what a real seed locks, from the first wave.
+What the simulated players send you is filler. The unlocks come from the waves
+you clear, and from nothing else.
+
 Nothing leaves the machine, and you need no room and no seed. Use it to try the
 server out, and to play-test when something looks wrong.
 
