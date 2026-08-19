@@ -110,17 +110,38 @@ func Run(ctx context.Context, options Options) (Result, error) {
 
 // FindApp returns the app's directory: the one given, if it holds a generator,
 // else the first of the places the installer uses that does.
+//
+// The given path may name the app's own exe rather than its folder, because
+// that is what a file picker hands back and what a player copies out of a
+// shortcut.
 func FindApp(given string) (string, error) {
-	dirs := candidateDirs()
-	if given != "" {
-		dirs = append([]string{given}, dirs...)
-	}
-	for _, dir := range dirs {
+	for _, dir := range SearchPath(given) {
 		if exists(generatorPath(dir)) {
 			return dir, nil
 		}
 	}
 	return "", ErrNotInstalled
+}
+
+// SearchPath is every directory FindApp looks in, in order. The settings
+// dialog prints it, because "not where the launcher looked" is only useful
+// with the list beside it.
+func SearchPath(given string) []string {
+	dirs := candidateDirs()
+	if given == "" {
+		return dirs
+	}
+	return append([]string{appDirOf(given)}, dirs...)
+}
+
+// appDirOf takes the folder out of a path that names a file. A folder that is
+// not there yet is passed through: the caller reports it as missing.
+func appDirOf(given string) string {
+	info, err := os.Stat(given)
+	if err == nil && !info.IsDir() {
+		return filepath.Dir(given)
+	}
+	return given
 }
 
 // installApworld puts the world file where the app looks for worlds. Nothing

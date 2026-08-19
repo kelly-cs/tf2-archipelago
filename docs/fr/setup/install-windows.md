@@ -57,7 +57,9 @@ en Python, donc il reste dans l'application officielle.
 
 1. Installez l'application officielle
    [Archipelago](https://github.com/ArchipelagoMW/Archipelago/releases). Le
-   lanceur la trouve là où l'installeur la met.
+   lanceur la trouve là où l'installeur la met : sous
+   `%LOCALAPPDATA%\Programs\Archipelago`, dans `Program Files`, ou dans
+   `C:\ProgramData\Archipelago`.
 2. Dans le lanceur, ouvrez **Settings**, réglez les options de partie, puis
    appuyez sur **Generate seed**. Le lanceur place le fichier du monde dans
    l'application et écrit le fichier joueur. Il lance ensuite le générateur et
@@ -72,6 +74,14 @@ dans l'onglet **Archipelago room**.
 Le fichier joueur est aussi dans `%USERPROFILE%\tf2-archipelago\tf2.yaml`, et
 **Open tf2.yaml** l'affiche. C'est pour qui veut générer à la main dans
 l'application.
+
+Si l'application est sur un autre disque, ou dans un dossier à vous,
+**Generate seed** le dit et liste les dossiers examinés. Mettez le dossier de
+l'application dans **Archipelago app**, onglet **Player options**, et appuyez
+sur **Browse** pour le choisir. Le dossier est celui qui contient
+`ArchipelagoGenerate.exe` ; l'exe lui-même est accepté aussi.
+`tf2ap.exe -status` affiche où le lanceur a trouvé l'application, ou qu'il ne
+l'a pas trouvée.
 
 Voir [Créer la session](create-the-session.md) pour le détail de chaque étape.
 

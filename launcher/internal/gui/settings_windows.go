@@ -55,6 +55,8 @@ func runSettingsDialog(owner walk.Form, s settings.Settings, repair func() ([]st
 		startBox *walk.ComboBox
 		poolView *walk.TableView
 
+		appEdit *walk.LineEdit
+
 		nameEdit  *walk.LineEdit
 		passEdit  *walk.LineEdit
 		portEdit  *walk.NumberEdit
@@ -127,6 +129,7 @@ func runSettingsDialog(owner walk.Form, s settings.Settings, repair func() ([]st
 		next.MvmMissionsanityPct = int(sanityPct.Value())
 		next.MvmDeathLink = deathLink.Checked()
 		next.MvmExcludedMissions = pool.excluded()
+		next.ArchipelagoDir = strings.TrimSpace(appEdit.Text())
 
 		next.SrcdsStartMission = choices[max(startBox.CurrentIndex(), 0)].PopFile
 
@@ -192,6 +195,23 @@ func runSettingsDialog(owner walk.Form, s settings.Settings, repair func() ([]st
 							},
 							label("Death Link", "A lost wave kills every other player in the multiworld who has Death Link on, and their deaths wipe your team."),
 							declarative.CheckBox{AssignTo: &deathLink, Text: "share deaths", Checked: s.MvmDeathLink},
+							label("Archipelago app", "Where the Archipelago app is installed. Leave it blank and the launcher looks where the installer puts it. Set it when the app is on another drive, or in a folder of your own."),
+							declarative.Composite{
+								Layout: declarative.HBox{MarginsZero: true},
+								Children: []declarative.Widget{
+									declarative.LineEdit{
+										AssignTo:  &appEdit,
+										Text:      s.ArchipelagoDir,
+										CueBanner: defaultAppDir(),
+									},
+									declarative.PushButton{
+										Text:        "Browse",
+										MinSize:     declarative.Size{Width: 70},
+										ToolTipText: "Pick the folder holding ArchipelagoGenerate.exe.",
+										OnClicked:   func() { browseForApp(dialog, appEdit) },
+									},
+								},
+							},
 							declarative.Label{
 								Text:        "These are the options the Archipelago website calls player options. They go in tf2.yaml, which the seed is generated from. The Missions tab picks which missions the run may draw.",
 								ColumnSpan:  2,
@@ -518,9 +538,11 @@ func generateSeed(owner walk.Form, collect func() (settings.Settings, error)) {
 	}
 	if _, err := generate.FindApp(next.ArchipelagoDir); err != nil {
 		walk.MsgBox(owner, "Generate seed",
-			"The Archipelago app was not found.\n\nInstall it from "+
-				"github.com/ArchipelagoMW/Archipelago/releases, then press this again. "+
-				"The launcher looks in the folder its installer uses.",
+			"The Archipelago app was not found.\n\nThe launcher looked in:\n"+
+				"    "+strings.Join(generate.SearchPath(next.ArchipelagoDir), "\n    ")+
+				"\n\nIf the app is somewhere else, put its folder in Archipelago app "+
+				"above and press this again. If it is not installed, get it from "+
+				"github.com/ArchipelagoMW/Archipelago/releases.",
 			walk.MsgBoxIconWarning)
 		return
 	}
@@ -566,6 +588,34 @@ func openPlayerFile(owner walk.Form, collect func() (settings.Settings, error)) 
 	if err := winproc.Open(path); err != nil {
 		walk.MsgBox(owner, "Open tf2.yaml", err.Error(), walk.MsgBoxIconError)
 	}
+}
+
+// browseForApp asks for the app's folder and puts it in the box. The dialog
+// starts wherever the box points, so a second try opens where the first one
+// left off rather than at the desktop.
+func browseForApp(owner walk.Form, edit *walk.LineEdit) {
+	dialog := walk.FileDialog{
+		Title:          "Where is the Archipelago app?",
+		InitialDirPath: strings.TrimSpace(edit.Text()),
+	}
+	accepted, err := dialog.ShowBrowseFolder(owner)
+	if err != nil {
+		walk.MsgBox(owner, "Archipelago app", err.Error(), walk.MsgBoxIconError)
+		return
+	}
+	if !accepted || dialog.FilePath == "" {
+		return
+	}
+	_ = edit.SetText(dialog.FilePath)
+}
+
+// defaultAppDir is the first place the launcher looks, shown as the box's
+// placeholder so a blank field says what it means.
+func defaultAppDir() string {
+	if dirs := generate.SearchPath(""); len(dirs) > 0 {
+		return dirs[0]
+	}
+	return ""
 }
 
 func openFolder(owner walk.Form, path string) {

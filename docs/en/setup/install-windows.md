@@ -58,7 +58,9 @@ Python, so it stays with the official app.
 
 1. Install the official
    [Archipelago](https://github.com/ArchipelagoMW/Archipelago/releases) app.
-   The launcher finds it where the installer puts it.
+   The launcher finds it where the installer puts it: under
+   `%LOCALAPPDATA%\Programs\Archipelago`, in `Program Files`, or in
+   `C:\ProgramData\Archipelago`.
 2. In the launcher, open **Settings**, set the player options, and press
    **Generate seed**. The launcher puts the world file into the app and writes
    the player file. It then runs the generator and opens the folder with the
@@ -72,6 +74,13 @@ the **Archipelago room** tab.
 The player file is also at `%USERPROFILE%\tf2-archipelago\tf2.yaml`, and
 **Open tf2.yaml** shows it. That is for anybody who wants to generate in the
 app by hand.
+
+If the app is on another drive, or in a folder of your own, **Generate seed**
+says so and lists the folders it looked in. Put the app's folder in
+**Archipelago app**, on the **Player options** tab, and press **Browse** to
+pick it. The folder is the one holding `ArchipelagoGenerate.exe`; the exe
+itself is accepted too. `tf2ap.exe -status` prints where the launcher found
+the app, or that it did not.
 
 See [Create the session](create-the-session.md) for the detail of each step.
 It also shows how to host the session on your own machine.
@@ -221,6 +230,7 @@ already sets.
 | `%USERPROFILE%\tf2-archipelago\tf2.yaml` | The player file for the Archipelago app. |
 | `%USERPROFILE%\tf2-archipelago\bridge-state\` | The checks and unlocks of the run. |
 | `%APPDATA%\tf2ap\config.json` | Your saved settings. |
+| `%LOCALAPPDATA%\Programs\Archipelago\` | The Archipelago app, if you installed it there. `TF2AP_ARCHIPELAGO_DIR` or the **Archipelago app** field points elsewhere. |
 
 `TF2AP_INSTALL_ROOT` moves the first three, for a second disk.
 

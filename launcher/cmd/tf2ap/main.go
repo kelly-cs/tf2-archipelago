@@ -21,6 +21,7 @@ import (
 	"syscall"
 
 	"github.com/m-this/tf2-archipelago/launcher/internal/assets"
+	"github.com/m-this/tf2-archipelago/launcher/internal/generate"
 	"github.com/m-this/tf2-archipelago/launcher/internal/gui"
 	"github.com/m-this/tf2-archipelago/launcher/internal/installer"
 	"github.com/m-this/tf2-archipelago/launcher/internal/runshape"
@@ -212,7 +213,18 @@ func summary(s settings.Settings) {
 	fmt.Printf("\ntf2ap.exe -configure changes any of this. It is saved in %s.\n", path)
 }
 
+// configure walks every setting, section by section, the way the window's
+// tabs do. One function per section: the whole list read as one is longer than
+// a screen, and each section stands on its own.
 func configure(p *ui.Prompt, s settings.Settings) settings.Settings {
+	s = configureRoom(p, s)
+	s = configureServer(p, s)
+	s = configureBots(p, s)
+	s = configureRun(p, s)
+	return configureInstall(p, s)
+}
+
+func configureRoom(p *ui.Prompt, s settings.Settings) settings.Settings {
 	fmt.Println("--- Archipelago room ---")
 	current := settings.Room{Host: s.APHost, Port: s.APPort, TLS: s.APTls}
 	for {
@@ -228,7 +240,10 @@ func configure(p *ui.Prompt, s settings.Settings) settings.Settings {
 	s.APTls = p.Bool("Use TLS (wss)", s.APTls)
 	s.APSlotName = p.Text("Slot name", s.APSlotName)
 	s.APPassword = p.Password("Room password", s.APPassword)
+	return s
+}
 
+func configureServer(p *ui.Prompt, s settings.Settings) settings.Settings {
 	fmt.Println("\n--- Game server ---")
 	s.SrcdsHostname = p.Text("Server hostname", s.SrcdsHostname)
 	s.SrcdsRconPw = p.Password("RCON password", s.SrcdsRconPw)
@@ -245,7 +260,10 @@ func configure(p *ui.Prompt, s settings.Settings) settings.Settings {
 	} else {
 		s.SrcdsToken = p.Text("Game Server Login Token", s.SrcdsToken)
 	}
+	return s
+}
 
+func configureBots(p *ui.Prompt, s settings.Settings) settings.Settings {
 	fmt.Println("\n--- Defender bots ---")
 	s.SrcdsBots = p.Bool("Fill the RED team with bots", s.SrcdsBots)
 	if s.SrcdsBots {
@@ -255,7 +273,10 @@ func configure(p *ui.Prompt, s settings.Settings) settings.Settings {
 			strings.Join(s.SrcdsBotClassBlacklist, ",")))
 		s.BotUpgradesChat = p.Bool("Say what the bots buy in the chat", s.BotUpgradesChat)
 	}
+	return s
+}
 
+func configureRun(p *ui.Prompt, s settings.Settings) settings.Settings {
 	fmt.Println("\n--- Run shape ---")
 	fmt.Println("These go in the player file the Archipelago app generates from.")
 	fmt.Println("Change them here, then generate again, for a new seed.")
@@ -279,9 +300,17 @@ func configure(p *ui.Prompt, s settings.Settings) settings.Settings {
 	s.MvmExcludedMissions = settings.SplitList(p.Text(
 		"Missions the run never draws (comma-separated popfiles, e.g. mvm_ghost_town_666)",
 		strings.Join(s.MvmExcludedMissions, ",")))
+	return s
+}
 
+func configureInstall(p *ui.Prompt, s settings.Settings) settings.Settings {
 	fmt.Println("\n--- Install location ---")
 	s.InstallRoot = p.Text("Install root (14 GB of game files)", s.InstallRoot)
+	fmt.Println("Where the Archipelago app is, for generating seeds. Blank looks in:")
+	for _, dir := range generate.SearchPath("") {
+		fmt.Printf("  %s\n", dir)
+	}
+	s.ArchipelagoDir = p.Text("Archipelago app (blank for the list above)", s.ArchipelagoDir)
 	return s
 }
 
@@ -333,6 +362,7 @@ func wavesFor(tiers []runshape.Tier, key string, missions int) int {
 
 func showStatus(s settings.Settings) {
 	fmt.Printf("Install root:  %s\n", s.InstallRoot)
+	fmt.Printf("Archipelago:   %s\n", appDirStatus(s.ArchipelagoDir))
 	fmt.Printf("Archipelago:   %s (tls=%v)\n", settings.Room{Host: s.APHost, Port: s.APPort}, s.APTls)
 	fmt.Printf("Slot:          %s\n", s.APSlotName)
 	fmt.Printf("Server:        %s on port %d (%s)\n", s.SrcdsHostname, s.SrcdsPort, s.Reach())
@@ -340,6 +370,16 @@ func showStatus(s settings.Settings) {
 	fmt.Printf("Run:           %d missions, %s, goal=%s\n", s.MvmMissionCount, s.MvmDifficulty, s.MvmGoal)
 	fmt.Printf("Bots:          %s\n", botsStatus(s))
 	fmt.Printf("RCON password: %s\n", masked(s.SrcdsRconPw))
+}
+
+// appDirStatus says where the Archipelago app is, or that it was not found and
+// where the launcher looked. -status is what a player reads before asking why
+// Generate seed does nothing.
+func appDirStatus(given string) string {
+	if dir, err := generate.FindApp(given); err == nil {
+		return dir
+	}
+	return "not found in " + strings.Join(generate.SearchPath(given), ", ")
 }
 
 func botsStatus(s settings.Settings) string {

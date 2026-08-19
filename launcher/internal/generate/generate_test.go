@@ -76,6 +76,35 @@ func TestRunFindsTheAppAndReturnsTheArchive(t *testing.T) {
 	}
 }
 
+// A file picker hands back the exe, and a shortcut's target is a path to one.
+// Both have to work, or the field the player was told to fill does nothing.
+func TestFindAppTakesTheExeOrItsFolder(t *testing.T) {
+	appDir := fakeGenerator(t)
+
+	for _, given := range []string{appDir, generatorPath(appDir)} {
+		found, err := FindApp(given)
+		if err != nil {
+			t.Fatalf("FindApp(%s): %v", given, err)
+		}
+		if found != appDir {
+			t.Errorf("FindApp(%s) = %s, want %s", given, found, appDir)
+		}
+	}
+}
+
+// The dialog prints this list when it finds nothing, so the given path has to
+// be in it and first.
+func TestSearchPathLeadsWithWhatThePlayerGave(t *testing.T) {
+	if got := SearchPath(""); len(got) == 0 {
+		t.Fatal("nowhere to look with nothing given")
+	}
+	elsewhere := filepath.Join("D:", "Games", "Archipelago")
+	got := SearchPath(elsewhere)
+	if len(got) < 2 || got[0] != elsewhere {
+		t.Errorf("SearchPath = %v", got)
+	}
+}
+
 func TestRunWithoutTheApp(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
 	s := settings.Defaults()
@@ -83,5 +112,13 @@ func TestRunWithoutTheApp(t *testing.T) {
 	_, err := Run(context.Background(), Options{Settings: s, AppDir: filepath.Join(t.TempDir(), "nowhere")})
 	if err == nil || !strings.Contains(err.Error(), "not installed") {
 		t.Fatalf("got %v, want the not-installed error", err)
+	}
+}
+
+// A folder that holds no generator is not the app, whatever its name.
+func TestFindAppRefusesAFolderWithoutAGenerator(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	if _, err := FindApp(t.TempDir()); err == nil {
+		t.Fatal("an empty folder passed as the Archipelago app")
 	}
 }
