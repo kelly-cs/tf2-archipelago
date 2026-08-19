@@ -81,8 +81,7 @@ func TestEveryFieldHasAnEnvVar(t *testing.T) {
 		"SrcdsStartMission":      "SRCDS_START_MISSION",
 		"SrcdsStartMap":          "SRCDS_STARTMAP",
 		"SrcdsToken":             "SRCDS_TOKEN",
-		"SrcdsLan":               "SRCDS_LAN",
-		"SrcdsSteamNetworking":   "SRCDS_STEAM_NETWORKING",
+		"SrcdsReach":             "SRCDS_REACH",
 		"SrcdsAdminSteamIDs":     "SRCDS_ADMIN_STEAMIDS",
 		"SrcdsBots":              "SRCDS_BOTS",
 		"SrcdsBotTeamSize":       "SRCDS_BOT_TEAM_SIZE",
@@ -97,6 +96,10 @@ func TestEveryFieldHasAnEnvVar(t *testing.T) {
 		"MvmExcludedMissions":    "MVM_EXCLUDED_MISSIONS",
 		"MetricsPort":            "BRIDGE_METRICS_PORT",
 	}
+	// Fields kept only to read a config file written by an older build. They
+	// are never saved and never asked for, so there is nothing to set.
+	legacy := map[string]bool{"SrcdsLanLegacy": true}
+
 	known := map[string]bool{}
 	for _, name := range EnvNames {
 		known[name] = true
@@ -104,6 +107,9 @@ func TestEveryFieldHasAnEnvVar(t *testing.T) {
 
 	for structField := range reflect.TypeFor[Settings]().Fields() {
 		field := structField.Name
+		if legacy[field] {
+			continue
+		}
 		name, ok := byField[field]
 		if !ok {
 			t.Errorf("%s has no environment variable; add one to ApplyEnv and to this table", field)
@@ -116,7 +122,9 @@ func TestEveryFieldHasAnEnvVar(t *testing.T) {
 
 	// And the other way: a name in the list that nothing reads is a lie in the
 	// output of -env.
-	mapped := map[string]bool{"AP_ROOM": true}
+	// AP_ROOM carries a whole address, and SRCDS_LAN is the older spelling of
+	// two of the three reaches. Both are read, neither owns a field.
+	mapped := map[string]bool{"AP_ROOM": true, "SRCDS_LAN": true}
 	for _, name := range byField {
 		mapped[name] = true
 	}

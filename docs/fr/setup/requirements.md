@@ -11,7 +11,7 @@ tourner le même logiciel.
 | Disque | Environ 20 Go libres. Le serveur de jeu télécharge environ 14 Go au premier démarrage. |
 | Mémoire | 4 Go pour six joueurs. |
 | Processeur | Deux cœurs. |
-| Réseau | Un port que vos amis peuvent atteindre, UDP et TCP. |
+| Réseau | Rien, pour des amis sur le même réseau ou par le relais Steam. Un port redirigé, UDP et TCP, seulement si vous choisissez cette voie. |
 
 ## Windows (recommandé)
 
@@ -52,8 +52,9 @@ room sur `archipelago.gg`, et il n'écoute que sur le loopback. Voir
 La machine doit atteindre `archipelago.gg` sur le port de la room. Un pare-feu
 qui filtre le trafic sortant doit laisser passer ce port.
 
-Si la machine est derrière un routeur, redirigez ce port vers elle. Si la
-machine a un pare-feu, ouvrez ce port.
+Ce qu'il faut rediriger dépend de `SRCDS_REACH`, et seul `SRCDS_REACH=port`
+le demande. Par le relais Steam, le serveur sort de lui-même et rien n'a besoin
+d'entrer. Voir [Inviter vos amis](invite-your-friends.md).
 
 ## Ce dont vous n'avez pas besoin
 

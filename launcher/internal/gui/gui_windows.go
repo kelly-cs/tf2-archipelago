@@ -230,7 +230,7 @@ func (w *window) append(line apruntime.Line) {
 		time.AfterFunc(flushEvery, func() { w.main.Synchronize(w.flush) })
 	}
 	if line.Source == "srcds" {
-		if address, ok := apruntime.FakeIP(line.Text); ok {
+		if address := apruntime.FakeIPAddress(line.Text); address != "" {
 			w.noteSteamAddress(address)
 		}
 	}
@@ -419,7 +419,7 @@ func (w *window) refresh() {
 func joinLine(s settings.Settings, steamAddress string) string {
 	port := fmt.Sprintf("%d", s.SrcdsPort)
 	var parts []string
-	if s.Reach() == settings.ReachSteam {
+	if s.SrcdsReach == settings.ReachSteam {
 		if steamAddress == "" {
 			parts = append(parts, "waiting for Steam to assign an address")
 		} else {

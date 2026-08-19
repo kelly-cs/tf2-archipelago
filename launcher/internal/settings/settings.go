@@ -43,7 +43,7 @@ type Settings struct {
 	SrcdsPort          int    `json:"srcds_port"`
 	SrcdsMaxPlayers    int    `json:"srcds_max_players"`
 	SrcdsToken         string `json:"srcds_token"`
-	SrcdsLan           bool   `json:"srcds_lan"`
+	SrcdsReach         Reach  `json:"srcds_reach"`
 	SrcdsAdminSteamIDs string `json:"srcds_admin_steamids,omitempty"`
 
 	// SrcdsStartMission is the popfile the server loads first. The map comes
@@ -54,10 +54,10 @@ type Settings struct {
 	// SrcdsStartMission and never written again.
 	SrcdsStartMap string `json:"srcds_start_map,omitempty"`
 
-	// SrcdsSteamNetworking relays the traffic over Steam Datagram Relay when
-	// the server is not LAN: no port to forward, and Valve hands out the
-	// address. Needs the login token like any public server.
-	SrcdsSteamNetworking bool `json:"srcds_steam_networking"`
+	// SrcdsLanLegacy is the srcds_lan boolean SrcdsReach replaced. It is read
+	// once, to pick the reach a config file written before 1.3 meant, and
+	// never written back. Drop it when no such file is left.
+	SrcdsLanLegacy *bool `json:"srcds_lan,omitempty"`
 
 	// Defender bots. RED is filled to SrcdsBotTeamSize when a wave begins.
 	SrcdsBots        bool `json:"srcds_bots"`
@@ -100,7 +100,7 @@ func Defaults() Settings {
 		SrcdsMaxPlayers:     32,
 		SrcdsStartMission:   "mvm_decoy",
 		SrcdsToken:          "0",
-		SrcdsLan:            true,
+		SrcdsReach:          ReachLan,
 		SrcdsBots:           true,
 		SrcdsBotTeamSize:    6,
 		MvmMissionCount:     8,
@@ -201,6 +201,17 @@ func (s Settings) withDefaults() Settings {
 	if s.SrcdsToken == "" {
 		s.SrcdsToken = d.SrcdsToken
 	}
+	if !s.SrcdsReach.Valid() {
+		// A file that predates SrcdsReach says only whether sv_lan was on.
+		// sv_lan off meant a forwarded port, because that was the only way out
+		// at the time. Anything else, including a value nobody recognizes,
+		// falls back to the private default rather than opening the server.
+		s.SrcdsReach = d.SrcdsReach
+		if s.SrcdsLanLegacy != nil && !*s.SrcdsLanLegacy {
+			s.SrcdsReach = ReachPort
+		}
+	}
+	s.SrcdsLanLegacy = nil
 	if s.MvmMissionCount == 0 {
 		s.MvmMissionCount = d.MvmMissionCount
 	}
@@ -236,84 +247,4 @@ func startMissionFor(mapName, fallback string) string {
 		}
 	}
 	return fallback
-}
-
-// Reach is how players get to the game server: the local network only,
-// through Steam's relay, or straight to a forwarded port. Two flags in the
-// file, one answer for the code that reads them.
-type Reach string
-
-const (
-	ReachLan   Reach = "lan"
-	ReachSteam Reach = "steam"
-	ReachPort  Reach = "port"
-)
-
-// Reaches lists the choices, private first.
-func Reaches() []Reach { return []Reach{ReachLan, ReachSteam, ReachPort} }
-
-func (s Settings) Reach() Reach {
-	switch {
-	case s.SrcdsLan:
-		return ReachLan
-	case s.SrcdsSteamNetworking:
-		return ReachSteam
-	default:
-		return ReachPort
-	}
-}
-
-// WithReach returns the settings with the two flags a reach stands for.
-func (s Settings) WithReach(reach Reach) Settings {
-	s.SrcdsLan = reach == ReachLan
-	s.SrcdsSteamNetworking = reach == ReachSteam
-	return s
-}
-
-// HasToken reports whether a Game Server Login Token is set. "0" is the
-// spelling for none, from the compose stack.
-func (s Settings) HasToken() bool {
-	return s.SrcdsToken != "" && s.SrcdsToken != "0"
-}
-
-// Label names the choice in one line, for a menu.
-func (r Reach) Label() string {
-	switch r {
-	case ReachSteam:
-		return "Over Steam, no port to open"
-	case ReachPort:
-		return "Over a port forwarded on the router"
-	default:
-		return "This machine and the local network only"
-	}
-}
-
-// Help is the sentence under the label: what the choice costs and what it gives.
-func (r Reach) Help() string {
-	switch r {
-	case ReachSteam:
-		return "Steam relays the traffic. Valve hands the server an address like " +
-			"169.254.13.42:20232 and your friends connect to that from anywhere. Nothing to " +
-			"forward, and your own address stays hidden. Needs a login token, and the address " +
-			"is a new one every time the server starts. The launcher shows it once the server is up."
-	case ReachPort:
-		return "Your friends connect to your public address, so the game port has to be forwarded " +
-			"to this machine on your router and open in its firewall. Needs a login token."
-	default:
-		return "Nobody outside your network can join, whatever the router does. No Steam login, " +
-			"no token, never on the public list."
-	}
-}
-
-// ParseReach reads a saved or typed value. Anything it does not know is LAN:
-// a typo must not open a server to the internet.
-func ParseReach(value string) Reach {
-	switch Reach(value) {
-	case ReachSteam:
-		return ReachSteam
-	case ReachPort:
-		return ReachPort
-	default:
-		return ReachLan
-	}
 }

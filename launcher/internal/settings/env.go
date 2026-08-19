@@ -15,7 +15,7 @@ var EnvNames = []string{
 	"AP_ROOM", "AP_HOST", "AP_PORT", "AP_TLS", "AP_SLOT_NAME", "AP_PASSWORD",
 	"SRCDS_HOSTNAME", "SRCDS_RCONPW", "SRCDS_PW", "SRCDS_PORT",
 	"SRCDS_MAXPLAYERS", "SRCDS_START_MISSION", "SRCDS_STARTMAP", "SRCDS_TOKEN",
-	"SRCDS_LAN", "SRCDS_STEAM_NETWORKING", "SRCDS_ADMIN_STEAMIDS",
+	"SRCDS_LAN", "SRCDS_REACH", "SRCDS_ADMIN_STEAMIDS",
 	"SRCDS_BOTS", "SRCDS_BOT_TEAM_SIZE", "SRCDS_BOT_CLASS_BLACKLIST", "SRCDS_BOT_LOADOUTS",
 	"TF2AP_BOT_UPGRADES_CHAT",
 	"MVM_MISSION_COUNT", "MVM_DIFFICULTY", "MVM_GOAL",
@@ -60,8 +60,20 @@ func ApplyEnv(s Settings) Settings {
 	}
 	str(&s.SrcdsStartMission, "SRCDS_START_MISSION")
 	str(&s.SrcdsToken, "SRCDS_TOKEN")
-	boolean(&s.SrcdsLan, "SRCDS_LAN")
-	boolean(&s.SrcdsSteamNetworking, "SRCDS_STEAM_NETWORKING")
+
+	// SRCDS_LAN is the older spelling and covers two of the three reaches, so
+	// SRCDS_REACH is read after it and wins when both are set.
+	if lan, ok := lookupBool("SRCDS_LAN"); ok {
+		s.SrcdsReach = ReachLan
+		if !lan {
+			s.SrcdsReach = ReachPort
+		}
+	}
+	if value, ok := os.LookupEnv("SRCDS_REACH"); ok {
+		if reach, ok := ParseReach(strings.ToLower(strings.TrimSpace(value))); ok {
+			s.SrcdsReach = reach
+		}
+	}
 	str(&s.SrcdsAdminSteamIDs, "SRCDS_ADMIN_STEAMIDS")
 	boolean(&s.SrcdsBots, "SRCDS_BOTS")
 	num(&s.SrcdsBotTeamSize, "SRCDS_BOT_TEAM_SIZE")
@@ -107,16 +119,37 @@ func num(target *int, name string) {
 
 // boolean accepts the spellings an .env file and a shell both produce.
 func boolean(target *bool, name string) {
+	if value, ok := lookupBool(name); ok {
+		*target = value
+	}
+}
+
+// Truthy reads one of the spellings an .env file and a shell both produce.
+// Anything else, including an empty string, is false: a flag nobody set stays
+// off, and so does one somebody spelled wrong.
+func Truthy(value string) bool {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "1", "true", "yes", "on":
+		return true
+	}
+	return false
+}
+
+// lookupBool is boolean for a caller that does not have a *bool to write into.
+// The second result is false both when the variable is unset and when it holds
+// something that is not a boolean at all.
+func lookupBool(name string) (bool, bool) {
 	value, ok := os.LookupEnv(name)
 	if !ok {
-		return
+		return false, false
 	}
 	switch strings.ToLower(strings.TrimSpace(value)) {
 	case "1", "true", "yes", "on":
-		*target = true
+		return true, true
 	case "0", "false", "no", "off":
-		*target = false
+		return false, true
 	}
+	return false, false
 }
 
 // list reads a comma-separated value. An empty value empties the list, which

@@ -40,8 +40,9 @@ tf2ap_bot_upgrades_chat {{.BotUpgradesChat}}
 
 // LAN mode skips Steam authentication. The server has no Game Server Login
 // Token by default, so it never logs in to Steam, and a client trying to
-// authenticate against a server with no Steam session is refused. Going
-// online means a real SRCDS_TOKEN and SRCDS_LAN=0.
+// authenticate against a server with no Steam session is refused. Reaching
+// players outside the network, over Steam's relay or a forwarded port, means
+// a real SRCDS_TOKEN and sv_lan 0. SRCDS_REACH picks which.
 sv_lan {{.Lan}}
 sv_pure 0
 sv_pausable 0

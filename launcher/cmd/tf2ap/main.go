@@ -33,6 +33,10 @@ import (
 
 const version = "dev"
 
+// tokenAsks bounds the retries on the login token prompt. Three is a
+// typo and a paste; past that the answer is not coming.
+const tokenAsks = 3
+
 func main() {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 	if err := run(logger); err != nil {
@@ -205,7 +209,7 @@ func summary(s settings.Settings) {
 	path, _ := settings.Path()
 	fmt.Println()
 	fmt.Printf("  room     %s (%s), slot %s\n", room, scheme, s.APSlotName)
-	fmt.Printf("  server   %q on port %d, %s\n", s.SrcdsHostname, s.SrcdsPort, s.Reach().Label())
+	fmt.Printf("  server   %q on port %d, %s\n", s.SrcdsHostname, s.SrcdsPort, s.SrcdsReach.Label())
 	fmt.Printf("  mission  %s\n", runshape.MissionLabel(s.SrcdsStartMission))
 	fmt.Printf("  bots     %s\n", botsStatus(s))
 	fmt.Printf("  run      %d missions, %s, goal %s\n", s.MvmMissionCount, s.MvmDifficulty, s.MvmGoal)
@@ -222,6 +226,41 @@ func configure(p *ui.Prompt, s settings.Settings) settings.Settings {
 	s = configureBots(p, s)
 	s = configureRun(p, s)
 	return configureInstall(p, s)
+}
+
+// askReach asks where the players come from, and for the login token when the
+// answer needs one. A reach that leaves the local network with no token is a
+// server that refuses every player who tries to join, with a message that says
+// nothing about a token, so this does not let one through.
+func askReach(p *ui.Prompt, s settings.Settings) settings.Settings {
+	s.SrcdsReach, _ = settings.ParseReach(p.Select("Who can reach the server", reachOptions(), string(s.SrcdsReach)))
+	if !s.SrcdsReach.NeedsToken() {
+		s.SrcdsToken = "0"
+		return s
+	}
+
+	fmt.Println("  This needs a Game Server Login Token for app id 440.")
+	fmt.Println("  Get one at steamcommunity.com/dev/managegameservers.")
+	// Bounded: a closed stdin gives the same answer every time, and a prompt
+	// that never gives up is a program that never exits.
+	for range tokenAsks {
+		s.SrcdsToken = p.Text("Game Server Login Token", s.SrcdsToken)
+		if settings.HasToken(s.SrcdsToken) {
+			return s
+		}
+		fmt.Println("  Without one nobody can join.")
+	}
+	fmt.Println("  No token given: keeping the server on the local network.")
+	s.SrcdsReach, s.SrcdsToken = settings.ReachLan, "0"
+	return s
+}
+
+func reachOptions() []ui.Option {
+	options := make([]ui.Option, 0, len(settings.Reaches()))
+	for _, reach := range settings.Reaches() {
+		options = append(options, ui.Option{Value: string(reach), Label: reach.Label()})
+	}
+	return options
 }
 
 func configureRoom(p *ui.Prompt, s settings.Settings) settings.Settings {
@@ -254,12 +293,7 @@ func configureServer(p *ui.Prompt, s settings.Settings) settings.Settings {
 	for _, reach := range settings.Reaches() {
 		fmt.Printf("  %-6s %s\n", reach, reach.Help())
 	}
-	s = s.WithReach(settings.ParseReach(p.Select("Who can join", reachOptions(), string(s.Reach()))))
-	if s.Reach() == settings.ReachLan {
-		s.SrcdsToken = "0"
-	} else {
-		s.SrcdsToken = p.Text("Game Server Login Token", s.SrcdsToken)
-	}
+	s = askReach(p, s)
 	return s
 }
 
@@ -325,15 +359,6 @@ func missionOptions() []ui.Option {
 	return options
 }
 
-func reachOptions() []ui.Option {
-	reaches := settings.Reaches()
-	options := make([]ui.Option, 0, len(reaches))
-	for _, reach := range reaches {
-		options = append(options, ui.Option{Value: string(reach), Label: reach.Label()})
-	}
-	return options
-}
-
 func tierOptions(tiers []runshape.Tier) []ui.Option {
 	options := make([]ui.Option, 0, len(tiers))
 	for _, tier := range tiers {
@@ -365,7 +390,7 @@ func showStatus(s settings.Settings) {
 	fmt.Printf("Archipelago:   %s\n", appDirStatus(s.ArchipelagoDir))
 	fmt.Printf("Archipelago:   %s (tls=%v)\n", settings.Room{Host: s.APHost, Port: s.APPort}, s.APTls)
 	fmt.Printf("Slot:          %s\n", s.APSlotName)
-	fmt.Printf("Server:        %s on port %d (%s)\n", s.SrcdsHostname, s.SrcdsPort, s.Reach())
+	fmt.Printf("Server:        %s on port %d (reach=%s)\n", s.SrcdsHostname, s.SrcdsPort, s.SrcdsReach)
 	fmt.Printf("Start mission: %s\n", runshape.MissionLabel(s.SrcdsStartMission))
 	fmt.Printf("Run:           %d missions, %s, goal=%s\n", s.MvmMissionCount, s.MvmDifficulty, s.MvmGoal)
 	fmt.Printf("Bots:          %s\n", botsStatus(s))

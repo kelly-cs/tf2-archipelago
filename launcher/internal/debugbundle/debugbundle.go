@@ -67,7 +67,7 @@ func summary(s settings.Settings, versions map[string]string, stamp time.Time) s
 	fmt.Fprintf(&b, "install root  %s\n", s.InstallRoot)
 	fmt.Fprintf(&b, "room          %s (tls=%v), slot %s\n",
 		settings.Room{Host: s.APHost, Port: s.APPort}, s.APTls, s.APSlotName)
-	fmt.Fprintf(&b, "server        %q on port %d, reach=%s\n", s.SrcdsHostname, s.SrcdsPort, s.Reach())
+	fmt.Fprintf(&b, "server        %q on port %d, reach=%s\n", s.SrcdsHostname, s.SrcdsPort, s.SrcdsReach)
 	fmt.Fprintf(&b, "start mission %s\n", s.SrcdsStartMission)
 	fmt.Fprintf(&b, "bots          on=%v, fill RED to %d\n", s.SrcdsBots, s.SrcdsBotTeamSize)
 	fmt.Fprintf(&b, "run           %d missions, %s and harder, goal %s, missionsanity %d%%, death link %v\n",

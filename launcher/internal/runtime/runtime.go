@@ -13,6 +13,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -97,14 +98,64 @@ func runSrcds(ctx context.Context, s settings.Settings, logger *slog.Logger) err
 	return runSrcdsWithSink(ctx, s, logger, nil)
 }
 
+// srcdsArgs is the command line the game server starts with. It is separate
+// from starting it, and pure, because the reach decides four arguments at once
+// and a wrong combination is a server nobody can join: a test says which
+// arguments each reach produces without downloading 14 GB to find out.
+//
+// The dash flags come first and the console commands after, which is the order
+// the game's own scripts use. The commands run in the order they are given,
+// and sv_lan has to be settled before the map loads and the server tries to
+// log in to Steam.
+func srcdsArgs(s settings.Settings, exeName string) []string {
+	flags := []string{"-game", "tf", "-usercon"}
+	if exeName == "srcds.exe" {
+		// Without -console, srcds.exe opens its own window and waits for a
+		// click on Start, so the launcher would sit there having apparently
+		// done nothing. -nocrashdialog keeps a crash from doing the same.
+		flags = append(flags, "-console", "-nocrashdialog")
+	}
+	if s.SrcdsReach.SteamNetworking() {
+		// Asks Valve for the relayed address. Without it sv_use_steam_networking
+		// alone changes nothing a player outside the network can use.
+		flags = append(flags, "-enablefakeip")
+	}
+
+	commands := []string{
+		"+maxplayers", strconv.Itoa(s.SrcdsMaxPlayers),
+		"+map", StartMap(s),
+		"+hostport", strconv.Itoa(s.SrcdsPort),
+		"+rcon_password", s.SrcdsRconPw,
+		"+sv_lan", boolArg(s.SrcdsReach.Lan()),
+	}
+	if s.SrcdsReach.SteamNetworking() {
+		commands = append(commands, "+sv_use_steam_networking", "1")
+	}
+	// A server in LAN mode never logs in, so a token left over from an earlier
+	// evening is not passed and cannot put it on the public list by accident.
+	if s.SrcdsReach.NeedsToken() && settings.HasToken(s.SrcdsToken) {
+		commands = append(commands, "+sv_setsteamaccount", s.SrcdsToken)
+	}
+	if s.SrcdsPw != "" {
+		commands = append(commands, "+sv_password", s.SrcdsPw)
+	}
+	return append(flags, commands...)
+}
+
+func boolArg(on bool) string {
+	if on {
+		return "1"
+	}
+	return "0"
+}
+
 func runSrcdsWithSink(ctx context.Context, s settings.Settings, logger *slog.Logger, sink Sink) error {
 	gameDir := filepath.Join(s.InstallRoot, "tf-dedicated")
 	exeName := "srcds.exe"
 	if _, err := os.Stat(filepath.Join(gameDir, "srcds_run")); err == nil {
 		exeName = "srcds_run"
 	}
-	args := srcdsArgs(s, exeName == "srcds.exe")
-	cmd := exec.CommandContext(ctx, filepath.Join(gameDir, exeName), args...)
+	cmd := exec.CommandContext(ctx, filepath.Join(gameDir, exeName), srcdsArgs(s, exeName)...)
 	cmd.Dir = gameDir
 	// -console reads the console input buffer, so the server needs a real one
 	// as its standard input. CREATE_NO_WINDOW would deny it any console at
@@ -141,42 +192,6 @@ func runSrcdsWithSink(ctx context.Context, s settings.Settings, logger *slog.Log
 		return nil //nolint:nilerr // context cancellation kills the subprocess; the wait error is expected
 	}
 	return waitErr
-}
-
-// srcdsArgs is the game server's command line. The map comes from the start
-// mission; the plugin names the mission itself once the map is up. The login
-// token and Steam's relay are command-line matters: sv_setsteamaccount is
-// refused once the server runs, and -enablefakeip is a launch flag.
-func srcdsArgs(s settings.Settings, windows bool) []string {
-	args := []string{
-		"-game", "tf",
-		"-usercon",
-		"+maxplayers", fmt.Sprintf("%d", s.SrcdsMaxPlayers),
-		"+map", StartMap(s),
-		"+hostport", fmt.Sprintf("%d", s.SrcdsPort),
-		"+rcon_password", s.SrcdsRconPw,
-	}
-	if windows {
-		// Without -console, srcds.exe opens its own window and waits for a
-		// click on Start, so the launcher would sit there having apparently
-		// done nothing. -nocrashdialog keeps a crash from doing the same.
-		args = append([]string{"-console", "-nocrashdialog"}, args...)
-	}
-	switch s.Reach() {
-	case settings.ReachLan:
-		args = append(args, "+sv_lan", "1")
-	case settings.ReachSteam:
-		args = append(args, "+sv_lan", "0", "-enablefakeip")
-	default:
-		args = append(args, "+sv_lan", "0")
-	}
-	if s.Reach() != settings.ReachLan && s.HasToken() {
-		args = append(args, "+sv_setsteamaccount", s.SrcdsToken)
-	}
-	if s.SrcdsPw != "" {
-		args = append(args, "+sv_password", s.SrcdsPw)
-	}
-	return args
 }
 
 // StartMap is the map the start mission runs on. A mission the tables do not

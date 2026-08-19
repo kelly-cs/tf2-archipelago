@@ -22,7 +22,7 @@ func TestInstallServerCfg(t *testing.T) {
 		SrcdsHostname: "Test Server",
 		SrcdsRconPw:   "secret-rcon",
 		SrcdsPw:       "join-me",
-		SrcdsLan:      true,
+		SrcdsReach:    settings.ReachLan,
 	}
 
 	if err := Install(s); err != nil {
@@ -45,6 +45,36 @@ func TestInstallServerCfg(t *testing.T) {
 	}
 	if !strings.Contains(body, `tf_mvm_min_players_to_start 1`) {
 		t.Errorf("server.cfg missing the MvM ready-up line:\n%s", body)
+	}
+}
+
+// server.cfg runs after the command line, so its sv_lan is the one that
+// sticks. A reach that gets out of the network and a server.cfg that says
+// sv_lan 1 is a server nobody outside can join, with nothing in the log to
+// say why.
+func TestServerCfgFollowsTheReach(t *testing.T) {
+	for _, c := range []struct {
+		reach settings.Reach
+		want  string
+	}{
+		{settings.ReachLan, "sv_lan 1"},
+		{settings.ReachSteam, "sv_lan 0"},
+		{settings.ReachPort, "sv_lan 0"},
+	} {
+		t.Run(string(c.reach), func(t *testing.T) {
+			installRoot := t.TempDir()
+			s := settings.Settings{InstallRoot: installRoot, SrcdsReach: c.reach}
+			if err := Install(s); err != nil {
+				t.Fatalf("Install: %v", err)
+			}
+			cfg, err := os.ReadFile(filepath.Join(gameDir(installRoot), "cfg", "server.cfg"))
+			if err != nil {
+				t.Fatalf("cannot read server.cfg: %v", err)
+			}
+			if !strings.Contains(string(cfg), c.want) {
+				t.Errorf("server.cfg has no %q:\n%s", c.want, cfg)
+			}
+		})
 	}
 }
 

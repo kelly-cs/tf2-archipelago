@@ -44,7 +44,7 @@ secondes, et le lanceur garde vos réponses dans `%APPDATA%\tf2ap\config.json`.
 | Disque | Environ 20 Go libres. Le serveur fait 14 Go. |
 | Mémoire | 4 Go pour six joueurs. |
 | Processeur | Deux cœurs. |
-| Réseau | Un port que vos amis atteignent, UDP et TCP. Le défaut est 27015. |
+| Réseau | Rien, pour des amis sur le même réseau ou par le relais Steam. Un port redirigé seulement si vous choisissez cette voie. |
 
 Vous n'avez besoin ni de Docker, ni du client Steam, ni d'un compte Steam pour
 le serveur.
@@ -244,9 +244,10 @@ donne déjà.
 Le lanceur écrit son journal dans le terminal. Remontez pour lire ce que le
 serveur de jeu et le bridge ont dit.
 
-Le port est la cause habituelle. Redirigez 27015, ou le port que vous avez
-choisi, vers votre machine sur votre box. Ouvrez-le ensuite dans le pare-feu
-Windows. UDP porte le jeu, donc un port UDP fermé empêche toute connexion.
+« Personne d'autre ne peut rejoindre » est la cause habituelle. Un serveur
+reste sur votre propre réseau tant que vous ne changez pas `SRCDS_REACH`, et le
+launcher ne propose pas encore ce choix. Voir
+[Inviter vos amis](invite-your-friends.md).
 
 Voir [Dépannage](../operate/troubleshooting.md) pour le reste.
 

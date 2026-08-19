@@ -123,16 +123,3 @@ func TestLoadMigratesTheStartMap(t *testing.T) {
 		t.Errorf("the start map survived the migration: %q", loaded.SrcdsStartMap)
 	}
 }
-
-func TestReachIsTwoFlags(t *testing.T) {
-	var s Settings
-	for _, reach := range Reaches() {
-		s = s.WithReach(reach)
-		if s.Reach() != reach {
-			t.Errorf("WithReach(%s) reads back %s", reach, s.Reach())
-		}
-	}
-	if ParseReach("nonsense") != ReachLan {
-		t.Error("an unknown reach is not LAN")
-	}
-}

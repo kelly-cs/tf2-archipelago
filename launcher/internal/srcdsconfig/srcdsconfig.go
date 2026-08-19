@@ -49,7 +49,7 @@ func installServerCfg(gameDir string, s settings.Settings) error {
 		"Hostname":          s.SrcdsHostname,
 		"RconPassword":      s.SrcdsRconPw,
 		"PlayerPassword":    s.SrcdsPw,
-		"Lan":               boolToInt(s.SrcdsLan),
+		"Lan":               boolToInt(s.SrcdsReach.Lan()),
 		"BotsMode":          botsMode(s.SrcdsBots),
 		"BotTeamSize":       s.SrcdsBotTeamSize,
 		"BotClassBlacklist": botloadout.Blacklist(s.SrcdsBotClassBlacklist),

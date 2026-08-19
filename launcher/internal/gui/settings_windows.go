@@ -5,6 +5,7 @@ package gui
 import (
 	"context"
 	"fmt"
+	"os"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -27,9 +28,23 @@ import (
 // not jump when the player switches tab.
 const labelWidth = 150
 
+// steamNetworkingTab hides the tab that chooses where players come from.
+//
+// The relay half of it has never been proved end to end: a server needs a
+// login token before Valve hands out a relayed address, and no run has yet
+// gone from that address to a Team Fortress 2 client that joined. Until one
+// has, the tab is off and the launcher offers the local network, which is
+// what it offered before and what is known to work.
+//
+// TF2AP_STEAM_NETWORKING=1 turns it on for whoever is doing that testing.
+// SRCDS_REACH still works with the tab off: it is the tab that is hidden, not
+// the setting.
+var steamNetworkingTab = settings.Truthy(os.Getenv("TF2AP_STEAM_NETWORKING"))
+
 // runSettingsDialog asks for the values worth changing between evenings, in
 // five tabs: what the run is, which missions it may draw, where the room is,
-// how the game server behaves, and what the bots play. Every row carries a
+// how the game server behaves, and what the bots play. A sixth, who can reach
+// it, appears only where steamNetworkingTab is on. Every row carries a
 // tooltip, because a name alone does not say what a difficulty floor or a
 // login token is.
 //
@@ -61,15 +76,18 @@ func runSettingsDialog(owner walk.Form, s settings.Settings, repair func() ([]st
 		passEdit  *walk.LineEdit
 		portEdit  *walk.NumberEdit
 		adminEdit *walk.LineEdit
-		reachBox  *walk.ComboBox
-		reachHelp *walk.Label
-		tokenEdit *walk.LineEdit
-
 		botsBox   *walk.CheckBox
 		botsSize  *walk.NumberEdit
 		buysBox   *walk.CheckBox
 		classBox  = make([]*walk.CheckBox, len(botloadout.Classes))
 		loadoutBx = make([]*walk.ComboBox, len(botloadout.Classes))
+
+		reachLan   *walk.RadioButton
+		reachSteam *walk.RadioButton
+		reachPort  *walk.RadioButton
+		reachHelp  *walk.TextLabel
+		tokenEdit  *walk.LineEdit
+		tokenWarn  *walk.Label
 	)
 
 	tiers := runshape.Tiers()
@@ -86,11 +104,6 @@ func runSettingsDialog(owner walk.Form, s settings.Settings, repair func() ([]st
 	choiceLabels := make([]string, 0, len(choices))
 	for _, choice := range choices {
 		choiceLabels = append(choiceLabels, choice.Label)
-	}
-	reaches := settings.Reaches()
-	reachLabels := make([]string, 0, len(reaches))
-	for _, reach := range reaches {
-		reachLabels = append(reachLabels, reach.Label())
 	}
 	pool := newPoolModel(s.MvmExcludedMissions)
 
@@ -137,9 +150,12 @@ func runSettingsDialog(owner walk.Form, s settings.Settings, repair func() ([]st
 		next.SrcdsPw = strings.TrimSpace(passEdit.Text())
 		next.SrcdsPort = int(portEdit.Value())
 		next.SrcdsAdminSteamIDs = strings.TrimSpace(adminEdit.Text())
-		next = next.WithReach(reaches[max(reachBox.CurrentIndex(), 0)])
-		next.SrcdsToken = strings.TrimSpace(tokenEdit.Text())
-
+		// With the tab hidden there are no widgets to read, and the reach keeps
+		// whatever the config file or the environment set it to.
+		if steamNetworkingTab {
+			next.SrcdsReach = checkedReach(reachSteam, reachPort)
+			next.SrcdsToken = strings.TrimSpace(tokenEdit.Text())
+		}
 		next.SrcdsBots = botsBox.Checked()
 		next.SrcdsBotTeamSize = int(botsSize.Value())
 		next.BotUpgradesChat = buysBox.Checked()
@@ -156,6 +172,50 @@ func runSettingsDialog(owner walk.Form, s settings.Settings, repair func() ([]st
 		return next, nil
 	}
 
+	// The Steam Networking tab is built only when it is turned on, so the
+	// widgets behind it stay nil and everything that reads them has to check.
+	var extraPages []declarative.TabPage
+	if steamNetworkingTab {
+		extraPages = append(extraPages, declarative.TabPage{
+			Title:  "Steam Networking",
+			Layout: declarative.Grid{Columns: 2},
+			Children: []declarative.Widget{
+				label("Who can reach it", "Where the server takes connections from. A server is on your own network until you change this: it is not open to anybody else by default."),
+				// The three buttons are consecutive children of one Composite
+				// on purpose. walk groups a radio button with the sibling
+				// before it, so a label in between would leave three groups of
+				// one, all tickable.
+				declarative.Composite{
+					// Near, or a VBox centres each button on its own text and
+					// the three ends up as a ragged stack.
+					Layout: declarative.VBox{MarginsZero: true, SpacingZero: true, Alignment: declarative.AlignHNearVCenter},
+					Children: []declarative.Widget{
+						declarative.RadioButton{AssignTo: &reachLan, Text: settings.ReachLan.Label()},
+						declarative.RadioButton{AssignTo: &reachSteam, Text: settings.ReachSteam.Label()},
+						declarative.RadioButton{AssignTo: &reachPort, Text: settings.ReachPort.Label()},
+					},
+				},
+				declarative.Label{Text: ""},
+				declarative.TextLabel{
+					AssignTo: &reachHelp,
+					Text:     s.SrcdsReach.Help(),
+					MinSize:  declarative.Size{Width: 330},
+				},
+				label("Login token", "A Game Server Login Token for app id 440, from steamcommunity.com/dev/managegameservers. The server logs in to Steam with it. Both of the reaches that leave your network need a real one."),
+				declarative.LineEdit{AssignTo: &tokenEdit, Text: s.SrcdsToken, CueBanner: "0"},
+				declarative.Label{Text: ""},
+				declarative.Label{AssignTo: &tokenWarn, Text: "", MaxSize: declarative.Size{Height: 18}},
+				declarative.TextLabel{
+					Text: "Over Steam, the server prints its address in the log every time it starts, " +
+						"in the form connect 169.254.13.42:20232. It is a new address on every start, " +
+						"so send your friends the line from the log rather than one you wrote down.",
+					ColumnSpan: 2,
+					MinSize:    declarative.Size{Width: 470},
+				},
+			},
+		})
+	}
+
 	err := declarative.Dialog{
 		AssignTo:     &dialog,
 		Title:        "Settings",
@@ -165,7 +225,7 @@ func runSettingsDialog(owner walk.Form, s settings.Settings, repair func() ([]st
 		Layout:       declarative.VBox{},
 		Children: []declarative.Widget{
 			declarative.TabWidget{
-				Pages: []declarative.TabPage{
+				Pages: append([]declarative.TabPage{
 					{
 						Title:  "Player options",
 						Layout: declarative.Grid{Columns: 2},
@@ -315,19 +375,13 @@ func runSettingsDialog(owner walk.Form, s settings.Settings, repair func() ([]st
 							declarative.LineEdit{AssignTo: &nameEdit, Text: s.SrcdsHostname},
 							label("Server password", "What your friends type before connect. Blank means anybody with the address can join."),
 							declarative.LineEdit{AssignTo: &passEdit, Text: s.SrcdsPw, CueBanner: "optional, blank for none"},
-							label("Game port", "UDP and TCP, 27015 by default. This is the one to forward on your router for friends outside your network."),
+							label("Game port", "UDP and TCP, 27015 by default. Who can reach it is on the Steam Networking tab."),
 							declarative.NumberEdit{
 								AssignTo: &portEdit, Value: float64(s.SrcdsPort),
 								MinValue: 1024, MaxValue: 65535, Decimals: 0,
 							},
 							label("Admins by Steam id", "Who may run the admin commands, separated by commas. Either form works: the 17 digit id from a profile URL, or SourceMod's STEAM_0:1:26975537."),
 							declarative.LineEdit{AssignTo: &adminEdit, Text: s.SrcdsAdminSteamIDs, CueBanner: "76561198014216803, ..."},
-							label("Who can join", "How your friends reach the server. The local network needs nothing; the other two need a login token."),
-							declarative.ComboBox{AssignTo: &reachBox, Model: reachLabels, Value: s.Reach().Label()},
-							declarative.Label{Text: ""},
-							declarative.Label{AssignTo: &reachHelp, Text: s.Reach().Help(), TextColor: colorMuted, MinSize: declarative.Size{Height: 60}},
-							label("Login token", "A Game Server Login Token from steamcommunity.com/dev/managegameservers, for app 440. Needed unless the server stays on the local network. 0 means none."),
-							declarative.LineEdit{AssignTo: &tokenEdit, Text: s.SrcdsToken},
 						},
 					},
 					{
@@ -335,7 +389,7 @@ func runSettingsDialog(owner walk.Form, s settings.Settings, repair func() ([]st
 						Layout:   declarative.Grid{Columns: 2},
 						Children: botsRows(s, label, &botsBox, &botsSize, &buysBox, classBox, loadoutBx),
 					},
-				},
+				}, extraPages...),
 			},
 			declarative.Composite{
 				Layout:  declarative.HBox{},
@@ -366,6 +420,19 @@ func runSettingsDialog(owner walk.Form, s settings.Settings, repair func() ([]st
 							roomWarn.SetText(err.Error())
 							return
 						}
+						// A reach that leaves the network with no token is a
+						// server every client is refused from, and nothing on
+						// screen would say why. Refuse the save instead.
+						//
+						// Only where the tab is on. With it off the reach came from
+						// the environment or the config file, and refusing would trap
+						// the player in a dialog holding nothing that could fix it.
+						if steamNetworkingTab {
+							if complaint := tokenComplaint(next.SrcdsReach, next.SrcdsToken); complaint != "" {
+								tokenWarn.SetText(complaint)
+								return
+							}
+						}
 						edited = next
 						dialog.Accept()
 					}},
@@ -378,6 +445,30 @@ func runSettingsDialog(owner walk.Form, s settings.Settings, repair func() ([]st
 		return s, false, err
 	}
 
+	// The help under the buttons, and the complaint about a missing token. Both
+	// follow the selection, because a reach the player cannot use yet has to
+	// say so here rather than in the server log twenty minutes later.
+	if steamNetworkingTab {
+		explainReach := func() {
+			reach := checkedReach(reachSteam, reachPort)
+			reachHelp.SetText(reach.Help())
+			tokenWarn.SetText(tokenComplaint(reach, tokenEdit.Text()))
+		}
+		for _, button := range []*walk.RadioButton{reachLan, reachSteam, reachPort} {
+			button.CheckedChanged().Attach(explainReach)
+		}
+		tokenEdit.TextChanged().Attach(explainReach)
+		switch s.SrcdsReach {
+		case settings.ReachSteam:
+			reachSteam.SetChecked(true)
+		case settings.ReachPort:
+			reachPort.SetChecked(true)
+		default:
+			reachLan.SetChecked(true)
+		}
+		explainReach()
+	}
+
 	// A harder floor leaves fewer missions to draw from, so the count a run can
 	// ask for follows the tier.
 	tierBox.CurrentIndexChanged().Attach(func() {
@@ -387,16 +478,6 @@ func runSettingsDialog(owner walk.Form, s settings.Settings, repair func() ([]st
 			_ = missions.SetValue(float64(pool))
 		}
 	})
-
-	// The sentence under the reach follows the choice, and the token box only
-	// matters off the local network.
-	explainReach := func() {
-		reach := reaches[max(reachBox.CurrentIndex(), 0)]
-		reachHelp.SetText(reach.Help())
-		tokenEdit.SetEnabled(reach != settings.ReachLan)
-	}
-	reachBox.CurrentIndexChanged().Attach(explainReach)
-	explainReach()
 
 	// The complaint under the address: what is missing, or that test mode
 	// makes it optional. Cleared as soon as the address looks right.
@@ -664,6 +745,29 @@ func runRepair(owner walk.Form, repair func() ([]string, error)) {
 		walk.MsgBox(owner, "Repair",
 			"Removed:\n"+strings.Join(removed, "\n")+"\n\nPress Start when you are ready.",
 			walk.MsgBoxIconInformation)
+	}
+}
+
+// tokenComplaint says what is wrong with a reach and a token together, or ""
+// when they go together. One sentence, shown under the token field and checked
+// again on Save, so the answer is the same in both places.
+func tokenComplaint(reach settings.Reach, token string) string {
+	if reach.NeedsToken() && !settings.HasToken(token) {
+		return "this one needs a login token, or every player is refused"
+	}
+	return ""
+}
+
+// checkedReach reads the selection back. Nothing checked means the private
+// default, which is the answer that cannot open a server by mistake.
+func checkedReach(steam, port *walk.RadioButton) settings.Reach {
+	switch {
+	case steam.Checked():
+		return settings.ReachSteam
+	case port.Checked():
+		return settings.ReachPort
+	default:
+		return settings.ReachLan
 	}
 }
 

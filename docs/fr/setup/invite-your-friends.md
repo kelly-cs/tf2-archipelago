@@ -1,38 +1,93 @@
 # Inviter vos amis
 
-## Ouvrir le port
+## D'où viennent les joueurs
 
-La stack publie `SRCDS_PORT`, `27015` par défaut, en UDP et en TCP.
+Un serveur est sur votre propre réseau tant que vous ne dites pas le
+contraire. Il n'est ouvert à personne d'autre par défaut, et aucun réglage
+de routeur ne change ça tout seul. Choisissez parmi trois avec `SRCDS_REACH`
+dans `.env` :
+
+```sh
+SRCDS_REACH=lan      # cette machine et le réseau local. Le défaut.
+SRCDS_REACH=steam    # par le relais Steam, sans port à ouvrir
+SRCDS_REACH=port     # directement sur le port du jeu, redirigé sur votre routeur
+```
+
+`lan` est toute la réponse pour des gens qui jouent dans la même maison. Les
+deux autres atteignent Internet, et les deux demandent un token.
+
+> **`steam` n'est pas fini.** Le relais n'a jamais été mené jusqu'à un client
+> Team Fortress 2 qui a rejoint, donc le launcher ne le propose pas encore :
+> l'onglet **Steam Networking** est caché sauf si vous le lancez avec
+> `TF2AP_STEAM_NETWORKING=1`. `SRCDS_REACH` marche dans les deux cas. Utilisez
+> `lan`, ou `port` si vous savez configurer votre box.
+
+## Le token de connexion
+
+`steam` et `port` connectent tous les deux le serveur à Steam. Sans token il
+n'obtient jamais de session Steam, et tout client qui essaie de rejoindre est
+refusé sans message utile. Récupérez-en un sur
+[steamcommunity.com/dev/managegameservers](https://steamcommunity.com/dev/managegameservers)
+pour l'app id 440, une fois, et mettez-le dans les réglages ou dans `.env` :
+
+```sh
+SRCDS_TOKEN=VOTRETOKENICI
+```
+
+Le token n'est pas un mot de passe que quelqu'un tape. Il identifie le serveur
+auprès de Steam. `SRCDS_TOKEN=0` veut dire aucun, ce qui n'est la bonne réponse
+que pour `lan`.
+
+## Par Steam, sans port à ouvrir
+
+Avec `SRCDS_REACH=steam` le serveur demande à Valve une adresse sur le Steam
+Datagram Relay et l'affiche dès qu'il en a une :
+
+```
+FakeIP allocation succeeded: 169.254.13.42:20232, 20233
+```
+
+Le launcher la sort du log et la met dans une case au-dessus du log, avec un
+bouton **Copy**. Vos amis tapent la première adresse :
+
+```
+connect 169.254.13.42:20232
+```
+
+Ça marche de n'importe où. Rien n'est redirigé, rien n'est ouvert dans le
+pare-feu, et votre propre adresse n'est jamais montrée aux gens qui
+rejoignent : le trafic passe par les relais de Valve.
+
+Deux choses à savoir. L'adresse est nouvelle à chaque démarrage du serveur,
+donc envoyez la ligne de cette session-ci plutôt qu'une notée la semaine
+dernière. Et personne ne peut mettre le serveur en favori, faute d'adresse
+stable.
+
+## Par un port redirigé
+
+Avec `SRCDS_REACH=port` les joueurs se connectent directement à vous :
 
 ```sh
 SRCDS_PORT=27015
 ```
 
-Redirigez ce port vers la machine sur votre routeur. Ouvrez-le dans le
-pare-feu de la machine. L'UDP porte le jeu, donc un port UDP fermé veut
-dire que personne ne peut rejoindre.
-
-Rien d'autre n'a besoin d'être atteignable. Le serveur randomizer et le
-bridge restent à l'intérieur de la stack.
-
-Le lanceur Windows peut aussi relayer le trafic via Steam, sans port à
-ouvrir : voir [Installer sur Windows](install-windows.md), « Qui peut
-rejoindre ».
-
-## La commande de connexion
-
-Vos amis ouvrent la console développeur dans Team Fortress 2 et tapent :
+Redirigez ce port vers la machine sur votre routeur, en UDP et en TCP, et
+ouvrez-le dans le pare-feu de la machine. L'UDP porte le jeu, donc un port UDP
+fermé veut dire que personne ne peut rejoindre. Vos amis tapent ensuite votre
+adresse publique :
 
 ```
-connect adresse.de.votre.serveur:27015
+connect adresse.publique.de.votre.machine:27015
 ```
 
-Remplacez l'adresse par l'adresse publique de votre machine. Remplacez le
-port si vous avez changé `SRCDS_PORT`.
+Rien d'autre n'a besoin d'être atteignable. Le serveur randomizer et le bridge
+restent sur la boucle locale.
 
-La console est désactivée par défaut dans Team Fortress 2. Options, puis
-Avancé, puis « Activer la console développeur ». La touche qui l'ouvre est
-`` ` `` sur un clavier américain.
+## La console développeur
+
+Elle est désactivée par défaut dans Team Fortress 2. Options, puis Avancé, puis
+« Activer la console développeur ». La touche qui l'ouvre est `` ` `` sur un
+clavier américain.
 
 ## Le mot de passe du serveur
 
@@ -40,8 +95,8 @@ Avancé, puis « Activer la console développeur ». La touche qui l'ouvre est
 SRCDS_PW=
 ```
 
-Une valeur vide laisse quiconque connaît l'adresse rejoindre. Réglez-la
-pour garder le serveur aux personnes que vous avez prévenues :
+Une valeur vide laisse quiconque connaît l'adresse rejoindre. Réglez-la pour
+garder le serveur aux personnes que vous avez prévenues :
 
 ```sh
 SRCDS_PW=entre-amis
@@ -51,40 +106,30 @@ Vos amis tapent alors ceci avant de se connecter :
 
 ```
 password entre-amis
-connect adresse.de.votre.serveur:27015
+connect ...
 ```
 
 `SRCDS_PW` n'est pas `SRCDS_RCONPW`. `SRCDS_PW` laisse un joueur entrer.
 `SRCDS_RCONPW` laisse un admin lancer des commandes. Ne donnez jamais le
 second.
 
-## Cacher le serveur de la liste publique
+## Rester hors de la liste publique
 
-```sh
-SRCDS_TOKEN=0
-```
-
-Un Game Server Login Token est ce qui met un serveur dédié dans le
-navigateur public de serveurs. La valeur `0` veut dire que le serveur n'en
-a pas. Il tourne, vos amis peuvent s'y connecter avec l'adresse, et il
-n'apparaît pas dans la liste publique.
-
-C'est ce que vous voulez pour une soirée entre amis. Laissez `0`.
-
-Pour lister le serveur publiquement, récupérez un token sur
-[steamcommunity.com/dev/managegameservers](https://steamcommunity.com/dev/managegameservers)
-et mettez-le ici. Réglez aussi `SRCDS_PW`, sinon des inconnus rejoindront
-une partie randomisée en cours.
+Un serveur avec `SRCDS_TOKEN=0` ne se connecte jamais et n'apparaît jamais dans
+le navigateur public de serveurs. Avec un vrai token il le peut, ce que vous
+voulez éviter sur une partie randomisée en cours : réglez aussi `SRCDS_PW`, et
+les inconnus qui trouvent le serveur ne pourront quand même pas entrer.
 
 ## Ce qu'il faut leur dire
 
 Envoyez-leur ces trois choses :
 
-1. La commande de connexion avec votre adresse.
+1. La ligne de connexion correspondant au mode choisi. Par Steam, celle du log
+   de cette session-ci.
 2. Le mot de passe du serveur, si vous en avez mis un.
-3. [Archipelago pour les joueurs MvM](../archipelago-for-mvm-players.md), ou
-   la version courte : les classes et les armes commencent verrouillées,
-   réussir des vagues les débloque, tout le monde partage.
+3. [Archipelago pour les joueurs MvM](../archipelago-for-mvm-players.md), ou la
+   version courte : les classes et les armes commencent verrouillées, réussir
+   des vagues les débloque, tout le monde partage.
 
 Ils n'installent rien. Un client Team Fortress 2 standard est tout ce qu'il
 faut.
@@ -93,36 +138,25 @@ faut.
 
 Le serveur répond à une requête mais refuse la connexion. C'est presque
 toujours l'authentification Steam contre un serveur qui n'a pas de session
-Steam.
-
-Un serveur sans Game Server Login Token (`SRCDS_TOKEN=0`, le défaut) ne se
-connecte jamais à Steam. Sa console le dit :
+Steam : `SRCDS_REACH` vaut `steam` ou `port` et `SRCDS_TOKEN` est resté à `0`.
+La console le dit :
 
 ```
 Could not establish connection to Steam servers.  (Result = 8)
 version : ... insecure (secure mode enabled, disconnected from Steam3)
 ```
 
-Avec `SRCDS_LAN=1`, qui est le défaut, cela n'a pas d'importance : le mode
-LAN saute complètement l'authentification. Si quelqu'un l'a changé,
-remettez-le :
+Mettez un vrai token, ou revenez à `SRCDS_REACH=lan`, où l'authentification est
+sautée entièrement et où aucun token n'est nécessaire.
 
-```
-rcon sv_lan 1
-```
+Vérifiez ensuite le reste dans cet ordre :
 
-Vérifiez le reste dans cet ordre :
-
-1. Le serveur répond sur l'adresse que vous donnez aux gens. Depuis
-   l'hôte : `docker run --rm --network container:tf2-archipelago-srcds-1
-   curlimages/curl -s ifconfig.me` n'est pas la réponse que vous voulez.
-   Utilisez l'adresse LAN de la machine, celle que `ip -4 addr` montre sur
-   le réseau où sont vos amis.
-2. Tout le monde est sur le même réseau. Le mode LAN refuse les adresses
-   hors des plages privées, et un réseau invité sur le même routeur en est
-   une autre.
-3. La machine hôte est éveillée. C'est un portable, et il se met en veille.
-
-Passer en ligne plus tard demande un vrai `SRCDS_TOKEN` depuis
-[steamcommunity.com/dev/managegameservers](https://steamcommunity.com/dev/managegameservers)
-et `SRCDS_LAN=0`. L'un sans l'autre refuse tous les joueurs.
+1. **En `lan`**, tout le monde est sur le même réseau, et vous avez donné
+   l'adresse que `ip -4 addr` montre pour ce réseau. Le mode LAN refuse les
+   adresses hors des plages privées, et un réseau invité sur le même routeur en
+   est une autre.
+2. **En `steam`**, l'adresse est celle de cette session-ci. Elle change à chaque
+   démarrage, et une ancienne ne mène nulle part.
+3. **En `port`**, le port est redirigé en UDP autant qu'en TCP. Une règle TCP
+   seule répond à la requête et jette le jeu.
+4. La machine hôte est éveillée. C'est un portable, et il se met en veille.
