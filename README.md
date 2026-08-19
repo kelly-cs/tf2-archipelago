@@ -15,6 +15,21 @@ the same unlocks.
   <img alt="The launcher: a log, Start and Stop, an rcon box" src="docs/images/launcher-main.png" width="800">
 </p>
 
+## What talks to Archipelago
+
+- **Location** (check): a wave cleared, a mission cleared, the first tank
+  destroyed in a mission, the first giant killed in one.
+- **Item** (unlock): a mercenary class, a weapon slot, a mission ticket. All
+  shared: one unlocked class or slot opens for every player on the server.
+- **Filler**: `Cash Bundle`, 200 credits paid to everyone on RED.
+- **DeathLink**: off by default. A wave your team loses sends a death to the
+  multiworld; a death that arrives kills your team, which loses the wave you
+  are on.
+
+See [What the randomizer changes](./docs/en/what-the-randomizer-changes.md)
+for the detail, and [Archipelago for MvM players](./docs/en/archipelago-for-mvm-players.md)
+for the vocabulary.
+
 ## Windows
 
 Download `tf2ap.exe` and run it. One file: no Docker, no clone, no compiler.

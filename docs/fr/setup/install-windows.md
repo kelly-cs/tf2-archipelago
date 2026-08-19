@@ -1,210 +1,121 @@
 # Installer sur Windows
 
-C'est la façon la plus simple de lancer un serveur Mann vs Archipelago. Un seul
-fichier, sans Docker, sans clone, sans compilateur.
+La façon la plus simple de faire tourner un serveur Mann vs Archipelago. Un
+seul fichier. Pas de Docker, pas de clone, pas de compilateur.
 
 Téléchargez `tf2ap.exe` depuis la
-[dernière version](https://github.com/m-this/tf2-archipelago/releases/latest),
-puis lancez-le.
+[dernière version](https://github.com/m-this/tf2-archipelago/releases/latest)
+et lancez-le.
 
-## Ce que tf2ap.exe fait
+## Ce qui se passe
 
-Double-cliquez dessus : une fenêtre s'ouvre. Elle porte tout ce qu'une soirée
-demande.
+Une fenêtre s'ouvre et demande l'adresse de votre room Archipelago. Puis
+elle installe tout : SteamCMD, le serveur dédié TF2, SourceMod, le plugin, et
+les bots qui remplissent votre équipe. Le serveur de jeu pèse environ 14 Go,
+donc le premier démarrage prend du temps. Chaque démarrage suivant prend
+quelques secondes.
 
-- **Start**, **Stop** et **Restart** : le serveur monte et descend sans
-  terminal. Un voyant à côté est rouge quand le serveur est arrêté, orange
-  pendant le démarrage, vert quand il tourne.
-- La ligne **Join**, sous les boutons : chaque adresse de cette machine sur le
-  port du jeu, ce que vos amis tapent après `connect`. Via Steam, elle montre
-  aussi l'adresse que Steam a assignée. **Copy** la met dans le presse-papiers.
-- Un onglet **Log**, où le serveur de jeu, le bridge et l'installation
-  écrivent. C'est ce que vous lisez quand quelque chose cloche. La case
-  **rcon** en dessous envoie une commande au serveur et affiche la réponse
-  dans le journal. `sm_ap_status` est celle à connaître.
-- Un onglet **Session**. Il montre si le bridge est connecté à la room, et
-  combien de checks et d'items la partie tient. Il liste les missions de la
-  partie, débloquées, terminées ou verrouillées. **Play this mission** charge
-  celle qui est sélectionnée.
-- **Settings** : l'adresse de la room, les missions, les bots et la forme de
-  la partie.
+La fenêtre contient :
 
-Le premier Start installe SteamCMD, le serveur dédié TF2, Metamod:Source,
-SourceMod, le plugin et les bots défenseurs. Le serveur fait environ 14 Go.
-C'est la partie longue, et elle n'arrive qu'une fois. Le journal la suit.
+- **Start**, **Stop**, **Restart**. Un voyant à côté passe au rouge, à
+  l'orange puis au vert.
+- **Join**, sous les boutons : les adresses où vos amis se connectent.
+  **Copy** en met une dans le presse-papiers.
+- Un onglet **Log** et une zone **rcon**, pour quand quelque chose semble
+  aller de travers.
+- Un onglet **Session** : état de la connexion, checks, items, et les
+  missions de la partie. **Play this mission** charge celle que vous
+  choisissez.
+- **Settings**, pour la room, les missions, les bots et la forme de la
+  partie.
 
-Fermer la fenêtre arrête le serveur. Chaque démarrage suivant prend quelques
-secondes, et le lanceur garde vos réponses dans `%APPDATA%\tf2ap\config.json`.
+Fermer la fenêtre arrête le serveur. Vos réponses sont enregistrées pour la
+prochaine fois.
 
 ## Ce qu'il vous faut
 
-| Élément | Ce qu'il vous faut |
+| Élément | Ce qu'il faut |
 | --- | --- |
-| Windows | 10 ou 11, 64 bits. |
-| Disque | Environ 20 Go libres. Le serveur fait 14 Go. |
-| Mémoire | 4 Go pour six joueurs. |
-| Processeur | Deux cœurs. |
-| Réseau | Rien, pour des amis sur le même réseau ou par le relais Steam. Un port redirigé seulement si vous choisissez cette voie. |
+| Windows | 10 ou 11, 64 bits |
+| Disque | Environ 20 Go libres |
+| Mémoire | 4 Go pour six joueurs |
+| Processeur | Deux cœurs |
+| Réseau | Rien, pour des amis sur le même réseau ou via Steam. Un seul port à ouvrir si vous choisissez cette voie. |
 
-Vous n'avez besoin ni de Docker, ni du client Steam, ni d'un compte Steam pour
-le serveur.
+Pas de Docker, pas de client Steam, pas de compte Steam pour le serveur
+lui-même.
 
 ## La session Archipelago
 
-Le lanceur gère le serveur TF2. La session multiworld reste séparée. Mann vs
-Machine ne fait pas partie des jeux livrés avec Archipelago. Le générateur est
-en Python, donc il reste dans l'application officielle.
+Le lanceur fait tourner le serveur TF2. La session multiworld est séparée.
+Mann vs Machine ne fait pas partie des jeux livrés avec Archipelago, donc le
+générateur de seed reste dans l'app officielle.
 
-1. Installez l'application officielle
+1. Installez l'app officielle
    [Archipelago](https://github.com/ArchipelagoMW/Archipelago/releases). Le
-   lanceur la trouve là où l'installeur la met : sous
-   `%LOCALAPPDATA%\Programs\Archipelago`, dans `Program Files`, ou dans
-   `C:\ProgramData\Archipelago`.
-2. Dans le lanceur, ouvrez **Settings**, réglez les options de partie, puis
-   appuyez sur **Generate seed**. Le lanceur place le fichier du monde dans
-   l'application et écrit le fichier joueur. Il lance ensuite le générateur et
-   ouvre le dossier qui contient l'archive.
+   lanceur la trouve seul aux emplacements habituels.
+2. Dans le lanceur, ouvrez **Settings**, réglez les options du joueur, et
+   cliquez sur **Generate seed**. Il écrit le fichier joueur et ouvre le
+   dossier avec l'archive générée.
 3. Envoyez cette archive sur
    [archipelago.gg/uploads](https://archipelago.gg/uploads) pour ouvrir une
-   room.
+   room, et collez l'adresse de la room (par exemple `archipelago.gg:12345`)
+   dans le lanceur.
 
-La page de la room donne une adresse comme `archipelago.gg:12345`. Collez-la
-dans l'onglet **Archipelago room**.
+Si le lanceur ne trouve pas l'app Archipelago, **Generate seed** le dit.
+Indiquez son dossier dans **Settings → Player options → Archipelago app**.
 
-Le fichier joueur est aussi dans `%USERPROFILE%\tf2-archipelago\tf2.yaml`, et
-**Open tf2.yaml** l'affiche. C'est pour qui veut générer à la main dans
-l'application.
+Voir [Créer la session](create-the-session.md) pour le détail complet, y
+compris héberger la session vous-même.
 
-Si l'application est sur un autre disque, ou dans un dossier à vous,
-**Generate seed** le dit et liste les dossiers examinés. Mettez le dossier de
-l'application dans **Archipelago app**, onglet **Player options**, et appuyez
-sur **Browse** pour le choisir. Le dossier est celui qui contient
-`ArchipelagoGenerate.exe` ; l'exe lui-même est accepté aussi.
-`tf2ap.exe -status` affiche où le lanceur a trouvé l'application, ou qu'il ne
-l'a pas trouvée.
+## Inviter des amis
 
-Voir [Créer la session](create-the-session.md) pour le détail de chaque étape.
-
-## Le premier démarrage
-
-Double-cliquez sur `tf2ap.exe`, ou lancez-le depuis un terminal :
+Vos amis se connectent depuis la console du jeu :
 
 ```
-tf2ap.exe
+connect adresse.de.votre.serveur:27015
 ```
 
-Le premier démarrage se déroule ainsi :
-
-1. La fenêtre Settings s'ouvre d'elle-même : vous n'avez pas encore de room.
-   Collez la ligne de votre page de room dans **Room address**, par exemple
-   `archipelago.gg:12345`. Le bouton Save reste gris tant que l'adresse ne se
-   lit pas comme `hôte:port`. Tout le reste a déjà une valeur qui marche.
-2. Appuyez sur **Save**. L'installation démarre toute seule.
-3. SteamCMD, puis les 14 Go du serveur de jeu, puis Metamod:Source, SourceMod,
-   le plugin et les bots. Le journal montre chaque étape. La longue est le
-   serveur de jeu, et la durée dépend de votre connexion.
-4. Le serveur démarre. Le journal affiche `connected to archipelago slot=tf2`.
-
-Les démarrages suivants vont directement à cette dernière étape.
-
-Vos amis se connectent depuis la console développeur :
-
-```
-connect votre.adresse.serveur:27015
-```
-
-La ligne **Join** sous les boutons donne les adresses à transmettre. Voir
-[Inviter vos amis](invite-your-friends.md) pour le reste.
-
-## Rejoindre depuis le lanceur
-
-**Join** démarre Team Fortress 2 et rejoint le serveur de cette machine. Steam
-envoie lui-même le connect et le mot de passe : vous ne tapez rien. Le bouton
-s'active dès que le serveur tourne.
-
-Il rejoint sur `127.0.0.1`, cette machine. Vos amis ont besoin d'une des
-adresses de la ligne **Join** à la place.
-
-## Qui peut rejoindre
-
-L'onglet **Game server** a un choix **Who can join** :
-
-| Choix | Ce que ça veut dire |
-| --- | --- |
-| This machine and the local network only | Le défaut. Pas de connexion à Steam, pas de jeton, personne hors de votre réseau. |
-| Over Steam, no port to open | Steam relaie le trafic. Valve assigne au serveur une adresse comme `169.254.13.42:20232`, et vos amis s'y connectent depuis n'importe où. Rien à ouvrir. L'adresse change à chaque démarrage ; la ligne Join la montre dès que le serveur l'a. Demande un jeton de connexion. |
-| Over a port forwarded on the router | Le montage classique : redirigez le port du jeu vers cette machine et donnez votre adresse publique. Demande un jeton de connexion. |
-
-Un Game Server Login Token vient de
-[steamcommunity.com/dev/managegameservers](https://steamcommunity.com/dev/managegameservers),
-pour l'app 440. Collez-le dans **Login token**.
-
-## Les missions
-
-L'onglet **Missions** a deux choses :
-
-- **Start mission**, sous la forme carte - mission. Le serveur la charge en
-  premier. Si la partie ne l'a pas débloquée, le plugin passe à la première
-  mission que la partie a.
-- Les missions que la partie peut tirer. Décochez-en une pour l'exclure de
-  chaque seed générée depuis là. Caliginous Caper est une vague de 666 robots
-  et une heure à elle seule. Le palier de l'onglet Player options s'applique
-  toujours.
-
-Une fois la partie lancée, le serveur passe seul d'une mission terminée à la
-suivante débloquée. Voir [Commandes du chat](../play/chat-commands.md).
+La ligne **Join** sous les boutons montre les adresses à donner. Voir
+[Inviter vos amis](invite-your-friends.md) pour toucher des gens hors de
+votre réseau.
 
 ## Les bots de votre équipe
 
-Le serveur remplit l'équipe RED avec des bots qui jouent. Team Fortress 2
-équilibre chaque vague pour six défenseurs, donc deux joueurs gagnent une
-partie. Les bots choisissent leur classe, se battent, achètent leurs
-améliorations et se déclarent prêts.
-
-L'onglet **Bots** les coupe, ou remplit RED avec moins de six joueurs pour
-une partie plus dure. Il décoche les classes que les bots ne doivent pas
-jouer, et choisit un équipement prédéfini par classe. Il peut aussi écrire
-dans le chat ce qu'ils achètent. Voir
+Valve calibre chaque vague pour six joueurs. Le serveur remplit les places
+vides de RED avec des bots qui jouent : ils choisissent une classe,
+combattent, et achètent leurs propres améliorations. L'onglet **Bots** les
+désactive, réduit l'équipe pour une partie plus dure, ou choisit quelles
+classes ils jouent. Voir
 [Les bots de votre équipe](../play/defender-bots.md).
 
-## Essayer sans Archipelago
+## L'essayer sans Archipelago
 
-La fenêtre Settings porte une case **Test mode**. Cochez-la : le lanceur sert
-alors un multiworld d'un seul joueur sur votre machine. Il invente une seed depuis vos
-options de partie et donne un déblocage à chaque vague réussie.
+**Test mode**, dans Settings, fait tourner un multiworld d'une seule
+personne sur votre machine. Pas de room, pas de seed, rien ne sort de
+l'ordinateur. Utilisez-le pour essayer le serveur ou vérifier quelque chose
+avant une vraie partie.
 
-Il joue aussi les autres joueurs : ils trouvent des objets, vous en envoient et
-meurent. Chaque ligne arrive dans le journal et dans le chat du jeu.
+## Besoin d'aide
 
-La partie démarre comme une vraie : une classe, un emplacement d'arme et une
-mission. Le serveur verrouille donc dès la première vague ce qu'une vraie seed
-verrouille. Ce que les joueurs simulés vous envoient est du remplissage. Les
-déblocages viennent des vagues que vous terminez, et de rien d'autre.
+**Debug logs**, dans Settings, rassemble tout ce qui est utile dans un seul
+fichier : le journal du lanceur, la console du serveur, vos réglages. Aucun
+mot de passe. Envoyez-le à qui vous aide.
 
-Rien ne quitte la machine, et vous n'avez besoin ni de room ni de seed. Servez-
-vous en pour essayer le serveur, et pour tester quand quelque chose cloche.
+**Repair** réinstalle les mods sans toucher aux fichiers du jeu ni à votre
+partie.
 
-## Quand vous avez besoin d'aide
+Voir [Dépannage](../operate/troubleshooting.md) pour le reste, et
+[Installer avec Docker](install.md) si vous préférez faire tourner ceci sur
+Linux.
 
-La fenêtre Settings porte deux boutons pour ça.
+---
 
-**Debug logs** écrit `debug-logs-<date>.zip` à côté des fichiers du jeu, puis
-ouvre le dossier. Il contient le journal du lanceur, les journaux de SourceMod,
-la console du serveur, le fichier joueur et vos réglages, sans aucun mot de
-passe. Envoyez ce fichier à qui vous aide.
+## Référence
 
-**Repair** jette SteamCMD et les mods, puis les récupère. Il arrête d'abord le
-serveur. Il garde les fichiers du jeu et la partie : pas de 14 Go à retélécharger
-et les checks restent.
+### Commandes
 
-L'onglet **Player options** porte aussi **Open tf2.yaml**. Ce bouton écrit le
-fichier joueur depuis les valeurs de la fenêtre, puis l'ouvre.
-
-## Les commandes
-
-La fenêtre couvre une soirée. Ces commandes servent à un script, ou à un
-réglage que la fenêtre n'affiche pas. Lancez-les depuis un terminal : l'exe s'y
-rattache.
+Lancez-les depuis un terminal. Sinon, la fenêtre s'ouvre seule.
 
 | Commande | Ce qu'elle fait |
 | --- | --- |
@@ -218,12 +129,11 @@ rattache.
 | `tf2ap.exe -env` | Liste les variables d'environnement, puis quitte |
 | `tf2ap.exe -version` | Affiche la version et les versions des outils |
 
-## Les réglages par l'environnement
+### Les réglages par l'environnement
 
 Chaque réglage lit aussi une variable d'environnement, sous le nom qu'emploie
 `deploy/.env.example`. Une variable l'emporte sur le fichier pour cette
-exécution, et le lanceur ne la garde jamais. Démarrez un serveur sans aucune
-question, depuis un raccourci ou un fichier `.bat` :
+exécution :
 
 ```bat
 set AP_ROOM=archipelago.gg:12345
@@ -231,38 +141,16 @@ set SRCDS_BOT_TEAM_SIZE=4
 tf2ap.exe
 ```
 
-`AP_ROOM` porte l'adresse entière. `AP_HOST`, `AP_PORT` et `AP_TLS` règlent les
-trois parties séparément, pour un fichier `.env` partagé avec le stack Docker.
+`tf2ap.exe -env` affiche chaque nom lu et marque ceux déjà réglés.
 
-`tf2ap.exe -env` affiche chaque nom lu et marque ceux que votre environnement
-donne déjà.
-
-## Où le lanceur range ses fichiers
+### Où le lanceur range ses fichiers
 
 | Chemin | Contenu |
 | --- | --- |
-| `%USERPROFILE%\tf2-archipelago\` | Les fichiers du jeu, SourceMod et SteamCMD. |
-| `%USERPROFILE%\tf2-archipelago\tf2.yaml` | Le fichier joueur pour Archipelago. |
-| `%USERPROFILE%\tf2-archipelago\bridge-state\` | Les checks et les débloquages. |
-| `%APPDATA%\tf2ap\config.json` | Vos réglages. |
+| `%USERPROFILE%\tf2-archipelago\` | Les fichiers du jeu, SourceMod et SteamCMD |
+| `%USERPROFILE%\tf2-archipelago\tf2.yaml` | Le fichier joueur |
+| `%USERPROFILE%\tf2-archipelago\bridge-state\` | Les checks et les déblocages |
+| `%APPDATA%\tf2ap\config.json` | Vos réglages |
+| `%LOCALAPPDATA%\Programs\Archipelago\` | L'app Archipelago, si installée là |
 
 `TF2AP_INSTALL_ROOT` déplace les trois premiers, pour un second disque.
-
-## En cas de problème
-
-Le lanceur écrit son journal dans le terminal. Remontez pour lire ce que le
-serveur de jeu et le bridge ont dit.
-
-« Personne d'autre ne peut rejoindre » est la cause habituelle. Un serveur
-reste sur votre propre réseau tant que vous ne changez pas `SRCDS_REACH`, et le
-launcher ne propose pas encore ce choix. Voir
-[Inviter vos amis](invite-your-friends.md).
-
-Voir [Dépannage](../operate/troubleshooting.md) pour le reste.
-
-## L'autre façon
-
-Si vous avez une machine Linux avec Docker, voir
-[Installer avec Docker](install.md). Les deux font tourner le même logiciel. Le
-lanceur porte le même bridge et le même plugin, emballés pour Windows sans
-Docker.
