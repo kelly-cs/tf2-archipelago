@@ -1,0 +1,109 @@
+# Installer sur Linux
+
+Un seul fichier. Pas de Docker, pas de clone, pas de compilateur. Le même
+programme que le lanceur Windows, sans la fenêtre : sur Linux, tout passe par
+le terminal.
+
+Téléchargez `tf2ap-linux-amd64` depuis la
+[dernière version](https://github.com/m-this/tf2-archipelago/releases/latest),
+rendez-le exécutable, et lancez-le.
+
+```sh
+curl -fsSLO https://github.com/m-this/tf2-archipelago/releases/latest/download/tf2ap-linux-amd64
+chmod +x tf2ap-linux-amd64
+./tf2ap-linux-amd64
+```
+
+## Ce qui se passe
+
+Il demande l'adresse de votre room Archipelago. Puis il installe tout :
+SteamCMD, le serveur dédié TF2, Metamod:Source, SourceMod, le plugin, et les
+bots qui remplissent votre équipe. Le serveur de jeu pèse environ 14 Go, et le
+premier démarrage prend du temps à cause de ça. Chaque démarrage suivant prend
+quelques secondes.
+
+Le journal sort dans le terminal. Ctrl+C arrête le serveur.
+
+## Ce qu'il vous faut
+
+| Élément | Ce qu'il faut |
+| --- | --- |
+| Linux | 64 bits, glibc |
+| Disque | Environ 20 Go libres |
+| Mémoire | 4 Go pour six joueurs |
+| Processeur | Deux cœurs |
+| Réseau | Rien, pour des amis sur le même réseau. Un seul port à ouvrir si vous choisissez cette voie. |
+
+Le serveur dédié TF2 est un programme 32 bits. Sur une distribution 64 bits, il
+lui faut la bibliothèque C 32 bits, que la plupart des gestionnaires de paquets
+appellent `glibc.i686`, `lib32-glibc` ou `libc6:i386`. SteamCMD la nomme
+clairement quand il ne la trouve pas.
+
+Pas de Docker, pas de client Steam, pas de compte Steam pour le serveur
+lui-même.
+
+## La session Archipelago
+
+Le lanceur fait tourner le serveur TF2. La session multiworld est séparée. Mann
+vs Machine ne fait pas partie des jeux livrés avec Archipelago, donc le
+générateur de seed reste dans l'app officielle.
+
+1. Installez l'app officielle
+   [Archipelago](https://github.com/ArchipelagoMW/Archipelago/releases). Le
+   lanceur la cherche dans `~/Archipelago`, `/opt/Archipelago` et `/ap`.
+2. Lancez `./tf2ap-linux-amd64 -yaml tf2.yaml` pour écrire le fichier joueur,
+   et déposez-le dans le dossier `Players/` de l'app.
+3. Générez là-bas, puis envoyez l'archive sur
+   [archipelago.gg/uploads](https://archipelago.gg/uploads) pour ouvrir une
+   room.
+4. Donnez l'adresse de la room au lanceur.
+
+Voir [Créer la session](create-the-session.md) pour le détail complet.
+
+## Les réglages
+
+`./tf2ap-linux-amd64 -configure` parcourt tous les réglages dans le terminal.
+Chacun lit aussi une variable d'environnement, sous le nom qu'emploie
+`deploy/.env.example` :
+
+```sh
+AP_ROOM=archipelago.gg:12345 SRCDS_BOT_TEAM_SIZE=4 ./tf2ap-linux-amd64
+```
+
+`./tf2ap-linux-amd64 -env` affiche chaque nom lu et marque ceux que votre
+environnement donne déjà.
+
+## Les commandes
+
+| Commande | Ce qu'elle fait |
+| --- | --- |
+| `tf2ap-linux-amd64` | Installe ce qu'il faut au serveur, puis le lance |
+| `tf2ap-linux-amd64 -room <hôte:port>` | Règle l'adresse, puis lance |
+| `tf2ap-linux-amd64 -configure` | Édite tous les réglages, puis quitte |
+| `tf2ap-linux-amd64 -install` | Installe ou répare le serveur, puis quitte |
+| `tf2ap-linux-amd64 -status` | Affiche les réglages et l'état de l'installation |
+| `tf2ap-linux-amd64 -yaml <chemin>` | Écrit le fichier joueur Archipelago, puis quitte |
+| `tf2ap-linux-amd64 -env` | Liste les variables d'environnement, puis quitte |
+| `tf2ap-linux-amd64 -version` | Affiche la version et les versions des outils |
+
+## Où le lanceur range ses fichiers
+
+| Chemin | Contenu |
+| --- | --- |
+| `~/tf2-archipelago/` | Les fichiers du jeu, SourceMod et SteamCMD |
+| `~/tf2-archipelago/tf2.yaml` | Le fichier joueur |
+| `~/tf2-archipelago/bridge-state/` | Les checks et les déblocages |
+| `~/.config/tf2ap/config.json` | Vos réglages |
+
+`TF2AP_INSTALL_ROOT` déplace les trois premiers, pour un second disque.
+
+## L'autre façon
+
+[Installer avec Docker](install.md) fait tourner le même logiciel en deux
+conteneurs. Prenez celle-là pour garder le serveur hors de votre compte, ou
+pour une machine qui a déjà une stack Docker. Cette page est le chemin le plus
+court.
+
+Voir [Inviter vos amis](invite-your-friends.md) pour ouvrir le serveur, et
+[Dépannage](../operate/troubleshooting.md) quand quelque chose semble aller de
+travers.

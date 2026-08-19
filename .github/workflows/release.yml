@@ -86,6 +86,7 @@ jobs:
             --notes-file .github/release-notes.md \
             --generate-notes \
             dist/tf2ap.exe \
+            dist/tf2ap-linux-amd64 \
             dist/compose.yaml \
             dist/.env.example \
             dist/tf2_mvm.apworld \

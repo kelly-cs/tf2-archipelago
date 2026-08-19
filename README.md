@@ -50,6 +50,19 @@ wrong. A **Test mode** plays without any room at all.
 [The Windows guide](./docs/en/setup/install-windows.md) takes you from the
 download to the first wave.
 
+## Linux
+
+Download `tf2ap-linux-amd64` and run it. Same program, no window: the terminal
+is the interface.
+
+```sh
+curl -fsSLO https://github.com/m-this/tf2-archipelago/releases/latest/download/tf2ap-linux-amd64
+chmod +x tf2ap-linux-amd64
+./tf2ap-linux-amd64
+```
+
+[The Linux guide](./docs/en/setup/install-linux.md) has the rest.
+
 ## Docker
 
 For any machine with Docker:

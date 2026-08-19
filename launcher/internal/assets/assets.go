@@ -1,5 +1,6 @@
 // Package assets holds the files the launcher embeds in its own binary: the
-// compiled plugin, the ripext Windows build, and the config templates. They
+// compiled plugin, the ripext build for this platform, and the config
+// templates. They
 // ship inside tf2ap.exe so a download is the whole install for the parts this
 // project owns.
 //
@@ -17,12 +18,6 @@ import (
 
 //go:embed embedded/tf2_archipelago.smx
 var plugin []byte
-
-//go:embed embedded/sm-ripext-windows.zip
-var ripextZip []byte
-
-//go:embed embedded/defender-bots-windows.zip
-var defenderBotsZip []byte
 
 //go:embed embedded/tf2_mvm.apworld
 var apworld []byte
@@ -48,13 +43,17 @@ var (
 // Plugin returns the compiled SourceMod plugin bytecode.
 func Plugin() []byte { return plugin }
 
-// RipextZip returns the Windows ripext distribution, unpacked into the game's
-// addons tree at install time.
+// RipextZip returns the ripext distribution for this platform, unpacked into
+// the game's addons tree at install time.
 func RipextZip() []byte { return ripextZip }
 
-// DefenderBotsZip returns the MvM defender bot stack for Windows: the four
-// plugins, the two extension .dlls, their gamedata and the per-map navigation
+// DefenderBotsZip returns the MvM defender bot stack for this platform: the
+// four plugins, the two extensions, their gamedata and the per-map navigation
 // hints, rooted at addons/.
+//
+// One platform's binaries per build. SourceMod takes the .so or the .dll by
+// platform and ignores the other, so shipping both would be half the bytes of
+// the archive wasted in every download.
 func DefenderBotsZip() []byte { return defenderBotsZip }
 
 // Apworld returns the world file the Archipelago app generates seeds with. The

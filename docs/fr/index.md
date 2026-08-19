@@ -12,8 +12,9 @@ gagnent une partie que Valve a calibrée pour six.
 
 Sur Windows, téléchargez `tf2ap.exe` depuis la
 [dernière version](https://github.com/m-this/tf2-archipelago/releases/latest)
-et lancez-le. Il demande l'adresse de votre room Archipelago et installe le
-reste.
+et lancez-le. Sur Linux, `tf2ap-linux-amd64` de la même version fait pareil
+dans un terminal. L'un comme l'autre demande l'adresse de votre room
+Archipelago et installe le reste.
 
 Avec Docker :
 
@@ -27,8 +28,9 @@ make logs
 
 Le premier démarrage télécharge environ 14 Go de fichiers de jeu.
 
-[Installer sur Windows](setup/install-windows.md) et
-[Installer avec Docker](setup/install.md) couvrent les deux en détail.
+[Installer sur Windows](setup/install-windows.md),
+[Installer sur Linux](setup/install-linux.md) et
+[Installer avec Docker](setup/install.md) couvrent les trois en détail.
 
 ## Lire le livre dans cet ordre
 
@@ -45,7 +47,8 @@ mot avant de l'utiliser.
    difficulté d'une soirée.
 5. [Créer la session](setup/create-the-session.md) — fabrique la partie et
    la met sur `archipelago.gg`.
-6. [Installer sur Windows](setup/install-windows.md) ou
+6. [Installer sur Windows](setup/install-windows.md),
+   [Installer sur Linux](setup/install-linux.md) ou
    [Installer avec Docker](setup/install.md) — fait tourner le serveur.
 7. [Inviter vos amis](setup/invite-your-friends.md) ouvre le serveur.
    [Les bots de votre équipe](play/defender-bots.md) dit qui remplit les

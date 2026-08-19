@@ -12,7 +12,9 @@ that Valve balanced for six.
 
 On Windows, download `tf2ap.exe` from the
 [latest release](https://github.com/m-this/tf2-archipelago/releases/latest)
-and run it. It asks for your Archipelago room address and installs the rest.
+and run it. On Linux, `tf2ap-linux-amd64` from the same release does the same
+in a terminal. Either asks for your Archipelago room address and installs the
+rest.
 
 With Docker:
 
@@ -26,8 +28,9 @@ make logs
 
 The first start downloads about 14 GB of game files.
 
-[Install on Windows](setup/install-windows.md) and
-[Install with Docker](setup/install.md) cover both in full.
+[Install on Windows](setup/install-windows.md),
+[Install on Linux](setup/install-linux.md) and
+[Install with Docker](setup/install.md) cover all three in full.
 
 ## Read the book in this order
 
@@ -43,7 +46,8 @@ never used a randomizer before, and it defines every word before it uses it.
    difficulty of an evening.
 5. [Create the session](setup/create-the-session.md) — makes the run and
    puts it on `archipelago.gg`.
-6. [Install on Windows](setup/install-windows.md) or
+6. [Install on Windows](setup/install-windows.md),
+   [Install on Linux](setup/install-linux.md) or
    [Install with Docker](setup/install.md) — gets the server running.
 7. [Invite your friends](setup/invite-your-friends.md) opens the server.
    [The bots on your team](play/defender-bots.md) says who fills the empty
