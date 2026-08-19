@@ -1,10 +1,10 @@
 # Installer sur Linux
 
 Un seul fichier. Pas de Docker, pas de clone, pas de compilateur. Le même
-programme que le lanceur Windows, et pour l'instant sans la fenêtre : cette
-fenêtre est en Win32, donc Windows uniquement, et sur Linux tout passe par le
-terminal. Une fenêtre pour Linux est la prochaine chose que le lanceur reçoit ;
-tout ce qui suit continuera de marcher.
+programme que le lanceur Windows, avec la même interface dessinée dans le
+terminal plutôt que dans une fenêtre : le journal, les missions de la partie,
+la ligne rcon, et les six mêmes onglets de réglages. Rien à installer pour ça,
+et ça marche à travers SSH.
 
 Téléchargez `tf2ap-linux-amd64` depuis la
 [dernière version](https://github.com/m-this/tf2-archipelago/releases/latest),
@@ -24,7 +24,23 @@ bots qui remplissent votre équipe. Le serveur de jeu pèse environ 14 Go, et le
 premier démarrage prend du temps à cause de ça. Chaque démarrage suivant prend
 quelques secondes.
 
-Le journal sort dans le terminal. Ctrl+C arrête le serveur.
+Puis l'interface s'ouvre dessus.
+
+| Touche | Ce qu'elle fait |
+| --- | --- |
+| `s` | Démarre le serveur, ou l'arrête |
+| `r` | Le redémarre |
+| `j` | Lance Team Fortress 2 et rejoint |
+| `c` | Copie la ligne de connexion, à envoyer à un ami |
+| `,` | Les réglages, dans les six onglets de la fenêtre |
+| `tab` | Entre le journal et la partie |
+| `i` | La ligne rcon. `esc` rend les touches |
+| `p` | Sur l'onglet de la partie, charge la mission sous le curseur |
+| `q` | Quitte, ce qui arrête le serveur |
+
+`tf2ap-linux-amd64 -console` écrit le journal et rien d'autre, ce que veut un
+service ou une session `screen` : une interface qui dessine sur tout l'écran
+n'écrit rien d'utile dans un fichier. Celle-là s'arrête avec Ctrl+C.
 
 ## Ce qu'il vous faut
 

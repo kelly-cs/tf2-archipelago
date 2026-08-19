@@ -56,9 +56,15 @@ download to the first wave.
 
 ## Linux
 
-Download `tf2ap-linux-amd64` and run it. Same program, and for now the
-terminal is the interface: the window above is Win32, which is Windows only. A
-window for Linux is the next thing this launcher gets.
+Download `tf2ap-linux-amd64` and run it. Same program, same interface as the
+window above in everything but how it is drawn: a full-screen terminal
+interface, with the log, the run's missions, the rcon line and the same six
+tabs of settings. It is Bubble Tea, which is pure Go, so it needs nothing
+installed and works over SSH.
+
+It is on Windows too. `tf2ap.exe -tui` opens it instead of the window, which is
+what to use over SSH or in a terminal you already have open. `-console` on
+either platform prints the log and nothing else, which is what a service wants.
 
 ```sh
 curl -fsSLO https://github.com/m-this/tf2-archipelago/releases/latest/download/tf2ap-linux-amd64
@@ -66,8 +72,8 @@ chmod +x tf2ap-linux-amd64
 ./tf2ap-linux-amd64
 ```
 
-Every answer the window asks for is a variable here, and `-status` says what
-the run is set to before it starts:
+Every answer either interface asks for is also a variable, and `-status` says
+what the run is set to before it starts:
 
 <p align="center">
   <img alt="tf2ap-linux-amd64 -status" src="docs/images/linux-status.svg" width="740">

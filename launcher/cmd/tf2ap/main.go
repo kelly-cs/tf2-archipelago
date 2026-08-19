@@ -29,6 +29,7 @@ import (
 	"github.com/m-this/tf2-archipelago/launcher/internal/runtime"
 	"github.com/m-this/tf2-archipelago/launcher/internal/settings"
 	"github.com/m-this/tf2-archipelago/launcher/internal/srcdsconfig"
+	"github.com/m-this/tf2-archipelago/launcher/internal/tui"
 	"github.com/m-this/tf2-archipelago/launcher/internal/ui"
 )
 
@@ -59,7 +60,8 @@ func run(logger *slog.Logger) error {
 	roomFlag := flag.String("room", "", "the Archipelago room address, as host:port")
 	yamlFlag := flag.String("yaml", "", "write the Archipelago player file to this path, then exit")
 	envFlag := flag.Bool("env", false, "list the environment variables that override the configuration, then exit")
-	consoleFlag := flag.Bool("console", false, "run in the terminal instead of the window")
+	consoleFlag := flag.Bool("console", false, "print the log and nothing else, with no interface over it")
+	tuiFlag := flag.Bool("tui", false, "the terminal interface, on a platform whose default is the window")
 	showVersion := flag.Bool("version", false, "print the version and exit")
 	flag.Parse()
 
@@ -116,15 +118,23 @@ func run(logger *slog.Logger) error {
 		return nil
 	}
 
-	if gui.Available() && !*consoleFlag {
+	if gui.Available() && !*consoleFlag && !*tuiFlag {
 		return gui.Run(s, nil)
 	}
-	return guided(logger, s)
+	return guided(logger, s, !*consoleFlag)
 }
 
-// guided is the no-args path: ask for the room if this is a first run, install
-// whatever is missing, write the server configs, then start.
-func guided(logger *slog.Logger, s settings.Settings) error {
+/*
+guided is the no-args path: ask for the room if this is a first run, install
+whatever is missing, write the server configs, then start.
+
+The questions and the install print as they go, because a 14 GB download with a
+progress line is not something to hide behind an interface. What comes after is
+either the terminal interface or the plain log, which is what -console asks for
+and what a service or a CI job wants: an interface that draws over the whole
+screen writes nothing useful into a file.
+*/
+func guided(logger *slog.Logger, s settings.Settings, interactive bool) error {
 	// The question comes before the 14 GB, so a player who mistyped the address
 	// finds out in a second rather than after the download.
 	s, err := ensureConfigured(ui.New(), s)
@@ -142,6 +152,10 @@ func guided(logger *slog.Logger, s settings.Settings) error {
 		return err
 	}
 	summary(s)
+
+	if interactive && tui.Available() {
+		return tui.Run(s, logger)
+	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
