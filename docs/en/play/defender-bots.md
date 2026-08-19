@@ -80,6 +80,13 @@ lane. A shotgun walks in rather than firing from minigun range.
 A bot also pulls a weapon that still has ammo, rather than walking at a robot
 holding an empty one. That is what a Heavy did when its minigun ran dry.
 
+At the upgrade station a bot buys damage first, and buys it for the weapon in
+its hands. It used to buy at random, which is how a Heavy ended up with jump
+height and a stock minigun. A few weapons decide for themselves: a Kritzkrieg
+buys uber rate, a Rescue Ranger buys metal. An Engineer buys the sentry,
+because that is where its damage is, and a Medic buys healing rather than a
+syringe gun. Resistances come last: a bot respawns every wave.
+
 ## Who wrote them
 
 [OfficerSpy/TF2-MvM-Defender-TFBots][mod], GPL-3.0, plus five dependencies:
