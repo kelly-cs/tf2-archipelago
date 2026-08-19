@@ -71,14 +71,26 @@ func TestConnectLinesSayWhatEachReachNeeds(t *testing.T) {
 // The Join button hands this to Steam, which starts the game and connects.
 // The password rides in the URL, so one that holds a space or a slash has to
 // survive the trip.
+//
+// The link names 440. steam://connect asks the server which game it is, and
+// ours answers with the dedicated server's own application, which the client
+// refuses with "app id specified by server is invalid".
 func TestSteamConnectURL(t *testing.T) {
 	s := settings.Settings{SrcdsPort: 27015}
-	if got := SteamConnectURL(s); got != "steam://connect/127.0.0.1:27015" {
+	if got := SteamConnectURL(s); got != "steam://run/440//+connect%20127.0.0.1:27015" {
 		t.Errorf("with no password = %q", got)
 	}
 
 	s.SrcdsPw = "friends only/2"
-	if got := SteamConnectURL(s); got != "steam://connect/127.0.0.1:27015/friends%20only%2F2" {
-		t.Errorf("with a password = %q", got)
+	want := "steam://run/440//+connect%20127.0.0.1:27015%20+password%20friends%20only%2F2"
+	if got := SteamConnectURL(s); got != want {
+		t.Errorf("with a password = %q, want %q", got, want)
+	}
+
+	// A port that is not the default has to reach the URL, or the button joins
+	// a server that is not the one running.
+	s.SrcdsPw, s.SrcdsPort = "", 27045
+	if got := SteamConnectURL(s); !strings.Contains(got, "127.0.0.1:27045") {
+		t.Errorf("the port did not reach the link: %q", got)
 	}
 }
