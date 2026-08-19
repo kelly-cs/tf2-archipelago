@@ -112,8 +112,28 @@ bool Unlocks_HasMission(const char[] popFile)
     return g_UnlockedMissions.GetValue(popFile, held);
 }
 
-// A slotless set cannot be right, the generator guarantees one: treat it as not told yet.
-bool Unlocks_Enforceable()
+// Classes and slots are enforced apart. A set with neither cannot be right,
+// the generator guarantees one of each, so an empty one is read as "the bridge
+// has not told us yet" rather than "take everything away". Holding them apart
+// is what stops a run with classes but no slot yet from enforcing nothing,
+// which is what a play-test saw: every class pickable for the first four waves.
+bool Unlocks_ClassesEnforced()
+{
+    if (!g_HaveUnlocks)
+    {
+        return false;
+    }
+    for (int class = 1; class < sizeof(g_ClassUnlocked); class++)
+    {
+        if (g_ClassUnlocked[class])
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool Unlocks_SlotsEnforced()
 {
     if (!g_HaveUnlocks)
     {
@@ -132,7 +152,7 @@ bool Unlocks_Enforceable()
 // Runs as soon as the bridge answers: a grant that waits for the next spawn looks like no grant.
 void Unlocks_ApplyToAll()
 {
-    if (!Unlocks_Enforceable() || !MvM_IsActive())
+    if (!g_HaveUnlocks || !MvM_IsActive())
     {
         return;
     }
@@ -152,7 +172,7 @@ void Unlocks_ApplyToAll()
 // a forced respawn then hands back the life the death cost.
 void Unlocks_EnforceClass(int client)
 {
-    if (!Unlocks_Enforceable() || !MvM_IsPlayer(client))
+    if (!Unlocks_ClassesEnforced() || !MvM_IsPlayer(client))
     {
         return;
     }
@@ -204,7 +224,7 @@ TFClassType Unlocks_FirstAllowedClass()
 // Every inventory application: spawn, resupply locker, and the upgrade station's loadout changes.
 void Unlocks_EnforceSlots(int client)
 {
-    if (!Unlocks_Enforceable() || !MvM_IsPlayer(client) || !IsPlayerAlive(client))
+    if (!Unlocks_SlotsEnforced() || !MvM_IsPlayer(client) || !IsPlayerAlive(client))
     {
         return;
     }

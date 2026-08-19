@@ -272,9 +272,19 @@ public void Event_MissionComplete(Event event, const char[] name, bool dontBroad
     ReportMissionCleared();
 }
 
+// The game fires this while a mission loads, before anybody has readied up:
+// a live server sent a Death Link to the whole multiworld fourteen seconds
+// after a map change, with nobody playing. So a loss counts only while a wave
+// this plugin saw start is running. g_CurrentWave is what says so: mvm_begin_wave
+// sets it, a cleared wave and a map change clear it.
 public void Event_WaveFailed(Event event, const char[] name, bool dontBroadcast)
 {
-    ReportWaveFailed(g_CurrentWave > 0 ? g_CurrentWave : MvM_WaveFromGame());
+    if (g_CurrentWave < 1)
+    {
+        AP_Debug("The game reported a lost wave with no wave running. The plugin ignores it.");
+        return;
+    }
+    ReportWaveFailed(g_CurrentWave);
 }
 
 static void ReportWaveFailed(int wave)
@@ -381,7 +391,7 @@ public void Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast
 // The class menu issues joinclass, so this is the one place to refuse a locked class.
 public Action Command_JoinClass(int client, const char[] command, int argc)
 {
-    if (!Unlocks_Enforceable() || argc < 1 || !MvM_IsActive() || !MvM_IsPlayer(client))
+    if (!Unlocks_ClassesEnforced() || argc < 1 || !MvM_IsActive() || !MvM_IsPlayer(client))
     {
         return Plugin_Continue;
     }

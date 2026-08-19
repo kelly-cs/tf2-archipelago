@@ -14,10 +14,11 @@
 // not hold it.
 ConVar g_CvarStartMission;
 
-// How long after a mission clear the next one loads. Long enough to read the
-// scoreboard, short enough to beat the game's own cycle to the next map. Zero
-// leaves the game to cycle on its own, and the guard catches up at the next
-// map start.
+// How long after a mission clear the next one loads. Long enough for the
+// victory sequence, short enough to beat the game's own cycle: a live server
+// followed mapcycle.txt to cp_dustbowl fifty-two seconds after a mission
+// clear. Zero leaves the game to cycle on its own, and the guard catches up at
+// the next map start.
 ConVar g_CvarNextMissionDelay;
 
 // Consulted once: the start mission is where the evening begins, not where
@@ -42,7 +43,7 @@ void Missions_Init()
 {
     g_CvarStartMission = CreateConVar("tf2ap_start_mission", "",
         "The mission the server starts on, as a popfile name. Blank keeps the map's own.");
-    g_CvarNextMissionDelay = CreateConVar("tf2ap_next_mission_delay", "20",
+    g_CvarNextMissionDelay = CreateConVar("tf2ap_next_mission_delay", "30",
         "Seconds between a mission clear and the next mission loading. 0 leaves it to the game.",
         _, true, 0.0, true, 300.0);
 }
