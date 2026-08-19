@@ -151,9 +151,13 @@ skipped entirely and no token is needed.
 
 Then check the rest in this order:
 
-1. **On `lan`**, everyone is on the same network, and you gave out the address
-   `ip -4 addr` shows for that network. LAN mode refuses addresses outside the
-   private ranges, and a guest network on the same router is a different one.
+1. **On `lan`**, the player sees `LAN servers are restricted to local clients
+   (class C)`. That is the server saying the address they came from is not in
+   the same class C, the same first three numbers, as its own: a guest network
+   on the same router is a different one, and so is a VPN, and so is the
+   bridge network a server in a container sits on. Give out the address
+   `ip -4 addr` shows for the network everyone is on, or leave `lan` behind:
+   `port` with a token has no such rule.
 2. **On `steam`**, the address is the one from this run. It changes on every
    start, and an old one goes nowhere.
 3. **On `port`**, the port is forwarded on UDP as well as TCP. A TCP-only rule

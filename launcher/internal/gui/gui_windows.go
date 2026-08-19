@@ -534,6 +534,20 @@ func (w *window) onJoin() {
 	}
 }
 
+// dialRcon reaches the game server on whichever address it bound its rcon port
+// to. See runtime.RconAddresses: which one that is depends on the reach.
+func dialRcon(s settings.Settings) (*rcon.Client, error) {
+	var err error
+	for _, address := range apruntime.RconAddresses(s) {
+		var client *rcon.Client
+		client, err = rcon.Dial(address, s.SrcdsRconPw)
+		if err == nil {
+			return client, nil
+		}
+	}
+	return nil, err
+}
+
 // onCommandKey sends on Enter. OnEditingFinished would also fire when the box
 // loses focus, which would send whatever was half-typed.
 func (w *window) onCommandKey(key walk.Key) {
@@ -560,8 +574,7 @@ func (w *window) runRcon(command string) {
 	w.say("> %s", command)
 	s := w.supervisor.Settings()
 	go func() {
-		address := fmt.Sprintf("127.0.0.1:%d", s.SrcdsPort)
-		client, err := rcon.Dial(address, s.SrcdsRconPw)
+		client, err := dialRcon(s)
 		if err != nil {
 			w.say("rcon: %v", err)
 			return
@@ -631,7 +644,7 @@ func (w *window) idle() {
 // The rest stay in `tf2ap.exe -configure`.
 func (w *window) editSettings() {
 	s := w.supervisor.Settings()
-	next, ok, err := runSettingsDialog(w.main, s, w.repair)
+	next, ok, err := runSettingsDialog(w.main, s, w.repair, w.resetSettings)
 	if err != nil {
 		w.say("settings: %v", err)
 		return
@@ -689,6 +702,29 @@ func (w *window) repair() ([]string, error) {
 	}
 	w.main.Synchronize(w.refresh)
 	return removed, err
+}
+
+// resetSettings is what the dialog's Reset settings button calls: the factory
+// answers, saved, with a new rcon password because the old one is gone with
+// the rest.
+//
+// The install root is not one of them. It says where 14 GB of game files are,
+// not how the run is played, and resetting it would start the download again
+// somewhere else.
+func (w *window) resetSettings() error {
+	fresh := settings.Defaults()
+	fresh.InstallRoot = w.supervisor.Settings().InstallRoot
+	if password, err := settings.NewRconPassword(); err == nil {
+		fresh.SrcdsRconPw = password
+	}
+	if err := settings.Save(fresh); err != nil {
+		return fmt.Errorf("cannot save the settings: %w", err)
+	}
+	// The environment still wins over the file, the way it does at startup.
+	w.supervisor.SetSettings(settings.ApplyEnv(fresh))
+	w.say("settings reset. Press Settings to go through them, then Start.")
+	w.main.Synchronize(w.refresh)
+	return nil
 }
 
 // writePlayerFile keeps the Archipelago player file in step with the run

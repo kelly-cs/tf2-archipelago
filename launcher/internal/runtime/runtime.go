@@ -143,13 +143,23 @@ func srcdsArgs(s settings.Settings, exeName string) []string {
 	// brings up an interactive text console, and this launcher gives it no
 	// terminal to bring it up on. The server then holds its port, burns a
 	// fifth of a core and never finishes loading the map.
+	flags := []string{"-game", "tf", "-usercon", "-console"}
 	// -ip 0.0.0.0 binds every interface. Without it srcds binds to whatever
 	// its hostname resolves to, and on Debian that is 127.0.1.1: the game
 	// answers on every address, the rcon port answers only on that one, and
 	// the launcher's own rcon box gets "connection refused" from a server
-	// running perfectly well. What may reach the server is sv_lan's business
-	// and the firewall's, not the bind address's.
-	flags := []string{"-game", "tf", "-usercon", "-console", "-ip", "0.0.0.0"}
+	// running perfectly well.
+	//
+	// Only where sv_lan is off. The engine keeps whatever -ip says as the
+	// address it believes it is on, and a LAN server compares every joining
+	// player against it: same class C or refused. Told 0.0.0.0, it compares
+	// them against 0.0.0.0, which nothing matches, and the server turns away
+	// every player on the network with "LAN servers are restricted to local
+	// clients (class C)". Only the loopback address gets in, because that is
+	// checked before the comparison. RconAddresses covers the bind instead.
+	if !reach.Lan() {
+		flags = append(flags, "-ip", "0.0.0.0")
+	}
 	if exeName == "srcds.exe" {
 		// A crash dialog is a Windows idea, and it waits for a click too.
 		flags = append(flags, "-nocrashdialog")
