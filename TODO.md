@@ -1,38 +1,45 @@
 # TODO
 
-What the first play-test asked for. The order below is the order to do the work
-in.
+What the first play-test asked for, and what came of it. Every item says where
+it stands.
 
 Two players played that session: EZKSupernova and Cowser the Khelinace. Most
 of this list comes from their reports.
 
+Only item 9, a native Linux build, is untouched. Item 8 has half of it, and
+says why the other half waits.
+
 ## 1. Fork the bots mod. Done
 
 The mod is `m-this/tf2-mvm-bots`. Its `tf2ap` branch is upstream tag 1.5.5
-plus our three commits, and `DEFENDERBOTS_VERSION=1.5.5-tf2ap.1` names the tag
-of that branch. `deploy/patches/defenderbots/` is gone.
+plus our commits, and `DEFENDERBOTS_VERSION` names a tag of that branch.
+`deploy/patches/defenderbots/` is gone.
+
+The branch carries five changes. The upgrade station crash fix, the server
+loadout and the class blacklist came from the old patches. The count of bots
+that have not spawned and the team composition are new.
 
 To take a new upstream release: rebase `tf2ap` on the new upstream tag, tag
 the result, and bump `DEFENDERBOTS_VERSION`.
 
-## 2. Say what a wave failure does
+## 2. Say what a wave failure does. Done
 
-Two players read the same paragraph and asked the same question. The paragraph
-is in `docs/en/what-the-randomizer-changes.md`, and it says that a wiped team
-replays the wave, and that a failed wave reports nothing.
+Two players read the same paragraph and asked the same question: does a team
+wipe fail the wave? In normal MvM it does not, and it does not here either.
+The docs said it did.
 
-The question was whether a team wipe fails the wave at all, because in normal
-MvM it does not. It does not here either. The text must separate three steps:
+What is true, and what the pages now say:
 
-- The team runs out of respawns, and the game declares the wave lost. That
-  rule belongs to the game, and this project does not change it.
-- A lost wave reports no check. Nothing else happens.
-- Death Link adds one thing. A lost wave sends a death to the multiworld, and
-  a death that arrives kills RED, which loses the wave you play.
+- A wave ends when the robots deploy the bomb. A team wipe on its own does
+  not end it: the game respawns the team and the wave goes on.
+- A lost wave reports no check, and the randomizer adds no penalty.
+- Outbound, DeathLink sends the game's own `mvm_wave_failed`.
+- Inbound, the plugin only kills RED. It fires no wave-failed event, so an
+  undefended hatch is what loses the wave.
 
-The same confusion sits in `docs/en/setup/shape-of-the-run.md` under
-`MVM_DEATH_LINK`, and in `docs/en/spec.md`. Fix all three, and the French
-copies.
+Fixed in `what-the-randomizer-changes.md`, `shape-of-the-run.md`, `spec.md`,
+`CONTEXT.md`, the French copies, and the two plugin comments that carried the
+same wrong claim. One spelling throughout: DeathLink.
 
 ## 3. Medic, Engineer and Spy need a different first slot. Done
 
