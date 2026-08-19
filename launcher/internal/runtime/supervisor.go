@@ -215,6 +215,8 @@ func (s *Supervisor) startTestRoom(ctx context.Context, cfg *config.Config) (*fa
 		Goal:         s.settings.MvmGoal,
 		MissionCount: s.settings.MvmMissionCount,
 		Excluded:     s.settings.MvmExcludedMissions,
+		Difficulty:   s.settings.MvmDifficulty,
+		StartMission: s.settings.MvmStartMission,
 		DeathLink:    s.settings.MvmDeathLink,
 		Log:          func(text string) { s.emit(text) },
 	})

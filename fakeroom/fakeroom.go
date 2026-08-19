@@ -67,6 +67,16 @@ type Options struct {
 	// generator's excluded_missions does.
 	Excluded []string
 
+	// Difficulty is the easiest tier the run may draw, the difficulty_pool
+	// key. Empty draws from every tier. Without it a test run played the
+	// first missions of the table whatever the player asked for, so the one
+	// setting an evening is shaped around did nothing.
+	Difficulty string
+
+	// StartMission is the popfile the run begins on, empty for the first one
+	// drawn. The same option the real generator takes.
+	StartMission string
+
 	// DeathLink makes the made-up seed ask for it, so the deaths this room
 	// invents take the team down the way a real multiworld's would.
 	DeathLink bool
@@ -88,7 +98,8 @@ func Start(ctx context.Context, options Options) (*Room, string, error) {
 
 	missions := options.Missions
 	if len(missions) == 0 {
-		missions = defaultMissions(options.MissionCount, options.Excluded)
+		missions = defaultMissions(options.MissionCount, options.Excluded,
+			options.Difficulty, options.StartMission)
 	}
 	start := startingInventory(missions[0])
 	room := &Room{
@@ -445,24 +456,49 @@ func unlockOrder(held []int64) []int64 {
 // defaultMissions picks the first missions the game data lists, which is the
 // normal tier first: the gentlest thing to test against. Excluded popfiles
 // are skipped, and the count is bounded by what is left.
-func defaultMissions(count int, excluded []string) []string {
-	if count <= 0 || count > len(gamedata.Missions) {
-		count = 8
-	}
-	missions := make([]string, 0, count)
+// defaultMissions is the pool a test run draws, shaped by the same three
+// options the real generator takes: the easiest tier, the exclusions, and how
+// many. The run starts on the first of them, so a named start mission goes to
+// the front.
+//
+// The floor is a floor, not a filter: picking intermediate draws intermediate
+// and everything harder, which is what difficulty_pool means.
+func defaultMissions(count int, excluded []string, difficulty, startMission string) []string {
+	floor, known := gamedata.DifficultyByKey(difficulty)
+
+	pool := make([]string, 0, len(gamedata.Missions))
 	for _, mission := range gamedata.Missions {
-		if len(missions) == count {
-			break
+		if known && mission.Difficulty < floor {
+			continue
 		}
 		if slices.Contains(excluded, mission.PopFile) {
 			continue
 		}
-		missions = append(missions, mission.PopFile)
+		pool = append(pool, mission.PopFile)
 	}
-	if len(missions) == 0 {
-		missions = append(missions, gamedata.Missions[0].PopFile)
+	// A tier that excludes everything is the player's mistake, not a reason to
+	// serve a room with no mission in it.
+	if len(pool) == 0 {
+		pool = append(pool, gamedata.Missions[0].PopFile)
 	}
-	return missions
+
+	// The run begins on the first mission drawn, so this is how a start
+	// mission is honoured. One outside the pool is put back into it: the
+	// player asked for it by name, and it beats the tier they asked for by key.
+	if startMission != "" {
+		if at := slices.Index(pool, startMission); at > 0 {
+			pool = slices.Insert(slices.Delete(slices.Clone(pool), at, at+1), 0, startMission)
+		} else if at == -1 {
+			if _, known := gamedata.MissionByPopFile(startMission); known {
+				pool = append([]string{startMission}, pool...)
+			}
+		}
+	}
+
+	if count <= 0 || count > len(pool) {
+		count = min(8, len(pool))
+	}
+	return pool[:count]
 }
 
 func write(ctx context.Context, conn *websocket.Conn, messages ...any) error {

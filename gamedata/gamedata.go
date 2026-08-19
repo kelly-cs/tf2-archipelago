@@ -61,6 +61,19 @@ var Difficulties = []Difficulty{
 func (d Difficulty) Key() string    { return difficultyKeys[d] }
 func (d Difficulty) String() string { return difficultyNames[d] }
 
+// DifficultyByKey turns the difficulty_pool option's value back into a tier.
+// The key comes from a settings file or an environment variable, so an unknown
+// one is a typo rather than a broken table: it reads as the whole pool, which
+// is what the generator does with a mission count larger than the pool holds.
+func DifficultyByKey(key string) (Difficulty, bool) {
+	for _, d := range Difficulties {
+		if d.Key() == key {
+			return d, true
+		}
+	}
+	return DifficultyNormal, false
+}
+
 // Classification is Archipelago's item category. A wrong one makes a seed
 // unwinnable or trivial, so it is data rather than a guess at pool-build time.
 type Classification uint8

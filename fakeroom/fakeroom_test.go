@@ -171,12 +171,62 @@ func TestTheUnlockOrderDropsWhatTheRunAlreadyHolds(t *testing.T) {
 }
 
 func TestDefaultMissionsSkipTheExcluded(t *testing.T) {
-	got := defaultMissions(2, []string{"mvm_decoy"})
+	got := defaultMissions(2, []string{"mvm_decoy"}, "", "")
 	if len(got) != 2 || got[0] != "mvm_decoy_intermediate" {
 		t.Errorf("missions = %v", got)
 	}
-	if got := defaultMissions(1, []string{"mvm_decoy"}); len(got) != 1 || got[0] == "mvm_decoy" {
+	if got := defaultMissions(1, []string{"mvm_decoy"}, "", ""); len(got) != 1 || got[0] == "mvm_decoy" {
 		t.Errorf("missions = %v", got)
+	}
+}
+
+// A test run is what a player shapes an evening with before generating a real
+// seed. It drew the first missions of the table whatever tier they picked, so
+// the one setting that decides how hard the evening is did nothing.
+func TestDefaultMissionsRespectTheTier(t *testing.T) {
+	for _, key := range []string{"intermediate", "advanced", "expert"} {
+		floor, known := gamedata.DifficultyByKey(key)
+		if !known {
+			t.Fatalf("%s is not a tier", key)
+		}
+		for _, popFile := range defaultMissions(8, nil, key, "") {
+			mission, ok := gamedata.MissionByPopFile(popFile)
+			if !ok {
+				t.Fatalf("drew %s, which is not a mission", popFile)
+			}
+			// A floor, not a filter: the tier and everything harder.
+			if mission.Difficulty < floor {
+				t.Errorf("%s drew %s, which is %s", key, mission.Name, mission.Difficulty.Key())
+			}
+		}
+	}
+	// An unknown key is a typo in a settings file, and draws the whole pool
+	// rather than nothing.
+	if got := defaultMissions(3, nil, "nonsense", ""); len(got) != 3 {
+		t.Errorf("an unknown tier drew %v", got)
+	}
+}
+
+// The run begins on the first mission drawn, so a named start mission has to
+// come first even when the tier would not have drawn it at all.
+func TestDefaultMissionsStartWhereAsked(t *testing.T) {
+	got := defaultMissions(4, nil, "normal", "mvm_coaltown_advanced")
+	if len(got) == 0 || got[0] != "mvm_coaltown_advanced" {
+		t.Fatalf("missions = %v", got)
+	}
+	if len(got) != 4 {
+		t.Errorf("drew %d missions, want 4: %v", len(got), got)
+	}
+	// Named but outside the tier: the player asked for it by name, which is
+	// more specific than the tier they asked for by key.
+	got = defaultMissions(2, nil, "expert", "mvm_decoy")
+	if len(got) == 0 || got[0] != "mvm_decoy" {
+		t.Errorf("missions = %v", got)
+	}
+	// Not a mission at all: ignored rather than served as one.
+	got = defaultMissions(2, nil, "normal", "mvm_nowhere")
+	if slices.Contains(got, "mvm_nowhere") {
+		t.Errorf("served a mission that does not exist: %v", got)
 	}
 }
 

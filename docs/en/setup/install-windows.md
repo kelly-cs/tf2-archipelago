@@ -19,7 +19,9 @@ The window has:
 - **Start**, **Stop**, **Restart**. A light beside them shows red, amber or
   green.
 - **Join**, under the buttons: the addresses your friends connect to.
-  **Copy** puts one on the clipboard.
+  **Copy** puts one on the clipboard. The button beside them starts Team
+  Fortress 2 and joins this server. It uses this machine's own address on
+  the network: a server on the same machine does not answer on 127.0.0.1.
 - A **Log** tab and an **rcon** box, for when something looks wrong.
 - A **Session** tab: connection status, checks, items, and the missions of
   the run. **Play this mission** loads the one you pick.
