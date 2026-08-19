@@ -6,7 +6,7 @@ Archipelago website shows the player.
 
 from dataclasses import dataclass
 
-from Options import Choice, DeathLink, OptionGroup, PerGameCommonOptions, Range
+from Options import Choice, DeathLink, OptionGroup, OptionSet, PerGameCommonOptions, Range
 
 from . import data
 
@@ -41,6 +41,17 @@ class DifficultyPool(Choice):
     default = 1
 
 
+class ExcludedMissions(OptionSet):
+    """Missions the run never draws, by name.
+
+    Use it to keep out a mission that is too long for the evening. Caliginous
+    Caper is one mission of 666 robots and takes an hour on its own.
+    """
+
+    display_name = "Excluded Missions"
+    valid_keys = frozenset(mission.name for mission in data.MISSIONS)
+
+
 class Goal(Choice):
     """What ends the run.
 
@@ -72,13 +83,14 @@ class MissionsanityPercentage(Range):
 class TF2MvMOptions(PerGameCommonOptions):
     mission_count: MissionCount
     difficulty_pool: DifficultyPool
+    excluded_missions: ExcludedMissions
     goal: Goal
     missionsanity_percentage: MissionsanityPercentage
     death_link: DeathLink
 
 
 option_groups = [
-    OptionGroup("Run shape", [MissionCount, DifficultyPool]),
+    OptionGroup("Run shape", [MissionCount, DifficultyPool, ExcludedMissions]),
     OptionGroup("Goal", [Goal, MissionsanityPercentage]),
 ]
 

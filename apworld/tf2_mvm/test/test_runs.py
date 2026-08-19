@@ -46,6 +46,20 @@ class TestHardestPool(TF2MvMTestBase):
         self.assertEqual(requirement.classes, sum(name in data.CLASS_NAMES for name in held))
 
 
+class TestExcludedMissions(TF2MvMTestBase):
+    options: ClassVar[dict[str, Any]] = {
+        "mission_count": 29,
+        "difficulty_pool": "normal",
+        "excluded_missions": {"Caliginous Caper", "Doe's Drill"},
+    }
+
+    def test_excluded_missions_are_never_drawn(self) -> None:
+        drawn = {mission.name for mission in self.world.missions}
+        self.assertNotIn("Caliginous Caper", drawn)
+        self.assertNotIn("Doe's Drill", drawn)
+        self.assertEqual(len(data.MISSIONS) - 2, len(drawn))
+
+
 class TestMissionsanity(TF2MvMTestBase):
     options: ClassVar[dict[str, Any]] = {
         "goal": "missionsanity",

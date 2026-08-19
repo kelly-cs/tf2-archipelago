@@ -85,6 +85,11 @@ class TF2MvMWorld(World):
 
     def generate_early(self) -> None:
         available = self._available_missions()
+        if not available:
+            raise OptionError(
+                f"{self.player_name}: excluded_missions leaves nothing in a "
+                f"{self.options.difficulty_pool.current_key} pool."
+            )
         wanted = min(self.options.mission_count.value, len(available))
         drawn = self.random.sample(available, wanted)
         spare = [mission for mission in available if mission not in drawn]
@@ -178,7 +183,12 @@ class TF2MvMWorld(World):
     def _available_missions(self) -> list[data.Mission]:
         floor = data.DIFFICULTIES.index(self.options.difficulty_pool.current_key)
         allowed = data.DIFFICULTIES[floor:]
-        return [mission for mission in data.MISSIONS if mission.difficulty in allowed]
+        excluded = self.options.excluded_missions.value
+        return [
+            mission
+            for mission in data.MISSIONS
+            if mission.difficulty in allowed and mission.name not in excluded
+        ]
 
     @staticmethod
     def _tier_order(mission: data.Mission) -> tuple[int, int]:
