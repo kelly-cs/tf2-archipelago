@@ -73,6 +73,13 @@ On Windows the launcher has a **Bots** tab for the same settings. Six menus,
 one per seat, name the team in order, and a loadout preset per class says what
 a bot of that class spawns with. Stock weapons are the default. See [Install on Windows](../setup/install-windows.md).
 
+A bot holds its distance by what it carries, not by its class. A Brass Beast
+closes in, because it cannot reposition once it is spun up; a Tomislav holds a
+lane. A shotgun walks in rather than firing from minigun range.
+
+A bot also pulls a weapon that still has ammo, rather than walking at a robot
+holding an empty one. That is what a Heavy did when its minigun ran dry.
+
 ## Who wrote them
 
 [OfficerSpy/TF2-MvM-Defender-TFBots][mod], GPL-3.0, plus five dependencies:
