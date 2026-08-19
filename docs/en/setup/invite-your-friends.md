@@ -15,9 +15,9 @@ SRCDS_REACH=port     # straight at the game port, forwarded on your router
 `lan` is the whole answer for people playing in the same house. The other two
 reach the internet, and both need a login token.
 
-> **`steam` is not finished.** The relay has never been taken all the way to a
-> Team Fortress 2 client that joined, so the launcher does not offer it yet:
-> the **Steam Networking** tab is hidden unless you start it with
+> **`steam` is not finished.** No run took the relay all the way to a Team
+> Fortress 2 client that joined. The launcher does not offer it yet: the
+> **Steam Networking** tab is hidden unless you start it with
 > `TF2AP_STEAM_NETWORKING=1`. `SRCDS_REACH` works either way. Use `lan`, or
 > `port` if you have a router you can configure.
 
@@ -52,12 +52,12 @@ a **Copy** button. Your friends type the first address:
 connect 169.254.13.42:20232
 ```
 
-It works from anywhere. Nothing is forwarded, nothing is opened in the
-firewall, and your own address is never shown to the people joining: the
-traffic goes through Valve's relays.
+It works from anywhere. You forward nothing and you open nothing in the
+firewall. The traffic goes through Valve's relays, so the people joining never
+see your own address.
 
-Two things to know. The address is a new one every time the server starts, so
-send the line from this run rather than one you wrote down last week. And
+Two things to know. The address is a new one every time the server starts.
+Send the line from this run rather than one you wrote down last week. And
 nobody can add the server to their favourites, because there is no stable
 address to favourite.
 
@@ -79,6 +79,12 @@ connect your.public.address:27015
 
 Nothing else has to be reachable. The randomizer server and the bridge stay on
 loopback.
+
+## The developer console
+
+The console is off by default in Team Fortress 2. Open Options, then Advanced,
+then tick "Enable developer console". The key that opens it is `` ` `` on a US
+keyboard.
 
 ## The server password
 
@@ -107,7 +113,7 @@ lets an admin run commands. Never give out the second one.
 
 A server with `SRCDS_TOKEN=0` never logs in and never appears in the public
 server browser. With a real token it can, which is what you want to avoid on a
-randomized run in progress: set `SRCDS_PW` as well, and strangers who find the
+randomized run in progress. Set `SRCDS_PW` as well, and strangers who find the
 server still cannot get in.
 
 ## What to tell them

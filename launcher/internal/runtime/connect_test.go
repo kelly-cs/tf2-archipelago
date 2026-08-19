@@ -67,3 +67,18 @@ func TestConnectLinesSayWhatEachReachNeeds(t *testing.T) {
 		t.Errorf("nothing said about forwarding the port:\n%s", joined)
 	}
 }
+
+// The Join button hands this to Steam, which starts the game and connects.
+// The password rides in the URL, so one that holds a space or a slash has to
+// survive the trip.
+func TestSteamConnectURL(t *testing.T) {
+	s := settings.Settings{SrcdsPort: 27015}
+	if got := SteamConnectURL(s); got != "steam://connect/127.0.0.1:27015" {
+		t.Errorf("with no password = %q", got)
+	}
+
+	s.SrcdsPw = "friends only/2"
+	if got := SteamConnectURL(s); got != "steam://connect/127.0.0.1:27015/friends%20only%2F2" {
+		t.Errorf("with a password = %q", got)
+	}
+}

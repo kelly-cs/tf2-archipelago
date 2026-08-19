@@ -68,6 +68,7 @@ type window struct {
 	command    *walk.LineEdit
 	startStop  *walk.PushButton
 	restart    *walk.PushButton
+	joinBt     *walk.PushButton
 	settingsBt *walk.PushButton
 	session    *sessionTab
 
@@ -152,6 +153,13 @@ func (w *window) build() error {
 					declarative.HSpacer{},
 					declarative.PushButton{AssignTo: &w.startStop, Text: "Start", OnClicked: w.onStartStop, MinSize: declarative.Size{Width: 90}},
 					declarative.PushButton{AssignTo: &w.restart, Text: "Restart", OnClicked: w.onRestart, MinSize: declarative.Size{Width: 90}},
+					declarative.PushButton{
+						AssignTo:    &w.joinBt,
+						Text:        "Join",
+						ToolTipText: "Start Team Fortress 2 and join this server. Steam does the connect and the password.",
+						OnClicked:   w.onJoin,
+						MinSize:     declarative.Size{Width: 90},
+					},
 					declarative.PushButton{AssignTo: &w.settingsBt, Text: "Settings", OnClicked: w.editSettings, MinSize: declarative.Size{Width: 90}},
 				},
 			},
@@ -408,6 +416,7 @@ func (w *window) refresh() {
 		w.startStop.SetText("Start")
 	}
 	w.restart.SetEnabled(running)
+	w.joinBt.SetEnabled(running)
 	w.command.SetEnabled(running)
 	w.session.setRunning(running)
 }
@@ -443,6 +452,21 @@ func joinLine(s settings.Settings, steamAddress string) string {
 func (w *window) copyJoin() {
 	if err := walk.Clipboard().SetText(w.join.Text()); err != nil {
 		w.say("cannot copy: %v", err)
+	}
+}
+
+// onJoin starts the game and joins, the way a server browser's Join button
+// does: Steam owns the steam:// scheme and passes the connect and the password
+// on itself.
+//
+// The game takes a while to start, and nothing comes back to say it worked, so
+// the log carries the link. A player whose Steam did not answer can paste it.
+func (w *window) onJoin() {
+	link := apruntime.SteamConnectURL(w.supervisor.Settings())
+	w.say("joining: %s", link)
+	if err := winproc.OpenURL(link); err != nil {
+		w.say("cannot ask Steam to join: %v", err)
+		w.say("start Team Fortress 2 yourself, then type the connect line above in the developer console")
 	}
 }
 

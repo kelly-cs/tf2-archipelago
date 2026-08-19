@@ -114,6 +114,15 @@ connect your.server.address:27015
 The **Join** line under the buttons shows the addresses to give out. See
 [Invite your friends](invite-your-friends.md) for the rest.
 
+## Join from the launcher
+
+**Join** starts Team Fortress 2 and joins the server on this machine. Steam
+sends the connect and the password itself, so you type nothing. The button
+turns on once the server runs.
+
+It joins on `127.0.0.1`, this machine. Your friends need one of the addresses
+on the **Join** row instead.
+
 ## Who can join
 
 The **Game server** tab has a **Who can join** choice:

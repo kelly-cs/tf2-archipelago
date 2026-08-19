@@ -29,6 +29,9 @@ No Docker, no clone, no compiler. See
 | --- | --- |
 | Docker | Docker with the compose plugin. |
 
+The game files stay in a Docker volume named `tf2-archipelago_tf2game`. Keep
+that volume. Removing it downloads the 14 GB again.
+
 See [Install with Docker](install.md).
 
 ## The network

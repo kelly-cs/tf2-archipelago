@@ -3,6 +3,7 @@ package runtime
 import (
 	"fmt"
 	"net"
+	"net/url"
 	"strconv"
 	"strings"
 
@@ -98,4 +99,19 @@ func LocalAddresses() []string {
 		}
 	}
 	return found
+}
+
+// SteamConnectURL is the link that starts Team Fortress 2 and joins this
+// server in one step. Steam owns the steam:// scheme and hands the game the
+// connect and the password itself, which is how a server browser's Join
+// button works.
+//
+// The address is the loopback one: this runs on the machine hosting the
+// server, and 127.0.0.1 answers there whatever the reach is.
+func SteamConnectURL(s settings.Settings) string {
+	address := net.JoinHostPort("127.0.0.1", strconv.Itoa(s.SrcdsPort))
+	if s.SrcdsPw == "" {
+		return "steam://connect/" + address
+	}
+	return "steam://connect/" + address + "/" + url.PathEscape(s.SrcdsPw)
 }
