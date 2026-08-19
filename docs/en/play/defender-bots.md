@@ -57,14 +57,19 @@ weapons are the default. See [Install on Windows](../setup/install-windows.md).
 
 [OfficerSpy/TF2-MvM-Defender-TFBots][mod], GPL-3.0, plus five dependencies:
 CBaseNPC, Actions, TF2Attributes, TF Econ Data and TF2Utils. The server builds
-them from source, with two fixes of our own in `deploy/patches/`, whose README
-says why each exists.
+them from source. TF2Attributes takes one fix of ours from `deploy/patches/`,
+whose README says why.
 
-The bots' behaviour is the mod's. Report a bot that walks into a wall to that
-repository, not to this one. The class blacklist and the server-wide loadout
-file are ours, in `deploy/patches/defenderbots/`.
+The mod itself comes from our fork, [m-this/tf2-mvm-bots][fork]. Its `tf2ap`
+branch is an upstream tag plus our changes, and `DEFENDERBOTS_VERSION` names a
+tag of it.
+
+The bots' behaviour is the mod's. Report a bot that walks into a wall to
+OfficerSpy's repository, not to this one. The class blacklist and the
+server-wide loadout file are ours, on the fork.
 
 [mod]: https://github.com/OfficerSpy/TF2-MvM-Defender-TFBots
+[fork]: https://github.com/m-this/tf2-mvm-bots
 
 ## On a server that is not this image
 

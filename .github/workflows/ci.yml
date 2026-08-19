@@ -130,8 +130,8 @@ jobs:
           path: deploy/bots/build
           key: bots-${{ hashFiles('deploy/env/versions.env', 'deploy/patches/**', 'deploy/bots/*.sh') }}
 
-      # Proves the patches still apply and the mod still compiles. The image
-      # runs the same script, so a break shows up here rather than at a tag.
+      # Proves the remaining patches still apply and the mod still compiles. The
+      # image runs the same script, so a break shows up here rather than at a tag.
       - name: defender bots
         run: make bots
 

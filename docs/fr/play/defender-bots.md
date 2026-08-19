@@ -61,13 +61,19 @@ de cette classe apparaît. Les armes de base sont le défaut. Voir
 
 [OfficerSpy/TF2-MvM-Defender-TFBots][mod], GPL-3.0, et cinq dépendances :
 CBaseNPC, Actions, TF2Attributes, TF Econ Data et TF2Utils. Le serveur les
-compile depuis la source, avec deux correctifs à nous dans `deploy/patches/`.
+compile depuis la source. TF2Attributes reçoit un correctif à nous depuis
+`deploy/patches/`, dont le README dit pourquoi.
+
+Le mod lui-même vient de notre fork, [m-this/tf2-mvm-bots][fork]. Sa branche
+`tf2ap` est un tag amont plus nos changements, et `DEFENDERBOTS_VERSION` nomme
+un tag de cette branche.
 
 Le comportement des bots est celui du mod. Un bot qui rentre dans un mur se
-signale à ce dépôt, pas à celui-ci. La liste noire de classes et le fichier
-d'équipement du serveur sont à nous, dans `deploy/patches/defenderbots/`.
+signale au dépôt d'OfficerSpy, pas à celui-ci. La liste noire de classes et le
+fichier d'équipement du serveur sont à nous, sur le fork.
 
 [mod]: https://github.com/OfficerSpy/TF2-MvM-Defender-TFBots
+[fork]: https://github.com/m-this/tf2-mvm-bots
 
 ## Sur un serveur qui n'est pas cette image
 

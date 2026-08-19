@@ -152,6 +152,9 @@ premise and the shape of the items and the checks. **Roseburst** wrote the
 entire YAML options schema. **adeleine64DS**, **Amazia**, **Snolid Ice**,
 **mudkipslike**, **TheBreadstick**, **CrystalClear**, and **Pixel Silzavon**
 contributed. The starting data tables come from **ALPHAMARIOX**'s fork. The
-bots are [OfficerSpy's MvM Defender TFBots](https://github.com/OfficerSpy/TF2-MvM-Defender-TFBots).
+bots are [OfficerSpy's MvM Defender TFBots](https://github.com/OfficerSpy/TF2-MvM-Defender-TFBots),
+carried in [a fork](https://github.com/m-this/tf2-mvm-bots).
+
 **EZKSupernova** play-tested the first runs and asked for the class blacklist,
-the excluded missions and the bots' purchases in the chat.
+the excluded missions and the bots' purchases in the chat. **Cowser the
+Khelinace** found the DeathLink wording that said the wrong thing.

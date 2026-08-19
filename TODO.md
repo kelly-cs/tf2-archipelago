@@ -6,21 +6,14 @@ in.
 Two players played that session: EZKSupernova and Cowser the Khelinace. Most
 of this list comes from their reports.
 
-## 1. Fork the bots mod
+## 1. Fork the bots mod. Done
 
-`deploy/patches/defenderbots/` holds two patches against
-`OfficerSpy/TF2-MvM-Defender-TFBots`. Items 5 and 6 below need more of them:
-bot classes, bot loadouts, and the spectator bug. A patch on top of a patch
-does not survive a rebase.
+The mod is `m-this/tf2-mvm-bots`. Its `tf2ap` branch is upstream tag 1.5.5
+plus our three commits, and `DEFENDERBOTS_VERSION=1.5.5-tf2ap.1` names the tag
+of that branch. `deploy/patches/defenderbots/` is gone.
 
-Fork the mod as `m-this/tf2-mvm-bots`. Carry each change as a commit. Point
-`DEFENDERBOTS_VERSION` at a tag of the fork.
-
-`deploy/bots/build.sh` fetches `OfficerSpy/TF2-MvM-Defender-TFBots`. That line
-and `versions.env` are what change. The two patches move into the history of
-the fork and leave `deploy/patches/`.
-
-Rebase the fork on upstream often, so that a fix from OfficerSpy still lands.
+To take a new upstream release: rebase `tf2ap` on the new upstream tag, tag
+the result, and bump `DEFENDERBOTS_VERSION`.
 
 ## 2. Say what a wave failure does
 

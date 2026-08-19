@@ -18,10 +18,13 @@
 #
 #   - The four SourcePawn plugins are compiled here, always. They are bytecode,
 #     so one build serves both platforms, spcomp takes seconds, and compiling
-#     is what lets us carry deploy/patches/: the upgrade-station crash fix the
-#     bots need, and a compile fix TF2Attributes needs. Compiling TF2Attributes
-#     rather than shipping its release also keeps us off a binary that has no
-#     license on it.
+#     is what lets us carry the compile fix TF2Attributes needs. Compiling
+#     TF2Attributes rather than shipping its release also keeps us off a
+#     binary that has no license on it.
+#
+#     The defender mod itself is our fork, m-this/tf2-mvm-bots. Our changes to
+#     it are commits on its tf2ap branch rather than patches applied here: they
+#     grew past what a patch stack survives a rebase with.
 #
 # Versions come from deploy/env/versions.env, source fixes from
 # deploy/patches/, whose README explains every patch.
@@ -67,7 +70,7 @@ apply_patches() {
 
 # --- Sources for the plugins ---
 
-fetch OfficerSpy/TF2-MvM-Defender-TFBots "$DEFENDERBOTS_VERSION" defenderbots
+fetch m-this/tf2-mvm-bots "$DEFENDERBOTS_VERSION" defenderbots
 fetch OfficerSpy/SM_Stock_OfficerSpy "$SM_STOCK_OFFICERSPY_REF" stocklib
 fetch FlaminSarge/tf2attributes "$TF2ATTRIBUTES_VERSION" tf2attributes
 fetch nosoop/SM-TFEconData "$TFECONDATA_VERSION" tf_econ_data
@@ -79,7 +82,6 @@ fetch nosoop/stocksoup "$STOCKSOUP_REF" stocksoup-root/stocksoup
 fetch TF2-DMB/CBaseNPC "$CBASENPC_VERSION" cbasenpc
 fetch Vinillia/actions.ext "$ACTIONS_VERSION" actions
 
-apply_patches defenderbots
 apply_patches tf2attributes
 
 # --- The compiler ---

@@ -152,8 +152,10 @@ and stop buttons and an rcon box. The Windows equivalent of the compose stack.
 
 **Defender bots**
 OfficerSpy's MvM Defender TFBots and its five dependencies, staged by
-`deploy/bots/build.sh` and patched from `deploy/patches/`. They fill the RED
-team so a wave balanced for six players is winnable by fewer.
+`deploy/bots/build.sh`. The mod comes from our fork, `m-this/tf2-mvm-bots`,
+whose `tf2ap` branch carries our changes as commits. `deploy/patches/` patches
+the five dependencies. They fill the RED team so a wave balanced for six
+players is winnable by fewer.
 
 **Objective**
 The plugin's vocabulary for what the bridge calls a location. The plugin
