@@ -100,6 +100,10 @@ whoever is helping you.
 
 **Repair** reinstalls the mods without touching the game files or your run.
 
+**Reset settings** puts every answer back to what a fresh install has, for a
+run whose settings have drifted somewhere you cannot see. It keeps the game
+files and where they are, so nothing is downloaded again.
+
 See [Troubleshooting](../operate/troubleshooting.md) for the rest, and
 [Install with Docker](install.md) if you'd rather run this on Linux.
 

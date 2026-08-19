@@ -15,7 +15,7 @@ the same unlocks.
 </p>
 
 <p align="center">
-  <img alt="The launcher: a log, Start and Stop, an rcon box" src="docs/images/launcher-main.png" width="800">
+  <img alt="tf2ap-linux-amd64 -status" src="docs/images/linux-status.svg" width="800">
 </p>
 
 ## What talks to Archipelago
@@ -41,14 +41,11 @@ installs the rest: SteamCMD, the game server, SourceMod, the plugin, and the
 bots that fill your team.
 
 The window holds the log, **Start** and **Stop**, an **rcon** box, and
-**Settings**. Settings makes the seed for you with the Archipelago app,
-writes the player file, and bundles the logs to send when something looks
-wrong. A **Test mode** plays without any room at all.
-
-<p align="center">
-  <img alt="Settings: player options" src="docs/images/launcher-settings-player.png" width="420">
-  <img alt="Settings: game server" src="docs/images/launcher-settings-server.png" width="420">
-</p>
+**Settings**. Settings has six tabs: the run, the missions it may draw, the
+room, the game server, the bots, and who can join. It also makes the seed for
+you with the Archipelago app, writes the player file, bundles the logs to send
+when something looks wrong, and puts every answer back to its default. A
+**Test mode** plays without any room at all.
 
 [The Windows guide](./docs/en/setup/install-windows.md) takes you from the
 download to the first wave.
@@ -64,8 +61,12 @@ chmod +x tf2ap-linux-amd64
 ./tf2ap-linux-amd64
 ```
 
+Every answer the window asks for is a variable here. `-status` says what the
+run is set to, the picture at the top of this page, and `-env` lists the
+variables that override it for one run:
+
 <p align="center">
-  <img alt="tf2ap-linux-amd64 -status" src="docs/images/linux-status.svg" width="700">
+  <img alt="tf2ap-linux-amd64 -env" src="docs/images/linux-env.svg" width="460">
 </p>
 
 [The Linux guide](./docs/en/setup/install-linux.md) has the rest.

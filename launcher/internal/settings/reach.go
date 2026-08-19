@@ -80,10 +80,11 @@ func (r Reach) Help() string {
 	case ReachPort:
 		return "Your friends connect to your public address, so the game port has to be " +
 			"forwarded to this machine on your router and open in its firewall. Needs a " +
-			"login token."
+			"login token. This is the default."
 	default:
 		return "Nobody outside your network can join, whatever the router does. No Steam " +
-			"login, no token, never on the public list. This is the default."
+			"login, no token, never on the public list. This is what a server with no " +
+			"token gets anyway."
 	}
 }
 

@@ -219,7 +219,7 @@ func summary(s settings.Settings) {
 	path, _ := settings.Path()
 	fmt.Println()
 	fmt.Printf("  room     %s (%s), slot %s\n", room, scheme, s.APSlotName)
-	fmt.Printf("  server   %q on port %d, %s\n", s.SrcdsHostname, s.SrcdsPort, s.SrcdsReach.Label())
+	fmt.Printf("  server   %q on port %d, %s\n", s.SrcdsHostname, s.SrcdsPort, s.EffectiveReach().Label())
 	fmt.Printf("  mission  %s\n", runshape.MissionLabel(s.SrcdsStartMission))
 	fmt.Printf("  bots     %s\n", botsStatus(s))
 	fmt.Printf("  run      %d missions, %s, goal %s\n", s.MvmMissionCount, s.MvmDifficulty, s.MvmGoal)
@@ -406,7 +406,7 @@ func showStatus(s settings.Settings) {
 	fmt.Printf("Generator app: %s\n", appDirStatus(s.ArchipelagoDir))
 	fmt.Printf("Room:          %s (tls=%v)\n", settings.Room{Host: s.APHost, Port: s.APPort}, s.APTls)
 	fmt.Printf("Slot:          %s\n", s.APSlotName)
-	fmt.Printf("Server:        %s on port %d (reach=%s)\n", s.SrcdsHostname, s.SrcdsPort, s.SrcdsReach)
+	fmt.Printf("Server:        %s on port %d (reach=%s)\n", s.SrcdsHostname, s.SrcdsPort, reachStatus(s))
 	fmt.Printf("Start mission: %s\n", runshape.MissionLabel(s.SrcdsStartMission))
 	fmt.Printf("Run:           %d missions, %s, goal=%s\n", s.MvmMissionCount, s.MvmDifficulty, s.MvmGoal)
 	fmt.Printf("Bots:          %s\n", botsStatus(s))
@@ -452,6 +452,17 @@ func writeYAML(s settings.Settings, path string) error {
 	fmt.Printf("wrote %s\n", path)
 	fmt.Println("drop it in the Archipelago app's Players folder, then generate.")
 	return nil
+}
+
+// reachStatus is the reach, and what the server can do with the token it has.
+// A reach that needs a login token and has none is a server on the local
+// network whatever it was asked for, and a status that does not say so sends
+// the reader looking at their router.
+func reachStatus(s settings.Settings) string {
+	if effective := s.EffectiveReach(); effective != s.SrcdsReach {
+		return fmt.Sprintf("%s, %s until it has a login token", s.SrcdsReach, effective)
+	}
+	return string(s.SrcdsReach)
 }
 
 func masked(s string) string {

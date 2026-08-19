@@ -105,6 +105,10 @@ mot de passe. Envoyez-le à qui vous aide.
 **Repair** réinstalle les mods sans toucher aux fichiers du jeu ni à votre
 partie.
 
+**Reset settings** remet chaque réponse à ce qu'a une installation neuve, pour
+une partie dont les réglages ont dérivé quelque part que vous ne voyez pas. Ça
+garde les fichiers du jeu et leur emplacement : rien n'est retéléchargé.
+
 Voir [Dépannage](../operate/troubleshooting.md) pour le reste, et
 [Installer avec Docker](install.md) si vous préférez faire tourner ceci sur
 Linux.

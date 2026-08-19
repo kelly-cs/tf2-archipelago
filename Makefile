@@ -315,20 +315,31 @@ launcher-linux: launcher-assets-linux
 # CAPTURE_ENV keeps whoever runs this out of the picture: the paths a capture
 # prints come from the environment, and a committed image should not carry the
 # home directory of the person who last redrew it.
+#
+# XDG_CONFIG_HOME points at an empty directory for the same reason. The
+# launcher reads the config file before the environment, so without this a
+# capture shows the port and the reach of the machine that drew it rather than
+# what a player who has just installed it sees.
 CAPTURE_ENV = TF2AP_INSTALL_ROOT=/home/player/tf2-archipelago \
 	TF2AP_ARCHIPELAGO_DIR=/home/player/Archipelago \
+	XDG_CONFIG_HOME=$(CURDIR)/dist/capture-config \
 	AP_HOST=archipelago.gg AP_PORT=12345 SRCDS_RCONPW=hidden
 
 # The sed is the last of it: the launcher lists every folder it looked in for
 # the Archipelago app, and one of them is always the real home of whoever ran
 # this.
 captures: launcher-linux
+	rm -rf dist/capture-config
+	mkdir -p dist/capture-config
 	$(CAPTURE_ENV) ./dist/tf2ap-linux-amd64 -version \
 		| sed "s|$$HOME|/home/player|g" \
 		| ./docs/capture.sh 'tf2ap-linux-amd64 -version' docs/images/linux-version.svg
 	$(CAPTURE_ENV) ./dist/tf2ap-linux-amd64 -status \
 		| sed "s|$$HOME|/home/player|g" \
 		| ./docs/capture.sh 'tf2ap-linux-amd64 -status' docs/images/linux-status.svg
+	$(CAPTURE_ENV) ./dist/tf2ap-linux-amd64 -env \
+		| sed "s|$$HOME|/home/player|g" \
+		| ./docs/capture.sh 'tf2ap-linux-amd64 -env' docs/images/linux-env.svg
 
 # --- Integration ---
 
