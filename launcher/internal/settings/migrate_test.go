@@ -21,6 +21,8 @@ func TestOldConfigPicksItsReach(t *testing.T) {
 		{"no reach at all", `{}`, ReachLan},
 		{"a reach nobody knows", `{"srcds_reach": "carrier-pigeon"}`, ReachLan},
 		{"a reach and the old flag", `{"srcds_reach": "steam", "srcds_lan": true}`, ReachSteam},
+		{"a token and no reach", `{"srcds_token": "C7A1B2E3D4F5A6B7C8D9E0F1A2B3C4D5"}`, ReachPort},
+		{"no token and no reach", `{"srcds_token": "0"}`, ReachLan},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

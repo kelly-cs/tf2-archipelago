@@ -26,8 +26,8 @@ La fenêtre contient :
 - Un onglet **Session** : état de la connexion, checks, items, et les
   missions de la partie. **Play this mission** charge celle que vous
   choisissez.
-- **Settings**, pour la room, les missions, les bots et la forme de la
-  partie.
+- **Settings**, pour la room, les missions, les bots, qui peut rejoindre et la
+  forme de la partie.
 
 Fermer la fenêtre arrête le serveur. Vos réponses sont enregistrées pour la
 prochaine fois.
