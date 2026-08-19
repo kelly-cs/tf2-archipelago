@@ -58,10 +58,68 @@ func TestStopTakesDownTheServerTheScriptStarted(t *testing.T) {
 	}
 }
 
+// A game server that sits on the SIGTERM has to go too. srcds_run passes the
+// signal to srcds_linux, and what it does with it is the game's business, so
+// the launcher cannot be the thing that gives up: WaitDelay kills the script
+// and the script is not what holds the ports.
+func TestStopKillsAServerThatIgnoresTheSignal(t *testing.T) {
+	root := t.TempDir()
+	s := fakeServer(t, root)
+	pidFile := filepath.Join(root, "child.pid")
+	// trap '' TERM is a shell that cannot be asked to leave, only killed, and
+	// its child inherits the ignored signal with it.
+	script := "#!/bin/sh\ntrap '' TERM\nsleep 600 &\necho $! > " + pidFile +
+		"\necho fake server up\nwait\n"
+	if err := os.WriteFile(filepath.Join(root, "tf-dedicated", "srcds_run"), []byte(script), 0o755); err != nil {
+		t.Fatalf("cannot write the fake server: %v", err)
+	}
+
+	spoke := make(chan struct{})
+	var once sync.Once
+	sup := NewSupervisor(s, nil, func(line Line) {
+		if line.Source == "srcds" && line.Text == "fake server up" {
+			once.Do(func() { close(spoke) })
+		}
+	})
+	if err := sup.Start(func(error) {}); err != nil {
+		t.Fatalf("Start: %v", err)
+	}
+	defer sup.Stop()
+	select {
+	case <-spoke:
+	case <-time.After(10 * time.Second):
+		t.Fatal("the fake server never spoke")
+	}
+
+	raw, err := os.ReadFile(pidFile)
+	if err != nil {
+		t.Fatalf("the fake server wrote no pid: %v", err)
+	}
+	pid, err := strconv.Atoi(strings.TrimSpace(string(raw)))
+	if err != nil {
+		t.Fatalf("the pid file holds %q: %v", raw, err)
+	}
+
+	sup.Stop()
+	// Longer than the grace the group gets before it is killed: Stop returns
+	// when the wait for it gave up, and the kill lands after that.
+	if aliveFor(pid, 10*time.Second) {
+		_ = syscall.Kill(pid, syscall.SIGKILL)
+		t.Fatalf("process %d survived a Stop it ignored", pid)
+	}
+}
+
 // alive reports whether the process is still there, with a moment's grace for
 // the signal to land.
 func alive(pid int) bool {
-	for range 20 {
+	return aliveFor(pid, 2*time.Second)
+}
+
+// aliveFor reports whether the process is still there after waiting up to this
+// long for it to go.
+func aliveFor(pid int, grace time.Duration) bool {
+	deadline := time.Now().Add(grace)
+	for time.Now().Before(deadline) {
 		if err := syscall.Kill(pid, 0); err != nil {
 			return false
 		}

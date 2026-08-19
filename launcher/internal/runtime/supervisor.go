@@ -142,6 +142,11 @@ func (s *Supervisor) Start(onExit func(error)) error {
 	return nil
 }
 
+// exitGrace bounds the wait for the second half to exit. Longer than the delay
+// os/exec gives a signalled process group before it kills it, so the wait ends
+// because the process is gone rather than because this gave up.
+const exitGrace = 20 * time.Second
+
 // session is what await needs to see one run through to its end.
 type session struct {
 	cancel    context.CancelFunc
@@ -154,7 +159,7 @@ type session struct {
 
 // await watches the pair and reports why they stopped. Whichever of the two
 // ends first ends the other: a bridge with no server has nothing to serve, and
-// a server with no bridge records nothing.
+// a server with no bridge records nothing. It returns once both are gone.
 func (s *Supervisor) await(run session) {
 	defer close(run.done)
 	defer run.stopRoom()
@@ -167,6 +172,21 @@ func (s *Supervisor) await(run session) {
 		reason = wrapExit("game server", err)
 	}
 	run.cancel()
+
+	/* Then the other one, because Stop waits on this and its caller was told
+	the server is down when it returns.
+
+	The bridge is almost always the one that ends first: it is a goroutine
+	watching a context, where the game server is a shell script that has to be
+	signalled, pass the signal to srcds, and be reaped. Closing here on the
+	first of the two meant Stop returned while the game server still held the
+	game port and the rcon port, and the Start after it bound neither. */
+	select {
+	case <-run.bridgeErr:
+	case <-run.srcdsErr:
+	case <-time.After(exitGrace):
+		s.emit("the game server has not exited yet, carrying on without it")
+	}
 
 	s.mu.Lock()
 	asked := s.stopped
