@@ -177,7 +177,10 @@ cp "$src/defenderbots/gamedata/tf2.defenderbots.txt" \
 	"$out/addons/sourcemod/gamedata/"
 
 # Per-map navigation hints and bot names. Without these the bots path badly on
-# the Valve maps, which is most of what this stack is for.
+# the Valve maps, which is most of what this stack is for. The names are the
+# game's own TFBot names rather than the mod's list, so the team reads like a
+# Valve server.
 cp -r "$src/defenderbots/configs/defenderbots" "$out/addons/sourcemod/configs/"
+cp "$root/deploy/bots/bot_names.txt" "$out/addons/sourcemod/configs/defenderbots/bot_names.txt"
 
 echo "staged the defender bots into $out"
