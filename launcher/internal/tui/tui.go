@@ -1,0 +1,267 @@
+/*
+Package tui is the launcher's interface in a terminal: the log, the run, the
+keys that start and stop the server, and a line that sends RCON commands to it.
+
+It is Bubble Tea, which is pure Go, so this is the same interface on Linux and
+on Windows and needs nothing installed. The Windows window in internal/gui is
+the other one, and it stays: this is what Linux gets, and what anyone on
+Windows gets with -tui or over SSH.
+
+Lines arrive from goroutines that are not the one drawing, so the sink writes
+them to a buffer and the model drains it on a tick. Sending each line into the
+event loop instead makes an install that prints a hundred lines a second redraw
+a hundred times a second.
+*/
+package tui
+
+import (
+	"context"
+	"fmt"
+	"log/slog"
+	"strings"
+	"sync"
+	"time"
+
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/muesli/termenv"
+
+	"github.com/m-this/tf2-archipelago/launcher/internal/rcon"
+	apruntime "github.com/m-this/tf2-archipelago/launcher/internal/runtime"
+	"github.com/m-this/tf2-archipelago/launcher/internal/session"
+	"github.com/m-this/tf2-archipelago/launcher/internal/settings"
+	"github.com/m-this/tf2-archipelago/launcher/internal/winproc"
+)
+
+const (
+	// linesMax caps what is kept for scrolling back. A wave is a few hundred
+	// lines and an evening tens of thousands.
+	linesMax = 20000
+
+	// drainEvery is how often the lines the server printed reach the screen,
+	// and sessionEvery how often the bridge is asked what the run has done.
+	drainEvery   = 120 * time.Millisecond
+	sessionEvery = 5 * time.Second
+)
+
+// Run opens the interface and blocks until the player quits. The server is
+// stopped on the way out, so quitting is a clean shutdown.
+func Run(s settings.Settings, logger *slog.Logger) error {
+	m := newModel(s)
+	program := tea.NewProgram(m, tea.WithAltScreen(), tea.WithMouseCellMotion())
+
+	m.supervisor = apruntime.NewSupervisor(s, logger, m.take)
+	defer m.supervisor.Stop()
+
+	_, err := program.Run()
+	return err
+}
+
+// view is which half of the screen the player is looking at.
+type view int
+
+const (
+	viewLog view = iota
+	viewSession
+)
+
+type model struct {
+	settings   settings.Settings
+	supervisor *apruntime.Supervisor
+
+	width, height int
+	view          view
+	ready         bool
+
+	// mu guards what the sink writes and the model reads.
+	mu      sync.Mutex
+	pending []string
+
+	lines   []string
+	offset  int // how far up the log the player has scrolled, in lines
+	follow  bool
+	command string
+	typing  bool
+
+	status   string
+	mission  string
+	notice   string
+	steamURL string
+	form     *settingsForm
+	snapshot session.Snapshot
+	fetchErr error
+	selected int
+}
+
+func newModel(s settings.Settings) *model {
+	return &model{settings: s, follow: true, status: "stopped"}
+}
+
+// take is the sink every line arrives on. It only buffers: the tick is what
+// draws.
+func (m *model) take(line apruntime.Line) {
+	text := fmt.Sprintf("%s  %-8s %s", line.At.Format("15:04:05"), line.Source, line.Text)
+
+	m.mu.Lock()
+	m.pending = append(m.pending, text)
+	m.mu.Unlock()
+}
+
+func (m *model) drain() {
+	m.mu.Lock()
+	pending := m.pending
+	m.pending = nil
+	m.mu.Unlock()
+
+	for _, line := range pending {
+		if address := apruntime.FakeIPAddress(strings.TrimSpace(line)); address != "" {
+			m.steamURL = address
+		}
+		if mission := apruntime.LoadedMission(line); mission != "" {
+			m.mission = mission
+		}
+	}
+	m.lines = append(m.lines, pending...)
+	if len(m.lines) > linesMax {
+		m.lines = m.lines[len(m.lines)-linesMax:]
+	}
+}
+
+// The messages the model waits on: a tick that draws what arrived, a tick that
+// asks the bridge for the run, and the answer to that question.
+type (
+	drainMsg   time.Time
+	sessionMsg struct {
+		snapshot session.Snapshot
+		err      error
+	}
+	fetchMsg time.Time
+)
+
+func (m *model) Init() tea.Cmd {
+	return tea.Batch(drainTick(), fetchTick(), m.start())
+}
+
+func drainTick() tea.Cmd {
+	return tea.Tick(drainEvery, func(t time.Time) tea.Msg { return drainMsg(t) })
+}
+
+func fetchTick() tea.Cmd {
+	return tea.Tick(sessionEvery, func(t time.Time) tea.Msg { return fetchMsg(t) })
+}
+
+// start brings the server up, off the drawing goroutine: Start installs
+// nothing but does write the server configs and dial the room.
+func (m *model) start() tea.Cmd {
+	return func() tea.Msg {
+		if err := m.supervisor.Start(func(error) {}); err != nil {
+			m.take(apruntime.Line{At: time.Now(), Source: "launcher", Text: err.Error()})
+		}
+		return nil
+	}
+}
+
+func (m *model) stop() tea.Cmd {
+	return func() tea.Msg {
+		m.supervisor.Stop()
+		return nil
+	}
+}
+
+// openSettings opens the six tabs the window opens, over the top of everything.
+func (m *model) openSettings() {
+	m.form = newSettingsForm(m.settings, m.applySettings)
+}
+
+/*
+applySettings saves what the form ended with and puts it where it is read.
+
+The server reads its half at startup, so a change while it is running is a
+change the running server does not have: the window restarts it for that
+reason, and so does this.
+*/
+func (m *model) applySettings(next settings.Settings) tea.Cmd {
+	if next.SrcdsRconPw == "" {
+		if password, err := settings.NewRconPassword(); err == nil {
+			next.SrcdsRconPw = password
+		}
+	}
+	if err := settings.Save(next); err != nil {
+		return func() tea.Msg { return noticeMsg("cannot save the settings: " + err.Error()) }
+	}
+	m.settings = next
+	m.supervisor.SetSettings(next)
+
+	if !m.supervisor.Running() {
+		return func() tea.Msg { return noticeMsg("settings saved") }
+	}
+	return tea.Sequence(
+		func() tea.Msg { return noticeMsg("settings saved, restarting the server") },
+		m.stop(), m.start())
+}
+
+// join starts Team Fortress 2 and connects it, the way the window's Join
+// button does: Steam owns the steam:// scheme and carries the password with it.
+func (m *model) join() tea.Cmd {
+	return func() tea.Msg {
+		link := apruntime.SteamConnectURL(m.settings)
+		if err := winproc.OpenURL(link); err != nil {
+			return noticeMsg("cannot ask Steam to join: " + link)
+		}
+		return noticeMsg("joining: " + link)
+	}
+}
+
+// copyJoin puts the join line where a paste will find it. OSC 52 is the
+// terminal's own clipboard, so this works over SSH as well as locally, and on
+// a terminal that does not take it the line is still on screen to read out.
+func (m *model) copyJoin() tea.Cmd {
+	line := strings.Join(m.joinAddresses(), " ")
+	return func() tea.Msg {
+		termenv.Copy(line)
+		return noticeMsg("copied " + line)
+	}
+}
+
+func (m *model) fetch() tea.Cmd {
+	return func() tea.Msg {
+		if !m.supervisor.Running() {
+			return sessionMsg{}
+		}
+		snapshot, err := session.Fetch(context.Background(), session.BridgeURL)
+		return sessionMsg{snapshot: snapshot, err: err}
+	}
+}
+
+// send runs one RCON command and puts both the command and the answer in the
+// log, which is where the player is already looking.
+func (m *model) send(command string) tea.Cmd {
+	return func() tea.Msg {
+		m.take(apruntime.Line{At: time.Now(), Source: "rcon", Text: "> " + command})
+
+		var client *rcon.Client
+		var err error
+		for _, address := range apruntime.RconAddresses(m.settings) {
+			client, err = rcon.Dial(address, m.settings.SrcdsRconPw)
+			if err == nil {
+				break
+			}
+		}
+		if err != nil {
+			m.take(apruntime.Line{At: time.Now(), Source: "rcon", Text: err.Error()})
+			return nil
+		}
+		defer func() { _ = client.Close() }()
+
+		reply, err := client.Exec(command)
+		if err != nil {
+			m.take(apruntime.Line{At: time.Now(), Source: "rcon", Text: err.Error()})
+			return nil
+		}
+		for line := range strings.SplitSeq(reply, "\n") {
+			if strings.TrimSpace(line) != "" {
+				m.take(apruntime.Line{At: time.Now(), Source: "rcon", Text: line})
+			}
+		}
+		return nil
+	}
+}

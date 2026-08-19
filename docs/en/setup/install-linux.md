@@ -1,9 +1,9 @@
 # Install on Linux
 
 One file. No Docker, no clone, no compiler. The same program as the Windows
-launcher, and for now without the window: that window is Win32, which is
-Windows only, so Linux gets the terminal flow. A window for Linux is the next
-thing the launcher gets; everything below keeps working when it does.
+launcher, with the same interface drawn in the terminal rather than in a
+window: the log, the run's missions, the rcon line, and the same six tabs of
+settings. Nothing to install for it, and it works over SSH.
 
 Download `tf2ap-linux-amd64` from the
 [latest release](https://github.com/m-this/tf2-archipelago/releases/latest),
@@ -22,7 +22,23 @@ SteamCMD, the TF2 dedicated server, Metamod:Source, SourceMod, the plugin, and
 the bots that fill your team. The game server is about 14 GB, and the first
 start takes a while because of it. Every later start takes seconds.
 
-The log goes to the terminal. Stop the server with Ctrl+C.
+Then the interface opens on it.
+
+| Key | What it does |
+| --- | --- |
+| `s` | Start the server, or stop it |
+| `r` | Restart it |
+| `j` | Start Team Fortress 2 and join |
+| `c` | Copy the join line, for sending to a friend |
+| `,` | The settings, in the six tabs the window uses |
+| `tab` | Between the log and the run |
+| `i` | The rcon line. `esc` gives the keys back |
+| `p` | On the run's tab, load the mission the cursor is on |
+| `q` | Quit, which stops the server |
+
+`tf2ap-linux-amd64 -console` prints the log and nothing else, which is what a
+service or a `screen` session wants: an interface that draws over the whole
+screen writes nothing useful into a file. Stop that one with Ctrl+C.
 
 ## What you need
 
