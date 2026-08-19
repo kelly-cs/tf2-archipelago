@@ -81,6 +81,15 @@ par classe dit avec quelles armes un bot de cette classe apparaît. Les armes
 de base sont le défaut. Voir
 [Installer sur Windows](../setup/install-windows.md).
 
+Un bot tient ses distances selon ce qu'il porte, pas selon sa classe. Un Brass
+Beast se rapproche, parce qu'il ne peut plus se replacer une fois lancé ; un
+Tomislav tient une ligne. Un fusil à pompe avance au lieu de tirer à portée de
+minigun.
+
+Un bot sort aussi une arme qui a encore des munitions, au lieu de marcher sur
+un robot avec une arme vide. C'est ce que faisait un Heavy quand son minigun
+était à sec.
+
 ## Qui les a écrits
 
 [OfficerSpy/TF2-MvM-Defender-TFBots][mod], GPL-3.0, et cinq dépendances :
