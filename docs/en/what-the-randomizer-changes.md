@@ -92,10 +92,21 @@ travel back and forth between two linked players.
 `Cash Bundle` pays 200 credits. Each player on RED gets the full 200, so a
 bundle that arrives with six players on the server is 1200 credits of upgrades.
 
-A bundle that arrives when nobody is on the server pays nobody. Credits are the
-one item in this project that happens once and is over. Classes, weapon slots
-and tickets are facts that stay true, so the server can apply them again after
-any restart.
+A bundle pays between waves, at the upgrade station, and not before. A wave the
+team loses takes it back to where the wave began, and money paid into that wave
+goes back with it. Waiting for the upgrade station costs nothing, because that
+is where the money is spent.
+
+So a bundle that arrives mid-wave waits for the end of it, and one that arrives
+with nobody on the server waits for somebody. The chat says how much is
+waiting. Nothing is lost either way.
+
+Credits are still the one item in this project that happens once and is over.
+Classes, weapon slots and tickets are facts that stay true, so the server can
+apply them again after any restart.
+
+A bundle is paid once. The money then belongs to the mission the way any other
+credits do. The end of a mission clears it, the same as in normal MvM.
 
 ## Everybody shares the unlocks
 

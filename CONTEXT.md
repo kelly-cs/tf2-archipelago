@@ -178,6 +178,13 @@ Applying one twice pays money nobody earned, or fires a trap nobody
 deserved. So the bridge sends each effect once, and stops once the plugin
 acknowledges it. Only state grants appear in the unlock set.
 
+An effect the plugin cannot apply yet is not acknowledged, so the bridge
+keeps sending it. Credits are the case: money paid into a wave the team
+then loses goes back with the wave, so the plugin waits for the upgrade
+station. The cursor stops at the held effect and effects stay ordered
+behind it, while state grants past it are applied anyway, because applying
+one twice changes nothing.
+
 **Acknowledgement**
 The sequence number the plugin reports back to the bridge for what it
 applied. The bridge never resends an effect at or below that number. It

@@ -82,6 +82,11 @@ bool g_PollingGrants;
 bool g_FetchingUnlocks;
 int g_GrantSeq;
 
+// The sequence of the effect the plugin is holding, zero for none. An effect
+// happens once, so one that cannot happen yet is not acknowledged; the bridge
+// keeps sending it, which is also what carries it across a plugin reload.
+int g_HeldSeq;
+
 // How far the bridge has been told the plugin got. Effects at or below it are
 // never sent again, which is what stops a reload paying the run's cash twice.
 int g_AckedSeq;
@@ -326,6 +331,7 @@ static void OnAcked(HTTPResponse response, any value, const char[] error)
         AP_Debug("The bridge refused the acknowledgement of sequence %d. The plugin resyncs.", value);
         g_GrantSeq = 0;
         g_AckedSeq = 0;
+        g_HeldSeq = 0;
         Bridge_FetchUnlocks();
         return;
     }
@@ -658,6 +664,7 @@ static void OnGrants(HTTPResponse response, any value, const char[] error)
         AP_Error("The run restarted. The plugin asks for the unlock set again.");
         g_GrantSeq = 0;
         g_AckedSeq = 0;
+        g_HeldSeq = 0;
         Bridge_FetchUnlocks();
         return;
     }
@@ -678,6 +685,15 @@ static void OnGrants(HTTPResponse response, any value, const char[] error)
     if (g_GrantSeq > g_AckedSeq)
     {
         Bridge_SendAck();
+    }
+    // A held effect leaves the cursor behind the bridge, so the next poll
+    // answers at once with the same grant. Asking straight away would be a
+    // loop as fast as the loopback; asking on the retry timer is what turns
+    // the hold into a wait for the upgrade station.
+    if (g_HeldSeq != 0)
+    {
+        Bridge_PollGrantsLater();
+        return;
     }
     Bridge_PollGrants();
 }
@@ -713,18 +729,60 @@ static void ApplyGrant(JSONObject grant)
 
     if (StrEqual(kind, "credits"))
     {
-        MvM_GrantCredits(grant.GetInt("amount"));
+        if (!ApplyCredits(seq, grant.GetInt("amount")))
+        {
+            return;
+        }
     }
     else if (Bridge_ApplyKind(kind, key))
     {
-        AP_Announce("%s unlocked: %s", GrantLabel(kind), name);
+        // A held effect stops the cursor, so every grant behind it arrives
+        // again on the next poll. State grants are replayed on purpose, and
+        // saying so once is the difference between news and a chat full of it.
+        if (g_HeldSeq == 0)
+        {
+            AP_Announce("%s unlocked: %s", GrantLabel(kind), name);
+        }
     }
     else
     {
         AP_Error("The bridge sent a grant of kind %s. This plugin does not know it.", kind);
     }
 
-    g_GrantSeq = seq;
+    // The cursor is how far every effect has been applied, not every grant. A
+    // state grant past a held effect is applied and not acknowledged: applying
+    // it twice changes nothing, and moving the cursor over the effect would
+    // lose it.
+    if (g_HeldSeq == 0)
+    {
+        g_GrantSeq = seq;
+    }
+}
+
+// Pays a Cash Bundle, or holds it for a moment when it survives. False when it
+// held: the caller then leaves the cursor where it is, and the bridge sends
+// this grant again on the next poll.
+//
+// Effects are strictly ordered. A second bundle behind a held one waits too,
+// because a grant applied out of order is one the acknowledgement cannot
+// describe: the cursor is a single number.
+static bool ApplyCredits(int seq, int amount)
+{
+    if (g_HeldSeq != 0 && seq != g_HeldSeq)
+    {
+        return false;
+    }
+    if (!MvM_CanPayCredits() || MvM_GrantCredits(amount) == 0)
+    {
+        if (g_HeldSeq != seq)
+        {
+            g_HeldSeq = seq;
+            AP_Announce("%d credits are waiting for the upgrade station.", amount);
+        }
+        return false;
+    }
+    g_HeldSeq = 0;
+    return true;
 }
 
 // Says a repeated failure once: the retry loop would otherwise fill chat every RetryInterval.

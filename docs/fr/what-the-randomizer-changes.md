@@ -101,11 +101,23 @@ donc pas faire l'aller-retour entre deux joueurs liés.
 complets, donc un bundle qui arrive avec six joueurs sur le serveur, c'est
 1200 crédits d'améliorations.
 
-Un bundle qui arrive quand personne n'est sur le serveur ne paie personne.
-Les crédits sont le seul item de ce projet qui arrive une fois et c'est
+Un bundle paie entre les vagues, à l'upgrade station, et pas avant. Une vague
+que l'équipe perd la ramène là où la vague a commencé, et l'argent versé dans
+cette vague repart avec elle. Attendre l'upgrade station ne coûte rien, parce
+que c'est là que l'argent se dépense.
+
+Un bundle qui arrive en pleine vague attend donc la fin de celle-ci. Un bundle
+qui arrive quand personne n'est sur le serveur attend quelqu'un. Le chat dit
+combien attend. Rien n'est perdu dans les deux cas.
+
+Les crédits restent le seul item de ce projet qui arrive une fois et c'est
 terminé. Les classes, les emplacements d'arme et les tickets sont des faits
-qui restent vrais, donc le serveur peut les réappliquer après n'importe
-quel redémarrage.
+qui restent vrais. Le serveur peut donc les réappliquer après n'importe quel
+redémarrage.
+
+Un bundle est payé une fois. L'argent appartient ensuite à la mission comme
+n'importe quels crédits, et la fin d'une mission l'efface, comme dans MvM
+normal.
 
 ## Tout le monde partage les déblocages
 

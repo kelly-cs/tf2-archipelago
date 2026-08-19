@@ -97,19 +97,29 @@ a repro on a live server. Watch for this one again.
   counted the pending bot as absent and added one more. Fixed in the fork,
   `1.5.5-tf2ap.2`.
 
-## 7. Keep the cash after a failure
+## 7. Keep the cash after a failure. Done, one half of it
 
-A `Cash Bundle` pays 200 credits per player. The team spends them at the
-upgrade station, and the end of the mission takes the upgrades back. A lost
-wave then costs the team what the bundle bought.
+A bundle now pays between waves, at the upgrade station, and not before. A
+wave the team loses takes it back to where the wave began, and money paid into
+that wave goes back with it. Waiting costs nothing: the upgrade station is
+where the money is spent.
 
-Two requests. The first one is small:
+The plugin holds an effect it cannot apply and does not acknowledge it, so the
+bridge keeps sending it. That also carries the money across a plugin reload,
+and it fixes the bundle that used to arrive on an empty server and pay nobody.
+Effects stay ordered behind the held one. State grants past it are applied
+anyway, because applying one twice changes nothing.
 
-- A bundle survives a lost wave. The team keeps what it held when the wave
-  started.
-- A bundle survives the mission that received it. This one is larger. MvM
-  resets the upgrades at the end of a mission, so the bridge must hold a
-  balance and pay it in on the next one.
+The other half is not done, on purpose. Carrying credits from one mission into
+the next means telling the money a bundle paid apart from the money the team
+earned. No property of the game says which is which. Re-paying both is free
+money every mission, and MvM clears the upgrades at the end of a mission by
+design. A bundle that arrives and cannot be paid still waits, so it reaches
+the next mission that way.
+
+Nobody reproduced this on a live server. The change is safe under either
+rule. If the game does not claw the money back, the bundle simply arrives at
+the upgrade station rather than during the wave.
 
 ## 8. More checks
 

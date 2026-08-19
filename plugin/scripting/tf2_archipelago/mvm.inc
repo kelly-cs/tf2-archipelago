@@ -123,12 +123,37 @@ stock int MvM_MaxWavesFromGame()
     return GetEntProp(resource, Prop_Send, "m_nMannVsMachineMaxWaveCount");
 }
 
-// UNVERIFIED m_nCurrency on CTFPlayer. Credits are per player, so a bundle pays each of them fully.
-stock void MvM_GrantCredits(int amount)
+// Whether credits paid now would survive. A wave that is lost takes the team
+// back to where the wave began, and money paid into a wave goes back with it,
+// which is what a play-test saw a Cash Bundle do. Between waves is where the
+// upgrade station is anyway, so nothing is lost by waiting for it.
+//
+// Nobody on RED is the other unpayable moment: a bundle that arrives with an
+// empty server used to pay nobody and was gone.
+stock bool MvM_CanPayCredits()
+{
+    if (!MvM_IsActive() || GameRules_GetRoundState() != RoundState_BetweenRounds)
+    {
+        return false;
+    }
+    for (int client = 1; client <= MaxClients; client++)
+    {
+        if (MvM_IsPlayer(client) && HasProp(client, "m_nCurrency"))
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+// UNVERIFIED m_nCurrency on CTFPlayer. Credits are per player, so a bundle pays
+// each of them fully. Returns how many players it paid, zero for none: the
+// caller holds the grant back rather than acknowledging a payment nobody got.
+stock int MvM_GrantCredits(int amount)
 {
     if (amount <= 0 || !MvM_IsActive())
     {
-        return;
+        return 0;
     }
     int paid = 0;
     for (int client = 1; client <= MaxClients; client++)
@@ -145,10 +170,7 @@ stock void MvM_GrantCredits(int amount)
     {
         AP_Announce("The run received %d credits for %d player(s).", amount, paid);
     }
-    else
-    {
-        AP_Debug("The run received %d credits, but there is nobody to pay.", amount);
-    }
+    return paid;
 }
 
 // Everyone on RED, bots included. The kill is the whole effect: no wave-failed
