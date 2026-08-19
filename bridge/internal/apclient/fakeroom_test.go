@@ -58,16 +58,27 @@ func TestFakeRoomServesThisClient(t *testing.T) {
 		return health.Connected && len(health.Missions) == 3
 	})
 
+	// The starting inventory, which the plugin needs before it can enforce
+	// anything: a run that starts with no class and no weapon slot leaves
+	// every class pickable and every weapon in hand.
+	waitFor(t, "the starting inventory", func() bool {
+		unlocks := store.Unlocks()
+		return len(unlocks.Of(gamedata.ItemClass)) == 1 &&
+			len(unlocks.Of(gamedata.ItemWeaponSlot)) == 1 &&
+			len(unlocks.Of(gamedata.ItemMissionTicket)) == 1
+	})
+
 	// A cleared wave, the way the bridge records one, and the unlock the room
 	// sends back for it.
 	mission, ok := gamedata.MissionByPopFile(client.Health().Missions[0])
 	if !ok {
 		t.Fatalf("the room named a mission the game data does not have")
 	}
+	held := store.Stats().Items
 	if _, err := store.AddCheck(mission.WaveLocationID(1)); err != nil {
 		t.Fatalf("cannot record the check: %v", err)
 	}
 	waitFor(t, "an unlock to arrive", func() bool {
-		return store.Stats().Items > 0
+		return store.Stats().Items > held
 	})
 }

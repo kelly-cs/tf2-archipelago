@@ -366,6 +366,9 @@ func (c *Client) report(ctx context.Context, conn *websocket.Conn) error {
 		return err
 	}
 	c.opts.Logger.InfoContext(ctx, "goal reached, told archipelago", "goal", slot.Goal)
+	// Through the chat, because that is the one path to the players' screens.
+	// A run ended in the bridge's log and said nothing in the game.
+	c.opts.Chat.Append("This run is complete. The multiworld has been told.")
 	return c.opts.Store.MarkGoalSent()
 }
 

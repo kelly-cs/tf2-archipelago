@@ -35,6 +35,12 @@ type Room struct {
 	log       func(string)
 	deathLink bool
 
+	// start is what the run holds before it clears anything. A real generator
+	// precollects it, so the plugin can enforce from the first wave; a room
+	// that started everybody with nothing left every class pickable and every
+	// weapon in hand until the first slot happened to arrive.
+	start []int64
+
 	// seed is unique per process start, not per test session. The bridge's
 	// checks are durable and keyed by seed name: a constant name here would
 	// have it treat every restart as the same run, replay a check list this
@@ -45,6 +51,7 @@ type Room struct {
 	items   []int64        // what the run hands out, in order
 	next    int            // how many of them are gone
 	checked map[int64]bool // locations already rewarded, so a resend hands out nothing
+	given   int            // starting inventory plus everything handed out since
 }
 
 // Options say what the made-up seed looks like. Missions and Goal come from the
@@ -79,17 +86,19 @@ func Start(ctx context.Context, options Options) (*Room, string, error) {
 		logf = func(string) {}
 	}
 
-	room := &Room{
-		listener:  listener,
-		log:       logf,
-		items:     unlockOrder(),
-		checked:   make(map[int64]bool),
-		deathLink: options.DeathLink,
-		seed:      fmt.Sprintf("test-mode-%x", rand.Uint64()),
-	}
 	missions := options.Missions
 	if len(missions) == 0 {
 		missions = defaultMissions(options.MissionCount, options.Excluded)
+	}
+	start := startingInventory(missions[0])
+	room := &Room{
+		listener:  listener,
+		log:       logf,
+		items:     unlockOrder(start),
+		start:     start,
+		checked:   make(map[int64]bool),
+		deathLink: options.DeathLink,
+		seed:      fmt.Sprintf("test-mode-%x", rand.Uint64()),
 	}
 	goal := options.Goal
 	if goal == "" {
@@ -162,6 +171,9 @@ func (r *Room) handle(ctx context.Context, conn *websocket.Conn, cmd string,
 	switch cmd {
 	case "Connect":
 		r.log("test mode: the bridge connected")
+		// The starting inventory is counted before the traffic goroutine can
+		// send anything of its own, or the two race for the same index.
+		start := r.startItems()
 		go r.traffic(ctx, conn)
 		return write(ctx, conn,
 			map[string]any{
@@ -178,9 +190,9 @@ func (r *Room) handle(ctx context.Context, conn *websocket.Conn, cmd string,
 					"death_link":           r.deathLink,
 				},
 			},
-			// An empty first batch: the run starts with nothing, and the
-			// unlocks arrive as waves are cleared.
-			map[string]any{"cmd": "ReceivedItems", "index": 0, "items": []any{}},
+			// The starting inventory, the way a generated seed precollects
+			// it. Everything else arrives as waves are cleared.
+			map[string]any{"cmd": "ReceivedItems", "index": 0, "items": start},
 		)
 
 	case "LocationChecks":
@@ -231,7 +243,7 @@ func (r *Room) reward(ctx context.Context, conn *websocket.Conn, locations []int
 		r.mu.Unlock()
 		return nil
 	}
-	index := r.next
+	index := r.given
 	var handed []map[string]any
 	for range fresh {
 		if r.next >= len(r.items) {
@@ -241,6 +253,7 @@ func (r *Room) reward(ctx context.Context, conn *websocket.Conn, locations []int
 			"item": r.items[r.next], "location": int64(1), "player": 1, "flags": 1,
 		})
 		r.next++
+		r.given++
 	}
 	r.mu.Unlock()
 
@@ -311,23 +324,74 @@ func (r *Room) traffic(ctx context.Context, conn *websocket.Conn) {
 	}
 }
 
+// startItems is the starting inventory as ReceivedItems carries it, and it
+// counts against the same index the rest of the run uses.
+func (r *Room) startItems() []map[string]any {
+	items := make([]map[string]any, 0, len(r.start))
+	for _, id := range r.start {
+		items = append(items, map[string]any{
+			"item": id, "location": int64(0), "player": 0, "flags": 1,
+		})
+	}
+	r.mu.Lock()
+	r.given = len(items)
+	r.mu.Unlock()
+	return items
+}
+
 // gift sends one item as if another player had found it for us.
+//
+// Filler, never an unlock. A real multiworld does hand over progression, but
+// once a minute it empties the pool by the clock rather than by play: a
+// play-test had every class and every weapon slot inside twenty minutes
+// without clearing a wave, which reads as a randomizer that does not work.
 func (r *Room) gift(ctx context.Context, conn *websocket.Conn, who string) error {
 	r.mu.Lock()
-	if r.next >= len(r.items) {
-		r.mu.Unlock()
-		return nil
-	}
-	index, item := r.next, r.items[r.next]
-	r.next++
+	index := r.given
+	r.given++
 	r.mu.Unlock()
 
 	r.log("test mode: " + who + " sent us something")
 	return write(ctx, conn,
 		map[string]any{"cmd": "ReceivedItems", "index": index, "items": []map[string]any{
-			{"item": item, "location": int64(1), "player": 2, "flags": 1},
+			{"item": fillerItem(), "location": int64(1), "player": 2, "flags": 0},
 		}},
 	)
+}
+
+// fillerItem is what a gift carries: the cash bundle, the one filler the
+// tables hold.
+func fillerItem() int64 {
+	for _, item := range gamedata.Items {
+		if item.Classification == gamedata.Filler {
+			return item.ID
+		}
+	}
+	return gamedata.Items[0].ID
+}
+
+// startingInventory is what a normal-tier run starts with, matching the
+// apworld's own rule: the first mission's ticket, one class, one weapon slot.
+// Without the ticket the plugin has no mission it may play.
+func startingInventory(popFile string) []int64 {
+	var start []int64
+	if mission, known := gamedata.MissionByPopFile(popFile); known {
+		for _, item := range gamedata.Items {
+			if item.Kind == gamedata.ItemMissionTicket && item.Mission == mission.ID {
+				start = append(start, item.ID)
+				break
+			}
+		}
+	}
+	for _, kind := range []gamedata.ItemKind{gamedata.ItemClass, gamedata.ItemWeaponSlot} {
+		for _, item := range gamedata.Items {
+			if item.Kind == kind {
+				start = append(start, item.ID)
+				break
+			}
+		}
+	}
+	return start
 }
 
 // say sends a chat line the way the server does, which the plugin repeats in the
@@ -347,11 +411,24 @@ func (r *Room) say(ctx context.Context, conn *websocket.Conn, text string) {
 //
 // The weapon slot item is progressive, so its copies are handed out one at a
 // time and the count comes from the pool.
-func unlockOrder() []int64 {
+func unlockOrder(held []int64) []int64 {
 	var classes, slots, rest []int64
+	taken := make(map[int64]int, len(held))
+	for _, id := range held {
+		taken[id]++
+	}
 	for _, item := range gamedata.Items {
+		if item.Classification == gamedata.Filler {
+			continue
+		}
 		copies := max(int(item.Count), 1)
 		for range copies {
+			// One copy per item already held: the progressive weapon slot has
+			// several, and only the granted one is off the list.
+			if taken[item.ID] > 0 {
+				taken[item.ID]--
+				continue
+			}
 			switch item.Kind {
 			case gamedata.ItemClass:
 				classes = append(classes, item.ID)
