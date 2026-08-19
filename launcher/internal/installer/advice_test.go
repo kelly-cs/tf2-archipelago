@@ -1,0 +1,68 @@
+package installer
+
+import (
+	"strings"
+	"testing"
+)
+
+// The game server is 32-bit on every platform. A 64-bit Linux without the
+// 32-bit C library runs neither it nor SteamCMD, and the shell names no
+// library when it says so. Repair cannot help, so the installer must not
+// suggest it.
+func TestMissing32BitIsRecognised(t *testing.T) {
+	for _, line := range []string{
+		"/home/me/tf2-archipelago/steamcmd/steamcmd.sh: line 37: /home/me/tf2-archipelago/steamcmd/linux32/steamcmd: cannot execute: required file not found",
+		"./srcds_linux: /lib/ld-linux.so.2: No such file or directory",
+	} {
+		if !missing32Bit(line) {
+			t.Errorf("missed a 32-bit failure: %q", line)
+		}
+		advice := steamcmdStateAdvice(line)
+		if !strings.Contains(advice, "32-bit C library") {
+			t.Errorf("advice for %q was %q", line, advice)
+		}
+	}
+}
+
+// Every other line SteamCMD prints, including the two states that already had
+// advice of their own. None of them is a missing library.
+func TestMissing32BitLeavesOtherLinesAlone(t *testing.T) {
+	for _, line := range []string{
+		" Update state (0x61) downloading, progress: 1.36 (202092440 / 14908968403)",
+		"Error! app '232250' state is 0x202 after update job.",
+		"Error! app '232250' state is 0x602 after update job.",
+		"Success! App '232250' fully installed.",
+		"",
+	} {
+		if missing32Bit(line) {
+			t.Errorf("read a 32-bit failure out of %q", line)
+		}
+	}
+	// The two that had advice before keep it.
+	if advice := steamcmdStateAdvice("app state is 0x202 after update job"); !strings.Contains(advice, "disk is full") {
+		t.Errorf("0x202 advice = %q", advice)
+	}
+	if advice := steamcmdStateAdvice("app state is 0x602 after update job"); !strings.Contains(advice, "lost the download") {
+		t.Errorf("0x602 advice = %q", advice)
+	}
+}
+
+// The sighting has to reach the caller, not just the log: the window prints
+// the error, and the error is where the operator looks first.
+func TestLineSplitterRemembersThe32BitFailure(t *testing.T) {
+	writer := lineWriter(func(string, ...any) {})
+	if _, err := writer.Write([]byte("steamcmd.sh: line 37: linux32/steamcmd: cannot execute: required file not found\n")); err != nil {
+		t.Fatal(err)
+	}
+	if !writer.saw32BitFailure {
+		t.Error("the splitter did not remember the 32-bit failure")
+	}
+
+	quiet := lineWriter(func(string, ...any) {})
+	if _, err := quiet.Write([]byte("Success! App '232250' fully installed.\n")); err != nil {
+		t.Fatal(err)
+	}
+	if quiet.saw32BitFailure {
+		t.Error("an ordinary line was read as a 32-bit failure")
+	}
+}

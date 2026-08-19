@@ -15,11 +15,45 @@ import (
 // value the operator entered or, on an empty line, the default.
 type Prompt struct {
 	reader *bufio.Reader
+
+	// closed is set once stdin has no more to give: a pipe that ended, a
+	// service with no terminal, a redirect from /dev/null. Every prompt after
+	// that takes its default without asking.
+	closed bool
 }
 
 // New returns a Prompt reading from stdin.
 func New() *Prompt {
 	return &Prompt{reader: bufio.NewReader(os.Stdin)}
+}
+
+// Closed reports whether stdin ended. The caller checks it before insisting on
+// a value nobody can type.
+func (p *Prompt) Closed() bool { return p.closed }
+
+/*
+line reads one answer, and says whether anybody was there to give it.
+
+Every prompt used to drop the error from ReadString and loop on a blank
+answer. Started without a terminal, that is not a loop that ends: the read
+returns EOF and an empty string as fast as the process can ask, and the one
+that wanted a room address wrote 849 MB of "the address is empty" in ninety
+seconds before anybody noticed.
+
+So the error is the loop's bound. Once stdin is done it stays done, and a
+prompt that cannot be answered takes its default rather than asking again.
+*/
+func (p *Prompt) line() (string, bool) {
+	if p.closed {
+		return "", false
+	}
+	text, err := p.reader.ReadString('\n')
+	if err != nil && text == "" {
+		p.closed = true
+		fmt.Println()
+		return "", false
+	}
+	return strings.TrimSpace(text), true
 }
 
 // Text asks for a string. The default is shown in brackets and used on Enter.
@@ -29,9 +63,8 @@ func (p *Prompt) Text(label, def string) string {
 	} else {
 		fmt.Printf("%s: ", label)
 	}
-	line, _ := p.reader.ReadString('\n')
-	line = strings.TrimSpace(line)
-	if line == "" {
+	line, ok := p.line()
+	if !ok || line == "" {
 		return def
 	}
 	return line
@@ -54,9 +87,8 @@ func (p *Prompt) Password(label, def string) string {
 func (p *Prompt) Int(label string, def int) int {
 	for {
 		fmt.Printf("%s [%d]: ", label, def)
-		line, _ := p.reader.ReadString('\n')
-		line = strings.TrimSpace(line)
-		if line == "" {
+		line, ok := p.line()
+		if !ok || line == "" {
 			return def
 		}
 		n, err := strconv.Atoi(line)
@@ -76,9 +108,11 @@ func (p *Prompt) Bool(label string, def bool) bool {
 	}
 	for {
 		fmt.Printf("%s [%s]: ", label, d)
-		line, _ := p.reader.ReadString('\n')
-		line = strings.ToLower(strings.TrimSpace(line))
-		switch line {
+		answer, ok := p.line()
+		if !ok {
+			return def
+		}
+		switch strings.ToLower(answer) {
 		case "":
 			return def
 		case "y", "yes":
@@ -95,9 +129,8 @@ func (p *Prompt) Bool(label string, def bool) bool {
 func (p *Prompt) Choice(label string, options []string, def string) string {
 	for {
 		fmt.Printf("%s %v [%s]: ", label, options, def)
-		line, _ := p.reader.ReadString('\n')
-		line = strings.TrimSpace(line)
-		if line == "" {
+		line, ok := p.line()
+		if !ok || line == "" {
 			return def
 		}
 		for _, opt := range options {
@@ -120,7 +153,9 @@ func (p *Prompt) readMaskedLine() string {
 	if line, err := termReadLine(p.reader); err == nil {
 		return line
 	}
-	line, _ := p.reader.ReadString('\n')
+	// No terminal to turn the echo off on, so this is the ordinary read, and
+	// it has to notice the end of stdin like every other one.
+	line, _ := p.line()
 	return line
 }
 
@@ -146,9 +181,8 @@ func (p *Prompt) Select(label string, options []Option, def string) string {
 	}
 	for {
 		fmt.Printf("  Number or name [%s]: ", def)
-		line, _ := p.reader.ReadString('\n')
-		line = strings.TrimSpace(line)
-		if line == "" {
+		line, ok := p.line()
+		if !ok || line == "" {
 			return def
 		}
 		if n, err := strconv.Atoi(line); err == nil {
@@ -179,9 +213,8 @@ func (p *Prompt) IntRange(label string, def, low, high int) int {
 	}
 	for {
 		fmt.Printf("%s (%d to %d) [%d]: ", label, low, high, def)
-		line, _ := p.reader.ReadString('\n')
-		line = strings.TrimSpace(line)
-		if line == "" {
+		line, ok := p.line()
+		if !ok || line == "" {
 			return def
 		}
 		n, err := strconv.Atoi(line)

@@ -43,7 +43,7 @@ GO_SRC := $$(find . -type f -name '*.go')
         integration build docs \
         docs-build docs-down dist compose-release version-check clean \
         launcher launcher-assets launcher-assets-common \
-        launcher-linux launcher-assets-linux embed-placeholders
+        launcher-linux launcher-assets-linux captures embed-placeholders
 
 help:
 	@echo "tf2-archipelago"
@@ -61,6 +61,7 @@ help:
 	@echo "  make dist          Build everything a release attaches into ./dist"
 	@echo "  make launcher      Cross-compile tf2ap.exe (Windows) into ./dist"
 	@echo "  make launcher-linux Build tf2ap-linux-amd64 into ./dist"
+	@echo "  make captures      Redraw the terminal captures in docs/images"
 	@echo "  make docs          Build the book and serve it on 127.0.0.1"
 	@echo "  make clean         Stop, remove volumes, remove build output"
 
@@ -307,6 +308,27 @@ launcher-linux: launcher-assets-linux
 	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath \
 		-ldflags="-s -w $(LAUNCHER_LDFLAGS)" \
 		-o $(DIST)/tf2ap-linux-amd64 ./launcher/cmd/tf2ap
+
+# The captures in the README and the book. They are SVG of the Linux
+# launcher's own output, so a diff says what changed in one and no machine's
+# font choices reach the picture.
+# CAPTURE_ENV keeps whoever runs this out of the picture: the paths a capture
+# prints come from the environment, and a committed image should not carry the
+# home directory of the person who last redrew it.
+CAPTURE_ENV = TF2AP_INSTALL_ROOT=/home/player/tf2-archipelago \
+	TF2AP_ARCHIPELAGO_DIR=/home/player/Archipelago \
+	AP_HOST=archipelago.gg AP_PORT=12345 SRCDS_RCONPW=hidden
+
+# The sed is the last of it: the launcher lists every folder it looked in for
+# the Archipelago app, and one of them is always the real home of whoever ran
+# this.
+captures: launcher-linux
+	$(CAPTURE_ENV) ./dist/tf2ap-linux-amd64 -version \
+		| sed "s|$$HOME|/home/player|g" \
+		| ./docs/capture.sh 'tf2ap-linux-amd64 -version' docs/images/linux-version.svg
+	$(CAPTURE_ENV) ./dist/tf2ap-linux-amd64 -status \
+		| sed "s|$$HOME|/home/player|g" \
+		| ./docs/capture.sh 'tf2ap-linux-amd64 -status' docs/images/linux-status.svg
 
 # --- Integration ---
 

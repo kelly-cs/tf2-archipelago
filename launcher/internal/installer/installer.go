@@ -94,31 +94,51 @@ func Ensure(ctx context.Context, installRoot string, logf func(format string, ar
 		result.Done.GameInstalled = true
 	}
 
-	modDir := filepath.Join(result.GameDir, "tf")
+	// After the game, because it links what SteamCMD downloaded into where the
+	// game server looks. Every start, because it is a link and cheap, and a
+	// game directory moved between disks leaves a stale one.
+	if err := linkSteamClient(installRoot, result.SteamcmdDir); err != nil {
+		return result, err
+	}
+
+	if err := installMods(ctx, filepath.Join(result.GameDir, "tf"), logf); err != nil {
+		return result, err
+	}
+	result.Done.SourcemodInstalled = true
+
+	return result, nil
+}
+
+// installMods puts everything that loads inside the game server into tf/:
+// Metamod, SourceMod, ripext, this project's plugin and the defender bots.
+// The first two are skipped when they are already there; the rest are written
+// every time, because they are ours and a stale copy is our bug to have.
+func installMods(ctx context.Context, modDir string, logf func(string, ...any)) error {
 	if !exists(filepath.Join(modDir, "addons", "metamod")) {
 		logf("installing Metamod:Source %s", assets.MetamodVersion)
 		if err := installMetamod(ctx, modDir); err != nil {
-			return result, err
+			return err
 		}
+	}
+	if err := dropMismatchedLoader(modDir); err != nil {
+		return err
 	}
 
 	if !exists(filepath.Join(modDir, "addons", "sourcemod")) {
 		logf("installing SourceMod %s", assets.SourcemodVersion)
 		if err := installSourcemod(ctx, modDir, logf); err != nil {
-			return result, err
+			return err
 		}
 	}
-	result.Done.SourcemodInstalled = true
 
 	logf("installing ripext %s, the plugin and the defender bots", assets.RipextVersion)
 	if err := installRipextAndPlugin(modDir); err != nil {
-		return result, err
+		return err
 	}
 	if err := unzipTo(assets.DefenderBotsZip(), modDir); err != nil {
-		return result, fmt.Errorf("cannot install the defender bots: %w", err)
+		return fmt.Errorf("cannot install the defender bots: %w", err)
 	}
-
-	return result, nil
+	return nil
 }
 
 // installSteamcmd downloads and unpacks Valve's SteamCMD bootstrap: a zip on
@@ -213,6 +233,11 @@ func installGame(ctx context.Context, steamcmdDir, gameDir string, logf func(str
 	// the state that fails, so the second attempt fails the same way.
 	logf("SteamCMD failed (%v), trying once more", err)
 	if err := runSteamcmd(ctx, exe, steamcmdDir, logf, args...); err != nil {
+		// Repair throws SteamCMD away and fetches it again, which is no help
+		// at all when the C library it needs was the thing missing.
+		if strings.Contains(err.Error(), Missing32BitAdvice) {
+			return fmt.Errorf("SteamCMD could not install app %s: %w", AppID, err)
+		}
 		return fmt.Errorf("SteamCMD could not install app %s: %w. %s", AppID, err, RepairAdvice)
 	}
 	return nil
@@ -226,19 +251,56 @@ func steamcmdStateAdvice(line string) string {
 		return "SteamCMD could not write the game files. The disk is full, or the folder is not writable."
 	case strings.Contains(line, "state is 0x602"):
 		return "SteamCMD lost the download. Check the connection, then press Start again."
+	case missing32Bit(line):
+		return Missing32BitAdvice
 	}
 	return ""
 }
+
+/*
+missing32Bit reports whether this line is a 32-bit binary that will not start.
+
+SteamCMD and the game server are both 32-bit, on every platform. A 64-bit
+Linux without the 32-bit C library runs neither, and the shell says so in a
+way that names no library: "cannot execute: required file not found" is the
+loader itself missing, not the file the line names, and the exit status is
+127 whatever went wrong.
+
+Left alone, the installer answered that with "press Repair", which throws
+SteamCMD away and downloads it again to fail in exactly the same way.
+*/
+func missing32Bit(line string) bool {
+	return strings.Contains(line, "cannot execute: required file not found") ||
+		strings.Contains(line, "No such file or directory") &&
+			strings.Contains(line, "ld-linux.so.2")
+}
+
+// Missing32BitAdvice names the package, because the error the shell prints
+// names nothing a package manager knows.
+const Missing32BitAdvice = "The game server is 32-bit and this system has no 32-bit C library. " +
+	"Install it: glibc.i686 on Fedora, lib32-glibc on Arch, " +
+	"or `sudo dpkg --add-architecture i386 && sudo apt update && sudo apt install lib32gcc-s1` on Debian."
 
 // runSteamcmd runs one SteamCMD command with its own directory as the working
 // directory, which is where it keeps the files it downloads for itself.
 func runSteamcmd(ctx context.Context, exe, dir string, logf func(string, ...any), args ...string) error {
 	cmd := exec.CommandContext(ctx, exe, args...)
 	cmd.Dir = dir
-	cmd.Stdout = lineWriter(logf)
-	cmd.Stderr = lineWriter(logf)
+	// One splitter for both streams: the shell writes the 32-bit failure to
+	// stderr and everything else comes down stdout, and the caller needs the
+	// answer whichever it arrived on.
+	output := lineWriter(logf)
+	cmd.Stdout = output
+	cmd.Stderr = output
 	winproc.HideConsole(cmd)
-	return cmd.Run()
+
+	err := cmd.Run()
+	if err != nil && output.saw32BitFailure {
+		// Wrapped rather than logged again: this is the whole reason the
+		// install stopped, and it has to reach the error the window shows.
+		return fmt.Errorf("%w. %s", err, Missing32BitAdvice)
+	}
+	return err
 }
 
 // installMetamod unpacks Metamod:Source, which loads SourceMod. Without it
@@ -392,13 +454,17 @@ func exists(path string) bool {
 
 // lineWriter passes each complete line to logf, so subprocess output shows up
 // in the launcher's log without drowning it in partial lines.
-func lineWriter(logf func(string, ...any)) io.Writer {
+func lineWriter(logf func(string, ...any)) *lineSplitter {
 	return &lineSplitter{logf: logf}
 }
 
 type lineSplitter struct {
 	buf  []byte
 	logf func(string, ...any)
+
+	// saw32BitFailure is the one line worth remembering rather than only
+	// printing: it decides what the caller tells the operator to do.
+	saw32BitFailure bool
 }
 
 func (l *lineSplitter) Write(p []byte) (int, error) {
@@ -412,6 +478,9 @@ func (l *lineSplitter) Write(p []byte) (int, error) {
 		l.buf = l.buf[i+1:]
 		if line != "" {
 			l.logf("  %s", line)
+			if missing32Bit(line) {
+				l.saw32BitFailure = true
+			}
 			if advice := steamcmdStateAdvice(line); advice != "" {
 				l.logf("%s", advice)
 			}
