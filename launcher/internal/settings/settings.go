@@ -83,6 +83,14 @@ type Settings struct {
 	MvmDeathLink        bool     `json:"mvm_death_link"`
 	MvmExcludedMissions []string `json:"mvm_excluded_missions,omitempty"`
 
+	// MvmStartMission is the popfile the run starts on and MvmStartClass the
+	// mercenary it starts with, both empty for the seed's own random draw.
+	// Popfile and not display name, the same as MvmExcludedMissions: every
+	// other part of this project names a mission by its popfile, and yaml.go
+	// does the one translation the apworld's options need.
+	MvmStartMission string `json:"mvm_start_mission,omitempty"`
+	MvmStartClass   string `json:"mvm_start_class,omitempty"`
+
 	// Whether to enable the metrics listener and on what port.
 	MetricsPort int `json:"metrics_port"`
 }

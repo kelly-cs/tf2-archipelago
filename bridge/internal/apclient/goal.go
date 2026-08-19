@@ -23,6 +23,17 @@ func (s SlotData) validate() error {
 			return fmt.Errorf("seed uses mission %q, which is not in the tables", popFile)
 		}
 	}
+	// Older seeds carry no start mission, and the server finds its own way to
+	// the first unlocked one. An unknown name is a different thing: it means
+	// this binary and the seed disagree about the tables.
+	if s.StartMission != "" {
+		if _, known := gamedata.MissionByPopFile(s.StartMission); !known {
+			return fmt.Errorf("start mission %q is not in the tables", s.StartMission)
+		}
+		if !slices.Contains(s.Missions, s.StartMission) {
+			return fmt.Errorf("start mission %q is not one of the run's missions", s.StartMission)
+		}
+	}
 	switch s.Goal {
 	case "final_boss":
 		if _, known := gamedata.MissionByPopFile(s.GoalMission); !known {

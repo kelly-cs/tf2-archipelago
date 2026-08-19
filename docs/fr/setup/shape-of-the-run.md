@@ -17,6 +17,8 @@ vous ne [démarrez pas une nouvelle partie](../operate/start-a-new-run.md).
 | `MVM_MISSIONSANITY_PERCENTAGE` | `80` | 10 à 100 | Quelle part de la partie l'objectif Missionsanity demande |
 | `MVM_DEATH_LINK` | `false` | `true`, `false` | Une vague perdue tue les joueurs liés, et leurs morts anéantissent l'équipe. Voir ci-dessous. |
 | `MVM_EXCLUDED_MISSIONS` | vide | des noms de popfile, séparés par des virgules | Les missions que la partie ne tire jamais. Voir ci-dessous. |
+| `MVM_START_MISSION` | `random` | un nom de popfile | La mission sur laquelle la partie commence. Voir ci-dessous. |
+| `MVM_START_CLASS` | `random` | un nom de mercenaire | La classe avec laquelle la partie commence. Voir ci-dessous. |
 
 ### `MVM_MISSION_COUNT`
 
@@ -78,6 +80,27 @@ ainsi n'est pas renvoyée.
 
 Attendez-vous à une partie plus dure avec DeathLink. Une vague peut se
 perdre sur l'erreur de quelqu'un d'autre.
+
+### `MVM_START_MISSION` et `MVM_START_CLASS`
+
+`random` laisse les deux à la seed. La partie commence alors sur la mission la
+plus facile qu'elle a tirée, avec des classes tirées au hasard.
+
+Nommez une mission et la partie tire toujours celle-là et y commence. Nommez un
+mercenaire et la partie commence toujours avec lui. Le palier de la mission de
+départ décide avec combien de classes la partie commence, et `MVM_START_CLASS`
+en nomme une.
+
+`MVM_START_MISSION=mvm_coaltown_advanced MVM_START_CLASS=Engineer` fait
+commencer chaque partie sur Ctrl+Alt+Destruction avec un Engineer.
+
+L'objectif Final Boss est la mission la plus dure que la partie a tirée. Si
+vous nommez cette mission comme départ, la réussir gagne aussitôt. La
+génération s'arrête et le dit. Nommez une mission plus facile, ou prenez
+l'objectif Missionsanity.
+
+Le lanceur Windows a un seul menu pour les deux, et le serveur démarre sur la
+mission que vous choisissez plutôt que sur `SRCDS_STARTMAP`.
 
 ### `MVM_EXCLUDED_MISSIONS`
 

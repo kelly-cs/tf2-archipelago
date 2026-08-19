@@ -36,6 +36,8 @@ func PlayerYAML(s Settings, archipelagoVersion string) string {
 	fmt.Fprintf(&b, "  goal: %s\n", s.MvmGoal)
 	fmt.Fprintf(&b, "  missionsanity_percentage: %d\n", s.MvmMissionsanityPct)
 	fmt.Fprintf(&b, "  death_link: %t\n", s.MvmDeathLink)
+	fmt.Fprintf(&b, "  start_mission: %s\n", yamlString(StartMissionName(s)))
+	fmt.Fprintf(&b, "  start_class: %s\n", yamlString(startClassName(s)))
 	names := ExcludedMissionNames(s)
 	if len(names) == 0 {
 		b.WriteString("  excluded_missions: []\n")
@@ -59,6 +61,35 @@ func ExcludedMissionNames(s Settings) []string {
 		}
 	}
 	return names
+}
+
+// randomOption is what the apworld's start_mission and start_class take for
+// "draw it". Empty settings mean the same thing and render as this.
+const randomOption = "random"
+
+// StartMissionName turns the popfile the settings hold into the name the
+// apworld option takes. An empty or unknown popfile is the random draw: a run
+// that starts wherever the seed decides beats one that refuses to generate.
+func StartMissionName(s Settings) string {
+	if s.MvmStartMission == "" {
+		return randomOption
+	}
+	for _, mission := range gamedata.Missions {
+		if mission.PopFile == s.MvmStartMission {
+			return mission.Name
+		}
+	}
+	return randomOption
+}
+
+// startClassName checks the class against the tables for the same reason.
+func startClassName(s Settings) string {
+	for _, class := range gamedata.Classes {
+		if strings.EqualFold(class.Name, s.MvmStartClass) {
+			return class.Name
+		}
+	}
+	return randomOption
 }
 
 // yamlString quotes a scalar. The game name holds spaces and the slot name is

@@ -83,6 +83,72 @@ class TestMissionsanityPartial(TF2MvMTestBase):
         self.assertEqual(expected, self.world.missionsanity_target)
 
 
+class TestNamedStartMission(TF2MvMTestBase):
+    """Quarry is intermediate, so it is not the easiest mission a normal pool draws."""
+
+    options: ClassVar[dict[str, Any]] = {
+        "mission_count": 6,
+        "difficulty_pool": "normal",
+        "start_mission": "Quarry",
+        "start_class": "Engineer",
+        "goal": "missionsanity",
+    }
+
+    def test_the_run_starts_where_it_was_told_to(self) -> None:
+        self.assertEqual("Quarry", self.world.start_mission.name)
+        self.assertIn(self.world.start_mission, self.world.missions)
+        self.assertIn(data.TICKET_NAMES[self.world.start_mission.id], self.world.start_items)
+
+    def test_the_named_start_mission_is_open_from_nothing(self) -> None:
+        self.assertTrue(self.can_reach_region("Quarry"))
+
+    def test_the_run_starts_with_the_class_it_was_told_to(self) -> None:
+        self.assertIn(data.CLASS_ITEM_BY_MERC["Engineer"], self.world.start_items)
+
+    def test_the_starting_class_is_not_in_the_pool_twice(self) -> None:
+        engineer = data.CLASS_ITEM_BY_MERC["Engineer"]
+        self.assertEqual(0, sum(item.name == engineer for item in self.multiworld.itempool))
+
+
+class TestNamedStartBeatsTheSort(TF2MvMTestBase):
+    """The whole roster is drawn, so a normal mission is certainly in it.
+
+    Quarry is intermediate. Without start_mission the run would begin on one of
+    the four normal missions, which is what makes this prove the override.
+    """
+
+    options: ClassVar[dict[str, Any]] = {
+        "mission_count": 29,
+        "difficulty_pool": "normal",
+        "start_mission": "Quarry",
+        "goal": "missionsanity",
+    }
+
+    def test_the_start_is_not_the_easiest_mission_drawn(self) -> None:
+        easiest = min(
+            self.world.missions, key=lambda mission: data.DIFFICULTIES.index(mission.difficulty)
+        )
+        self.assertEqual("normal", easiest.difficulty)
+        self.assertEqual("Quarry", self.world.start_mission.name)
+        self.assertTrue(self.can_reach_region("Quarry"))
+
+
+class TestNamedStartCountsAsOneOfTheTier(TF2MvMTestBase):
+    """An expert start mission asks for four classes, and start_class names one of them."""
+
+    options: ClassVar[dict[str, Any]] = {
+        "mission_count": 5,
+        "difficulty_pool": "expert",
+        "start_class": "Medic",
+    }
+
+    def test_the_named_class_does_not_add_one(self) -> None:
+        requirement = REQUIREMENTS[self.world.start_mission.difficulty]
+        held = self.world.start_items
+        self.assertIn(data.CLASS_ITEM_BY_MERC["Medic"], held)
+        self.assertEqual(requirement.classes, sum(name in data.CLASS_NAMES for name in held))
+
+
 class TestFinalBoss(TF2MvMTestBase):
     options: ClassVar[dict[str, Any]] = {
         "goal": "final_boss",

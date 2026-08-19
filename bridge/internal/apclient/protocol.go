@@ -136,6 +136,7 @@ func (p printJSON) text() string {
 type SlotData struct {
 	FormatVersion       int      `json:"format_version"`
 	Missions            []string `json:"missions"`
+	StartMission        string   `json:"start_mission"`
 	Goal                string   `json:"goal"`
 	GoalMission         string   `json:"goal_mission"`
 	MissionsanityTarget int      `json:"missionsanity_target"`

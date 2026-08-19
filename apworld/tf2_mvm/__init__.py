@@ -16,7 +16,7 @@ from Options import OptionError
 from worlds.AutoWorld import WebWorld, World
 
 from . import data
-from .options import TF2MvMOptions, option_groups
+from .options import RANDOM, TF2MvMOptions, option_groups
 from .rules import REQUIREMENTS, Requirement
 
 CLASSIFICATIONS = {
@@ -90,14 +90,15 @@ class TF2MvMWorld(World):
                 f"{self.player_name}: excluded_missions leaves nothing in a "
                 f"{self.options.difficulty_pool.current_key} pool."
             )
+        asked = self._asked_start_mission(available)
         wanted = min(self.options.mission_count.value, len(available))
-        drawn = self.random.sample(available, wanted)
+        drawn = self._draw(available, wanted, asked)
         spare = [mission for mission in available if mission not in drawn]
 
         # Widening closes a shortfall: a mission adds more waves as checks than the ticket it costs.
-        while self._shortfall(drawn) > 0 and spare:
+        while self._shortfall(drawn, asked) > 0 and spare:
             drawn.append(spare.pop(self.random.randrange(len(spare))))
-        if self._shortfall(drawn) > 0:
+        if self._shortfall(drawn, asked) > 0:
             raise OptionError(
                 f"{self.player_name}: a {self.options.difficulty_pool.current_key} pool holds "
                 f"{len(available)} mission(s), too few checks for the unlocks the run needs. "
@@ -112,8 +113,19 @@ class TF2MvMWorld(World):
             )
 
         self.missions = sorted(drawn, key=self._tier_order)
-        self.start_mission = self.missions[0]
+        self.start_mission = asked or self.missions[0]
         self.goal_mission = self.missions[-1]
+        # Clearing the start mission would win on the spot, which is not a run.
+        if (
+            self.options.goal.current_key == "final_boss"
+            and self.goal_mission is self.start_mission
+            and len(self.missions) > 1
+        ):
+            raise OptionError(
+                f"{self.player_name}: start_mission is {self.start_mission.name!r}, the hardest "
+                f"mission of the run, and the Final Boss goal is that mission. Name an easier "
+                f"start_mission, or set goal to missionsanity."
+            )
 
         share = self.options.missionsanity_percentage.value / 100
         self.missionsanity_target = max(1, math.ceil(len(self.missions) * share))
@@ -121,9 +133,40 @@ class TF2MvMWorld(World):
         requirement = REQUIREMENTS[self.start_mission.difficulty]
         self.start_items = [
             data.TICKET_NAMES[self.start_mission.id],
-            *self.random.sample(data.CLASS_NAMES, requirement.classes),
+            *self._start_classes(requirement.classes),
             *[data.PROGRESSIVE_WEAPON_SLOT] * requirement.slots,
         ]
+
+    def _asked_start_mission(self, available: list[data.Mission]) -> data.Mission | None:
+        """The mission start_mission names, or None for the easiest one drawn."""
+        wanted = self.options.start_mission.value
+        if wanted == RANDOM:
+            return None
+        for mission in available:
+            if mission.name == wanted:
+                return mission
+        raise OptionError(
+            f"{self.player_name}: start_mission is {wanted!r}, which a "
+            f"{self.options.difficulty_pool.current_key} pool does not hold, or "
+            f"excluded_missions keeps out."
+        )
+
+    def _draw(
+        self, available: list[data.Mission], wanted: int, asked: data.Mission | None
+    ) -> list[data.Mission]:
+        if asked is None:
+            return self.random.sample(available, wanted)
+        rest = [mission for mission in available if mission is not asked]
+        return [asked, *self.random.sample(rest, wanted - 1)]
+
+    def _start_classes(self, count: int) -> list[str]:
+        """The classes the run starts with, one of them named by start_class."""
+        wanted = self.options.start_class.value
+        if wanted == RANDOM:
+            return self.random.sample(data.CLASS_NAMES, count)
+        first = data.CLASS_ITEM_BY_MERC[wanted]
+        rest = [name for name in data.CLASS_NAMES if name != first]
+        return [first, *self.random.sample(rest, count - 1)]
 
     def create_regions(self) -> None:
         menu = Region(self.origin_region_name, self.player, self.multiworld)
@@ -175,6 +218,7 @@ class TF2MvMWorld(World):
             "format_version": data.FORMAT_VERSION,
             "missions": [mission.pop_file for mission in self.missions],
             "goal": self.options.goal.current_key,
+            "start_mission": self.start_mission.pop_file,
             "goal_mission": self.goal_mission.pop_file,
             "missionsanity_target": self.missionsanity_target,
             "death_link": bool(self.options.death_link.value),
@@ -198,9 +242,11 @@ class TF2MvMWorld(World):
     def _check_count(missions: list[data.Mission]) -> int:
         return sum(mission.waves + 1 for mission in missions)
 
-    def _shortfall(self, missions: list[data.Mission]) -> int:
+    def _shortfall(self, missions: list[data.Mission], start: data.Mission | None) -> int:
         """Unlock items owed minus the checks there is room for; filler only closes a surplus."""
-        requirement = REQUIREMENTS[min(missions, key=self._tier_order).difficulty]
+        if start is None:
+            start = min(missions, key=self._tier_order)
+        requirement = REQUIREMENTS[start.difficulty]
         unlocks = (
             len(missions)
             - 1

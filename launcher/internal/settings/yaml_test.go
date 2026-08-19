@@ -75,6 +75,41 @@ func TestWritePlayerFile(t *testing.T) {
 	}
 }
 
+func TestPlayerYAMLNamesTheStartMissionAndClass(t *testing.T) {
+	s := Defaults()
+	s.MvmStartMission = "mvm_ghost_town_666"
+	s.MvmStartClass = "medic"
+
+	got := PlayerYAML(s, "")
+	if !strings.Contains(got, `  start_mission: "Caliginous Caper"`) {
+		t.Errorf("the start mission is not named:\n%s", got)
+	}
+	// The mod spells classes in lower case; the apworld option takes the name.
+	if !strings.Contains(got, `  start_class: "Medic"`) {
+		t.Errorf("the start class is not named:\n%s", got)
+	}
+}
+
+// A settings file from before these options, or one naming a mission this
+// build's tables do not have, must still generate. Random is what the seed did
+// anyway, so it is the safe reading of both.
+func TestPlayerYAMLFallsBackToRandom(t *testing.T) {
+	for _, c := range []struct{ mission, class string }{
+		{"", ""},
+		{"mvm_nowhere", "Wizard"},
+	} {
+		s := Defaults()
+		s.MvmStartMission, s.MvmStartClass = c.mission, c.class
+		got := PlayerYAML(s, "")
+		if !strings.Contains(got, `  start_mission: "random"`) {
+			t.Errorf("start_mission %q did not fall back:\n%s", c.mission, got)
+		}
+		if !strings.Contains(got, `  start_class: "random"`) {
+			t.Errorf("start_class %q did not fall back:\n%s", c.class, got)
+		}
+	}
+}
+
 func TestPlayerYAMLNamesTheExcludedMissions(t *testing.T) {
 	s := Defaults()
 	s.MvmExcludedMissions = []string{"mvm_ghost_town_666", "mvm_nowhere"}

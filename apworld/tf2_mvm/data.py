@@ -126,6 +126,17 @@ TICKET_NAMES: dict[int, str] = {
     item.mission_id: item.name for item in ITEMS if item.kind == "mission_ticket"
 }
 CLASS_NAMES: tuple[str, ...] = tuple(item.name for item in ITEMS if item.kind == "class")
+
+# "Scout" is what a player writes in a YAML; "Class: Scout" is what the item is
+# called. The link is the class id, not the shape of the name.
+_MERC_NAMES: dict[int, str] = {entry["id"]: entry["name"] for entry in _meta["classes"]}
+CLASS_ITEM_BY_MERC: dict[str, str] = {
+    _MERC_NAMES[item.class_id]: item.name for item in ITEMS if item.kind == "class"
+}
+if len(CLASS_ITEM_BY_MERC) != len(CLASS_NAMES):
+    raise DataFormatError("a class item names a class the meta export does not have")
+
+MISSION_NAMES: frozenset[str] = frozenset(mission.name for mission in MISSIONS)
 FILLER_NAMES: tuple[str, ...] = tuple(
     item.name for item in ITEMS if item.classification == "filler"
 )

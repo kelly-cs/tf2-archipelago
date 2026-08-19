@@ -7,6 +7,7 @@ package runshape
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/m-this/tf2-archipelago/gamedata"
 )
@@ -123,4 +124,43 @@ func MissionLabel(popFile string) string {
 		}
 	}
 	return popFile
+}
+
+// AnyLabel is the first entry of the start mission and start class menus: the
+// seed draws it. An empty popfile or class name means this.
+const AnyLabel = "Any - the run draws it"
+
+// StartMissionChoices is MissionChoices with the draw in front, for the menu
+// that decides where a run begins. The empty popfile is the draw.
+func StartMissionChoices() []MissionChoice {
+	return append([]MissionChoice{{PopFile: "", Label: AnyLabel}}, MissionChoices()...)
+}
+
+// StartMissionLabel is what StartMissionChoices shows for one popfile.
+func StartMissionLabel(popFile string) string {
+	if popFile == "" {
+		return AnyLabel
+	}
+	return MissionLabel(popFile)
+}
+
+// StartClassChoices is the nine mercenaries with the draw in front. The empty
+// name is the draw, and the rest are the names the apworld's option takes.
+func StartClassChoices() []string {
+	names := make([]string, 0, len(gamedata.Classes)+1)
+	names = append(names, AnyLabel)
+	for _, class := range gamedata.Classes {
+		names = append(names, class.Name)
+	}
+	return names
+}
+
+// StartClassLabel is what StartClassChoices shows for one class name.
+func StartClassLabel(name string) string {
+	for _, class := range gamedata.Classes {
+		if strings.EqualFold(class.Name, name) {
+			return class.Name
+		}
+	}
+	return AnyLabel
 }

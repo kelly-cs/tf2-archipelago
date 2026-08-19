@@ -20,6 +20,7 @@ var EnvNames = []string{
 	"TF2AP_BOT_UPGRADES_CHAT",
 	"MVM_MISSION_COUNT", "MVM_DIFFICULTY", "MVM_GOAL",
 	"MVM_MISSIONSANITY_PERCENTAGE", "MVM_DEATH_LINK", "MVM_EXCLUDED_MISSIONS",
+	"MVM_START_MISSION", "MVM_START_CLASS",
 	"BRIDGE_METRICS_PORT",
 }
 
@@ -87,6 +88,8 @@ func ApplyEnv(s Settings) Settings {
 	num(&s.MvmMissionsanityPct, "MVM_MISSIONSANITY_PERCENTAGE")
 	boolean(&s.MvmDeathLink, "MVM_DEATH_LINK")
 	list(&s.MvmExcludedMissions, "MVM_EXCLUDED_MISSIONS")
+	str(&s.MvmStartMission, "MVM_START_MISSION")
+	str(&s.MvmStartClass, "MVM_START_CLASS")
 
 	num(&s.MetricsPort, "BRIDGE_METRICS_PORT")
 	return s

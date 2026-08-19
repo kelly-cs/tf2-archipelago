@@ -25,12 +25,14 @@ RUN grep -vE '^(kivy|kivymd|Pymem)' requirements.txt > /tmp/requirements.txt \
 
 COPY apworld/tf2_mvm /ap/worlds/tf2_mvm
 
-# The game name comes out of the export, which gamedata owns. meta.json is kept
-# beside the packaged world so the entrypoint reads the same one.
+# The game name and the missions come out of the export, which gamedata owns.
+# Both files are kept beside the packaged world so player-yaml.py reads the
+# same tables the apworld inside the zip does.
 RUN game=$(python -c "import json; print(json.load(open('/ap/worlds/tf2_mvm/data/meta.json'))['game'])") \
 	&& SKIP_REQUIREMENTS_UPDATE=1 python Launcher.py "Build APWorlds" -- "$game" \
 	&& mkdir -p /ap/custom_worlds \
 	&& cp /ap/worlds/tf2_mvm/data/meta.json /ap/custom_worlds/meta.json \
+	&& cp /ap/worlds/tf2_mvm/data/missions.json /ap/custom_worlds/missions.json \
 	&& rm -rf /ap/worlds/tf2_mvm \
 	&& cp /ap/build/apworlds/tf2_mvm.apworld /ap/custom_worlds/
 
@@ -58,6 +60,7 @@ COPY --from=build /usr/local/lib/python3.13/site-packages /usr/local/lib/python3
 COPY --from=build /usr/local/bin /usr/local/bin
 COPY --from=build --chown=archipelago:archipelago /ap /ap
 COPY --chown=archipelago:archipelago deploy/archipelago-entrypoint.sh /usr/local/bin/entrypoint.sh
+COPY --chown=archipelago:archipelago deploy/player-yaml.py /usr/local/bin/player-yaml.py
 
 # A named volume takes its ownership from the directory it covers, so this must
 # exist and belong to the right user before VOLUME declares it.

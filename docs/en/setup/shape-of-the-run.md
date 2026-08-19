@@ -17,6 +17,8 @@ session keeps them. A change made later does nothing until you
 | `MVM_MISSIONSANITY_PERCENTAGE` | `80` | 10 to 100 | How much of the run the Missionsanity goal asks for |
 | `MVM_DEATH_LINK` | `false` | `true`, `false` | A lost wave kills the linked players, and their deaths wipe the team. See below. |
 | `MVM_EXCLUDED_MISSIONS` | empty | popfile names, separated by commas | Missions the run never draws. See below. |
+| `MVM_START_MISSION` | `random` | a popfile name | The mission the run starts on. See below. |
+| `MVM_START_CLASS` | `random` | a mercenary name | The class the run starts with. See below. |
 
 ### `MVM_MISSION_COUNT`
 
@@ -71,6 +73,26 @@ always. A wave lost that way is not sent back out.
 
 Expect a run with DeathLink on to be harder. A wave can be lost to somebody
 else's mistake.
+
+### `MVM_START_MISSION` and `MVM_START_CLASS`
+
+`random` leaves both to the seed. The run then starts on the easiest mission it
+drew, with classes drawn at random.
+
+Name a mission and the run always draws that one and starts there. Name a
+mercenary and the run always starts with it. How many classes the run starts
+with is the tier of the start mission's business, and `MVM_START_CLASS` names
+one of them.
+
+`MVM_START_MISSION=mvm_coaltown_advanced MVM_START_CLASS=Engineer` starts every
+run on Ctrl+Alt+Destruction with an Engineer.
+
+The Final Boss goal is the hardest mission the run drew. If you name that
+mission as the start, clearing it wins on the spot. Generation stops and says
+so. Name an easier mission, or use the Missionsanity goal.
+
+The Windows launcher has one menu for both, and the server boots on the mission
+you pick rather than on `SRCDS_STARTMAP`.
 
 ### `MVM_EXCLUDED_MISSIONS`
 

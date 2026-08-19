@@ -67,8 +67,9 @@ func runSettingsDialog(owner walk.Form, s settings.Settings, repair func() ([]st
 		sanityPct *walk.NumberEdit
 		deathLink *walk.CheckBox
 
-		startBox *walk.ComboBox
-		poolView *walk.TableView
+		startBox      *walk.ComboBox
+		startClassBox *walk.ComboBox
+		poolView      *walk.TableView
 
 		appEdit *walk.LineEdit
 
@@ -100,11 +101,12 @@ func runSettingsDialog(owner walk.Form, s settings.Settings, repair func() ([]st
 	for _, goal := range goals {
 		goalLabels = append(goalLabels, goal.Label())
 	}
-	choices := runshape.MissionChoices()
+	choices := runshape.StartMissionChoices()
 	choiceLabels := make([]string, 0, len(choices))
 	for _, choice := range choices {
 		choiceLabels = append(choiceLabels, choice.Label)
 	}
+	classLabels := runshape.StartClassChoices()
 	pool := newPoolModel(s.MvmExcludedMissions)
 
 	current := settings.Room{Host: s.APHost, Port: s.APPort}
@@ -144,7 +146,18 @@ func runSettingsDialog(owner walk.Form, s settings.Settings, repair func() ([]st
 		next.MvmExcludedMissions = pool.excluded()
 		next.ArchipelagoDir = strings.TrimSpace(appEdit.Text())
 
-		next.SrcdsStartMission = choices[max(startBox.CurrentIndex(), 0)].PopFile
+		// One control for both: the seed starts the run on this mission and the
+		// server boots on it, which is the only way they cannot disagree. The
+		// draw leaves the server's own default alone, since srcds must boot on
+		// something and the plugin moves to the run's mission on its own.
+		next.MvmStartMission = choices[max(startBox.CurrentIndex(), 0)].PopFile
+		if next.MvmStartMission != "" {
+			next.SrcdsStartMission = next.MvmStartMission
+		}
+		next.MvmStartClass = ""
+		if index := startClassBox.CurrentIndex(); index > 0 {
+			next.MvmStartClass = classLabels[index]
+		}
 
 		next.SrcdsHostname = strings.TrimSpace(nameEdit.Text())
 		next.SrcdsPw = strings.TrimSpace(passEdit.Text())
@@ -310,11 +323,23 @@ func runSettingsDialog(owner walk.Form, s settings.Settings, repair func() ([]st
 								Layout:  declarative.HBox{MarginsZero: true},
 								MaxSize: declarative.Size{Height: 28},
 								Children: []declarative.Widget{
-									label("Start mission", "The mission the server loads first, as map - mission. If the run has not unlocked it, the plugin moves to the first mission it has."),
+									label("Start mission", "Where the run begins, as map - mission. The seed starts there and the server boots there. Any lets the seed draw the easiest mission it took."),
 									declarative.ComboBox{
 										AssignTo: &startBox,
 										Model:    choiceLabels,
-										Value:    runshape.MissionLabel(s.SrcdsStartMission),
+										Value:    runshape.StartMissionLabel(s.MvmStartMission),
+									},
+								},
+							},
+							declarative.Composite{
+								Layout:  declarative.HBox{MarginsZero: true},
+								MaxSize: declarative.Size{Height: 28},
+								Children: []declarative.Widget{
+									label("Start class", "The mercenary the run starts with. The tier of the start mission decides how many classes it starts with, and this names one of them."),
+									declarative.ComboBox{
+										AssignTo: &startClassBox,
+										Model:    classLabels,
+										Value:    runshape.StartClassLabel(s.MvmStartClass),
 									},
 								},
 							},

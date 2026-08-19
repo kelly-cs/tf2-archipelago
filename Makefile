@@ -182,7 +182,7 @@ export:
 
 # --- The apworld ---
 
-PYTHON_SRC := apworld/ deploy/rcon.py
+PYTHON_SRC := apworld/ deploy/rcon.py deploy/player-yaml.py
 
 apworld-fmt:
 	$(RUFF) format $(PYTHON_SRC)

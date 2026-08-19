@@ -47,18 +47,22 @@ seed still means the same thing.
 
 The Engineer's two PDA slots were never locked, so the Wrench brings them.
 
-## 4. Choose the start mission and the start class
+## 4. Choose the start mission and the start class. Done
 
-`generate_early` in `apworld/tf2_mvm/__init__.py` takes the easiest mission
-drawn as the start mission. It takes the start classes from `random.sample`.
-The player chooses neither.
+`start_mission` and `start_class` are YAML options, `MVM_START_MISSION` and
+`MVM_START_CLASS` in the environment. `random` is the default and keeps the old
+draw. Naming the Final Boss mission as the start stops generation: clearing it
+wins at once, which is not a run.
 
-So the server boots a map that is often not the start mission, and the player
-must find out how to change it.
+The Windows launcher has one menu for both. Picking a mission sets the seed's
+start mission and the server's boot mission together, which is the only way
+the two cannot disagree.
 
-Add two YAML options: the start mission, and the start class. Both keep the
-current random draw as their default. The launcher already writes
-`tf2ap_start_mission`, so the option and the launcher must agree.
+The compose stack now writes its player file with `deploy/player-yaml.py`
+rather than a shell heredoc. The heredoc never wrote `excluded_missions` at
+all: the variable reached the container and no line of YAML carried it, so the
+run drew the mission anyway. A popfile the tables do not know is now an error
+before generation.
 
 ## 5. Choose the classes of the bots
 

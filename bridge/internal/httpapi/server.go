@@ -137,11 +137,12 @@ type waveDrift struct {
 type healthResponse struct {
 	APIVersion int `json:"api_version"`
 
-	Connected bool     `json:"connected"`
-	Slot      string   `json:"slot"`
-	Missions  []string `json:"missions"`
-	DeathLink bool     `json:"death_link"`
-	LastError string   `json:"last_error,omitempty"`
+	Connected    bool     `json:"connected"`
+	Slot         string   `json:"slot"`
+	Missions     []string `json:"missions"`
+	StartMission string   `json:"start_mission,omitempty"`
+	DeathLink    bool     `json:"death_link"`
+	LastError    string   `json:"last_error,omitempty"`
 
 	Seed        string     `json:"seed"`
 	Checks      int        `json:"checks"`
@@ -536,11 +537,12 @@ func (s *Server) getHealth(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, s.logger, healthResponse{
 		APIVersion: APIVersion,
 
-		Connected: session.Connected,
-		Slot:      session.Slot,
-		Missions:  session.Missions,
-		DeathLink: session.DeathLink,
-		LastError: session.LastError,
+		Connected:    session.Connected,
+		Slot:         session.Slot,
+		Missions:     session.Missions,
+		StartMission: session.StartMission,
+		DeathLink:    session.DeathLink,
+		LastError:    session.LastError,
 
 		Seed:        run.Seed,
 		Checks:      run.Checks,

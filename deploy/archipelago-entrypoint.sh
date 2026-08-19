@@ -14,42 +14,18 @@ AP_SLOT_NAME="${AP_SLOT_NAME:-tf2}"
 AP_PASSWORD="${AP_PASSWORD:-}"
 AP_VERSION="${ARCHIPELAGO_VERSION:?the image must set ARCHIPELAGO_VERSION}"
 
-MVM_MISSION_COUNT="${MVM_MISSION_COUNT:-8}"
-MVM_DIFFICULTY="${MVM_DIFFICULTY:-intermediate}"
-MVM_GOAL="${MVM_GOAL:-final_boss}"
-MVM_MISSIONSANITY_PERCENTAGE="${MVM_MISSIONSANITY_PERCENTAGE:-80}"
-MVM_DEATH_LINK="${MVM_DEATH_LINK:-false}"
-
 output=/ap/output
 players=/ap/Players
 
-# gamedata owns the game name and exports it. Reading it here keeps the YAML
-# that this script generates from being a fifth place to spell it wrong.
-meta=/ap/custom_worlds/meta.json
-if [ -f "$meta" ]; then
-	game=$(sed -n 's/.*"game": "\([^"]*\)".*/\1/p' "$meta" | head -n 1)
-fi
-if [ -z "${game:-}" ]; then
-	echo "cannot read the game name from $meta" >&2
-	exit 1
-fi
+# The exported tables. player-yaml.py reads the game name out of them, and the
+# popfile to mission name mapping that the apworld's options need.
+data=/ap/custom_worlds
 
 # Generation runs in a directory of its own, so the archive that comes back is
 # the one this run made rather than the oldest one left in the output.
 generate() {
 	mkdir -p "$players"
-	cat > "$players/tf2.yaml" <<-YAML
-		name: $AP_SLOT_NAME
-		game: $game
-		requires:
-		  version: $AP_VERSION
-		$game:
-		  mission_count: $MVM_MISSION_COUNT
-		  difficulty_pool: $MVM_DIFFICULTY
-		  goal: $MVM_GOAL
-		  missionsanity_percentage: $MVM_MISSIONSANITY_PERCENTAGE
-		  death_link: $MVM_DEATH_LINK
-	YAML
+	python /usr/local/bin/player-yaml.py "$data" "$AP_VERSION" > "$players/tf2.yaml"
 
 	fresh=$(mktemp -d)
 	python Generate.py --player_files_path "$players" --outputpath "$fresh" < /dev/null
