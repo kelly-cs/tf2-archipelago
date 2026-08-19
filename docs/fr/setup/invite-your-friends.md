@@ -15,6 +15,10 @@ dire que personne ne peut rejoindre.
 Rien d'autre n'a besoin d'être atteignable. Le serveur randomizer et le
 bridge restent à l'intérieur de la stack.
 
+Le lanceur Windows peut aussi relayer le trafic via Steam, sans port à
+ouvrir : voir [Installer sur Windows](install-windows.md), « Qui peut
+rejoindre ».
+
 ## La commande de connexion
 
 Vos amis ouvrent la console développeur dans Team Fortress 2 et tapent :

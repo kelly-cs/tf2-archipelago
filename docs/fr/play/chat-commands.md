@@ -8,8 +8,9 @@ client à installer, aucune seconde fenêtre à garder ouverte.
 | Tapez ceci | Ce que le serveur fait |
 | --- | --- |
 | `!ap` | Affiche l'aide |
+| `!ap status` | Affiche l'état de la partie. La mission et la vague. Les classes et les emplacements que la partie possède. Combien de missions la partie a débloquées et terminées. Si le bridge est connecté au serveur randomizer |
+| `!mission` | Liste les missions de la partie, et marque laquelle est jouée, lesquelles sont terminées et lesquelles sont encore verrouillées |
 | `!ap missing` | Liste les checks que personne n'a encore trouvées |
-| `!ap status` | Affiche l'état de la session randomisée |
 | `!ap checked` | Liste les checks déjà trouvées |
 | `!ap remaining` | Liste ce qui reste. Le serveur randomizer décide s'il répond avant la fin de la partie. |
 | `!ap players` | Liste les participants de la session |
@@ -20,9 +21,12 @@ client à installer, aucune seconde fenêtre à garder ouverte.
 | `!ap license` | Affiche la licence du serveur randomizer |
 | `!apchat nice one` | Parle aux autres joueurs de la session |
 
-`!ap` envoie la commande au serveur randomizer et affiche la réponse dans
-le chat. `!apchat` envoie du texte brut. Les lignes des autres joueurs
-arrivent dans le même chat.
+Le serveur répond lui-même à `!ap status` et à `!mission`, donc ces deux
+commandes fonctionnent quand le serveur randomizer ne répond pas. Toute
+autre commande `!ap` part au serveur randomizer, qui affiche sa réponse
+dans le chat. `!apchat` envoie du texte brut. Les lignes des autres
+joueurs arrivent dans le même chat. Le chat d'équipe fonctionne comme le
+chat général.
 
 Demander où se trouve un item coûte des points d'indice, que la session
 gagne grâce aux checks. Utilisez les noms d'items de
@@ -73,16 +77,30 @@ n'importe quelle autre commande :
 
 | Tapez ceci | Ce que le serveur fait |
 | --- | --- |
-| `!mission` | Liste les missions de la partie, et marque laquelle est jouée et lesquelles sont encore verrouillées |
-| `!mission 3` | Passe à la troisième mission de cette liste |
+| `!mission 3` | Passe à la troisième mission de la liste |
 | `!mission mvm_decoy_intermediate` | Passe par le nom du fichier de mission |
 
-Un joueur qui n'est pas admin reçoit un refus plutôt qu'un silence.
+Un joueur qui n'est pas admin reçoit un refus plutôt qu'un silence. Une
+mission que la partie n'a pas débloquée est refusée à tout le monde : son
+ticket est quelque part dans le multiworld.
 
 Changer de mission change la mission, et la carte avec elle quand les deux
-diffèrent. La rotation des cartes appartient à l'hébergeur : le plugin le
-dit quand la mission chargée ne fait pas partie de la partie, et compte
-les checks dans les deux cas.
+diffèrent.
+
+## Quelle mission se joue
+
+La partie décide, pas la rotation des cartes :
+
+- Le serveur démarre sur `tf2ap_start_mission`, ou sur la mission propre à
+  la carte si la valeur est vide.
+- Si la mission chargée ne fait pas partie de la partie, le serveur passe à
+  la première mission débloquée qui n'est pas terminée. Il fait de même si la
+  partie n'a pas débloqué la mission chargée.
+- Quand l'équipe termine une mission, le serveur annonce la mission
+  suivante et la charge `tf2ap_next_mission_delay` secondes plus tard.
+  C'est la première mission débloquée et non terminée, dans l'ordre du
+  tirage. Quand toutes les missions débloquées sont terminées, le serveur
+  en rejoue une jusqu'à ce qu'un ticket en ouvre une autre.
 
 ## Pour l'hébergeur
 
@@ -97,7 +115,7 @@ rcon sm_ap_status
 
 | Commande | Ce qu'elle fait |
 | --- | --- |
-| `sm_ap_status` | Affiche la mission, la vague, quels événements de jeu existent, les déblocages, la profondeur de la file et la dernière erreur |
+| `sm_ap_status` | Affiche la mission, la vague, quels événements de jeu existent, les déblocages, les missions, l'état du relais de chat, la profondeur de la file et la dernière erreur |
 | `sm_ap_mission` | Liste les missions de la partie. Avec un argument, change de mission |
 | `sm_ap_resync` | Redemande l'ensemble des déblocages au bridge |
 | `sm_ap_report wave_cleared 3` | Rapporte une vague réussie à la main |
@@ -125,6 +143,9 @@ n'écrase jamais ce fichier une fois qu'il existe.
 | `tf2ap_chat` | `1` | Écrit ce que dit le reste de la session dans le chat |
 | `tf2ap_debug` | `0` | Écrit chaque appel au bridge et chaque événement de jeu dans le chat et la console |
 | `tf2ap_bridge_url` | `http://127.0.0.1:24680` | Où se trouve le bridge. Loopback uniquement. Ne le changez pas. |
+| `tf2ap_start_mission` | vide | La mission de départ du serveur, par nom de popfile. Le lanceur et l'image l'écrivent depuis leurs réglages. |
+| `tf2ap_next_mission_delay` | `20` | Secondes entre la fin d'une mission et la suivante. `0` laisse faire la rotation du jeu. |
+| `tf2ap_bot_upgrades_chat` | `0` | Écrit dans le chat ce que les bots défenseurs achètent à la station d'améliorations. Une ligne par achat. |
 
 Les erreurs atteignent le chat quel que soit le réglage de
 `tf2ap_announce`. Un échec que personne ne voit se retrouve reproché au

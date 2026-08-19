@@ -14,6 +14,9 @@ machine. UDP carries the game, so a closed UDP port means that nobody can join.
 Nothing else needs to be reachable. The randomizer server and the bridge stay
 inside the stack.
 
+The Windows launcher can also relay the traffic over Steam, with no port to
+open: see [Install on Windows](install-windows.md), "Who can join".
+
 ## The connect command
 
 Your friends open the developer console in Team Fortress 2 and type:

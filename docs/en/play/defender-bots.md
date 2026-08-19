@@ -17,22 +17,41 @@ They are not human. Engineers build too close to the robots, and the robots
 spot the spies late. A bot never does the clever thing your friend does. They
 are good enough to make a wave winnable, which is what they are for.
 
+A bot steps aside when a friend joins. RED holds six, so when it is full of
+bots and a player arrives, one bot leaves and the player takes the seat. The
+mod fills the team back up when the next wave begins.
+
+The bots carry the game's own bot names, the ones a Valve server uses.
+
 ## Turning them down, or off
 
-Two settings in `.env`:
+The settings in `.env`:
 
 | Variable | Default | What it does |
 | --- | --- | --- |
 | `SRCDS_BOTS` | `1` | `0` keeps them off the field until an admin runs `sm_addbots` |
 | `SRCDS_BOT_TEAM_SIZE` | `6` | How many players the server fills RED to, humans included |
+| `SRCDS_BOT_CLASS_BLACKLIST` | empty | Classes the bots never play, separated by commas: `sniper,spy` |
+| `TF2AP_BOT_UPGRADES_CHAT` | `0` | `1` writes what the bots buy at the upgrade station in the chat |
 
 Lower `SRCDS_BOT_TEAM_SIZE` for a harder run. At `4`, three friends get one
 bot. Set `SRCDS_BOTS=0` when six of you play and the slots are yours.
 
-Both take effect at the next map load. `make restart` is the certain way.
+Bots are poor snipers and spies. `SRCDS_BOT_CLASS_BLACKLIST=sniper,spy` keeps
+them on the classes they play well. The class names are the mod's:
+`scout`, `soldier`, `pyro`, `demoman`, `heavyweapons`, `engineer`, `medic`,
+`sniper`, `spy`.
 
-On Windows the launcher asks the same two questions. See
-[Install on Windows](../setup/install-windows.md).
+The game no longer lets a player inspect a teammate's upgrades. With
+`TF2AP_BOT_UPGRADES_CHAT=1` the chat says what each bot buys, one line per
+purchase. It is off by default because a bot buys a lot.
+
+All of them take effect at the next map load. `make restart` is the certain
+way.
+
+On Windows the launcher has a **Bots** tab for the same settings. It adds a
+loadout preset per class: the weapons a bot of that class spawns with. Stock
+weapons are the default. See [Install on Windows](../setup/install-windows.md).
 
 ## Who wrote them
 
@@ -42,7 +61,8 @@ them from source, with two fixes of our own in `deploy/patches/`, whose README
 says why each exists.
 
 The bots' behaviour is the mod's. Report a bot that walks into a wall to that
-repository, not to this one.
+repository, not to this one. The class blacklist and the server-wide loadout
+file are ours, in `deploy/patches/defenderbots/`.
 
 [mod]: https://github.com/OfficerSpy/TF2-MvM-Defender-TFBots
 

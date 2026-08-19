@@ -153,3 +153,5 @@ entire YAML options schema. **adeleine64DS**, **Amazia**, **Snolid Ice**,
 **mudkipslike**, **TheBreadstick**, **CrystalClear**, and **Pixel Silzavon**
 contributed. The starting data tables come from **ALPHAMARIOX**'s fork. The
 bots are [OfficerSpy's MvM Defender TFBots](https://github.com/OfficerSpy/TF2-MvM-Defender-TFBots).
+**EZKSupernova** play-tested the first runs and asked for the class blacklist,
+the excluded missions and the bots' purchases in the chat.

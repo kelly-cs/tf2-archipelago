@@ -18,23 +18,43 @@ Ils ne sont pas humains. Les Engineers construisent trop près des robots, les
 Spies se font repérer tard, et un bot ne fera jamais le coup malin de votre
 ami. Ils sont assez bons pour rendre une vague gagnable, et c'est leur rôle.
 
+Un bot cède sa place quand un ami arrive. RED tient six joueurs. Quand
+l'équipe est pleine de bots et qu'un joueur se connecte, un bot part. Le
+joueur prend le siège. Le mod remplit l'équipe à nouveau au début de la vague
+suivante.
+
+Les bots portent les noms de bots du jeu, ceux d'un serveur Valve.
+
 ## Les baisser, ou les couper
 
-Deux réglages dans `.env` :
+Les réglages dans `.env` :
 
 | Variable | Défaut | Effet |
 | --- | --- | --- |
 | `SRCDS_BOTS` | `1` | `0` les garde hors du terrain jusqu'à un `sm_addbots` d'un admin |
 | `SRCDS_BOT_TEAM_SIZE` | `6` | Le nombre de joueurs dans RED, humains compris |
+| `SRCDS_BOT_CLASS_BLACKLIST` | vide | Les classes que les bots ne jouent jamais, séparées par des virgules : `sniper,spy` |
+| `TF2AP_BOT_UPGRADES_CHAT` | `0` | `1` écrit dans le chat ce que les bots achètent à la station d'améliorations |
 
 Baissez `SRCDS_BOT_TEAM_SIZE` pour une partie plus dure : à `4`, trois amis
 reçoivent un bot. Mettez `SRCDS_BOTS=0` quand vous êtes six et que les places
 vous reviennent.
 
-Les deux prennent effet au chargement de la carte suivante. `make restart` est
-la façon sûre.
+Les bots sont de mauvais Snipers et de mauvais Spies.
+`SRCDS_BOT_CLASS_BLACKLIST=sniper,spy` les garde sur les classes qu'ils jouent
+bien. Les noms de classe sont ceux du mod : `scout`, `soldier`, `pyro`,
+`demoman`, `heavyweapons`, `engineer`, `medic`, `sniper`, `spy`.
 
-Sur Windows, le lanceur pose les mêmes questions. Voir
+Le jeu ne permet plus d'inspecter les améliorations d'un coéquipier. Avec
+`TF2AP_BOT_UPGRADES_CHAT=1`, le chat dit ce que chaque bot achète, une ligne
+par achat. C'est désactivé par défaut parce qu'un bot achète beaucoup.
+
+Tous prennent effet au chargement de la carte suivante. `make restart` est la
+façon sûre.
+
+Sur Windows, le lanceur a un onglet **Bots** pour les mêmes réglages. Il
+ajoute un équipement prédéfini par classe : les armes avec lesquelles un bot
+de cette classe apparaît. Les armes de base sont le défaut. Voir
 [Installer sur Windows](../setup/install-windows.md).
 
 ## Qui les a écrits
@@ -44,7 +64,8 @@ CBaseNPC, Actions, TF2Attributes, TF Econ Data et TF2Utils. Le serveur les
 compile depuis la source, avec deux correctifs à nous dans `deploy/patches/`.
 
 Le comportement des bots est celui du mod. Un bot qui rentre dans un mur se
-signale à ce dépôt, pas à celui-ci.
+signale à ce dépôt, pas à celui-ci. La liste noire de classes et le fichier
+d'équipement du serveur sont à nous, dans `deploy/patches/defenderbots/`.
 
 [mod]: https://github.com/OfficerSpy/TF2-MvM-Defender-TFBots
 

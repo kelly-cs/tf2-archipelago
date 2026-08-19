@@ -13,13 +13,22 @@ Double-click it and a window opens. The window holds everything an evening
 needs:
 
 - **Start**, **Stop** and **Restart**, so the server goes up and down without a
-  terminal.
-- A log, where the game server, the bridge and the installer write. This is
-  what you read when something looks wrong.
-- **Settings**, for the room address, the map, the bots and the shape of the
-  run.
-- An **rcon** box at the bottom. It sends a command to the server and prints
-  the answer in the log. `sm_ap_status` is the one to know.
+  terminal. A light beside them is red when the server is stopped, amber
+  while it starts, and green when it runs.
+- The **Join** line, under the buttons: every address of this machine on the
+  game port, which is what your friends type after `connect`. Over Steam it
+  also shows the address Steam assigned. **Copy** puts the line on the
+  clipboard.
+- A **Log** tab, where the game server, the bridge and the installer write.
+  This is what you read when something looks wrong. The **rcon** box under it
+  sends a command to the server and prints the answer in the log.
+  `sm_ap_status` is the one to know.
+- A **Session** tab. It shows whether the bridge is connected to the room,
+  and how many checks and items the run holds. It lists the missions of the
+  run, unlocked, cleared or locked. **Play this mission** loads the selected
+  one.
+- **Settings**, for the room address, the missions, the bots and the shape of
+  the run.
 
 The first Start installs SteamCMD, the TF2 dedicated server, Metamod:Source,
 SourceMod, the plugin and the defender bots. The game server is about 14 GB.
@@ -93,7 +102,35 @@ Your friends connect from the developer console:
 connect your.server.address:27015
 ```
 
-See [Invite your friends](invite-your-friends.md) for the rest.
+The **Join** line under the buttons shows the addresses to give out. See
+[Invite your friends](invite-your-friends.md) for the rest.
+
+## Who can join
+
+The **Game server** tab has a **Who can join** choice:
+
+| Choice | What it means |
+| --- | --- |
+| This machine and the local network only | The default. No Steam login, no token, nobody outside your network. |
+| Over Steam, no port to open | Steam relays the traffic. Valve assigns the server an address such as `169.254.13.42:20232`, and your friends connect to that from anywhere. Nothing to forward. The address is a new one at every start; the Join line shows it once the server has it. Needs a login token. |
+| Over a port forwarded on the router | The classic setup: forward the game port to this machine and give out your public address. Needs a login token. |
+
+A Game Server Login Token comes from
+[steamcommunity.com/dev/managegameservers](https://steamcommunity.com/dev/managegameservers),
+for app 440. Paste it in **Login token**.
+
+## The missions
+
+The **Missions** tab has two things:
+
+- **Start mission**, as map - mission. The server loads it first. If the run
+  has not unlocked it, the plugin moves to the first mission the run has.
+- The missions the run can draw. Untick one to keep it out of every seed you
+  generate from here. Caliginous Caper is one wave of 666 robots and an hour
+  on its own. The tier on the Player options tab still applies.
+
+Once the run is going, the server moves from a cleared mission to the next
+unlocked one on its own. See [Chat commands](../play/chat-commands.md).
 
 ## The bots on your team
 
@@ -101,9 +138,11 @@ The server fills the RED team with bots that play. Team Fortress 2 balances
 every wave for six defenders, so two people can win a run. The bots pick
 classes, fight, buy their own upgrades and ready themselves.
 
-`tf2ap.exe -configure` turns them off, or fills RED to fewer than six for a
-harder run. [The bots on your team](../play/defender-bots.md) says what they
-do and what they are bad at.
+The **Bots** tab turns them off, or fills RED to fewer than six for a harder
+run. It unticks the classes the bots must not play, and picks a loadout preset
+per class. It can also write what they buy in the chat.
+[The bots on your team](../play/defender-bots.md) says what they do and what
+they are bad at.
 
 ## Try it without Archipelago
 

@@ -62,9 +62,21 @@ during the map load scrolls past before anyone can read it.
 
 | Command | Flag | What it does |
 | --- | --- | --- |
-| `sm_ap_status` | generic | The whole picture: mission, wave, which events exist, the unlock set, the queue depth, the last bridge error |
+| `sm_ap_status` | generic | The whole picture: mission, wave, which events exist, the unlock set, the missions, the chat relay, the queue depth, the last bridge error |
 | `sm_ap_resync` | generic | Fetch the unlock set again |
+| `sm_ap_mission [number\|popfile]` | changemap | List the run's missions, or switch to one the run has unlocked |
 | `sm_ap_report <kind> [wave]` | root | Report an objective by hand: `wave_cleared`, `mission_cleared` or `death` |
+
+In the chat, `!ap status` prints the run for the player who asked, and asks
+the bridge whether it is connected. `!mission` lists the missions.
+`!mission <n>` switches, for an admin. The plugin refuses a mission the run
+has not unlocked.
+
+The plugin also decides which mission plays. It starts on
+`tf2ap_start_mission`. It moves off any mission the run does not hold or has
+not unlocked. After a mission clear, it loads the next unlocked mission that
+is not cleared, `tf2ap_next_mission_delay` seconds later. If the game changes
+the level first, the next map start loads the planned mission.
 
 `sm_ap_report` tests the wiring without playing a wave. It also sends a
 check by hand when the game fails to fire the expected event.
@@ -77,6 +89,14 @@ check by hand when the game fails to fire the expected event.
 | `tf2ap_announce` | `1` | Announce grants and cleared waves in chat |
 | `tf2ap_chat` | `1` | Show what the rest of the multiworld says |
 | `tf2ap_debug` | `0` | Echo every bridge call and game event |
+| `tf2ap_start_mission` | empty | The popfile the server starts on |
+| `tf2ap_next_mission_delay` | `20` | Seconds from a mission clear to the next mission. `0` leaves it to the game |
+| `tf2ap_bot_upgrades_chat` | `0` | Say what the defender bots buy at the upgrade station |
+
+The plugin does two things for the defender bots. When a human arrives and
+RED is full of bots, it kicks one bot so the human has a seat. With
+`tf2ap_bot_upgrades_chat 1`, it names every `MVM_Upgrade` a bot sends in the
+chat. It reads the upgrade names out of `scripts/items/mvm_upgrades.txt`.
 
 ## What is UNVERIFIED
 

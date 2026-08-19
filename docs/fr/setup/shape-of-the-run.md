@@ -16,6 +16,7 @@ vous ne [démarrez pas une nouvelle partie](../operate/start-a-new-run.md).
 | `MVM_GOAL` | `final_boss` | `final_boss`, `missionsanity` | Ce qui termine la partie |
 | `MVM_MISSIONSANITY_PERCENTAGE` | `80` | 10 à 100 | Quelle part de la partie l'objectif Missionsanity demande |
 | `MVM_DEATH_LINK` | `false` | `true`, `false` | Une vague perdue tue les joueurs liés, et leurs morts anéantissent l'équipe. Voir ci-dessous. |
+| `MVM_EXCLUDED_MISSIONS` | vide | des noms de popfile, séparés par des virgules | Les missions que la partie ne tire jamais. Voir ci-dessous. |
 
 ### `MVM_MISSION_COUNT`
 
@@ -73,6 +74,14 @@ perdre la vague en cours. Cette perte-là n'est pas renvoyée. Attendez-vous
 à une partie nettement plus dure : une vague peut se perdre sur l'erreur
 de quelqu'un d'autre.
 
+### `MVM_EXCLUDED_MISSIONS`
+
+Les missions que la partie ne tire jamais, quel que soit le palier. Nommez-les
+par popfile, séparées par des virgules.
+`MVM_EXCLUDED_MISSIONS=mvm_ghost_town_666` écarte Caliginous Caper, une vague
+de 666 robots qui prend une heure à elle seule. Le lanceur Windows liste les
+missions avec une case à décocher.
+
 ## La session
 
 | Variable | Défaut | Ce qu'elle décide |
@@ -108,10 +117,15 @@ fichier à côté. La room accueille ce joueur sans ouvrir de port.
 | `SRCDS_ADMIN_STEAMIDS` | vide | Qui peut utiliser `!mission` et les commandes `sm_ap_` dans le chat. Des identifiants Steam, séparés par des virgules. Soit le format à 17 chiffres d'une URL de profil, soit le `STEAM_0:1:...` de SourceMod. |
 | `SRCDS_MAXPLAYERS` | `32` | Emplacements du serveur. Team Fortress 2 refuse d'héberger MvM avec moins, et plafonne RED à six lui-même. Ne le baissez pas. |
 | `SRCDS_STARTMAP` | `mvm_decoy` | La carte sur laquelle le serveur démarre |
+| `SRCDS_START_MISSION` | vide | La mission que le serveur charge une fois la carte prête, par nom de popfile |
+| `TF2AP_NEXT_MISSION_DELAY` | `20` | Secondes entre la fin d'une mission et la suivante |
 
-`SRCDS_STARTMAP` accepte n'importe quelle carte `mvm_`. La partie ne
-choisit pas la carte pour vous. Changez-la entre les missions depuis la
-console distante, ou modifiez `.env` et redémarrez la stack.
+La partie choisit la mission à partir de là. Si la mission chargée ne fait pas
+partie de la partie, le serveur passe à la première mission débloquée. Il fait
+de même si la partie n'a pas débloqué la mission chargée. Quand l'équipe
+termine une mission, le serveur charge la suivante débloquée après
+`TF2AP_NEXT_MISSION_DELAY` secondes. Voir
+[Commandes du chat](../play/chat-commands.md).
 
 `SRCDS_PORT`, `SRCDS_PW`, `SRCDS_RCONPW` et `SRCDS_TOKEN` sont couverts
 dans [Inviter vos amis](invite-your-friends.md).

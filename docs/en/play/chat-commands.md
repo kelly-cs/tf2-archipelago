@@ -8,8 +8,9 @@ to install and no second window to keep open.
 | Type this | What the server does |
 | --- | --- |
 | `!ap` | Print the help |
+| `!ap status` | Print the state of the run. The mission and the wave. The classes and the slots the run holds. How many missions the run unlocked and cleared. Whether the bridge is connected to the randomizer server |
+| `!mission` | List the missions of the run. Mark the one that plays, the cleared ones and the locked ones |
 | `!ap missing` | List the checks that nobody has found yet |
-| `!ap status` | Print the state of the randomized session |
 | `!ap checked` | List the checks that are already found |
 | `!ap remaining` | List what is left. The randomizer server decides whether it answers before the run is over. |
 | `!ap players` | List the participants in the session |
@@ -20,9 +21,11 @@ to install and no second window to keep open.
 | `!ap license` | Print the licence of the randomizer server |
 | `!apchat nice one` | Speak to the other players in the session |
 
-`!ap` sends the command to the randomizer server and prints the answer in the
-chat. `!apchat` sends plain text. The lines of the other players arrive in the
-same chat.
+The game server itself answers `!ap status` and `!mission`, so they work when
+the randomizer server does not answer. Every other `!ap` command goes to the
+randomizer server, which prints its answer in the chat. `!apchat` sends plain
+text. The lines of the other players arrive in the same chat. Team chat works
+the same as all chat.
 
 Asking where an item is costs hint points, which the session earns from checks.
 Use the item names from
@@ -69,15 +72,29 @@ and it works in the normal chat, like any other command:
 
 | Type this | What the server does |
 | --- | --- |
-| `!mission` | List the missions of the run, and mark which one is playing and which are still locked |
-| `!mission 3` | Switch to the third mission in that list |
+| `!mission 3` | Switch to the third mission in the list |
 | `!mission mvm_decoy_intermediate` | Switch by mission file name |
 
-A player who is not an admin is told no rather than ignored.
+A player who is not an admin is told no rather than ignored. A mission the run
+has not unlocked is refused for everybody: its ticket is somewhere in the
+multiworld.
 
-Switching changes the mission, and the map with it when the two differ. The map
-rotation belongs to the host: the plugin says so when the loaded mission is not
-part of the run, and it counts the checks either way.
+Switching changes the mission, and the map with it when the two differ.
+
+## Which mission plays
+
+The run decides, not the map cycle:
+
+- The server starts on `tf2ap_start_mission`. If that value is blank, it
+  starts on the map's own mission.
+- If the loaded mission is not part of the run, the server moves to the first
+  unlocked mission that is not cleared. It does the same if the run has not
+  unlocked the loaded mission.
+- When the team clears a mission, the server says which mission comes next.
+  It loads that mission `tf2ap_next_mission_delay` seconds later. The next
+  mission is the first unlocked one that is not cleared, in the order the
+  seed drew them. When the team has cleared every unlocked mission, the
+  server plays one of them again until a ticket opens another.
 
 ## For the host
 
@@ -91,7 +108,7 @@ rcon sm_ap_status
 
 | Command | What it does |
 | --- | --- |
-| `sm_ap_status` | Print the mission, the wave, which game events exist, the unlocks, the queue depth and the last error |
+| `sm_ap_status` | Print the mission, the wave, which game events exist, the unlocks, the missions, the state of the chat relay, the queue depth, and the last error |
 | `sm_ap_mission` | List the missions of the run. With an argument, switch to one |
 | `sm_ap_resync` | Ask the bridge for the unlock set again |
 | `sm_ap_report wave_cleared 3` | Report a cleared wave by hand |
@@ -118,6 +135,9 @@ overwrites that file once it exists.
 | `tf2ap_chat` | `1` | Write what the rest of the session says in the chat |
 | `tf2ap_debug` | `0` | Write every bridge call and every game event in the chat and the console |
 | `tf2ap_bridge_url` | `http://127.0.0.1:24680` | Where the bridge is. Loopback only. Do not change it. |
+| `tf2ap_start_mission` | empty | The mission the server starts on, as a popfile name. The launcher and the image write it from their settings. |
+| `tf2ap_next_mission_delay` | `20` | Seconds between a mission clear and the next mission. `0` leaves the game's own cycle to it. |
+| `tf2ap_bot_upgrades_chat` | `0` | Write what the defender bots buy at the upgrade station in the chat. One line per purchase. |
 
 Errors reach the chat whatever `tf2ap_announce` is set to. A failure that
 nobody can see gets blamed on the game.

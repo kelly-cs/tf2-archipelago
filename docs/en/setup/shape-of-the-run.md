@@ -16,6 +16,7 @@ session keeps them. A change made later does nothing until you
 | `MVM_GOAL` | `final_boss` | `final_boss`, `missionsanity` | What ends the run |
 | `MVM_MISSIONSANITY_PERCENTAGE` | `80` | 10 to 100 | How much of the run the Missionsanity goal asks for |
 | `MVM_DEATH_LINK` | `false` | `true`, `false` | A lost wave kills the linked players, and their deaths wipe the team. See below. |
+| `MVM_EXCLUDED_MISSIONS` | empty | popfile names, separated by commas | Missions the run never draws. See below. |
 
 ### `MVM_MISSION_COUNT`
 
@@ -66,6 +67,13 @@ of their deaths kills everyone on your team, bots included, which loses the
 wave you are on. That loss is not sent back out. Expect a run with it on to be
 noticeably harder: a wave can be lost to somebody else's mistake.
 
+### `MVM_EXCLUDED_MISSIONS`
+
+Missions the run never draws, whatever the tier. Name them by popfile,
+separated by commas. `MVM_EXCLUDED_MISSIONS=mvm_ghost_town_666` keeps out
+Caliginous Caper, one wave of 666 robots that takes an hour on its own. The
+Windows launcher lists the missions with a box to untick.
+
 ## The session
 
 | Variable | Default | What it decides |
@@ -99,10 +107,14 @@ beside it. The room takes that player with no port to open.
 | `SRCDS_ADMIN_STEAMIDS` | empty | Who may use `!mission` and the `sm_ap_` commands in the chat. Steam ids, separated by commas. Either the 17 digit form from a profile URL or SourceMod's `STEAM_0:1:...`. |
 | `SRCDS_MAXPLAYERS` | `32` | Server slots. Team Fortress 2 refuses to host MvM with fewer, and caps RED at six itself. Do not lower it. |
 | `SRCDS_STARTMAP` | `mvm_decoy` | The map that the server starts on |
+| `SRCDS_START_MISSION` | empty | The mission the server loads once the map is up, as a popfile name |
+| `TF2AP_NEXT_MISSION_DELAY` | `20` | Seconds between a mission clear and the next mission |
 
-`SRCDS_STARTMAP` takes any `mvm_` map. The run does not pick the map for you.
-Change it between missions from the remote console, or edit `.env` and restart
-the stack.
+The run picks the mission from there. If the loaded mission is not part of the
+run, or the run has not unlocked it, the server moves to the first unlocked
+mission. When the team clears a mission, the server loads the next unlocked
+one after `TF2AP_NEXT_MISSION_DELAY` seconds. See
+[Chat commands](../play/chat-commands.md).
 
 `SRCDS_PORT`, `SRCDS_PW`, `SRCDS_RCONPW` and `SRCDS_TOKEN` are covered in
 [Invite your friends](invite-your-friends.md).

@@ -13,13 +13,21 @@ Double-cliquez dessus : une fenêtre s'ouvre. Elle porte tout ce qu'une soirée
 demande.
 
 - **Start**, **Stop** et **Restart** : le serveur monte et descend sans
-  terminal.
-- Un journal, où le serveur de jeu, le bridge et l'installation écrivent. C'est
-  ce que vous lisez quand quelque chose cloche.
-- **Settings** : l'adresse de la room, la carte, les bots et la forme de la
-  partie.
-- Une case **rcon** en bas. Elle envoie une commande au serveur et affiche la
-  réponse dans le journal. `sm_ap_status` est celle à connaître.
+  terminal. Un voyant à côté est rouge quand le serveur est arrêté, orange
+  pendant le démarrage, vert quand il tourne.
+- La ligne **Join**, sous les boutons : chaque adresse de cette machine sur le
+  port du jeu, ce que vos amis tapent après `connect`. Via Steam, elle montre
+  aussi l'adresse que Steam a assignée. **Copy** la met dans le presse-papiers.
+- Un onglet **Log**, où le serveur de jeu, le bridge et l'installation
+  écrivent. C'est ce que vous lisez quand quelque chose cloche. La case
+  **rcon** en dessous envoie une commande au serveur et affiche la réponse
+  dans le journal. `sm_ap_status` est celle à connaître.
+- Un onglet **Session**. Il montre si le bridge est connecté à la room, et
+  combien de checks et d'items la partie tient. Il liste les missions de la
+  partie, débloquées, terminées ou verrouillées. **Play this mission** charge
+  celle qui est sélectionnée.
+- **Settings** : l'adresse de la room, les missions, les bots et la forme de
+  la partie.
 
 Le premier Start installe SteamCMD, le serveur dédié TF2, Metamod:Source,
 SourceMod, le plugin et les bots défenseurs. Le serveur fait environ 14 Go.
@@ -95,7 +103,37 @@ Vos amis se connectent depuis la console développeur :
 connect votre.adresse.serveur:27015
 ```
 
-Voir [Inviter vos amis](invite-your-friends.md) pour le reste.
+La ligne **Join** sous les boutons donne les adresses à transmettre. Voir
+[Inviter vos amis](invite-your-friends.md) pour le reste.
+
+## Qui peut rejoindre
+
+L'onglet **Game server** a un choix **Who can join** :
+
+| Choix | Ce que ça veut dire |
+| --- | --- |
+| This machine and the local network only | Le défaut. Pas de connexion à Steam, pas de jeton, personne hors de votre réseau. |
+| Over Steam, no port to open | Steam relaie le trafic. Valve assigne au serveur une adresse comme `169.254.13.42:20232`, et vos amis s'y connectent depuis n'importe où. Rien à ouvrir. L'adresse change à chaque démarrage ; la ligne Join la montre dès que le serveur l'a. Demande un jeton de connexion. |
+| Over a port forwarded on the router | Le montage classique : redirigez le port du jeu vers cette machine et donnez votre adresse publique. Demande un jeton de connexion. |
+
+Un Game Server Login Token vient de
+[steamcommunity.com/dev/managegameservers](https://steamcommunity.com/dev/managegameservers),
+pour l'app 440. Collez-le dans **Login token**.
+
+## Les missions
+
+L'onglet **Missions** a deux choses :
+
+- **Start mission**, sous la forme carte - mission. Le serveur la charge en
+  premier. Si la partie ne l'a pas débloquée, le plugin passe à la première
+  mission que la partie a.
+- Les missions que la partie peut tirer. Décochez-en une pour l'exclure de
+  chaque seed générée depuis là. Caliginous Caper est une vague de 666 robots
+  et une heure à elle seule. Le palier de l'onglet Player options s'applique
+  toujours.
+
+Une fois la partie lancée, le serveur passe seul d'une mission terminée à la
+suivante débloquée. Voir [Commandes du chat](../play/chat-commands.md).
 
 ## Les bots de votre équipe
 
@@ -104,8 +142,11 @@ Le serveur remplit l'équipe RED avec des bots qui jouent. Team Fortress 2
 partie. Les bots choisissent leur classe, se battent, achètent leurs
 améliorations et se déclarent prêts.
 
-`tf2ap.exe -configure` les coupe, ou remplit RED avec moins de six joueurs pour
-une partie plus dure. Voir [Les bots de votre équipe](../play/defender-bots.md).
+L'onglet **Bots** les coupe, ou remplit RED avec moins de six joueurs pour
+une partie plus dure. Il décoche les classes que les bots ne doivent pas
+jouer, et choisit un équipement prédéfini par classe. Il peut aussi écrire
+dans le chat ce qu'ils achètent. Voir
+[Les bots de votre équipe](../play/defender-bots.md).
 
 ## Essayer sans Archipelago
 
