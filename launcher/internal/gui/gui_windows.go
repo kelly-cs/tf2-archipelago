@@ -46,14 +46,16 @@ const (
 )
 
 type window struct {
-	main       *walk.MainWindow
-	status     *walk.Label
-	room       *walk.Label
-	log        *walk.TextEdit
-	command    *walk.LineEdit
-	startStop  *walk.PushButton
-	restart    *walk.PushButton
-	settingsBt *walk.PushButton
+	main        *walk.MainWindow
+	status      *walk.Label
+	room        *walk.Label
+	log         *walk.TextEdit
+	command     *walk.LineEdit
+	startStop   *walk.PushButton
+	restart     *walk.PushButton
+	settingsBt  *walk.PushButton
+	connectBar  *walk.Composite
+	connectEdit *walk.LineEdit
 
 	supervisor *apruntime.Supervisor
 	logger     *slog.Logger
@@ -133,6 +135,21 @@ func (w *window) build() error {
 					declarative.PushButton{AssignTo: &w.settingsBt, Text: "Settings", OnClicked: w.editSettings, MinSize: declarative.Size{Width: 90}},
 				},
 			},
+			// Over Steam the server's address is a new one every start and it
+			// exists nowhere but in the log, so it gets a box of its own that
+			// can be selected and copied. Hidden until there is one, and a
+			// hidden row takes no space.
+			declarative.Composite{
+				AssignTo: &w.connectBar,
+				Layout:   declarative.HBox{MarginsZero: true},
+				MaxSize:  declarative.Size{Height: 28},
+				Visible:  false,
+				Children: []declarative.Widget{
+					declarative.Label{Text: "friends connect", MinSize: declarative.Size{Width: 100}},
+					declarative.LineEdit{AssignTo: &w.connectEdit, ReadOnly: true},
+					declarative.PushButton{Text: "Copy", OnClicked: w.onCopyConnect, MinSize: declarative.Size{Width: 90}},
+				},
+			},
 			// No HScroll, and a MinSize rather than a preferred size: a
 			// TextEdit sized by its content makes one long log line stretch
 			// the whole window past the screen.
@@ -164,6 +181,11 @@ func (w *window) build() error {
 // quadratic, and it makes the TextEdit ask the layout for a new size hundreds
 // of times a wave, which drags the toolbar around with it.
 func (w *window) append(line apruntime.Line) {
+	if line.Source == "srcds" {
+		if address := apruntime.FakeIPAddress(line.Text); address != "" {
+			w.showConnectAddress(address)
+		}
+	}
 	text := fmt.Sprintf("%s  %-8s %s", line.At.Format("15:04:05"), line.Source, line.Text)
 
 	w.mu.Lock()
@@ -223,6 +245,28 @@ func (w *window) openLogFile(installRoot string) {
 	w.mu.Lock()
 	w.logFile = file
 	w.mu.Unlock()
+}
+
+// showConnectAddress puts the relayed address in the bar above the log, where
+// it can be selected and copied. Called from the goroutine reading the server's
+// output, so the change is handed to the UI thread.
+func (w *window) showConnectAddress(address string) {
+	line := "connect " + address
+	w.main.Synchronize(func() {
+		w.connectEdit.SetText(line)
+		w.connectBar.SetVisible(true)
+	})
+	w.say("Steam gave the server an address: send your friends `%s`", line)
+}
+
+// onCopyConnect puts the connect line on the clipboard, which is what the
+// player does with it: paste it into whatever they talk to their friends on.
+func (w *window) onCopyConnect() {
+	if err := walk.Clipboard().SetText(w.connectEdit.Text()); err != nil {
+		w.say("could not copy: %v", err)
+		return
+	}
+	w.say("copied %s", w.connectEdit.Text())
 }
 
 func (w *window) say(format string, args ...any) {

@@ -42,8 +42,13 @@ type Settings struct {
 	SrcdsMaxPlayers    int    `json:"srcds_max_players"`
 	SrcdsStartMap      string `json:"srcds_start_map"`
 	SrcdsToken         string `json:"srcds_token"`
-	SrcdsLan           bool   `json:"srcds_lan"`
+	SrcdsReach         Reach  `json:"srcds_reach"`
 	SrcdsAdminSteamIDs string `json:"srcds_admin_steamids,omitempty"`
+
+	// SrcdsLanLegacy is the srcds_lan boolean SrcdsReach replaced. It is read
+	// once, to pick the reach a config file written before 1.3 meant, and
+	// never written back. Drop it when no such file is left.
+	SrcdsLanLegacy *bool `json:"srcds_lan,omitempty"`
 
 	// Defender bots. RED is filled to SrcdsBotTeamSize when a wave begins.
 	SrcdsBots        bool `json:"srcds_bots"`
@@ -74,7 +79,7 @@ func Defaults() Settings {
 		SrcdsMaxPlayers:     32,
 		SrcdsStartMap:       "mvm_decoy",
 		SrcdsToken:          "0",
-		SrcdsLan:            true,
+		SrcdsReach:          ReachLan,
 		SrcdsBots:           true,
 		SrcdsBotTeamSize:    6,
 		MvmMissionCount:     8,
@@ -174,6 +179,17 @@ func (s *Settings) applyDefaults() {
 	if s.SrcdsToken == "" {
 		s.SrcdsToken = d.SrcdsToken
 	}
+	if !s.SrcdsReach.Valid() {
+		// A file that predates SrcdsReach says only whether sv_lan was on.
+		// sv_lan off meant a forwarded port, because that was the only way out
+		// at the time. Anything else, including a value nobody recognizes,
+		// falls back to the private default rather than opening the server.
+		s.SrcdsReach = d.SrcdsReach
+		if s.SrcdsLanLegacy != nil && !*s.SrcdsLanLegacy {
+			s.SrcdsReach = ReachPort
+		}
+	}
+	s.SrcdsLanLegacy = nil
 	if s.MvmMissionCount == 0 {
 		s.MvmMissionCount = d.MvmMissionCount
 	}

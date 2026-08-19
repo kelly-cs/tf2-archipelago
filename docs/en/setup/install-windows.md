@@ -36,7 +36,7 @@ launcher saves your answers in `%APPDATA%\tf2ap\config.json`.
 | Disk | About 20 GB free. The game server is about 14 GB. |
 | Memory | 4 GB for six players. |
 | Processor | Two cores. |
-| Network | One port your friends can reach, UDP and TCP. The default is 27015. |
+| Network | Nothing, for friends on the same network or over Steam's relay. One forwarded port only if you pick that route. |
 
 You do not need Docker. You do not need the Steam client. You do not need a
 Steam account for the server.
@@ -185,9 +185,9 @@ already sets.
 The launcher writes its log to the terminal. Scroll up to read what the game
 server and the bridge said.
 
-The port is the usual cause. Forward 27015, or the port you set, to your
-machine on your router, and open it in the Windows firewall. UDP carries the
-game, so a closed UDP port stops everybody from joining.
+Nobody outside the house can join is the usual one, and the answer is on the
+**Steam Networking** tab in Settings. A server is on your own network until you
+change it there. See [Invite your friends](invite-your-friends.md).
 
 See [Troubleshooting](../operate/troubleshooting.md) for the rest.
 

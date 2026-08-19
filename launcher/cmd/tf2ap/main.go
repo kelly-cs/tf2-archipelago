@@ -204,7 +204,7 @@ func summary(s settings.Settings) {
 	path, _ := settings.Path()
 	fmt.Println()
 	fmt.Printf("  room     %s (%s), slot %s\n", room, scheme, s.APSlotName)
-	fmt.Printf("  server   %q on port %d, %s\n", s.SrcdsHostname, s.SrcdsPort, lanLabel(s.SrcdsLan))
+	fmt.Printf("  server   %q on port %d, %s\n", s.SrcdsHostname, s.SrcdsPort, s.SrcdsReach.Label())
 	fmt.Printf("  map      %s\n", s.SrcdsStartMap)
 	fmt.Printf("  bots     %s\n", botsStatus(s))
 	fmt.Printf("  run      %d missions, %s, goal %s\n", s.MvmMissionCount, s.MvmDifficulty, s.MvmGoal)
@@ -212,11 +212,12 @@ func summary(s settings.Settings) {
 	fmt.Printf("\ntf2ap.exe -configure changes any of this. It is saved in %s.\n", path)
 }
 
-func lanLabel(lan bool) string {
-	if lan {
-		return "local network"
+func reachOptions() []ui.Option {
+	options := make([]ui.Option, 0, len(settings.Reaches()))
+	for _, reach := range settings.Reaches() {
+		options = append(options, ui.Option{Value: string(reach), Label: reach.Label()})
 	}
-	return "public"
+	return options
 }
 
 func configure(p *ui.Prompt, s settings.Settings) settings.Settings {
@@ -243,11 +244,12 @@ func configure(p *ui.Prompt, s settings.Settings) settings.Settings {
 	s.SrcdsPort = p.Int("Game port", s.SrcdsPort)
 	s.SrcdsStartMap = p.Select("Start map", mapOptions(), s.SrcdsStartMap)
 	s.SrcdsAdminSteamIDs = p.Text("Admin Steam IDs (comma-separated, blank for none)", s.SrcdsAdminSteamIDs)
-	s.SrcdsLan = p.Bool("LAN mode (yes for friends, no for public)", s.SrcdsLan)
-	if s.SrcdsLan {
-		s.SrcdsToken = "0"
-	} else {
+	s.SrcdsReach, _ = settings.ParseReach(p.Select("Who can reach the server", reachOptions(), string(s.SrcdsReach)))
+	if s.SrcdsReach.NeedsToken() {
+		fmt.Println("  Get one at steamcommunity.com/dev/managegameservers, app id 440.")
 		s.SrcdsToken = p.Text("Game Server Login Token", s.SrcdsToken)
+	} else {
+		s.SrcdsToken = "0"
 	}
 
 	fmt.Println("\n--- Defender bots ---")
@@ -329,7 +331,7 @@ func showStatus(s settings.Settings) {
 	fmt.Printf("Install root:  %s\n", s.InstallRoot)
 	fmt.Printf("Archipelago:   %s (tls=%v)\n", settings.Room{Host: s.APHost, Port: s.APPort}, s.APTls)
 	fmt.Printf("Slot:          %s\n", s.APSlotName)
-	fmt.Printf("Server:        %s on port %d (lan=%v)\n", s.SrcdsHostname, s.SrcdsPort, s.SrcdsLan)
+	fmt.Printf("Server:        %s on port %d (reach=%s)\n", s.SrcdsHostname, s.SrcdsPort, s.SrcdsReach)
 	fmt.Printf("Start map:     %s\n", s.SrcdsStartMap)
 	fmt.Printf("Run:           %d missions, %s, goal=%s\n", s.MvmMissionCount, s.MvmDifficulty, s.MvmGoal)
 	fmt.Printf("Bots:          %s\n", botsStatus(s))

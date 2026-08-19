@@ -130,9 +130,11 @@ install_server_cfg() {
 
 	// LAN mode skips Steam authentication. The server has no Game Server Login
 	// Token by default, so it never logs in to Steam, and a client trying to
-	// authenticate against a server with no Steam session is refused. Going
-	// online means a real SRCDS_TOKEN and SRCDS_LAN=0.
+	// authenticate against a server with no Steam session is refused. Reaching
+	// players outside the network, over Steam's relay or a forwarded port,
+	// means a real SRCDS_TOKEN and sv_lan 0. SRCDS_REACH picks which.
 	sv_lan ${SRCDS_LAN:-1}
+	sv_use_steam_networking ${SRCDS_SDR_FAKEIP:-0}
 	sv_pure 0
 	sv_pausable 0
 	setpause 0
@@ -179,6 +181,36 @@ install_plugin() {
 		sleep "$INTERVAL"
 	done
 }
+
+# SRCDS_REACH says in one word where players come from. The game understands
+# two separate things instead: sv_lan in server.cfg, and -enablefakeip on the
+# command line, which the image's own entrypoint adds for SRCDS_SDR_FAKEIP=1.
+# Resolving it here keeps the .env file with one answer rather than two that
+# can contradict each other.
+#
+# SRCDS_LAN on its own is the older spelling and still works: leaving
+# SRCDS_REACH unset changes nothing.
+case "${SRCDS_REACH:-}" in
+"") ;;
+lan)
+	SRCDS_LAN=1
+	SRCDS_SDR_FAKEIP=0
+	;;
+steam)
+	SRCDS_LAN=0
+	SRCDS_SDR_FAKEIP=1
+	;;
+port)
+	SRCDS_LAN=0
+	SRCDS_SDR_FAKEIP=0
+	;;
+*)
+	echo "[AP] SRCDS_REACH=${SRCDS_REACH} is not lan, steam or port: staying on the local network"
+	SRCDS_LAN=1
+	SRCDS_SDR_FAKEIP=0
+	;;
+esac
+export SRCDS_LAN SRCDS_SDR_FAKEIP
 
 install_plugin &
 

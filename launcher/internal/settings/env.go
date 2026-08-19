@@ -14,7 +14,7 @@ var EnvNames = []string{
 	"TF2AP_TEST_MODE", "TF2AP_ARCHIPELAGO_DIR",
 	"AP_ROOM", "AP_HOST", "AP_PORT", "AP_TLS", "AP_SLOT_NAME", "AP_PASSWORD",
 	"SRCDS_HOSTNAME", "SRCDS_RCONPW", "SRCDS_PW", "SRCDS_PORT",
-	"SRCDS_MAXPLAYERS", "SRCDS_STARTMAP", "SRCDS_TOKEN", "SRCDS_LAN",
+	"SRCDS_MAXPLAYERS", "SRCDS_STARTMAP", "SRCDS_TOKEN", "SRCDS_LAN", "SRCDS_REACH",
 	"SRCDS_ADMIN_STEAMIDS", "SRCDS_BOTS", "SRCDS_BOT_TEAM_SIZE",
 	"MVM_MISSION_COUNT", "MVM_DIFFICULTY", "MVM_GOAL",
 	"MVM_MISSIONSANITY_PERCENTAGE", "MVM_DEATH_LINK",
@@ -53,7 +53,20 @@ func ApplyEnv(s Settings) Settings {
 	num(&s.SrcdsMaxPlayers, "SRCDS_MAXPLAYERS")
 	str(&s.SrcdsStartMap, "SRCDS_STARTMAP")
 	str(&s.SrcdsToken, "SRCDS_TOKEN")
-	boolean(&s.SrcdsLan, "SRCDS_LAN")
+
+	// SRCDS_LAN is the older spelling and covers two of the three reaches, so
+	// SRCDS_REACH is read after it and wins when both are set.
+	if lan, ok := lookupBool("SRCDS_LAN"); ok {
+		s.SrcdsReach = ReachLan
+		if !lan {
+			s.SrcdsReach = ReachPort
+		}
+	}
+	if value, ok := os.LookupEnv("SRCDS_REACH"); ok {
+		if reach, ok := ParseReach(strings.ToLower(strings.TrimSpace(value))); ok {
+			s.SrcdsReach = reach
+		}
+	}
 	str(&s.SrcdsAdminSteamIDs, "SRCDS_ADMIN_STEAMIDS")
 	boolean(&s.SrcdsBots, "SRCDS_BOTS")
 	num(&s.SrcdsBotTeamSize, "SRCDS_BOT_TEAM_SIZE")
@@ -95,14 +108,24 @@ func num(target *int, name string) {
 
 // boolean accepts the spellings an .env file and a shell both produce.
 func boolean(target *bool, name string) {
+	if value, ok := lookupBool(name); ok {
+		*target = value
+	}
+}
+
+// lookupBool is boolean for a caller that does not have a *bool to write into.
+// The second result is false both when the variable is unset and when it holds
+// something that is not a boolean at all.
+func lookupBool(name string) (bool, bool) {
 	value, ok := os.LookupEnv(name)
 	if !ok {
-		return
+		return false, false
 	}
 	switch strings.ToLower(strings.TrimSpace(value)) {
 	case "1", "true", "yes", "on":
-		*target = true
+		return true, true
 	case "0", "false", "no", "off":
-		*target = false
+		return false, true
 	}
+	return false, false
 }

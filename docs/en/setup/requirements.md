@@ -10,7 +10,7 @@ Docker. **Docker** works on any operating system. Both run the same software.
 | Disk | About 20 GB free. The game server downloads about 14 GB at the first start. |
 | Memory | 4 GB for six players. |
 | Processor | Two cores. |
-| Network | One port that your friends can reach, UDP and TCP. |
+| Network | Nothing, for friends on the same network or over Steam's relay. One forwarded port, UDP and TCP, only if you choose that route. |
 
 ## Windows (recommended)
 
@@ -47,8 +47,10 @@ the room on `archipelago.gg` and listens on loopback only. See
 The machine needs to reach `archipelago.gg` on the port of the room. A firewall
 that filters outgoing traffic has to let that port through.
 
-If the machine is behind a router, forward that port to it. If the machine has
-a firewall, open that port.
+Whether anything has to be forwarded depends on `SRCDS_REACH`, and only
+`SRCDS_REACH=port` asks for it. Over Steam's relay the server reaches out and
+nothing has to come in. See
+[Invite your friends](invite-your-friends.md).
 
 ## What you do not need
 

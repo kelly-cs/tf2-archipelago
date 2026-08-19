@@ -25,9 +25,9 @@ import (
 const labelWidth = 150
 
 // runSettingsDialog asks for the values worth changing between evenings, in
-// three tabs: what the run is, where the room is, and how the game server
-// behaves. Every row carries a tooltip, because a name alone does not say what
-// a difficulty floor or a login token is.
+// four tabs: what the run is, where the room is, how the game server behaves,
+// and who can reach it. Every row carries a tooltip, because a name alone does
+// not say what a difficulty floor or a login token is.
 //
 // It returns the edited settings and whether the player accepted them.
 func runSettingsDialog(owner walk.Form, s settings.Settings, repair func() ([]string, error)) (settings.Settings, bool, error) {
@@ -53,10 +53,15 @@ func runSettingsDialog(owner walk.Form, s settings.Settings, repair func() ([]st
 		portEdit  *walk.NumberEdit
 		mapBox    *walk.ComboBox
 		adminEdit *walk.LineEdit
-		lanBox    *walk.CheckBox
-		tokenEdit *walk.LineEdit
 		botsBox   *walk.CheckBox
 		botsSize  *walk.NumberEdit
+
+		reachLan   *walk.RadioButton
+		reachSteam *walk.RadioButton
+		reachPort  *walk.RadioButton
+		reachHelp  *walk.TextLabel
+		tokenEdit  *walk.LineEdit
+		tokenWarn  *walk.Label
 	)
 
 	tiers := runshape.Tiers()
@@ -111,7 +116,7 @@ func runSettingsDialog(owner walk.Form, s settings.Settings, repair func() ([]st
 		next.SrcdsPort = int(portEdit.Value())
 		next.SrcdsStartMap = mapBox.Text()
 		next.SrcdsAdminSteamIDs = strings.TrimSpace(adminEdit.Text())
-		next.SrcdsLan = lanBox.Checked()
+		next.SrcdsReach = checkedReach(reachSteam, reachPort)
 		next.SrcdsToken = strings.TrimSpace(tokenEdit.Text())
 		next.SrcdsBots = botsBox.Checked()
 		next.SrcdsBotTeamSize = int(botsSize.Value())
@@ -216,7 +221,7 @@ func runSettingsDialog(owner walk.Form, s settings.Settings, repair func() ([]st
 							declarative.LineEdit{AssignTo: &nameEdit, Text: s.SrcdsHostname},
 							label("Server password", "What your friends type before connect. Blank means anybody with the address can join."),
 							declarative.LineEdit{AssignTo: &passEdit, Text: s.SrcdsPw, CueBanner: "optional, blank for none"},
-							label("Game port", "UDP and TCP, 27015 by default. This is the one to forward on your router for friends outside your network."),
+							label("Game port", "UDP and TCP, 27015 by default. Who can reach it is on the Steam Networking tab."),
 							declarative.NumberEdit{
 								AssignTo: &portEdit, Value: float64(s.SrcdsPort),
 								MinValue: 1024, MaxValue: 65535, Decimals: 0,
@@ -225,16 +230,50 @@ func runSettingsDialog(owner walk.Form, s settings.Settings, repair func() ([]st
 							declarative.ComboBox{AssignTo: &mapBox, Model: mapNames(), Value: s.SrcdsStartMap},
 							label("Admins by Steam id", "Who may run the admin commands, separated by commas. Either form works: the 17 digit id from a profile URL, or SourceMod's STEAM_0:1:26975537."),
 							declarative.LineEdit{AssignTo: &adminEdit, Text: s.SrcdsAdminSteamIDs, CueBanner: "76561198014216803, ..."},
-							label("Local network only", "On, the server never logs in to Steam and stays off the public list, which is what makes a game with friends work with no token at all. Off needs a real token below."),
-							declarative.CheckBox{AssignTo: &lanBox, Text: "keep it off the internet", Checked: s.SrcdsLan},
-							label("Login token", "A Game Server Login Token from steamcommunity.com/dev/managegameservers. Needed only with the box above off. 0 means none."),
-							declarative.LineEdit{AssignTo: &tokenEdit, Text: s.SrcdsToken},
 							label("Defender bots", "Fill the RED team with bots that play, so a wave balanced for six is winnable by fewer. They pick classes, fight and buy their own upgrades."),
 							declarative.CheckBox{AssignTo: &botsBox, Text: "fill the RED team", Checked: s.SrcdsBots},
 							label("Fill RED to", "How many players RED holds, humans included. Lower it for a harder run."),
 							declarative.NumberEdit{
 								AssignTo: &botsSize, Value: float64(s.SrcdsBotTeamSize),
 								MinValue: 1, MaxValue: 6, Decimals: 0,
+							},
+						},
+					},
+					{
+						Title:  "Steam Networking",
+						Layout: declarative.Grid{Columns: 2},
+						Children: []declarative.Widget{
+							label("Who can reach it", "Where the server takes connections from. A server is on your own network until you change this: it is not open to anybody else by default."),
+							// The three buttons are consecutive children of one
+							// Composite on purpose. walk groups a radio button
+							// with the sibling before it, so a label in between
+							// would leave three groups of one, all tickable.
+							declarative.Composite{
+								// Near, or a VBox centres each button on its own
+								// text and the three ends up as a ragged stack.
+								Layout: declarative.VBox{MarginsZero: true, SpacingZero: true, Alignment: declarative.AlignHNearVCenter},
+								Children: []declarative.Widget{
+									declarative.RadioButton{AssignTo: &reachLan, Text: settings.ReachLan.Label()},
+									declarative.RadioButton{AssignTo: &reachSteam, Text: settings.ReachSteam.Label()},
+									declarative.RadioButton{AssignTo: &reachPort, Text: settings.ReachPort.Label()},
+								},
+							},
+							declarative.Label{Text: ""},
+							declarative.TextLabel{
+								AssignTo: &reachHelp,
+								Text:     s.SrcdsReach.Help(),
+								MinSize:  declarative.Size{Width: 400},
+							},
+							label("Login token", "A Game Server Login Token for app id 440, from steamcommunity.com/dev/managegameservers. The server logs in to Steam with it. 0 means none, which only works on the local network."),
+							declarative.LineEdit{AssignTo: &tokenEdit, Text: s.SrcdsToken, CueBanner: "0"},
+							declarative.Label{Text: ""},
+							declarative.Label{AssignTo: &tokenWarn, Text: "", MaxSize: declarative.Size{Height: 18}},
+							declarative.TextLabel{
+								Text: "Over Steam, the server prints its address in the log every time it starts, " +
+									"in the form connect 169.254.13.42:20232. It is a new address on every start, " +
+									"so send your friends the line from the log rather than one you wrote down.",
+								ColumnSpan: 2,
+								MinSize:    declarative.Size{Width: 540},
 							},
 						},
 					},
@@ -280,6 +319,32 @@ func runSettingsDialog(owner walk.Form, s settings.Settings, repair func() ([]st
 	if err != nil {
 		return s, false, err
 	}
+
+	// The help under the buttons, and the complaint about a missing token. Both
+	// follow the selection, because a reach the player cannot use yet has to
+	// say so here rather than in the server log twenty minutes later.
+	explainReach := func() {
+		reach := checkedReach(reachSteam, reachPort)
+		reachHelp.SetText(reach.Help())
+		if reach.NeedsToken() && !settings.HasToken(tokenEdit.Text()) {
+			tokenWarn.SetText("this one needs a token: without it the server never logs in to Steam")
+			return
+		}
+		tokenWarn.SetText("")
+	}
+	for _, button := range []*walk.RadioButton{reachLan, reachSteam, reachPort} {
+		button.CheckedChanged().Attach(explainReach)
+	}
+	tokenEdit.TextChanged().Attach(explainReach)
+	switch s.SrcdsReach {
+	case settings.ReachSteam:
+		reachSteam.SetChecked(true)
+	case settings.ReachPort:
+		reachPort.SetChecked(true)
+	default:
+		reachLan.SetChecked(true)
+	}
+	explainReach()
 
 	// A harder floor leaves fewer missions to draw from, so the count a run can
 	// ask for follows the tier.
@@ -422,6 +487,19 @@ func runRepair(owner walk.Form, repair func() ([]string, error)) {
 		walk.MsgBox(owner, "Repair",
 			"Removed:\n"+strings.Join(removed, "\n")+"\n\nPress Start when you are ready.",
 			walk.MsgBoxIconInformation)
+	}
+}
+
+// checkedReach reads the selection back. Nothing checked means the private
+// default, which is the answer that cannot open a server by mistake.
+func checkedReach(steam, port *walk.RadioButton) settings.Reach {
+	switch {
+	case steam.Checked():
+		return settings.ReachSteam
+	case port.Checked():
+		return settings.ReachPort
+	default:
+		return settings.ReachLan
 	}
 }
 
