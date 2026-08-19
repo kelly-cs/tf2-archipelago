@@ -6,7 +6,9 @@ it stands.
 Two players played that session: EZKSupernova and Cowser the Khelinace. Most
 of this list comes from their reports.
 
-Every item is done. The two that say so name what they left behind.
+Every item is done. The two that say so name what they left behind. Item 9
+grew a second half since: Linux gets a window too, and that has not been
+written yet.
 
 ## 1. Fork the bots mod. Done
 
@@ -165,8 +167,22 @@ needs, and it is its own piece of work.
 `make launcher-linux` builds it.
 
 The question the note asked was whether Linux gets the window or a terminal.
-It gets the terminal: walk is a Win32 binding, and the console flow the
-compose stack already uses was there to take. So the answer cost nothing.
+It got the terminal: walk is a Win32 binding, and the console flow the compose
+stack already uses was there to take. So the answer cost nothing.
+
+It is the wrong answer, and the next piece of work is the other one: the same
+window on both, which means the same code on both, which means leaving walk
+for a toolkit that builds for Linux. That is not free. Fyne and Gio both need
+cgo, so `tf2ap.exe` stops cross-compiling from a Linux box with
+`CGO_ENABLED=0` and needs mingw in the build and in CI; the Linux build needs
+X11, GL and Wayland headers; and the binary roughly doubles. The 1841 lines of
+walk in `launcher/internal/gui` all get rewritten. Fyne is the closer fit: its
+widgets line up with what the dialog already uses, where Gio's immediate mode
+would hand-roll six tabs of form state.
+
+Until then the pictures of the window come from Wine. `make window-captures`
+runs `tf2ap.exe` on a virtual display and photographs it, so what the README
+shows is what the last build draws.
 
 What it did cost was the installer, which knew only Windows. SteamCMD and both
 AlliedModders drops ship a zip for Windows and a tarball for Linux. So the

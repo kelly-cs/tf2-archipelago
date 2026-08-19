@@ -1,7 +1,9 @@
 # Install on Linux
 
 One file. No Docker, no clone, no compiler. The same program as the Windows
-launcher, without the window: Linux gets the terminal flow.
+launcher, and for now without the window: that window is Win32, which is
+Windows only, so Linux gets the terminal flow. A window for Linux is the next
+thing the launcher gets; everything below keeps working when it does.
 
 Download `tf2ap-linux-amd64` from the
 [latest release](https://github.com/m-this/tf2-archipelago/releases/latest),

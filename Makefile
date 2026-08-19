@@ -39,6 +39,7 @@ GO_SRC := $$(find . -type f -name '*.go')
 
 .PHONY: help seed up down restart logs ps rcon \
         check fmt fmt-check vet lint lint-fix fix-check vuln compile test shadows \
+        window-captures \
         test-fast export apworld-lint \
         apworld-fmt apworld-test apworld-build plugin bots bots-from-source \
         integration build docs \
@@ -64,6 +65,7 @@ help:
 	@echo "  make launcher-linux Build tf2ap-linux-amd64 into ./dist"
 	@echo "  make captures      Redraw the terminal captures in docs/images"
 	@echo "  make shadows       Drop-shadow the window screenshots in docs/images/raw"
+	@echo "  make window-captures Rephotograph the launcher's window through Wine"
 	@echo "  make docs          Build the book and serve it on 127.0.0.1"
 	@echo "  make clean         Stop, remove volumes, remove build output"
 
@@ -339,15 +341,21 @@ captures: launcher-linux
 	$(CAPTURE_ENV) ./dist/tf2ap-linux-amd64 -status \
 		| sed "s|$$HOME|/home/player|g" \
 		| ./docs/capture.sh 'tf2ap-linux-amd64 -status' docs/images/linux-status.svg
-	$(CAPTURE_ENV) ./dist/tf2ap-linux-amd64 -env \
-		| sed "s|$$HOME|/home/player|g" \
-		| ./docs/capture.sh 'tf2ap-linux-amd64 -env' docs/images/linux-env.svg
 
-# The Windows launcher's window cannot be drawn from here: walk is a Win32
-# binding, so a screenshot of it comes from a machine running Windows. What
-# this does is everything after the shutter. Drop the raw capture in
-# docs/images/raw/ under the name the README uses, run this, and the picture
-# beside it gets the transparent margins and the drop shadow.
+# The launcher's window, photographed. walk is a Win32 binding, so the window
+# runs under Wine on a virtual display and ImageMagick takes the picture; see
+# docs/window-shot.sh for what that needs installed. A shot taken by hand on a
+# real Windows machine and dropped in docs/images/raw/ goes through the same
+# second half.
+window-captures: launcher
+	mkdir -p docs/images/raw
+	./docs/window-shot.sh $(DIST)/tf2ap.exe docs/images/raw/launcher-main.png 20 main
+	./docs/window-shot.sh $(DIST)/tf2ap.exe docs/images/raw/launcher-settings.png 20 dialog
+	$(MAKE) shadows
+
+# The drop shadow and the transparent margins, over whatever is in
+# docs/images/raw/. Separate from taking the picture, because a picture taken
+# on Windows needs this half and not the other one.
 shadows:
 	@for raw in docs/images/raw/*.png; do \
 		[ -e "$$raw" ] || { echo "nothing in docs/images/raw"; exit 0; }; \

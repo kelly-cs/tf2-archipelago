@@ -1,8 +1,10 @@
 # Installer sur Linux
 
 Un seul fichier. Pas de Docker, pas de clone, pas de compilateur. Le même
-programme que le lanceur Windows, sans la fenêtre : sur Linux, tout passe par
-le terminal.
+programme que le lanceur Windows, et pour l'instant sans la fenêtre : cette
+fenêtre est en Win32, donc Windows uniquement, et sur Linux tout passe par le
+terminal. Une fenêtre pour Linux est la prochaine chose que le lanceur reçoit ;
+tout ce qui suit continuera de marcher.
 
 Téléchargez `tf2ap-linux-amd64` depuis la
 [dernière version](https://github.com/m-this/tf2-archipelago/releases/latest),

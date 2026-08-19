@@ -4,30 +4,23 @@ The pictures of the launcher's window in the README come from here. `make
 shadows` takes each `.png` in this directory and writes the one beside it in
 `docs/images/`, on transparent margins and over a drop shadow.
 
-Nothing on a Linux machine can draw that window: walk is a Win32 binding, so
-the capture has to come from a machine running Windows.
+`make window-captures` fills this directory: it builds `tf2ap.exe`, runs it
+under Wine on a virtual display, and photographs the two windows. The window
+is Win32, so that is what it takes to draw one on a machine that is not
+running Windows. `docs/window-shot.sh` says what has to be installed.
 
-## Taking one
-
-Windows 11, Snipping Tool, **Window** mode. It hands back the window with its
-rounded corners and nothing outside them, which is what the shadow follows.
-`Alt`+`PrintScreen` also works and gives square corners.
-
-Then:
-
-- Shoot the window at its normal size. The picture is scaled down in the
-  README, and a maximised window reads as a wall of empty grey.
-- Have something in the log. A window with an empty log says nothing about
-  what the launcher does.
-- Check what is in the shot. The room address, the rcon password and the
-  server password are all on screen in Settings, and they are yours.
+A shot taken by hand on a real Windows machine and dropped in here goes
+through the same second half, and is worth taking when Wine draws something
+the real thing does not. Windows 11, Snipping Tool, **Window** mode: it hands
+back the window with its rounded corners and nothing outside them, which is
+what the shadow follows. Check what is in frame first, because the room
+address and both passwords are on screen in Settings.
 
 ## The names
 
-The README expects these, and `make shadows` keeps the name:
+The README expects these, and both halves keep the name:
 
 | File | What it shows |
 | --- | --- |
 | `launcher-main.png` | The main window: the log, Start and Stop, the join line |
-| `launcher-settings-player.png` | Settings, the Player options tab |
-| `launcher-settings-server.png` | Settings, the Game server tab |
+| `launcher-settings.png` | Settings, the Player options tab |
