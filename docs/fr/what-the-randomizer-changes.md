@@ -56,8 +56,30 @@ appartient, pas au randomizer.
 Chaque vague que l'équipe réussit rapporte une check. Chaque mission que
 l'équipe réussit en rapporte une de plus.
 
-Une équipe anéantie rejoue la vague, comme dans MvM normal. Une vague ratée
-ne rapporte rien. Il n'y a pas de pénalité au-delà de la vague elle-même.
+Une vague perdue ne rapporte rien, et le randomizer n'ajoute aucune pénalité.
+L'équipe rejoue la vague, comme dans MvM normal.
+
+Le jeu décide quand une vague est perdue, et ce projet ne change pas cette
+règle. Les robots doivent porter la bombe jusqu'à la trappe. Un
+anéantissement de l'équipe ne perd pas la vague à lui seul : le jeu fait
+respawn l'équipe, et la vague continue.
+
+## Le DeathLink tue l'équipe, et rien de plus
+
+Le DeathLink reste désactivé sauf si la seed le demande. Activé, une mort
+traverse le multiworld dans les deux sens.
+
+Sortant : l'équipe perd une vague, et le bridge envoie cette perte comme une
+mort. Le plugin écoute l'événement `mvm_wave_failed` du jeu. Les autres
+joueurs reçoivent donc ce qui a terminé la vague sur votre écran.
+
+Entrant : une mort arrive, et le plugin tue tout RED, bots compris. Il
+n'envoie aucun événement de vague perdue. Personne ne tient la trappe jusqu'au
+respawn de l'équipe. La vague est donc en général perdue, mais c'est le jeu
+qui en décide, comme toujours.
+
+Une vague perdue sur une mort entrante n'est pas renvoyée. Une mort ne peut
+donc pas faire l'aller-retour entre deux joueurs liés.
 
 ## Les crédits peuvent arriver comme items
 

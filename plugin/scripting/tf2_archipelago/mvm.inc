@@ -151,8 +151,8 @@ stock void MvM_GrantCredits(int amount)
     }
 }
 
-// Everyone on RED, bots included: a wave fails only when the whole team is
-// down, and a wave failure is what a death means here.
+// Everyone on RED, bots included. The kill is the whole effect: no wave-failed
+// event is fired, and an undefended hatch is what loses the wave.
 stock int MvM_KillTeam()
 {
     int killed = 0;

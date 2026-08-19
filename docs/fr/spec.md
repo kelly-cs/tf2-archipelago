@@ -209,16 +209,19 @@ fil.
 
 ## Pièges et DeathLink
 
-Une mort dans MvM est bon marché. Vous respawnez à la prochaine vague, ou
-après un court délai. Seul un anéantissement complet de l'équipe fait
-échouer la vague. DeathLink sur une mort individuelle n'est donc que du
-bruit. Ici une mort est une vague perdue, dans les deux sens :
+Une mort dans MvM est bon marché. Vous respawnez après un court délai, et
+la vague continue. Une vague ne se termine que lorsque les robots déposent
+la bombe. DeathLink sur une mort individuelle n'est donc que du bruit. Ici
+une mort est une vague perdue, dans les deux sens :
 
-- L'équipe perd une vague : le bridge envoie un DeathLink avec le nom de la
-  mission et le numéro de la vague comme cause.
-- Un DeathLink arrive : le plugin tue tout RED, bots compris, ce qui fait
-  échouer la vague. Cette perte-là n'est pas renvoyée, donc deux joueurs
-  DeathLink ne peuvent pas se renvoyer la balle.
+- L'équipe perd une vague : le plugin écoute l'événement `mvm_wave_failed`
+  du jeu. Le bridge envoie un DeathLink avec le nom de la mission et le
+  numéro de la vague comme cause.
+- Un DeathLink arrive : le plugin tue tout RED, bots compris. Il n'envoie
+  aucun événement de vague perdue. C'est la trappe sans défense qui perd la
+  vague, et c'est le jeu qui en décide. Une vague perdue pendant la fenêtre
+  d'écho n'est pas renvoyée. Une mort ne peut donc pas faire l'aller-retour
+  entre deux joueurs DeathLink.
 
 La seed décide. Un slot avec `death_link` désactivé ne réclame jamais le
 tag, n'entend aucune mort, et ignore ce que le plugin rapporte.

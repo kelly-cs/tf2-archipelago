@@ -51,8 +51,28 @@ map rotation belongs to you, not to the randomizer.
 Each wave that the team clears reports one check. Each mission that the team
 clears reports one more.
 
-A wiped team replays the wave, the same as in normal MvM. A failed wave reports
-nothing. There is no penalty for failing beyond the wave itself.
+A lost wave reports nothing, and the randomizer adds no penalty. The team
+replays the wave, the same as in normal MvM.
+
+The game decides when a wave is lost, and this project does not change that
+rule. The robots have to carry the bomb into the hatch. A team wipe on its own
+does not lose the wave: the game respawns the team, and the wave goes on.
+
+## DeathLink kills the team, and nothing more
+
+DeathLink is off unless the seed asks for it. With it on, a death crosses the
+multiworld both ways.
+
+Outbound: the team loses a wave, and the bridge sends that loss as a death. The
+plugin hooks the game's own `mvm_wave_failed`, so what other players receive is
+what ended the wave on your screen.
+
+Inbound: a death arrives, and the plugin kills everybody on RED, bots included.
+It fires no wave-failed event. Nobody holds the hatch until the team respawns,
+so the wave is usually lost, but the game decides that as always.
+
+A wave lost to an arriving death is not sent back out. So one death cannot
+travel back and forth between two linked players.
 
 ## Credits can arrive as items
 

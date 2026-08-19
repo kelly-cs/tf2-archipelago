@@ -59,13 +59,18 @@ The `final_boss` goal ignores `MVM_MISSIONSANITY_PERCENTAGE`.
 ### `MVM_DEATH_LINK`
 
 DeathLink is a convention where a death in one game kills every other player
-who turned it on. In MvM an individual death is normal rather than notable, so
-here a death is the team losing a wave.
+who turned it on. In MvM a single death is normal rather than notable, so here
+a death is the wave the team lost.
 
-With `true`, a lost wave kills every linked player in the multiworld, and one
-of their deaths kills everyone on your team, bots included, which loses the
-wave you are on. That loss is not sent back out. Expect a run with it on to be
-noticeably harder: a wave can be lost to somebody else's mistake.
+With `true`, a lost wave kills every linked player in the multiworld. One of
+their deaths kills everybody on your team, bots included.
+
+The plugin only kills. It does not fail the wave. Nobody holds the hatch until
+the team respawns, so the wave is usually lost, but the game decides that as
+always. A wave lost that way is not sent back out.
+
+Expect a run with DeathLink on to be harder. A wave can be lost to somebody
+else's mistake.
 
 ### `MVM_EXCLUDED_MISSIONS`
 

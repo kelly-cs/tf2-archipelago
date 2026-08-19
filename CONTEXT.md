@@ -55,10 +55,11 @@ the seed is unplayable from the start. See the starting-state requirement in
 
 **DeathLink**
 An opt-in convention where a death in one world kills every other DeathLink
-participant. Here a death is the team losing a wave, because an individual
-death in MvM is routine and only a full wipe fails a wave. Outbound, a lost
-wave is a `Bounce`; inbound, a `Bounced` kills everyone on RED, bots
-included, which fails the wave. The plugin does not send that loss back out.
+participant. Here a death is the wave the team lost, because an individual
+death in MvM is routine and only a deployed bomb ends a wave. Outbound, a
+lost wave is a `Bounce`; inbound, a `Bounced` kills everyone on RED, bots
+included, and an undefended hatch is what loses the wave. The plugin does
+not send that loss back out.
 See `docs/en/spec.md`, "Traps and DeathLink".
 
 **Trap**

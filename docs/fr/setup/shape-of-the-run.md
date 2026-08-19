@@ -68,11 +68,16 @@ DeathLink est une convention où une mort dans un jeu tue tous les autres
 joueurs qui l'ont activée. Dans MvM une mort individuelle est normale
 plutôt que notable, donc ici une mort est une vague perdue par l'équipe.
 
-Avec `true`, une vague perdue tue tous les joueurs liés du multiworld, et
-l'une de leurs morts tue tout votre équipe, bots compris, ce qui fait
-perdre la vague en cours. Cette perte-là n'est pas renvoyée. Attendez-vous
-à une partie nettement plus dure : une vague peut se perdre sur l'erreur
-de quelqu'un d'autre.
+Avec `true`, une vague perdue tue tous les joueurs liés du multiworld. Et
+l'une de leurs morts tue toute votre équipe, bots compris.
+
+Le plugin ne fait que tuer. Il ne fait pas échouer la vague. Personne ne
+tient la trappe jusqu'au respawn de l'équipe. La vague est donc en général
+perdue, mais c'est le jeu qui en décide, comme toujours. Une vague perdue
+ainsi n'est pas renvoyée.
+
+Attendez-vous à une partie plus dure avec DeathLink. Une vague peut se
+perdre sur l'erreur de quelqu'un d'autre.
 
 ### `MVM_EXCLUDED_MISSIONS`
 

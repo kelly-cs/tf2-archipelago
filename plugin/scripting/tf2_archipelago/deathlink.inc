@@ -11,8 +11,8 @@
  * seed did not ask.
  */
 
-// A received death kills the team, and a dead team loses the wave. That loss
-// must not go back out as a death of its own: long enough for the game to
+// A received death kills the team, and an undefended hatch loses the wave. That
+// loss must not go back out as a death of its own: long enough for the game to
 // notice the wipe, short enough not to swallow the next real loss.
 #define DeathLinkEchoWindow 20.0
 

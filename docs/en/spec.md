@@ -191,15 +191,19 @@ that. It is the most original idea in the thread.
 
 ## Traps and DeathLink
 
-A death in MvM is cheap: you respawn at the next wave or after a short
-timer, and only a full team wipe fails it. So DeathLink on individual
-death is only noise. Here a death is a lost wave, in both directions:
+A death in MvM is cheap: you respawn after a short timer and the wave goes
+on. A wave ends only when the robots deploy the bomb. So DeathLink on
+individual death is only noise. Here a death is a lost wave, in both
+directions:
 
-- The team loses a wave: the bridge sends a DeathLink with the mission's
-  name and the wave number as the cause.
-- A DeathLink arrives: the plugin kills everyone on RED, bots included,
-  which fails the wave. That loss is not sent back out, so two DeathLink
-  players cannot ping-pong.
+- The team loses a wave: the plugin hooks the game's own `mvm_wave_failed`.
+  The bridge sends a DeathLink with the mission's name and the wave number
+  as the cause.
+- A DeathLink arrives: the plugin kills everyone on RED, bots included. It
+  fires no wave-failed event of its own. An undefended hatch is what loses
+  the wave, and the game decides that. A wave lost inside the echo window
+  is not sent back out, so one death cannot travel back and forth between
+  two DeathLink players.
 
 The seed decides. A slot with `death_link` off never claims the tag, never
 hears a death, and drops what the plugin reports.
