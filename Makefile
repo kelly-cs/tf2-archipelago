@@ -34,10 +34,11 @@ GOFUMPT := go run mvdan.cc/gofumpt@$(GOFUMPT_VERSION)
 GOLANGCI_LINT := go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
 GOVULNCHECK := go run golang.org/x/vuln/cmd/govulncheck@$(GOVULNCHECK_VERSION)
 RUFF := uv run --quiet --with ruff==$(RUFF_VERSION) ruff
+SHADOW := uv run --quiet --with pillow==$(PILLOW_VERSION) python docs/shadow.py
 GO_SRC := $$(find . -type f -name '*.go')
 
 .PHONY: help seed up down restart logs ps rcon \
-        check fmt fmt-check vet lint lint-fix fix-check vuln compile test \
+        check fmt fmt-check vet lint lint-fix fix-check vuln compile test shadows \
         test-fast export apworld-lint \
         apworld-fmt apworld-test apworld-build plugin bots bots-from-source \
         integration build docs \
@@ -62,6 +63,7 @@ help:
 	@echo "  make launcher      Cross-compile tf2ap.exe (Windows) into ./dist"
 	@echo "  make launcher-linux Build tf2ap-linux-amd64 into ./dist"
 	@echo "  make captures      Redraw the terminal captures in docs/images"
+	@echo "  make shadows       Drop-shadow the window screenshots in docs/images/raw"
 	@echo "  make docs          Build the book and serve it on 127.0.0.1"
 	@echo "  make clean         Stop, remove volumes, remove build output"
 
@@ -340,6 +342,17 @@ captures: launcher-linux
 	$(CAPTURE_ENV) ./dist/tf2ap-linux-amd64 -env \
 		| sed "s|$$HOME|/home/player|g" \
 		| ./docs/capture.sh 'tf2ap-linux-amd64 -env' docs/images/linux-env.svg
+
+# The Windows launcher's window cannot be drawn from here: walk is a Win32
+# binding, so a screenshot of it comes from a machine running Windows. What
+# this does is everything after the shutter. Drop the raw capture in
+# docs/images/raw/ under the name the README uses, run this, and the picture
+# beside it gets the transparent margins and the drop shadow.
+shadows:
+	@for raw in docs/images/raw/*.png; do \
+		[ -e "$$raw" ] || { echo "nothing in docs/images/raw"; exit 0; }; \
+		$(SHADOW) "$$raw" "docs/images/$$(basename $$raw)"; \
+	done
 
 # --- Integration ---
 
