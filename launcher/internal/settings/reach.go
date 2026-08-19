@@ -95,6 +95,18 @@ func HasToken(token string) bool {
 	return token != "" && token != "0"
 }
 
+// Effective is the reach a server with this token can actually take. Every
+// reach that leaves the local network logs in to Steam, and a server with no
+// token never gets a session: it then refuses every client that tries to join,
+// the ones on the local network included. Serving the local network is worth
+// more than serving nobody, so a reach with no token behind it stays there.
+func Effective(reach Reach, token string) Reach {
+	if reach.NeedsToken() && !HasToken(token) {
+		return ReachLan
+	}
+	return reach
+}
+
 // ParseReach reads the value an env var or a config file carries. Anything it
 // does not recognize gives ReachLan and false, so a typo keeps the server
 // private rather than guessing.

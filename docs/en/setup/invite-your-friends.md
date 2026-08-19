@@ -2,28 +2,28 @@
 
 ## Where the players come from
 
-A server is on your own network until you say otherwise. It is not open to
-anybody else by default, and no router setting changes that on its own. Pick
-one of three with `SRCDS_REACH` in `.env`:
+A server is meant to be joined from somewhere else, so it takes connections on
+its game port unless you say otherwise. Pick one of three with `SRCDS_REACH` in
+`.env`:
 
 ```sh
-SRCDS_REACH=lan      # this machine and the local network
+SRCDS_REACH=port     # straight at the game port, forwarded on your router. The default.
 SRCDS_REACH=steam    # over Steam's relay, with no port to open
-SRCDS_REACH=port     # straight at the game port, forwarded on your router
+SRCDS_REACH=lan      # this machine and the local network
 ```
 
-`lan` is the whole answer for people playing in the same house. The other two
-reach the internet, and both need a login token.
+`lan` is the whole answer for people playing in the same house, and it needs
+nothing else. The other two reach the internet, and both need a login token.
 
-Set a token and say nothing about the reach, and you get `port`: a token has no
-other use, and the local network still reaches a server that takes connections
-on its port. Naming a reach yourself always wins over that.
+A server with no token stays on the local network whatever the reach says, and
+prints a line in the log saying so. It has no choice: without a token it never
+gets a Steam session, and a server with no session refuses every player who
+tries to join, the ones in the same house included.
 
 > **`steam` is not finished.** No run took the relay all the way to a Team
-> Fortress 2 client that joined. The launcher's **Who can join** tab offers the
-> local network and a forwarded port; the relay button appears only if you
-> start it with `TF2AP_STEAM_NETWORKING=1`. `SRCDS_REACH=steam` works either
-> way.
+> Fortress 2 client that joined. It is offered anyway, and the launcher's tab
+> for it is called **Who can join (beta)** for that reason. `port` is the one
+> that has been played on.
 
 ## The login token
 

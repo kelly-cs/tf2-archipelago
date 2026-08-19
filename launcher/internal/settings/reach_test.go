@@ -90,3 +90,27 @@ func TestHasToken(t *testing.T) {
 		}
 	}
 }
+
+// A server that cannot log in refuses every player, so a reach that needs a
+// token and has none is worth less than the local network it came from.
+func TestEffectiveReachNeedsItsToken(t *testing.T) {
+	const token = "C7A1B2E3D4F5A6B7C8D9E0F1A2B3C4D5"
+	cases := []struct {
+		reach Reach
+		token string
+		want  Reach
+	}{
+		{ReachPort, "", ReachLan},
+		{ReachPort, "0", ReachLan},
+		{ReachPort, token, ReachPort},
+		{ReachSteam, "0", ReachLan},
+		{ReachSteam, token, ReachSteam},
+		{ReachLan, "0", ReachLan},
+		{ReachLan, token, ReachLan},
+	}
+	for _, c := range cases {
+		if got := Effective(c.reach, c.token); got != c.want {
+			t.Errorf("Effective(%q, %q) = %q, want %q", c.reach, c.token, got, c.want)
+		}
+	}
+}

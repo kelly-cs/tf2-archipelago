@@ -132,6 +132,10 @@ func runSrcds(ctx context.Context, s settings.Settings, logger *slog.Logger) err
 // and sv_lan has to be settled before the map loads and the server tries to
 // log in to Steam.
 func srcdsArgs(s settings.Settings, exeName string) []string {
+	// Not s.SrcdsReach: a reach with no login token behind it cannot log in,
+	// and a server that cannot log in refuses every player. It stays local.
+	reach := s.EffectiveReach()
+
 	// -console on both, for the same reason spelled two ways. On Windows,
 	// srcds.exe without it opens its own window and waits for a click on
 	// Start, so the launcher sits there having apparently done nothing. On
@@ -150,7 +154,7 @@ func srcdsArgs(s settings.Settings, exeName string) []string {
 		// A crash dialog is a Windows idea, and it waits for a click too.
 		flags = append(flags, "-nocrashdialog")
 	}
-	if s.SrcdsReach.SteamNetworking() {
+	if reach.SteamNetworking() {
 		// Asks Valve for the relayed address. Without it sv_use_steam_networking
 		// alone changes nothing a player outside the network can use.
 		flags = append(flags, "-enablefakeip")
@@ -161,14 +165,14 @@ func srcdsArgs(s settings.Settings, exeName string) []string {
 		"+map", StartMap(s),
 		"+hostport", strconv.Itoa(s.SrcdsPort),
 		"+rcon_password", s.SrcdsRconPw,
-		"+sv_lan", boolArg(s.SrcdsReach.Lan()),
+		"+sv_lan", boolArg(reach.Lan()),
 	}
-	if s.SrcdsReach.SteamNetworking() {
+	if reach.SteamNetworking() {
 		commands = append(commands, "+sv_use_steam_networking", "1")
 	}
 	// A server in LAN mode never logs in, so a token left over from an earlier
 	// evening is not passed and cannot put it on the public list by accident.
-	if s.SrcdsReach.NeedsToken() && settings.HasToken(s.SrcdsToken) {
+	if reach.NeedsToken() && settings.HasToken(s.SrcdsToken) {
 		commands = append(commands, "+sv_setsteamaccount", s.SrcdsToken)
 	}
 	if s.SrcdsPw != "" {

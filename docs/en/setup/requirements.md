@@ -58,7 +58,8 @@ nothing has to come in. See
 ## What you do not need
 
 - No Steam account for the server. `SRCDS_TOKEN=0` runs the server without one
-  and keeps it out of the public server list. See
+  and keeps it out of the public server list, and on the local network: nobody
+  outside it can join a server that never logs in. See
   [Invite your friends](invite-your-friends.md).
 - No Team Fortress 2 installation on the host. The container downloads its own.
 - No account on `archipelago.gg`. The website hosts a session for anybody who

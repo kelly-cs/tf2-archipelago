@@ -147,12 +147,12 @@ install_server_cfg() {
 	tf2ap_next_mission_delay ${TF2AP_NEXT_MISSION_DELAY:-30}
 	tf2ap_bot_upgrades_chat ${TF2AP_BOT_UPGRADES_CHAT:-0}
 
-	// LAN mode skips Steam authentication. The server has no Game Server Login
-	// Token by default, so it never logs in to Steam, and a client trying to
-	// authenticate against a server with no Steam session is refused. Reaching
-	// players outside the network, over Steam's relay or a forwarded port,
-	// means a real SRCDS_TOKEN and sv_lan 0. SRCDS_REACH picks which.
-	sv_lan ${SRCDS_LAN:-1}
+	// LAN mode skips Steam authentication, and refuses everyone who is not on
+	// the local network. Off is the default, because a server is usually meant
+	// to be joined from somewhere else. It needs a real SRCDS_TOKEN to be: a
+	// server with no Steam session refuses every client, and the entrypoint
+	// puts one without a token back on the local network before it gets here.
+	sv_lan ${SRCDS_LAN:-0}
 	sv_use_steam_networking ${SRCDS_SDR_FAKEIP:-0}
 	sv_pure 0
 	sv_pausable 0
@@ -227,6 +227,19 @@ port)
 	echo "[AP] SRCDS_REACH=${SRCDS_REACH} is not lan, steam or port: staying on the local network"
 	SRCDS_LAN=1
 	SRCDS_SDR_FAKEIP=0
+	;;
+esac
+
+# Every reach but lan logs in to Steam, and a server with no token never gets a
+# session: it refuses every player, the ones on the local network included. It
+# is worth more on the local network than it is refusing everybody.
+case "${SRCDS_TOKEN:-0}" in
+"" | 0)
+	if [ "${SRCDS_LAN:-0}" = 0 ]; then
+		echo "[AP] no SRCDS_TOKEN, so the server stays on the local network: get one at steamcommunity.com/dev/managegameservers for app id 440"
+		SRCDS_LAN=1
+		SRCDS_SDR_FAKEIP=0
+	fi
 	;;
 esac
 export SRCDS_LAN SRCDS_SDR_FAKEIP

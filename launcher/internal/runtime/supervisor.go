@@ -112,6 +112,13 @@ func (s *Supervisor) Start(onExit func(error)) error {
 	s.mu.Unlock()
 
 	s.emit("starting the bridge and the game server")
+	// The reach asked for is not always the one the server gets, and the
+	// difference is invisible everywhere else: srcds says nothing about a
+	// token it was never given.
+	if current.EffectiveReach() != current.SrcdsReach {
+		s.emit("no login token, so the server stays on the local network: " +
+			string(current.SrcdsReach) + " needs one from steamcommunity.com/dev/managegameservers")
+	}
 
 	bridgeErr := make(chan error, 1)
 	go func() {

@@ -65,25 +65,16 @@ func ApplyEnv(s Settings) Settings {
 
 	// SRCDS_LAN is the older spelling and covers two of the three reaches, so
 	// SRCDS_REACH is read after it and wins when both are set.
-	reachSet := false
 	if lan, ok := lookupBool("SRCDS_LAN"); ok {
 		s.SrcdsReach = ReachLan
 		if !lan {
 			s.SrcdsReach = ReachPort
 		}
-		reachSet = true
 	}
 	if value, ok := os.LookupEnv("SRCDS_REACH"); ok {
 		if reach, ok := ParseReach(strings.ToLower(strings.TrimSpace(value))); ok {
 			s.SrcdsReach = reach
-			reachSet = true
 		}
-	}
-	// A login token has no use but opening the server, so one set here with no
-	// reach beside it means the port. The local network still reaches a server
-	// on its port, so this takes nothing away from whoever was playing on it.
-	if _, ok := os.LookupEnv("SRCDS_TOKEN"); ok && !reachSet && HasToken(s.SrcdsToken) {
-		s.SrcdsReach = ReachPort
 	}
 	str(&s.SrcdsAdminSteamIDs, "SRCDS_ADMIN_STEAMIDS")
 	boolean(&s.SrcdsBots, "SRCDS_BOTS")

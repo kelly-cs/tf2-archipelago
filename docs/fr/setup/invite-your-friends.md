@@ -2,29 +2,29 @@
 
 ## D'où viennent les joueurs
 
-Un serveur est sur votre propre réseau tant que vous ne dites pas le
-contraire. Il n'est ouvert à personne d'autre par défaut, et aucun réglage
-de routeur ne change ça tout seul. Choisissez parmi trois avec `SRCDS_REACH`
-dans `.env` :
+Un serveur est fait pour être rejoint depuis ailleurs, donc il prend les
+connexions sur son port de jeu tant que vous ne dites pas le contraire.
+Choisissez parmi trois avec `SRCDS_REACH` dans `.env` :
 
 ```sh
-SRCDS_REACH=lan      # cette machine et le réseau local
+SRCDS_REACH=port     # directement sur le port du jeu, redirigé sur votre routeur. Le défaut.
 SRCDS_REACH=steam    # par le relais Steam, sans port à ouvrir
-SRCDS_REACH=port     # directement sur le port du jeu, redirigé sur votre routeur
+SRCDS_REACH=lan      # cette machine et le réseau local
 ```
 
-`lan` est toute la réponse pour des gens qui jouent dans la même maison. Les
-deux autres atteignent Internet, et les deux demandent un token.
+`lan` est toute la réponse pour des gens qui jouent dans la même maison, et ne
+demande rien d'autre. Les deux autres atteignent Internet, et les deux
+demandent un token.
 
-Posez un token sans rien dire du reach, et vous obtenez `port` : un token ne
-sert à rien d'autre, et le réseau local atteint toujours un serveur qui écoute
-sur son port. Nommer un reach vous-même l'emporte toujours.
+Un serveur sans token reste sur le réseau local quoi que dise le reach, et
+l'écrit dans le journal. Il n'a pas le choix : sans token il n'obtient jamais
+de session Steam, et un serveur sans session refuse tout joueur qui essaie de
+rejoindre, y compris ceux de la même maison.
 
 > **`steam` n'est pas fini.** Le relais n'a jamais été mené jusqu'à un client
-> Team Fortress 2 qui a rejoint. L'onglet **Qui peut rejoindre** du launcher
-> propose le réseau local et un port redirigé ; le bouton du relais n'apparaît
-> que si vous le lancez avec `TF2AP_STEAM_NETWORKING=1`. `SRCDS_REACH=steam`
-> marche dans les deux cas.
+> Team Fortress 2 qui a rejoint. Il est proposé quand même, et c'est pour ça
+> que l'onglet du launcher s'appelle **Who can join (beta)**. `port` est celui
+> sur lequel on a joué.
 
 ## Le token de connexion
 

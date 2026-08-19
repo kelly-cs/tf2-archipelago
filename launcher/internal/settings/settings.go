@@ -114,7 +114,7 @@ func Defaults() Settings {
 		SrcdsMaxPlayers:     32,
 		SrcdsStartMission:   "mvm_decoy",
 		SrcdsToken:          "0",
-		SrcdsReach:          ReachLan,
+		SrcdsReach:          ReachPort,
 		SrcdsBots:           true,
 		SrcdsBotTeamSize:    6,
 		MvmMissionCount:     8,
@@ -124,6 +124,10 @@ func Defaults() Settings {
 		MetricsPort:         24681,
 	}
 }
+
+// EffectiveReach is where the players can come from with the token this server
+// has, which is not always the reach that was asked for. See Effective.
+func (s Settings) EffectiveReach() Reach { return Effective(s.SrcdsReach, s.SrcdsToken) }
 
 // Path returns the config file location. On Windows this is
 // %APPDATA%\tf2ap\config.json; on Linux ~/.config/tf2ap/config.json.
@@ -216,17 +220,13 @@ func (s Settings) withDefaults() Settings {
 		s.SrcdsToken = d.SrcdsToken
 	}
 	if !s.SrcdsReach.Valid() {
-		// A file that predates SrcdsReach says only whether sv_lan was on.
-		// sv_lan off meant a forwarded port, because that was the only way out
-		// at the time. Anything else, including a value nobody recognizes,
-		// falls back to the local network rather than opening the server,
-		// unless the file carries a login token: nothing else uses one.
+		// A file that predates SrcdsReach says only whether sv_lan was on, and
+		// that answer still stands: on meant the local network. A file that
+		// says neither, or says something nobody recognizes, takes the default,
+		// which EffectiveReach keeps local until there is a token to leave with.
 		s.SrcdsReach = d.SrcdsReach
-		if HasToken(s.SrcdsToken) {
-			s.SrcdsReach = ReachPort
-		}
-		if s.SrcdsLanLegacy != nil && !*s.SrcdsLanLegacy {
-			s.SrcdsReach = ReachPort
+		if s.SrcdsLanLegacy != nil && *s.SrcdsLanLegacy {
+			s.SrcdsReach = ReachLan
 		}
 	}
 	s.SrcdsLanLegacy = nil

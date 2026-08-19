@@ -8,8 +8,8 @@ import (
 )
 
 // A config file written before SrcdsReach existed says only whether sv_lan was
-// on. Reading one has to land on the reach it meant, and must never be what
-// puts a server on the internet by surprise.
+// on. Reading one has to land on the reach it meant: a file that said sv_lan
+// was on is a file that asked to stay on the local network.
 func TestOldConfigPicksItsReach(t *testing.T) {
 	cases := []struct {
 		name string
@@ -18,11 +18,9 @@ func TestOldConfigPicksItsReach(t *testing.T) {
 	}{
 		{"sv_lan on", `{"srcds_lan": true}`, ReachLan},
 		{"sv_lan off", `{"srcds_lan": false}`, ReachPort},
-		{"no reach at all", `{}`, ReachLan},
-		{"a reach nobody knows", `{"srcds_reach": "carrier-pigeon"}`, ReachLan},
+		{"no reach at all", `{}`, ReachPort},
+		{"a reach nobody knows", `{"srcds_reach": "carrier-pigeon"}`, ReachPort},
 		{"a reach and the old flag", `{"srcds_reach": "steam", "srcds_lan": true}`, ReachSteam},
-		{"a token and no reach", `{"srcds_token": "C7A1B2E3D4F5A6B7C8D9E0F1A2B3C4D5"}`, ReachPort},
-		{"no token and no reach", `{"srcds_token": "0"}`, ReachLan},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -71,7 +69,7 @@ func TestReachFromEnv(t *testing.T) {
 		reach string
 		want  Reach
 	}{
-		{"neither", "", "", ReachLan},
+		{"neither", "", "", ReachPort},
 		{"old flag on", "1", "", ReachLan},
 		{"old flag off", "0", "", ReachPort},
 		{"reach alone", "", "steam", ReachSteam},

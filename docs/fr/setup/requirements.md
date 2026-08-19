@@ -59,8 +59,10 @@ d'entrer. Voir [Inviter vos amis](invite-your-friends.md).
 ## Ce dont vous n'avez pas besoin
 
 - Aucun compte Steam pour le serveur. `SRCDS_TOKEN=0` fait tourner le
-  serveur sans en avoir un et le garde hors de la liste publique des
-  serveurs. Voir [Inviter vos amis](invite-your-friends.md).
+  serveur sans en avoir un, le garde hors de la liste publique des serveurs,
+  et le garde sur le réseau local : personne d'extérieur ne peut rejoindre un
+  serveur qui ne se connecte jamais. Voir
+  [Inviter vos amis](invite-your-friends.md).
 - Aucune installation de Team Fortress 2 sur l'hôte. Le conteneur télécharge
   la sienne.
 - Aucun compte sur `archipelago.gg`. Le site héberge la session de quiconque
