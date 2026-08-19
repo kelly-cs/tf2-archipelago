@@ -12,7 +12,7 @@
 
 // The plugin-facing contract. The bridge reports its own; a mismatch means one
 // half of the compose file was updated and the other was not.
-#define BridgeAPIVersion 2
+#define BridgeAPIVersion 3
 
 // A mission is at most nine objectives, so nearing this means the bridge has been gone a long time.
 #define PendingMax 64
@@ -41,6 +41,7 @@ enum struct Mission
     char map[64];
     int waves;
     bool unlocked;
+    bool cleared;
 }
 
 enum struct Objective
@@ -123,6 +124,15 @@ void Bridge_LastError(char[] buffer, int maxlength)
 int Bridge_Sequence()
 {
     return g_GrantSeq;
+}
+
+// What sm_ap_status prints about the chat relay: whether a request is in
+// flight and how far the conversation got. A relay that went quiet is the one
+// failure a player reports as "the commands do nothing".
+void Bridge_ChatState(char[] buffer, int maxlength)
+{
+    FormatEx(buffer, maxlength, "%s at sequence %d",
+        g_PollingChat ? "listening" : "NOT listening", g_ChatSeq);
 }
 
 // Read once at load. A plugin and a bridge that disagree about the wire format
@@ -400,12 +410,58 @@ static void OnMissions(HTTPResponse response, any value, const char[] error)
         entry.GetString("map", mission.map, sizeof(mission.map));
         mission.waves = entry.GetInt("waves");
         mission.unlocked = entry.GetBool("unlocked");
+        mission.cleared = entry.GetBool("cleared");
         g_Missions.PushArray(mission);
         delete entry;
     }
     delete missions;
 
     AP_Debug("The plugin holds %d mission(s) of the run.", g_Missions.Length);
+    Missions_OnListUpdated();
+}
+
+// The session as the bridge sees it, for a player who asked. The answer goes
+// to whoever asked by user id: a client index can be somebody else by the time
+// the request comes back.
+void Bridge_FetchHealth(int client)
+{
+    HTTPRequest request = BridgeRequest("/healthz");
+    request.Timeout = 10;
+    request.Get(OnHealthForStatus, client > 0 ? GetClientUserId(client) : 0);
+}
+
+static void OnHealthForStatus(HTTPResponse response, any value, const char[] error)
+{
+    int client = value > 0 ? GetClientOfUserId(value) : 0;
+    if (value > 0 && client <= 0)
+    {
+        return;
+    }
+    if (!StrEqual(error, "") || response.Status != HTTPStatus_OK)
+    {
+        AP_PrintToClient(client, "Bridge: not reachable. Nothing is recorded until it is back.");
+        return;
+    }
+    JSONObject health = view_as<JSONObject>(response.Data);
+    char slot[64], lastError[128];
+    health.GetString("slot", slot, sizeof(slot));
+    if (!health.HasKey("last_error") || !health.GetString("last_error", lastError, sizeof(lastError)))
+    {
+        lastError[0] = '\0';
+    }
+    if (health.GetBool("connected"))
+    {
+        AP_PrintToClient(client, "Bridge: connected as %s. %d check(s) recorded, %d item(s) received.",
+            slot, health.GetInt("checks"), health.GetInt("items"));
+        return;
+    }
+    if (lastError[0] != '\0')
+    {
+        AP_PrintToClient(client, "Bridge: NOT connected to the multiworld. %s", lastError);
+        return;
+    }
+    AP_PrintToClient(client, "Bridge: NOT connected to the multiworld yet. %d check(s) wait on its disk.",
+        health.GetInt("checks"));
 }
 
 void Bridge_FetchUnlocks()
@@ -454,7 +510,7 @@ static void OnUnlocks(HTTPResponse response, any value, const char[] error)
 
     AP_Debug("The plugin applied the unlock set at sequence %d.", g_GrantSeq);
     Unlocks_ApplyToAll();
-    Unlocks_WarnIfMissionLocked();
+    Missions_OnListUpdated();
 
     // Only now. Polling for grants before the unlock set has landed means
     // polling from sequence zero, and every effect in the run arrives again.

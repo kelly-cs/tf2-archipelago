@@ -112,21 +112,6 @@ bool Unlocks_HasMission(const char[] popFile)
     return g_UnlockedMissions.GetValue(popFile, held);
 }
 
-// Warns but never refuses: the map rotation is the operator's, and the checks count either way.
-void Unlocks_WarnIfMissionLocked()
-{
-    if (!g_HaveUnlocks || !MvM_IsActive())
-    {
-        return;
-    }
-    char popFile[64];
-    if (!MvM_PopFile(popFile, sizeof(popFile)) || Unlocks_HasMission(popFile))
-    {
-        return;
-    }
-    AP_Error("The run did not unlock %s. Its checks still count.", popFile);
-}
-
 // A slotless set cannot be right, the generator guarantees one: treat it as not told yet.
 bool Unlocks_Enforceable()
 {
@@ -162,7 +147,9 @@ void Unlocks_ApplyToAll()
     }
 }
 
-// Queued for the next spawn, never forced: an MvM respawn mid-wave hands back the life death cost.
+// Between waves the player is respawned on the spot, which is what the game
+// itself does for a class change there. Mid-wave it waits for the next spawn:
+// a forced respawn then hands back the life the death cost.
 void Unlocks_EnforceClass(int client)
 {
     if (!Unlocks_Enforceable() || !MvM_IsPlayer(client))
@@ -181,8 +168,25 @@ void Unlocks_EnforceClass(int client)
         return;
     }
     TF2_SetPlayerClass(client, allowed, false, true);
+    if (GameRules_GetRoundState() == RoundState_BetweenRounds && IsPlayerAlive(client))
+    {
+        // Not from inside the spawn event that brought us here.
+        RequestFrame(Frame_Respawn, GetClientUserId(client));
+        AP_PrintToClient(client, "The run did not unlock %s. You play %s.",
+            g_ClassKeys[view_as<int>(current)], g_ClassKeys[view_as<int>(allowed)]);
+        return;
+    }
     AP_PrintToClient(client, "The run did not unlock %s. You spawn as %s next time.",
         g_ClassKeys[view_as<int>(current)], g_ClassKeys[view_as<int>(allowed)]);
+}
+
+static void Frame_Respawn(any userid)
+{
+    int client = GetClientOfUserId(userid);
+    if (MvM_IsPlayer(client) && GameRules_GetRoundState() == RoundState_BetweenRounds)
+    {
+        TF2_RespawnPlayer(client);
+    }
 }
 
 TFClassType Unlocks_FirstAllowedClass()

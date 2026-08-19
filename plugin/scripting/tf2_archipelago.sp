@@ -23,15 +23,13 @@
 #include "tf2_archipelago/unlocks.inc"
 #include "tf2_archipelago/deathlink.inc"
 #include "tf2_archipelago/bridge.inc"
+#include "tf2_archipelago/missions.inc"
+#include "tf2_archipelago/bots.inc"
 
 #define PLUGIN_VERSION "1.2.0"
 
 // Only used when the wave events turn out not to exist.
 #define WavePollInterval 1.0
-
-// Long enough after a map change for the mission to be loadable. tf_mvm_popfile
-// reloads the mission in place, so it cannot be run while the map still is.
-#define PopFileDelay 2.0
 
 // Keeps the welcome out of the map load, where it would scroll past unread.
 #define WelcomeDelay 8.0
@@ -59,17 +57,14 @@ int g_PolledWave;
 // Both mission detectors fire on purpose; the bridge dedups, chat should say it once.
 bool g_MissionReported;
 
-// The mission asked for while the map was still changing. tf_mvm_popfile acts
-// on the map that is loaded, so a switch across maps has to wait for the new
-// one before it can name the mission.
-char g_PendingPopFile[64];
-
 public void OnPluginStart()
 {
     Log_Init();
     MvM_Init();
     Unlocks_Init();
     Bridge_Init();
+    Missions_Init();
+    Bots_Init();
 
     g_HaveBeginWave = HookEventEx("mvm_begin_wave", Event_BeginWave);
     g_HaveWaveComplete = HookEventEx("mvm_wave_complete", Event_WaveComplete);
@@ -78,7 +73,9 @@ public void OnPluginStart()
     HookEvent("post_inventory_application", Event_InventoryApplied);
     HookEvent("player_spawn", Event_PlayerSpawn);
 
+    // The class menu sends one, the quick class picker the other.
     AddCommandListener(Command_JoinClass, "joinclass");
+    AddCommandListener(Command_JoinClass, "join_class");
     AddCommandListener(Command_Say, "say");
     AddCommandListener(Command_Say, "say_team");
     RegAdminCmd("sm_ap_status", Command_Status, ADMFLAG_GENERIC,
@@ -126,6 +123,7 @@ public void OnClientPutInServer(int client)
     {
         return;
     }
+    Bots_MakeRoom();
     CreateTimer(WelcomeDelay, Timer_Welcome, GetClientUserId(client));
 }
 
@@ -149,7 +147,7 @@ public Action Timer_Welcome(Handle timer, any userid)
     {
         AP_PrintToClient(client, "Death Link is on: a lost wave kills every linked player, and their deaths wipe this team.");
     }
-    AP_PrintToClient(client, "Type \x07FFD700!ap\x01 to speak to the multiworld. Examples: \x07FFD700!ap hint Class: Scout\x01 and \x07FFD700!ap missing\x01.");
+    AP_PrintToClient(client, "Type \x07FFD700!ap status\x01 for the state of the run, \x07FFD700!ap\x01 to speak to the multiworld. Examples: \x07FFD700!ap hint Class: Scout\x01 and \x07FFD700!ap missing\x01.");
     return Plugin_Stop;
 }
 
@@ -165,14 +163,18 @@ public Action Command_Say(int client, const char[] command, int argc)
     StripQuotes(message);
     TrimString(message);
 
-    if (StrEqual(message, "!ap", false))
+    if (StrEqual(message, "!ap", false) || StrEqual(message, "!ap help", false))
     {
-        AP_PrintToClient(client, "!ap <command> sends a command to the multiworld: hint, missing, status, checked.");
+        AP_PrintToClient(client, "!ap status shows the run: mission, wave, unlocks, and the bridge.");
+        AP_PrintToClient(client, "!ap <command> sends a command to the multiworld: hint, missing, checked, players.");
         AP_PrintToClient(client, "!apchat <text> speaks to the other players in the multiworld.");
-        if (CheckCommandAccess(client, "sm_ap_mission", ADMFLAG_CHANGEMAP))
-        {
-            AP_PrintToClient(client, "!mission lists the run's missions. !mission <number> switches to one.");
-        }
+        AP_PrintToClient(client, "!mission lists the run's missions.%s",
+            CheckCommandAccess(client, "sm_ap_mission", ADMFLAG_CHANGEMAP) ? " !mission <number> switches to one." : "");
+        return Plugin_Handled;
+    }
+    if (StrEqual(message, "!ap status", false) || StrEqual(message, "!apstatus", false))
+    {
+        PrintRunStatus(client);
         return Plugin_Handled;
     }
     if (strncmp(message, "!ap ", 4, false) == 0)
@@ -189,11 +191,7 @@ public Action Command_Say(int client, const char[] command, int argc)
     }
     if (StrEqual(message, "!mission", false) || StrEqual(message, "!missions", false))
     {
-        if (!MissionSwitchAllowed(client))
-        {
-            return Plugin_Handled;
-        }
-        ListMissions(client);
+        Missions_List(client);
         return Plugin_Handled;
     }
     if (strncmp(message, "!mission ", 9, false) == 0)
@@ -205,7 +203,7 @@ public Action Command_Say(int client, const char[] command, int argc)
         char choice[64];
         strcopy(choice, sizeof(choice), message[9]);
         TrimString(choice);
-        SwitchMission(client, choice);
+        Missions_Switch(client, choice);
         return Plugin_Handled;
     }
     if (strncmp(message, "!apchat ", 8, false) == 0)
@@ -226,6 +224,7 @@ public void OnMapStart()
     g_MaxWaves = 0;
     g_PolledWave = 0;
     g_MissionReported = false;
+    Bots_OnMapStart();
 
     // The plugin's copy of the unlock set went with the map; ask before anyone spawns.
     Bridge_FetchUnlocks();
@@ -238,27 +237,10 @@ public void OnConfigsExecuted()
 {
     if (!MvM_IsActive())
     {
-        AP_Debug("This map is not Mann vs Machine. The plugin does nothing here.");
+        AP_Debug("This map is not Mann vs Machine. The plugin waits for the run's mission list.");
         return;
     }
-    if (g_PendingPopFile[0] != '\0')
-    {
-        CreateTimer(PopFileDelay, Timer_ApplyPendingPopFile);
-    }
-}
-
-// tf_mvm_popfile reloads the mission on the map that is already loaded, so the
-// map change goes first and this lands after it.
-public Action Timer_ApplyPendingPopFile(Handle timer)
-{
-    if (g_PendingPopFile[0] == '\0')
-    {
-        return Plugin_Stop;
-    }
-    AP_Debug("The plugin names the mission %s now that the map is up.", g_PendingPopFile);
-    ServerCommand("tf_mvm_popfile %s", g_PendingPopFile);
-    g_PendingPopFile[0] = '\0';
-    return Plugin_Stop;
+    Missions_OnConfigsExecuted();
 }
 
 // The only source of the wave number: mvm_wave_complete does not carry one.
@@ -358,6 +340,7 @@ static void ReportMissionCleared()
     AP_Announce("Mission cleared: %s", popFile);
     Bridge_ReportObjective("mission_cleared", popFile, 0,
         g_MaxWaves > 0 ? g_MaxWaves : MvM_MaxWavesFromGame());
+    Missions_OnMissionCleared(popFile);
 }
 
 // Fallback for a missing mvm_wave_complete: a rising wave counter means a wave was beaten.
@@ -426,97 +409,16 @@ static bool MissionSwitchAllowed(int client)
     return false;
 }
 
-static void ListMissions(int client)
-{
-    int count = Bridge_MissionCount();
-    if (count == 0)
-    {
-        AP_PrintToClient(client, "The plugin has no mission list yet. The bridge has not answered.");
-        return;
-    }
-
-    char current[64];
-    MvM_PopFile(current, sizeof(current));
-
-    AP_PrintToClient(client, "The run holds %d mission(s). Switch with \x07FFD700!mission <number>\x01.", count);
-    for (int index = 0; index < count; index++)
-    {
-        Mission mission;
-        if (!Bridge_MissionAt(index, mission))
-        {
-            continue;
-        }
-        AP_PrintToClient(client, "%d. %s (%s), %d waves%s%s",
-            index + 1, mission.name, mission.popFile, mission.waves,
-            mission.unlocked ? "" : " [locked]",
-            StrEqual(mission.popFile, current) ? " [playing]" : "");
-    }
-}
-
-// Takes a number from the list or a pop file name. The map comes from the
-// bridge: a pop file name does not reliably carry the map it runs on.
-static void SwitchMission(int client, const char[] choice)
-{
-    int count = Bridge_MissionCount();
-    if (count == 0)
-    {
-        AP_PrintToClient(client, "The plugin has no mission list yet. The bridge has not answered.");
-        return;
-    }
-
-    Mission mission;
-    bool found = false;
-    int number = StringToInt(choice);
-    if (number >= 1 && number <= count)
-    {
-        found = Bridge_MissionAt(number - 1, mission);
-    }
-    else
-    {
-        for (int index = 0; index < count && !found; index++)
-        {
-            Mission candidate;
-            if (Bridge_MissionAt(index, candidate) && StrEqual(candidate.popFile, choice, false))
-            {
-                mission = candidate;
-                found = true;
-            }
-        }
-    }
-    if (!found)
-    {
-        AP_PrintToClient(client, "No mission %s in this run. Type !mission for the list.", choice);
-        return;
-    }
-
-    LogMessage("mission switched to %s (%s) on %s", mission.name, mission.popFile, mission.map);
-
-    // tf_mvm_popfile is a command, not a variable, and it acts on the map that
-    // is loaded: it reloads the mission in place. So the map only changes when
-    // it has to, and naming the mission waits for the new map when it does.
-    char current[64];
-    GetCurrentMap(current, sizeof(current));
-    if (StrEqual(current, mission.map, false))
-    {
-        AP_Announce("Mission: %s. Reloading.", mission.name);
-        ServerCommand("tf_mvm_popfile %s", mission.popFile);
-        return;
-    }
-    AP_Announce("Mission: %s. The map changes now.", mission.name);
-    strcopy(g_PendingPopFile, sizeof(g_PendingPopFile), mission.popFile);
-    ServerCommand("changelevel %s", mission.map);
-}
-
 public Action Command_Mission(int client, int argc)
 {
     if (argc < 1)
     {
-        ListMissions(client);
+        Missions_List(client);
         return Plugin_Handled;
     }
     char choice[64];
     GetCmdArg(1, choice, sizeof(choice));
-    SwitchMission(client, choice);
+    Missions_Switch(client, choice);
     return Plugin_Handled;
 }
 
@@ -539,11 +441,51 @@ public Action Command_Status(int client, int argc)
         g_HaveUnlocks ? "held" : "NOT FETCHED", Bridge_Sequence(), Bridge_PendingCount());
     ReplyToCommand(client, "[AP] classes: %s", Status_ClassList());
     ReplyToCommand(client, "[AP] slots: %s", Status_SlotList());
+    char missions[96], chat[64];
+    Missions_Summary(missions, sizeof(missions));
+    Bridge_ChatState(chat, sizeof(chat));
+    ReplyToCommand(client, "[AP] missions: %s", missions);
+    ReplyToCommand(client, "[AP] multiworld chat: %s", chat);
     if (lastError[0] != '\0')
     {
         ReplyToCommand(client, "[AP] Last bridge error: %s", lastError);
     }
     return Plugin_Handled;
+}
+
+// The run as a player sees it, in chat, without a round trip to the
+// multiworld: the mission, the wave, what is unlocked, and whether the bridge
+// is talking to Archipelago. The bridge's line comes back on its own.
+static void PrintRunStatus(int client)
+{
+    char popFile[64], missions[96];
+    MvM_PopFile(popFile, sizeof(popFile));
+    Missions_Summary(missions, sizeof(missions));
+
+    int maxWaves = g_MaxWaves > 0 ? g_MaxWaves : MvM_MaxWavesFromGame();
+    if (!MvM_IsActive())
+    {
+        AP_PrintToClient(client, "This map is not Mann vs Machine.");
+    }
+    else if (g_CurrentWave > 0)
+    {
+        AP_PrintToClient(client, "Mission: %s, wave %d of %d.", popFile, g_CurrentWave, maxWaves);
+    }
+    else
+    {
+        AP_PrintToClient(client, "Mission: %s, between waves, %d waves in all.", popFile, maxWaves);
+    }
+    AP_PrintToClient(client, "Classes: %s. Slots: %s.", Status_ClassList(), Status_SlotList());
+    AP_PrintToClient(client, "Missions: %s. Type !mission for the list.", missions);
+    if (g_DeathLinkOn)
+    {
+        AP_PrintToClient(client, "Death Link is on.");
+    }
+    if (!g_HaveUnlocks)
+    {
+        AP_PrintToClient(client, "The plugin has no unlock set yet. Nothing is enforced.");
+    }
+    Bridge_FetchHealth(client);
 }
 
 static char[] Status_ClassList()
