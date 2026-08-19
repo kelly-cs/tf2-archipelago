@@ -106,6 +106,13 @@ public void OnClientCommandKeyValues_Post(int client, KeyValues kv)
     int count = kv.GetNum("count", 1);
     kv.GoBack();
 
+    // The mod asks for zero charges when a bot's canteen is already full. The
+    // game does nothing with it, so neither does the chat.
+    if (count == 0)
+    {
+        return;
+    }
+
     char upgrade[64];
     if (index >= 0 && index < g_UpgradeNames.Length)
     {
@@ -123,16 +130,25 @@ public void OnClientCommandKeyValues_Post(int client, KeyValues kv)
     AP_Announce("%N bought %s (%s).", client, upgrade, SlotLabel(slot));
 }
 
+// The loadout slot MVM_Upgrade carries, which is not the weapon slot: the
+// canteen is slot 9, and slot 4 is the Engineer's buildings and the Spy's
+// sapper. Everything above three used to read as a canteen, which is how an
+// Engineer buying sentry damage filled the chat with canteens.
 static char[] SlotLabel(int slot)
 {
     char label[16];
     switch (slot)
     {
+        case -1: strcopy(label, sizeof(label), "player");
         case 0: strcopy(label, sizeof(label), "primary");
         case 1: strcopy(label, sizeof(label), "secondary");
         case 2: strcopy(label, sizeof(label), "melee");
-        case -1: strcopy(label, sizeof(label), "player");
-        default: strcopy(label, sizeof(label), "canteen");
+        case 3: strcopy(label, sizeof(label), "utility");
+        case 4: strcopy(label, sizeof(label), "building");
+        case 5: strcopy(label, sizeof(label), "pda");
+        case 6: strcopy(label, sizeof(label), "watch");
+        case 9: strcopy(label, sizeof(label), "canteen");
+        default: FormatEx(label, sizeof(label), "slot %d", slot);
     }
     return label;
 }
