@@ -17,9 +17,9 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
-	"github.com/m-this/tf2-archipelago/gamedata"
 	"github.com/m-this/tf2-archipelago/launcher/internal/assets"
 	"github.com/m-this/tf2-archipelago/launcher/internal/gui"
 	"github.com/m-this/tf2-archipelago/launcher/internal/installer"
@@ -204,19 +204,12 @@ func summary(s settings.Settings) {
 	path, _ := settings.Path()
 	fmt.Println()
 	fmt.Printf("  room     %s (%s), slot %s\n", room, scheme, s.APSlotName)
-	fmt.Printf("  server   %q on port %d, %s\n", s.SrcdsHostname, s.SrcdsPort, lanLabel(s.SrcdsLan))
-	fmt.Printf("  map      %s\n", s.SrcdsStartMap)
+	fmt.Printf("  server   %q on port %d, %s\n", s.SrcdsHostname, s.SrcdsPort, s.Reach().Label())
+	fmt.Printf("  mission  %s\n", runshape.MissionLabel(s.SrcdsStartMission))
 	fmt.Printf("  bots     %s\n", botsStatus(s))
 	fmt.Printf("  run      %d missions, %s, goal %s\n", s.MvmMissionCount, s.MvmDifficulty, s.MvmGoal)
 	fmt.Printf("  rcon     %s\n", s.SrcdsRconPw)
 	fmt.Printf("\ntf2ap.exe -configure changes any of this. It is saved in %s.\n", path)
-}
-
-func lanLabel(lan bool) string {
-	if lan {
-		return "local network"
-	}
-	return "public"
 }
 
 func configure(p *ui.Prompt, s settings.Settings) settings.Settings {
@@ -241,10 +234,13 @@ func configure(p *ui.Prompt, s settings.Settings) settings.Settings {
 	s.SrcdsRconPw = p.Password("RCON password", s.SrcdsRconPw)
 	s.SrcdsPw = p.Password("Player password (blank for none)", s.SrcdsPw)
 	s.SrcdsPort = p.Int("Game port", s.SrcdsPort)
-	s.SrcdsStartMap = p.Select("Start map", mapOptions(), s.SrcdsStartMap)
+	s.SrcdsStartMission = p.Select("Start mission", missionOptions(), s.SrcdsStartMission)
 	s.SrcdsAdminSteamIDs = p.Text("Admin Steam IDs (comma-separated, blank for none)", s.SrcdsAdminSteamIDs)
-	s.SrcdsLan = p.Bool("LAN mode (yes for friends, no for public)", s.SrcdsLan)
-	if s.SrcdsLan {
+	for _, reach := range settings.Reaches() {
+		fmt.Printf("  %-6s %s\n", reach, reach.Help())
+	}
+	s = s.WithReach(settings.ParseReach(p.Select("Who can join", reachOptions(), string(s.Reach()))))
+	if s.Reach() == settings.ReachLan {
 		s.SrcdsToken = "0"
 	} else {
 		s.SrcdsToken = p.Text("Game Server Login Token", s.SrcdsToken)
@@ -254,6 +250,10 @@ func configure(p *ui.Prompt, s settings.Settings) settings.Settings {
 	s.SrcdsBots = p.Bool("Fill the RED team with bots", s.SrcdsBots)
 	if s.SrcdsBots {
 		s.SrcdsBotTeamSize = p.Int("Fill RED to how many players", s.SrcdsBotTeamSize)
+		s.SrcdsBotClassBlacklist = settings.SplitList(p.Text(
+			"Classes the bots never play (comma-separated: sniper,spy)",
+			strings.Join(s.SrcdsBotClassBlacklist, ",")))
+		s.BotUpgradesChat = p.Bool("Say what the bots buy in the chat", s.BotUpgradesChat)
 	}
 
 	fmt.Println("\n--- Run shape ---")
@@ -276,25 +276,31 @@ func configure(p *ui.Prompt, s settings.Settings) settings.Settings {
 			s.MvmMissionsanityPct, 10, 100)
 	}
 	s.MvmDeathLink = p.Bool("Death Link, a lost wave kills every linked player and their deaths wipe the team", s.MvmDeathLink)
+	s.MvmExcludedMissions = settings.SplitList(p.Text(
+		"Missions the run never draws (comma-separated popfiles, e.g. mvm_ghost_town_666)",
+		strings.Join(s.MvmExcludedMissions, ",")))
 
 	fmt.Println("\n--- Install location ---")
 	s.InstallRoot = p.Text("Install root (14 GB of game files)", s.InstallRoot)
 	return s
 }
 
-// mapOptions lists the seven Valve MvM maps, each with the mission the server
-// loads with it. gamedata owns that list; see ADR 0001.
-func mapOptions() []ui.Option {
-	options := make([]ui.Option, 0, len(gamedata.Maps))
-	for _, m := range gamedata.Maps {
-		label := m.Name
-		for _, mission := range gamedata.Missions {
-			if mission.Map == m.ID {
-				label = fmt.Sprintf("%-16s %s", m.Name, mission.Name)
-				break
-			}
-		}
-		options = append(options, ui.Option{Value: m.Name, Label: label})
+// missionOptions lists the 29 Valve missions as map - mission. gamedata owns
+// that list; see ADR 0001.
+func missionOptions() []ui.Option {
+	choices := runshape.MissionChoices()
+	options := make([]ui.Option, 0, len(choices))
+	for _, choice := range choices {
+		options = append(options, ui.Option{Value: choice.PopFile, Label: choice.Label})
+	}
+	return options
+}
+
+func reachOptions() []ui.Option {
+	reaches := settings.Reaches()
+	options := make([]ui.Option, 0, len(reaches))
+	for _, reach := range reaches {
+		options = append(options, ui.Option{Value: string(reach), Label: reach.Label()})
 	}
 	return options
 }
@@ -329,8 +335,8 @@ func showStatus(s settings.Settings) {
 	fmt.Printf("Install root:  %s\n", s.InstallRoot)
 	fmt.Printf("Archipelago:   %s (tls=%v)\n", settings.Room{Host: s.APHost, Port: s.APPort}, s.APTls)
 	fmt.Printf("Slot:          %s\n", s.APSlotName)
-	fmt.Printf("Server:        %s on port %d (lan=%v)\n", s.SrcdsHostname, s.SrcdsPort, s.SrcdsLan)
-	fmt.Printf("Start map:     %s\n", s.SrcdsStartMap)
+	fmt.Printf("Server:        %s on port %d (%s)\n", s.SrcdsHostname, s.SrcdsPort, s.Reach())
+	fmt.Printf("Start mission: %s\n", runshape.MissionLabel(s.SrcdsStartMission))
 	fmt.Printf("Run:           %d missions, %s, goal=%s\n", s.MvmMissionCount, s.MvmDifficulty, s.MvmGoal)
 	fmt.Printf("Bots:          %s\n", botsStatus(s))
 	fmt.Printf("RCON password: %s\n", masked(s.SrcdsRconPw))

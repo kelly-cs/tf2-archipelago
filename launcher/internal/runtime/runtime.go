@@ -19,6 +19,7 @@ import (
 
 	"github.com/m-this/tf2-archipelago/bridge"
 	"github.com/m-this/tf2-archipelago/bridge/config"
+	"github.com/m-this/tf2-archipelago/gamedata"
 	"github.com/m-this/tf2-archipelago/launcher/internal/settings"
 	"github.com/m-this/tf2-archipelago/launcher/internal/winproc"
 )
@@ -102,26 +103,7 @@ func runSrcdsWithSink(ctx context.Context, s settings.Settings, logger *slog.Log
 	if _, err := os.Stat(filepath.Join(gameDir, "srcds_run")); err == nil {
 		exeName = "srcds_run"
 	}
-	args := []string{
-		"-game", "tf",
-		"-usercon",
-		"+maxplayers", fmt.Sprintf("%d", s.SrcdsMaxPlayers),
-		"+map", s.SrcdsStartMap,
-		"+hostport", fmt.Sprintf("%d", s.SrcdsPort),
-		"+rcon_password", s.SrcdsRconPw,
-	}
-	if exeName == "srcds.exe" {
-		// Without -console, srcds.exe opens its own window and waits for a
-		// click on Start, so the launcher would sit there having apparently
-		// done nothing. -nocrashdialog keeps a crash from doing the same.
-		args = append([]string{"-console", "-nocrashdialog"}, args...)
-	}
-	if s.SrcdsLan {
-		args = append(args, "+sv_lan", "1")
-	}
-	if s.SrcdsPw != "" {
-		args = append(args, "+sv_password", s.SrcdsPw)
-	}
+	args := srcdsArgs(s, exeName == "srcds.exe")
 	cmd := exec.CommandContext(ctx, filepath.Join(gameDir, exeName), args...)
 	cmd.Dir = gameDir
 	// -console reads the console input buffer, so the server needs a real one
@@ -159,6 +141,53 @@ func runSrcdsWithSink(ctx context.Context, s settings.Settings, logger *slog.Log
 		return nil //nolint:nilerr // context cancellation kills the subprocess; the wait error is expected
 	}
 	return waitErr
+}
+
+// srcdsArgs is the game server's command line. The map comes from the start
+// mission; the plugin names the mission itself once the map is up. The login
+// token and Steam's relay are command-line matters: sv_setsteamaccount is
+// refused once the server runs, and -enablefakeip is a launch flag.
+func srcdsArgs(s settings.Settings, windows bool) []string {
+	args := []string{
+		"-game", "tf",
+		"-usercon",
+		"+maxplayers", fmt.Sprintf("%d", s.SrcdsMaxPlayers),
+		"+map", StartMap(s),
+		"+hostport", fmt.Sprintf("%d", s.SrcdsPort),
+		"+rcon_password", s.SrcdsRconPw,
+	}
+	if windows {
+		// Without -console, srcds.exe opens its own window and waits for a
+		// click on Start, so the launcher would sit there having apparently
+		// done nothing. -nocrashdialog keeps a crash from doing the same.
+		args = append([]string{"-console", "-nocrashdialog"}, args...)
+	}
+	switch s.Reach() {
+	case settings.ReachLan:
+		args = append(args, "+sv_lan", "1")
+	case settings.ReachSteam:
+		args = append(args, "+sv_lan", "0", "-enablefakeip")
+	default:
+		args = append(args, "+sv_lan", "0")
+	}
+	if s.Reach() != settings.ReachLan && s.HasToken() {
+		args = append(args, "+sv_setsteamaccount", s.SrcdsToken)
+	}
+	if s.SrcdsPw != "" {
+		args = append(args, "+sv_password", s.SrcdsPw)
+	}
+	return args
+}
+
+// StartMap is the map the start mission runs on. A mission the tables do not
+// know is taken as a map name, which is what an older setting held.
+func StartMap(s settings.Settings) string {
+	if mission, ok := gamedata.MissionByPopFile(s.SrcdsStartMission); ok {
+		if played, ok := gamedata.MapByID(mission.Map); ok {
+			return played.Name
+		}
+	}
+	return s.SrcdsStartMission
 }
 
 // report says something to whoever is listening. The window passes a sink and

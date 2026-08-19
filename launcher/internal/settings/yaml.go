@@ -4,7 +4,10 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
+
+	"github.com/m-this/tf2-archipelago/gamedata"
 )
 
 // Game is the name the apworld registers with Archipelago. It has to match
@@ -33,7 +36,29 @@ func PlayerYAML(s Settings, archipelagoVersion string) string {
 	fmt.Fprintf(&b, "  goal: %s\n", s.MvmGoal)
 	fmt.Fprintf(&b, "  missionsanity_percentage: %d\n", s.MvmMissionsanityPct)
 	fmt.Fprintf(&b, "  death_link: %t\n", s.MvmDeathLink)
+	names := ExcludedMissionNames(s)
+	if len(names) == 0 {
+		b.WriteString("  excluded_missions: []\n")
+	} else {
+		b.WriteString("  excluded_missions:\n")
+		for _, name := range names {
+			fmt.Fprintf(&b, "    - %s\n", yamlString(name))
+		}
+	}
 	return b.String()
+}
+
+// ExcludedMissionNames turns the popfiles the settings hold into the names the
+// apworld option takes, in table order, dropping anything the tables do not
+// know.
+func ExcludedMissionNames(s Settings) []string {
+	names := make([]string, 0, len(s.MvmExcludedMissions))
+	for _, mission := range gamedata.Missions {
+		if slices.Contains(s.MvmExcludedMissions, mission.PopFile) {
+			names = append(names, mission.Name)
+		}
+	}
+	return names
 }
 
 // yamlString quotes a scalar. The game name holds spaces and the slot name is

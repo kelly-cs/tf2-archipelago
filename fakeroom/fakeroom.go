@@ -19,6 +19,7 @@ import (
 	"math/rand/v2"
 	"net"
 	"net/http"
+	"slices"
 	"sync"
 	"time"
 
@@ -55,6 +56,10 @@ type Options struct {
 	Log          func(string)
 	MissionCount int
 
+	// Excluded is the popfiles a test run leaves out, the way the real
+	// generator's excluded_missions does.
+	Excluded []string
+
 	// DeathLink makes the made-up seed ask for it, so the deaths this room
 	// invents take the team down the way a real multiworld's would.
 	DeathLink bool
@@ -84,7 +89,7 @@ func Start(ctx context.Context, options Options) (*Room, string, error) {
 	}
 	missions := options.Missions
 	if len(missions) == 0 {
-		missions = defaultMissions(options.MissionCount)
+		missions = defaultMissions(options.MissionCount, options.Excluded)
 	}
 	goal := options.Goal
 	if goal == "" {
@@ -361,14 +366,24 @@ func unlockOrder() []int64 {
 }
 
 // defaultMissions picks the first missions the game data lists, which is the
-// normal tier first: the gentlest thing to test against.
-func defaultMissions(count int) []string {
+// normal tier first: the gentlest thing to test against. Excluded popfiles
+// are skipped, and the count is bounded by what is left.
+func defaultMissions(count int, excluded []string) []string {
 	if count <= 0 || count > len(gamedata.Missions) {
 		count = 8
 	}
 	missions := make([]string, 0, count)
-	for _, mission := range gamedata.Missions[:count] {
+	for _, mission := range gamedata.Missions {
+		if len(missions) == count {
+			break
+		}
+		if slices.Contains(excluded, mission.PopFile) {
+			continue
+		}
 		missions = append(missions, mission.PopFile)
+	}
+	if len(missions) == 0 {
+		missions = append(missions, gamedata.Missions[0].PopFile)
 	}
 	return missions
 }

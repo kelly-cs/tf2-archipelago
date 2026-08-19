@@ -1,9 +1,9 @@
 //go:build windows
 
-// Package gui is the launcher's window: a log view, the buttons that start and
-// stop the server, and a box that sends RCON commands to it. It is the whole
-// interface on Windows, where a player double-clicks the exe and never opens a
-// terminal.
+// Package gui is the launcher's window: a log view, a view of the run, the
+// buttons that start and stop the server, and a box that sends RCON commands
+// to it. It is the whole interface on Windows, where a player double-clicks
+// the exe and never opens a terminal.
 package gui
 
 import (
@@ -21,11 +21,11 @@ import (
 	declarative "github.com/lxn/walk/declarative"
 	"github.com/lxn/win"
 
-	"github.com/m-this/tf2-archipelago/gamedata"
 	"github.com/m-this/tf2-archipelago/launcher/internal/assets"
 	"github.com/m-this/tf2-archipelago/launcher/internal/installer"
 	"github.com/m-this/tf2-archipelago/launcher/internal/rcon"
 	apruntime "github.com/m-this/tf2-archipelago/launcher/internal/runtime"
+	"github.com/m-this/tf2-archipelago/launcher/internal/session"
 	"github.com/m-this/tf2-archipelago/launcher/internal/settings"
 	"github.com/m-this/tf2-archipelago/launcher/internal/srcdsconfig"
 	"github.com/m-this/tf2-archipelago/launcher/internal/winproc"
@@ -43,17 +43,33 @@ const (
 	// the window one line at a time floods its message queue and it stops
 	// repainting, which reads as a frozen log.
 	flushEvery = 120 * time.Millisecond
+
+	// sessionEvery is how often the Session tab asks the bridge for the run.
+	// The bridge is on loopback and the answer is two small documents.
+	sessionEvery = 5 * time.Second
+)
+
+// The status light. Red, amber and green, the way every other status light
+// reads.
+var (
+	colorStopped  = walk.RGB(200, 40, 40)
+	colorStarting = walk.RGB(220, 150, 0)
+	colorRunning  = walk.RGB(30, 160, 60)
+	colorMuted    = walk.RGB(110, 110, 110)
 )
 
 type window struct {
 	main       *walk.MainWindow
+	light      *walk.Label
 	status     *walk.Label
 	room       *walk.Label
+	join       *walk.Label
 	log        *walk.TextEdit
 	command    *walk.LineEdit
 	startStop  *walk.PushButton
 	restart    *walk.PushButton
 	settingsBt *walk.PushButton
+	session    *sessionTab
 
 	supervisor *apruntime.Supervisor
 	logger     *slog.Logger
@@ -65,6 +81,10 @@ type window struct {
 	busy          bool
 	cancelInstall context.CancelFunc
 	logFile       *os.File
+
+	// steamAddress is the relayed address the game server printed, empty
+	// until it does and after every stop: it is a new one every start.
+	steamAddress string
 }
 
 // Run opens the window and blocks until the player closes it. The server is
@@ -78,7 +98,7 @@ func Run(s settings.Settings, logger *slog.Logger) error {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	w := &window{logger: logger}
+	w := &window{logger: logger, session: newSessionTab()}
 	w.supervisor = apruntime.NewSupervisor(s, nil, w.append)
 	w.openLogFile(s.InstallRoot)
 	defer func() {
@@ -99,10 +119,11 @@ func Run(s settings.Settings, logger *slog.Logger) error {
 		w.say("logging to %s", w.logFile.Name())
 	}
 	w.writePlayerFile(s)
+	go w.watchSession()
 
 	// A first run has no room address, so the settings dialog is the first
 	// thing on screen rather than an error in the log.
-	if s.APPort == 0 {
+	if s.APPort == 0 && !s.TestMode {
 		w.main.Synchronize(func() { w.editSettings() })
 	} else {
 		go w.start()
@@ -117,7 +138,7 @@ func (w *window) build() error {
 	return declarative.MainWindow{
 		AssignTo: &w.main,
 		Title:    "Mann vs Archipelago",
-		Size:     declarative.Size{Width: 900, Height: 600},
+		Size:     declarative.Size{Width: 960, Height: 640},
 		Layout:   declarative.VBox{},
 		Children: []declarative.Widget{
 			declarative.Composite{
@@ -125,31 +146,58 @@ func (w *window) build() error {
 				MaxSize:   declarative.Size{Height: 28},
 				Alignment: declarative.AlignHNearVCenter,
 				Children: []declarative.Widget{
+					declarative.Label{AssignTo: &w.light, Text: "●", TextColor: colorStopped, MinSize: declarative.Size{Width: 16}, ToolTipText: "Red: stopped. Amber: starting. Green: running."},
 					declarative.Label{AssignTo: &w.status, Text: "stopped", MinSize: declarative.Size{Width: 60}},
-					declarative.Label{AssignTo: &w.room, Text: "", MinSize: declarative.Size{Width: 240}},
+					declarative.Label{AssignTo: &w.room, Text: "", TextColor: colorMuted, MinSize: declarative.Size{Width: 240}},
 					declarative.HSpacer{},
 					declarative.PushButton{AssignTo: &w.startStop, Text: "Start", OnClicked: w.onStartStop, MinSize: declarative.Size{Width: 90}},
 					declarative.PushButton{AssignTo: &w.restart, Text: "Restart", OnClicked: w.onRestart, MinSize: declarative.Size{Width: 90}},
 					declarative.PushButton{AssignTo: &w.settingsBt, Text: "Settings", OnClicked: w.editSettings, MinSize: declarative.Size{Width: 90}},
 				},
 			},
-			// No HScroll, and a MinSize rather than a preferred size: a
-			// TextEdit sized by its content makes one long log line stretch
-			// the whole window past the screen.
-			declarative.TextEdit{
-				AssignTo:      &w.log,
-				ReadOnly:      true,
-				VScroll:       true,
-				MinSize:       declarative.Size{Width: 400, Height: 200},
-				StretchFactor: 1,
-			},
+			// The addresses friends type after "connect". Every address of
+			// this machine, because the launcher cannot know which network
+			// the friends are on, and the relayed one once Steam hands it out.
 			declarative.Composite{
 				Layout:  declarative.HBox{MarginsZero: true},
-				MaxSize: declarative.Size{Height: 28},
+				MaxSize: declarative.Size{Height: 24},
 				Children: []declarative.Widget{
-					declarative.Label{Text: "rcon", MinSize: declarative.Size{Width: 30}},
-					declarative.LineEdit{AssignTo: &w.command, OnKeyDown: w.onCommandKey},
-					declarative.PushButton{Text: "Send", OnClicked: w.onSend, MinSize: declarative.Size{Width: 90}},
+					declarative.Label{Text: "Join:", TextColor: colorMuted, MinSize: declarative.Size{Width: 32}},
+					declarative.Label{AssignTo: &w.join, Text: "", ToolTipText: "What your friends type after connect in the developer console."},
+					declarative.HSpacer{},
+					declarative.PushButton{Text: "Copy", ToolTipText: "Copy the join line to the clipboard.", OnClicked: w.copyJoin, MinSize: declarative.Size{Width: 60}},
+				},
+			},
+			declarative.TabWidget{
+				StretchFactor: 1,
+				Pages: []declarative.TabPage{
+					{
+						Title:  "Log",
+						Layout: declarative.VBox{MarginsZero: true},
+						Children: []declarative.Widget{
+							// No HScroll, and a MinSize rather than a preferred
+							// size: a TextEdit sized by its content makes one
+							// long log line stretch the whole window past the
+							// screen.
+							declarative.TextEdit{
+								AssignTo:      &w.log,
+								ReadOnly:      true,
+								VScroll:       true,
+								MinSize:       declarative.Size{Width: 400, Height: 200},
+								StretchFactor: 1,
+							},
+							declarative.Composite{
+								Layout:  declarative.HBox{MarginsZero: true},
+								MaxSize: declarative.Size{Height: 28},
+								Children: []declarative.Widget{
+									declarative.Label{Text: "rcon", MinSize: declarative.Size{Width: 30}},
+									declarative.LineEdit{AssignTo: &w.command, OnKeyDown: w.onCommandKey},
+									declarative.PushButton{Text: "Send", OnClicked: w.onSend, MinSize: declarative.Size{Width: 90}},
+								},
+							},
+						},
+					},
+					w.session.page(w.switchMission),
 				},
 			},
 		},
@@ -180,6 +228,24 @@ func (w *window) append(line apruntime.Line) {
 
 	if queue {
 		time.AfterFunc(flushEvery, func() { w.main.Synchronize(w.flush) })
+	}
+	if line.Source == "srcds" {
+		if address, ok := apruntime.FakeIP(line.Text); ok {
+			w.noteSteamAddress(address)
+		}
+	}
+}
+
+// noteSteamAddress keeps the relayed address the game server printed and
+// puts it in the join line.
+func (w *window) noteSteamAddress(address string) {
+	w.mu.Lock()
+	changed := w.steamAddress != address
+	w.steamAddress = address
+	w.mu.Unlock()
+	if changed && w.main != nil {
+		w.say("Steam relays this server at %s: your friends type connect %s", address, address)
+		w.main.Synchronize(w.refresh)
 	}
 }
 
@@ -258,6 +324,7 @@ func (w *window) start() {
 		return
 	}
 	w.busy, w.cancelInstall = true, cancel
+	w.steamAddress = ""
 	w.mu.Unlock()
 	defer func() {
 		cancel()
@@ -311,22 +378,30 @@ func (w *window) refresh() {
 
 	w.mu.Lock()
 	busy := w.busy
+	steamAddress := w.steamAddress
 	w.mu.Unlock()
 
 	switch {
 	case busy && !running:
+		w.light.SetTextColor(colorStarting)
 		w.status.SetText("starting")
 	case running:
+		w.light.SetTextColor(colorRunning)
 		w.status.SetText("running")
 	default:
+		w.light.SetTextColor(colorStopped)
 		w.status.SetText("stopped")
 	}
 	room := settings.Room{Host: s.APHost, Port: s.APPort}
-	if room.Port == 0 {
+	switch {
+	case s.TestMode:
+		w.room.SetText(fmt.Sprintf("test mode   %s", apruntime.StartMap(s)))
+	case room.Port == 0:
 		w.room.SetText("no room set")
-	} else {
-		w.room.SetText(fmt.Sprintf("room %s   map %s", room, s.SrcdsStartMap))
+	default:
+		w.room.SetText(fmt.Sprintf("room %s   %s", room, apruntime.StartMap(s)))
 	}
+	w.join.SetText(joinLine(s, steamAddress))
 	if running {
 		w.startStop.SetText("Stop")
 	} else {
@@ -334,6 +409,41 @@ func (w *window) refresh() {
 	}
 	w.restart.SetEnabled(running)
 	w.command.SetEnabled(running)
+	w.session.setRunning(running)
+}
+
+// joinLine is what the status bar shows under the buttons: every address of
+// this machine on the game port, and the relayed one when Steam has handed it
+// out. Over Steam, that address is the one to give out; the others still work
+// for the people in the room.
+func joinLine(s settings.Settings, steamAddress string) string {
+	port := fmt.Sprintf("%d", s.SrcdsPort)
+	var parts []string
+	if s.Reach() == settings.ReachSteam {
+		if steamAddress == "" {
+			parts = append(parts, "waiting for Steam to assign an address")
+		} else {
+			parts = append(parts, steamAddress+" (Steam, from anywhere)")
+		}
+	}
+	for _, address := range apruntime.LocalAddresses() {
+		parts = append(parts, address+":"+port)
+	}
+	if len(parts) == 0 {
+		parts = append(parts, "127.0.0.1:"+port)
+	}
+	line := strings.Join(parts, "   ")
+	if s.SrcdsPw != "" {
+		line += "   (password " + s.SrcdsPw + ")"
+	}
+	return line
+}
+
+// copyJoin puts the join line on the clipboard, so it can go into a chat.
+func (w *window) copyJoin() {
+	if err := walk.Clipboard().SetText(w.join.Text()); err != nil {
+		w.say("cannot copy: %v", err)
+	}
 }
 
 // onCommandKey sends on Enter. OnEditingFinished would also fire when the box
@@ -353,8 +463,13 @@ func (w *window) onSend() {
 		return
 	}
 	w.command.SetText("")
-	w.say("> %s", command)
+	w.runRcon(command)
+}
 
+// runRcon sends one command and logs the answer. The Session tab uses it for
+// the mission switch, the rcon box for whatever was typed.
+func (w *window) runRcon(command string) {
+	w.say("> %s", command)
 	s := w.supervisor.Settings()
 	go func() {
 		address := fmt.Sprintf("127.0.0.1:%d", s.SrcdsPort)
@@ -375,6 +490,31 @@ func (w *window) onSend() {
 			}
 		}
 	}()
+}
+
+// switchMission is what the Session tab's button does: the plugin's own
+// switcher, over rcon, which refuses a mission the run has not unlocked.
+func (w *window) switchMission(popFile string) {
+	if !w.supervisor.Running() {
+		w.say("the server is not running")
+		return
+	}
+	w.runRcon("sm_ap_mission " + popFile)
+}
+
+// watchSession asks the bridge for the run every few seconds while the server
+// is up, and hands the answer to the Session tab. It never touches the window
+// itself: the tab does that on the UI thread.
+func (w *window) watchSession() {
+	ticker := time.NewTicker(sessionEvery)
+	defer ticker.Stop()
+	for range ticker.C {
+		if !w.supervisor.Running() {
+			continue
+		}
+		snapshot, err := session.Fetch(context.Background(), session.BridgeURL)
+		w.main.Synchronize(func() { w.session.update(snapshot, err) })
+	}
 }
 
 // idle stops the server and any install in flight, and waits for both. Repair
@@ -462,15 +602,6 @@ func (w *window) writePlayerFile(s settings.Settings) {
 		return
 	}
 	w.say("wrote %s: copy it into the Archipelago app's Players folder to generate the seed", path)
-}
-
-// mapNames lists the maps for the dialog's combo box. gamedata owns the list.
-func mapNames() []string {
-	names := make([]string, 0, len(gamedata.Maps))
-	for _, m := range gamedata.Maps {
-		names = append(names, m.Name)
-	}
-	return names
 }
 
 // Available reports whether this build has a window.

@@ -13,18 +13,23 @@ import (
 	"text/template"
 
 	"github.com/m-this/tf2-archipelago/launcher/internal/assets"
+	"github.com/m-this/tf2-archipelago/launcher/internal/botloadout"
 	"github.com/m-this/tf2-archipelago/launcher/internal/settings"
 )
 
-// Install writes server.cfg, admins_simple.ini and tf2_archipelago.cfg into the
-// game tree, under <installRoot>/tf-dedicated/tf. It rewrites only when the
-// content differs, so it is safe to call on every start.
+// Install writes server.cfg, admins_simple.ini, the bots' loadout file and
+// tf2_archipelago.cfg into the game tree, under <installRoot>/tf-dedicated/tf.
+// It rewrites only when the content differs, so it is safe to call on every
+// start.
 func Install(s settings.Settings) error {
 	gameDir := filepath.Join(s.InstallRoot, "tf-dedicated", "tf")
 	if err := installServerCfg(gameDir, s); err != nil {
 		return err
 	}
 	if err := installAdmins(gameDir, s.SrcdsAdminSteamIDs); err != nil {
+		return err
+	}
+	if err := installBotLoadout(gameDir, s.SrcdsBotLoadouts); err != nil {
 		return err
 	}
 	return installPluginCfg(gameDir)
@@ -41,12 +46,16 @@ func installServerCfg(gameDir string, s settings.Settings) error {
 	}
 	var buf bytes.Buffer
 	if err := tmpl.Execute(&buf, map[string]any{
-		"Hostname":       s.SrcdsHostname,
-		"RconPassword":   s.SrcdsRconPw,
-		"PlayerPassword": s.SrcdsPw,
-		"Lan":            boolToInt(s.SrcdsLan),
-		"BotsMode":       botsMode(s.SrcdsBots),
-		"BotTeamSize":    s.SrcdsBotTeamSize,
+		"Hostname":          s.SrcdsHostname,
+		"RconPassword":      s.SrcdsRconPw,
+		"PlayerPassword":    s.SrcdsPw,
+		"Lan":               boolToInt(s.SrcdsLan),
+		"BotsMode":          botsMode(s.SrcdsBots),
+		"BotTeamSize":       s.SrcdsBotTeamSize,
+		"BotClassBlacklist": botloadout.Blacklist(s.SrcdsBotClassBlacklist),
+		"BotCustomLoadouts": boolToInt(botloadout.Custom(s.SrcdsBotLoadouts)),
+		"BotUpgradesChat":   boolToInt(s.BotUpgradesChat),
+		"StartMission":      s.SrcdsStartMission,
 	}); err != nil {
 		return fmt.Errorf("cannot render server.cfg: %w", err)
 	}
@@ -81,12 +90,34 @@ func installAdmins(gameDir, list string) error {
 	return writeIfChanged(target, []byte(b.String()))
 }
 
+// installBotLoadout writes the bots' loadout file when a class has a preset,
+// and removes it otherwise: the mod reads the file's presence as "the server
+// decides", and stock everywhere is the mod's own default.
+func installBotLoadout(gameDir string, picks map[string]string) error {
+	target := filepath.Join(gameDir, "addons", "sourcemod", "configs", "defenderbots", "loadout.cfg")
+	if !botloadout.Custom(picks) {
+		if err := os.Remove(target); err != nil && !os.IsNotExist(err) {
+			return fmt.Errorf("cannot remove %s: %w", target, err)
+		}
+		return nil
+	}
+	if _, err := os.Stat(filepath.Dir(target)); os.IsNotExist(err) {
+		return nil
+	}
+	return writeIfChanged(target, []byte(botloadout.Render(picks)))
+}
+
+// installPluginCfg drops the plugin's config once. After that the file belongs
+// to whoever runs the server: a debug flag they turned on stays on.
 func installPluginCfg(gameDir string) error {
 	target := filepath.Join(gameDir, "cfg", "sourcemod", "tf2_archipelago.cfg")
 	if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
 		return fmt.Errorf("cannot create the sourcemod cfg directory: %w", err)
 	}
-	return writeIfChanged(target, assets.PluginConfig())
+	if _, err := os.Stat(target); err == nil {
+		return nil
+	}
+	return os.WriteFile(target, assets.PluginConfig(), 0o644)
 }
 
 // steamIDForSourcemod converts a SteamID64 (17 digits) to STEAM_0:X:Y, and

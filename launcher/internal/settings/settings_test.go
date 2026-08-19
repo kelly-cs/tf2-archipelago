@@ -98,3 +98,41 @@ func TestConfigFilePermissions(t *testing.T) {
 		t.Errorf("config file mode: got %o, want 0600", info.Mode().Perm())
 	}
 }
+
+// A file from before the start mission existed names a map. The mission the
+// server starts on is then that map's first mission.
+func TestLoadMigratesTheStartMap(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	t.Setenv("APPDATA", filepath.Join(t.TempDir(), "AppData", "Roaming"))
+
+	path, _ := Path()
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, []byte(`{"srcds_start_map": "mvm_coaltown"}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	loaded, err := Load()
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if loaded.SrcdsStartMission != "mvm_coaltown" {
+		t.Errorf("start mission = %q, want the first Coal Town mission", loaded.SrcdsStartMission)
+	}
+	if loaded.SrcdsStartMap != "" {
+		t.Errorf("the start map survived the migration: %q", loaded.SrcdsStartMap)
+	}
+}
+
+func TestReachIsTwoFlags(t *testing.T) {
+	var s Settings
+	for _, reach := range Reaches() {
+		s = s.WithReach(reach)
+		if s.Reach() != reach {
+			t.Errorf("WithReach(%s) reads back %s", reach, s.Reach())
+		}
+	}
+	if ParseReach("nonsense") != ReachLan {
+		t.Error("an unknown reach is not LAN")
+	}
+}

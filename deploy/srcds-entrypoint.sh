@@ -127,6 +127,15 @@ install_server_cfg() {
 	// lost the connection. With this, it has not. Nothing on a private
 	// server wants the reroll anyway.
 	sm_redbots_manager_kick_bots 0
+	// Classes the bots never play.
+	sm_redbots_manager_class_blacklist "${SRCDS_BOT_CLASS_BLACKLIST:-}"
+
+	// The mission the run starts on, how long a cleared mission stays on
+	// the scoreboard before the next one loads, and whether the bots'
+	// purchases reach the chat.
+	tf2ap_start_mission "${SRCDS_START_MISSION:-}"
+	tf2ap_next_mission_delay ${TF2AP_NEXT_MISSION_DELAY:-20}
+	tf2ap_bot_upgrades_chat ${TF2AP_BOT_UPGRADES_CHAT:-0}
 
 	// LAN mode skips Steam authentication. The server has no Game Server Login
 	// Token by default, so it never logs in to Steam, and a client trying to

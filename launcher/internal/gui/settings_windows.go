@@ -6,13 +6,16 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 
 	"github.com/lxn/walk"
 	declarative "github.com/lxn/walk/declarative"
 
+	"github.com/m-this/tf2-archipelago/gamedata"
 	"github.com/m-this/tf2-archipelago/launcher/internal/assets"
+	"github.com/m-this/tf2-archipelago/launcher/internal/botloadout"
 	"github.com/m-this/tf2-archipelago/launcher/internal/debugbundle"
 	"github.com/m-this/tf2-archipelago/launcher/internal/generate"
 	"github.com/m-this/tf2-archipelago/launcher/internal/runshape"
@@ -25,9 +28,10 @@ import (
 const labelWidth = 150
 
 // runSettingsDialog asks for the values worth changing between evenings, in
-// three tabs: what the run is, where the room is, and how the game server
-// behaves. Every row carries a tooltip, because a name alone does not say what
-// a difficulty floor or a login token is.
+// five tabs: what the run is, which missions it may draw, where the room is,
+// how the game server behaves, and what the bots play. Every row carries a
+// tooltip, because a name alone does not say what a difficulty floor or a
+// login token is.
 //
 // It returns the edited settings and whether the player accepted them.
 func runSettingsDialog(owner walk.Form, s settings.Settings, repair func() ([]string, error)) (settings.Settings, bool, error) {
@@ -48,15 +52,22 @@ func runSettingsDialog(owner walk.Form, s settings.Settings, repair func() ([]st
 		sanityPct *walk.NumberEdit
 		deathLink *walk.CheckBox
 
+		startBox *walk.ComboBox
+		poolView *walk.TableView
+
 		nameEdit  *walk.LineEdit
 		passEdit  *walk.LineEdit
 		portEdit  *walk.NumberEdit
-		mapBox    *walk.ComboBox
 		adminEdit *walk.LineEdit
-		lanBox    *walk.CheckBox
+		reachBox  *walk.ComboBox
+		reachHelp *walk.Label
 		tokenEdit *walk.LineEdit
+
 		botsBox   *walk.CheckBox
 		botsSize  *walk.NumberEdit
+		buysBox   *walk.CheckBox
+		classBox  = make([]*walk.CheckBox, len(botloadout.Classes))
+		loadoutBx = make([]*walk.ComboBox, len(botloadout.Classes))
 	)
 
 	tiers := runshape.Tiers()
@@ -69,6 +80,17 @@ func runSettingsDialog(owner walk.Form, s settings.Settings, repair func() ([]st
 	for _, goal := range goals {
 		goalLabels = append(goalLabels, goal.Label())
 	}
+	choices := runshape.MissionChoices()
+	choiceLabels := make([]string, 0, len(choices))
+	for _, choice := range choices {
+		choiceLabels = append(choiceLabels, choice.Label)
+	}
+	reaches := settings.Reaches()
+	reachLabels := make([]string, 0, len(reaches))
+	for _, reach := range reaches {
+		reachLabels = append(reachLabels, reach.Label())
+	}
+	pool := newPoolModel(s.MvmExcludedMissions)
 
 	current := settings.Room{Host: s.APHost, Port: s.APPort}
 	edited := s
@@ -95,7 +117,6 @@ func runSettingsDialog(owner walk.Form, s settings.Settings, repair func() ([]st
 			}
 			room = settings.Room{}
 		}
-		next.TestMode = testBox.Checked()
 		next.APHost, next.APPort, next.APTls = room.Host, room.Port, room.TLS
 		next.APPassword = roomPass.Text()
 		next.APSlotName = strings.TrimSpace(slotEdit.Text())
@@ -105,16 +126,30 @@ func runSettingsDialog(owner walk.Form, s settings.Settings, repair func() ([]st
 		next.MvmGoal = goals[max(goalBox.CurrentIndex(), 0)].Key
 		next.MvmMissionsanityPct = int(sanityPct.Value())
 		next.MvmDeathLink = deathLink.Checked()
+		next.MvmExcludedMissions = pool.excluded()
+
+		next.SrcdsStartMission = choices[max(startBox.CurrentIndex(), 0)].PopFile
 
 		next.SrcdsHostname = strings.TrimSpace(nameEdit.Text())
 		next.SrcdsPw = strings.TrimSpace(passEdit.Text())
 		next.SrcdsPort = int(portEdit.Value())
-		next.SrcdsStartMap = mapBox.Text()
 		next.SrcdsAdminSteamIDs = strings.TrimSpace(adminEdit.Text())
-		next.SrcdsLan = lanBox.Checked()
+		next = next.WithReach(reaches[max(reachBox.CurrentIndex(), 0)])
 		next.SrcdsToken = strings.TrimSpace(tokenEdit.Text())
+
 		next.SrcdsBots = botsBox.Checked()
 		next.SrcdsBotTeamSize = int(botsSize.Value())
+		next.BotUpgradesChat = buysBox.Checked()
+		next.SrcdsBotClassBlacklist = nil
+		next.SrcdsBotLoadouts = make(map[string]string)
+		for i, class := range botloadout.Classes {
+			if !classBox[i].Checked() {
+				next.SrcdsBotClassBlacklist = append(next.SrcdsBotClassBlacklist, class.Key)
+			}
+			if pick := class.Loadouts[max(loadoutBx[i].CurrentIndex(), 0)]; pick.Key != botloadout.StockKey {
+				next.SrcdsBotLoadouts[class.Key] = pick.Key
+			}
+		}
 		return next, nil
 	}
 
@@ -122,8 +157,8 @@ func runSettingsDialog(owner walk.Form, s settings.Settings, repair func() ([]st
 		AssignTo:     &dialog,
 		Title:        "Settings",
 		CancelButton: &cancel,
-		Size:         declarative.Size{Width: 640, Height: 500},
-		MinSize:      declarative.Size{Width: 560, Height: 440},
+		Size:         declarative.Size{Width: 700, Height: 560},
+		MinSize:      declarative.Size{Width: 600, Height: 480},
 		Layout:       declarative.VBox{},
 		Children: []declarative.Widget{
 			declarative.TabWidget{
@@ -158,7 +193,7 @@ func runSettingsDialog(owner walk.Form, s settings.Settings, repair func() ([]st
 							label("Death Link", "A lost wave kills every other player in the multiworld who has Death Link on, and their deaths wipe your team."),
 							declarative.CheckBox{AssignTo: &deathLink, Text: "share deaths", Checked: s.MvmDeathLink},
 							declarative.Label{
-								Text:        "These are the options the Archipelago website calls player options. They go in tf2.yaml, which the seed is generated from.",
+								Text:        "These are the options the Archipelago website calls player options. They go in tf2.yaml, which the seed is generated from. The Missions tab picks which missions the run may draw.",
 								ColumnSpan:  2,
 								ToolTipText: "Change them here, then generate again for a new seed. The current run keeps the shape it was generated with.",
 							},
@@ -182,6 +217,50 @@ func runSettingsDialog(owner walk.Form, s settings.Settings, repair func() ([]st
 										ToolTipText: "The install root: the game files, the player file, the log and the run's state.",
 										OnClicked:   func() { openFolder(dialog, s.InstallRoot) },
 									},
+									declarative.HSpacer{},
+								},
+							},
+						},
+					},
+					{
+						Title:  "Missions",
+						Layout: declarative.VBox{},
+						Children: []declarative.Widget{
+							declarative.Composite{
+								Layout:  declarative.HBox{MarginsZero: true},
+								MaxSize: declarative.Size{Height: 28},
+								Children: []declarative.Widget{
+									label("Start mission", "The mission the server loads first, as map - mission. If the run has not unlocked it, the plugin moves to the first mission it has."),
+									declarative.ComboBox{
+										AssignTo: &startBox,
+										Model:    choiceLabels,
+										Value:    runshape.MissionLabel(s.SrcdsStartMission),
+									},
+								},
+							},
+							declarative.Label{
+								Text:        "Missions the run may draw. Untick one to keep it out of every seed generated from here: Caliginous Caper is one wave of 666 robots and an hour on its own. The tier above still applies.",
+								ToolTipText: "This is the excluded_missions option in tf2.yaml.",
+							},
+							declarative.TableView{
+								AssignTo:         &poolView,
+								Model:            pool,
+								CheckBoxes:       true,
+								AlternatingRowBG: true,
+								StretchFactor:    1,
+								Columns: []declarative.TableViewColumn{
+									{Title: "Mission", Width: 200},
+									{Title: "Map", Width: 130},
+									{Title: "Tier", Width: 90},
+									{Title: "Waves", Width: 50},
+								},
+							},
+							declarative.Composite{
+								Layout:  declarative.HBox{MarginsZero: true},
+								MaxSize: declarative.Size{Height: 30},
+								Children: []declarative.Widget{
+									declarative.PushButton{Text: "All", OnClicked: func() { pool.setAll(true) }},
+									declarative.PushButton{Text: "None", OnClicked: func() { pool.setAll(false) }},
 									declarative.HSpacer{},
 								},
 							},
@@ -221,22 +300,20 @@ func runSettingsDialog(owner walk.Form, s settings.Settings, repair func() ([]st
 								AssignTo: &portEdit, Value: float64(s.SrcdsPort),
 								MinValue: 1024, MaxValue: 65535, Decimals: 0,
 							},
-							label("Start map", "The map the server loads first. A map, not a mission: set the run's mission once the server is up."),
-							declarative.ComboBox{AssignTo: &mapBox, Model: mapNames(), Value: s.SrcdsStartMap},
 							label("Admins by Steam id", "Who may run the admin commands, separated by commas. Either form works: the 17 digit id from a profile URL, or SourceMod's STEAM_0:1:26975537."),
 							declarative.LineEdit{AssignTo: &adminEdit, Text: s.SrcdsAdminSteamIDs, CueBanner: "76561198014216803, ..."},
-							label("Local network only", "On, the server never logs in to Steam and stays off the public list, which is what makes a game with friends work with no token at all. Off needs a real token below."),
-							declarative.CheckBox{AssignTo: &lanBox, Text: "keep it off the internet", Checked: s.SrcdsLan},
-							label("Login token", "A Game Server Login Token from steamcommunity.com/dev/managegameservers. Needed only with the box above off. 0 means none."),
+							label("Who can join", "How your friends reach the server. The local network needs nothing; the other two need a login token."),
+							declarative.ComboBox{AssignTo: &reachBox, Model: reachLabels, Value: s.Reach().Label()},
+							declarative.Label{Text: ""},
+							declarative.Label{AssignTo: &reachHelp, Text: s.Reach().Help(), TextColor: colorMuted, MinSize: declarative.Size{Height: 60}},
+							label("Login token", "A Game Server Login Token from steamcommunity.com/dev/managegameservers, for app 440. Needed unless the server stays on the local network. 0 means none."),
 							declarative.LineEdit{AssignTo: &tokenEdit, Text: s.SrcdsToken},
-							label("Defender bots", "Fill the RED team with bots that play, so a wave balanced for six is winnable by fewer. They pick classes, fight and buy their own upgrades."),
-							declarative.CheckBox{AssignTo: &botsBox, Text: "fill the RED team", Checked: s.SrcdsBots},
-							label("Fill RED to", "How many players RED holds, humans included. Lower it for a harder run."),
-							declarative.NumberEdit{
-								AssignTo: &botsSize, Value: float64(s.SrcdsBotTeamSize),
-								MinValue: 1, MaxValue: 6, Decimals: 0,
-							},
 						},
+					},
+					{
+						Title:    "Bots",
+						Layout:   declarative.Grid{Columns: 2},
+						Children: botsRows(s, label, &botsBox, &botsSize, &buysBox, classBox, loadoutBx),
 					},
 				},
 			},
@@ -291,6 +368,16 @@ func runSettingsDialog(owner walk.Form, s settings.Settings, repair func() ([]st
 		}
 	})
 
+	// The sentence under the reach follows the choice, and the token box only
+	// matters off the local network.
+	explainReach := func() {
+		reach := reaches[max(reachBox.CurrentIndex(), 0)]
+		reachHelp.SetText(reach.Help())
+		tokenEdit.SetEnabled(reach != settings.ReachLan)
+	}
+	reachBox.CurrentIndexChanged().Attach(explainReach)
+	explainReach()
+
 	// The complaint under the address: what is missing, or that test mode
 	// makes it optional. Cleared as soon as the address looks right.
 	explain := func() {
@@ -313,6 +400,111 @@ func runSettingsDialog(owner walk.Form, s settings.Settings, repair func() ([]st
 		return s, false, nil
 	}
 	return edited, true, nil
+}
+
+// botsRows is the Bots tab: whether the bots play, how many, which classes
+// they may pick, and what each class holds.
+func botsRows(
+	s settings.Settings, label func(text, help string) declarative.Label,
+	botsBox **walk.CheckBox, botsSize **walk.NumberEdit, buysBox **walk.CheckBox,
+	classBox []*walk.CheckBox, loadoutBx []*walk.ComboBox,
+) []declarative.Widget {
+	rows := []declarative.Widget{
+		label("Defender bots", "Fill the RED team with bots that play, so a wave balanced for six is winnable by fewer. They pick classes, fight and buy their own upgrades. A bot steps aside when a friend joins."),
+		declarative.CheckBox{AssignTo: botsBox, Text: "fill the RED team", Checked: s.SrcdsBots},
+		label("Fill RED to", "How many players RED holds, humans included. Lower it for a harder run."),
+		declarative.NumberEdit{
+			AssignTo: botsSize, Value: float64(s.SrcdsBotTeamSize),
+			MinValue: 1, MaxValue: 6, Decimals: 0,
+		},
+		label("Purchases in chat", "Write what the bots buy at the upgrade station to the chat, since the game no longer lets you inspect a teammate's upgrades. One line per purchase, so it is off by default."),
+		declarative.CheckBox{AssignTo: buysBox, Text: "say what the bots buy", Checked: s.BotUpgradesChat},
+		declarative.Label{
+			Text:       "Classes the bots may play, and the weapons each class holds. Bots are poor snipers and spies; untick a class and they never pick it. Stock weapons are the mod's own default.",
+			ColumnSpan: 2,
+		},
+	}
+	for i, class := range botloadout.Classes {
+		labels := make([]string, 0, len(class.Loadouts))
+		for _, loadout := range class.Loadouts {
+			labels = append(labels, loadout.Label())
+		}
+		rows = append(rows,
+			declarative.CheckBox{
+				AssignTo:    &classBox[i],
+				Text:        class.Name,
+				Checked:     !slices.Contains(s.SrcdsBotClassBlacklist, class.Key),
+				MinSize:     declarative.Size{Width: labelWidth},
+				ToolTipText: "Unticked, the bots never play " + class.Name + ".",
+			},
+			declarative.ComboBox{
+				AssignTo:    &loadoutBx[i],
+				Model:       labels,
+				Value:       class.LoadoutByKey(s.SrcdsBotLoadouts[class.Key]).Label(),
+				ToolTipText: "The weapons a " + class.Name + " bot spawns with.",
+			},
+		)
+	}
+	return rows
+}
+
+// poolModel is the Missions tab's table: every mission the tables know, ticked
+// when the run may draw it. The unticked ones are the excluded_missions
+// option.
+type poolModel struct {
+	walk.TableModelBase
+	missions []gamedata.Mission
+	inPool   []bool
+}
+
+func newPoolModel(excluded []string) *poolModel {
+	model := &poolModel{missions: gamedata.Missions, inPool: make([]bool, len(gamedata.Missions))}
+	for i, mission := range model.missions {
+		model.inPool[i] = !slices.Contains(excluded, mission.PopFile)
+	}
+	return model
+}
+
+func (m *poolModel) RowCount() int { return len(m.missions) }
+
+func (m *poolModel) Value(row, col int) any {
+	mission := m.missions[row]
+	switch col {
+	case 0:
+		return mission.Name
+	case 1:
+		played, _ := gamedata.MapByID(mission.Map)
+		return played.Name
+	case 2:
+		return mission.Difficulty.String()
+	default:
+		return int(mission.Waves)
+	}
+}
+
+func (m *poolModel) Checked(row int) bool { return m.inPool[row] }
+
+func (m *poolModel) SetChecked(row int, checked bool) error {
+	m.inPool[row] = checked
+	return nil
+}
+
+func (m *poolModel) setAll(checked bool) {
+	for i := range m.inPool {
+		m.inPool[i] = checked
+	}
+	m.PublishRowsReset()
+}
+
+// excluded is the popfiles the player unticked, in table order.
+func (m *poolModel) excluded() []string {
+	var out []string
+	for i, mission := range m.missions {
+		if !m.inPool[i] {
+			out = append(out, mission.PopFile)
+		}
+	}
+	return out
 }
 
 // generateSeed makes the seed with the Archipelago app and opens the folder the

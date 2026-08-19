@@ -28,6 +28,15 @@ sm_redbots_manager_min_players -1
 // lost the connection. With this, it has not. Nothing on a private
 // server wants the reroll anyway.
 sm_redbots_manager_kick_bots 0
+// Classes the bots never play, and whether the server hands them a loadout
+// from configs/defenderbots/loadout.cfg.
+sm_redbots_manager_class_blacklist "{{.BotClassBlacklist}}"
+sm_redbots_manager_use_custom_loadouts {{.BotCustomLoadouts}}
+
+// The mission the run starts on, and whether the bots' purchases at the
+// upgrade station reach the chat.
+tf2ap_start_mission "{{.StartMission}}"
+tf2ap_bot_upgrades_chat {{.BotUpgradesChat}}
 
 // LAN mode skips Steam authentication. The server has no Game Server Login
 // Token by default, so it never logs in to Steam, and a client trying to

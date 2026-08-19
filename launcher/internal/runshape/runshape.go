@@ -90,3 +90,37 @@ func (t Tier) WavesFor(missions int) int {
 	}
 	return t.Waves * missions / t.Missions
 }
+
+// MissionChoice is one mission as a menu offers it: the popfile the server
+// loads, and a label that reads map first, since that is how the game groups
+// them.
+type MissionChoice struct {
+	PopFile string
+	Label   string
+}
+
+// MissionChoices lists every mission the tables know, in table order, which
+// is map by map and easiest first.
+func MissionChoices() []MissionChoice {
+	choices := make([]MissionChoice, 0, len(gamedata.Missions))
+	for _, mission := range gamedata.Missions {
+		played, _ := gamedata.MapByID(mission.Map)
+		choices = append(choices, MissionChoice{
+			PopFile: mission.PopFile,
+			Label: fmt.Sprintf("%s - %s (%s, %d waves)",
+				played.Name, mission.Name, mission.Difficulty.Key(), mission.Waves),
+		})
+	}
+	return choices
+}
+
+// MissionLabel is the label of one popfile, or the popfile itself when the
+// tables do not know it.
+func MissionLabel(popFile string) string {
+	for _, choice := range MissionChoices() {
+		if choice.PopFile == popFile {
+			return choice.Label
+		}
+	}
+	return popFile
+}

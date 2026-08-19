@@ -14,10 +14,12 @@ var EnvNames = []string{
 	"TF2AP_TEST_MODE", "TF2AP_ARCHIPELAGO_DIR",
 	"AP_ROOM", "AP_HOST", "AP_PORT", "AP_TLS", "AP_SLOT_NAME", "AP_PASSWORD",
 	"SRCDS_HOSTNAME", "SRCDS_RCONPW", "SRCDS_PW", "SRCDS_PORT",
-	"SRCDS_MAXPLAYERS", "SRCDS_STARTMAP", "SRCDS_TOKEN", "SRCDS_LAN",
-	"SRCDS_ADMIN_STEAMIDS", "SRCDS_BOTS", "SRCDS_BOT_TEAM_SIZE",
+	"SRCDS_MAXPLAYERS", "SRCDS_START_MISSION", "SRCDS_STARTMAP", "SRCDS_TOKEN",
+	"SRCDS_LAN", "SRCDS_STEAM_NETWORKING", "SRCDS_ADMIN_STEAMIDS",
+	"SRCDS_BOTS", "SRCDS_BOT_TEAM_SIZE", "SRCDS_BOT_CLASS_BLACKLIST", "SRCDS_BOT_LOADOUTS",
+	"TF2AP_BOT_UPGRADES_CHAT",
 	"MVM_MISSION_COUNT", "MVM_DIFFICULTY", "MVM_GOAL",
-	"MVM_MISSIONSANITY_PERCENTAGE", "MVM_DEATH_LINK",
+	"MVM_MISSIONSANITY_PERCENTAGE", "MVM_DEATH_LINK", "MVM_EXCLUDED_MISSIONS",
 	"BRIDGE_METRICS_PORT",
 }
 
@@ -51,18 +53,28 @@ func ApplyEnv(s Settings) Settings {
 	str(&s.SrcdsPw, "SRCDS_PW")
 	num(&s.SrcdsPort, "SRCDS_PORT")
 	num(&s.SrcdsMaxPlayers, "SRCDS_MAXPLAYERS")
-	str(&s.SrcdsStartMap, "SRCDS_STARTMAP")
+	// The compose stack names a map; the launcher names a mission. Both work,
+	// the mission wins.
+	if value, ok := os.LookupEnv("SRCDS_STARTMAP"); ok {
+		s.SrcdsStartMission = startMissionFor(value, s.SrcdsStartMission)
+	}
+	str(&s.SrcdsStartMission, "SRCDS_START_MISSION")
 	str(&s.SrcdsToken, "SRCDS_TOKEN")
 	boolean(&s.SrcdsLan, "SRCDS_LAN")
+	boolean(&s.SrcdsSteamNetworking, "SRCDS_STEAM_NETWORKING")
 	str(&s.SrcdsAdminSteamIDs, "SRCDS_ADMIN_STEAMIDS")
 	boolean(&s.SrcdsBots, "SRCDS_BOTS")
 	num(&s.SrcdsBotTeamSize, "SRCDS_BOT_TEAM_SIZE")
+	list(&s.SrcdsBotClassBlacklist, "SRCDS_BOT_CLASS_BLACKLIST")
+	pairs(&s.SrcdsBotLoadouts, "SRCDS_BOT_LOADOUTS")
+	boolean(&s.BotUpgradesChat, "TF2AP_BOT_UPGRADES_CHAT")
 
 	num(&s.MvmMissionCount, "MVM_MISSION_COUNT")
 	str(&s.MvmDifficulty, "MVM_DIFFICULTY")
 	str(&s.MvmGoal, "MVM_GOAL")
 	num(&s.MvmMissionsanityPct, "MVM_MISSIONSANITY_PERCENTAGE")
 	boolean(&s.MvmDeathLink, "MVM_DEATH_LINK")
+	list(&s.MvmExcludedMissions, "MVM_EXCLUDED_MISSIONS")
 
 	num(&s.MetricsPort, "BRIDGE_METRICS_PORT")
 	return s
@@ -105,4 +117,42 @@ func boolean(target *bool, name string) {
 	case "0", "false", "no", "off":
 		*target = false
 	}
+}
+
+// list reads a comma-separated value. An empty value empties the list, which
+// is how a shortcut clears a saved one.
+func list(target *[]string, name string) {
+	value, ok := os.LookupEnv(name)
+	if !ok {
+		return
+	}
+	*target = SplitList(value)
+}
+
+// pairs reads "key=value,key=value".
+func pairs(target *map[string]string, name string) {
+	value, ok := os.LookupEnv(name)
+	if !ok {
+		return
+	}
+	parsed := make(map[string]string)
+	for _, entry := range SplitList(value) {
+		key, item, found := strings.Cut(entry, "=")
+		if found && key != "" {
+			parsed[strings.TrimSpace(key)] = strings.TrimSpace(item)
+		}
+	}
+	*target = parsed
+}
+
+// SplitList splits on commas and drops blanks, the way every list in an .env
+// file is written.
+func SplitList(value string) []string {
+	var out []string
+	for entry := range strings.SplitSeq(value, ",") {
+		if entry = strings.TrimSpace(entry); entry != "" {
+			out = append(out, entry)
+		}
+	}
+	return out
 }

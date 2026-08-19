@@ -89,19 +89,100 @@ func TestInstallAdminsSkipsWithoutSourcemod(t *testing.T) {
 	}
 }
 
-// TestInstallPluginCfg checks the plugin config is copied.
+// TestInstallPluginCfg checks the plugin config is copied once, then left to
+// whoever runs the server.
 func TestInstallPluginCfg(t *testing.T) {
 	installRoot := t.TempDir()
 	s := settings.Settings{InstallRoot: installRoot}
 	if err := Install(s); err != nil {
 		t.Fatalf("Install: %v", err)
 	}
-	cfg, err := os.ReadFile(filepath.Join(gameDir(installRoot), "cfg", "sourcemod", "tf2_archipelago.cfg"))
+	path := filepath.Join(gameDir(installRoot), "cfg", "sourcemod", "tf2_archipelago.cfg")
+	cfg, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatalf("cannot read tf2_archipelago.cfg: %v", err)
 	}
 	if !strings.Contains(string(cfg), "tf2ap_bridge_url") {
 		t.Errorf("tf2_archipelago.cfg does not contain the bridge url setting:\n%s", cfg)
+	}
+
+	edited := "tf2ap_debug \"1\"\n"
+	if err := os.WriteFile(path, []byte(edited), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := Install(s); err != nil {
+		t.Fatalf("second Install: %v", err)
+	}
+	cfg, _ = os.ReadFile(path)
+	if string(cfg) != edited {
+		t.Errorf("the operator's edit was overwritten:\n%s", cfg)
+	}
+}
+
+// The plugin and the mod read the run's shape from server.cfg: the mission
+// the evening starts on, the classes the bots may not play, and the chat
+// toggle for their purchases.
+func TestInstallServerCfgCarriesTheRunAndTheBots(t *testing.T) {
+	s := settings.Settings{
+		InstallRoot:            t.TempDir(),
+		SrcdsStartMission:      "mvm_coaltown_intermediate",
+		SrcdsBotClassBlacklist: []string{"spy", "sniper"},
+		SrcdsBotLoadouts:       map[string]string{"scout": "milk"},
+		BotUpgradesChat:        true,
+	}
+	if err := Install(s); err != nil {
+		t.Fatalf("Install: %v", err)
+	}
+	cfg, err := os.ReadFile(filepath.Join(gameDir(s.InstallRoot), "cfg", "server.cfg"))
+	if err != nil {
+		t.Fatalf("cannot read server.cfg: %v", err)
+	}
+	for _, want := range []string{
+		`tf2ap_start_mission "mvm_coaltown_intermediate"`,
+		`sm_redbots_manager_class_blacklist "sniper,spy"`,
+		"sm_redbots_manager_use_custom_loadouts 1",
+		"tf2ap_bot_upgrades_chat 1",
+	} {
+		if !strings.Contains(string(cfg), want) {
+			t.Errorf("missing %q in:\n%s", want, cfg)
+		}
+	}
+}
+
+// The loadout file exists exactly when a class has a preset, and only once
+// the mod's config directory does: writing it into an empty tree would make
+// a directory the installer then finds already there.
+func TestInstallBotLoadoutFollowsThePresets(t *testing.T) {
+	s := settings.Settings{InstallRoot: t.TempDir(), SrcdsBotLoadouts: map[string]string{"scout": "milk"}}
+	target := filepath.Join(gameDir(s.InstallRoot), "addons", "sourcemod", "configs", "defenderbots", "loadout.cfg")
+
+	if err := Install(s); err != nil {
+		t.Fatalf("Install: %v", err)
+	}
+	if _, err := os.Stat(target); err == nil {
+		t.Error("loadout.cfg was written before the mod was installed")
+	}
+
+	if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := Install(s); err != nil {
+		t.Fatalf("Install: %v", err)
+	}
+	body, err := os.ReadFile(target)
+	if err != nil {
+		t.Fatalf("loadout.cfg was not written: %v", err)
+	}
+	if !strings.Contains(string(body), `"scout"`) {
+		t.Errorf("loadout.cfg does not hold the scout preset:\n%s", body)
+	}
+
+	s.SrcdsBotLoadouts = nil
+	if err := Install(s); err != nil {
+		t.Fatalf("Install: %v", err)
+	}
+	if _, err := os.Stat(target); err == nil {
+		t.Error("loadout.cfg survived every class going back to stock")
 	}
 }
 

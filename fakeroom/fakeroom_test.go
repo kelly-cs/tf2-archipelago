@@ -80,6 +80,16 @@ func startRoom(t *testing.T) string {
 	return address
 }
 
+func TestDefaultMissionsSkipTheExcluded(t *testing.T) {
+	got := defaultMissions(2, []string{"mvm_decoy"})
+	if len(got) != 2 || got[0] != "mvm_decoy_intermediate" {
+		t.Errorf("missions = %v", got)
+	}
+	if got := defaultMissions(1, []string{"mvm_decoy"}); len(got) != 1 || got[0] == "mvm_decoy" {
+		t.Errorf("missions = %v", got)
+	}
+}
+
 func connect(t *testing.T, address string) *client {
 	t.Helper()
 	c := dial(t, address)

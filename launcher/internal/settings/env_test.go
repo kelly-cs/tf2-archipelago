@@ -65,31 +65,37 @@ func TestEveryFieldHasAnEnvVar(t *testing.T) {
 	// The variable that carries a whole room address covers three fields at
 	// once, and the rest map one to one.
 	byField := map[string]string{
-		"InstallRoot":         "TF2AP_INSTALL_ROOT",
-		"TestMode":            "TF2AP_TEST_MODE",
-		"ArchipelagoDir":      "TF2AP_ARCHIPELAGO_DIR",
-		"APHost":              "AP_HOST",
-		"APPort":              "AP_PORT",
-		"APTls":               "AP_TLS",
-		"APSlotName":          "AP_SLOT_NAME",
-		"APPassword":          "AP_PASSWORD",
-		"SrcdsHostname":       "SRCDS_HOSTNAME",
-		"SrcdsRconPw":         "SRCDS_RCONPW",
-		"SrcdsPw":             "SRCDS_PW",
-		"SrcdsPort":           "SRCDS_PORT",
-		"SrcdsMaxPlayers":     "SRCDS_MAXPLAYERS",
-		"SrcdsStartMap":       "SRCDS_STARTMAP",
-		"SrcdsToken":          "SRCDS_TOKEN",
-		"SrcdsLan":            "SRCDS_LAN",
-		"SrcdsAdminSteamIDs":  "SRCDS_ADMIN_STEAMIDS",
-		"SrcdsBots":           "SRCDS_BOTS",
-		"SrcdsBotTeamSize":    "SRCDS_BOT_TEAM_SIZE",
-		"MvmMissionCount":     "MVM_MISSION_COUNT",
-		"MvmDifficulty":       "MVM_DIFFICULTY",
-		"MvmGoal":             "MVM_GOAL",
-		"MvmMissionsanityPct": "MVM_MISSIONSANITY_PERCENTAGE",
-		"MvmDeathLink":        "MVM_DEATH_LINK",
-		"MetricsPort":         "BRIDGE_METRICS_PORT",
+		"InstallRoot":            "TF2AP_INSTALL_ROOT",
+		"TestMode":               "TF2AP_TEST_MODE",
+		"ArchipelagoDir":         "TF2AP_ARCHIPELAGO_DIR",
+		"APHost":                 "AP_HOST",
+		"APPort":                 "AP_PORT",
+		"APTls":                  "AP_TLS",
+		"APSlotName":             "AP_SLOT_NAME",
+		"APPassword":             "AP_PASSWORD",
+		"SrcdsHostname":          "SRCDS_HOSTNAME",
+		"SrcdsRconPw":            "SRCDS_RCONPW",
+		"SrcdsPw":                "SRCDS_PW",
+		"SrcdsPort":              "SRCDS_PORT",
+		"SrcdsMaxPlayers":        "SRCDS_MAXPLAYERS",
+		"SrcdsStartMission":      "SRCDS_START_MISSION",
+		"SrcdsStartMap":          "SRCDS_STARTMAP",
+		"SrcdsToken":             "SRCDS_TOKEN",
+		"SrcdsLan":               "SRCDS_LAN",
+		"SrcdsSteamNetworking":   "SRCDS_STEAM_NETWORKING",
+		"SrcdsAdminSteamIDs":     "SRCDS_ADMIN_STEAMIDS",
+		"SrcdsBots":              "SRCDS_BOTS",
+		"SrcdsBotTeamSize":       "SRCDS_BOT_TEAM_SIZE",
+		"SrcdsBotClassBlacklist": "SRCDS_BOT_CLASS_BLACKLIST",
+		"SrcdsBotLoadouts":       "SRCDS_BOT_LOADOUTS",
+		"BotUpgradesChat":        "TF2AP_BOT_UPGRADES_CHAT",
+		"MvmMissionCount":        "MVM_MISSION_COUNT",
+		"MvmDifficulty":          "MVM_DIFFICULTY",
+		"MvmGoal":                "MVM_GOAL",
+		"MvmMissionsanityPct":    "MVM_MISSIONSANITY_PERCENTAGE",
+		"MvmDeathLink":           "MVM_DEATH_LINK",
+		"MvmExcludedMissions":    "MVM_EXCLUDED_MISSIONS",
+		"MetricsPort":            "BRIDGE_METRICS_PORT",
 	}
 	known := map[string]bool{}
 	for _, name := range EnvNames {
@@ -118,5 +124,26 @@ func TestEveryFieldHasAnEnvVar(t *testing.T) {
 		if !mapped[name] {
 			t.Errorf("%s is listed but no field uses it", name)
 		}
+	}
+}
+
+func TestApplyEnvReadsTheLists(t *testing.T) {
+	t.Setenv("SRCDS_BOT_CLASS_BLACKLIST", "sniper, spy")
+	t.Setenv("SRCDS_BOT_LOADOUTS", "scout=milk,soldier=banner")
+	t.Setenv("MVM_EXCLUDED_MISSIONS", "mvm_ghost_town_666")
+	t.Setenv("SRCDS_STARTMAP", "mvm_bigrock")
+
+	got := ApplyEnv(Defaults())
+	if !reflect.DeepEqual(got.SrcdsBotClassBlacklist, []string{"sniper", "spy"}) {
+		t.Errorf("blacklist = %v", got.SrcdsBotClassBlacklist)
+	}
+	if got.SrcdsBotLoadouts["scout"] != "milk" || got.SrcdsBotLoadouts["soldier"] != "banner" {
+		t.Errorf("loadouts = %v", got.SrcdsBotLoadouts)
+	}
+	if !reflect.DeepEqual(got.MvmExcludedMissions, []string{"mvm_ghost_town_666"}) {
+		t.Errorf("excluded = %v", got.MvmExcludedMissions)
+	}
+	if got.SrcdsStartMission != "mvm_bigrock" {
+		t.Errorf("start mission from SRCDS_STARTMAP = %q", got.SrcdsStartMission)
 	}
 }
