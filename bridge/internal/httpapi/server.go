@@ -129,6 +129,20 @@ type waveDrift struct {
 	Observed int    `json:"observed"`
 }
 
+// waveFailure is a wave the team lost, and how often. Valve tunes every wave
+// for six defenders and the bots exist so fewer can win, but nobody has a
+// number for how well they do. This is that number: the waves an evening
+// actually lost, per mission, so tuning the team size or the bots argues with
+// a record rather than with a memory.
+//
+// Observation, like waveDrift: it belongs to this process, not to the run. A
+// restart starts the count again, and nothing about the run depends on it.
+type waveFailure struct {
+	PopFile string `json:"popfile"`
+	Wave    int    `json:"wave"`
+	Lost    int    `json:"lost"`
+}
+
 // healthResponse is the operator's one window into the bridge.
 //
 // The fields are spelled out rather than embedded from apclient and state. Two
@@ -152,7 +166,8 @@ type healthResponse struct {
 	LastCheck   string     `json:"last_check,omitempty"`
 	LastCheckAt *time.Time `json:"last_check_at,omitempty"`
 
-	WaveDrift []waveDrift `json:"wave_drift,omitempty"`
+	WaveDrift    []waveDrift   `json:"wave_drift,omitempty"`
+	WaveFailures []waveFailure `json:"wave_failures,omitempty"`
 }
 
 // Server serves the plugin.
@@ -168,6 +183,18 @@ type Server struct {
 	// is observation, not state: it belongs to this process, not to the run.
 	driftMu sync.Mutex
 	drift   map[string]int
+
+	// failures counts the waves the team lost, keyed by mission and wave. Same
+	// nature as drift, and the reason it exists is that a lost wave used to
+	// leave no trace at all when the seed had DeathLink off.
+	failMu   sync.Mutex
+	failures map[waveKey]int
+}
+
+// waveKey is one wave of one mission, the key failures counts against.
+type waveKey struct {
+	PopFile string
+	Wave    int
 }
 
 func New(
@@ -282,6 +309,42 @@ func (s *Server) waveDrift() []waveDrift {
 	}
 	slices.SortFunc(drifted, func(a, b waveDrift) int { return strings.Compare(a.PopFile, b.PopFile) })
 	return drifted
+}
+
+// recordFailure counts one lost wave. A mission the tables do not know is
+// still counted: it is the operator's record, not a check, so refusing it
+// would hide exactly the run that most needs looking at.
+func (s *Server) recordFailure(popFile string, wave int) {
+	if popFile == "" {
+		return
+	}
+	s.failMu.Lock()
+	defer s.failMu.Unlock()
+	if s.failures == nil {
+		s.failures = make(map[waveKey]int)
+	}
+	s.failures[waveKey{popFile, wave}]++
+}
+
+// waveFailures is the record, worst first, so the wave that cost the evening
+// is the first line of the answer.
+func (s *Server) waveFailures() []waveFailure {
+	s.failMu.Lock()
+	defer s.failMu.Unlock()
+	lost := make([]waveFailure, 0, len(s.failures))
+	for key, count := range s.failures {
+		lost = append(lost, waveFailure{PopFile: key.PopFile, Wave: key.Wave, Lost: count})
+	}
+	slices.SortFunc(lost, func(a, b waveFailure) int {
+		if a.Lost != b.Lost {
+			return b.Lost - a.Lost
+		}
+		if a.PopFile != b.PopFile {
+			return strings.Compare(a.PopFile, b.PopFile)
+		}
+		return a.Wave - b.Wave
+	})
+	return lost
 }
 
 // getUnlocks serves everything that should be true right now. The plugin asks
@@ -467,6 +530,10 @@ func (s *Server) postDeath(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "cannot read the body", http.StatusBadRequest)
 		return
 	}
+	// Counted before it is forwarded, and whatever the forward does with it: a
+	// seed with DeathLink off drops the death, and the wave was still lost.
+	s.recordFailure(request.PopFile, int(request.Wave))
+
 	err := s.client.Die(r.Context(), deathCause(s.client.Health().Slot, request))
 	switch {
 	case errors.Is(err, apclient.ErrDeathLinkOff), errors.Is(err, apclient.ErrDiedTooMuch):
@@ -552,7 +619,8 @@ func (s *Server) getHealth(w http.ResponseWriter, r *http.Request) {
 		LastCheck:   run.LastCheck,
 		LastCheckAt: run.LastCheckAt,
 
-		WaveDrift: s.waveDrift(),
+		WaveDrift:    s.waveDrift(),
+		WaveFailures: s.waveFailures(),
 	})
 }
 

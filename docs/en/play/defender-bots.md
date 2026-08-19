@@ -38,6 +38,13 @@ The settings in `.env`:
 Lower `SRCDS_BOT_TEAM_SIZE` for a harder run. At `4`, three friends get one
 bot. Set `SRCDS_BOTS=0` when six of you play and the slots are yours.
 
+Change one of these against a record, not a memory. Valve tunes every wave for
+six defenders, and the bots exist so fewer can win. Nobody measured how well
+they do it. `wave_failures` in `/healthz` names every wave an evening
+lost, worst first, and `tf2ap_wave_lost_total` plots the same thing. Play a
+mission, read which wave stopped you, then change a number. See
+[Troubleshooting](../operate/troubleshooting.md).
+
 Bots are poor snipers and spies. `SRCDS_BOT_CLASS_BLACKLIST=sniper,spy` keeps
 them on the classes they play well. The class names are the mod's:
 `scout`, `soldier`, `pyro`, `demoman`, `heavyweapons`, `engineer`, `medic`,

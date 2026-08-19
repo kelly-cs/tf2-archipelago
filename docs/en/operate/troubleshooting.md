@@ -97,9 +97,13 @@ The answer holds:
 | `goal_sent` | Whether the run has been declared finished |
 | `last_check` and `last_check_at` | The last check and when it landed |
 | `wave_drift` | Missions whose length the game disagrees with |
+| `wave_failures` | Every wave the team lost, worst first |
 | `last_error` | The last failure on the randomizer side |
 
-`last_check` answers "did that wave count".
+`last_check` answers "did that wave count". `wave_failures` answers "which
+waves stopped us", which is the question to ask before you change the team
+size or the bots. It counts from the last restart of the randomizer server,
+and it counts whether or not the seed has DeathLink on.
 
 ## Watch the run over time
 
@@ -121,6 +125,7 @@ curl -s 127.0.0.1:24681/metrics
 | `tf2ap_run_goal_sent` | 1 once the run is finished |
 | `tf2ap_run_last_check_timestamp_seconds` | When the last check landed. Absent until one does |
 | `tf2ap_mission_wave_drift` | One series per mission the game and the tables disagree about, valued at the difference. No series is the healthy case |
+| `tf2ap_wave_lost_total` | One series per wave the team lost, by mission and wave. What says whether a team of fewer than six can win |
 | `tf2ap_run_info` | The seed and slot the numbers belong to |
 | `tf2ap_game_up` | 1 when the game server answered an A2S query on that scrape |
 | `tf2ap_game_players` / `_bots` / `_players_human` | Who is on the server. MvM counts its robot waves as bots, so the people playing are players minus bots |

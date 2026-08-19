@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -292,6 +293,37 @@ func TestGrantsRejectAMissingSequence(t *testing.T) {
 		if got := get(t, handler, path); got.Code != http.StatusBadRequest {
 			t.Errorf("%s: code = %d, want 400", path, got.Code)
 		}
+	}
+}
+
+// A lost wave used to leave no trace when the seed had DeathLink off, so
+// "which waves did we lose" had no answer at all. That question is the whole
+// of tuning the team size for fewer than six players.
+func TestHealthCountsTheWavesTheTeamLost(t *testing.T) {
+	_, handler := newTestServer(t, time.Second)
+	postTo := func(body string) {
+		t.Helper()
+		request := httptest.NewRequest(http.MethodPost, "/death", strings.NewReader(body))
+		recorder := httptest.NewRecorder()
+		handler.ServeHTTP(recorder, request)
+		// No session here, so the forward fails; the count is taken first.
+		if recorder.Code != http.StatusNoContent && recorder.Code != http.StatusServiceUnavailable {
+			t.Fatalf("code = %d", recorder.Code)
+		}
+	}
+	postTo(`{"popfile":"mvm_coaltown","wave":3}`)
+	postTo(`{"popfile":"mvm_coaltown","wave":3}`)
+	postTo(`{"popfile":"mvm_decoy","wave":1}`)
+
+	var health healthResponse
+	decode(t, get(t, handler, "/healthz"), &health)
+	want := []waveFailure{
+		{PopFile: "mvm_coaltown", Wave: 3, Lost: 2},
+		{PopFile: "mvm_decoy", Wave: 1, Lost: 1},
+	}
+	// Worst first: the wave that cost the evening is the first line.
+	if !slices.Equal(health.WaveFailures, want) {
+		t.Errorf("wave failures = %v, want %v", health.WaveFailures, want)
 	}
 }
 

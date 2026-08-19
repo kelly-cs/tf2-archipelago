@@ -159,15 +159,20 @@ already split by build tag. The UI needs the same split.
 Decide one question first: is the Linux answer the same window, or a terminal
 front end over the same runtime?
 
-## 10. Balance for fewer than six players
+## 10. Balance for fewer than six players. The measurement exists now
 
-Valve tunes every wave for six defenders. The bots exist so that a smaller
-team can win. Nobody measured whether they do. A solo run against an Advanced
-mission is the case to check.
+A lost wave used to leave no trace. The plugin reported it, the bridge turned
+it into a Death Link, and a seed with Death Link off dropped it. So "which
+waves stopped us" had no answer, and there was nothing to tune against.
 
-`tf_mvm_defenders_team_size` and the skill of the bots are the two settings.
-Measure before you tune: play a mission solo, note which waves fail, and only
-then change a number.
+The bridge now counts every lost wave by mission and wave, whatever the seed
+asked for. `wave_failures` in `/healthz` lists them worst first, and
+`tf2ap_wave_lost_total` is the same series for a dashboard. It counts from the
+last restart of the bridge, and no part of the run depends on it.
+
+The tuning itself is still a human's, and it needs evenings rather than a
+commit. Play a solo run against an Advanced mission, read which wave stopped
+it, and only then change `SRCDS_BOT_TEAM_SIZE` or the team composition.
 
 ## 11. Credits
 

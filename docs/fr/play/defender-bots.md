@@ -41,6 +41,14 @@ Baissez `SRCDS_BOT_TEAM_SIZE` pour une partie plus dure : à `4`, trois amis
 reçoivent un bot. Mettez `SRCDS_BOTS=0` quand vous êtes six et que les places
 vous reviennent.
 
+Changez l'un de ces réglages sur des relevés, pas sur un souvenir. Valve règle
+chaque vague pour six défenseurs, et les bots existent pour qu'une équipe plus
+petite gagne. Personne n'a mesuré à quel point. `wave_failures` dans
+`/healthz` nomme chaque vague perdue d'une soirée, les pires d'abord, et
+`tf2ap_wave_lost_total` trace la même chose. Jouez une mission, lisez quelle
+vague vous a arrêtés, puis changez un chiffre. Voir
+[Dépannage](../operate/troubleshooting.md).
+
 Les bots sont de mauvais Snipers et de mauvais Spies.
 `SRCDS_BOT_CLASS_BLACKLIST=sniper,spy` les garde sur les classes qu'ils jouent
 bien. Les noms de classe sont ceux du mod : `scout`, `soldier`, `pyro`,

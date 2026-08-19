@@ -100,9 +100,13 @@ La réponse contient :
 | `goal_sent` | Si la partie a été déclarée terminée |
 | `last_check` et `last_check_at` | La dernière check et quand elle est arrivée |
 | `wave_drift` | Les missions dont la longueur diffère de ce que dit le jeu |
+| `wave_failures` | Toutes les vagues que l'équipe a perdues, les pires d'abord |
 | `last_error` | Le dernier échec du côté randomizer |
 
-`last_check` répond à « est-ce que cette vague a compté ».
+`last_check` répond à « est-ce que cette vague a compté ». `wave_failures`
+répond à « quelles vagues nous ont arrêtés », la question à poser avant de
+changer la taille de l'équipe ou les bots. Il compte depuis le dernier
+redémarrage du serveur randomizer, que la seed ait DeathLink ou non.
 
 ## Surveiller la partie dans le temps
 
@@ -125,6 +129,7 @@ curl -s 127.0.0.1:24681/metrics
 | `tf2ap_run_goal_sent` | 1 une fois la partie terminée |
 | `tf2ap_run_last_check_timestamp_seconds` | Quand la dernière check est arrivée. Absent tant qu'aucune n'est arrivée |
 | `tf2ap_mission_wave_drift` | Une série par mission où le jeu et les tables sont en désaccord, valant la différence. Aucune série est le cas sain |
+| `tf2ap_wave_lost_total` | Une série par vague perdue, par mission et par vague. C'est ce qui dit si une équipe de moins de six peut gagner |
 | `tf2ap_run_info` | La seed et le slot auxquels appartiennent les chiffres |
 | `tf2ap_game_up` | 1 quand le serveur de jeu a répondu à une requête A2S sur ce scrape |
 | `tf2ap_game_players` / `_bots` / `_players_human` | Qui est sur le serveur. MvM compte ses vagues de robots comme des bots, donc les gens qui jouent sont les joueurs moins les bots |

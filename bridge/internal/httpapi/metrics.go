@@ -5,6 +5,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -87,6 +88,15 @@ func (s *Server) getMetrics(w http.ResponseWriter, r *http.Request, game *gamequ
 	for _, drift := range s.waveDrift() {
 		sample(&out, "tf2ap_mission_wave_drift",
 			labels("mission", drift.PopFile), float64(drift.Observed-drift.Tables))
+	}
+
+	// One series per wave the team lost. This is what says whether a team of
+	// fewer than six can win: the waves that stop an evening, by name.
+	header(&out, "tf2ap_wave_lost_total", "counter",
+		"Times the team lost a wave, per mission and wave, since the bridge started.")
+	for _, lost := range s.waveFailures() {
+		sample(&out, "tf2ap_wave_lost_total",
+			labels("mission", lost.PopFile, "wave", strconv.Itoa(lost.Wave)), float64(lost.Lost))
 	}
 
 	if game != nil {
