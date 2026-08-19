@@ -145,6 +145,16 @@ and `make docs` builds and serves the English version on `127.0.0.1:8081`.
 - [`CONTEXT.md`](./CONTEXT.md): the glossary. Archipelago's and MvM's
   vocabularies share words but not their meanings; this file fixes both.
 
+## Licence
+
+This repository is MIT. See [LICENSE](./LICENSE).
+
+What it ships is not all MIT. The defender bots are GPL-3.0, and so is
+[our fork](https://github.com/m-this/tf2-mvm-bots) of them. `tf2ap.exe` and
+`tf2-defender-bots.zip` both carry their compiled plugins, and the fork is
+where that source lives. Every other project in the bot stack keeps its own
+terms. [Defender bots](./docs/en/play/defender-bots.md) names each one.
+
 ## Credits
 
 The design comes from the Archipelago Discord thread. **Damonj17** set the
