@@ -113,6 +113,17 @@ func boolean(target *bool, name string) {
 	}
 }
 
+// Truthy reads one of the spellings an .env file and a shell both produce.
+// Anything else, including an empty string, is false: a flag nobody set stays
+// off, and so does one somebody spelled wrong.
+func Truthy(value string) bool {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "1", "true", "yes", "on":
+		return true
+	}
+	return false
+}
+
 // lookupBool is boolean for a caller that does not have a *bool to write into.
 // The second result is false both when the variable is unset and when it holds
 // something that is not a boolean at all.

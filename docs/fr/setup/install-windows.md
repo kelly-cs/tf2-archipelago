@@ -188,9 +188,9 @@ donne déjà.
 Le lanceur écrit son journal dans le terminal. Remontez pour lire ce que le
 serveur de jeu et le bridge ont dit.
 
-« Personne d'autre ne peut rejoindre » est la cause habituelle, et la réponse
-est dans l'onglet **Steam Networking** des réglages. Un serveur reste sur votre
-propre réseau tant que vous ne le changez pas là. Voir
+« Personne d'autre ne peut rejoindre » est la cause habituelle. Un serveur
+reste sur votre propre réseau tant que vous ne changez pas `SRCDS_REACH`, et le
+launcher ne propose pas encore ce choix. Voir
 [Inviter vos amis](invite-your-friends.md).
 
 Voir [Dépannage](../operate/troubleshooting.md) pour le reste.

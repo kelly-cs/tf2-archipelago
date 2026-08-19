@@ -185,9 +185,9 @@ already sets.
 The launcher writes its log to the terminal. Scroll up to read what the game
 server and the bridge said.
 
-Nobody outside the house can join is the usual one, and the answer is on the
-**Steam Networking** tab in Settings. A server is on your own network until you
-change it there. See [Invite your friends](invite-your-friends.md).
+Nobody outside the house can join is the usual one. A server is on your own
+network until you change `SRCDS_REACH`, and the launcher does not offer that
+choice yet. See [Invite your friends](invite-your-friends.md).
 
 See [Troubleshooting](../operate/troubleshooting.md) for the rest.
 

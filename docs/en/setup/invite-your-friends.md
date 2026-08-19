@@ -4,8 +4,7 @@
 
 A server is on your own network until you say otherwise. It is not open to
 anybody else by default, and no router setting changes that on its own. Pick
-one of three, on the **Steam Networking** tab in the launcher or with
-`SRCDS_REACH` in `.env`:
+one of three with `SRCDS_REACH` in `.env`:
 
 ```sh
 SRCDS_REACH=lan      # this machine and the local network. The default.
@@ -15,6 +14,12 @@ SRCDS_REACH=port     # straight at the game port, forwarded on your router
 
 `lan` is the whole answer for people playing in the same house. The other two
 reach the internet, and both need a login token.
+
+> **`steam` is not finished.** The relay has never been taken all the way to a
+> Team Fortress 2 client that joined, so the launcher does not offer it yet:
+> the **Steam Networking** tab is hidden unless you start it with
+> `TF2AP_STEAM_NETWORKING=1`. `SRCDS_REACH` works either way. Use `lan`, or
+> `port` if you have a router you can configure.
 
 ## The login token
 

@@ -32,6 +32,10 @@ import (
 
 const version = "dev"
 
+// tokenAsks bounds the retries on the login token prompt. Three is a
+// typo and a paste; past that the answer is not coming.
+const tokenAsks = 3
+
 func main() {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 	if err := run(logger); err != nil {
@@ -212,6 +216,33 @@ func summary(s settings.Settings) {
 	fmt.Printf("\ntf2ap.exe -configure changes any of this. It is saved in %s.\n", path)
 }
 
+// askReach asks where the players come from, and for the login token when the
+// answer needs one. A reach that leaves the local network with no token is a
+// server that refuses every player who tries to join, with a message that says
+// nothing about a token, so this does not let one through.
+func askReach(p *ui.Prompt, s settings.Settings) settings.Settings {
+	s.SrcdsReach, _ = settings.ParseReach(p.Select("Who can reach the server", reachOptions(), string(s.SrcdsReach)))
+	if !s.SrcdsReach.NeedsToken() {
+		s.SrcdsToken = "0"
+		return s
+	}
+
+	fmt.Println("  This needs a Game Server Login Token for app id 440.")
+	fmt.Println("  Get one at steamcommunity.com/dev/managegameservers.")
+	// Bounded: a closed stdin gives the same answer every time, and a prompt
+	// that never gives up is a program that never exits.
+	for range tokenAsks {
+		s.SrcdsToken = p.Text("Game Server Login Token", s.SrcdsToken)
+		if settings.HasToken(s.SrcdsToken) {
+			return s
+		}
+		fmt.Println("  Without one nobody can join.")
+	}
+	fmt.Println("  No token given: keeping the server on the local network.")
+	s.SrcdsReach, s.SrcdsToken = settings.ReachLan, "0"
+	return s
+}
+
 func reachOptions() []ui.Option {
 	options := make([]ui.Option, 0, len(settings.Reaches()))
 	for _, reach := range settings.Reaches() {
@@ -244,13 +275,7 @@ func configure(p *ui.Prompt, s settings.Settings) settings.Settings {
 	s.SrcdsPort = p.Int("Game port", s.SrcdsPort)
 	s.SrcdsStartMap = p.Select("Start map", mapOptions(), s.SrcdsStartMap)
 	s.SrcdsAdminSteamIDs = p.Text("Admin Steam IDs (comma-separated, blank for none)", s.SrcdsAdminSteamIDs)
-	s.SrcdsReach, _ = settings.ParseReach(p.Select("Who can reach the server", reachOptions(), string(s.SrcdsReach)))
-	if s.SrcdsReach.NeedsToken() {
-		fmt.Println("  Get one at steamcommunity.com/dev/managegameservers, app id 440.")
-		s.SrcdsToken = p.Text("Game Server Login Token", s.SrcdsToken)
-	} else {
-		s.SrcdsToken = "0"
-	}
+	s = askReach(p, s)
 
 	fmt.Println("\n--- Defender bots ---")
 	s.SrcdsBots = p.Bool("Fill the RED team with bots", s.SrcdsBots)
