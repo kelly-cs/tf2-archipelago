@@ -9,14 +9,17 @@ import "fmt"
 const BaseID int64 = 7_442_000_000
 
 const (
-	// WavesMax is the longest mission this id scheme holds: each mission gets a
-	// block of 100 and wave 99 is the mission-clear slot.
-	WavesMax uint8 = 98
+	// WavesMax is the longest mission this id scheme holds. Each mission gets a
+	// block of 100, and the slots above the waves are named objectives: 90 is
+	// the tank, 99 the mission clear. Valve's longest mission is 8 waves, so
+	// the ceiling is a bound on the id scheme rather than on the game.
+	WavesMax uint8 = 89
 
 	// MissionIDMax keeps the location space below the item space.
 	MissionIDMax MissionID = MissionID(itemSpaceOffset/locationsPerMission - 1)
 
 	locationsPerMission int64 = 100
+	locationSlotTank    int64 = 90
 	locationSlotClear   int64 = 99
 
 	// itemSpaceOffset keeps item ids clear of location ids, which Archipelago
@@ -37,6 +40,17 @@ func (m Mission) WaveLocationID(wave uint8) int64 {
 		panic(fmt.Sprintf("gamedata: wave %d out of range for %s (%d waves)", wave, m.PopFile, m.Waves))
 	}
 	return BaseID + int64(m.ID)*locationsPerMission + int64(wave)
+}
+
+// TankLocationID is the id of the check for destroying a tank in this mission.
+// Only missions with HasTank have one.
+func (m Mission) TankLocationID() int64 {
+	return BaseID + int64(m.ID)*locationsPerMission + locationSlotTank
+}
+
+// TankLocationName is what the spoiler log calls that check.
+func (m Mission) TankLocationName() string {
+	return m.Name + " Tank"
 }
 
 // ClearLocationID is the id of the check for clearing the whole mission.

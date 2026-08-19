@@ -73,10 +73,13 @@ Dans ce projet, une location est un objectif MvM :
   en est une.
 - Chaque mission que l'équipe réussit est une location. « Doe's Doom
   Complete » en est une.
+- Le premier tank que l'équipe détruit dans une mission est une location.
+  « Doe's Doom Tank » en est une.
 
-Les 29 missions Valve contiennent 181 vagues. Avec les 29 fins de mission,
-cela fait 210 locations dans la table. Une partie utilise les missions
-qu'elle a tirées, pas toutes.
+Les 29 missions Valve contiennent 181 vagues. Avec les 29 fins de mission et
+les 26 tanks, cela fait 236 locations dans la table. Les trois missions de
+Mannhattan tournent sur des portes et n'ont pas de tank. Une partie utilise
+les missions qu'elle a tirées, pas toutes.
 
 Quand votre équipe réussit la vague 3 de Doe's Doom, le serveur fait la
 check de cette location. Le multiworld apprend que l'item de cet endroit

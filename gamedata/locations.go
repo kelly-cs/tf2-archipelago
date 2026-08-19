@@ -7,11 +7,19 @@ type ObjectiveKind uint8
 const (
 	ObjectiveWaveCleared ObjectiveKind = iota + 1
 	ObjectiveMissionCleared
+	ObjectiveTankDestroyed
 )
 
 var objectiveKeys = [...]string{
 	ObjectiveWaveCleared:    "wave_cleared",
 	ObjectiveMissionCleared: "mission_cleared",
+	ObjectiveTankDestroyed:  "tank_destroyed",
+}
+
+// ObjectiveKinds is every kind that exists, in id order. Whatever walks it
+// covers new kinds without a second list to keep in step.
+var ObjectiveKinds = []ObjectiveKind{
+	ObjectiveWaveCleared, ObjectiveMissionCleared, ObjectiveTankDestroyed,
 }
 
 // Key is the string on the wire between the plugin and the bridge.
@@ -26,12 +34,12 @@ type Location struct {
 	Wave    uint8
 }
 
-// Locations is every check in the game, mission by mission, waves in order and
-// the mission clear last.
+// Locations is every check in the game, mission by mission: the waves in
+// order, then the tank if the mission has one, then the mission clear.
 var Locations = buildLocations()
 
 func buildLocations() []Location {
-	all := make([]Location, 0, len(Missions)*int(WavesMax))
+	all := make([]Location, 0, len(Missions)*10)
 	for _, m := range Missions {
 		for wave := uint8(1); wave <= m.Waves; wave++ {
 			all = append(all, Location{
@@ -40,6 +48,14 @@ func buildLocations() []Location {
 				Kind:    ObjectiveWaveCleared,
 				Mission: m.ID,
 				Wave:    wave,
+			})
+		}
+		if m.HasTank {
+			all = append(all, Location{
+				ID:      m.TankLocationID(),
+				Name:    m.TankLocationName(),
+				Kind:    ObjectiveTankDestroyed,
+				Mission: m.ID,
 			})
 		}
 		all = append(all, Location{
@@ -81,6 +97,19 @@ func LocationByObjective(kind ObjectiveKind, popFile string, wave uint8) (Locati
 		return Location{
 			ID:      m.ClearLocationID(),
 			Name:    m.ClearLocationName(),
+			Kind:    kind,
+			Mission: m.ID,
+		}, true
+	case ObjectiveTankDestroyed:
+		// A tank the tables do not know about is a report with no check behind
+		// it. The plugin sends what it sees, and this drops what a seed cannot
+		// hold, the same as it does for a wave out of range.
+		if !m.HasTank {
+			return Location{}, false
+		}
+		return Location{
+			ID:      m.TankLocationID(),
+			Name:    m.TankLocationName(),
 			Kind:    kind,
 			Mission: m.ID,
 		}, true

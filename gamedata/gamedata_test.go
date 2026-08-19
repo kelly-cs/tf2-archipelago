@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -154,24 +155,49 @@ func recordNewIDs(frozen, current map[string]int64) error {
 }
 
 func TestLocationsCoverEveryWaveAndMission(t *testing.T) {
-	waves, clears := 0, 0
+	waves, clears, tanks := 0, 0, 0
 	for _, l := range Locations {
 		switch l.Kind {
 		case ObjectiveWaveCleared:
 			waves++
 		case ObjectiveMissionCleared:
 			clears++
+		case ObjectiveTankDestroyed:
+			tanks++
 		}
 	}
-	want := 0
+	want, wantTanks := 0, 0
 	for _, m := range Missions {
 		want += int(m.Waves)
+		if m.HasTank {
+			wantTanks++
+		}
 	}
 	if waves != want {
 		t.Errorf("%d wave locations, want %d", waves, want)
 	}
 	if clears != len(Missions) {
 		t.Errorf("%d mission clear locations, want %d", clears, len(Missions))
+	}
+	// A tank check on a mission with no tank is a location nobody can reach,
+	// and a run nobody can finish.
+	if tanks != wantTanks {
+		t.Errorf("%d tank locations, want %d", tanks, wantTanks)
+	}
+}
+
+// The three are Mannhattan's, whose missions run on gates rather than tanks.
+// Named here so a careless edit to the table has to argue with a test.
+func TestOnlyMannhattanHasNoTank(t *testing.T) {
+	var without []string
+	for _, m := range Missions {
+		if !m.HasTank {
+			without = append(without, m.Name)
+		}
+	}
+	want := []string{"Big Apple Barricade", "Empire Escalation", "Metro Malice"}
+	if !slices.Equal(without, want) {
+		t.Errorf("missions with no tank: %v, want %v", without, want)
 	}
 }
 

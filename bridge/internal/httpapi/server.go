@@ -557,10 +557,7 @@ func (s *Server) getHealth(w http.ResponseWriter, r *http.Request) {
 }
 
 func objectiveKind(key string) (gamedata.ObjectiveKind, bool) {
-	for _, kind := range []gamedata.ObjectiveKind{
-		gamedata.ObjectiveWaveCleared,
-		gamedata.ObjectiveMissionCleared,
-	} {
+	for _, kind := range gamedata.ObjectiveKinds {
 		if kind.Key() == key {
 			return kind, true
 		}

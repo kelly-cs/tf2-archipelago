@@ -1,5 +1,5 @@
 {
-  "format_version": 1,
+  "format_version": 2,
   "missions": [
     {
       "id": 1,
@@ -8,6 +8,7 @@
       "map_id": 1,
       "difficulty": "normal",
       "waves": 8,
+      "has_tank": true,
       "locations": [
         {
           "id": 7442000101,
@@ -58,6 +59,11 @@
           "wave": 8
         },
         {
+          "id": 7442000190,
+          "name": "Doe's Drill Tank",
+          "kind": "tank_destroyed"
+        },
+        {
           "id": 7442000199,
           "name": "Doe's Drill Complete",
           "kind": "mission_cleared"
@@ -71,6 +77,7 @@
       "map_id": 1,
       "difficulty": "intermediate",
       "waves": 7,
+      "has_tank": true,
       "locations": [
         {
           "id": 7442000201,
@@ -115,6 +122,11 @@
           "wave": 7
         },
         {
+          "id": 7442000290,
+          "name": "Doe's Doom Tank",
+          "kind": "tank_destroyed"
+        },
+        {
           "id": 7442000299,
           "name": "Doe's Doom Complete",
           "kind": "mission_cleared"
@@ -128,6 +140,7 @@
       "map_id": 1,
       "difficulty": "intermediate",
       "waves": 6,
+      "has_tank": true,
       "locations": [
         {
           "id": 7442000301,
@@ -166,6 +179,11 @@
           "wave": 6
         },
         {
+          "id": 7442000390,
+          "name": "Day of Wreckening Tank",
+          "kind": "tank_destroyed"
+        },
+        {
           "id": 7442000399,
           "name": "Day of Wreckening Complete",
           "kind": "mission_cleared"
@@ -179,6 +197,7 @@
       "map_id": 1,
       "difficulty": "advanced",
       "waves": 8,
+      "has_tank": true,
       "locations": [
         {
           "id": 7442000401,
@@ -229,6 +248,11 @@
           "wave": 8
         },
         {
+          "id": 7442000490,
+          "name": "Disk Deletion Tank",
+          "kind": "tank_destroyed"
+        },
+        {
           "id": 7442000499,
           "name": "Disk Deletion Complete",
           "kind": "mission_cleared"
@@ -242,6 +266,7 @@
       "map_id": 1,
       "difficulty": "advanced",
       "waves": 6,
+      "has_tank": true,
       "locations": [
         {
           "id": 7442000501,
@@ -280,6 +305,11 @@
           "wave": 6
         },
         {
+          "id": 7442000590,
+          "name": "Data Demolition Tank",
+          "kind": "tank_destroyed"
+        },
+        {
           "id": 7442000599,
           "name": "Data Demolition Complete",
           "kind": "mission_cleared"
@@ -293,6 +323,7 @@
       "map_id": 1,
       "difficulty": "advanced",
       "waves": 6,
+      "has_tank": true,
       "locations": [
         {
           "id": 7442000601,
@@ -331,6 +362,11 @@
           "wave": 6
         },
         {
+          "id": 7442000690,
+          "name": "Disintegration Tank",
+          "kind": "tank_destroyed"
+        },
+        {
           "id": 7442000699,
           "name": "Disintegration Complete",
           "kind": "mission_cleared"
@@ -344,6 +380,7 @@
       "map_id": 1,
       "difficulty": "expert",
       "waves": 7,
+      "has_tank": true,
       "locations": [
         {
           "id": 7442000701,
@@ -388,6 +425,11 @@
           "wave": 7
         },
         {
+          "id": 7442000790,
+          "name": "Desperation Tank",
+          "kind": "tank_destroyed"
+        },
+        {
           "id": 7442000799,
           "name": "Desperation Complete",
           "kind": "mission_cleared"
@@ -401,6 +443,7 @@
       "map_id": 2,
       "difficulty": "normal",
       "waves": 6,
+      "has_tank": true,
       "locations": [
         {
           "id": 7442000801,
@@ -439,6 +482,11 @@
           "wave": 6
         },
         {
+          "id": 7442000890,
+          "name": "Crash Course Tank",
+          "kind": "tank_destroyed"
+        },
+        {
           "id": 7442000899,
           "name": "Crash Course Complete",
           "kind": "mission_cleared"
@@ -452,6 +500,7 @@
       "map_id": 2,
       "difficulty": "intermediate",
       "waves": 6,
+      "has_tank": true,
       "locations": [
         {
           "id": 7442000901,
@@ -490,6 +539,11 @@
           "wave": 6
         },
         {
+          "id": 7442000990,
+          "name": "Cave-in Tank",
+          "kind": "tank_destroyed"
+        },
+        {
           "id": 7442000999,
           "name": "Cave-in Complete",
           "kind": "mission_cleared"
@@ -503,6 +557,7 @@
       "map_id": 2,
       "difficulty": "intermediate",
       "waves": 6,
+      "has_tank": true,
       "locations": [
         {
           "id": 7442001001,
@@ -541,6 +596,11 @@
           "wave": 6
         },
         {
+          "id": 7442001090,
+          "name": "Quarry Tank",
+          "kind": "tank_destroyed"
+        },
+        {
           "id": 7442001099,
           "name": "Quarry Complete",
           "kind": "mission_cleared"
@@ -554,6 +614,7 @@
       "map_id": 2,
       "difficulty": "advanced",
       "waves": 7,
+      "has_tank": true,
       "locations": [
         {
           "id": 7442001101,
@@ -598,6 +659,11 @@
           "wave": 7
         },
         {
+          "id": 7442001190,
+          "name": "Ctrl+Alt+Destruction Tank",
+          "kind": "tank_destroyed"
+        },
+        {
           "id": 7442001199,
           "name": "Ctrl+Alt+Destruction Complete",
           "kind": "mission_cleared"
@@ -611,6 +677,7 @@
       "map_id": 2,
       "difficulty": "advanced",
       "waves": 6,
+      "has_tank": true,
       "locations": [
         {
           "id": 7442001201,
@@ -649,6 +716,11 @@
           "wave": 6
         },
         {
+          "id": 7442001290,
+          "name": "CPU Slaughter Tank",
+          "kind": "tank_destroyed"
+        },
+        {
           "id": 7442001299,
           "name": "CPU Slaughter Complete",
           "kind": "mission_cleared"
@@ -662,6 +734,7 @@
       "map_id": 2,
       "difficulty": "expert",
       "waves": 7,
+      "has_tank": true,
       "locations": [
         {
           "id": 7442001301,
@@ -706,6 +779,11 @@
           "wave": 7
         },
         {
+          "id": 7442001390,
+          "name": "Cataclysm Tank",
+          "kind": "tank_destroyed"
+        },
+        {
           "id": 7442001399,
           "name": "Cataclysm Complete",
           "kind": "mission_cleared"
@@ -719,6 +797,7 @@
       "map_id": 3,
       "difficulty": "normal",
       "waves": 7,
+      "has_tank": true,
       "locations": [
         {
           "id": 7442001401,
@@ -763,6 +842,11 @@
           "wave": 7
         },
         {
+          "id": 7442001490,
+          "name": "Mann-euvers Tank",
+          "kind": "tank_destroyed"
+        },
+        {
           "id": 7442001499,
           "name": "Mann-euvers Complete",
           "kind": "mission_cleared"
@@ -776,6 +860,7 @@
       "map_id": 3,
       "difficulty": "intermediate",
       "waves": 6,
+      "has_tank": true,
       "locations": [
         {
           "id": 7442001501,
@@ -814,6 +899,11 @@
           "wave": 6
         },
         {
+          "id": 7442001590,
+          "name": "Mean Machines Tank",
+          "kind": "tank_destroyed"
+        },
+        {
           "id": 7442001599,
           "name": "Mean Machines Complete",
           "kind": "mission_cleared"
@@ -827,6 +917,7 @@
       "map_id": 3,
       "difficulty": "intermediate",
       "waves": 6,
+      "has_tank": true,
       "locations": [
         {
           "id": 7442001601,
@@ -865,6 +956,11 @@
           "wave": 6
         },
         {
+          "id": 7442001690,
+          "name": "Mannhunt Tank",
+          "kind": "tank_destroyed"
+        },
+        {
           "id": 7442001699,
           "name": "Mannhunt Complete",
           "kind": "mission_cleared"
@@ -878,6 +974,7 @@
       "map_id": 3,
       "difficulty": "advanced",
       "waves": 7,
+      "has_tank": true,
       "locations": [
         {
           "id": 7442001701,
@@ -922,6 +1019,11 @@
           "wave": 7
         },
         {
+          "id": 7442001790,
+          "name": "Machine Massacre Tank",
+          "kind": "tank_destroyed"
+        },
+        {
           "id": 7442001799,
           "name": "Machine Massacre Complete",
           "kind": "mission_cleared"
@@ -935,6 +1037,7 @@
       "map_id": 3,
       "difficulty": "advanced",
       "waves": 3,
+      "has_tank": true,
       "locations": [
         {
           "id": 7442001801,
@@ -955,6 +1058,11 @@
           "wave": 3
         },
         {
+          "id": 7442001890,
+          "name": "Mech Mutilation Tank",
+          "kind": "tank_destroyed"
+        },
+        {
           "id": 7442001899,
           "name": "Mech Mutilation Complete",
           "kind": "mission_cleared"
@@ -968,6 +1076,7 @@
       "map_id": 3,
       "difficulty": "expert",
       "waves": 5,
+      "has_tank": true,
       "locations": [
         {
           "id": 7442001901,
@@ -1000,6 +1109,11 @@
           "wave": 5
         },
         {
+          "id": 7442001990,
+          "name": "Mannslaughter Tank",
+          "kind": "tank_destroyed"
+        },
+        {
           "id": 7442001999,
           "name": "Mannslaughter Complete",
           "kind": "mission_cleared"
@@ -1013,6 +1127,7 @@
       "map_id": 4,
       "difficulty": "normal",
       "waves": 6,
+      "has_tank": true,
       "locations": [
         {
           "id": 7442002001,
@@ -1051,6 +1166,11 @@
           "wave": 6
         },
         {
+          "id": 7442002090,
+          "name": "Benign Infiltration Tank",
+          "kind": "tank_destroyed"
+        },
+        {
           "id": 7442002099,
           "name": "Benign Infiltration Complete",
           "kind": "mission_cleared"
@@ -1064,6 +1184,7 @@
       "map_id": 4,
       "difficulty": "advanced",
       "waves": 7,
+      "has_tank": true,
       "locations": [
         {
           "id": 7442002101,
@@ -1108,6 +1229,11 @@
           "wave": 7
         },
         {
+          "id": 7442002190,
+          "name": "Broken Parts Tank",
+          "kind": "tank_destroyed"
+        },
+        {
           "id": 7442002199,
           "name": "Broken Parts Complete",
           "kind": "mission_cleared"
@@ -1121,6 +1247,7 @@
       "map_id": 4,
       "difficulty": "advanced",
       "waves": 8,
+      "has_tank": true,
       "locations": [
         {
           "id": 7442002201,
@@ -1171,6 +1298,11 @@
           "wave": 8
         },
         {
+          "id": 7442002290,
+          "name": "Bone Shaker Tank",
+          "kind": "tank_destroyed"
+        },
+        {
           "id": 7442002299,
           "name": "Bone Shaker Complete",
           "kind": "mission_cleared"
@@ -1184,6 +1316,7 @@
       "map_id": 5,
       "difficulty": "intermediate",
       "waves": 6,
+      "has_tank": false,
       "locations": [
         {
           "id": 7442002301,
@@ -1235,6 +1368,7 @@
       "map_id": 5,
       "difficulty": "advanced",
       "waves": 6,
+      "has_tank": false,
       "locations": [
         {
           "id": 7442002401,
@@ -1286,6 +1420,7 @@
       "map_id": 5,
       "difficulty": "advanced",
       "waves": 6,
+      "has_tank": false,
       "locations": [
         {
           "id": 7442002501,
@@ -1337,6 +1472,7 @@
       "map_id": 6,
       "difficulty": "intermediate",
       "waves": 7,
+      "has_tank": true,
       "locations": [
         {
           "id": 7442002601,
@@ -1381,6 +1517,11 @@
           "wave": 7
         },
         {
+          "id": 7442002690,
+          "name": "Village Vanguard Tank",
+          "kind": "tank_destroyed"
+        },
+        {
           "id": 7442002699,
           "name": "Village Vanguard Complete",
           "kind": "mission_cleared"
@@ -1394,6 +1535,7 @@
       "map_id": 6,
       "difficulty": "advanced",
       "waves": 7,
+      "has_tank": true,
       "locations": [
         {
           "id": 7442002701,
@@ -1438,6 +1580,11 @@
           "wave": 7
         },
         {
+          "id": 7442002790,
+          "name": "Hamlet Hostility Tank",
+          "kind": "tank_destroyed"
+        },
+        {
           "id": 7442002799,
           "name": "Hamlet Hostility Complete",
           "kind": "mission_cleared"
@@ -1451,6 +1598,7 @@
       "map_id": 6,
       "difficulty": "advanced",
       "waves": 7,
+      "has_tank": true,
       "locations": [
         {
           "id": 7442002801,
@@ -1495,6 +1643,11 @@
           "wave": 7
         },
         {
+          "id": 7442002890,
+          "name": "Bavarian Botbash Tank",
+          "kind": "tank_destroyed"
+        },
+        {
           "id": 7442002899,
           "name": "Bavarian Botbash Complete",
           "kind": "mission_cleared"
@@ -1508,12 +1661,18 @@
       "map_id": 7,
       "difficulty": "haunted",
       "waves": 1,
+      "has_tank": true,
       "locations": [
         {
           "id": 7442002901,
           "name": "Caliginous Caper Wave 1",
           "kind": "wave_cleared",
           "wave": 1
+        },
+        {
+          "id": 7442002990,
+          "name": "Caliginous Caper Tank",
+          "kind": "tank_destroyed"
         },
         {
           "id": 7442002999,

@@ -163,7 +163,7 @@ func TestThePluginReportsEveryObjectiveKind(t *testing.T) {
 		t.Fatal(err)
 	}
 	reported := string(body)
-	for _, kind := range []ObjectiveKind{ObjectiveWaveCleared, ObjectiveMissionCleared} {
+	for _, kind := range ObjectiveKinds {
 		if !strings.Contains(reported, `"`+kind.Key()+`"`) {
 			t.Errorf("the plugin never reports an objective of kind %q", kind.Key())
 		}

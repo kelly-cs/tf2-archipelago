@@ -121,15 +121,31 @@ Nobody reproduced this on a live server. The change is safe under either
 rule. If the game does not claw the money back, the bundle simply arrives at
 the upgrade station rather than during the wave.
 
-## 8. More checks
+## 8. More checks. Tanks done, giants blocked
 
-The only locations are a cleared wave and a cleared mission. A tank kill and a
-giant kill are discrete events, which is what a location needs. `CONTEXT.md`
-already names both.
+The first tank the team destroys in a mission is a check: 26 more locations,
+one per mission that holds a tank. The plugin reads the game's own
+`mvm_tank_destroyed_by_players`, so the event is not a guess.
+
+`Mission.HasTank` decides which missions get one. It comes from the wiki's
+tank health table, which lists every tank spawn by mission and wave. The three
+missions absent from it are Mannhattan's, which run on gates. A wrong `true`
+there is a location nobody can reach and a run nobody can finish, so a test
+names the three.
+
+The export is format version 2. A bridge older than this one refuses a seed
+generated with it, which is what that number is for.
+
+Giants are not done, and not guessed. The same question has no answer this
+project can source. No wiki page lists which missions hold a giant. The game
+fires no event for one either. So the plugin has to read a netprop off a dead
+robot to tell a giant from any other robot. Settle both before a giant check
+exists.
 
 More checks mean more items. The pool is tickets, classes, three weapon slots
-and filler, so more checks mean more `Cash Bundle`. So do this work together
-with a real item: bot templates, canteens or upgrades.
+and filler, so 26 more checks mean 26 more `Cash Bundle` across a full roster.
+A real item, bot templates or canteens or upgrades, is the next thing this
+needs, and it is its own piece of work.
 
 ## 9. A native Linux build
 

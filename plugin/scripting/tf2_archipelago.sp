@@ -51,11 +51,16 @@ bool g_HaveBeginWave;
 bool g_HaveWaveComplete;
 bool g_HaveMissionComplete;
 bool g_HaveWaveFailed;
+bool g_HaveTankDestroyed;
 
 int g_PolledWave;
 
 // Both mission detectors fire on purpose; the bridge dedups, chat should say it once.
 bool g_MissionReported;
+
+// The mission's tank check is already reported. One per mission, cleared with
+// the mission the way g_MissionReported is.
+bool g_TankReported;
 
 public void OnPluginStart()
 {
@@ -70,6 +75,7 @@ public void OnPluginStart()
     g_HaveWaveComplete = HookEventEx("mvm_wave_complete", Event_WaveComplete);
     g_HaveMissionComplete = HookEventEx("mvm_mission_complete", Event_MissionComplete);
     g_HaveWaveFailed = HookEventEx("mvm_wave_failed", Event_WaveFailed);
+    g_HaveTankDestroyed = HookEventEx("mvm_tank_destroyed_by_players", Event_TankDestroyed);
     HookEvent("post_inventory_application", Event_InventoryApplied);
     HookEvent("player_spawn", Event_PlayerSpawn);
 
@@ -104,6 +110,10 @@ public void OnPluginStart()
     if (!g_HaveBeginWave)
     {
         AP_Error("This server has no mvm_begin_wave event. The plugin reads wave numbers from the game.");
+    }
+    if (!g_HaveTankDestroyed)
+    {
+        AP_Error("This server has no mvm_tank_destroyed_by_players event. Tank checks never fire.");
     }
     if (!g_HaveWaveFailed)
     {
@@ -230,6 +240,7 @@ public void OnMapStart()
     g_MaxWaves = 0;
     g_PolledWave = 0;
     g_MissionReported = false;
+    g_TankReported = false;
     Bots_OnMapStart();
 
     // The plugin's copy of the unlock set went with the map; ask before anyone spawns.
@@ -258,6 +269,7 @@ public void Event_BeginWave(Event event, const char[] name, bool dontBroadcast)
     if (g_CurrentWave == 1)
     {
         g_MissionReported = false;
+        g_TankReported = false;
     }
 
     int fromGame = MvM_WaveFromGame();
@@ -276,6 +288,27 @@ public void Event_WaveComplete(Event event, const char[] name, bool dontBroadcas
 public void Event_MissionComplete(Event event, const char[] name, bool dontBroadcast)
 {
     ReportMissionCleared();
+}
+
+// One check per mission, not one per tank: the bridge takes the check once and
+// drops the rest, and reporting every tank of an eight wave mission would be
+// eight requests for one location. g_TankReported keeps them off the wire.
+public void Event_TankDestroyed(Event event, const char[] name, bool dontBroadcast)
+{
+    if (!MvM_IsActive() || g_TankReported)
+    {
+        return;
+    }
+    char popFile[64];
+    if (!MvM_PopFile(popFile, sizeof(popFile)))
+    {
+        AP_Error("The team destroyed a tank, but the mission has no name. The plugin did not report the check.");
+        return;
+    }
+    g_TankReported = true;
+    AP_Announce("Tank destroyed: %s", popFile);
+    Bridge_ReportObjective("tank_destroyed", popFile, 0,
+        g_MaxWaves > 0 ? g_MaxWaves : MvM_MaxWavesFromGame());
 }
 
 // The game fires this while a mission loads, before anybody has readied up:

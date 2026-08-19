@@ -80,11 +80,15 @@ func TestObjectiveIsIdempotent(t *testing.T) {
 func TestObjectiveRejectsWhatItCannotResolve(t *testing.T) {
 	_, handler := newTestServer(t, time.Second)
 	tests := map[string]string{
-		"unknown kind":      `{"kind":"tank_destroyed","popfile":"mvm_coaltown","wave":1}`,
+		"unknown kind":      `{"kind":"giant_killed","popfile":"mvm_coaltown","wave":1}`,
 		"unknown pop file":  `{"kind":"wave_cleared","popfile":"mvm_potato","wave":1}`,
 		"wave past the end": `{"kind":"wave_cleared","popfile":"mvm_coaltown","wave":99}`,
 		"wave zero":         `{"kind":"wave_cleared","popfile":"mvm_coaltown","wave":0}`,
-		"not json":          `{`,
+		// Mannhattan runs on gates and has no tank, so no seed holds that
+		// check. The plugin reports what the game gives it; this is where a
+		// report with no location behind it stops.
+		"tank on a mission with none": `{"kind":"tank_destroyed","popfile":"mvm_mannhattan","wave":1}`,
+		"not json":                    `{`,
 	}
 	for name, body := range tests {
 		t.Run(name, func(t *testing.T) {

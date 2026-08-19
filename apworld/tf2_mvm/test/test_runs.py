@@ -28,7 +28,7 @@ class TestShortestRun(TF2MvMTestBase):
 
     def test_unlocks_fit_the_checks(self) -> None:
         # One mission can leave fewer checks than unlocks owed; the draw widens rather than failing.
-        checks = sum(mission.waves + 1 for mission in self.world.missions)
+        checks = sum(len(mission.locations) for mission in self.world.missions)
         self.assertEqual(checks, len(self.multiworld.itempool))
 
 
@@ -81,6 +81,32 @@ class TestMissionsanityPartial(TF2MvMTestBase):
     def test_target_rounds_up(self) -> None:
         expected = math.ceil(len(self.world.missions) * 0.5)
         self.assertEqual(expected, self.world.missionsanity_target)
+
+
+class TestTankChecks(TF2MvMTestBase):
+    """Mannhattan's three missions have no tank, so they must have no tank check.
+
+    A location a mission can never satisfy is a run nobody can finish, which is
+    why has_tank comes from the wiki's tank health table and not from a guess.
+    """
+
+    options: ClassVar[dict[str, Any]] = {"mission_count": 29, "difficulty_pool": "normal"}
+
+    def test_a_mission_with_a_tank_has_the_check(self) -> None:
+        quarry = next(m for m in data.MISSIONS if m.name == "Quarry")
+        self.assertTrue(quarry.has_tank)
+        self.assertIn("Quarry Tank", self.multiworld.regions.location_cache[self.player])
+
+    def test_a_mission_without_a_tank_has_no_check(self) -> None:
+        for name in ("Big Apple Barricade", "Empire Escalation", "Metro Malice"):
+            mission = next(m for m in data.MISSIONS if m.name == name)
+            self.assertFalse(mission.has_tank)
+            self.assertNotIn(f"{name} Tank", self.multiworld.regions.location_cache[self.player])
+
+    def test_every_tank_check_belongs_to_a_mission_that_has_one(self) -> None:
+        for mission in data.MISSIONS:
+            tanks = [loc for loc in mission.locations if loc.kind == "tank_destroyed"]
+            self.assertEqual(1 if mission.has_tank else 0, len(tanks))
 
 
 class TestNamedStartMission(TF2MvMTestBase):

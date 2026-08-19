@@ -71,9 +71,12 @@ In this project a location is an MvM objective:
 - Each wave that the team clears is a location. "Doe's Doom Wave 3" is one.
 - Each mission that the team clears is a location. "Doe's Doom Complete" is
   one.
+- The first tank the team destroys in a mission is a location. "Doe's Doom
+  Tank" is one.
 
-The 29 Valve missions hold 181 waves. With the 29 mission clears, that is 210
-locations in the table. A run uses the missions that it drew, not all of them.
+The 29 Valve missions hold 181 waves. With the 29 mission clears and the 26
+tanks, that is 236 locations in the table. Mannhattan's three missions run on
+gates and hold no tank. A run uses the missions that it drew, not all of them.
 
 When your team clears wave 3 of Doe's Doom, the server checks that location.
 The multiworld learns that the item at that place is found, and it sends the

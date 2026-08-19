@@ -13,6 +13,15 @@ type Mission struct {
 	Map        MapID
 	Difficulty Difficulty
 	Waves      uint8
+
+	// HasTank says a tank appears somewhere in the mission, which is what
+	// makes the tank check reachable. Three of Valve's missions have none.
+	//
+	// A false here costs one check. A true on a mission with no tank costs the
+	// seed: the location can never be reached and the run cannot be finished.
+	// So the source is the wiki's tank health table, which lists every tank
+	// spawn by mission and wave, and anything absent from it is false.
+	HasTank bool
 }
 
 // Missions is the 29 Valve missions. Pop file names come from
@@ -26,35 +35,35 @@ type Mission struct {
 // wave count out of a .pop file, and a downloaded pack can change under a seed
 // that already references it.
 var Missions = []Mission{
-	{1, "mvm_decoy", "Doe's Drill", MapDecoy, DifficultyNormal, 8},
-	{2, "mvm_decoy_intermediate", "Doe's Doom", MapDecoy, DifficultyIntermediate, 7},
-	{3, "mvm_decoy_intermediate2", "Day of Wreckening", MapDecoy, DifficultyIntermediate, 6},
-	{4, "mvm_decoy_advanced", "Disk Deletion", MapDecoy, DifficultyAdvanced, 8},
-	{5, "mvm_decoy_advanced2", "Data Demolition", MapDecoy, DifficultyAdvanced, 6},
-	{6, "mvm_decoy_advanced3", "Disintegration", MapDecoy, DifficultyAdvanced, 6},
-	{7, "mvm_decoy_expert1", "Desperation", MapDecoy, DifficultyExpert, 7},
-	{8, "mvm_coaltown", "Crash Course", MapCoaltown, DifficultyNormal, 6},
-	{9, "mvm_coaltown_intermediate", "Cave-in", MapCoaltown, DifficultyIntermediate, 6},
-	{10, "mvm_coaltown_intermediate2", "Quarry", MapCoaltown, DifficultyIntermediate, 6},
-	{11, "mvm_coaltown_advanced", "Ctrl+Alt+Destruction", MapCoaltown, DifficultyAdvanced, 7},
-	{12, "mvm_coaltown_advanced2", "CPU Slaughter", MapCoaltown, DifficultyAdvanced, 6},
-	{13, "mvm_coaltown_expert1", "Cataclysm", MapCoaltown, DifficultyExpert, 7},
-	{14, "mvm_mannworks", "Mann-euvers", MapMannworks, DifficultyNormal, 7},
-	{15, "mvm_mannworks_intermediate", "Mean Machines", MapMannworks, DifficultyIntermediate, 6},
-	{16, "mvm_mannworks_intermediate2", "Mannhunt", MapMannworks, DifficultyIntermediate, 6},
-	{17, "mvm_mannworks_advanced", "Machine Massacre", MapMannworks, DifficultyAdvanced, 7},
-	{18, "mvm_mannworks_ironman", "Mech Mutilation", MapMannworks, DifficultyAdvanced, 3},
-	{19, "mvm_mannworks_expert1", "Mannslaughter", MapMannworks, DifficultyExpert, 5},
-	{20, "mvm_bigrock", "Benign Infiltration", MapBigrock, DifficultyNormal, 6},
-	{21, "mvm_bigrock_advanced1", "Broken Parts", MapBigrock, DifficultyAdvanced, 7},
-	{22, "mvm_bigrock_advanced2", "Bone Shaker", MapBigrock, DifficultyAdvanced, 8},
-	{23, "mvm_mannhattan", "Big Apple Barricade", MapMannhattan, DifficultyIntermediate, 6},
-	{24, "mvm_mannhattan_advanced1", "Empire Escalation", MapMannhattan, DifficultyAdvanced, 6},
-	{25, "mvm_mannhattan_advanced2", "Metro Malice", MapMannhattan, DifficultyAdvanced, 6},
-	{26, "mvm_rottenburg", "Village Vanguard", MapRottenburg, DifficultyIntermediate, 7},
-	{27, "mvm_rottenburg_advanced1", "Hamlet Hostility", MapRottenburg, DifficultyAdvanced, 7},
-	{28, "mvm_rottenburg_advanced2", "Bavarian Botbash", MapRottenburg, DifficultyAdvanced, 7},
-	{29, "mvm_ghost_town_666", "Caliginous Caper", MapGhostTown, DifficultyHaunted, 1},
+	{1, "mvm_decoy", "Doe's Drill", MapDecoy, DifficultyNormal, 8, true},
+	{2, "mvm_decoy_intermediate", "Doe's Doom", MapDecoy, DifficultyIntermediate, 7, true},
+	{3, "mvm_decoy_intermediate2", "Day of Wreckening", MapDecoy, DifficultyIntermediate, 6, true},
+	{4, "mvm_decoy_advanced", "Disk Deletion", MapDecoy, DifficultyAdvanced, 8, true},
+	{5, "mvm_decoy_advanced2", "Data Demolition", MapDecoy, DifficultyAdvanced, 6, true},
+	{6, "mvm_decoy_advanced3", "Disintegration", MapDecoy, DifficultyAdvanced, 6, true},
+	{7, "mvm_decoy_expert1", "Desperation", MapDecoy, DifficultyExpert, 7, true},
+	{8, "mvm_coaltown", "Crash Course", MapCoaltown, DifficultyNormal, 6, true},
+	{9, "mvm_coaltown_intermediate", "Cave-in", MapCoaltown, DifficultyIntermediate, 6, true},
+	{10, "mvm_coaltown_intermediate2", "Quarry", MapCoaltown, DifficultyIntermediate, 6, true},
+	{11, "mvm_coaltown_advanced", "Ctrl+Alt+Destruction", MapCoaltown, DifficultyAdvanced, 7, true},
+	{12, "mvm_coaltown_advanced2", "CPU Slaughter", MapCoaltown, DifficultyAdvanced, 6, true},
+	{13, "mvm_coaltown_expert1", "Cataclysm", MapCoaltown, DifficultyExpert, 7, true},
+	{14, "mvm_mannworks", "Mann-euvers", MapMannworks, DifficultyNormal, 7, true},
+	{15, "mvm_mannworks_intermediate", "Mean Machines", MapMannworks, DifficultyIntermediate, 6, true},
+	{16, "mvm_mannworks_intermediate2", "Mannhunt", MapMannworks, DifficultyIntermediate, 6, true},
+	{17, "mvm_mannworks_advanced", "Machine Massacre", MapMannworks, DifficultyAdvanced, 7, true},
+	{18, "mvm_mannworks_ironman", "Mech Mutilation", MapMannworks, DifficultyAdvanced, 3, true},
+	{19, "mvm_mannworks_expert1", "Mannslaughter", MapMannworks, DifficultyExpert, 5, true},
+	{20, "mvm_bigrock", "Benign Infiltration", MapBigrock, DifficultyNormal, 6, true},
+	{21, "mvm_bigrock_advanced1", "Broken Parts", MapBigrock, DifficultyAdvanced, 7, true},
+	{22, "mvm_bigrock_advanced2", "Bone Shaker", MapBigrock, DifficultyAdvanced, 8, true},
+	{23, "mvm_mannhattan", "Big Apple Barricade", MapMannhattan, DifficultyIntermediate, 6, false},
+	{24, "mvm_mannhattan_advanced1", "Empire Escalation", MapMannhattan, DifficultyAdvanced, 6, false},
+	{25, "mvm_mannhattan_advanced2", "Metro Malice", MapMannhattan, DifficultyAdvanced, 6, false},
+	{26, "mvm_rottenburg", "Village Vanguard", MapRottenburg, DifficultyIntermediate, 7, true},
+	{27, "mvm_rottenburg_advanced1", "Hamlet Hostility", MapRottenburg, DifficultyAdvanced, 7, true},
+	{28, "mvm_rottenburg_advanced2", "Bavarian Botbash", MapRottenburg, DifficultyAdvanced, 7, true},
+	{29, "mvm_ghost_town_666", "Caliginous Caper", MapGhostTown, DifficultyHaunted, 1, true},
 }
 
 var (

@@ -12,7 +12,7 @@ import pkgutil
 from dataclasses import dataclass
 
 # A version mismatch is a hard stop: half-reading a moved table makes a seed wrong undetectably.
-FORMAT_VERSION = 1
+FORMAT_VERSION = 2
 
 
 class DataFormatError(Exception):
@@ -44,12 +44,15 @@ class Location:
 
 @dataclass(frozen=True, slots=True)
 class Mission:
+    """``has_tank`` is why the tank check exists for this mission and not others."""
+
     id: int
     pop_file: str
     name: str
     map_id: int
     difficulty: str
     waves: int
+    has_tank: bool
     locations: tuple[Location, ...]
 
 
@@ -74,6 +77,7 @@ def _read_missions() -> tuple[Mission, ...]:
             map_id=entry["map_id"],
             difficulty=entry["difficulty"],
             waves=entry["waves"],
+            has_tank=entry["has_tank"],
             locations=tuple(
                 Location(
                     id=location["id"],

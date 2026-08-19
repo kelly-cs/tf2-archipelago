@@ -240,7 +240,10 @@ class TF2MvMWorld(World):
 
     @staticmethod
     def _check_count(missions: list[data.Mission]) -> int:
-        return sum(mission.waves + 1 for mission in missions)
+        # The export decides how many checks a mission holds. Counting the
+        # waves and adding one for the clear stopped being that the day a
+        # mission grew a tank check.
+        return sum(len(mission.locations) for mission in missions)
 
     def _shortfall(self, missions: list[data.Mission], start: data.Mission | None) -> int:
         """Unlock items owed minus the checks there is room for; filler only closes a surplus."""
