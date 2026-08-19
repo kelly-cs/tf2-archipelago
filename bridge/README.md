@@ -76,7 +76,7 @@ the HTTP API and nowhere else.
 | `POST` | `/objective` | `{"kind":"wave_cleared","popfile":"mvm_coaltown","wave":3,"waves_total":6}` | `204` once the check is on disk |
 | `POST` | `/objective` | `{"kind":"mission_cleared","popfile":"mvm_coaltown"}` | `204` |
 | `GET` | `/unlocks` | | `{"resume_from":6,"unlocks":{"class":[…],"weapon_slot":[…],"mission_ticket":[…]}}` |
-| `GET` | `/missions` | | the run's missions in the order the seed drew them, each with the map its popfile runs on and whether its ticket is held |
+| `GET` | `/missions` | | the run's missions in the order the seed drew them, each with the map its popfile runs on, whether its ticket is held and whether its clear check is on disk |
 | `GET` | `/grants?since=6` | | `{"seq":8,"grants":[…]}`, held open until there is something past that sequence |
 | `POST` | `/grants/ack` | `{"seq":8}` | `204`. Everything through that sequence is applied, so no effect below it is sent again |
 | `GET` | `/messages?since=-1` | | the multiworld's chat, long-polled. A negative sequence means "start from now" |

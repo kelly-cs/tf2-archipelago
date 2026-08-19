@@ -30,7 +30,7 @@ import (
 // APIVersion is the contract with the plugin. The plugin reads it at startup
 // and says so in chat when it does not match: the two ship in one compose file,
 // so a mismatch means one image was updated and the other was not.
-const APIVersion = 2
+const APIVersion = 3
 
 // wavesObservedMax bounds what the game is believed about a mission's length.
 // The property behind it has never been seen answer, so anything past what a
@@ -109,6 +109,11 @@ type mission struct {
 	Map      string `json:"map"`
 	Waves    int    `json:"waves"`
 	Unlocked bool   `json:"unlocked"`
+
+	// Cleared is the mission clear check being on the bridge's disk. The plugin
+	// chains from a cleared mission to the next unlocked one that is not, so
+	// it has to know both.
+	Cleared bool `json:"cleared"`
 }
 
 type missionsResponse struct {
@@ -289,7 +294,11 @@ func (s *Server) getUnlocks(w http.ResponseWriter, r *http.Request) {
 // what the unlock set deliberately does not carry: the unlock set answers "may
 // we play this", this answers "what is there and how do I load it".
 func (s *Server) getMissions(w http.ResponseWriter, r *http.Request) {
-	missions, unknown := missionsFor(s.client.Health().Missions, s.store.Unlocks().Of(gamedata.ItemMissionTicket))
+	missions, unknown := missionsFor(
+		s.client.Health().Missions,
+		s.store.Unlocks().Of(gamedata.ItemMissionTicket),
+		s.store.Checks(),
+	)
 	for _, popFile := range unknown {
 		s.logger.WarnContext(r.Context(), "the seed holds a mission the tables do not",
 			"mission", popFile)
@@ -301,7 +310,7 @@ func (s *Server) getMissions(w http.ResponseWriter, r *http.Request) {
 // and reports the ones the tables do not know. A seed from a newer gamedata is
 // the only way that happens, and skipping such a mission beats serving a name
 // and a map this binary would be guessing at.
-func missionsFor(drawn, unlocked []string) ([]mission, []string) {
+func missionsFor(drawn, unlocked []string, checks []int64) ([]mission, []string) {
 	missions := make([]mission, 0, len(drawn))
 	var unknown []string
 	for _, popFile := range drawn {
@@ -317,6 +326,7 @@ func missionsFor(drawn, unlocked []string) ([]mission, []string) {
 			Map:      played.Name,
 			Waves:    int(known.Waves),
 			Unlocked: slices.Contains(unlocked, known.PopFile),
+			Cleared:  slices.Contains(checks, known.ClearLocationID()),
 		})
 	}
 	return missions, unknown

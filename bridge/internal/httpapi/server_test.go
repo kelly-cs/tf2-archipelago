@@ -134,7 +134,8 @@ func TestMissionsNameTheMapAndWhatIsUnlocked(t *testing.T) {
 	// The run is what the seed drew, in that order: gamedata knows all 29
 	// missions, a run holds a handful of them.
 	drawn := []string{"mvm_ghost_town_666", "mvm_coaltown_intermediate"}
-	missions, unknown := missionsFor(drawn, []string{"mvm_ghost_town_666"})
+	coaltown, _ := gamedata.MissionByPopFile("mvm_coaltown_intermediate")
+	missions, unknown := missionsFor(drawn, []string{"mvm_ghost_town_666"}, []int64{coaltown.ClearLocationID()})
 
 	if len(unknown) != 0 {
 		t.Fatalf("the tables did not know %v", unknown)
@@ -161,10 +162,13 @@ func TestMissionsNameTheMapAndWhatIsUnlocked(t *testing.T) {
 	if missions[1].PopFile != "mvm_coaltown_intermediate" {
 		t.Errorf("the run came back in a different order: %+v", missions)
 	}
+	if haunted.Cleared || !missions[1].Cleared {
+		t.Errorf("cleared marks the wrong mission: %+v", missions)
+	}
 }
 
 func TestMissionsSkipWhatTheTablesDoNotKnow(t *testing.T) {
-	missions, unknown := missionsFor([]string{"mvm_potato", "mvm_coaltown"}, nil)
+	missions, unknown := missionsFor([]string{"mvm_potato", "mvm_coaltown"}, nil, nil)
 	if len(missions) != 1 || missions[0].PopFile != "mvm_coaltown" {
 		t.Fatalf("missions = %+v", missions)
 	}
