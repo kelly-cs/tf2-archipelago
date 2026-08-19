@@ -101,17 +101,31 @@ func LocalAddresses() []string {
 	return found
 }
 
+// GameAppID is Team Fortress 2 in the Steam client. The dedicated server is a
+// different application, 232250, and the two are not interchangeable here.
+const GameAppID = "440"
+
 // SteamConnectURL is the link that starts Team Fortress 2 and joins this
 // server in one step. Steam owns the steam:// scheme and hands the game the
-// connect and the password itself, which is how a server browser's Join
-// button works.
+// connect and the password itself.
+//
+// It names the game rather than using steam://connect, which asks the server
+// which game it is. Ours answers with something the Steam client will not
+// launch, and the client says "app id specified by server is invalid": the
+// server is application 232250, and 440 is the one anybody owns. A server that
+// never logged in to Steam has no better answer to give, and a game on the
+// same machine needs no login token to be worth joining. So this names 440 and
+// asks the server nothing.
 //
 // The address is the loopback one: this runs on the machine hosting the
 // server, and 127.0.0.1 answers there whatever the reach is.
 func SteamConnectURL(s settings.Settings) string {
 	address := net.JoinHostPort("127.0.0.1", strconv.Itoa(s.SrcdsPort))
-	if s.SrcdsPw == "" {
-		return "steam://connect/" + address
+	arguments := "+connect " + address
+	if s.SrcdsPw != "" {
+		arguments += " +password " + s.SrcdsPw
 	}
-	return "steam://connect/" + address + "/" + url.PathEscape(s.SrcdsPw)
+	// The arguments are one field of the URL, so the spaces inside them are
+	// escaped rather than ending it.
+	return "steam://run/" + GameAppID + "//" + url.PathEscape(arguments)
 }
