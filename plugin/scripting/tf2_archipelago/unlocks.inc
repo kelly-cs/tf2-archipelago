@@ -36,6 +36,27 @@ char g_ClassKeys[view_as<int>(TFClass_Engineer) + 1][] = {
 
 char g_SlotKeys[Slot_Count][] = { "primary", "secondary", "melee" };
 
+// The order the progressive weapon slot opens a class's loadout in: the n-th
+// slot held opens the n-th entry here. Indexed by TFClassType, like the arrays
+// above, and holding slot numbers rather than keys.
+//
+// Six classes take the item's own order. Three cannot: a Medic without the
+// Medigun, an Engineer without the Wrench and a Spy without the Knife play no
+// part in a wave. gamedata/classes.go holds the same table and says why, and a
+// test there compares the two.
+int g_SlotOrder[view_as<int>(TFClass_Engineer) + 1][Slot_Count] = {
+    { Slot_Primary, Slot_Secondary, Slot_Melee },   // unknown
+    { Slot_Primary, Slot_Secondary, Slot_Melee },   // scout
+    { Slot_Primary, Slot_Secondary, Slot_Melee },   // sniper
+    { Slot_Primary, Slot_Secondary, Slot_Melee },   // soldier
+    { Slot_Primary, Slot_Secondary, Slot_Melee },   // demoman
+    { Slot_Secondary, Slot_Primary, Slot_Melee },   // medic
+    { Slot_Primary, Slot_Secondary, Slot_Melee },   // heavy
+    { Slot_Primary, Slot_Secondary, Slot_Melee },   // pyro
+    { Slot_Melee, Slot_Secondary, Slot_Primary },   // spy
+    { Slot_Melee, Slot_Primary, Slot_Secondary },   // engineer
+};
+
 void Unlocks_Init()
 {
     g_UnlockedMissions = new StringMap();
@@ -221,6 +242,34 @@ TFClassType Unlocks_FirstAllowedClass()
     return TFClass_Unknown;
 }
 
+// How many slots the run holds. The item is progressive, so the count is all
+// that carries: the bridge grants the keys in the item's own order, and which
+// slot each one opens is the player's class to decide, not the bridge's.
+static int Unlocks_SlotsHeld()
+{
+    int held = 0;
+    for (int slot = 0; slot < Slot_Count; slot++)
+    {
+        if (g_SlotUnlocked[slot])
+        {
+            held++;
+        }
+    }
+    return held;
+}
+
+static bool Unlocks_SlotOpen(TFClassType class, int slot, int held)
+{
+    for (int position = 0; position < held; position++)
+    {
+        if (g_SlotOrder[view_as<int>(class)][position] == slot)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
 // Every inventory application: spawn, resupply locker, and the upgrade station's loadout changes.
 void Unlocks_EnforceSlots(int client)
 {
@@ -228,12 +277,14 @@ void Unlocks_EnforceSlots(int client)
     {
         return;
     }
+    TFClassType class = TF2_GetPlayerClass(client);
+    int held = Unlocks_SlotsHeld();
     bool removedActive = false;
     int active = GetEntPropEnt(client, Prop_Send, "m_hActiveWeapon");
 
     for (int slot = 0; slot < Slot_Count; slot++)
     {
-        if (g_SlotUnlocked[slot])
+        if (Unlocks_SlotOpen(class, slot, held))
         {
             continue;
         }
@@ -245,20 +296,16 @@ void Unlocks_EnforceSlots(int client)
     }
     if (removedActive)
     {
-        SwitchToAnyWeapon(client);
+        SwitchToAnyWeapon(client, class, held);
     }
 }
 
 // Removing the held weapon leaves no viewmodel and no attack, and the player cannot switch back.
-static void SwitchToAnyWeapon(int client)
+static void SwitchToAnyWeapon(int client, TFClassType class, int held)
 {
-    for (int slot = 0; slot < Slot_Count; slot++)
+    for (int position = 0; position < held; position++)
     {
-        if (!g_SlotUnlocked[slot])
-        {
-            continue;
-        }
-        int weapon = GetPlayerWeaponSlot(client, slot);
+        int weapon = GetPlayerWeaponSlot(client, g_SlotOrder[view_as<int>(class)][position]);
         if (weapon == -1)
         {
             continue;

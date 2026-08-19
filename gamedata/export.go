@@ -130,8 +130,10 @@ func buildMetaFile() metaFile {
 	for _, m := range Maps {
 		meta.Maps = append(meta.Maps, mapJSON(m))
 	}
+	// Named field by field rather than converted: Class carries a slot order
+	// the apworld has no use for, and the export must not grow one silently.
 	for _, c := range Classes {
-		meta.Classes = append(meta.Classes, classJSON(c))
+		meta.Classes = append(meta.Classes, classJSON{c.ID, c.Key, c.Name})
 	}
 	for _, s := range WeaponSlots {
 		meta.WeaponSlots = append(meta.WeaponSlots, weaponSlotJSON(s))

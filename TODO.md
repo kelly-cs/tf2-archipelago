@@ -34,25 +34,18 @@ The same confusion sits in `docs/en/setup/shape-of-the-run.md` under
 `MVM_DEATH_LINK`, and in `docs/en/spec.md`. Fix all three, and the French
 copies.
 
-## 3. Medic, Engineer and Spy need a different first slot
+## 3. Medic, Engineer and Spy need a different first slot. Done
 
-`Progressive Weapon Slot` grants the primary slot, then the secondary, then
-the melee. That order is the same for all nine classes, and it is wrong for
-three:
+`Class.SlotOrder` in `gamedata/classes.go` gives each class its own order, and
+`g_SlotOrder` in the plugin holds the same table. A test in `gamedata` compares
+the two. The Medic opens the Medigun first, the Engineer the Wrench, the Spy
+the Knife.
 
-- A Medic without the secondary slot has no Medigun.
-- An Engineer without the melee slot has no Wrench, and no PDA.
-- A Spy without the melee slot has no Knife. The revolver alone is worthless.
+The plugin counts the slots the run holds rather than reading which key
+arrived. The bridge and the item pool did not change, so an already generated
+seed still means the same thing.
 
-A run that draws only these three classes at the start is unplayable.
-
-`gamedata/slots.go` freezes the slot order, because a generated seed depends
-on it. So the fix is not a new order. The fix is one order per class, applied
-where the plugin enforces the slots. The item stays `Progressive Weapon Slot`
-copy n. What copy n opens depends on the class of the player.
-
-The Engineer also needs the two PDA slots with the Wrench. One is useless
-without the other.
+The Engineer's two PDA slots were never locked, so the Wrench brings them.
 
 ## 4. Choose the start mission and the start class
 

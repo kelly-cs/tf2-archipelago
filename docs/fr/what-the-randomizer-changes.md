@@ -27,8 +27,22 @@ un respawn gratuit rend la vie que mourir vous a coûtée.
 ## Les emplacements d'arme commencent verrouillés
 
 Il y a trois emplacements d'arme : principal, secondaire, mêlée. Un item,
-`Progressive Weapon Slot`, les ouvre dans cet ordre. Il y en a trois
-exemplaires dans le pool.
+`Progressive Weapon Slot`, les ouvre un par un. Il y en a trois exemplaires
+dans le pool.
+
+L'emplacement qu'un exemplaire ouvre dépend de la classe que vous jouez. Six
+classes reçoivent le principal, puis le secondaire, puis la mêlée. Trois non,
+parce que leur premier emplacement est ce qui définit la classe :
+
+| Classe | Premier | Deuxième | Troisième |
+| --- | --- | --- | --- |
+| Medic | Secondaire, le Medigun | Principal | Mêlée |
+| Engineer | Mêlée, la clé et les PDA | Principal | Secondaire |
+| Spy | Mêlée, le couteau | Secondaire, le sapeur | Principal |
+
+Ce que la partie tient est un nombre, pas un emplacement. Une partie avec un
+exemplaire ouvre le Medigun pour un Medic et le Scattergun pour un Scout, au
+même moment.
 
 Un emplacement d'arme verrouillé est vide. Le serveur retire l'arme à
 chaque fois que le jeu vous la donne : au spawn, au casier de

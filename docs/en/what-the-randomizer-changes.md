@@ -26,8 +26,21 @@ cost you.
 ## The weapon slots start locked
 
 There are three weapon slots: primary, secondary, melee. One item,
-`Progressive Weapon Slot`, opens them in that order. There are three copies of
+`Progressive Weapon Slot`, opens them one at a time. There are three copies of
 it in the pool.
+
+Which slot a copy opens depends on the class you play. Six classes get the
+primary slot, then the secondary, then the melee. Three do not, because their
+first slot is what the class is for:
+
+| Class | First | Second | Third |
+| --- | --- | --- | --- |
+| Medic | Secondary, the Medigun | Primary | Melee |
+| Engineer | Melee, the Wrench and the PDAs | Primary | Secondary |
+| Spy | Melee, the Knife | Secondary, the Sapper | Primary |
+
+The count is what the run holds, not the slot. A run with one copy opens the
+Medigun for a Medic and the Scattergun for a Scout, at the same moment.
 
 A locked weapon slot is empty. The server removes the weapon each time the game
 gives it to you: at spawn, at the resupply locker, and at the upgrade station.

@@ -54,7 +54,7 @@ items sont :
 | Item | Ce qu'il fait |
 | --- | --- |
 | `Class: Scout` et les huit autres classes | Rend ce mercenaire jouable |
-| `Progressive Weapon Slot` | Ouvre l'emplacement principal, puis secondaire, puis mêlée |
+| `Progressive Weapon Slot` | Ouvre un emplacement d'arme de plus. Lequel dépend de la classe : voir [Ce que le randomizer change](what-the-randomizer-changes.md) |
 | `Mission Ticket: Crash Course` et un par mission | Marque cette mission comme faisant partie de la partie |
 | `Cash Bundle` | Paie 200 crédits à chaque joueur du serveur |
 

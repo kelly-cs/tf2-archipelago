@@ -1,6 +1,9 @@
 package gamedata
 
-import "fmt"
+import (
+	"fmt"
+	"slices"
+)
 
 // Validate re-checks every invariant the id scheme rests on. The exporter runs
 // it first: a broken table that reaches the apworld is a broken seed nobody can
@@ -28,10 +31,33 @@ func validateEntities() error {
 	if err := unique("class key", len(Classes), func(i int) any { return Classes[i].Key }); err != nil {
 		return err
 	}
+	if err := validateSlotOrders(); err != nil {
+		return err
+	}
 	if err := unique("weapon slot id", len(WeaponSlots), func(i int) any { return WeaponSlots[i].ID }); err != nil {
 		return err
 	}
 	return unique("weapon slot key", len(WeaponSlots), func(i int) any { return WeaponSlots[i].Key })
+}
+
+// A slot missing from an order is a slot the progressive item can never open,
+// and a slot listed twice hides another one. Both are silent in play: the
+// player just never gets a weapon.
+func validateSlotOrders() error {
+	for _, c := range Classes {
+		if len(c.SlotOrder) != len(WeaponSlots) {
+			return fmt.Errorf("class %q: slot order lists %d of %d slots", c.Key, len(c.SlotOrder), len(WeaponSlots))
+		}
+		if err := unique("slot in "+c.Key+"'s order", len(c.SlotOrder), func(i int) any { return c.SlotOrder[i] }); err != nil {
+			return err
+		}
+		for _, id := range c.SlotOrder {
+			if !slices.ContainsFunc(WeaponSlots, func(s WeaponSlot) bool { return s.ID == id }) {
+				return fmt.Errorf("class %q: unknown weapon slot id %d in its order", c.Key, id)
+			}
+		}
+	}
+	return nil
 }
 
 func validateMissions() error {

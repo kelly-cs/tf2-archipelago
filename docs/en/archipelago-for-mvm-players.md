@@ -53,7 +53,7 @@ are:
 | Item | What it does |
 | --- | --- |
 | `Class: Scout` and the eight other classes | Makes that mercenary playable |
-| `Progressive Weapon Slot` | Opens the primary, then the secondary, then the melee weapon slot |
+| `Progressive Weapon Slot` | Opens one more weapon slot. Which one depends on the class: see [What the randomizer changes](what-the-randomizer-changes.md) |
 | `Mission Ticket: Crash Course` and one per mission | Marks that mission as part of the run |
 | `Cash Bundle` | Pays 200 credits to every player on the server |
 

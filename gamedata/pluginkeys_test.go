@@ -78,6 +78,72 @@ func TestThePluginKnowsEveryWeaponSlotKey(t *testing.T) {
 	}
 }
 
+// The plugin's table is indexed by TF2's class enum, which is not the order of
+// Classes, so each row names its class in a trailing comment and this reads
+// that. A row whose comment is wrong fails here rather than handing a Medic a
+// syringe gun and no Medigun for a whole evening.
+var pluginSlotOrderRow = regexp.MustCompile(`\{([^{}]*)\},\s*//\s*(\w+)`)
+
+func TestThePluginOpensSlotsInTheOrderThisPackageSets(t *testing.T) {
+	body, err := os.ReadFile(unlocksSource)
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(body)
+	start := strings.Index(text, "g_SlotOrder")
+	if start == -1 {
+		t.Fatalf("%s has no g_SlotOrder", unlocksSource)
+	}
+	end := strings.Index(text[start:], "};")
+	if end == -1 {
+		t.Fatalf("%s: g_SlotOrder is not closed", unlocksSource)
+	}
+	rows := pluginSlotOrderRow.FindAllStringSubmatch(text[start:start+end], -1)
+
+	// One row per class, plus the row TFClass_Unknown indexes.
+	if len(rows) != len(Classes)+1 {
+		t.Fatalf("the plugin lists %d slot orders, this package has %d classes", len(rows), len(Classes))
+	}
+
+	held := make(map[string][]WeaponSlotID, len(rows))
+	for _, row := range rows {
+		order := make([]WeaponSlotID, 0, len(WeaponSlots))
+		for name := range strings.SplitSeq(row[1], ",") {
+			name = strings.TrimSpace(name)
+			if name == "" {
+				continue
+			}
+			slot, ok := weaponSlotByPluginName(name)
+			if !ok {
+				t.Fatalf("the plugin names a slot %q that this package does not have", name)
+			}
+			order = append(order, slot)
+		}
+		held[row[2]] = order
+	}
+
+	for _, class := range Classes {
+		order, ok := held[class.Key]
+		if !ok {
+			t.Errorf("the plugin has no slot order for %q", class.Key)
+			continue
+		}
+		if !slices.Equal(order, class.SlotOrder) {
+			t.Errorf("%s opens %v in the plugin and %v here", class.Key, order, class.SlotOrder)
+		}
+	}
+}
+
+// The plugin spells a slot Slot_Primary where this package keys it "primary".
+func weaponSlotByPluginName(name string) (WeaponSlotID, bool) {
+	for _, slot := range WeaponSlots {
+		if name == "Slot_"+slot.Name {
+			return slot.ID, true
+		}
+	}
+	return 0, false
+}
+
 func TestThePluginHandlesEveryGrantKind(t *testing.T) {
 	body, err := os.ReadFile(bridgeSource)
 	if err != nil {
