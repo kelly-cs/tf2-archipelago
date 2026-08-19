@@ -8,18 +8,21 @@ const (
 	ObjectiveWaveCleared ObjectiveKind = iota + 1
 	ObjectiveMissionCleared
 	ObjectiveTankDestroyed
+	ObjectiveGiantKilled
 )
 
 var objectiveKeys = [...]string{
 	ObjectiveWaveCleared:    "wave_cleared",
 	ObjectiveMissionCleared: "mission_cleared",
 	ObjectiveTankDestroyed:  "tank_destroyed",
+	ObjectiveGiantKilled:    "giant_killed",
 }
 
 // ObjectiveKinds is every kind that exists, in id order. Whatever walks it
 // covers new kinds without a second list to keep in step.
 var ObjectiveKinds = []ObjectiveKind{
-	ObjectiveWaveCleared, ObjectiveMissionCleared, ObjectiveTankDestroyed,
+	ObjectiveWaveCleared, ObjectiveMissionCleared,
+	ObjectiveTankDestroyed, ObjectiveGiantKilled,
 }
 
 // Key is the string on the wire between the plugin and the bridge.
@@ -35,7 +38,8 @@ type Location struct {
 }
 
 // Locations is every check in the game, mission by mission: the waves in
-// order, then the tank if the mission has one, then the mission clear.
+// order, then the tank and the giant if the mission holds them, then the
+// mission clear.
 var Locations = buildLocations()
 
 func buildLocations() []Location {
@@ -55,6 +59,14 @@ func buildLocations() []Location {
 				ID:      m.TankLocationID(),
 				Name:    m.TankLocationName(),
 				Kind:    ObjectiveTankDestroyed,
+				Mission: m.ID,
+			})
+		}
+		if m.HasGiant {
+			all = append(all, Location{
+				ID:      m.GiantLocationID(),
+				Name:    m.GiantLocationName(),
+				Kind:    ObjectiveGiantKilled,
 				Mission: m.ID,
 			})
 		}
@@ -110,6 +122,16 @@ func LocationByObjective(kind ObjectiveKind, popFile string, wave uint8) (Locati
 		return Location{
 			ID:      m.TankLocationID(),
 			Name:    m.TankLocationName(),
+			Kind:    kind,
+			Mission: m.ID,
+		}, true
+	case ObjectiveGiantKilled:
+		if !m.HasGiant {
+			return Location{}, false
+		}
+		return Location{
+			ID:      m.GiantLocationID(),
+			Name:    m.GiantLocationName(),
 			Kind:    kind,
 			Mission: m.ID,
 		}, true

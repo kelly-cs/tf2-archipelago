@@ -64,6 +64,7 @@ type missionJSON struct {
 	Difficulty string         `json:"difficulty"`
 	Waves      uint8          `json:"waves"`
 	HasTank    bool           `json:"has_tank"`
+	HasGiant   bool           `json:"has_giant"`
 	Locations  []locationJSON `json:"locations"`
 }
 
@@ -160,6 +161,7 @@ func buildMissionsFile() missionsFile {
 			Difficulty: m.Difficulty.Key(),
 			Waves:      m.Waves,
 			HasTank:    m.HasTank,
+			HasGiant:   m.HasGiant,
 			Locations:  byMission[m.ID],
 		})
 	}

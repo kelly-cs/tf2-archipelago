@@ -69,12 +69,13 @@ appartient, pas au randomizer.
 
 Chaque vague que l'équipe réussit rapporte une check. Chaque mission que
 l'équipe réussit en rapporte une de plus. Le premier tank que l'équipe détruit
-dans une mission en rapporte encore une, une seule par mission quel que soit le
-nombre de tanks.
+dans une mission en rapporte encore une, et le premier géant aussi. Les deux
+comptent une seule fois par mission, quel que soit leur nombre.
 
 Les trois missions de Mannhattan tournent sur des portes et n'ont pas de tank.
-Elles n'ont donc pas de check de tank : une check que personne ne peut
-atteindre est une partie que personne ne peut finir.
+Elles n'ont donc pas de check de tank. Toutes les missions ont un géant, donc
+toutes ont cette check-là. Une check que personne ne peut atteindre est une
+partie que personne ne peut finir.
 
 Une vague perdue ne rapporte rien, et le randomizer n'ajoute aucune pénalité.
 L'équipe rejoue la vague, comme dans MvM normal.

@@ -6,8 +6,7 @@ it stands.
 Two players played that session: EZKSupernova and Cowser the Khelinace. Most
 of this list comes from their reports.
 
-Only item 9, a native Linux build, is untouched. Item 8 has half of it, and
-says why the other half waits.
+Only item 9, a native Linux build, is untouched.
 
 ## 1. Fork the bots mod. Done
 
@@ -128,29 +127,35 @@ Nobody reproduced this on a live server. The change is safe under either
 rule. If the game does not claw the money back, the bundle simply arrives at
 the upgrade station rather than during the wave.
 
-## 8. More checks. Tanks done, giants blocked
+## 8. More checks. Done
 
-The first tank the team destroys in a mission is a check: 26 more locations,
-one per mission that holds a tank. The plugin reads the game's own
-`mvm_tank_destroyed_by_players`, so the event is not a guess.
+The first tank the team destroys in a mission is a check, and so is the first
+giant it kills. 55 more locations: 26 tanks and 29 giants. The table has 265
+locations now, against 210 before.
 
-`Mission.HasTank` decides which missions get one. It comes from the wiki's
-tank health table, which lists every tank spawn by mission and wave. The three
-missions absent from it are Mannhattan's, which run on gates. A wrong `true`
-there is a location nobody can reach and a run nobody can finish, so a test
-names the three.
+`Mission.HasTank` and `Mission.HasGiant` decide which missions get which. Both
+come from the wiki's own mission list, which is the source of the whole table:
+
+	https://wiki.teamfortress.com/w/index.php?title=Template:List_of_MVM_Missions&action=edit
+
+Three missions hold no tank, all of them Mannhattan's, which run on gates
+instead. Every mission holds a giant. A wrong `true` is a location nobody can
+reach and a run nobody can finish, so a test pins both facts.
+
+That list also agreed with every wave count, every tier and every map already
+in the table. Those facts now have a second source, where they had one.
+
+The plugin reads the game's own `mvm_tank_destroyed_by_players` for a tank. The
+game fires no event for a giant. So the giant check rides on `player_death`
+and reads `m_bIsMiniBoss` off the victim. The defender bot mod reads the same
+property to pick its own targets. A wave is hundreds of robot deaths, so the
+handler tests the cheapest thing first and stops for good once the check is in.
 
 The export is format version 2. A bridge older than this one refuses a seed
 generated with it, which is what that number is for.
 
-Giants are not done, and not guessed. The same question has no answer this
-project can source. No wiki page lists which missions hold a giant. The game
-fires no event for one either. So the plugin has to read a netprop off a dead
-robot to tell a giant from any other robot. Settle both before a giant check
-exists.
-
 More checks mean more items. The pool is tickets, classes, three weapon slots
-and filler, so 26 more checks mean 26 more `Cash Bundle` across a full roster.
+and filler, so 55 more checks mean 55 more `Cash Bundle` across a full roster.
 A real item, bot templates or canteens or upgrades, is the next thing this
 needs, and it is its own piece of work.
 

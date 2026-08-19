@@ -73,10 +73,13 @@ In this project a location is an MvM objective:
   one.
 - The first tank the team destroys in a mission is a location. "Doe's Doom
   Tank" is one.
+- The first giant the team kills in a mission is a location. "Doe's Doom
+  Giant" is one.
 
-The 29 Valve missions hold 181 waves. With the 29 mission clears and the 26
-tanks, that is 236 locations in the table. Mannhattan's three missions run on
-gates and hold no tank. A run uses the missions that it drew, not all of them.
+The 29 Valve missions hold 181 waves. With the 29 mission clears, the 26 tanks
+and the 29 giants, that is 265 locations in the table. Mannhattan's three
+missions run on gates and hold no tank. A run uses the missions that it drew,
+not all of them.
 
 When your team clears wave 3 of Doe's Doom, the server checks that location.
 The multiworld learns that the item at that place is found, and it sends the
@@ -102,8 +105,8 @@ fixed.
 A filler item is an item with no place in the logic. It is what pads the pool
 when there are more locations than progression items.
 
-`Cash Bundle` is the filler here. The run has 40 named items against up to 210
-locations, so most waves hold either filler or an item that belongs to another
+`Cash Bundle` is the filler here. The run has 40 named items against up to 265
+locations. So most checks hold either filler or an item that belongs to another
 game in the multiworld.
 
 ## What this means at the keyboard

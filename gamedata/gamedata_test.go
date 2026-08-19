@@ -155,7 +155,7 @@ func recordNewIDs(frozen, current map[string]int64) error {
 }
 
 func TestLocationsCoverEveryWaveAndMission(t *testing.T) {
-	waves, clears, tanks := 0, 0, 0
+	waves, clears, tanks, giants := 0, 0, 0, 0
 	for _, l := range Locations {
 		switch l.Kind {
 		case ObjectiveWaveCleared:
@@ -164,13 +164,18 @@ func TestLocationsCoverEveryWaveAndMission(t *testing.T) {
 			clears++
 		case ObjectiveTankDestroyed:
 			tanks++
+		case ObjectiveGiantKilled:
+			giants++
 		}
 	}
-	want, wantTanks := 0, 0
+	want, wantTanks, wantGiants := 0, 0, 0
 	for _, m := range Missions {
 		want += int(m.Waves)
 		if m.HasTank {
 			wantTanks++
+		}
+		if m.HasGiant {
+			wantGiants++
 		}
 	}
 	if waves != want {
@@ -183,6 +188,20 @@ func TestLocationsCoverEveryWaveAndMission(t *testing.T) {
 	// and a run nobody can finish.
 	if tanks != wantTanks {
 		t.Errorf("%d tank locations, want %d", tanks, wantTanks)
+	}
+	if giants != wantGiants {
+		t.Errorf("%d giant locations, want %d", giants, wantGiants)
+	}
+}
+
+// The wiki's mission list gives every one of the 29 a giant. The field exists
+// so that a mission without one is a decision somebody made, not an oversight
+// that hands a seed a location nobody can reach.
+func TestEveryMissionHasAGiant(t *testing.T) {
+	for _, m := range Missions {
+		if !m.HasGiant {
+			t.Errorf("%s has no giant, which no source says", m.Name)
+		}
 	}
 }
 

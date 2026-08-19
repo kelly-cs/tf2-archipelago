@@ -63,10 +63,12 @@ map rotation belongs to you, not to the randomizer.
 
 Each wave that the team clears reports one check. Each mission that the team
 clears reports one more. The first tank the team destroys in a mission reports
-one more again, once per mission however many tanks it holds.
+one more again, and so does the first giant. Both are once per mission, however
+many the mission holds.
 
 Mannhattan's three missions run on gates and hold no tank, so they have no tank
-check. A check nobody can reach is a run nobody can finish.
+check. Every mission holds a giant, so every mission has that one. A check
+nobody can reach is a run nobody can finish.
 
 A lost wave reports nothing, and the randomizer adds no penalty. The team
 replays the wave, the same as in normal MvM.

@@ -44,7 +44,7 @@ class Location:
 
 @dataclass(frozen=True, slots=True)
 class Mission:
-    """``has_tank`` is why the tank check exists for this mission and not others."""
+    """``has_tank`` and ``has_giant`` are why those checks exist for a mission."""
 
     id: int
     pop_file: str
@@ -53,6 +53,7 @@ class Mission:
     difficulty: str
     waves: int
     has_tank: bool
+    has_giant: bool
     locations: tuple[Location, ...]
 
 
@@ -78,6 +79,7 @@ def _read_missions() -> tuple[Mission, ...]:
             difficulty=entry["difficulty"],
             waves=entry["waves"],
             has_tank=entry["has_tank"],
+            has_giant=entry["has_giant"],
             locations=tuple(
                 Location(
                     id=location["id"],

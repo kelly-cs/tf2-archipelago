@@ -11,6 +11,7 @@
 
 // Players are on RED in Mann vs Machine; BLU is the robots, and they are bots.
 #define TeamRed 2
+#define TeamBlue 3
 
 // Keeps each missing-property complaint to one line rather than one per frame.
 StringMap g_WarnedProps;
@@ -59,6 +60,26 @@ stock bool MvM_IsPlayer(int client)
         && IsClientInGame(client)
         && !IsFakeClient(client)
         && GetClientTeam(client) == TeamRed;
+}
+
+// UNVERIFIED m_bIsMiniBoss on CTFPlayer, which is what the game calls a giant.
+// The defender bot mod reads the same property to pick its targets, so it is
+// the community's answer rather than only ours.
+//
+// Robots are fake clients on BLU. A human is never a giant, and neither is an
+// allied bot on RED, so the team is checked before the property is.
+stock bool MvM_IsGiant(int client)
+{
+    if (client <= 0 || client > MaxClients || !IsClientInGame(client)
+        || !IsFakeClient(client) || GetClientTeam(client) != TeamBlue)
+    {
+        return false;
+    }
+    if (!HasProp(client, "m_bIsMiniBoss"))
+    {
+        return false;
+    }
+    return GetEntProp(client, Prop_Send, "m_bIsMiniBoss") != 0;
 }
 
 // UNVERIFIED m_iszMvMPopfileName: scripts/population/mvm_decoy.pop, trimmed to mvm_decoy.

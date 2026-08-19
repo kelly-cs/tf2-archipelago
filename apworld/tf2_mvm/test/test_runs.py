@@ -108,6 +108,16 @@ class TestTankChecks(TF2MvMTestBase):
             tanks = [loc for loc in mission.locations if loc.kind == "tank_destroyed"]
             self.assertEqual(1 if mission.has_tank else 0, len(tanks))
 
+    def test_every_mission_has_a_giant_check(self) -> None:
+        # The wiki's mission list gives all 29 a giant, so all 29 get the check.
+        for mission in data.MISSIONS:
+            giants = [loc for loc in mission.locations if loc.kind == "giant_killed"]
+            self.assertTrue(mission.has_giant)
+            self.assertEqual(1, len(giants))
+            self.assertIn(
+                f"{mission.name} Giant", self.multiworld.regions.location_cache[self.player]
+            )
+
 
 class TestNamedStartMission(TF2MvMTestBase):
     """Quarry is intermediate, so it is not the easiest mission a normal pool draws."""

@@ -81,7 +81,9 @@ func TestObjectiveIsIdempotent(t *testing.T) {
 func TestObjectiveRejectsWhatItCannotResolve(t *testing.T) {
 	_, handler := newTestServer(t, time.Second)
 	tests := map[string]string{
-		"unknown kind":      `{"kind":"giant_killed","popfile":"mvm_coaltown","wave":1}`,
+		// Deliberately not a kind that could become one: this case is about a
+		// plugin newer than the bridge, not about the next objective added.
+		"unknown kind":      `{"kind":"nonsense","popfile":"mvm_coaltown","wave":1}`,
 		"unknown pop file":  `{"kind":"wave_cleared","popfile":"mvm_potato","wave":1}`,
 		"wave past the end": `{"kind":"wave_cleared","popfile":"mvm_coaltown","wave":99}`,
 		"wave zero":         `{"kind":"wave_cleared","popfile":"mvm_coaltown","wave":0}`,

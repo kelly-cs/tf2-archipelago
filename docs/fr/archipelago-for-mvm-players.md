@@ -75,11 +75,13 @@ Dans ce projet, une location est un objectif MvM :
   Complete » en est une.
 - Le premier tank que l'équipe détruit dans une mission est une location.
   « Doe's Doom Tank » en est une.
+- Le premier géant que l'équipe tue dans une mission est une location.
+  « Doe's Doom Giant » en est une.
 
-Les 29 missions Valve contiennent 181 vagues. Avec les 29 fins de mission et
-les 26 tanks, cela fait 236 locations dans la table. Les trois missions de
-Mannhattan tournent sur des portes et n'ont pas de tank. Une partie utilise
-les missions qu'elle a tirées, pas toutes.
+Les 29 missions Valve contiennent 181 vagues. Avec les 29 fins de mission, les
+26 tanks et les 29 géants, cela fait 265 locations dans la table. Les trois
+missions de Mannhattan tournent sur des portes et n'ont pas de tank. Une partie
+utilise les missions qu'elle a tirées, pas toutes.
 
 Quand votre équipe réussit la vague 3 de Doe's Doom, le serveur fait la
 check de cette location. Le multiworld apprend que l'item de cet endroit
@@ -107,7 +109,7 @@ Un filler item est un item sans place dans la logique. C'est ce qui
 remplit le pool quand il y a plus de locations que de progression items.
 
 `Cash Bundle` est le filler ici. La partie a 40 items nommés contre jusqu'à
-210 locations, donc la plupart des vagues contiennent soit du filler, soit
+265 locations. La plupart des checks contiennent donc soit du filler, soit
 un item appartenant à un autre jeu du multiworld.
 
 ## Ce que ça change au clavier

@@ -11,8 +11,8 @@ const BaseID int64 = 7_442_000_000
 const (
 	// WavesMax is the longest mission this id scheme holds. Each mission gets a
 	// block of 100, and the slots above the waves are named objectives: 90 is
-	// the tank, 99 the mission clear. Valve's longest mission is 8 waves, so
-	// the ceiling is a bound on the id scheme rather than on the game.
+	// the tank, 91 the giant, 99 the mission clear. Valve's longest mission is
+	// 8 waves, so the ceiling is a bound on the id scheme, not on the game.
 	WavesMax uint8 = 89
 
 	// MissionIDMax keeps the location space below the item space.
@@ -20,6 +20,7 @@ const (
 
 	locationsPerMission int64 = 100
 	locationSlotTank    int64 = 90
+	locationSlotGiant   int64 = 91
 	locationSlotClear   int64 = 99
 
 	// itemSpaceOffset keeps item ids clear of location ids, which Archipelago
@@ -51,6 +52,17 @@ func (m Mission) TankLocationID() int64 {
 // TankLocationName is what the spoiler log calls that check.
 func (m Mission) TankLocationName() string {
 	return m.Name + " Tank"
+}
+
+// GiantLocationID is the id of the check for killing a giant in this mission.
+// Only missions with HasGiant have one.
+func (m Mission) GiantLocationID() int64 {
+	return BaseID + int64(m.ID)*locationsPerMission + locationSlotGiant
+}
+
+// GiantLocationName is what the spoiler log calls that check.
+func (m Mission) GiantLocationName() string {
+	return m.Name + " Giant"
 }
 
 // ClearLocationID is the id of the check for clearing the whole mission.

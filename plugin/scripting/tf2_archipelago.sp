@@ -62,6 +62,10 @@ bool g_MissionReported;
 // the mission the way g_MissionReported is.
 bool g_TankReported;
 
+// The same for the giant check. It also keeps player_death cheap: a wave is
+// hundreds of robot deaths, and once this is set the handler is one bool read.
+bool g_GiantReported;
+
 public void OnPluginStart()
 {
     Log_Init();
@@ -78,6 +82,8 @@ public void OnPluginStart()
     g_HaveTankDestroyed = HookEventEx("mvm_tank_destroyed_by_players", Event_TankDestroyed);
     HookEvent("post_inventory_application", Event_InventoryApplied);
     HookEvent("player_spawn", Event_PlayerSpawn);
+    // The game fires no event for a giant, so the check rides on every death.
+    HookEvent("player_death", Event_PlayerDeath);
 
     // Every way a player asks for a seat on RED. The first listener frees one
     // if the bots took them all; the second enforces the run's classes.
@@ -241,6 +247,7 @@ public void OnMapStart()
     g_PolledWave = 0;
     g_MissionReported = false;
     g_TankReported = false;
+    g_GiantReported = false;
     Bots_OnMapStart();
 
     // The plugin's copy of the unlock set went with the map; ask before anyone spawns.
@@ -270,6 +277,7 @@ public void Event_BeginWave(Event event, const char[] name, bool dontBroadcast)
     {
         g_MissionReported = false;
         g_TankReported = false;
+        g_GiantReported = false;
     }
 
     int fromGame = MvM_WaveFromGame();
@@ -288,6 +296,31 @@ public void Event_WaveComplete(Event event, const char[] name, bool dontBroadcas
 public void Event_MissionComplete(Event event, const char[] name, bool dontBroadcast)
 {
     ReportMissionCleared();
+}
+
+// A giant died, maybe. This runs on every robot death of every wave, so the
+// cheapest test comes first and the whole handler stops for good once the
+// mission's check is in.
+public void Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
+{
+    if (g_GiantReported || !MvM_IsActive())
+    {
+        return;
+    }
+    if (!MvM_IsGiant(GetClientOfUserId(event.GetInt("userid"))))
+    {
+        return;
+    }
+    char popFile[64];
+    if (!MvM_PopFile(popFile, sizeof(popFile)))
+    {
+        AP_Error("The team killed a giant, but the mission has no name. The plugin did not report the check.");
+        return;
+    }
+    g_GiantReported = true;
+    AP_Announce("Giant killed: %s", popFile);
+    Bridge_ReportObjective("giant_killed", popFile, 0,
+        g_MaxWaves > 0 ? g_MaxWaves : MvM_MaxWavesFromGame());
 }
 
 // One check per mission, not one per tank: the bridge takes the check once and
