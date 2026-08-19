@@ -73,6 +73,12 @@ public void OnPluginStart()
     HookEvent("post_inventory_application", Event_InventoryApplied);
     HookEvent("player_spawn", Event_PlayerSpawn);
 
+    // Every way a player asks for a seat on RED. The first listener frees one
+    // if the bots took them all; the second enforces the run's classes.
+    AddCommandListener(Command_JoinRed, "jointeam");
+    AddCommandListener(Command_JoinRed, "autoteam");
+    AddCommandListener(Command_JoinRed, "joinclass");
+    AddCommandListener(Command_JoinRed, "join_class");
     // The class menu sends one, the quick class picker the other.
     AddCommandListener(Command_JoinClass, "joinclass");
     AddCommandListener(Command_JoinClass, "join_class");
@@ -389,6 +395,19 @@ public void Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast
 }
 
 // The class menu issues joinclass, so this is the one place to refuse a locked class.
+// A player who is not on RED is asking to be. The bots fill RED to six and the
+// game refuses a seventh, so a spectator coming back finds the door shut: the
+// mod tops the team up but never makes room. Connecting is not the only moment
+// this happens, which is what OnClientPutInServer alone assumed.
+public Action Command_JoinRed(int client, const char[] command, int argc)
+{
+    if (client > 0 && IsClientInGame(client) && !IsFakeClient(client) && GetClientTeam(client) != TeamRed)
+    {
+        Bots_MakeRoom();
+    }
+    return Plugin_Continue;
+}
+
 public Action Command_JoinClass(int client, const char[] command, int argc)
 {
     if (!Unlocks_ClassesEnforced() || argc < 1 || !MvM_IsActive() || !MvM_IsPlayer(client))

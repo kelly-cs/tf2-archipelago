@@ -75,20 +75,26 @@ Add a team composition: an ordered list of the classes the bots fill from. A
 player who asks for an Engineer and a Medic then gets them. This change
 belongs in the fork.
 
-## 6. The spectator bug
+## 6. The spectator bug. Done, but not reproduced
 
 EZKSupernova reported this. A few minutes away from the keyboard moved the
 player to spectator. The server put a bot in their place and refused them RED.
 Then it added one more bot, and RED held seven members.
 
-Two faults, and maybe one cause. `Bots_MakeRoom` in
-`plugin/scripting/tf2_archipelago/bots.inc` kicks one bot when a human arrives
-and RED is full. It counts RED against `tf_mvm_defenders_team_size`. It does
-not run when a human comes back from spectator. And nothing caps the team at
-six.
+Three faults, one per symptom. Each fix comes from reading the code, not from
+a repro on a live server. Watch for this one again.
 
-Reproduce it first. Idle a client into spectator with the bots on, and watch
-the count on RED.
+- Moved to spectator: Team Fortress 2 does that after `mp_idlemaxtime`
+  minutes, and nothing turned it off. `server.cfg` now sets `mp_idlemaxtime 0`
+  and `mp_idledealmethod 0`, in the container and in the launcher.
+- Refused RED: `Bots_MakeRoom` frees a seat when a human arrives, and
+  `OnClientPutInServer` was the only thing that called it. A spectator who
+  comes back does not connect. A command listener on `jointeam`, `autoteam`
+  and `joinclass` now calls it too.
+- Seven members: the mod flags a bot as its own on that bot's first spawn.
+  Its top-up timer runs every second in the window before that. The timer
+  counted the pending bot as absent and added one more. Fixed in the fork,
+  `1.5.5-tf2ap.2`.
 
 ## 7. Keep the cash after a failure
 

@@ -106,6 +106,14 @@ install_server_cfg() {
 	// player start a wave alone.
 	tf_mvm_min_players_to_start 1
 
+	// Team Fortress 2 moves an idle player to spectator after
+	// mp_idlemaxtime minutes. On a public server that frees a slot; here it
+	// takes a friend off RED, the bots fill the seat, and the game then
+	// refuses them back on a full team. Nobody wants their own seat given
+	// away for stepping out to the kitchen.
+	mp_idlemaxtime 0
+	mp_idledealmethod 0
+
 	// The defender bots. Valve tunes every wave for six players on RED, so a
 	// run with fewer than that is unwinnable without them.
 	//

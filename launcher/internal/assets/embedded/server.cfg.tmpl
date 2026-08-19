@@ -14,6 +14,12 @@ sv_visiblemaxplayers 6
 // here, so one player can start a wave alone.
 tf_mvm_min_players_to_start 1
 
+// Team Fortress 2 moves an idle player to spectator after mp_idlemaxtime
+// minutes. Here that takes a friend off RED, the bots fill the seat, and the
+// game then refuses them back on a full team.
+mp_idlemaxtime 0
+mp_idledealmethod 0
+
 // The defender bots. Mode 2 fills RED when a wave begins and tops it back up
 // for the rest of it; mode 0 waits for an admin's !addbots. min_players -1
 // turns off the mod's own ready-up gate, which counts RED before the wave and

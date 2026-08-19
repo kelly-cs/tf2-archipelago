@@ -46,6 +46,11 @@ func TestInstallServerCfg(t *testing.T) {
 	if !strings.Contains(body, `tf_mvm_min_players_to_start 1`) {
 		t.Errorf("server.cfg missing the MvM ready-up line:\n%s", body)
 	}
+	// Without this the game takes an idle player's seat on RED and the bots
+	// fill it, which is what a play-test hit.
+	if !strings.Contains(body, `mp_idlemaxtime 0`) {
+		t.Errorf("server.cfg leaves the idle check on:\n%s", body)
+	}
 }
 
 // server.cfg runs after the command line, so its sv_lan is the one that
