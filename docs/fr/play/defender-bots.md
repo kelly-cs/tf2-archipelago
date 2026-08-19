@@ -90,6 +90,14 @@ Un bot sort aussi une arme qui a encore des munitions, au lieu de marcher sur
 un robot avec une arme vide. C'est ce que faisait un Heavy quand son minigun
 était à sec.
 
+À l'upgrade station, un bot achète d'abord des dégâts, et il les achète pour
+l'arme qu'il a en main. Avant, il achetait au hasard : c'est ainsi qu'un Heavy
+finissait avec de la hauteur de saut et un minigun de base. Quelques armes
+décident elles-mêmes : un Kritzkrieg achète du taux d'übercharge, un Rescue
+Ranger achète du métal. Un Engineer achète la sentinelle, parce que ses dégâts
+sont là, et un Medic achète du soin plutôt qu'un pistolet à seringues. Les
+résistances viennent en dernier : un bot réapparaît à chaque vague.
+
 ## Qui les a écrits
 
 [OfficerSpy/TF2-MvM-Defender-TFBots][mod], GPL-3.0, et cinq dépendances :
