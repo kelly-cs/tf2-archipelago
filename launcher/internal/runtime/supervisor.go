@@ -203,22 +203,40 @@ func (s *Supervisor) Restart(onExit func(error)) error {
 
 // startTestRoom serves the multiworld of one and repoints the bridge at it,
 // when the settings ask for test mode. It returns nil otherwise.
-//
-// The room's address replaces whatever the player set: a test run that quietly
-// dialled a real room would send checks to somebody's actual game.
 func (s *Supervisor) startTestRoom(ctx context.Context, cfg *config.Config) (*fakeroom.Room, error) {
-	if !s.settings.TestMode {
+	return StartTestRoom(ctx, s.settings, cfg, s.emit)
+}
+
+/*
+StartTestRoom serves the multiworld of one and repoints the bridge at it, when
+the settings ask for test mode. It returns nil otherwise.
+
+The room's address replaces whatever the player set: a test run that quietly
+dialled a real room would send checks to somebody's actual game.
+
+Shared rather than a method, because the window is not the only way in. The
+console flow, which is the whole of the Linux launcher, had no test room of its
+own: TF2AP_TEST_MODE=1 set the flag, nothing read it out here, and the bridge
+spent the evening dialling archipelago.gg on port zero.
+*/
+func StartTestRoom(
+	ctx context.Context, s settings.Settings, cfg *config.Config, emit func(string),
+) (*fakeroom.Room, error) {
+	if !s.TestMode {
 		return nil, nil //nolint:nilnil // no room and no error is the normal case
 	}
+	if emit == nil {
+		emit = func(string) {}
+	}
 	room, address, err := fakeroom.Start(ctx, fakeroom.Options{
-		SlotName:     s.settings.APSlotName,
-		Goal:         s.settings.MvmGoal,
-		MissionCount: s.settings.MvmMissionCount,
-		Excluded:     s.settings.MvmExcludedMissions,
-		Difficulty:   s.settings.MvmDifficulty,
-		StartMission: s.settings.MvmStartMission,
-		DeathLink:    s.settings.MvmDeathLink,
-		Log:          func(text string) { s.emit(text) },
+		SlotName:     s.APSlotName,
+		Goal:         s.MvmGoal,
+		MissionCount: s.MvmMissionCount,
+		Excluded:     s.MvmExcludedMissions,
+		Difficulty:   s.MvmDifficulty,
+		StartMission: s.MvmStartMission,
+		DeathLink:    s.MvmDeathLink,
+		Log:          emit,
 	})
 	if err != nil {
 		return nil, err

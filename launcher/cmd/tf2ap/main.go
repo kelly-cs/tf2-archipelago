@@ -12,6 +12,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"log/slog"
@@ -175,7 +176,9 @@ func ensureInstalled(s settings.Settings, logger *slog.Logger) settings.Settings
 // Everything else has a working default, and `-configure` is there for the
 // player who wants to change one.
 func ensureConfigured(p *ui.Prompt, s settings.Settings) (settings.Settings, error) {
-	if s.APPort == 0 {
+	// Test mode serves its own multiworld on loopback, so there is no room to
+	// ask for. Asking anyway is how a test run stopped before it started.
+	if s.APPort == 0 && !s.TestMode {
 		fmt.Println()
 		fmt.Println("Paste the address from your Archipelago room page.")
 		fmt.Println("It looks like archipelago.gg:12345.")
@@ -186,6 +189,13 @@ func ensureConfigured(p *ui.Prompt, s settings.Settings) (settings.Settings, err
 				break
 			}
 			fmt.Printf("  %v\n", err)
+			// Nobody is typing: a pipe, a service, a redirect from
+			// /dev/null. Asking again would ask forever.
+			if p.Closed() {
+				return s, errors.New(
+					"no room address, and stdin has ended. Pass one with -room " +
+						"or AP_ROOM, or set TF2AP_TEST_MODE=1 to play without a room")
+			}
 		}
 	}
 	if s.SrcdsRconPw == "" {
@@ -271,6 +281,9 @@ func configureRoom(p *ui.Prompt, s settings.Settings) settings.Settings {
 		room, err := settings.ParseRoom(answer)
 		if err != nil {
 			fmt.Printf("  %v\n", err)
+			if p.Closed() {
+				return s
+			}
 			continue
 		}
 		s.APHost, s.APPort, s.APTls = room.Host, room.Port, room.TLS
@@ -387,8 +400,11 @@ func wavesFor(tiers []runshape.Tier, key string, missions int) int {
 
 func showStatus(s settings.Settings) {
 	fmt.Printf("Install root:  %s\n", s.InstallRoot)
-	fmt.Printf("Archipelago:   %s\n", appDirStatus(s.ArchipelagoDir))
-	fmt.Printf("Archipelago:   %s (tls=%v)\n", settings.Room{Host: s.APHost, Port: s.APPort}, s.APTls)
+	// Two different things: where the seed generator is installed, and which
+	// room to play in. Both said "Archipelago", which read as one line
+	// repeated.
+	fmt.Printf("Generator app: %s\n", appDirStatus(s.ArchipelagoDir))
+	fmt.Printf("Room:          %s (tls=%v)\n", settings.Room{Host: s.APHost, Port: s.APPort}, s.APTls)
 	fmt.Printf("Slot:          %s\n", s.APSlotName)
 	fmt.Printf("Server:        %s on port %d (reach=%s)\n", s.SrcdsHostname, s.SrcdsPort, s.SrcdsReach)
 	fmt.Printf("Start mission: %s\n", runshape.MissionLabel(s.SrcdsStartMission))

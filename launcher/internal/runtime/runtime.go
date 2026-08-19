@@ -13,6 +13,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	goruntime "runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -20,7 +21,9 @@ import (
 
 	"github.com/m-this/tf2-archipelago/bridge"
 	"github.com/m-this/tf2-archipelago/bridge/config"
+	"github.com/m-this/tf2-archipelago/fakeroom"
 	"github.com/m-this/tf2-archipelago/gamedata"
+	"github.com/m-this/tf2-archipelago/launcher/internal/installer"
 	"github.com/m-this/tf2-archipelago/launcher/internal/settings"
 	"github.com/m-this/tf2-archipelago/launcher/internal/winproc"
 )
@@ -31,6 +34,15 @@ const consoleWait = 5 * time.Second
 // Run starts the bridge in-process and the game server as a subprocess, and
 // blocks until the context is cancelled or one of them stops. The bridge gets
 // a head start so the plugin can reach /unlocks on first load.
+// closeTestRoom stops the room of one on a context of its own. Run defers it,
+// and by then the context Run was given is the one that ended, so passing it
+// down would ask the room to shut down with no time to do it in.
+func closeTestRoom(room *fakeroom.Room) {
+	ctx, cancel := context.WithTimeout(context.Background(), roomCloseGrace)
+	defer cancel()
+	_ = room.Close(ctx)
+}
+
 func Run(ctx context.Context, s settings.Settings, logger *slog.Logger) error {
 	bridgeCfg, err := bridgeConfig(s)
 	if err != nil {
@@ -39,6 +51,18 @@ func Run(ctx context.Context, s settings.Settings, logger *slog.Logger) error {
 
 	bridgeCtx, cancelBridge := context.WithCancel(ctx)
 	defer cancelBridge()
+
+	// Before the bridge dials anything: in test mode this is what it dials.
+	room, err := StartTestRoom(bridgeCtx, s, &bridgeCfg, func(text string) {
+		logger.InfoContext(ctx, "test room", "message", text)
+	})
+	if err != nil {
+		return err
+	}
+	if room != nil {
+		//nolint:contextcheck // the caller's context is what is being cancelled here
+		defer closeTestRoom(room)
+	}
 	bridgeErr := make(chan error, 1)
 	go func() {
 		bridgeErr <- bridge.Run(bridgeCtx, bridgeCfg, logger)
@@ -149,6 +173,28 @@ func boolArg(on bool) string {
 	return "0"
 }
 
+// srcdsEnv is the environment the game server runs with: this process's own,
+// with HOME pointed at the install root.
+//
+// srcds_run dlopens $HOME/.steam/sdk32/steamclient.so and segfaults without
+// it. The installer puts a link there, under the install root rather than in
+// the operator's home, and this is what makes the server look in the same
+// place. Windows has neither the file nor the problem, so its environment is
+// left alone.
+func srcdsEnv(s settings.Settings) []string {
+	if goruntime.GOOS == "windows" {
+		return nil
+	}
+	env := os.Environ()
+	kept := env[:0]
+	for _, entry := range env {
+		if !strings.HasPrefix(entry, "HOME=") {
+			kept = append(kept, entry)
+		}
+	}
+	return append(kept, "HOME="+installer.SteamHome(s.InstallRoot))
+}
+
 func runSrcdsWithSink(ctx context.Context, s settings.Settings, logger *slog.Logger, sink Sink) error {
 	gameDir := filepath.Join(s.InstallRoot, "tf-dedicated")
 	exeName := "srcds.exe"
@@ -157,6 +203,7 @@ func runSrcdsWithSink(ctx context.Context, s settings.Settings, logger *slog.Log
 	}
 	cmd := exec.CommandContext(ctx, filepath.Join(gameDir, exeName), srcdsArgs(s, exeName)...)
 	cmd.Dir = gameDir
+	cmd.Env = srcdsEnv(s)
 	// -console reads the console input buffer, so the server needs a real one
 	// as its standard input. CREATE_NO_WINDOW would deny it any console at
 	// all, and the server dies on its first read. Its output still comes back
