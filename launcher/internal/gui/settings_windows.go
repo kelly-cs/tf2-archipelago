@@ -5,7 +5,6 @@ package gui
 import (
 	"context"
 	"fmt"
-	"os"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -27,18 +26,6 @@ import (
 // labelWidth keeps every tab's label column the same width, so the fields do
 // not jump when the player switches tab.
 const labelWidth = 150
-
-// steamRelayOption hides the reach that goes over Steam Datagram Relay.
-//
-// It has never been proved end to end: a server needs a login token before
-// Valve hands out a relayed address, and no run has yet gone from that address
-// to a Team Fortress 2 client that joined. The local network and a forwarded
-// port are both known to work, so the tab offers those two and leaves the
-// relay to whoever is doing that testing.
-//
-// TF2AP_STEAM_NETWORKING=1 turns it on. SRCDS_REACH=steam still works without
-// it: it is the button that is hidden, not the setting.
-var steamRelayOption = settings.Truthy(os.Getenv("TF2AP_STEAM_NETWORKING"))
 
 // runSettingsDialog asks for the values worth changing between evenings, in
 // six tabs: what the run is, which missions it may draw, where the room is,
@@ -190,32 +177,29 @@ func runSettingsDialog(owner walk.Form, s settings.Settings, repair func() ([]st
 		return next, nil
 	}
 
-	// The buttons are consecutive children of one Composite on purpose. walk
-	// groups a radio button with the sibling before it, so a label in between
-	// would leave a group of one for each, all tickable. The relay sits in the
-	// middle when it is offered at all, so reachSteam stays nil otherwise and
-	// everything that reads it has to check.
-	reachButtons := []declarative.Widget{
-		declarative.RadioButton{AssignTo: &reachLan, Text: settings.ReachLan.Label()},
-	}
-	if steamRelayOption {
-		reachButtons = append(reachButtons,
-			declarative.RadioButton{AssignTo: &reachSteam, Text: settings.ReachSteam.Label()})
-	}
-	reachButtons = append(reachButtons,
-		declarative.RadioButton{AssignTo: &reachPort, Text: settings.ReachPort.Label()})
-
+	// Beta, because the relay half of this tab has never been proved end to
+	// end: a server needs a login token before Valve hands out a relayed
+	// address, and no run has yet gone from that address to a Team Fortress 2
+	// client that joined. The local network and a forwarded port both have.
 	extraPages := []declarative.TabPage{
 		{
-			Title:  "Who can join",
+			Title:  "Who can join (beta)",
 			Layout: declarative.Grid{Columns: 2},
 			Children: []declarative.Widget{
-				label("Who can reach it", "Where the server takes connections from. A server is on your own network until you change this: it is not open to anybody else by default."),
+				label("Who can reach it", "Where the server takes connections from. A forwarded port is the default, because a server is usually meant to be joined from somewhere else. Without a login token it stays on the local network whatever this says."),
+				// The three buttons are consecutive children of one Composite
+				// on purpose. walk groups a radio button with the sibling
+				// before it, so a label in between would leave three groups of
+				// one, all tickable.
 				declarative.Composite{
 					// Near, or a VBox centres each button on its own text and
 					// the stack ends up ragged.
-					Layout:   declarative.VBox{MarginsZero: true, SpacingZero: true, Alignment: declarative.AlignHNearVCenter},
-					Children: reachButtons,
+					Layout: declarative.VBox{MarginsZero: true, SpacingZero: true, Alignment: declarative.AlignHNearVCenter},
+					Children: []declarative.Widget{
+						declarative.RadioButton{AssignTo: &reachLan, Text: settings.ReachLan.Label()},
+						declarative.RadioButton{AssignTo: &reachSteam, Text: settings.ReachSteam.Label()},
+						declarative.RadioButton{AssignTo: &reachPort, Text: settings.ReachPort.Label()},
+					},
 				},
 				declarative.Label{Text: ""},
 				declarative.TextLabel{
@@ -230,7 +214,10 @@ func runSettingsDialog(owner walk.Form, s settings.Settings, repair func() ([]st
 				declarative.TextLabel{
 					Text: "A forwarded port is the port above, opened on the router to this machine. " +
 						"Your friends join on your public address and that port; the local network " +
-						"still reaches the server the way it did.",
+						"still reaches the server the way it did. Over Steam, no port is opened and " +
+						"the server prints its address in the log at every start, in the form " +
+						"connect 169.254.13.42:20232. That one is a new address every time, so send " +
+						"the line from the log rather than one you wrote down.",
 					ColumnSpan: 2,
 					MinSize:    declarative.Size{Width: 470},
 				},
@@ -482,20 +469,15 @@ func runSettingsDialog(owner walk.Form, s settings.Settings, repair func() ([]st
 		tokenWarn.SetText(tokenComplaint(reach, tokenEdit.Text()))
 	}
 	for _, button := range []*walk.RadioButton{reachLan, reachSteam, reachPort} {
-		if button == nil {
-			continue
-		}
 		button.CheckedChanged().Attach(explainReach)
 	}
 	tokenEdit.TextChanged().Attach(explainReach)
-	switch {
-	case s.SrcdsReach == settings.ReachSteam && reachSteam != nil:
+	switch s.SrcdsReach {
+	case settings.ReachSteam:
 		reachSteam.SetChecked(true)
-	case s.SrcdsReach == settings.ReachPort:
+	case settings.ReachPort:
 		reachPort.SetChecked(true)
 	default:
-		// A saved relay reach with the relay button hidden lands here. The
-		// setting itself is untouched unless the player saves the dialog.
 		reachLan.SetChecked(true)
 	}
 	explainReach()
@@ -844,7 +826,7 @@ func tokenComplaint(reach settings.Reach, token string) string {
 // default, which is the answer that cannot open a server by mistake.
 func checkedReach(steam, port *walk.RadioButton) settings.Reach {
 	switch {
-	case steam != nil && steam.Checked():
+	case steam.Checked():
 		return settings.ReachSteam
 	case port.Checked():
 		return settings.ReachPort

@@ -159,36 +159,23 @@ func TestApplyEnvReadsTheLists(t *testing.T) {
 	}
 }
 
-// A login token opens the server or it does nothing at all, so setting one and
-// nothing else has to mean the port. The local network keeps reaching a server
-// on its port, which is what makes this a safe default rather than a surprise.
-func TestTokenInTheEnvironmentMeansThePort(t *testing.T) {
-	t.Setenv("SRCDS_TOKEN", "C7A1B2E3D4F5A6B7C8D9E0F1A2B3C4D5")
-	if got := ApplyEnv(Defaults()).SrcdsReach; got != ReachPort {
-		t.Errorf("reach: got %q, want %q", got, ReachPort)
-	}
-}
-
-// An operator who names a reach has said what they want, and a token beside it
-// does not argue. Neither does a token that is not one.
-func TestAnExplicitReachBeatsTheToken(t *testing.T) {
-	const token = "C7A1B2E3D4F5A6B7C8D9E0F1A2B3C4D5"
+// The default reach leaves the local network, so a server that is meant to stay
+// on it has to be able to say so, in either spelling.
+func TestTheEnvironmentCanKeepTheServerLocal(t *testing.T) {
 	cases := []struct {
 		name string
 		vars map[string]string
-		want Reach
 	}{
-		{"SRCDS_REACH", map[string]string{"SRCDS_REACH": "lan", "SRCDS_TOKEN": token}, ReachLan},
-		{"SRCDS_LAN", map[string]string{"SRCDS_LAN": "1", "SRCDS_TOKEN": token}, ReachLan},
-		{"no token", map[string]string{"SRCDS_TOKEN": "0"}, ReachLan},
+		{"SRCDS_REACH", map[string]string{"SRCDS_REACH": "lan"}},
+		{"SRCDS_LAN", map[string]string{"SRCDS_LAN": "1"}},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			for name, value := range c.vars {
 				t.Setenv(name, value)
 			}
-			if got := ApplyEnv(Defaults()).SrcdsReach; got != c.want {
-				t.Errorf("reach: got %q, want %q", got, c.want)
+			if got := ApplyEnv(Defaults()).SrcdsReach; got != ReachLan {
+				t.Errorf("reach: got %q, want %q", got, ReachLan)
 			}
 		})
 	}

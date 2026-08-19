@@ -56,19 +56,25 @@ func TestInstallServerCfg(t *testing.T) {
 // server.cfg runs after the command line, so its sv_lan is the one that
 // sticks. A reach that gets out of the network and a server.cfg that says
 // sv_lan 1 is a server nobody outside can join, with nothing in the log to
-// say why.
+// say why. A reach with no token behind it is the other way round: sv_lan 0
+// there is a server that refuses everybody, local players included.
 func TestServerCfgFollowsTheReach(t *testing.T) {
+	const token = "C7A1B2E3D4F5A6B7C8D9E0F1A2B3C4D5"
 	for _, c := range []struct {
+		name  string
 		reach settings.Reach
+		token string
 		want  string
 	}{
-		{settings.ReachLan, "sv_lan 1"},
-		{settings.ReachSteam, "sv_lan 0"},
-		{settings.ReachPort, "sv_lan 0"},
+		{"lan", settings.ReachLan, "0", "1"},
+		{"steam", settings.ReachSteam, token, "0"},
+		{"port", settings.ReachPort, token, "0"},
+		{"steam with no token", settings.ReachSteam, "0", "1"},
+		{"port with no token", settings.ReachPort, "0", "1"},
 	} {
-		t.Run(string(c.reach), func(t *testing.T) {
+		t.Run(c.name, func(t *testing.T) {
 			installRoot := t.TempDir()
-			s := settings.Settings{InstallRoot: installRoot, SrcdsReach: c.reach}
+			s := settings.Settings{InstallRoot: installRoot, SrcdsReach: c.reach, SrcdsToken: c.token}
 			if err := Install(s); err != nil {
 				t.Fatalf("Install: %v", err)
 			}
@@ -76,11 +82,24 @@ func TestServerCfgFollowsTheReach(t *testing.T) {
 			if err != nil {
 				t.Fatalf("cannot read server.cfg: %v", err)
 			}
-			if !strings.Contains(string(cfg), c.want) {
-				t.Errorf("server.cfg has no %q:\n%s", c.want, cfg)
+			// The line, not the word: the comment above it says "sv_lan 0" too.
+			if got := directive(string(cfg), "sv_lan"); got != c.want {
+				t.Errorf("sv_lan = %q, want %q:\n%s", got, c.want, cfg)
 			}
 		})
 	}
+}
+
+// directive returns what a server.cfg line sets, or "" when no line sets it.
+// Comment lines start with // and are skipped.
+func directive(cfg, name string) string {
+	for line := range strings.Lines(cfg) {
+		fields := strings.Fields(line)
+		if len(fields) == 2 && fields[0] == name {
+			return fields[1]
+		}
+	}
+	return ""
 }
 
 // TestSteamIDConversion checks the SteamID64 to STEAM_0:X:Y conversion.

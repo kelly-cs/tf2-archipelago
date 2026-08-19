@@ -149,3 +149,21 @@ func TestTheMapComesFromTheStartMission(t *testing.T) {
 		t.Errorf("+map = %q, want mvm_ghost_town", got)
 	}
 }
+
+// The default reach leaves the local network, and a fresh install has no token
+// yet. That server has to come up on the local network rather than come up
+// refusing everybody, which is what srcds does with sv_lan 0 and no Steam
+// session behind it.
+func TestNoTokenKeepsTheServerOnTheNetwork(t *testing.T) {
+	s := baseSettings()
+	s.SrcdsReach = settings.ReachPort
+	s.SrcdsToken = "0"
+	args := srcdsArgs(s, "srcds_run")
+
+	if got := value(args, "+sv_lan"); got != "1" {
+		t.Errorf("+sv_lan = %q, want 1", got)
+	}
+	if slices.Contains(args, "+sv_setsteamaccount") {
+		t.Error("a token was passed to a server that has none")
+	}
+}
