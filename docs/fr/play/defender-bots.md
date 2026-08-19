@@ -14,9 +14,9 @@ leur classe, se battent, et dépensent leurs crédits à la station entre les
 vagues. Ils se déclarent prêts aussi, donc la vague démarre quand *vous*
 appuyez sur F4.
 
-Ils ne sont pas humains. Les Engineers construisent trop près des robots, les
-Spies se font repérer tard, et un bot ne fera jamais le coup malin de votre
-ami. Ils sont assez bons pour rendre une vague gagnable, et c'est leur rôle.
+Ils ne sont pas humains. Les Spies se font repérer tard, et un bot ne fera
+jamais le coup malin de votre ami. Ils sont assez bons pour rendre une vague
+gagnable, et c'est leur rôle.
 
 Un bot cède sa place quand un ami arrive. RED tient six joueurs. Quand
 l'équipe est pleine de bots et qu'un joueur se connecte, un bot part. Le
@@ -89,6 +89,15 @@ minigun.
 Un bot sort aussi une arme qui a encore des munitions, au lieu de marcher sur
 un robot avec une arme vide. C'est ce que faisait un Heavy quand son minigun
 était à sec.
+
+Un Engineer s'installe près de la trappe, et non devant la porte de spawn des
+robots. Une sentinelle posée là encaisse une vague entière sans équipe autour,
+et ce que l'équipe y gagne c'est un Engineer qui reconstruit pendant tout le
+reste de la vague. `sm_redbots_manager_engineer_nest_depth` dit jusqu'où il
+peut monter sur le chemin de la bombe, en fraction de ce chemin : `0.4` par
+défaut, `1.0` l'ancienne porte de spawn. Une fraction, parce que le chemin
+fait quelques milliers d'unités sur Decoy et plusieurs fois ça sur
+Rottenburg.
 
 À l'upgrade station, un bot achète d'abord des dégâts, et il les achète pour
 l'arme qu'il a en main. Avant, il achetait au hasard : c'est ainsi qu'un Heavy

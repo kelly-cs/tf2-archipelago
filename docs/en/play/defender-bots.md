@@ -13,9 +13,9 @@ of the wave. A bot that dies comes back within a second. The bots pick their
 classes, fight, and spend their own credits at the upgrade station between
 waves. They also ready themselves, so a wave starts when *you* press F4.
 
-They are not human. Engineers build too close to the robots, and the robots
-spot the spies late. A bot never does the clever thing your friend does. They
-are good enough to make a wave winnable, which is what they are for.
+They are not human. The robots spot the spies late, and a bot never does the
+clever thing your friend does. They are good enough to make a wave winnable,
+which is what they are for.
 
 A bot steps aside when a friend joins. RED holds six, so when it is full of
 bots and a player arrives, one bot leaves and the player takes the seat. The
@@ -79,6 +79,14 @@ lane. A shotgun walks in rather than firing from minigun range.
 
 A bot also pulls a weapon that still has ammo, rather than walking at a robot
 holding an empty one. That is what a Heavy did when its minigun ran dry.
+
+An Engineer nests near the hatch rather than in front of the robots' spawn
+door. A sentry at the door meets a whole wave with no team around it yet, and
+what the team gets for it is an Engineer rebuilding for the rest of the wave.
+`sm_redbots_manager_engineer_nest_depth` says how far up the bomb path it may
+build, as a fraction of the path: `0.4` by default, `1.0` the old spawn door.
+A fraction, because the path is a few thousand units on Decoy and several
+times that on Rottenburg.
 
 At the upgrade station a bot buys damage first, and buys it for the weapon in
 its hands. It used to buy at random, which is how a Heavy ended up with jump
