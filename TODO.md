@@ -64,20 +64,17 @@ all: the variable reached the container and no line of YAML carried it, so the
 run drew the mission anyway. A popfile the tables do not know is now an error
 before generation.
 
-## 5. Choose the classes of the bots
+## 5. Choose the classes of the bots. Done
 
-`sm_redbots_manager_class_blacklist` says which classes the bots never play.
-`configs/defenderbots/loadout.cfg` says what they carry. Neither says what the
-team is.
+`sm_redbots_manager_team_composition` takes the classes the bots fill RED
+with, in order. `SRCDS_BOT_TEAM_COMP` in the environment, and six menus on the
+launcher's Bots tab, one per seat. The fork carries it, `1.5.5-tf2ap.3`.
 
-One draw gave a team of three Spies and two Scouts on an Advanced mission.
-Another team had no Engineer and lost wave 1 of Quarry twice. The bots ran out
-of ammo against the tank, and the small robots swarmed them, because no sentry
-covered the team.
+The list names the whole team, not what to add. Every top-up counts the bots
+already on RED against the list first. A seat that empties mid-wave gets the
+class that left it.
 
-Add a team composition: an ordered list of the classes the bots fill from. A
-player who asks for an Engineer and a Medic then gets them. This change
-belongs in the fork.
+A team named this way beats the blacklist, and beats the mod's lineup mode.
 
 ## 6. The spectator bug. Done, but not reproduced
 

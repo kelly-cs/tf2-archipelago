@@ -135,8 +135,10 @@ install_server_cfg() {
 	// lost the connection. With this, it has not. Nothing on a private
 	// server wants the reroll anyway.
 	sm_redbots_manager_kick_bots 0
-	// Classes the bots never play.
+	// Classes the bots never play, and the classes they fill RED with, in
+	// order. A team named in the second beats the first.
 	sm_redbots_manager_class_blacklist "${SRCDS_BOT_CLASS_BLACKLIST:-}"
+	sm_redbots_manager_team_composition "${SRCDS_BOT_TEAM_COMP:-}"
 
 	// The mission the run starts on, how long a cleared mission stays on
 	// the scoreboard before the next one loads, and whether the bots'

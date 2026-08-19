@@ -53,6 +53,7 @@ func installServerCfg(gameDir string, s settings.Settings) error {
 		"BotsMode":          botsMode(s.SrcdsBots),
 		"BotTeamSize":       s.SrcdsBotTeamSize,
 		"BotClassBlacklist": botloadout.Blacklist(s.SrcdsBotClassBlacklist),
+		"BotTeamComp":       botloadout.Composition(s.SrcdsBotTeamComp),
 		"BotCustomLoadouts": boolToInt(botloadout.Custom(s.SrcdsBotLoadouts)),
 		"BotUpgradesChat":   boolToInt(s.BotUpgradesChat),
 		"StartMission":      s.SrcdsStartMission,

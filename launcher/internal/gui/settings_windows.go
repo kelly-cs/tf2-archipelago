@@ -82,6 +82,7 @@ func runSettingsDialog(owner walk.Form, s settings.Settings, repair func() ([]st
 		buysBox   *walk.CheckBox
 		classBox  = make([]*walk.CheckBox, len(botloadout.Classes))
 		loadoutBx = make([]*walk.ComboBox, len(botloadout.Classes))
+		seatBox   = make([]*walk.ComboBox, botSeats)
 
 		reachLan   *walk.RadioButton
 		reachSteam *walk.RadioButton
@@ -180,6 +181,16 @@ func runSettingsDialog(owner walk.Form, s settings.Settings, repair func() ([]st
 			}
 			if pick := class.Loadouts[max(loadoutBx[i].CurrentIndex(), 0)]; pick.Key != botloadout.StockKey {
 				next.SrcdsBotLoadouts[class.Key] = pick.Key
+			}
+		}
+		// A seat left on the draw contributes nothing, so the list is the
+		// picked seats in seat order. All six on the draw leaves it empty,
+		// which is the mod deciding, the way it always did.
+		next.SrcdsBotTeamComp = nil
+		for _, box := range seatBox {
+			if index := box.CurrentIndex(); index > 0 {
+				next.SrcdsBotTeamComp = append(
+					next.SrcdsBotTeamComp, botloadout.Classes[index-1].Key)
 			}
 		}
 		return next, nil
@@ -412,7 +423,7 @@ func runSettingsDialog(owner walk.Form, s settings.Settings, repair func() ([]st
 					{
 						Title:    "Bots",
 						Layout:   declarative.Grid{Columns: 2},
-						Children: botsRows(s, label, &botsBox, &botsSize, &buysBox, classBox, loadoutBx),
+						Children: botsRows(s, label, &botsBox, &botsSize, &buysBox, classBox, loadoutBx, seatBox),
 					},
 				}, extraPages...),
 			},
@@ -533,7 +544,7 @@ func runSettingsDialog(owner walk.Form, s settings.Settings, repair func() ([]st
 func botsRows(
 	s settings.Settings, label func(text, help string) declarative.Label,
 	botsBox **walk.CheckBox, botsSize **walk.NumberEdit, buysBox **walk.CheckBox,
-	classBox []*walk.CheckBox, loadoutBx []*walk.ComboBox,
+	classBox []*walk.CheckBox, loadoutBx []*walk.ComboBox, seatBox []*walk.ComboBox,
 ) []declarative.Widget {
 	rows := []declarative.Widget{
 		label("Defender bots", "Fill the RED team with bots that play, so a wave balanced for six is winnable by fewer. They pick classes, fight and buy their own upgrades. A bot steps aside when a friend joins."),
@@ -545,11 +556,12 @@ func botsRows(
 		},
 		label("Purchases in chat", "Write what the bots buy at the upgrade station to the chat, since the game no longer lets you inspect a teammate's upgrades. One line per purchase, so it is off by default."),
 		declarative.CheckBox{AssignTo: buysBox, Text: "say what the bots buy", Checked: s.BotUpgradesChat},
-		declarative.Label{
-			Text:       "Classes the bots may play, and the weapons each class holds. Bots are poor snipers and spies; untick a class and they never pick it. Stock weapons are the mod's own default.",
-			ColumnSpan: 2,
-		},
 	}
+	rows = append(rows, seatRows(s, label, seatBox)...)
+	rows = append(rows, declarative.Label{
+		Text:       "Classes the bots may play, and the weapons each class holds. Bots are poor snipers and spies; untick a class and they never pick it. Stock weapons are the mod's own default.",
+		ColumnSpan: 2,
+	})
 	for i, class := range botloadout.Classes {
 		labels := make([]string, 0, len(class.Loadouts))
 		for _, loadout := range class.Loadouts {
@@ -572,6 +584,56 @@ func botsRows(
 		)
 	}
 	return rows
+}
+
+// botSeats is how many bots RED can hold, which is the team size the Bots tab
+// caps at. A seat past the team size is simply never filled.
+const botSeats = 6
+
+// seatRows is the ordered team: one menu per seat, first seat filled first. It
+// is what a blacklist cannot say. A random draw gave a play-test three Spies
+// and two Scouts on an Advanced mission, and a team with no Engineer ran out
+// of ammo against the tank.
+func seatRows(
+	s settings.Settings, label func(text, help string) declarative.Label,
+	seatBox []*walk.ComboBox,
+) []declarative.Widget {
+	choices := make([]string, 0, len(botloadout.Classes)+1)
+	choices = append(choices, drawSeatLabel)
+	for _, class := range botloadout.Classes {
+		choices = append(choices, class.Name)
+	}
+	rows := []declarative.Widget{declarative.Label{
+		Text:       "The bot team, in order. The first seats are the ones filled when RED is short, so put the classes you cannot do without first. A seat left on the draw is one the mod picks, and a team named here beats the ticks below.",
+		ColumnSpan: 2,
+	}}
+	for seat := range seatBox {
+		rows = append(rows,
+			label(fmt.Sprintf("Seat %d", seat+1), "The class of this seat. Humans take the seats first, so the last ones are rarely filled."),
+			declarative.ComboBox{
+				AssignTo: &seatBox[seat],
+				Model:    choices,
+				Value:    seatValue(s.SrcdsBotTeamComp, seat),
+			},
+		)
+	}
+	return rows
+}
+
+// drawSeatLabel is the first entry of every seat menu: the mod picks.
+const drawSeatLabel = "Let the mod pick"
+
+// seatValue is the label the seat menu opens on.
+func seatValue(comp []string, seat int) string {
+	if seat >= len(comp) {
+		return drawSeatLabel
+	}
+	for _, class := range botloadout.Classes {
+		if class.Key == comp[seat] {
+			return class.Name
+		}
+	}
+	return drawSeatLabel
 }
 
 // poolModel is the Missions tab's table: every mission the tables know, ticked

@@ -34,6 +34,7 @@ Les réglages dans `.env` :
 | `SRCDS_BOTS` | `1` | `0` les garde hors du terrain jusqu'à un `sm_addbots` d'un admin |
 | `SRCDS_BOT_TEAM_SIZE` | `6` | Le nombre de joueurs dans RED, humains compris |
 | `SRCDS_BOT_CLASS_BLACKLIST` | vide | Les classes que les bots ne jouent jamais, séparées par des virgules : `sniper,spy` |
+| `SRCDS_BOT_TEAM_COMP` | vide | Les classes dont les bots remplissent RED, dans l'ordre. Voir ci-dessous. |
 | `TF2AP_BOT_UPGRADES_CHAT` | `0` | `1` écrit dans le chat ce que les bots achètent à la station d'améliorations |
 
 Baissez `SRCDS_BOT_TEAM_SIZE` pour une partie plus dure : à `4`, trois amis
@@ -45,6 +46,20 @@ Les bots sont de mauvais Snipers et de mauvais Spies.
 bien. Les noms de classe sont ceux du mod : `scout`, `soldier`, `pyro`,
 `demoman`, `heavyweapons`, `engineer`, `medic`, `sniper`, `spy`.
 
+Une liste noire interdit des classes. Elle ne dit pas ce qu'est l'équipe. Un
+tirage dans le reste a donné trois Spies et deux Scouts sur une mission
+Advanced. Une autre équipe n'avait pas d'Engineer et a perdu deux fois la
+vague 1 de Quarry.
+
+`SRCDS_BOT_TEAM_COMP=engineer,medic,heavyweapons,soldier,demoman` nomme
+l'équipe à la place. L'ordre est celui dans lequel les places se remplissent.
+Mettez donc en premier les classes dont vous ne pouvez pas vous passer. Les
+humains prennent les places avant les bots, et les dernières entrées servent
+rarement. Les noms de classe sont ceux du mod, comme pour la liste noire.
+
+Une équipe nommée ici l'emporte sur la liste noire. Une liste plus courte que
+les places libres laisse le reste au mod.
+
 Le jeu ne permet plus d'inspecter les améliorations d'un coéquipier. Avec
 `TF2AP_BOT_UPGRADES_CHAT=1`, le chat dit ce que chaque bot achète, une ligne
 par achat. C'est désactivé par défaut parce qu'un bot achète beaucoup.
@@ -52,9 +67,10 @@ par achat. C'est désactivé par défaut parce qu'un bot achète beaucoup.
 Tous prennent effet au chargement de la carte suivante. `make restart` est la
 façon sûre.
 
-Sur Windows, le lanceur a un onglet **Bots** pour les mêmes réglages. Il
-ajoute un équipement prédéfini par classe : les armes avec lesquelles un bot
-de cette classe apparaît. Les armes de base sont le défaut. Voir
+Sur Windows, le lanceur a un onglet **Bots** pour les mêmes réglages. Six
+menus, un par place, nomment l'équipe dans l'ordre. Un équipement prédéfini
+par classe dit avec quelles armes un bot de cette classe apparaît. Les armes
+de base sont le défaut. Voir
 [Installer sur Windows](../setup/install-windows.md).
 
 ## Qui les a écrits

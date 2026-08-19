@@ -76,6 +76,7 @@ services:
       TF2AP_TEST_MODE: ${TF2AP_TEST_MODE:-0}
       SRCDS_BOT_TEAM_SIZE: ${SRCDS_BOT_TEAM_SIZE:-6}
       SRCDS_BOT_CLASS_BLACKLIST: ${SRCDS_BOT_CLASS_BLACKLIST:-}
+      SRCDS_BOT_TEAM_COMP: ${SRCDS_BOT_TEAM_COMP:-}
     ports:
       # The only public port in the stack, and it is the game's.
       - "${SRCDS_PORT:-27015}:${SRCDS_PORT:-27015}/udp"

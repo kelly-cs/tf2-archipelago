@@ -32,6 +32,7 @@ The settings in `.env`:
 | `SRCDS_BOTS` | `1` | `0` keeps them off the field until an admin runs `sm_addbots` |
 | `SRCDS_BOT_TEAM_SIZE` | `6` | How many players the server fills RED to, humans included |
 | `SRCDS_BOT_CLASS_BLACKLIST` | empty | Classes the bots never play, separated by commas: `sniper,spy` |
+| `SRCDS_BOT_TEAM_COMP` | empty | The classes the bots fill RED with, in order. See below. |
 | `TF2AP_BOT_UPGRADES_CHAT` | `0` | `1` writes what the bots buy at the upgrade station in the chat |
 
 Lower `SRCDS_BOT_TEAM_SIZE` for a harder run. At `4`, three friends get one
@@ -42,6 +43,18 @@ them on the classes they play well. The class names are the mod's:
 `scout`, `soldier`, `pyro`, `demoman`, `heavyweapons`, `engineer`, `medic`,
 `sniper`, `spy`.
 
+A blacklist forbids classes. It does not say what the team is. A draw from the
+rest gave a play-test three Spies and two Scouts on an Advanced mission.
+Another team had no Engineer and lost wave 1 of Quarry twice.
+
+`SRCDS_BOT_TEAM_COMP=engineer,medic,heavyweapons,soldier,demoman` names the
+team instead. The order is the order the seats fill, so put the classes you
+cannot do without first. Humans take seats before the bots do, and the last
+entries are rarely reached. The names are the mod's, the same as the blacklist.
+
+A team named here beats the blacklist. A list shorter than the empty seats
+leaves the rest to the mod.
+
 The game no longer lets a player inspect a teammate's upgrades. With
 `TF2AP_BOT_UPGRADES_CHAT=1` the chat says what each bot buys, one line per
 purchase. It is off by default because a bot buys a lot.
@@ -49,9 +62,9 @@ purchase. It is off by default because a bot buys a lot.
 All of them take effect at the next map load. `make restart` is the certain
 way.
 
-On Windows the launcher has a **Bots** tab for the same settings. It adds a
-loadout preset per class: the weapons a bot of that class spawns with. Stock
-weapons are the default. See [Install on Windows](../setup/install-windows.md).
+On Windows the launcher has a **Bots** tab for the same settings. Six menus,
+one per seat, name the team in order, and a loadout preset per class says what
+a bot of that class spawns with. Stock weapons are the default. See [Install on Windows](../setup/install-windows.md).
 
 ## Who wrote them
 

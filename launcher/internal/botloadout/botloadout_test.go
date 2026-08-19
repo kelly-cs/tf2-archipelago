@@ -36,6 +36,14 @@ func TestBlacklistKeepsTheModsOrderAndSpelling(t *testing.T) {
 	if got := Blacklist([]string{"spy", "heavy", "sniper", "nobody"}); got != "sniper,spy" {
 		t.Errorf("blacklist = %q", got)
 	}
+	// Order and repeats are the point of a composition, and a blacklist has
+	// neither: it is a set, so it renders in the table's order.
+	if got := Composition([]string{"medic", "heavyweapons", "nobody", "heavyweapons"}); got != "medic,heavyweapons,heavyweapons" {
+		t.Errorf("composition = %q", got)
+	}
+	if got := Composition(nil); got != "" {
+		t.Errorf("empty composition = %q", got)
+	}
 	if got := Blacklist(nil); got != "" {
 		t.Errorf("empty blacklist = %q", got)
 	}

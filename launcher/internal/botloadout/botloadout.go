@@ -169,3 +169,22 @@ func Blacklist(classes []string) string {
 	}
 	return strings.Join(kept, ",")
 }
+
+// Composition is the value of sm_redbots_manager_team_composition: the class
+// keys the bots fill RED with, in the order given, unknown keys dropped.
+//
+// Order is what a blacklist cannot say, and it is the whole point: the first
+// entries are the seats that get filled when the team is short. Repeats are
+// kept, because two Heavies is a team somebody may want.
+func Composition(classes []string) string {
+	kept := make([]string, 0, len(classes))
+	for _, wanted := range classes {
+		for _, class := range Classes {
+			if class.Key == wanted {
+				kept = append(kept, class.Key)
+				break
+			}
+		}
+	}
+	return strings.Join(kept, ",")
+}

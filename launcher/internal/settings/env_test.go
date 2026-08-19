@@ -87,6 +87,7 @@ func TestEveryFieldHasAnEnvVar(t *testing.T) {
 		"SrcdsBotTeamSize":       "SRCDS_BOT_TEAM_SIZE",
 		"SrcdsBotClassBlacklist": "SRCDS_BOT_CLASS_BLACKLIST",
 		"SrcdsBotLoadouts":       "SRCDS_BOT_LOADOUTS",
+		"SrcdsBotTeamComp":       "SRCDS_BOT_TEAM_COMP",
 		"BotUpgradesChat":        "TF2AP_BOT_UPGRADES_CHAT",
 		"MvmMissionCount":        "MVM_MISSION_COUNT",
 		"MvmDifficulty":          "MVM_DIFFICULTY",

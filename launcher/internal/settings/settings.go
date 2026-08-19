@@ -70,6 +70,12 @@ type Settings struct {
 	SrcdsBotClassBlacklist []string          `json:"srcds_bot_class_blacklist,omitempty"`
 	SrcdsBotLoadouts       map[string]string `json:"srcds_bot_loadouts,omitempty"`
 
+	// SrcdsBotTeamComp names the classes the bots fill RED with, in order,
+	// keyed the same way. Empty leaves the mod to draw its own team, which is
+	// what gave a play-test three Spies and two Scouts on an Advanced mission.
+	// A team named here beats the blacklist.
+	SrcdsBotTeamComp []string `json:"srcds_bot_team_comp,omitempty"`
+
 	// BotUpgradesChat writes what the bots buy at the upgrade station to the
 	// chat. Off by default: it is a line per purchase.
 	BotUpgradesChat bool `json:"bot_upgrades_chat"`
