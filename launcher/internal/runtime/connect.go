@@ -101,6 +101,41 @@ func LocalAddresses() []string {
 	return found
 }
 
+// missionSwitchedPrefix is what the plugin logs whenever it loads a mission of
+// the run, which the launcher reads to learn which one is on. The rest of the
+// line is "Doe's Drill (mvm_decoy) on mvm_decoy".
+const missionSwitchedPrefix = "mission switched to "
+
+// LoadedMission picks the mission the plugin just loaded out of one line of
+// server output, or returns "" for every other line.
+//
+// The run picks its own missions, so the mission the settings name is only
+// ever the first one. Nothing else on this side is told when that changes: the
+// plugin says so in the server's log and this is what listens.
+func LoadedMission(line string) string {
+	_, rest, found := strings.Cut(line, missionSwitchedPrefix)
+	if !found {
+		return ""
+	}
+	name, _, found := strings.Cut(rest, " (")
+	if !found {
+		return ""
+	}
+	return strings.TrimSpace(name)
+}
+
+// sourcemodUpdatedPrefix is what SourceMod's updater prints once it has
+// fetched new gamedata. The files are on disk by then and none of them is in
+// use until SourceMod loads again.
+const sourcemodUpdatedPrefix = "[UPDATER] SourceMod has been updated"
+
+// SourceModWasUpdated reports whether this line is the updater asking for a
+// restart. It asks the operator, who is watching a log scroll past, so the
+// launcher reads it instead and restarts on their behalf.
+func SourceModWasUpdated(line string) bool {
+	return strings.Contains(line, sourcemodUpdatedPrefix)
+}
+
 // GameAppID is Team Fortress 2 in the Steam client. The dedicated server is a
 // different application, 232250, and the two are not interchangeable here.
 const GameAppID = "440"
@@ -117,10 +152,18 @@ const GameAppID = "440"
 // same machine needs no login token to be worth joining. So this names 440 and
 // asks the server nothing.
 //
-// The address is the loopback one: this runs on the machine hosting the
-// server, and 127.0.0.1 answers there whatever the reach is.
+// The address is this machine's own address on the network, not 127.0.0.1.
+// Loopback looks like the obvious choice for a server on the same machine and
+// does not work: a connect to it times out, while the same server joined from
+// the LAN tab of the server browser answers on the network address, which is
+// also the address that tab shows. So the link uses the first address the
+// machine has, and keeps loopback only for a machine that has none.
 func SteamConnectURL(s settings.Settings) string {
-	address := net.JoinHostPort("127.0.0.1", strconv.Itoa(s.SrcdsPort))
+	host := "127.0.0.1"
+	if local := LocalAddresses(); len(local) > 0 {
+		host = local[0]
+	}
+	address := net.JoinHostPort(host, strconv.Itoa(s.SrcdsPort))
 	arguments := "+connect " + address
 	if s.SrcdsPw != "" {
 		arguments += " +password " + s.SrcdsPw

@@ -86,6 +86,15 @@ type window struct {
 	// steamAddress is the relayed address the game server printed, empty
 	// until it does and after every stop: it is a new one every start.
 	steamAddress string
+
+	// sourcemodRestarted is the one automatic restart SourceMod's updater
+	// gets. It never clears: a second request in the same run means the
+	// first restart did not settle it.
+	sourcemodRestarted bool
+
+	// mission is the one the plugin last loaded, empty until it says. The
+	// settings only name where the run starts, and it moves on from there.
+	mission string
 }
 
 // Run opens the window and blocks until the player closes it. The server is
@@ -241,7 +250,53 @@ func (w *window) append(line apruntime.Line) {
 		if address := apruntime.FakeIPAddress(line.Text); address != "" {
 			w.noteSteamAddress(address)
 		}
+		if apruntime.SourceModWasUpdated(line.Text) {
+			w.restartForSourcemod()
+		}
+		if mission := apruntime.LoadedMission(line.Text); mission != "" {
+			w.noteMission(mission)
+		}
 	}
+}
+
+// noteMission keeps the mission the plugin last loaded, for the line above the
+// log. The run moves itself from one mission to the next, so the one the
+// settings name is only ever the first.
+func (w *window) noteMission(mission string) {
+	w.mu.Lock()
+	changed := w.mission != mission
+	w.mission = mission
+	w.mu.Unlock()
+	if changed && w.main != nil {
+		w.main.Synchronize(w.refresh)
+	}
+}
+
+// restartForSourcemod brings the server round once SourceMod has fetched new
+// gamedata. The updater writes the files and then asks whoever is watching to
+// restart, which is a line in a log nobody reads and a server left running on
+// the gamedata it started with.
+//
+// Once per run of the launcher. The updater only speaks when it found
+// something new, so a second time means the restart did not take, and
+// restarting again would be a loop with a 14 GB game server in it.
+func (w *window) restartForSourcemod() {
+	w.mu.Lock()
+	if w.sourcemodRestarted {
+		w.mu.Unlock()
+		return
+	}
+	w.sourcemodRestarted = true
+	w.mu.Unlock()
+
+	if !w.supervisor.Running() {
+		return
+	}
+	w.say("SourceMod updated its gamedata. Restarting the server to load it.")
+	go func() {
+		w.supervisor.Stop()
+		w.start()
+	}()
 }
 
 // noteSteamAddress keeps the relayed address the game server printed and
@@ -333,6 +388,7 @@ func (w *window) start() {
 	}
 	w.busy, w.cancelInstall = true, cancel
 	w.steamAddress = ""
+	w.mission = ""
 	w.mu.Unlock()
 	defer func() {
 		cancel()
@@ -387,7 +443,15 @@ func (w *window) refresh() {
 	w.mu.Lock()
 	busy := w.busy
 	steamAddress := w.steamAddress
+	mission := w.mission
 	w.mu.Unlock()
+
+	// What is loaded, once the plugin has said so. Before that, and with the
+	// server down, the settings only know where the run is meant to begin.
+	playing := apruntime.StartMap(s)
+	if running && mission != "" {
+		playing = mission
+	}
 
 	switch {
 	case busy && !running:
@@ -403,11 +467,11 @@ func (w *window) refresh() {
 	room := settings.Room{Host: s.APHost, Port: s.APPort}
 	switch {
 	case s.TestMode:
-		w.room.SetText(fmt.Sprintf("test mode   %s", apruntime.StartMap(s)))
+		w.room.SetText(fmt.Sprintf("test mode   %s", playing))
 	case room.Port == 0:
 		w.room.SetText("no room set")
 	default:
-		w.room.SetText(fmt.Sprintf("room %s   %s", room, apruntime.StartMap(s)))
+		w.room.SetText(fmt.Sprintf("room %s   %s", room, playing))
 	}
 	w.join.SetText(joinLine(s, steamAddress))
 	if running {
