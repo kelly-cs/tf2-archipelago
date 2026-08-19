@@ -7,7 +7,7 @@ anybody else by default, and no router setting changes that on its own. Pick
 one of three with `SRCDS_REACH` in `.env`:
 
 ```sh
-SRCDS_REACH=lan      # this machine and the local network. The default.
+SRCDS_REACH=lan      # this machine and the local network
 SRCDS_REACH=steam    # over Steam's relay, with no port to open
 SRCDS_REACH=port     # straight at the game port, forwarded on your router
 ```
@@ -15,11 +15,15 @@ SRCDS_REACH=port     # straight at the game port, forwarded on your router
 `lan` is the whole answer for people playing in the same house. The other two
 reach the internet, and both need a login token.
 
+Set a token and say nothing about the reach, and you get `port`: a token has no
+other use, and the local network still reaches a server that takes connections
+on its port. Naming a reach yourself always wins over that.
+
 > **`steam` is not finished.** No run took the relay all the way to a Team
-> Fortress 2 client that joined. The launcher does not offer it yet: the
-> **Steam Networking** tab is hidden unless you start it with
-> `TF2AP_STEAM_NETWORKING=1`. `SRCDS_REACH` works either way. Use `lan`, or
-> `port` if you have a router you can configure.
+> Fortress 2 client that joined. The launcher's **Who can join** tab offers the
+> local network and a forwarded port; the relay button appears only if you
+> start it with `TF2AP_STEAM_NETWORKING=1`. `SRCDS_REACH=steam` works either
+> way.
 
 ## The login token
 
@@ -34,7 +38,8 @@ SRCDS_TOKEN=YOURTOKENHERE
 ```
 
 The token is not a password anybody types. It identifies the server to Steam.
-`SRCDS_TOKEN=0` means none, which is the right answer only for `lan`.
+`SRCDS_TOKEN=0` means none, which is the right answer only for `lan`, and is
+what the server has until you give it one.
 
 ## Over Steam, with no port to open
 

@@ -25,8 +25,8 @@ The window has:
 - A **Log** tab and an **rcon** box, for when something looks wrong.
 - A **Session** tab: connection status, checks, items, and the missions of
   the run. **Play this mission** loads the one you pick.
-- **Settings**, for the room, the missions, the bots and the shape of the
-  run.
+- **Settings**, for the room, the missions, the bots, who can join and the
+  shape of the run.
 
 Closing the window stops the server. Your answers are saved for next time.
 

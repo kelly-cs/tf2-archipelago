@@ -219,8 +219,12 @@ func (s Settings) withDefaults() Settings {
 		// A file that predates SrcdsReach says only whether sv_lan was on.
 		// sv_lan off meant a forwarded port, because that was the only way out
 		// at the time. Anything else, including a value nobody recognizes,
-		// falls back to the private default rather than opening the server.
+		// falls back to the local network rather than opening the server,
+		// unless the file carries a login token: nothing else uses one.
 		s.SrcdsReach = d.SrcdsReach
+		if HasToken(s.SrcdsToken) {
+			s.SrcdsReach = ReachPort
+		}
 		if s.SrcdsLanLegacy != nil && !*s.SrcdsLanLegacy {
 			s.SrcdsReach = ReachPort
 		}

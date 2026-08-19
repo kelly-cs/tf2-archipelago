@@ -8,7 +8,7 @@ de routeur ne change ça tout seul. Choisissez parmi trois avec `SRCDS_REACH`
 dans `.env` :
 
 ```sh
-SRCDS_REACH=lan      # cette machine et le réseau local. Le défaut.
+SRCDS_REACH=lan      # cette machine et le réseau local
 SRCDS_REACH=steam    # par le relais Steam, sans port à ouvrir
 SRCDS_REACH=port     # directement sur le port du jeu, redirigé sur votre routeur
 ```
@@ -16,11 +16,15 @@ SRCDS_REACH=port     # directement sur le port du jeu, redirigé sur votre route
 `lan` est toute la réponse pour des gens qui jouent dans la même maison. Les
 deux autres atteignent Internet, et les deux demandent un token.
 
+Posez un token sans rien dire du reach, et vous obtenez `port` : un token ne
+sert à rien d'autre, et le réseau local atteint toujours un serveur qui écoute
+sur son port. Nommer un reach vous-même l'emporte toujours.
+
 > **`steam` n'est pas fini.** Le relais n'a jamais été mené jusqu'à un client
-> Team Fortress 2 qui a rejoint, donc le launcher ne le propose pas encore :
-> l'onglet **Steam Networking** est caché sauf si vous le lancez avec
-> `TF2AP_STEAM_NETWORKING=1`. `SRCDS_REACH` marche dans les deux cas. Utilisez
-> `lan`, ou `port` si vous savez configurer votre box.
+> Team Fortress 2 qui a rejoint. L'onglet **Qui peut rejoindre** du launcher
+> propose le réseau local et un port redirigé ; le bouton du relais n'apparaît
+> que si vous le lancez avec `TF2AP_STEAM_NETWORKING=1`. `SRCDS_REACH=steam`
+> marche dans les deux cas.
 
 ## Le token de connexion
 
@@ -36,7 +40,7 @@ SRCDS_TOKEN=VOTRETOKENICI
 
 Le token n'est pas un mot de passe que quelqu'un tape. Il identifie le serveur
 auprès de Steam. `SRCDS_TOKEN=0` veut dire aucun, ce qui n'est la bonne réponse
-que pour `lan`.
+que pour `lan`, et c'est ce que le serveur a tant que vous ne lui en donnez pas.
 
 ## Par Steam, sans port à ouvrir
 
