@@ -122,6 +122,24 @@ func TestFlagsComeBeforeCommands(t *testing.T) {
 	}
 }
 
+// Both platforms need -console, for reasons that look different and are not.
+// srcds.exe without it waits for a click on Start. srcds_linux without it
+// brings up an interactive text console, and the launcher gives it no terminal
+// to bring it up on: the server holds its port, burns a fifth of a core, and
+// never finishes loading the map.
+func TestSrcdsRunsWithAConsoleOnEitherPlatform(t *testing.T) {
+	for _, exeName := range []string{"srcds.exe", "srcds_run"} {
+		args := srcdsArgs(settings.Settings{SrcdsPort: 27015}, exeName)
+		if !slices.Contains(args, "-console") {
+			t.Errorf("%s runs without -console", exeName)
+		}
+	}
+	// The crash dialog is a Windows idea, and nothing on Linux answers it.
+	if slices.Contains(srcdsArgs(settings.Settings{}, "srcds_run"), "-nocrashdialog") {
+		t.Error("srcds_run got -nocrashdialog, which is a Windows flag")
+	}
+}
+
 // The map is the start mission's, not the mission name. Ghost Town is the case
 // that defeats trimming the popfile: mvm_ghost_town_666 runs on mvm_ghost_town.
 func TestTheMapComesFromTheStartMission(t *testing.T) {

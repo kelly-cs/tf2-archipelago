@@ -35,9 +35,17 @@ Le journal sort dans le terminal. Ctrl+C arrête le serveur.
 | Réseau | Rien, pour des amis sur le même réseau. Un seul port à ouvrir si vous choisissez cette voie. |
 
 Le serveur dédié TF2 est un programme 32 bits. Sur une distribution 64 bits, il
-lui faut la bibliothèque C 32 bits, que la plupart des gestionnaires de paquets
-appellent `glibc.i686`, `lib32-glibc` ou `libc6:i386`. SteamCMD la nomme
-clairement quand il ne la trouve pas.
+lui faut les bibliothèques C, C++ et curl en 32 bits. Sur Debian et Ubuntu :
+
+```sh
+sudo dpkg --add-architecture i386
+sudo apt update
+sudo apt install lib32gcc-s1 lib32stdc++6 libcurl3t64-gnutls:i386
+```
+
+Fedora appelle la bibliothèque C `glibc.i686`, Arch l'appelle `lib32-glibc`.
+SteamCMD et le serveur nomment clairement une bibliothèque qu'ils ne trouvent
+pas.
 
 Pas de Docker, pas de client Steam, pas de compte Steam pour le serveur
 lui-même.

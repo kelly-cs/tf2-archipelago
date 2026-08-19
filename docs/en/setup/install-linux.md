@@ -33,9 +33,16 @@ The log goes to the terminal. Stop the server with Ctrl+C.
 | Network | Nothing, for friends on the same network. One forwarded port only if you pick that route. |
 
 The TF2 dedicated server is a 32-bit program. On a 64-bit distribution it
-needs the 32-bit C library, which most package managers call `glibc.i686`,
-`lib32-glibc` or `libc6:i386`. SteamCMD names it plainly when it cannot
-find it.
+needs the 32-bit C, C++ and curl libraries. On Debian and Ubuntu:
+
+```sh
+sudo dpkg --add-architecture i386
+sudo apt update
+sudo apt install lib32gcc-s1 lib32stdc++6 libcurl3t64-gnutls:i386
+```
+
+Fedora calls the C library `glibc.i686`, Arch calls it `lib32-glibc`. SteamCMD
+and the server name a library plainly when they cannot find it.
 
 No Docker, no Steam client, no Steam account for the server itself.
 

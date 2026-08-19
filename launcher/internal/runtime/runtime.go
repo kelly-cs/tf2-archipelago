@@ -132,12 +132,23 @@ func runSrcds(ctx context.Context, s settings.Settings, logger *slog.Logger) err
 // and sv_lan has to be settled before the map loads and the server tries to
 // log in to Steam.
 func srcdsArgs(s settings.Settings, exeName string) []string {
-	flags := []string{"-game", "tf", "-usercon"}
+	// -console on both, for the same reason spelled two ways. On Windows,
+	// srcds.exe without it opens its own window and waits for a click on
+	// Start, so the launcher sits there having apparently done nothing. On
+	// Linux it is the flag every server runs with: srcds_linux without it
+	// brings up an interactive text console, and this launcher gives it no
+	// terminal to bring it up on. The server then holds its port, burns a
+	// fifth of a core and never finishes loading the map.
+	// -ip 0.0.0.0 binds every interface. Without it srcds binds to whatever
+	// its hostname resolves to, and on Debian that is 127.0.1.1: the game
+	// answers on every address, the rcon port answers only on that one, and
+	// the launcher's own rcon box gets "connection refused" from a server
+	// running perfectly well. What may reach the server is sv_lan's business
+	// and the firewall's, not the bind address's.
+	flags := []string{"-game", "tf", "-usercon", "-console", "-ip", "0.0.0.0"}
 	if exeName == "srcds.exe" {
-		// Without -console, srcds.exe opens its own window and waits for a
-		// click on Start, so the launcher would sit there having apparently
-		// done nothing. -nocrashdialog keeps a crash from doing the same.
-		flags = append(flags, "-console", "-nocrashdialog")
+		// A crash dialog is a Windows idea, and it waits for a click too.
+		flags = append(flags, "-nocrashdialog")
 	}
 	if s.SrcdsReach.SteamNetworking() {
 		// Asks Valve for the relayed address. Without it sv_use_steam_networking
@@ -204,6 +215,7 @@ func runSrcdsWithSink(ctx context.Context, s settings.Settings, logger *slog.Log
 	cmd := exec.CommandContext(ctx, filepath.Join(gameDir, exeName), srcdsArgs(s, exeName)...)
 	cmd.Dir = gameDir
 	cmd.Env = srcdsEnv(s)
+	winproc.KillGroup(cmd)
 	// -console reads the console input buffer, so the server needs a real one
 	// as its standard input. CREATE_NO_WINDOW would deny it any console at
 	// all, and the server dies on its first read. Its output still comes back
