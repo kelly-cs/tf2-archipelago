@@ -15,7 +15,7 @@ the same unlocks.
 </p>
 
 <p align="center">
-  <img alt="tf2ap-linux-amd64 -status" src="docs/images/linux-status.svg" width="800">
+  <img alt="The launcher: a log, Start and Stop, an rcon box" src="docs/images/launcher-main.png" width="820">
 </p>
 
 ## What talks to Archipelago
@@ -47,13 +47,18 @@ you with the Archipelago app, writes the player file, bundles the logs to send
 when something looks wrong, and puts every answer back to its default. A
 **Test mode** plays without any room at all.
 
+<p align="center">
+  <img alt="Settings: the player options tab" src="docs/images/launcher-settings.png" width="740">
+</p>
+
 [The Windows guide](./docs/en/setup/install-windows.md) takes you from the
 download to the first wave.
 
 ## Linux
 
-Download `tf2ap-linux-amd64` and run it. Same program, no window: the terminal
-is the interface.
+Download `tf2ap-linux-amd64` and run it. Same program, and for now the
+terminal is the interface: the window above is Win32, which is Windows only. A
+window for Linux is the next thing this launcher gets.
 
 ```sh
 curl -fsSLO https://github.com/m-this/tf2-archipelago/releases/latest/download/tf2ap-linux-amd64
@@ -61,12 +66,11 @@ chmod +x tf2ap-linux-amd64
 ./tf2ap-linux-amd64
 ```
 
-Every answer the window asks for is a variable here. `-status` says what the
-run is set to, the picture at the top of this page, and `-env` lists the
-variables that override it for one run:
+Every answer the window asks for is a variable here, and `-status` says what
+the run is set to before it starts:
 
 <p align="center">
-  <img alt="tf2ap-linux-amd64 -env" src="docs/images/linux-env.svg" width="460">
+  <img alt="tf2ap-linux-amd64 -status" src="docs/images/linux-status.svg" width="740">
 </p>
 
 [The Linux guide](./docs/en/setup/install-linux.md) has the rest.

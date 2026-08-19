@@ -1,14 +1,18 @@
 """Turn a raw window screenshot into the picture the README shows.
 
-The Windows launcher is a Win32 window, so nothing on a Linux machine can draw
-it: the screenshots come from someone running it, and this is what happens to
-them afterwards. Drop the raw capture in docs/images/raw/ and run
-`make shadows`.
+Two steps. The first repairs what the capture got wrong, the second is the
+drop shadow on transparent margins that makes a window look like a window.
 
-What it does is a drop shadow on transparent margins. The shadow is taken from
-the capture's own alpha channel, so a window with rounded corners, which is
-what the Windows 11 snipping tool hands back, casts a rounded shadow, and a
-plain rectangle from Alt+PrintScreen casts a rectangular one.
+The repair is for captures taken through Wine, which is how docs/window-shot.sh
+photographs a Win32 window on a machine that is not running Windows. The strip
+beside the last tab is left unpainted there, and what shows through is whatever
+the frame buffer held, which is black. Windows paints the button face colour.
+Any run of pure black wider than a glyph gets that colour, so text is left
+alone and the bands are not.
+
+The shadow is taken from the capture's own alpha channel, so a window with
+rounded corners, which is what the Windows 11 snipping tool hands back, casts a
+rounded shadow, and a plain rectangle casts a rectangular one.
 
 Usage:
     shadow.py <input.png> <output.png>
@@ -25,6 +29,32 @@ MARGIN = 72
 OFFSET_Y = 18
 BLUR = 22
 OPACITY = 140
+
+# What Windows paints where a control does not, and how long a run of black has
+# to be before it is one of those rather than a letter. Ten times the width of
+# a glyph at the size the launcher draws them.
+FACE = (240, 240, 240)
+UNPAINTED_RUN_MIN = 120
+
+
+def repaint_unpainted(source: Image.Image) -> Image.Image:
+    """Fill the black bands a Wine capture leaves with the button face colour."""
+    pixels = source.load()
+    width, height = source.size
+
+    for y in range(height):
+        run = 0
+        for x in range(width + 1):
+            black = x < width and pixels[x, y][:3] == (0, 0, 0)
+            if black:
+                run += 1
+                continue
+            if run >= UNPAINTED_RUN_MIN:
+                for back in range(x - run, x):
+                    pixels[back, y] = (*FACE, 255)
+            run = 0
+
+    return source
 
 
 def shadowed(source: Image.Image) -> Image.Image:
@@ -52,7 +82,7 @@ def main() -> int:
 
     source_path, target_path = Path(sys.argv[1]), Path(sys.argv[2])
     with Image.open(source_path) as opened:
-        result = shadowed(opened.convert("RGBA"))
+        result = shadowed(repaint_unpainted(opened.convert("RGBA")))
 
     target_path.parent.mkdir(parents=True, exist_ok=True)
     result.save(target_path, "PNG", optimize=True)
