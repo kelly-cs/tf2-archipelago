@@ -10,7 +10,18 @@ Download **`tf2ap.exe`** above. Run it. It installs everything else.
 
 [Full guide](https://m-this.github.io/tf2-archipelago/en/setup/install-windows.html)
 
-## Linux / Docker
+## Linux
+
+Download **`tf2ap-linux-amd64`**. Run it. It installs everything else.
+
+```sh
+chmod +x tf2ap-linux-amd64
+./tf2ap-linux-amd64
+```
+
+[Full guide](https://m-this.github.io/tf2-archipelago/en/setup/install-linux.html)
+
+## Docker
 
 Download **`compose.yaml`** and **`.env.example`**:
 

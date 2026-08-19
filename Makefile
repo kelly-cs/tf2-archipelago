@@ -42,7 +42,8 @@ GO_SRC := $$(find . -type f -name '*.go')
         apworld-fmt apworld-test apworld-build plugin bots bots-from-source \
         integration build docs \
         docs-build docs-down dist compose-release version-check clean \
-        launcher launcher-assets embed-placeholders
+        launcher launcher-assets launcher-assets-common \
+        launcher-linux launcher-assets-linux embed-placeholders
 
 help:
 	@echo "tf2-archipelago"
@@ -59,6 +60,7 @@ help:
 	@echo "  make integration   Bring up Archipelago and the bridge, drive them"
 	@echo "  make dist          Build everything a release attaches into ./dist"
 	@echo "  make launcher      Cross-compile tf2ap.exe (Windows) into ./dist"
+	@echo "  make launcher-linux Build tf2ap-linux-amd64 into ./dist"
 	@echo "  make docs          Build the book and serve it on 127.0.0.1"
 	@echo "  make clean         Stop, remove volumes, remove build output"
 
@@ -116,14 +118,18 @@ fmt-check:
 		exit 1; \
 	fi
 
-# The launcher embeds four build artefacts, and Go refuses to compile a
-# package whose //go:embed pattern matches nothing. Every Go target here
-# depends on this so a fresh clone can vet, lint, build and test without first
-# building the plugin, staging the bots and running the apworld through Docker.
-# The placeholders are a zero-byte plugin and the smallest valid zip; `make
-# launcher-assets` replaces them with the real files and never sees these.
-EMBED_PLACEHOLDERS = $(EMBED)/tf2_archipelago.smx $(EMBED)/sm-ripext-windows.zip \
-	$(EMBED)/defender-bots-windows.zip $(EMBED)/tf2_mvm.apworld
+# The launcher embeds build artefacts, and Go refuses to compile a package
+# whose //go:embed pattern matches nothing. Every Go target here depends on
+# this so a fresh clone can vet, lint, build and test without first building
+# the plugin, staging the bots and running the apworld through Docker.
+# The placeholders are a zero-byte plugin and the smallest valid zip; the
+# launcher-assets targets replace them with the real files and never see these.
+#
+# Both platforms are listed. A build tag picks which pair a binary embeds, but
+# lint and vet read every file in the package whatever they are building for.
+EMBED_PLACEHOLDERS = $(EMBED)/tf2_archipelago.smx $(EMBED)/tf2_mvm.apworld \
+	$(EMBED)/sm-ripext-windows.zip $(EMBED)/defender-bots-windows.zip \
+	$(EMBED)/sm-ripext-linux.zip $(EMBED)/defender-bots-linux.zip
 
 embed-placeholders:
 	@mkdir -p $(EMBED)
@@ -255,20 +261,32 @@ LAUNCHER_LDFLAGS := -X github.com/m-this/tf2-archipelago/launcher/internal/asset
 
 # The bots go in as a Windows-only zip: the staged tree carries both platforms'
 # extensions, and the 20 MB of Linux .so has no business inside a .exe.
-launcher-assets: bots apworld-build
+# The apworld and the plugin, which are the same bytes on either platform.
+launcher-assets-common: bots apworld-build
 	mkdir -p $(EMBED)
 	cp $(DIST)/tf2_mvm.apworld $(EMBED)/tf2_mvm.apworld
-	rm -f $(EMBED)/defender-bots-windows.zip
-	cd deploy/bots/build/package && zip -qr $(CURDIR)/$(EMBED)/defender-bots-windows.zip \
-		addons -x '*.so'
-	curl -fsSL -o $(EMBED)/sm-ripext-windows.zip \
-		"https://github.com/ErikMinekus/sm-ripext/releases/download/$(RIPEXT_VERSION)/sm-ripext-$(RIPEXT_VERSION)-windows.zip"
 	@if [ -f plugin/build/tf2_archipelago.smx ]; then \
 		cp plugin/build/tf2_archipelago.smx $(EMBED)/tf2_archipelago.smx; \
 		echo "copied plugin/build/tf2_archipelago.smx into the embed dir"; \
 	else \
 		echo "no plugin/build/tf2_archipelago.smx (run 'make plugin' on Linux, or CI will) — building with the placeholder"; \
 	fi
+
+# One platform's binaries per build: SourceMod loads the .so or the .dll by
+# platform and ignores the other, so each launcher carries only its own.
+launcher-assets: launcher-assets-common
+	rm -f $(EMBED)/defender-bots-windows.zip
+	cd deploy/bots/build/package && zip -qr $(CURDIR)/$(EMBED)/defender-bots-windows.zip \
+		addons -x '*.so'
+	curl -fsSL -o $(EMBED)/sm-ripext-windows.zip \
+		"https://github.com/ErikMinekus/sm-ripext/releases/download/$(RIPEXT_VERSION)/sm-ripext-$(RIPEXT_VERSION)-windows.zip"
+
+launcher-assets-linux: launcher-assets-common
+	rm -f $(EMBED)/defender-bots-linux.zip
+	cd deploy/bots/build/package && zip -qr $(CURDIR)/$(EMBED)/defender-bots-linux.zip \
+		addons -x '*.dll'
+	curl -fsSL -o $(EMBED)/sm-ripext-linux.zip \
+		"https://github.com/ErikMinekus/sm-ripext/releases/download/$(RIPEXT_VERSION)/sm-ripext-$(RIPEXT_VERSION)-linux.zip"
 
 # -H windowsgui links for the windows subsystem: a double-click opens the
 # window and no console behind it. The flags that print keep working, because
@@ -281,6 +299,14 @@ launcher: launcher-assets
 	GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -trimpath \
 		-ldflags="-s -w -H windowsgui $(LAUNCHER_LDFLAGS)" \
 		-o $(DIST)/tf2ap.exe ./launcher/cmd/tf2ap
+
+# No window: walk is a Win32 binding, so the Linux build is the console flow
+# the compose stack already uses. Everything else is the same program.
+launcher-linux: launcher-assets-linux
+	mkdir -p $(DIST)
+	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath \
+		-ldflags="-s -w $(LAUNCHER_LDFLAGS)" \
+		-o $(DIST)/tf2ap-linux-amd64 ./launcher/cmd/tf2ap
 
 # --- Integration ---
 
@@ -310,7 +336,7 @@ docs-down: .env
 # --- The release ---
 
 # .github/workflows/release.yml calls this and builds nothing of its own.
-dist: apworld-build plugin bots launcher compose-release
+dist: apworld-build plugin bots launcher launcher-linux compose-release
 	cp plugin/build/tf2_archipelago.smx $(DIST)/
 	cp apworld/tf2_mvm/data/*.json $(DIST)/
 	cp deploy/.env.example $(DIST)/.env.example

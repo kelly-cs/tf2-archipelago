@@ -121,16 +121,17 @@ func Ensure(ctx context.Context, installRoot string, logf func(format string, ar
 	return result, nil
 }
 
-// installSteamcmd downloads and unpacks the SteamCMD zip from Valve.
+// installSteamcmd downloads and unpacks Valve's SteamCMD bootstrap: a zip on
+// Windows, a tarball everywhere else.
 func installSteamcmd(ctx context.Context, dir string) error {
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return err
 	}
-	zipData, err := fetch(ctx, "https://steamcdn-a.akamaihd.net/client/installer/steamcmd.zip")
+	data, err := fetch(ctx, steamcmdURL())
 	if err != nil {
 		return fmt.Errorf("cannot download SteamCMD: %w", err)
 	}
-	return unzipTo(zipData, dir)
+	return unpackTo(data, dir)
 }
 
 // installGame runs steamcmd to install the TF2 dedicated server.
@@ -149,9 +150,9 @@ func installSteamcmd(ctx context.Context, dir string) error {
 // that one retry is the difference between a working install and a player
 // starting over.
 func installGame(ctx context.Context, steamcmdDir, gameDir string, logf func(string, ...any)) error {
-	exe := filepath.Join(steamcmdDir, "steamcmd.exe")
-	if !exists(exe) {
-		exe = filepath.Join(steamcmdDir, "steamcmd.sh")
+	exe := firstExisting(steamcmdDir, steamcmdNames())
+	if exe == "" {
+		return fmt.Errorf("SteamCMD is not in %s", steamcmdDir)
 	}
 
 	// Two runs before the real one, both of which SteamCMD needs and neither
@@ -243,27 +244,24 @@ func runSteamcmd(ctx context.Context, exe, dir string, logf func(string, ...any)
 // installMetamod unpacks Metamod:Source, which loads SourceMod. Without it
 // SourceMod is inert and every plugin in this project is missing.
 func installMetamod(ctx context.Context, modDir string) error {
-	url := fmt.Sprintf("https://mms.alliedmods.net/mmsdrop/%s/mmsource-%s-windows.zip",
-		assets.MetamodBranch, assets.MetamodVersion)
-	data, err := fetch(ctx, url)
+	data, err := fetch(ctx, metamodURL())
 	if err != nil {
 		return fmt.Errorf("cannot download Metamod:Source: %w", err)
 	}
-	return unzipTo(data, modDir)
+	return unpackTo(data, modDir)
 }
 
 // installSourcemod fetches the Windows SourceMod build and unpacks it into the
 // mod directory. These archives root at addons/ and cfg/, which belong under
 // tf/, not next to srcds.exe.
 func installSourcemod(ctx context.Context, modDir string, logf func(string, ...any)) error {
-	url := fmt.Sprintf("https://sm.alliedmods.net/smdrop/%s/sourcemod-%s-windows.zip",
-		assets.SourcemodBranch, assets.SourcemodVersion)
+	url := sourcemodURL()
 	logf("downloading SourceMod from %s", url)
 	data, err := fetch(ctx, url)
 	if err != nil {
 		return fmt.Errorf("cannot download SourceMod: %w", err)
 	}
-	return unzipTo(data, modDir)
+	return unpackTo(data, modDir)
 }
 
 // installRipextAndPlugin unpacks the embedded ripext zip and copies the plugin
@@ -369,12 +367,22 @@ func openForWrite(target string, mode os.FileMode) (*os.File, error) {
 // gameInstalled reports whether the TF2 server is installed, by looking for
 // srcds.exe (Windows) or srcds_run (Linux) in the game dir.
 func gameInstalled(gameDir string) bool {
-	for _, name := range []string{"srcds.exe", "srcds_run"} {
+	for _, name := range srcdsNames() {
 		if exists(filepath.Join(gameDir, name)) {
 			return true
 		}
 	}
 	return false
+}
+
+// firstExisting returns the first of names that is in dir, or "" for none.
+func firstExisting(dir string, names []string) string {
+	for _, name := range names {
+		if candidate := filepath.Join(dir, name); exists(candidate) {
+			return candidate
+		}
+	}
+	return ""
 }
 
 func exists(path string) bool {

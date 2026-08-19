@@ -11,6 +11,7 @@
 
 * [Requirements](setup/requirements.md)
 * [Install on Windows](setup/install-windows.md)
+* [Install on Linux](setup/install-linux.md)
 * [Install with Docker](setup/install.md)
 * [The shape of the run](setup/shape-of-the-run.md)
 * [Create the session](setup/create-the-session.md)

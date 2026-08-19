@@ -6,7 +6,7 @@ it stands.
 Two players played that session: EZKSupernova and Cowser the Khelinace. Most
 of this list comes from their reports.
 
-Only item 9, a native Linux build, is untouched.
+Every item is done. The two that say so name what they left behind.
 
 ## 1. Fork the bots mod. Done
 
@@ -159,17 +159,25 @@ and filler, so 55 more checks mean 55 more `Cash Bundle` across a full roster.
 A real item, bot templates or canteens or upgrades, is the next thing this
 needs, and it is its own piece of work.
 
-## 9. A native Linux build
+## 9. A native Linux build. Done
 
-`docker compose` runs the whole stack on Linux today, and `tf2ap.exe` is the
-Windows path. Players want a Linux binary that does what the launcher does:
-it installs the server, runs the bridge, and holds the log.
+`tf2ap-linux-amd64`, one static binary, in every release beside `tf2ap.exe`.
+`make launcher-linux` builds it.
 
-The launcher is Go. The Windows-only parts sit in `launcher/internal/winproc`,
-already split by build tag. The UI needs the same split.
+The question the note asked was whether Linux gets the window or a terminal.
+It gets the terminal: walk is a Win32 binding, and the console flow the
+compose stack already uses was there to take. So the answer cost nothing.
 
-Decide one question first: is the Linux answer the same window, or a terminal
-front end over the same runtime?
+What it did cost was the installer, which knew only Windows. SteamCMD and both
+AlliedModders drops ship a zip for Windows and a tarball for Linux. So the
+unpacker reads the bytes rather than the file name, and takes either.
+
+The launcher embeds one platform's mod binaries per build, chosen by a build
+tag. SourceMod loads the .so or the .dll and ignores the other, so both in one
+binary is half of every download wasted.
+
+Valve's tarball has no directory entry for `linux32/`, only files under it. A
+synthetic archive in a test did not catch that; unpacking the real one did.
 
 ## 10. Balance for fewer than six players. The measurement exists now
 
