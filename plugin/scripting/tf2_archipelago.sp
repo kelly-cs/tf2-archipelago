@@ -26,7 +26,7 @@
 #include "tf2_archipelago/missions.inc"
 #include "tf2_archipelago/bots.inc"
 
-#define PLUGIN_VERSION "1.3.1"
+#define PLUGIN_VERSION "1.3.2"
 
 // Only used when the wave events turn out not to exist.
 #define WavePollInterval 1.0
