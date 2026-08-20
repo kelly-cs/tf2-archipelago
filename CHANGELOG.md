@@ -4,6 +4,17 @@ What each release changes, for somebody who plays the game. The workflow in
 `.github/workflows/release.yml` reads the section matching the tag and puts it
 in the release notes, so this file is the only place to write it.
 
+## v1.8.0
+
+- Medics keep the medigun out. Every robot they could see used to pull them
+  onto the syringe gun, which drops the heal and stops the charge building.
+- Scouts double jump most of the time, and the second jump goes the other way,
+  which is harder to shoot than one long arc.
+- Bots that are hurt or low on ammo hold the bomb from a friendly dispenser
+  instead of walking off to find a health pack.
+- Engineers rate dispenser range far higher and buy it early, now that the
+  whole team stands in it.
+
 ## v1.7.0
 
 - The server no longer freezes at the end of a wave. Every engineer worked out
