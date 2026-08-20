@@ -1,0 +1,67 @@
+name: Backfill release notes
+
+# Run by hand. Puts each tag's CHANGELOG.md section into its published release,
+# under the download buttons, and leaves the rest of the body alone.
+#
+# It exists because a personal access token cannot edit a release, and the
+# releases published before CHANGELOG.md have no Changes section. Once every
+# release has one this job has nothing left to do and can go.
+on:
+  workflow_dispatch:
+
+jobs:
+  backfill:
+    if: github.server_url == 'https://github.com'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: rewrite the notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -eu
+
+          for tag in $(gh release list --limit 100 --json tagName -q '.[].tagName'); do
+            gh release view "$tag" --json body -q .body > body.md
+
+            if grep -q '^## Changes$' body.md; then
+              echo "$tag already has one"
+              continue
+            fi
+
+            awk -v tag="$tag" '
+              $0 == "## " tag { want = 1; next }
+              want && /^## / { exit }
+              want { print }
+            ' CHANGELOG.md > changes.md
+
+            if [ ! -s changes.md ]; then
+              echo "$tag has no CHANGELOG section"
+              continue
+            fi
+
+            { echo '## Changes'; cat changes.md; } > section.md
+
+            # The buttons end in </p>. The oldest releases predate them, and
+            # there the changes belong at the top rather than nowhere.
+            if grep -q '^</p>$' body.md; then
+              awk 'BEGIN { done = 0 }
+                !done && /^<\/p>$/ {
+                  print; print ""
+                  while ((getline line < "section.md") > 0) print line
+                  done = 1; next
+                }
+                { print }
+              ' body.md > new.md
+            else
+              cat section.md > new.md
+              echo "" >> new.md
+              cat body.md >> new.md
+            fi
+
+            gh release edit "$tag" --notes-file new.md >/dev/null
+            echo "$tag updated"
+          done
