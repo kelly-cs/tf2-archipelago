@@ -165,7 +165,14 @@ func (w *window) build() error {
 					declarative.PushButton{
 						AssignTo:    &w.joinBt,
 						Text:        "Join",
-						ToolTipText: "Start Team Fortress 2 and join this server. Steam does the connect and the password.",
+						// The steam:// handoff can do nothing and report nothing:
+						// Steam takes the link, the game starts, and the connect
+						// is lost on the way. The server is running either way,
+						// so the tooltip says how to get to it without this
+						// button rather than leaving the player to guess.
+						ToolTipText: "Start Team Fortress 2 and join this server. Steam does the connect and the password. " +
+							"If the game opens without joining, the server is still there: find it in the game's own " +
+							"server browser, under the LAN tab, or type the connect line below in the developer console.",
 						OnClicked:   w.onJoin,
 						MinSize:     declarative.Size{Width: 90},
 					},
@@ -530,7 +537,8 @@ func (w *window) onJoin() {
 	w.say("joining: %s", link)
 	if err := winproc.OpenURL(link); err != nil {
 		w.say("cannot ask Steam to join: %v", err)
-		w.say("start Team Fortress 2 yourself, then type the connect line above in the developer console")
+		w.say("start Team Fortress 2 yourself, then find the server under the LAN tab of the server browser, " +
+			"or type the connect line above in the developer console")
 	}
 }
 

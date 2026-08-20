@@ -249,7 +249,8 @@ func (m *model) join() tea.Cmd {
 	return func() tea.Msg {
 		link := apruntime.SteamConnectURL(m.settings)
 		if err := winproc.OpenURL(link); err != nil {
-			return noticeMsg("cannot ask Steam to join: " + link)
+			return noticeMsg("cannot ask Steam to join: " + link +
+				". Start the game yourself and find the server under the LAN tab of the server browser.")
 		}
 		return noticeMsg("joining: " + link)
 	}
