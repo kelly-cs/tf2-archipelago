@@ -6,9 +6,9 @@ it stands.
 Two players played that session: EZKSupernova and Cowser the Khelinace. Most
 of this list comes from their reports.
 
-Every item is done. The two that say so name what they left behind. Item 9
+Items 1 to 11 are done. The two that say so name what they left behind. Item 9
 grew a second half since: Linux gets a window too, and that has not been
-written yet.
+written yet. Item 12 is new, from the second play-test, and open.
 
 ## 1. Fork the bots mod. Done
 
@@ -214,3 +214,37 @@ it, and only then change `SRCDS_BOT_TEAM_SIZE` or the team composition.
 
 Thank EZKSupernova and Cowser the Khelinace in the README for the first
 play-test.
+
+## 12. A bundle spent on upgrades leaves the money negative. Open
+
+From the second play-test, and it is the other end of item 7. A bundle pays at
+the upgrade station now, which is where the money is meant to be spent. Spend
+it, then lose the wave, and the count goes negative. The upgrades bought with
+it stay.
+
+What the game does on a lost wave is put every player's credits back to what
+it recorded at the start of the wave. `MvM_GrantCredits` in
+`plugin/scripting/tf2_archipelago/mvm.inc` writes `m_nCurrency` straight onto
+the player, so the bundle never reached whatever the game restores from. The
+restore then hands back a number that does not include the bundle, the
+upgrades were paid for out of money the game does not believe existed, and the
+difference shows up as a negative balance. Nothing un-buys the upgrades,
+because the game has no reason to think anything was wrong.
+
+Writing the property is the fault. The money has to go in through the path the
+game itself uses to hand out credits, so that the same bookkeeping that
+records a wave-start balance records the bundle too. That is
+`CTFGameRules::DistributeCurrencyAmount`, or `CTFPlayer::AddCurrency` beneath
+it, and reaching either means a signature in `gamedata/` and an SDK call.
+Neither is exposed to a plugin today, which is what "we might need another
+server mod for this" amounts to: either our own gamedata for those functions,
+or a mod that already carries them.
+
+Before writing any of it, reproduce and read the numbers: grant a bundle
+between waves, note the balance, spend part of it, lose the wave, note the
+balance again. That says whether the restore is a set to a recorded value or a
+refund of what was spent, and the two want different fixes.
+
+The negative balance is the visible half. The invisible half is that a bundle
+paid this way is probably not counted anywhere else the game counts credits
+either, the end-of-mission tally included.
