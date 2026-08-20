@@ -13,15 +13,9 @@
 
 Download **`tf2ap.exe`** above. Run it. It installs everything else.
 
-Windows will warn you, and it is a false positive. SmartScreen calls the exe an
-unrecognized app; Defender sometimes flags it. Click **More info**, then **Run
-anyway**. The launcher unpacks archives into your TF2 directory, writes
-SourceMod's DLLs there, downloads a game server and starts it, which is what an
-installer does and also what a dropper does, and the file is not signed yet, so
-a scanner has nothing to weigh against the heuristic.
-[TODO item 13](https://github.com/m-this/tf2-archipelago/blob/main/TODO.md#13-sign-the-windows-exe-open)
-is the fix. Check the file below instead of trusting it, or build it yourself
-with `make launcher`.
+Windows will warn you, and it is a false positive. The exe unpacks archives and
+starts a game server without a code signature, which looks like a virus to a
+scanner. Click **More info**, then **Run anyway**, or check it below first.
 
 [Full guide](https://m-this.github.io/tf2-archipelago/en/setup/install-windows.html)
 
@@ -82,9 +76,7 @@ Get-FileHash tf2ap.exe -Algorithm SHA256    # Windows
 sha256sum -c SHA256SUMS --ignore-missing    # Linux
 ```
 
-`tf2ap.exe` is also on VirusTotal. Search its SHA-256 at
-[virustotal.com](https://www.virustotal.com/gui/home/search) to see what every
-engine says about this exact build. Expect a small number of heuristic and
-machine-learning detections and no named malware family; the section above says
-why. The source of all of it is in the repository, and `make launcher` rebuilds
-the exe on your own machine.
+The binaries are scanned on VirusTotal, and the reports are linked at the end of
+these notes. Expect a few heuristic detections and no named malware family. The
+source is all in the repository, and `make launcher` rebuilds the exe on your
+own machine.
