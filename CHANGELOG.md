@@ -4,6 +4,22 @@ What each release changes, for somebody who plays the game. The workflow in
 `.github/workflows/release.yml` reads the section matching the tag and puts it
 in the release notes, so this file is the only place to write it.
 
+## v1.7.0
+
+- The server no longer freezes at the end of a wave. Every engineer worked out
+  where to move its nest in the same frame; they take turns now.
+- Engineers stop holding wave one's nest for the whole mission, and upgrade it
+  instead.
+- Engineers no longer move their nest between waves. It crashed the server at
+  every wave transition, so it is off until it works.
+  `sm_redbots_manager_engineer_nest_relocate 1` turns it back on.
+- A bot that is hurt or low on ammo guards the bomb from a dispenser beside it,
+  instead of walking off to find a health pack.
+- `tf2ap.exe` carries an icon and says what it is in its file properties.
+- Windows still warns about `tf2ap.exe`. The install guide says why, and every
+  release now publishes `SHA256SUMS` and links a VirusTotal report so you can
+  check what you downloaded.
+
 ## v1.6.0
 
 - The defender bots know six maps by hand: Bigrock, Coal Town, Decoy,
