@@ -5,6 +5,22 @@ Mann vs Machine mode. The classes, the weapon slots and the missions start
 locked. The team clears waves to unlock them. Everybody on the server shares
 the same unlocks.
 
+> [!NOTE]
+> **Windows will warn you about `tf2ap.exe`, and it is a false positive.**
+> SmartScreen calls it an unrecognized app; Defender sometimes flags it
+> outright. The reason is not a mystery. The exe unpacks archives into your TF2
+> directory, writes SourceMod's DLLs there, downloads a game server and starts
+> it. That is what an installer does, and it is also what a dropper does, and
+> nothing in the file tells a scanner which one it is looking at. It carries no
+> code signature yet, so there is nothing to weigh against the heuristic.
+> [TODO item 13](./TODO.md#13-sign-the-windows-exe-open) is the fix.
+>
+> Two ways to check rather than trust. Every release lists the SHA-256 of each
+> file and links its VirusTotal report, so you can confirm the file you
+> downloaded is the file that was published. Or skip the download: the whole
+> source is in this repository, and `make launcher` builds the same `tf2ap.exe`
+> on your own machine, from your own compiler.
+
 <p align="center">
   <a href="https://github.com/m-this/tf2-archipelago/releases/latest/download/tf2ap.exe">
     <img alt="Download tf2ap.exe for Windows" src="https://img.shields.io/badge/Download-tf2ap.exe%20for%20Windows-2ea44f?style=for-the-badge&logo=windows&logoColor=white">
@@ -36,9 +52,11 @@ for the vocabulary.
 ## Windows
 
 Download `tf2ap.exe` and run it. One file: no Docker, no clone, no compiler.
-It opens a window and asks for the address of your Archipelago room. Then it
-installs the rest: SteamCMD, the game server, SourceMod, the plugin, and the
-bots that fill your team.
+SmartScreen will stop you the first time: click **More info**, then **Run
+anyway**. The note at the top of this page says why it does that and how to
+check the file first. It opens a window and asks for the address of your
+Archipelago room. Then it installs the rest: SteamCMD, the game server,
+SourceMod, the plugin, and the bots that fill your team.
 
 The window holds the log, **Start** and **Stop**, an **rcon** box, and
 **Settings**. Settings has six tabs: the run, the missions it may draw, the
@@ -200,6 +218,12 @@ What it ships is not all MIT. The defender bots are GPL-3.0, and so is
 `tf2-defender-bots.zip` both carry their compiled plugins, and the fork is
 where that source lives. Every other project in the bot stack keeps its own
 terms. [Defender bots](./docs/en/play/defender-bots.md) names each one.
+
+The launcher's icon is the Team Fortress crosshair, traced from the
+[Team Fortress 2 wordmark](https://commons.wikimedia.org/wiki/File:Team-Fortress-2-logo.png)
+on Wikimedia Commons, which is public domain as a work below the threshold of
+originality. The mark is still Valve's trademark. This project is a fan project
+and is not affiliated with or endorsed by Valve Corporation.
 
 ## Credits
 
