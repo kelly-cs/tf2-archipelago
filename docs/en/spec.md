@@ -168,9 +168,9 @@ the answer. It beats Damonj17's damage multiplier. A multiplier compensates
 for missing damage, but not for a missing Medic, a missing Engineer, or a
 missing Scout collecting money. Bots at least occupy the roles.
 
-**Shipped instead:** the server carries OfficerSpy's MvM Defender TFBots. It
-fills RED when a wave begins, and those bots pick classes, fight, buy their own
-upgrades at the station and ready themselves. Sharing the player's upgrades was
+**Shipped instead:** the server carries our fork of OfficerSpy's MvM Defender
+TFBots. It fills RED when a wave begins, and those bots pick classes, fight,
+buy their own upgrades at the station and ready themselves. Sharing the player's upgrades was
 the plan while stock RED bots looked like the only option. Bots that buy their
 own is the better answer, and it is the one running. See
 [The bots on your team](play/defender-bots.md).

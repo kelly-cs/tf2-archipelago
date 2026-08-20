@@ -184,9 +184,9 @@ Damonj17. Un multiplicateur compense les dégâts manquants, mais pas un
 Medic manquant, un Engineer manquant, ou un Scout manquant pour ramasser
 l'argent. Les bots occupent au moins les rôles.
 
-**Ce qui est livré :** le serveur embarque le mod MvM Defender TFBots
-d'OfficerSpy. Il remplit RED au début de la vague. Ces bots choisissent leur
-classe, se battent, achètent leurs propres améliorations et se déclarent
+**Ce qui est livré :** le serveur embarque notre fork du mod MvM Defender
+TFBots d'OfficerSpy. Il remplit RED au début de la vague. Ces bots choisissent
+leur classe, se battent, achètent leurs propres améliorations et se déclarent
 prêts. Partager les améliorations du joueur était le plan tant que les bots
 RED d'origine semblaient la seule option. Des bots qui achètent les leurs
 valent mieux, et ce sont eux qui tournent. Voir
