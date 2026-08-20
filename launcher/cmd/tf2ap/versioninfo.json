@@ -1,0 +1,24 @@
+{
+  "FixedFileInfo": {
+    "FileVersion": { "Major": 0, "Minor": 0, "Patch": 0, "Build": 0 },
+    "ProductVersion": { "Major": 0, "Minor": 0, "Patch": 0, "Build": 0 },
+    "FileFlagsMask": "3f",
+    "FileFlags": "00",
+    "FileOS": "040004",
+    "FileType": "01",
+    "FileSubType": "00"
+  },
+  "StringFileInfo": {
+    "CompanyName": "m-this",
+    "ProductName": "Mann vs Archipelago",
+    "FileDescription": "Mann vs Archipelago launcher: installs and runs the TF2 MvM randomizer server",
+    "InternalName": "tf2ap",
+    "OriginalFilename": "tf2ap.exe",
+    "LegalCopyright": "MIT. https://github.com/m-this/tf2-archipelago",
+    "LegalTrademarks": "Team Fortress is a trademark of Valve Corporation. Not affiliated with Valve.",
+    "Comments": "Source: https://github.com/m-this/tf2-archipelago"
+  },
+  "VarFileInfo": {
+    "Translation": { "LangID": "0409", "CharsetID": "04B0" }
+  }
+}

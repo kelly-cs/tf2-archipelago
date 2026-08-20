@@ -10,6 +10,11 @@ export
 GO_VERSION := $(shell sed -n 's/^go //p' go.mod)
 export GO_VERSION
 
+# The apworld owns the release version, because that is the one a release tag is
+# checked against (see version-check). Everything that has to state a version of
+# this project reads it from here.
+RELEASE_VERSION := $(shell sed -n 's/.*"world_version": "\([^"]*\)".*/\1/p' apworld/tf2_mvm/archipelago.json)
+
 # --project-directory pins relative paths in the compose files to the repository
 # root. --env-file replaces the default .env rather than adding to it, so both
 # files have to be named: the pins first, then the operator's settings, which
@@ -296,11 +301,30 @@ launcher-assets-linux: launcher-assets-common
 # -H windowsgui links for the windows subsystem: a double-click opens the
 # window and no console behind it. The flags that print keep working, because
 # the launcher attaches to the terminal's console when it was given arguments.
+#
+# The .syso carries the icon, the manifest and a VERSIONINFO resource. The last
+# one is not cosmetic: an exe with no CompanyName, ProductName or FileVersion is
+# an anonymous blob to SmartScreen and to Defender's heuristics, and this one
+# already looks like a dropper to them, because it unpacks archives and starts a
+# game server. Signing is item 13 in TODO.md; this is what costs nothing.
+#
+# The version is read from the apworld, which is what `version-check` compares a
+# tag against, so the resource and the release cannot disagree. The manifest's
+# assemblyIdentity gets the same number, which is why it is generated and not
+# committed with a version baked into it.
 launcher: launcher-assets
 	mkdir -p $(DIST)
-	go run github.com/akavel/rsrc@$(RSRC_VERSION) \
-		-manifest launcher/cmd/tf2ap/tf2ap.manifest \
-		-arch amd64 -o launcher/cmd/tf2ap/rsrc_windows_amd64.syso
+	sed 's/version="0\.0\.0\.0"/version="$(RELEASE_VERSION).0"/' \
+		launcher/cmd/tf2ap/tf2ap.manifest > $(DIST)/tf2ap.manifest
+	go run github.com/josephspurrier/goversioninfo/cmd/goversioninfo@$(GOVERSIONINFO_VERSION) \
+		-64 -platform-specific=false \
+		-icon launcher/cmd/tf2ap/tf2ap.ico \
+		-manifest $(DIST)/tf2ap.manifest \
+		-file-version "$(RELEASE_VERSION).0" \
+		-product-version "$(RELEASE_VERSION).0" \
+		-propagate-ver-strings \
+		-o launcher/cmd/tf2ap/rsrc_windows_amd64.syso \
+		launcher/cmd/tf2ap/versioninfo.json
 	GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -trimpath \
 		-ldflags="-s -w -H windowsgui $(LAUNCHER_LDFLAGS)" \
 		-o $(DIST)/tf2ap.exe ./launcher/cmd/tf2ap

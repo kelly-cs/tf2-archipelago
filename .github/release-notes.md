@@ -13,6 +13,16 @@
 
 Download **`tf2ap.exe`** above. Run it. It installs everything else.
 
+Windows will warn you, and it is a false positive. SmartScreen calls the exe an
+unrecognized app; Defender sometimes flags it. Click **More info**, then **Run
+anyway**. The launcher unpacks archives into your TF2 directory, writes
+SourceMod's DLLs there, downloads a game server and starts it, which is what an
+installer does and also what a dropper does, and the file is not signed yet, so
+a scanner has nothing to weigh against the heuristic.
+[TODO item 13](https://github.com/m-this/tf2-archipelago/blob/main/TODO.md#13-sign-the-windows-exe-open)
+is the fix. Check the file below instead of trusting it, or build it yourself
+with `make launcher`.
+
 [Full guide](https://m-this.github.io/tf2-archipelago/en/setup/install-windows.html)
 
 ## Linux
@@ -58,3 +68,23 @@ port into `AP_PORT`.
 | `tf2_archipelago.smx` | A SourceMod server the launcher and compose file don't manage. |
 | `tf2-defender-bots.zip` | The bots for that same server. Unzip into `tf/`. |
 | `meta.json`, `items.json`, `missions.json` | The item and check tables, for reference. |
+
+## Checking what you downloaded
+
+**`SHA256SUMS`** is attached to this release. It holds the hash of every file
+here, computed by the workflow that built them.
+
+```powershell
+Get-FileHash tf2ap.exe -Algorithm SHA256    # Windows
+```
+
+```sh
+sha256sum -c SHA256SUMS --ignore-missing    # Linux
+```
+
+`tf2ap.exe` is also on VirusTotal. Search its SHA-256 at
+[virustotal.com](https://www.virustotal.com/gui/home/search) to see what every
+engine says about this exact build. Expect a small number of heuristic and
+machine-learning detections and no named malware family; the section above says
+why. The source of all of it is in the repository, and `make launcher` rebuilds
+the exe on your own machine.

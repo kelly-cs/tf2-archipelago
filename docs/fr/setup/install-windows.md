@@ -7,6 +7,28 @@ Téléchargez `tf2ap.exe` depuis la
 [dernière version](https://github.com/m-this/tf2-archipelago/releases/latest)
 et lancez-le.
 
+## Windows va vous avertir
+
+SmartScreen bloque le premier lancement. Cliquez sur **Informations
+complémentaires**, puis sur **Exécuter quand même**. Defender met parfois le
+lanceur en quarantaine.
+
+C'est un faux positif. Le lanceur extrait des archives dans votre dossier Team
+Fortress 2. Il y écrit les DLL de Metamod et de SourceMod, télécharge un
+serveur de jeu et le démarre. Un installeur fait cela. Un dropper aussi. Le
+lanceur n'a pas encore de signature, donc l'antivirus ne voit pas la
+différence.
+
+Le projet a demandé une signature gratuite à SignPath. L'avertissement reste
+jusqu'à son arrivée.
+
+Vérifiez le lanceur vous-même :
+
+- Chaque version publie `SHA256SUMS`. Lancez
+  `Get-FileHash tf2ap.exe -Algorithm SHA256` et comparez les deux valeurs.
+- Chaque version renvoie vers son propre rapport VirusTotal.
+- `make launcher` le reconstruit à partir du code du dépôt.
+
 ## Ce qui se passe
 
 Une fenêtre s'ouvre et demande l'adresse de votre room Archipelago. Puis

@@ -8,7 +8,8 @@ of this list comes from their reports.
 
 Items 1 to 11 are done. The two that say so name what they left behind. Item 9
 grew a second half since: Linux gets a window too, and that has not been
-written yet. Item 12 is new, from the second play-test, and open.
+written yet. Item 12 is new, from the second play-test, and open. Item 13 is
+not from a play-test: it is what players hit before the game even starts.
 
 ## 1. Fork the bots mod. Done
 
@@ -248,3 +249,40 @@ refund of what was spent, and the two want different fixes.
 The negative balance is the visible half. The invisible half is that a bundle
 paid this way is probably not counted anywhere else the game counts credits
 either, the end-of-mission tally included.
+
+## 13. Sign the Windows exe. Open
+
+Players report SmartScreen blocking `tf2ap.exe` and Defender quarantining it.
+Nothing is wrong with the binary. The launcher unpacks embedded archives into
+the TF2 directory, writes Metamod's and SourceMod's DLLs there, downloads a
+game server and starts it. Behaviourally that is a dropper, and an unsigned
+binary gives a scanner nothing to weigh against the heuristic. Go makes it
+worse only in that a static Go binary is a shape malware uses a lot; rewriting
+in another language would change nothing.
+
+The fix is a code signature. The SignPath Foundation signs open-source
+projects for free, and this project meets every condition it asks for: public
+repository, a recognised licence, artefacts built by CI, no obfuscation. Apply
+at [signpath.org/apply](https://signpath.org/apply), then add the signing step
+to `release.yml` between `make dist` and `gh release create`, so what gets
+uploaded is what got signed. Approval takes weeks, so applying is the first
+move, not the last.
+
+Azure Trusted Signing is the paid fallback at roughly nine euros a month, but
+it wants three years of verifiable identity history from an individual. Do not
+buy a certificate before SignPath answers.
+
+Two things are already done and do not need repeating here. The exe carries a
+VERSIONINFO resource and an icon, so it is no longer an anonymous blob to the
+heuristics, and every release publishes SHA-256 sums. Neither removes the
+warning: only the signature does, plus the download reputation that accrues
+behind it.
+
+One thing is worth doing regardless of SignPath. Submit each release to
+[Microsoft's false-positive form](https://www.microsoft.com/en-us/wdsi/filesubmission)
+as a software developer. It is free and they usually clear a file within days.
+
+Signing `tf2ap.exe` does not cover the files it writes. If reports come in
+about Defender eating the extracted SourceMod DLLs instead of the launcher,
+the answer is a documented exclusion for the TF2 install path in the Windows
+guide, not more signing.

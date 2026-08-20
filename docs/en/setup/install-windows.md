@@ -7,6 +7,26 @@ Download `tf2ap.exe` from the
 [latest release](https://github.com/m-this/tf2-archipelago/releases/latest)
 and run it.
 
+## Windows will warn you
+
+SmartScreen blocks the first run. Click **More info**, then **Run anyway**.
+Defender sometimes quarantines the launcher instead.
+
+It is a false positive. The launcher unpacks archives into your Team Fortress 2
+folder, writes the Metamod and SourceMod DLLs, downloads a game server, and
+starts it. An installer does this. So does a dropper. The launcher has no
+signature yet, so the scanner cannot see the difference.
+
+The project asked SignPath for a free open-source signature. The warning stays
+until it arrives.
+
+Check the launcher yourself:
+
+- Every release includes `SHA256SUMS`. Run
+  `Get-FileHash tf2ap.exe -Algorithm SHA256` and compare the two values.
+- Every release links its own VirusTotal report.
+- `make launcher` rebuilds it from the source in this repository.
+
 ## What happens
 
 A window opens and asks for your Archipelago room address. Then it installs
