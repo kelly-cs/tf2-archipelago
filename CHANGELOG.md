@@ -4,6 +4,14 @@ What each release changes, for somebody who plays the game. The workflow in
 `.github/workflows/release.yml` reads the section matching the tag and puts it
 in the release notes, so this file is the only place to write it.
 
+## v1.8.1
+
+- These notes now link the VirusTotal report for `tf2ap.exe` and for the Linux
+  binary. The scan already ran on the last two releases, but the links never
+  reached the notes.
+- The warning about `tf2ap.exe` on the front page is two sentences instead of
+  nine, and sits under the download buttons where you meet it.
+
 ## v1.8.0
 
 - Medics keep the medigun out. Every robot they could see used to pull them
