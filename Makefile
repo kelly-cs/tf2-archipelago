@@ -40,7 +40,6 @@ GOLANGCI_LINT := go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$
 GOVULNCHECK := go run golang.org/x/vuln/cmd/govulncheck@$(GOVULNCHECK_VERSION)
 RUFF := uv run --quiet --with ruff==$(RUFF_VERSION) ruff
 SHADOW := uv run --quiet --with pillow==$(PILLOW_VERSION) python docs/shadow.py
-PECHECKSUM := uv run --quiet --with pefile==$(PEFILE_VERSION) python launcher/pe-checksum.py
 GO_SRC := $$(find . -type f -name '*.go')
 
 .PHONY: help seed up down restart logs ps rcon \
@@ -199,7 +198,7 @@ export:
 
 # --- The apworld ---
 
-PYTHON_SRC := apworld/ deploy/rcon.py deploy/player-yaml.py launcher/pe-checksum.py
+PYTHON_SRC := apworld/ deploy/rcon.py deploy/player-yaml.py
 
 apworld-fmt:
 	$(RUFF) format $(PYTHON_SRC)
@@ -309,6 +308,10 @@ launcher-assets-linux: launcher-assets-common
 # already looks like a dropper to them, because it unpacks archives and starts a
 # game server. Signing is item 13 in TODO.md; this is what costs nothing.
 #
+# pechecksum runs last because it rewrites a header field over the linked file,
+# and the Go linker leaves that field at zero. It is in-tree rather than a pinned
+# tool: the sum is fifteen lines, and the release job already has Go.
+#
 # The version is read from the apworld, which is what `version-check` compares a
 # tag against, so the resource and the release cannot disagree. The manifest's
 # assemblyIdentity gets the same number, which is why it is generated and not
@@ -329,7 +332,7 @@ launcher: launcher-assets
 	GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -trimpath \
 		-ldflags="-s -w -H windowsgui $(LAUNCHER_LDFLAGS)" \
 		-o $(DIST)/tf2ap.exe ./launcher/cmd/tf2ap
-	$(PECHECKSUM) $(DIST)/tf2ap.exe
+	go run ./launcher/cmd/pechecksum $(DIST)/tf2ap.exe
 
 # No window: walk is a Win32 binding, so the Linux build is the console flow
 # the compose stack already uses. Everything else is the same program.
