@@ -139,10 +139,11 @@ jobs:
             --generate-notes \
             $ASSETS dist/SHA256SUMS
 
-      # Uploads the two binaries and appends each report's link to the release
-      # notes, so nobody has to take "it is a false positive" on trust. Skipped
-      # when the key is not set: a missing scan must not fail a release.
+      # Uploads the two binaries, so nobody has to take "it is a false positive"
+      # on trust. Skipped when the key is not set: a missing scan must not fail
+      # a release.
       - name: scan the binaries
+        id: scan
         if: env.VT_API_KEY != ''
         continue-on-error: true
         uses: crazy-max/ghaction-virustotal@v4
@@ -151,4 +152,25 @@ jobs:
           files: |
             dist/tf2ap.exe
             dist/tf2ap-linux-amd64
-          update_release_body: true
+
+      # The action's own update_release_body only works when a `release` event
+      # carries the release in its payload. This workflow runs on a tag push, so
+      # it silently does nothing and the links stay in a step output. Append them
+      # here instead. Read the body back rather than reusing the notes file:
+      # --generate-notes added the compare link, and that must survive.
+      - name: link the scans in the notes
+        if: steps.scan.outputs.analysis != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ANALYSIS: ${{ steps.scan.outputs.analysis }}
+        run: |
+          gh release view "$GITHUB_REF_NAME" --json body --jq .body > /tmp/body.md
+          {
+            printf '\n## VirusTotal\n\n'
+            echo "$ANALYSIS" | tr ',' '\n' | while IFS= read -r pair; do
+              [ -n "$pair" ] || continue
+              printf -- '- [`%s`](%s)\n' \
+                "$(basename "${pair%%=*}")" "${pair#*=}"
+            done
+          } >> /tmp/body.md
+          gh release edit "$GITHUB_REF_NAME" --notes-file /tmp/body.md
