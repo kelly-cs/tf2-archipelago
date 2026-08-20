@@ -4,6 +4,16 @@ What each release changes, for somebody who plays the game. The workflow in
 `.github/workflows/release.yml` reads the section matching the tag and puts it
 in the release notes, so this file is the only place to write it.
 
+## v1.8.2
+
+- `tf2ap.exe` carries the header checksum Windows expects. The Go linker leaves
+  it at zero, and zero is one of the things a scanner counts against a file.
+- The exe says out loud that it never wants the administrator prompt, instead of
+  leaving it to the default.
+- Every release now attaches a signed record of which commit and which workflow
+  built each binary. `gh attestation verify tf2ap.exe --repo m-this/tf2-archipelago`
+  checks a file you already downloaded.
+
 ## v1.8.1
 
 - These notes now link the VirusTotal report for `tf2ap.exe` and for the Linux
