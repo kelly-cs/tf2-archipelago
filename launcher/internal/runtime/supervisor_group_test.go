@@ -3,6 +3,7 @@
 package runtime
 
 import (
+	"bytes"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -120,10 +121,38 @@ func alive(pid int) bool {
 func aliveFor(pid int, grace time.Duration) bool {
 	deadline := time.Now().Add(grace)
 	for time.Now().Before(deadline) {
-		if err := syscall.Kill(pid, 0); err != nil {
+		if !running(pid) {
 			return false
 		}
 		time.Sleep(100 * time.Millisecond)
 	}
 	return true
+}
+
+// running reports whether the process is a live one.
+//
+// kill(pid, 0) alone says yes for a zombie, and a killed orphan stays one
+// until something reaps it. Under systemd or launchd that is immediate, so the
+// tests pass on a laptop; in a container whose pid 1 is `tail -f /dev/null`,
+// which is what the CI job runs in, nothing ever reaps it and every Stop test
+// fails on a process that is already dead. Read the state where the kernel
+// publishes it, and fall back to the signal where it does not.
+func running(pid int) bool {
+	stat, err := os.ReadFile("/proc/" + strconv.Itoa(pid) + "/stat")
+	if err == nil {
+		return !zombie(stat)
+	}
+	return syscall.Kill(pid, 0) == nil
+}
+
+// zombie reads the state field out of /proc/<pid>/stat. It comes after the
+// program name, which is parenthesised and may itself hold spaces or brackets,
+// so the split is on the last ')' rather than on the second field.
+func zombie(stat []byte) bool {
+	i := bytes.LastIndexByte(stat, ')')
+	if i < 0 {
+		return false
+	}
+	fields := strings.Fields(string(stat[i+1:]))
+	return len(fields) > 0 && fields[0] == "Z"
 }
