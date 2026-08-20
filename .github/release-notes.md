@@ -76,6 +76,13 @@ Get-FileHash tf2ap.exe -Algorithm SHA256    # Windows
 sha256sum -c SHA256SUMS --ignore-missing    # Linux
 ```
 
+Each binary carries a signed record of the commit and the workflow that built
+it:
+
+```sh
+gh attestation verify tf2ap.exe --repo m-this/tf2-archipelago
+```
+
 The binaries are scanned on VirusTotal, and the reports are linked at the end of
 these notes. Expect a few heuristic detections and no named malware family. The
 source is all in the repository, and `make launcher` rebuilds the exe on your

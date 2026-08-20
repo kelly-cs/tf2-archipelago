@@ -26,6 +26,8 @@ Check the launcher yourself:
   `Get-FileHash tf2ap.exe -Algorithm SHA256` and compare the two values.
 - Every release links its own VirusTotal report.
 - `make launcher` rebuilds it from the source in this repository.
+- `gh attestation verify tf2ap.exe --repo m-this/tf2-archipelago` names the
+  commit and the workflow that built the file you have.
 
 ## What happens
 
