@@ -186,7 +186,7 @@ func runSettingsDialog(owner walk.Form, s settings.Settings, repair func() ([]st
 			Title:  "Who can join (beta)",
 			Layout: declarative.Grid{Columns: 2},
 			Children: []declarative.Widget{
-				label("Who can reach it", "Where the server takes connections from. A forwarded port is the default, because a server is usually meant to be joined from somewhere else. Without a login token it stays on the local network whatever this says."),
+				label("Who can reach it", "Where the server takes connections from. The local network is the default, because that is what a server with no login token gets anyway: without one it stays there whatever this says."),
 				// The three buttons are consecutive children of one Composite
 				// on purpose. walk groups a radio button with the sibling
 				// before it, so a label in between would leave three groups of
