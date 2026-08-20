@@ -406,9 +406,19 @@ func runSettingsDialog(owner walk.Form, s settings.Settings, repair func() ([]st
 						},
 					},
 					{
-						Title:    "Bots",
-						Layout:   declarative.Grid{Columns: 2},
-						Children: botsRows(s, label, &botsBox, &botsSize, &buysBox, classBox, loadoutBx, seatBox),
+						Title:  "Bots",
+						Layout: declarative.VBox{MarginsZero: true},
+						// Nine classes and six seats do not fit a short window, and a
+						// tab page does not scroll on its own, so the rows go in a
+						// ScrollView. Horizontal stays fixed: the rows are already
+						// as wide as the page, only height runs out.
+						Children: []declarative.Widget{
+							declarative.ScrollView{
+								HorizontalFixed: true,
+								Layout:          declarative.Grid{Columns: 2},
+								Children:        botsRows(s, label, &botsBox, &botsSize, &buysBox, classBox, loadoutBx, seatBox),
+							},
+						},
 					},
 				}, extraPages...),
 			},
