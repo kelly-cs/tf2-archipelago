@@ -148,11 +148,14 @@ install_server_cfg() {
 	tf2ap_bot_upgrades_chat ${TF2AP_BOT_UPGRADES_CHAT:-0}
 
 	// LAN mode skips Steam authentication, and refuses everyone who is not on
-	// the local network. Off is the default, because a server is usually meant
-	// to be joined from somewhere else. It needs a real SRCDS_TOKEN to be: a
-	// server with no Steam session refuses every client, and the entrypoint
-	// puts one without a token back on the local network before it gets here.
-	sv_lan ${SRCDS_LAN:-0}
+	// the local network. On is the default, because the default has no
+	// SRCDS_TOKEN, and a server with no Steam session refuses every client
+	// that tries to join: LAN mode off without a token is the one combination
+	// that cannot work, and it fails as a join that hangs rather than as an
+	// error anybody can read.
+	//
+	// Turning it off is a deliberate pair with a real token. Do both.
+	sv_lan ${SRCDS_LAN:-1}
 	sv_use_steam_networking ${SRCDS_SDR_FAKEIP:-0}
 	sv_pure 0
 	sv_pausable 0

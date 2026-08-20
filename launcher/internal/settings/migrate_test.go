@@ -18,8 +18,8 @@ func TestOldConfigPicksItsReach(t *testing.T) {
 	}{
 		{"sv_lan on", `{"srcds_lan": true}`, ReachLan},
 		{"sv_lan off", `{"srcds_lan": false}`, ReachPort},
-		{"no reach at all", `{}`, ReachPort},
-		{"a reach nobody knows", `{"srcds_reach": "carrier-pigeon"}`, ReachPort},
+		{"no reach at all", `{}`, ReachLan},
+		{"a reach nobody knows", `{"srcds_reach": "carrier-pigeon"}`, ReachLan},
 		{"a reach and the old flag", `{"srcds_reach": "steam", "srcds_lan": true}`, ReachSteam},
 	}
 	for _, c := range cases {
@@ -69,7 +69,7 @@ func TestReachFromEnv(t *testing.T) {
 		reach string
 		want  Reach
 	}{
-		{"neither", "", "", ReachPort},
+		{"neither", "", "", ReachLan},
 		{"old flag on", "1", "", ReachLan},
 		{"old flag off", "0", "", ReachPort},
 		{"reach alone", "", "steam", ReachSteam},

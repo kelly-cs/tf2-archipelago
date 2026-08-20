@@ -104,17 +104,20 @@ type Settings struct {
 // Defaults returns the factory settings, matching deploy/.env.example.
 func Defaults() Settings {
 	return Settings{
-		InstallRoot:         defaultInstallRoot(),
-		APHost:              "archipelago.gg",
-		APPort:              0,
-		APTls:               true,
-		APSlotName:          "tf2",
-		SrcdsHostname:       "Mann vs Archipelago",
-		SrcdsPort:           27015,
-		SrcdsMaxPlayers:     32,
-		SrcdsStartMission:   "mvm_decoy",
-		SrcdsToken:          "0",
-		SrcdsReach:          ReachPort,
+		InstallRoot:       defaultInstallRoot(),
+		APHost:            "archipelago.gg",
+		APPort:            0,
+		APTls:             true,
+		APSlotName:        "tf2",
+		SrcdsHostname:     "Mann vs Archipelago",
+		SrcdsPort:         27015,
+		SrcdsMaxPlayers:   32,
+		SrcdsStartMission: "mvm_decoy",
+		SrcdsToken:        "0",
+		// Lan, to match SrcdsToken above. Port reach with no token is the one
+		// combination that cannot work: the server never logs in to Steam, so
+		// it answers the query and then refuses the join.
+		SrcdsReach:          ReachLan,
 		SrcdsBots:           true,
 		SrcdsBotTeamSize:    6,
 		MvmMissionCount:     8,
@@ -225,8 +228,12 @@ func (s Settings) withDefaults() Settings {
 		// says neither, or says something nobody recognizes, takes the default,
 		// which EffectiveReach keeps local until there is a token to leave with.
 		s.SrcdsReach = d.SrcdsReach
-		if s.SrcdsLanLegacy != nil && *s.SrcdsLanLegacy {
-			s.SrcdsReach = ReachLan
+		if s.SrcdsLanLegacy != nil {
+			if *s.SrcdsLanLegacy {
+				s.SrcdsReach = ReachLan
+			} else {
+				s.SrcdsReach = ReachPort
+			}
 		}
 	}
 	s.SrcdsLanLegacy = nil
