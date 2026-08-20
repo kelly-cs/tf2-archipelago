@@ -28,6 +28,8 @@ Vérifiez le lanceur vous-même :
   `Get-FileHash tf2ap.exe -Algorithm SHA256` et comparez les deux valeurs.
 - Chaque version renvoie vers son propre rapport VirusTotal.
 - `make launcher` le reconstruit à partir du code du dépôt.
+- `gh attestation verify tf2ap.exe --repo m-this/tf2-archipelago` nomme le
+  commit et le workflow qui ont produit le fichier que vous avez.
 
 ## Ce qui se passe
 

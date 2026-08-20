@@ -16,6 +16,10 @@ jobs:
     permissions:
       contents: write
       packages: write
+      # The attestation below is signed with a short-lived certificate this job
+      # gets from Sigstore, and id-token is how it asks for one.
+      id-token: write
+      attestations: write
     env:
       VT_API_KEY: ${{ secrets.VIRUSTOTAL_API_KEY }}
     steps:
@@ -126,6 +130,19 @@ jobs:
           # shellcheck disable=SC2086
           sha256sum $(echo "$ASSETS" | sed 's|^dist/||') > SHA256SUMS
           cat SHA256SUMS
+
+      # Ties each binary's hash to this repository, this workflow and this commit,
+      # signed by Sigstore. It is not an Authenticode signature and Windows does
+      # not read it, so it changes no scanner's mind. What it gives is a check
+      # anybody can run against a file they already downloaded:
+      #
+      #   gh attestation verify tf2ap.exe --repo m-this/tf2-archipelago
+      - name: attest the binaries
+        uses: actions/attest-build-provenance@v3
+        with:
+          subject-path: |
+            dist/tf2ap.exe
+            dist/tf2ap-linux-amd64
 
       - name: publish the release
         env:
