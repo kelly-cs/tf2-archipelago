@@ -25,6 +25,8 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/muesli/termenv"
 
+	"github.com/m-this/tf2-archipelago/launcher/internal/assets"
+	"github.com/m-this/tf2-archipelago/launcher/internal/installer"
 	"github.com/m-this/tf2-archipelago/launcher/internal/rcon"
 	apruntime "github.com/m-this/tf2-archipelago/launcher/internal/runtime"
 	"github.com/m-this/tf2-archipelago/launcher/internal/session"
@@ -169,7 +171,44 @@ func (m *model) stop() tea.Cmd {
 
 // openSettings opens the six tabs the window opens, over the top of everything.
 func (m *model) openSettings() {
-	m.form = newSettingsForm(m.settings, m.applySettings)
+	m.form = newSettingsForm(m.settings, settingsDeps{
+		saved:  m.applySettings,
+		repair: m.repair,
+		reset:  m.resetSettings,
+	})
+}
+
+// repair is the window's Repair button: everything the launcher started has to
+// be down before the files it holds can go, so the server stops first.
+func (m *model) repair() ([]string, error) {
+	m.supervisor.Stop()
+	root := m.supervisor.Settings().InstallRoot
+	if _, err := winproc.KillUnder(root); err != nil {
+		return nil, fmt.Errorf("cannot check the running programs: %w", err)
+	}
+	return installer.Clean(root)
+}
+
+// resetSettings is the factory answers, saved, with a new RCON password
+// because the old one goes with the rest.
+//
+// The install root is not one of them. It says where 14 GB of game files are,
+// not how the run is played, and resetting it would start the download again
+// somewhere else.
+func (m *model) resetSettings() (settings.Settings, error) {
+	fresh := settings.Defaults()
+	fresh.InstallRoot = m.supervisor.Settings().InstallRoot
+	if password, err := settings.NewRconPassword(); err == nil {
+		fresh.SrcdsRconPw = password
+	}
+	if err := settings.Save(fresh); err != nil {
+		return settings.Settings{}, fmt.Errorf("cannot save the settings: %w", err)
+	}
+	// The environment still wins over the file, the way it does at startup.
+	applied := settings.ApplyEnv(fresh)
+	m.settings = applied
+	m.supervisor.SetSettings(applied)
+	return applied, nil
 }
 
 /*
@@ -190,6 +229,11 @@ func (m *model) applySettings(next settings.Settings) tea.Cmd {
 	}
 	m.settings = next
 	m.supervisor.SetSettings(next)
+	// The player file is what the seed is generated from, so it follows the run
+	// shape without being asked, the way it does in the window.
+	if _, err := settings.WritePlayerFile(next, assets.ArchipelagoVersion); err != nil {
+		return func() tea.Msg { return noticeMsg(err.Error()) }
+	}
 
 	if !m.supervisor.Running() {
 		return func() tea.Msg { return noticeMsg("settings saved") }

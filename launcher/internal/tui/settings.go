@@ -47,6 +47,8 @@ type settingsForm struct {
 	room   string // the room address as typed, parsed on save
 	warn   string
 	saved  func(settings.Settings) tea.Cmd
+	repair func() ([]string, error)
+	reset  func() (settings.Settings, error)
 	closed bool
 }
 
@@ -55,18 +57,31 @@ type settingsTab struct {
 	fields []field
 }
 
-func newSettingsForm(s settings.Settings, saved func(settings.Settings) tea.Cmd) *settingsForm {
-	form := &settingsForm{edited: s, saved: saved}
+type settingsDeps struct {
+	saved  func(settings.Settings) tea.Cmd
+	repair func() ([]string, error)
+	reset  func() (settings.Settings, error)
+}
+
+func newSettingsForm(s settings.Settings, deps settingsDeps) *settingsForm {
+	form := &settingsForm{edited: s, saved: deps.saved, repair: deps.repair, reset: deps.reset}
 	form.room = settings.Room{Host: s.APHost, Port: s.APPort, TLS: s.APTls}.String()
-	form.tabs = []settingsTab{
-		{title: "Player options", fields: form.playerFields()},
-		{title: "Missions", fields: form.missionFields()},
-		{title: "Archipelago room", fields: form.roomFields()},
-		{title: "Game server", fields: form.serverFields()},
-		{title: "Bots", fields: form.botFields()},
-		{title: "Who can join (beta)", fields: form.reachFields()},
-	}
+	form.build()
 	return form
+}
+
+// build lays the tabs out from what is edited now. Reset settings and the
+// pool's All and None all change rows the fields captured when they were made,
+// so they call this rather than trying to patch what is on screen.
+func (f *settingsForm) build() {
+	f.tabs = []settingsTab{
+		{title: "Player options", fields: f.playerFields()},
+		{title: "Missions", fields: f.missionFields()},
+		{title: "Archipelago room", fields: f.roomFields()},
+		{title: "Game server", fields: f.serverFields()},
+		{title: "Bots", fields: f.botFields()},
+		{title: "Who can join (beta)", fields: f.reachFields()},
+	}
 }
 
 func (f *settingsForm) playerFields() []field {
@@ -92,7 +107,9 @@ func (f *settingsForm) playerFields() []field {
 		&numberField{
 			label: "Missions used",
 			help:  "How many missions this run uses, out of the pool above. Eight is about fifty waves.",
-			value: &f.edited.MvmMissionCount, low: 1, high: 29,
+			// The pool the tier leaves, the way the window caps it. Asking for
+			// more than it holds gives the whole pool anyway.
+			value: &f.edited.MvmMissionCount, low: 1, high: runshape.MissionsInPool(f.edited.MvmDifficulty),
 		},
 		&choiceField{
 			label:   "Goal",
@@ -103,8 +120,8 @@ func (f *settingsForm) playerFields() []field {
 		},
 		&numberField{
 			label: "Missionsanity share",
-			help:  "How much of the run's checks come from waves rather than whole missions, as a percentage.",
-			value: &f.edited.MvmMissionsanityPct, low: 0, high: 100,
+			help:  "How much of the run's checks come from waves rather than whole missions, as a percentage. It rounds up, and the Final Boss goal ignores it.",
+			value: &f.edited.MvmMissionsanityPct, low: 10, high: 100,
 		},
 		&toggleField{
 			label: "Death Link",
@@ -128,6 +145,12 @@ func (f *settingsForm) playerFields() []field {
 			help:  "Write the player file and show it. It is what the seed is generated from.",
 			hint:  "enter",
 			run:   f.openPlayerFile,
+		},
+		&actionField{
+			label: "Open the folder",
+			help:  "The install root: the game files, the player file, the log and the run's state.",
+			hint:  "enter",
+			run:   f.openInstallRoot,
 		},
 	}
 }
@@ -160,6 +183,20 @@ func (f *settingsForm) missionFields() []field {
 			index:   max(slices.Index(classes, f.edited.MvmStartClass), 0),
 			apply:   func(i int) { f.edited.MvmStartClass = startClass(classes, i) },
 		},
+		// The window has the two buttons under its table. Without them the only
+		// way to a pool of three missions is 26 keystrokes down the list.
+		&actionField{
+			label: "All in the pool",
+			help:  "Put every mission back in the pool.",
+			hint:  "enter",
+			run:   func() tea.Cmd { return f.setPool(true) },
+		},
+		&actionField{
+			label: "None in the pool",
+			help:  "Leave every mission out, to tick back the few this run is for.",
+			hint:  "enter",
+			run:   func() tea.Cmd { return f.setPool(false) },
+		},
 	}
 
 	// One row per mission, because the pool is what the seed draws from and
@@ -168,6 +205,24 @@ func (f *settingsForm) missionFields() []field {
 		fields = append(fields, f.poolField(mission))
 	}
 	return fields
+}
+
+// setPool is All and None: the excluded list is every mission or none of them,
+// and the rows are made again, because each one captured its own tick.
+func (f *settingsForm) setPool(inPool bool) tea.Cmd {
+	excluded := []string{}
+	if !inPool {
+		for _, mission := range gamedata.Missions {
+			excluded = append(excluded, mission.PopFile)
+		}
+	}
+	f.edited.MvmExcludedMissions = excluded
+	f.build()
+
+	if inPool {
+		return func() tea.Msg { return noticeMsg("every mission is in the pool") }
+	}
+	return func() tea.Msg { return noticeMsg("every mission is left out: tick the ones this run may draw") }
 }
 
 // poolField is one mission's place in the pool. The setting is the missions
@@ -270,6 +325,24 @@ func (f *settingsForm) serverFields() []field {
 			help:  "Put the logs, the settings without their passwords and the player file in one zip, for sending to whoever is helping you.",
 			hint:  "enter",
 			run:   f.debugBundle,
+		},
+		&confirmField{
+			actionField: actionField{
+				label: "Repair",
+				help:  "Throw SteamCMD and the mods away and fetch them again. Keeps the game files and the run.",
+				hint:  "enter",
+				run:   f.runRepair,
+			},
+			warning: "this stops the server, then removes SteamCMD, the mods and Steam's record of the download. No 14 GB again, no lost checks.",
+		},
+		&confirmField{
+			actionField: actionField{
+				label: "Reset settings",
+				help:  "Put every setting back to what a fresh install has. Keeps the game files and where they are.",
+				hint:  "enter",
+				run:   f.runReset,
+			},
+			warning: "this puts the room, the passwords, the missions, the bots and who can join back to their defaults.",
 		},
 	}
 }
@@ -474,6 +547,47 @@ func (f *settingsForm) openPlayerFile() tea.Cmd {
 		_ = winproc.Open(path)
 		return noticeMsg("wrote " + path)
 	}
+}
+
+func (f *settingsForm) openInstallRoot() tea.Cmd {
+	return func() tea.Msg {
+		if err := winproc.Open(f.edited.InstallRoot); err != nil {
+			return noticeMsg("cannot open " + f.edited.InstallRoot + ": " + err.Error())
+		}
+		return noticeMsg("opened " + f.edited.InstallRoot)
+	}
+}
+
+// runRepair stops everything the launcher started and removes what the next
+// start can fetch again. It blocks the screen for as long as that takes, which
+// is the same wait the window's message box covers.
+func (f *settingsForm) runRepair() tea.Cmd {
+	return func() tea.Msg {
+		removed, err := f.repair()
+		switch {
+		case err != nil:
+			return noticeMsg("repair: " + err.Error())
+		case len(removed) == 0:
+			return noticeMsg("repair: nothing to remove")
+		default:
+			return noticeMsg("repair removed " + strings.Join(removed, ", ") + ". Press s when you are ready.")
+		}
+	}
+}
+
+// runReset takes the defaults back into the form as well as onto disk. The
+// window closes its dialog instead, because every control on screen still held
+// the old answer and Save would have written them straight back.
+func (f *settingsForm) runReset() tea.Cmd {
+	fresh, err := f.reset()
+	if err != nil {
+		return func() tea.Msg { return noticeMsg("reset: " + err.Error()) }
+	}
+	f.edited = fresh
+	f.room = settings.Room{Host: fresh.APHost, Port: fresh.APPort, TLS: fresh.APTls}.String()
+	f.warn = ""
+	f.build()
+	return func() tea.Msg { return noticeMsg("every setting is back to its default") }
 }
 
 func (f *settingsForm) debugBundle() tea.Cmd {

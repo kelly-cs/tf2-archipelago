@@ -207,3 +207,56 @@ func (f *actionField) Handle(msg tea.KeyMsg) bool {
 	f.command = f.run()
 	return true
 }
+
+// take is what the press left behind, once. The screen asks every field it
+// hands a key to, because an action is the only kind that answers with work
+// for the event loop rather than a new value.
+func (f *actionField) take() tea.Cmd {
+	command := f.command
+	f.command = nil
+	return command
+}
+
+func (f *actionField) disarm() {}
+
+// confirmField is an action that cannot be taken back: the repair, the reset.
+// The window asks with a message box, and this asks by wanting the second
+// enter, so neither one goes off under a finger that was scrolling.
+type confirmField struct {
+	actionField
+	warning string
+	armed   bool
+}
+
+func (f *confirmField) Value() string {
+	if f.armed {
+		return styleWarn.Render("enter again to confirm")
+	}
+	return styleMuted.Render(f.hint)
+}
+
+func (f *confirmField) Help() string {
+	if f.armed {
+		return f.warning
+	}
+	return f.help
+}
+
+func (f *confirmField) Handle(msg tea.KeyMsg) bool {
+	if msg.Type != tea.KeyEnter {
+		f.armed = false
+		return false
+	}
+	if !f.armed {
+		f.armed = true
+		return true
+	}
+	f.armed = false
+	f.command = f.run()
+	return true
+}
+
+// disarm is the change of mind the row never sees: moving off it, or to
+// another tab, is handled by the screen, and an armed row left behind would
+// fire on an enter meant for wherever the player went.
+func (f *confirmField) disarm() { f.armed = false }
