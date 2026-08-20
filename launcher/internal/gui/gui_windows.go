@@ -163,8 +163,8 @@ func (w *window) build() error {
 					declarative.PushButton{AssignTo: &w.startStop, Text: "Start", OnClicked: w.onStartStop, MinSize: declarative.Size{Width: 90}},
 					declarative.PushButton{AssignTo: &w.restart, Text: "Restart", OnClicked: w.onRestart, MinSize: declarative.Size{Width: 90}},
 					declarative.PushButton{
-						AssignTo:    &w.joinBt,
-						Text:        "Join",
+						AssignTo: &w.joinBt,
+						Text:     "Join",
 						// The steam:// handoff can do nothing and report nothing:
 						// Steam takes the link, the game starts, and the connect
 						// is lost on the way. The server is running either way,
@@ -173,8 +173,8 @@ func (w *window) build() error {
 						ToolTipText: "Start Team Fortress 2 and join this server. Steam does the connect and the password. " +
 							"If the game opens without joining, the server is still there: find it in the game's own " +
 							"server browser, under the LAN tab, or type the connect line below in the developer console.",
-						OnClicked:   w.onJoin,
-						MinSize:     declarative.Size{Width: 90},
+						OnClicked: w.onJoin,
+						MinSize:   declarative.Size{Width: 90},
 					},
 					declarative.PushButton{AssignTo: &w.settingsBt, Text: "Settings", OnClicked: w.editSettings, MinSize: declarative.Size{Width: 90}},
 				},
