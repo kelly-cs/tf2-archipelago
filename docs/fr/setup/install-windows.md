@@ -15,7 +15,7 @@ lanceur en quarantaine.
 
 C'est un faux positif. Le lanceur extrait des archives dans votre dossier Team
 Fortress 2. Il y écrit les DLL de Metamod et de SourceMod, télécharge un
-serveur de jeu et le démarre. Un installeur fait cela. Un dropper aussi. Le
+serveur de jeu et le démarre. Un installeur fait cela. Un virus aussi. Le
 lanceur n'a pas encore de signature, donc l'antivirus ne voit pas la
 différence.
 

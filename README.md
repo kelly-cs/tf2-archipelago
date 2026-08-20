@@ -5,22 +5,6 @@ Mann vs Machine mode. The classes, the weapon slots and the missions start
 locked. The team clears waves to unlock them. Everybody on the server shares
 the same unlocks.
 
-> [!NOTE]
-> **Windows will warn you about `tf2ap.exe`, and it is a false positive.**
-> SmartScreen calls it an unrecognized app; Defender sometimes flags it
-> outright. The reason is not a mystery. The exe unpacks archives into your TF2
-> directory, writes SourceMod's DLLs there, downloads a game server and starts
-> it. That is what an installer does, and it is also what a dropper does, and
-> nothing in the file tells a scanner which one it is looking at. It carries no
-> code signature yet, so there is nothing to weigh against the heuristic.
-> [TODO item 13](./TODO.md#13-sign-the-windows-exe-open) is the fix.
->
-> Two ways to check rather than trust. Every release lists the SHA-256 of each
-> file and links its VirusTotal report, so you can confirm the file you
-> downloaded is the file that was published. Or skip the download: the whole
-> source is in this repository, and `make launcher` builds the same `tf2ap.exe`
-> on your own machine, from your own compiler.
-
 <p align="center">
   <a href="https://github.com/m-this/tf2-archipelago/releases/latest/download/tf2ap.exe">
     <img alt="Download tf2ap.exe for Windows" src="https://img.shields.io/badge/Download-tf2ap.exe%20for%20Windows-2ea44f?style=for-the-badge&logo=windows&logoColor=white">
@@ -29,6 +13,13 @@ the same unlocks.
     <img alt="Download tf2ap-linux-amd64 for Linux" src="https://img.shields.io/badge/Download-tf2ap--linux--amd64-1b1f27?style=for-the-badge&logo=linux&logoColor=white">
   </a>
 </p>
+
+> [!NOTE]
+> **Windows will warn you about `tf2ap.exe`, and it is a false positive.** It
+> unpacks archives and starts a game server without a code signature, which
+> looks like a virus to a scanner.
+> Check it rather than trust it: every release publishes `SHA256SUMS` and a
+> VirusTotal report, and `make launcher` builds the same exe on your machine.
 
 <p align="center">
   <img alt="The launcher: a log, Start and Stop, an rcon box" src="docs/images/launcher-main.png" width="820">

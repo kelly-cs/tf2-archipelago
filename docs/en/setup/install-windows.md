@@ -14,7 +14,7 @@ Defender sometimes quarantines the launcher instead.
 
 It is a false positive. The launcher unpacks archives into your Team Fortress 2
 folder, writes the Metamod and SourceMod DLLs, downloads a game server, and
-starts it. An installer does this. So does a dropper. The launcher has no
+starts it. An installer does this. So does a virus. The launcher has no
 signature yet, so the scanner cannot see the difference.
 
 The project asked SignPath for a free open-source signature. The warning stays
