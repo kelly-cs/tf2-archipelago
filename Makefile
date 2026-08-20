@@ -40,6 +40,7 @@ GOLANGCI_LINT := go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$
 GOVULNCHECK := go run golang.org/x/vuln/cmd/govulncheck@$(GOVULNCHECK_VERSION)
 RUFF := uv run --quiet --with ruff==$(RUFF_VERSION) ruff
 SHADOW := uv run --quiet --with pillow==$(PILLOW_VERSION) python docs/shadow.py
+PECHECKSUM := uv run --quiet --with pefile==$(PEFILE_VERSION) python launcher/pe-checksum.py
 GO_SRC := $$(find . -type f -name '*.go')
 
 .PHONY: help seed up down restart logs ps rcon \
@@ -198,7 +199,7 @@ export:
 
 # --- The apworld ---
 
-PYTHON_SRC := apworld/ deploy/rcon.py deploy/player-yaml.py
+PYTHON_SRC := apworld/ deploy/rcon.py deploy/player-yaml.py launcher/pe-checksum.py
 
 apworld-fmt:
 	$(RUFF) format $(PYTHON_SRC)
@@ -328,6 +329,7 @@ launcher: launcher-assets
 	GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -trimpath \
 		-ldflags="-s -w -H windowsgui $(LAUNCHER_LDFLAGS)" \
 		-o $(DIST)/tf2ap.exe ./launcher/cmd/tf2ap
+	$(PECHECKSUM) $(DIST)/tf2ap.exe
 
 # No window: walk is a Win32 binding, so the Linux build is the console flow
 # the compose stack already uses. Everything else is the same program.
