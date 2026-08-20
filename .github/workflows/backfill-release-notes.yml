@@ -1,13 +1,19 @@
 name: Backfill release notes
 
-# Run by hand. Puts each tag's CHANGELOG.md section into its published release,
-# under the download buttons, and leaves the rest of the body alone.
+# Puts each tag's CHANGELOG.md section into its published release, under the
+# download buttons, and leaves the rest of the body alone.
 #
-# It exists because a personal access token cannot edit a release, and the
-# releases published before CHANGELOG.md have no Changes section. Once every
-# release has one this job has nothing left to do and can go.
+# It exists because a personal access token can neither edit a release nor
+# dispatch a job, so writing the changelog has to be the thing that triggers
+# it. A release that already has a Changes section is skipped, which makes
+# running this twice free.
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - CHANGELOG.md
+      - .github/workflows/backfill-release-notes.yml
 
 jobs:
   backfill:
