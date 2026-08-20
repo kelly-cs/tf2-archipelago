@@ -7,6 +7,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
+	"github.com/m-this/tf2-archipelago/gamedata"
 	apruntime "github.com/m-this/tf2-archipelago/launcher/internal/runtime"
 	"github.com/m-this/tf2-archipelago/launcher/internal/settings"
 )
@@ -152,6 +153,58 @@ func TestEveryTabDraws(t *testing.T) {
 				t.Errorf("tab %q has a row with no name", m.form.tabs[i].title)
 			}
 		}
+	}
+}
+
+// All and None are the whole pool or none of it, and the rows they rebuild say
+// the same thing they wrote.
+func TestTheMissionPoolTakesAllAndNone(t *testing.T) {
+	m := screen(t)
+	m.Update(key(","))
+	m.form.tab = 1
+
+	// Start mission, start class, All, None: the third and fourth rows.
+	m.form.focused = 3
+	m.Update(key("enter"))
+	if got := len(m.form.edited.MvmExcludedMissions); got != len(gamedata.Missions) {
+		t.Errorf("None left %d missions out, want all %d", got, len(gamedata.Missions))
+	}
+	if view := m.form.view(100, 30); !strings.Contains(view, "left out") {
+		t.Errorf("the rows still say the missions are in the pool:\n%s", view)
+	}
+
+	m.form.focused = 2
+	m.Update(key("enter"))
+	if got := len(m.form.edited.MvmExcludedMissions); got != 0 {
+		t.Errorf("All left %d missions out, want none", got)
+	}
+}
+
+// Repair and Reset ask twice, because there is no taking either one back.
+func TestTheUndoableActionsAskTwice(t *testing.T) {
+	ran := 0
+	row := &confirmField{
+		actionField: actionField{label: "Repair", run: func() tea.Cmd { ran++; return nil }},
+		warning:     "this stops the server",
+	}
+
+	row.Handle(key("enter"))
+	if ran != 0 {
+		t.Fatal("the first enter ran it")
+	}
+	if !strings.Contains(row.Value()+row.Help(), "this stops the server") {
+		t.Error("the armed row does not say what it is about to do")
+	}
+
+	row.Handle(key("down"))
+	row.Handle(key("enter"))
+	if ran != 0 {
+		t.Fatal("a key in between did not take the arming away")
+	}
+
+	row.Handle(key("enter"))
+	if ran != 1 {
+		t.Errorf("the second enter ran it %d times", ran)
 	}
 }
 

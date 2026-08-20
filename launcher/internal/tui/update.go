@@ -70,17 +70,21 @@ func (m *model) formKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "ctrl+c":
 		return m, tea.Sequence(m.stop(), tea.Quit)
 	case "tab":
+		form.leave()
 		form.tab = (form.tab + 1) % len(form.tabs)
 		form.focused, form.offset = 0, 0
 		return m, nil
 	case "shift+tab":
+		form.leave()
 		form.tab = (form.tab - 1 + len(form.tabs)) % len(form.tabs)
 		form.focused, form.offset = 0, 0
 		return m, nil
 	case "up":
+		form.leave()
 		form.focused = max(form.focused-1, 0)
 		return m, nil
 	case "down":
+		form.leave()
 		form.focused = min(form.focused+1, len(form.fields())-1)
 		return m, nil
 	}
@@ -89,14 +93,29 @@ func (m *model) formKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	if form.focused >= len(fields) {
 		return m, nil
 	}
-	if fields[form.focused].Handle(msg) {
-		if action, ok := fields[form.focused].(*actionField); ok {
-			cmd := action.command
-			action.command = nil
-			return m, cmd
-		}
+	// Hold the row rather than its index: All and None on the Missions tab
+	// rebuild every row of the tab, so the index no longer names the field the
+	// key went to.
+	row := fields[form.focused]
+	if !row.Handle(msg) {
+		return m, nil
+	}
+	if action, ok := row.(interface{ take() tea.Cmd }); ok {
+		return m, action.take()
 	}
 	return m, nil
+}
+
+// leave takes the focus off the row it is on, so a field holding a state that
+// only makes sense under the cursor does not keep it.
+func (f *settingsForm) leave() {
+	fields := f.fields()
+	if f.focused >= len(fields) {
+		return
+	}
+	if row, ok := fields[f.focused].(interface{ disarm() }); ok {
+		row.disarm()
+	}
 }
 
 // fields is the rows of the tab on screen.
