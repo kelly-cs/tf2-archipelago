@@ -46,10 +46,26 @@ mkdir -p "$src" "$out/addons/sourcemod/plugins" \
 git config --global advice.detachedHead false 2>/dev/null || true
 
 # $1 repo, $2 ref, $3 directory
+#
+# The checkouts survive between runs, here and in CI's cache, and that is worth
+# having: a clone of seven repositories is most of this script's time. It is
+# only worth having for the ref that is asked for now, though. Keeping whatever
+# is on disk meant a version bump built the previous version and said nothing,
+# which does not fail: it ships, labelled as the new one.
+#
+# A stamp beside the checkout rather than asking git what it holds: a --depth 1
+# --branch clone knows one ref and cannot say whether some other tag would have
+# been the same commit without going back to the network.
 fetch() {
-	[ -d "$src/$3" ] && return 0
+	stamp="$src/$3.ref"
+	if [ -d "$src/$3" ]; then
+		[ "$(cat "$stamp" 2>/dev/null)" = "$2" ] && return 0
+		echo "re-fetching $3: held $(cat "$stamp" 2>/dev/null || echo "an unknown ref"), wants $2"
+		rm -rf "$src/$3"
+	fi
 	echo "fetching $1@$2"
 	git clone --quiet --depth 1 --branch "$2" "https://github.com/$1" "$src/$3"
+	printf '%s\n' "$2" >"$stamp"
 }
 
 # A patch that no longer applies is a build failure, never a silent skip: it is
