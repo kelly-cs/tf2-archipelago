@@ -237,3 +237,32 @@ outline that `spec.md` is built on.
 > Also making it a source plugin is smart I didn't think of that
 
 **[4:07 AM] Roseburst:** It would enable you to play with friends, or on your own on a private server
+
+---
+
+## Peppy's post
+
+**Peppy (Long time no see!):**
+
+> hello, i just wanted to share some ideas on how the randomization for mvm could work
+>
+> locations:
+>     robot kills per wave
+>     kill a fully powered up robot x amount of times (per wave)
+>     reset the bomb x amout of time (per wave)
+>     beat a wave
+>     get a certain credit score in a wave
+>     complete a wave with a certain amount of players in the team
+>     complete a wave with a specific team comp
+>     complete a mission
+>     complete a tour
+>     all the achievements that can be obtainable in mvm (I have a list i can post here if needed)
+>
+> unlocks:
+>     progressive random crit chance (the team starts of without being able to get random crits and every progressive unluck increases the random crit chance by a certain amount)
+>     progressive respawn time (the team starts off with longer respawn timer and every progressive unlock shortens it)
+>     progressive credit amount (each progressive unlock increases the amount of credits you get for a wave based on a percentage of the total amount of credits that can be obtained from previous waves)
+>     canteens that have random effects
+>     the grappling hook
+>     random weapons with randomized stats potentially with a tier system so early unlocks drop low tiered weapons and late unlocks drop higher tier weapons
+>     progressive returning bomb (an unlock that makes the bomb slowly move back when left without a robot picking it up and each progressive unlock makes it move back faster)
