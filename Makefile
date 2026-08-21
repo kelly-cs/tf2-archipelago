@@ -306,7 +306,7 @@ launcher-assets-linux: launcher-assets-common
 # one is not cosmetic: an exe with no CompanyName, ProductName or FileVersion is
 # an anonymous blob to SmartScreen and to Defender's heuristics, and this one
 # already looks like a dropper to them, because it unpacks archives and starts a
-# game server. Signing is item 13 in TODO.md; this is what costs nothing.
+# game server. Signing is item 2 in TODO.md; this is what costs nothing.
 #
 # pechecksum runs last because it rewrites a header field over the linked file,
 # and the Go linker leaves that field at zero. It is in-tree rather than a pinned
