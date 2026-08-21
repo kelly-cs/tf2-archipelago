@@ -118,9 +118,44 @@ func installPluginCfg(gameDir string) error {
 		return fmt.Errorf("cannot create the sourcemod cfg directory: %w", err)
 	}
 	if _, err := os.Stat(target); err == nil {
-		return nil
+		return raiseDebugDefault(target)
 	}
 	return os.WriteFile(target, assets.PluginConfig(), 0o644)
+}
+
+// oldDebugOff is the line every install written before tf2ap_debug became a
+// level carries, and newDebugLog is what it means now.
+const (
+	oldDebugOff = `tf2ap_debug "0"`
+	newDebugLog = `tf2ap_debug "1"`
+)
+
+/* raiseDebugDefault turns the old off into the new log-only.
+ *
+ * The file is written once and then belongs to whoever runs the server, which
+ * is right for a setting they chose and wrong for one they never saw. tf2ap_debug
+ * used to be a boolean that wrote to the chat, and off was the sensible default;
+ * it is a level now, and 1 writes to the console and the log where a debug
+ * bundle can carry it. Nobody who installed before that has ever had it.
+ *
+ * A play-test cost two bundles to this: both were collected with the plugin
+ * saying nothing, because the file on disk still said 0 and the file is what
+ * AutoExecConfig reads.
+ *
+ * Only that exact line, and only from 0. A 2 is somebody asking for chat and a
+ * 0 written by hand today reads the same as the old default, which is the one
+ * case this gets wrong; it costs them a log line and no chat.
+ */
+func raiseDebugDefault(target string) error {
+	body, err := os.ReadFile(target)
+	if err != nil {
+		return nil //nolint:nilerr // an unreadable config is the server's business, not the installer's
+	}
+	if !bytes.Contains(body, []byte(oldDebugOff)) {
+		return nil
+	}
+	updated := bytes.Replace(body, []byte(oldDebugOff), []byte(newDebugLog), 1)
+	return os.WriteFile(target, updated, 0o644)
 }
 
 // steamIDForSourcemod converts a SteamID64 (17 digits) to STEAM_0:X:Y, and

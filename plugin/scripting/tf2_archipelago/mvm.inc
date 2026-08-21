@@ -228,9 +228,25 @@ static bool MvM_DropCredits(int client, int amount)
         AP_Error("This server cannot make a currency pack. The bundle waits.");
         return false;
     }
+    /* m_nAmount is a data property and not a networked one.
+     *
+     * Asked for as a send property it throws, and a throw here aborts the
+     * whole callback: the bundle was never paid, never acknowledged, and asked
+     * for again on the next poll, which left one dead pack per attempt behind
+     * it. A play-test made two hundred and forty of them in ten minutes.
+     *
+     * So the property is checked before it is written, and a pack that cannot
+     * be told what it is worth is removed rather than left standing.
+     */
+    if (!HasEntProp(pack, Prop_Data, "m_nAmount"))
+    {
+        RemoveEntity(pack);
+        AP_Error("This server's currency packs have no m_nAmount. The bundle waits.");
+        return false;
+    }
     // Before the spawn: the amount is read as the pack comes up, and a pack
     // that spawned with the default is worth what the game felt like.
-    SetEntProp(pack, Prop_Send, "m_nAmount", amount);
+    SetEntProp(pack, Prop_Data, "m_nAmount", amount);
     DispatchSpawn(pack);
     if (!IsValidEntity(pack))
     {

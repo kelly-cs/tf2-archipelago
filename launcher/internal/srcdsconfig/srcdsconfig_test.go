@@ -292,3 +292,55 @@ func TestInstallServerCfgBots(t *testing.T) {
 		})
 	}
 }
+
+// tf2ap_debug used to be a boolean that wrote to the chat, and off was the
+// sensible default. It is a level now and 1 writes to the log, where a debug
+// bundle can carry it. The config is written once, so nobody who installed
+// before that change has ever had it.
+func TestTheDebugDefaultIsRaisedOnce(t *testing.T) {
+	dir := t.TempDir()
+	target := filepath.Join(dir, "cfg", "sourcemod", "tf2_archipelago.cfg")
+	if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
+		t.Fatalf("cannot create the directory: %v", err)
+	}
+	old := "// a comment somebody wrote\ntf2ap_debug \"0\"\ntf2ap_announce \"1\"\n"
+	if err := os.WriteFile(target, []byte(old), 0o644); err != nil {
+		t.Fatalf("cannot write the config: %v", err)
+	}
+
+	if err := installPluginCfg(dir); err != nil {
+		t.Fatalf("installPluginCfg: %v", err)
+	}
+	body, err := os.ReadFile(target)
+	if err != nil {
+		t.Fatalf("cannot read it back: %v", err)
+	}
+	if !strings.Contains(string(body), `tf2ap_debug "1"`) {
+		t.Errorf("the debug default was not raised:\n%s", body)
+	}
+	// Everything else in the file belongs to whoever runs the server.
+	for _, keep := range []string{"// a comment somebody wrote", `tf2ap_announce "1"`} {
+		if !strings.Contains(string(body), keep) {
+			t.Errorf("the migration lost %q:\n%s", keep, body)
+		}
+	}
+}
+
+// A 2 is somebody asking for the chat, and it stays.
+func TestTheDebugLevelSomebodyChoseIsLeftAlone(t *testing.T) {
+	dir := t.TempDir()
+	target := filepath.Join(dir, "cfg", "sourcemod", "tf2_archipelago.cfg")
+	if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
+		t.Fatalf("cannot create the directory: %v", err)
+	}
+	if err := os.WriteFile(target, []byte("tf2ap_debug \"2\"\n"), 0o644); err != nil {
+		t.Fatalf("cannot write the config: %v", err)
+	}
+	if err := installPluginCfg(dir); err != nil {
+		t.Fatalf("installPluginCfg: %v", err)
+	}
+	body, _ := os.ReadFile(target)
+	if !strings.Contains(string(body), `tf2ap_debug "2"`) {
+		t.Errorf("a chosen level was overwritten:\n%s", body)
+	}
+}
