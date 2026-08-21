@@ -100,11 +100,18 @@ static bool SplitQuoted(const char[] line, char[] key, int keyMax, char[] value,
     return true;
 }
 
-// The game handles the purchase; this only says what it was. Runs for the
-// mod's bots, whose purchases are what nobody can see any more.
+/* Every purchase and every sale at the upgrade station.
+ *
+ * The game handles it; this only says what it was. For the mod's bots that is
+ * the chat, because the game no longer lets a player inspect a teammate's
+ * upgrades. For players it is the log and nothing else, because a player can
+ * see their own station: what it is there for is the question nobody can
+ * answer afterwards, which is whether a sale the station appeared to accept
+ * ever reached the game at all.
+ */
 public void OnClientCommandKeyValues_Post(int client, KeyValues kv)
 {
-    if (!g_CvarBotUpgradesChat.BoolValue || client <= 0 || !IsFakeClient(client))
+    if (client <= 0 || client > MaxClients)
     {
         return;
     }
@@ -124,27 +131,54 @@ public void OnClientCommandKeyValues_Post(int client, KeyValues kv)
     kv.GoBack();
 
     // The mod asks for zero charges when a bot's canteen is already full. The
-    // game does nothing with it, so neither does the chat.
+    // game does nothing with it, so neither does anything here.
     if (count == 0)
     {
         return;
     }
 
     char upgrade[64];
-    if (index >= 0 && index < g_UpgradeNames.Length)
+    UpgradeLabel(index, upgrade, sizeof(upgrade));
+
+    if (!IsFakeClient(client))
     {
-        g_UpgradeNames.GetString(index, upgrade, sizeof(upgrade));
-    }
-    else
-    {
-        FormatEx(upgrade, sizeof(upgrade), "upgrade %d", index);
-    }
-    if (count < 0)
-    {
-        AP_Announce("%N sold %s (%s).", client, upgrade, SlotLabel(slot));
+        // The currency after the fact, which is what says whether the game took
+        // it. A sale that the station showed and the game refused looks exactly
+        // like a sale that worked, until these two lines disagree.
+        AP_Debug("%N %s %s (%s) x%d, and holds %d credits.",
+            client, count < 0 ? "sold" : "bought", upgrade, SlotLabel(slot), count < 0 ? -count : count,
+            HasEntProp(client, Prop_Send, "m_nCurrency") ? GetEntProp(client, Prop_Send, "m_nCurrency") : -1);
         return;
     }
-    AP_Announce("%N bought %s (%s).", client, upgrade, SlotLabel(slot));
+    if (!g_CvarBotUpgradesChat.BoolValue)
+    {
+        return;
+    }
+    // The count is what the chat used to leave out. The mod buys several tiers
+    // in one command, so one line stood for up to four purchases and the credits
+    // it spent looked like they went nowhere.
+    AP_Announce("%N %s %s (%s) x%d.",
+        client, count < 0 ? "sold" : "bought", upgrade, SlotLabel(slot), count < 0 ? -count : count);
+}
+
+/* The name of an upgrade, and the number behind it either way.
+ *
+ * The name comes from the order mvm_upgrades.txt lists its attributes, which is
+ * an assumption about how the game numbers them and not a fact anybody has
+ * checked. So the number goes in the line as well: a name that does not match
+ * the upgrade a player can see on the weapon is then one glance away from
+ * saying whether the table is shifted or the report is.
+ */
+static void UpgradeLabel(int index, char[] buffer, int maxlength)
+{
+    if (index < 0 || index >= g_UpgradeNames.Length)
+    {
+        FormatEx(buffer, maxlength, "upgrade %d", index);
+        return;
+    }
+    char name[64];
+    g_UpgradeNames.GetString(index, name, sizeof(name));
+    FormatEx(buffer, maxlength, "%s [%d]", name, index);
 }
 
 // The loadout slot MVM_Upgrade carries, which is not the weapon slot: the

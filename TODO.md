@@ -160,3 +160,49 @@ the bots and does not manage them before the first wave.
 Note that the two rules already shipped make the early join safe: bots never
 ready while a player on RED is not ready, and never ready at all when nobody is
 on RED, so bots on the server early cannot start a wave by themselves.
+
+## 5. De-upgrading appears not to take. Open, and it may be item 1
+
+From the play-test: buy an upgrade, sell it again before leaving the upgrade
+station, and it stays bought. Reported as "not sure if it is the AP or MvM in
+general", and that is still the open question.
+
+Nothing in this plugin touches a purchase. `Unlocks_EnforceSlots` removes
+weapons in slots the run has not opened and leaves every other slot alone, and
+the upgrade command is only read, never blocked.
+
+The hypothesis worth testing first is item 1 above. `MvM_GrantCredits` writes
+`m_nCurrency` straight onto the player, so after a Cash Bundle the player's
+credits and the number the game recorded for the wave disagree. A refund pays
+back through the game's own accounting, and accounting that has been written
+around from outside is exactly the kind that refuses a transaction while
+showing it as accepted.
+
+That gives a test that costs one evening: sell an upgrade on a run where no
+Cash Bundle has landed yet, and sell one after a bundle has. If only the second
+fails, this is item 1 and not a Valve bug, and fixing item 1 fixes both.
+
+The plugin now writes every purchase and every sale to the SourceMod log,
+players included, with the credits held afterwards. So a bundle from the
+evening says whether the sale reached the game at all, which is the half nobody
+could see: a sale the station accepted and the game ignored looks the same as
+one that worked, from the chair.
+
+## 6. The bot upgrade chat may name the wrong upgrade. Open
+
+From the same play-test: the chat showed defender bots buying upgrades their
+class cannot have, while inspecting those bots showed the right upgrades on
+them. So the purchases are fine and the line describing them is not.
+
+`Bots_LoadUpgradeNames` reads every `attribute` line of
+`scripts/items/mvm_upgrades.txt` in file order and treats that order as the
+index the game's `MVM_Upgrade` command carries. The mod sends the index it got
+from the game's own upgrade manager, so the two agree only if the manager
+builds its list in the file's order and skips nothing. Nobody has checked that,
+and a constant offset would produce exactly this report.
+
+The line now carries the raw index next to the name, as `damage bonus [12]`.
+One glance at a bot's actual upgrades against one chat line says whether the
+table is shifted, and by how much. If it is, the fix is here: read the file
+with a KeyValues parse and index by the block the game numbers, rather than by
+counting lines.
