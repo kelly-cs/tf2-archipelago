@@ -147,8 +147,11 @@ func (w *window) build() error {
 	return declarative.MainWindow{
 		AssignTo: &w.main,
 		Title:    assets.Title("Mann vs Archipelago"),
-		Size:     declarative.Size{Width: 960, Height: 640},
-		Layout:   declarative.VBox{},
+		// Wide enough for the settings dialog it opens: a dialog is laid out
+		// inside its owner, so the owner is the ceiling on how much the Bots
+		// tab can show in a line.
+		Size:   declarative.Size{Width: 1200, Height: 760},
+		Layout: declarative.VBox{},
 		Children: []declarative.Widget{
 			declarative.Composite{
 				Layout:    declarative.HBox{MarginsZero: true},

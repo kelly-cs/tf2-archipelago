@@ -7,8 +7,10 @@ package settings
 import (
 	"encoding/json"
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
+	"slices"
 
 	"github.com/m-this/tf2-archipelago/gamedata"
 )
@@ -75,6 +77,20 @@ type Settings struct {
 	// what gave a play-test three Spies and two Scouts on an Advanced mission.
 	// A team named here beats the blacklist.
 	SrcdsBotTeamComp []string `json:"srcds_bot_team_comp,omitempty"`
+
+	// SrcdsBotTeamPresets are teams somebody named and kept: the seats, their
+	// loadouts, and the classes the mod may draw from. Naming a team is the
+	// point of the Bots tab, and naming it twice because the last one was
+	// overwritten is not.
+	SrcdsBotTeamPresets map[string]BotTeam `json:"srcds_bot_team_presets,omitempty"`
+
+	// SrcdsBotSeatLoadouts is the loadout each seat carries, in the same order
+	// and keyed by loadout preset. It is what lets one engineer hold the
+	// Wrangler and the next one hold something else, which the per-class map
+	// above cannot say.
+	//
+	// A seat with no entry falls back to the class's own pick.
+	SrcdsBotSeatLoadouts []string `json:"srcds_bot_seat_loadouts,omitempty"`
 
 	// BotUpgradesChat writes what the bots buy at the upgrade station to the
 	// chat. Off by default: it is a line per purchase.
@@ -145,6 +161,45 @@ func Defaults() Settings {
 		MvmMissionsanityPct: 80,
 		MetricsPort:         24681,
 	}
+}
+
+// BotTeam is one saved team: what each seat plays and holds, and which classes
+// the mod may draw the rest from. The same three things the Bots tab edits, so
+// loading one is a copy in and saving one is a copy out.
+type BotTeam struct {
+	Comp          []string          `json:"comp,omitempty"`
+	SeatLoadouts  []string          `json:"seat_loadouts,omitempty"`
+	ClassLoadouts map[string]string `json:"class_loadouts,omitempty"`
+	Blacklist     []string          `json:"blacklist,omitempty"`
+}
+
+// BotTeamOf is the team the settings currently describe.
+func BotTeamOf(s Settings) BotTeam {
+	return BotTeam{
+		Comp:          slices.Clone(s.SrcdsBotTeamComp),
+		SeatLoadouts:  slices.Clone(s.SrcdsBotSeatLoadouts),
+		ClassLoadouts: maps.Clone(s.SrcdsBotLoadouts),
+		Blacklist:     slices.Clone(s.SrcdsBotClassBlacklist),
+	}
+}
+
+// WithBotTeam is the settings with that team in place of the current one.
+func WithBotTeam(s Settings, team BotTeam) Settings {
+	s.SrcdsBotTeamComp = slices.Clone(team.Comp)
+	s.SrcdsBotSeatLoadouts = slices.Clone(team.SeatLoadouts)
+	s.SrcdsBotLoadouts = maps.Clone(team.ClassLoadouts)
+	s.SrcdsBotClassBlacklist = slices.Clone(team.Blacklist)
+	return s
+}
+
+// BotTeamNames are the saved teams, in the order a menu should show them.
+func BotTeamNames(s Settings) []string {
+	names := make([]string, 0, len(s.SrcdsBotTeamPresets))
+	for name := range s.SrcdsBotTeamPresets {
+		names = append(names, name)
+	}
+	slices.Sort(names)
+	return names
 }
 
 // EffectiveReach is where the players can come from with the token this server

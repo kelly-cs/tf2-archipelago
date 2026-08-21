@@ -131,10 +131,23 @@ func Custom(picks map[string]string) bool {
 	return false
 }
 
-// Render is configs/defenderbots/loadout.cfg: one block per class with a
-// preset, one key per slot the preset sets. A slot left out keeps the stock
-// weapon, and a class left out plays stock.
-func Render(picks map[string]string) string {
+/* Render is configs/defenderbots/loadout.cfg.
+ *
+ * One block per class with a preset, one key per slot the preset sets. A slot
+ * left out keeps the stock weapon, and a class left out plays stock. That is
+ * what the mod reads today: GetServerLoadoutWeapon looks a class up by name.
+ *
+ * The seats go in as well, under "seats", one numbered block each carrying the
+ * class that seat plays and the weapons it holds. Two engineers cannot hold
+ * different weapons through a table keyed by class, and one holding the
+ * Wrangler while the other holds something else is the reason to name a team
+ * seat by seat at all.
+ *
+ * The mod does not read that half yet. Written anyway, and written first,
+ * because a KeyValues file the reader has not caught up with costs nothing and
+ * the alternative is a launcher that cannot say what it means.
+ */
+func Render(picks map[string]string, seats []Seat) string {
 	var b strings.Builder
 	b.WriteString("// Managed by tf2ap. Edits here are replaced the next time the launcher starts.\n")
 	b.WriteString("\"loadout\"\n{\n")
@@ -144,18 +157,84 @@ func Render(picks map[string]string) string {
 			continue
 		}
 		fmt.Fprintf(&b, "\t\"%s\"\n\t{\n", class.Key)
-		for _, slot := range []struct {
-			key   string
-			index int
-		}{{"primary", loadout.Primary}, {"secondary", loadout.Second}, {"melee", loadout.Melee}, {"pda2", loadout.PDA2}} {
-			if slot.index != Stock {
-				fmt.Fprintf(&b, "\t\t\"%s\"\t\"%d\"\n", slot.key, slot.index)
-			}
-		}
+		writeSlots(&b, "\t\t", loadout)
 		b.WriteString("\t}\n")
 	}
+	writeSeats(&b, seats)
 	b.WriteString("}\n")
 	return b.String()
+}
+
+// Seat is one place on RED: the class it plays and the loadout it carries.
+// An empty class is a seat the mod draws for itself.
+type Seat struct {
+	Class   string
+	Loadout string
+}
+
+// Seats pairs the team's classes with the loadouts chosen for each place. The
+// two lists are stored apart because the classes are also what the mod's
+// team_composition convar carries, and a seat with no loadout of its own is
+// not the same as a seat playing stock: it falls back to the class's pick.
+func Seats(comp, loadouts []string) []Seat {
+	seats := make([]Seat, 0, len(comp))
+	for index, class := range comp {
+		seat := Seat{Class: class}
+		if index < len(loadouts) {
+			seat.Loadout = loadouts[index]
+		}
+		seats = append(seats, seat)
+	}
+	return seats
+}
+
+// CustomSeats reports whether any seat asks for weapons of its own.
+func CustomSeats(seats []Seat) bool {
+	for _, seat := range seats {
+		if seat.Class == "" || seat.Loadout == "" || seat.Loadout == StockKey {
+			continue
+		}
+		return true
+	}
+	return false
+}
+
+func writeSeats(b *strings.Builder, seats []Seat) {
+	named := 0
+	for _, seat := range seats {
+		if seat.Class != "" {
+			named++
+		}
+	}
+	if named == 0 {
+		return
+	}
+	b.WriteString("\t\"seats\"\n\t{\n")
+	for index, seat := range seats {
+		if seat.Class == "" {
+			continue
+		}
+		class, found := ClassByKey(seat.Class)
+		if !found {
+			continue
+		}
+		fmt.Fprintf(b, "\t\t\"%d\"\n\t\t{\n", index+1)
+		fmt.Fprintf(b, "\t\t\t\"class\"\t\"%s\"\n", class.Key)
+		writeSlots(b, "\t\t\t", class.LoadoutByKey(seat.Loadout))
+		b.WriteString("\t\t}\n")
+	}
+	b.WriteString("\t}\n")
+}
+
+func writeSlots(b *strings.Builder, indent string, loadout Loadout) {
+	for _, slot := range []struct {
+		key   string
+		index int
+	}{{"primary", loadout.Primary}, {"secondary", loadout.Second}, {"melee", loadout.Melee}, {"pda2", loadout.PDA2}} {
+		if slot.index != Stock {
+			fmt.Fprintf(b, "%s\"%s\"\t\"%d\"\n", indent, slot.key, slot.index)
+		}
+	}
 }
 
 // Blacklist is the value of sm_redbots_manager_class_blacklist: the class keys

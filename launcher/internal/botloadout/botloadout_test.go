@@ -6,7 +6,7 @@ import (
 )
 
 func TestRenderWritesOnlyWhatChanges(t *testing.T) {
-	got := Render(map[string]string{"scout": "milk", "spy": "kunai", "medic": StockKey, "pyro": "gone"})
+	got := Render(map[string]string{"scout": "milk", "spy": "kunai", "medic": StockKey, "pyro": "gone"}, nil)
 
 	for _, want := range []string{
 		"\"scout\"\n\t{\n\t\t\"primary\"\t\"448\"\n\t\t\"secondary\"\t\"222\"\n\t\t\"melee\"\t\"355\"\n\t}",
@@ -63,5 +63,47 @@ func TestPresetsAreWellFormed(t *testing.T) {
 			}
 			seen[loadout.Key] = true
 		}
+	}
+}
+
+// Two engineers cannot hold different weapons through a table keyed by class,
+// which is the whole reason a team is named seat by seat.
+func TestRenderNamesEachSeat(t *testing.T) {
+	seats := Seats(
+		[]string{"engineer", "engineer", "", "medic"},
+		[]string{"gunslinger", "wrangler", "milk", ""},
+	)
+	got := Render(nil, seats)
+
+	if !strings.Contains(got, "\"seats\"") {
+		t.Fatalf("no seats block:\n%s", got)
+	}
+	for _, want := range []string{
+		"\"1\"\n\t\t{\n\t\t\t\"class\"\t\"engineer\"",
+		"\"2\"\n\t\t{\n\t\t\t\"class\"\t\"engineer\"",
+		"\"4\"\n\t\t{\n\t\t\t\"class\"\t\"medic\"",
+	} {
+		if !strings.Contains(got, want) {
+			t.Errorf("missing %q in:\n%s", want, got)
+		}
+	}
+	// Seat three is the mod's to draw, so it is not named at all.
+	if strings.Contains(got, "\"3\"\n") {
+		t.Errorf("a seat left on the draw was named:\n%s", got)
+	}
+	// The two engineers differ, which a per-class table cannot say.
+	first := strings.Index(got, "\"1\"")
+	second := strings.Index(got, "\"2\"")
+	if got[first:second] == got[second:] {
+		t.Error("both engineers rendered the same weapons")
+	}
+}
+
+// A team of nothing but drawn seats writes no seats block, and nothing asks
+// for the file at all.
+func TestSeatsWithNoLoadoutsAreNotCustom(t *testing.T) {
+	seats := Seats([]string{"scout", "soldier"}, []string{"", StockKey})
+	if CustomSeats(seats) {
+		t.Error("stock seats asked for a loadout file")
 	}
 }
