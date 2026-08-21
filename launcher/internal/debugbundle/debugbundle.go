@@ -61,6 +61,13 @@ func Write(s settings.Settings, versions map[string]string, stamp time.Time) (st
 	copyIn(archive, apruntime.ConsolePreviousName, filepath.Join(game, apruntime.ConsolePreviousName))
 	copyIn(archive, "server.cfg", filepath.Join(game, "cfg", "server.cfg"))
 
+	// The crash dumps, newest last. srcds runs under Breakpad and writes one
+	// per crash, and a crash that leaves no line in any log leaves one of
+	// these: it is the only file that names the function the server died in.
+	for _, dump := range newestCrashDumps(game, 3) {
+		copyIn(archive, filepath.Join("crashes", filepath.Base(dump)), dump)
+	}
+
 	// Every SourceMod log, because the error log names the plugin and the plain
 	// log holds what happened around it.
 	logs := filepath.Join(game, "addons", "sourcemod", "logs")
@@ -148,6 +155,43 @@ func redactedSettings(s settings.Settings) string {
 		return fmt.Sprintf("cannot render the settings: %v\n", err)
 	}
 	return body
+}
+
+/* newestCrashDumps finds the newest minidumps srcds left behind.
+ *
+ * The game writes them beside the executable or under tf/, depending on which
+ * part of it crashed, and it never cleans them up. Newest by modification time
+ * rather than by name: the names carry a crash id, not a date.
+ */
+func newestCrashDumps(gameDir string, limit int) []string {
+	var found []string
+	for _, dir := range []string{gameDir, filepath.Dir(gameDir)} {
+		entries, err := os.ReadDir(dir)
+		if err != nil {
+			continue
+		}
+		for _, entry := range entries {
+			if entry.IsDir() || !strings.HasSuffix(strings.ToLower(entry.Name()), ".mdmp") {
+				continue
+			}
+			found = append(found, filepath.Join(dir, entry.Name()))
+		}
+	}
+	sort.Slice(found, func(i, j int) bool {
+		return modTime(found[i]).Before(modTime(found[j]))
+	})
+	if len(found) > limit {
+		found = found[len(found)-limit:]
+	}
+	return found
+}
+
+func modTime(path string) time.Time {
+	info, err := os.Stat(path)
+	if err != nil {
+		return time.Time{}
+	}
+	return info.ModTime()
 }
 
 // newestLogs returns up to limit file names from dir, newest last.

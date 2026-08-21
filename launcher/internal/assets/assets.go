@@ -38,6 +38,11 @@ var (
 	MetamodVersion     = ""
 	RipextVersion      = ""
 	ArchipelagoVersion = ""
+
+	// DefenderbotsVersion is the tag the embedded bot mod was built from. It
+	// installs no separate download, so nothing gates on it; it is here because
+	// a crash report that does not say which bots were playing cannot be read.
+	DefenderbotsVersion = ""
 )
 
 // Plugin returns the compiled SourceMod plugin bytecode.
@@ -73,10 +78,11 @@ func ServerCfgTemplate() string { return serverCfgTemplate }
 // install when the binary was built without them.
 func Versions() map[string]string {
 	return map[string]string{
-		"sourcemod":   SourcemodVersion,
-		"metamod":     MetamodVersion,
-		"ripext":      RipextVersion,
-		"archipelago": ArchipelagoVersion,
+		"sourcemod":    SourcemodVersion,
+		"metamod":      MetamodVersion,
+		"ripext":       RipextVersion,
+		"archipelago":  ArchipelagoVersion,
+		"defenderbots": DefenderbotsVersion,
 	}
 }
 
@@ -85,6 +91,11 @@ func Versions() map[string]string {
 // wrong versions; the Makefile sets them, so the installer gates on this.
 func RequireVersions() error {
 	for name, value := range Versions() {
+		// Not an install gate: nothing downloads by this version, it only
+		// names what is already embedded.
+		if name == "defenderbots" {
+			continue
+		}
 		if value == "" {
 			return fmt.Errorf("asset version %s is empty: build with `make launcher` so -ldflags injects it from deploy/env/versions.env", name)
 		}

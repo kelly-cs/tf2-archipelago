@@ -191,3 +191,40 @@ func TestWriteSaysWhenTheBridgeDidNotAnswer(t *testing.T) {
 		t.Errorf("a refused bridge left no trace: %q", held["bridge.json"])
 	}
 }
+
+// A crash that leaves no line in any log leaves a minidump, and that file is
+// the only one naming the function the server died in. It was not collected,
+// so the first crash report to arrive could not be taken any further.
+func TestWriteCollectsTheCrashDumps(t *testing.T) {
+	root := t.TempDir()
+	game := filepath.Join(root, "tf-dedicated", "tf")
+	write(t, filepath.Join(game, "crash_20260821.mdmp"), "MDMP fake")
+	write(t, filepath.Join(root, "tf-dedicated", "srcds_20260821.mdmp"), "MDMP beside the exe")
+
+	s := settings.Defaults()
+	s.InstallRoot = root
+	path, err := Write(s, nil, time.Date(2026, 8, 21, 23, 4, 35, 0, time.UTC))
+	if err != nil {
+		t.Fatalf("Write: %v", err)
+	}
+	held := read(t, path)
+	for _, name := range []string{"crashes/crash_20260821.mdmp", "crashes/srcds_20260821.mdmp"} {
+		if _, ok := held[name]; !ok {
+			t.Errorf("the bundle has no %s (it holds %v)", name, keys(held))
+		}
+	}
+}
+
+// Which defender bots were playing. A crash report that does not say cannot be
+// read: the mod is where most of the crashes have been.
+func TestTheSummaryNamesTheBotsVersion(t *testing.T) {
+	s := settings.Defaults()
+	s.InstallRoot = t.TempDir()
+	path, err := Write(s, map[string]string{"defenderbots": "v2.0.0"}, time.Now())
+	if err != nil {
+		t.Fatalf("Write: %v", err)
+	}
+	if held := read(t, path); !strings.Contains(held["summary.txt"], "v2.0.0") {
+		t.Errorf("the summary does not name the bots: %q", held["summary.txt"])
+	}
+}

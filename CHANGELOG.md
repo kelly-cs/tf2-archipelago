@@ -66,9 +66,9 @@ credits the way the guides say to.
   priority is a refusal now rather than a low bid, so a Pyro no longer works
   down the list and buys airblast pushback, and Explode on Ignite needs a Gas
   Passer in hand.
-- Hats, and optionally unusual effects and war paints, in three ticks at the
-  foot of the Bots tab. A bot keeps its hat for the mission, which is how you
-  tell one Heavy from another. Nothing about it changes a wave.
+- Hats, and unusual effects on them, in two ticks at the foot of the Bots tab.
+  A bot keeps its hat for the mission, which is how you tell one Heavy from
+  another. Nothing about it changes a wave.
 - Any of this can be switched off one at a time with
   `sm_redbots_feature_<name>`, which is how two ways of playing get compared.
 - Four server crashes fixed: a table that wrote past its own fields during

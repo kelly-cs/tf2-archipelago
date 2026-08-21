@@ -271,7 +271,8 @@ LAUNCHER_LDFLAGS := -X github.com/m-this/tf2-archipelago/launcher/internal/asset
 	-X github.com/m-this/tf2-archipelago/launcher/internal/assets.MetamodBranch=$(MMSOURCE_BRANCH) \
 	-X github.com/m-this/tf2-archipelago/launcher/internal/assets.MetamodVersion=$(MMSOURCE_VERSION) \
 	-X github.com/m-this/tf2-archipelago/launcher/internal/assets.RipextVersion=$(RIPEXT_VERSION) \
-	-X github.com/m-this/tf2-archipelago/launcher/internal/assets.ArchipelagoVersion=$(ARCHIPELAGO_VERSION)
+	-X github.com/m-this/tf2-archipelago/launcher/internal/assets.ArchipelagoVersion=$(ARCHIPELAGO_VERSION) \
+	-X github.com/m-this/tf2-archipelago/launcher/internal/assets.DefenderbotsVersion=$(DEFENDERBOTS_VERSION)
 
 # The bots go in as a Windows-only zip: the staged tree carries both platforms'
 # extensions, and the 20 MB of Linux .so has no business inside a .exe.

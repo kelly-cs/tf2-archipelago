@@ -79,7 +79,6 @@ services:
       SRCDS_BOT_TEAM_COMP: ${SRCDS_BOT_TEAM_COMP:-}
       SRCDS_BOT_HATS: ${SRCDS_BOT_HATS:-1}
       SRCDS_BOT_HAT_EFFECTS: ${SRCDS_BOT_HAT_EFFECTS:-0}
-      SRCDS_BOT_WEAPON_SKINS: ${SRCDS_BOT_WEAPON_SKINS:-0}
     ports:
       # The only public port in the stack, and it is the game's.
       - "${SRCDS_PORT:-27015}:${SRCDS_PORT:-27015}/udp"

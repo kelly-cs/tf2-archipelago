@@ -171,7 +171,6 @@ func runSettingsDialog(owner walk.Form, s settings.Settings, repair func() ([]st
 		next.BotUpgradesChat = buysBox.Checked()
 		next.SrcdsBotHats = looksBox.hats.Checked()
 		next.SrcdsBotHatEffects = looksBox.effects.Checked()
-		next.SrcdsBotWeaponSkins = looksBox.skins.Checked()
 		next.SrcdsBotClassBlacklist = nil
 		next.SrcdsBotLoadouts = make(map[string]string)
 		for i, class := range botloadout.Classes {
@@ -700,8 +699,6 @@ func cosmeticRows(
 		declarative.CheckBox{AssignTo: &looksBox.hats, Text: "a hat each", Checked: s.SrcdsBotHats},
 		label("Unusual effects", "A random unusual effect on that hat. Six particle effects on screen for the whole wave, so it is off by default."),
 		declarative.CheckBox{AssignTo: &looksBox.effects, Text: "and an effect on it", Checked: s.SrcdsBotHatEffects},
-		label("War paints", "A random war paint, at a random wear, on the three weapons each bot carries."),
-		declarative.CheckBox{AssignTo: &looksBox.skins, Text: "painted weapons", Checked: s.SrcdsBotWeaponSkins},
 	}
 }
 
