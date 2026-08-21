@@ -19,9 +19,15 @@ bool g_Holding;
 // gate per call site is one call site away from being missed.
 #define BotReadyInterval 0.5
 
-// The upgrade names, in the order scripts/items/mvm_upgrades.txt lists them.
-// That order is the index the game's MVM_Upgrade command carries, and the
-// file is the only place the names live.
+// The upgrade names, in the order scripts/items/mvm_upgrades.txt lists the
+// entries the game actually loads. That order is the index MVM_Upgrade carries:
+// checked against CMannVsMachineUpgradeManager with sm_dump_upgrades in
+// tf2-mvm-bots, 63 entries, identical from 0 to 62.
+//
+// Identical only once the commented-out entries are dropped. The file has 64
+// attribute lines and "heal rate bonus" is one of them, commented out, so
+// counting every line named everything from index 19 on after the upgrade
+// before it.
 ArrayList g_UpgradeNames;
 
 // Wide enough for any line of mvm_upgrades.txt.
@@ -49,8 +55,8 @@ void Bots_OnMapStart()
     Bots_LoadUpgradeNames();
 }
 
-// Every "attribute" line, in file order. Read through the game's own file
-// system, because the file lives inside a VPK rather than on disk.
+// Every "attribute" line the file means, in file order. Read through the game's
+// own file system, because the file lives inside a VPK rather than on disk.
 static void Bots_LoadUpgradeNames()
 {
     g_UpgradeNames.Clear();
@@ -63,6 +69,7 @@ static void Bots_LoadUpgradeNames()
     char line[UpgradeLineMax];
     while (file.ReadLine(line, sizeof(line)))
     {
+        StripComment(line);
         char key[32], value[64];
         if (!SplitQuoted(line, key, sizeof(key), value, sizeof(value)))
         {
@@ -75,6 +82,26 @@ static void Bots_LoadUpgradeNames()
     }
     delete file;
     AP_Debug("The plugin read %d upgrade names.", g_UpgradeNames.Length);
+}
+
+// One KeyValues line with its comment cut off. A // outside quotes starts one,
+// and the file uses both kinds: a whole entry commented out line by line, and a
+// note after a value.
+static void StripComment(char[] line)
+{
+    bool quoted = false;
+    for (int index = 0; line[index] != '\0'; index++)
+    {
+        if (line[index] == '"')
+        {
+            quoted = !quoted;
+        }
+        else if (!quoted && line[index] == '/' && line[index + 1] == '/')
+        {
+            line[index] = '\0';
+            return;
+        }
+    }
 }
 
 // "key"   "value" from one KeyValues line. False for anything else.
@@ -163,11 +190,11 @@ public void OnClientCommandKeyValues_Post(int client, KeyValues kv)
 
 /* The name of an upgrade, and the number behind it either way.
  *
- * The name comes from the order mvm_upgrades.txt lists its attributes, which is
- * an assumption about how the game numbers them and not a fact anybody has
- * checked. So the number goes in the line as well: a name that does not match
- * the upgrade a player can see on the weapon is then one glance away from
- * saying whether the table is shifted or the report is.
+ * The name comes from the order mvm_upgrades.txt lists its attributes, and that
+ * order has been checked against the game's own upgrade manager. The number
+ * stays in the line anyway: the next update to the file is free to add an entry
+ * or comment one out, and a name that does not match the upgrade a player can
+ * see on the weapon is then one glance away from saying so.
  */
 static void UpgradeLabel(int index, char[] buffer, int maxlength)
 {
