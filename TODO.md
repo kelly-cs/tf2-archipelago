@@ -188,21 +188,20 @@ evening says whether the sale reached the game at all, which is the half nobody
 could see: a sale the station accepted and the game ignored looks the same as
 one that worked, from the chair.
 
-## 6. The bot upgrade chat may name the wrong upgrade. Open
+## 6. The bot upgrade chat named the wrong upgrade. Done
 
 From the same play-test: the chat showed defender bots buying upgrades their
 class cannot have, while inspecting those bots showed the right upgrades on
-them. So the purchases are fine and the line describing them is not.
+them. So the purchases were fine and the line describing them was not.
 
-`Bots_LoadUpgradeNames` reads every `attribute` line of
-`scripts/items/mvm_upgrades.txt` in file order and treats that order as the
-index the game's `MVM_Upgrade` command carries. The mod sends the index it got
-from the game's own upgrade manager, so the two agree only if the manager
-builds its list in the file's order and skips nothing. Nobody has checked that,
-and a constant offset would produce exactly this report.
+`sm_dump_upgrades` in `tf2-mvm-bots` walks `CMannVsMachineUpgradeManager` and
+prints the index the game holds each upgrade at. It holds 63.
+`scripts/items/mvm_upgrades.txt` has 64 `attribute` lines, because entry 14,
+`heal rate bonus`, is commented out line by line and `Bots_LoadUpgradeNames`
+counted it. Indices 0 to 18 were right; from 19 on every purchase was named
+after the upgrade before it, which is 44 of the 63.
 
-The line now carries the raw index next to the name, as `damage bonus [12]`.
-One glance at a bot's actual upgrades against one chat line says whether the
-table is shifted, and by how much. If it is, the fix is here: read the file
-with a KeyValues parse and index by the block the game numbers, rather than by
-counting lines.
+The fix is a comment strip before the split: a `//` outside quotes ends the
+line, which is what KeyValues does and what the file expects, since it also
+puts a note after a value. The same parse over the file the server ships now
+gives the game's 63 names, in the game's order.
