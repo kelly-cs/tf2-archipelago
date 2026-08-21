@@ -22,6 +22,7 @@ jobs:
       attestations: write
     env:
       VT_API_KEY: ${{ secrets.VIRUSTOTAL_API_KEY }}
+      SIGNPATH_API_TOKEN: ${{ secrets.SIGNPATH_API_TOKEN }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -105,6 +106,35 @@ jobs:
             /<!-- CHANGES -->/ { while ((getline line < "/tmp/section.md") > 0) print line; next }
             { print }
           ' .github/release-notes.md > /tmp/release-notes.md
+
+      # Signing runs before anything reads the files: the checksums, the
+      # attestation and the upload all have to describe the signed exe, not the
+      # one that went into signing. signtool rewrites the PE checksum as part of
+      # signing, so the value pechecksum wrote survives as a correct one.
+      #
+      # Skipped until the SignPath application is granted and the token exists,
+      # in which case the unsigned exe ships as it does today. Only the exe is
+      # signed: Authenticode has nothing to say about an ELF binary.
+      - name: stage the exe for signing
+        if: env.SIGNPATH_API_TOKEN != ''
+        id: unsigned
+        uses: actions/upload-artifact@v4
+        with:
+          name: tf2ap-unsigned
+          path: dist/tf2ap.exe
+          if-no-files-found: error
+
+      - name: sign the exe
+        if: env.SIGNPATH_API_TOKEN != ''
+        uses: signpath/github-action-submit-signing-request@v1
+        with:
+          api-token: ${{ env.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: tf2-archipelago
+          signing-policy-slug: release-signing
+          github-artifact-id: ${{ steps.unsigned.outputs.artifact-id }}
+          wait-for-completion: true
+          output-artifact-directory: dist
 
       # The assets, named once. The checksums cover exactly what is uploaded, so
       # the list cannot drift from the file it describes. dist/ holds build

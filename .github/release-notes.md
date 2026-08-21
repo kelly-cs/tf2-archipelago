@@ -87,3 +87,13 @@ The binaries are scanned on VirusTotal, and the reports are linked at the end of
 these notes. Expect a few heuristic detections and no named malware family. The
 source is all in the repository, and `make launcher` rebuilds the exe on your
 own machine.
+
+## Code signing policy
+
+Free code signing for open source projects, provided by
+[SignPath.org](https://signpath.org), with a certificate from the
+[SignPath Foundation](https://signpath.org).
+
+> [!WARNING]
+> The application is open, not granted. Nothing is signed yet: `tf2ap.exe` ships
+> unsigned, and Windows warns about it until that changes.

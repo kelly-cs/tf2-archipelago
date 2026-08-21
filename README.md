@@ -200,6 +200,16 @@ and `make docs` builds and serves the English version on `127.0.0.1:8081`.
 - [`CONTEXT.md`](./CONTEXT.md): the glossary. Archipelago's and MvM's
   vocabularies share words but not their meanings; this file fixes both.
 
+## Code signing policy
+
+Free code signing for open source projects, provided by
+[SignPath.org](https://signpath.org), with a certificate from the
+[SignPath Foundation](https://signpath.org).
+
+> [!WARNING]
+> The application is open, not granted. Nothing is signed yet: `tf2ap.exe` ships
+> unsigned, and Windows warns about it until that changes.
+
 ## Licence
 
 This repository is MIT. See [LICENSE](./LICENSE).
