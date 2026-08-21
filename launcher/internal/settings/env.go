@@ -18,6 +18,9 @@ var EnvNames = []string{
 	"SRCDS_LAN", "SRCDS_REACH", "SRCDS_ADMIN_STEAMIDS",
 	"SRCDS_BOTS", "SRCDS_BOT_TEAM_SIZE", "SRCDS_BOT_CLASS_BLACKLIST", "SRCDS_BOT_LOADOUTS",
 	"SRCDS_BOT_TEAM_COMP",
+	"SRCDS_BOT_HATS",
+	"SRCDS_BOT_HAT_EFFECTS",
+	"SRCDS_BOT_WEAPON_SKINS",
 	"TF2AP_BOT_UPGRADES_CHAT",
 	"MVM_MISSION_COUNT", "MVM_DIFFICULTY", "MVM_GOAL",
 	"MVM_MISSIONSANITY_PERCENTAGE", "MVM_DEATH_LINK", "MVM_EXCLUDED_MISSIONS",
@@ -82,6 +85,9 @@ func ApplyEnv(s Settings) Settings {
 	list(&s.SrcdsBotClassBlacklist, "SRCDS_BOT_CLASS_BLACKLIST")
 	pairs(&s.SrcdsBotLoadouts, "SRCDS_BOT_LOADOUTS")
 	list(&s.SrcdsBotTeamComp, "SRCDS_BOT_TEAM_COMP")
+	boolean(&s.SrcdsBotHats, "SRCDS_BOT_HATS")
+	boolean(&s.SrcdsBotHatEffects, "SRCDS_BOT_HAT_EFFECTS")
+	boolean(&s.SrcdsBotWeaponSkins, "SRCDS_BOT_WEAPON_SKINS")
 	boolean(&s.BotUpgradesChat, "TF2AP_BOT_UPGRADES_CHAT")
 
 	num(&s.MvmMissionCount, "MVM_MISSION_COUNT")

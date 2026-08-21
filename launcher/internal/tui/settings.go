@@ -375,7 +375,25 @@ func (f *settingsForm) botFields() []field {
 	for _, class := range botloadout.Classes {
 		fields = append(fields, f.classField(class), f.loadoutField(class))
 	}
-	return fields
+
+	// Last, because none of it changes a wave.
+	return append(fields,
+		&toggleField{
+			label: "Hats",
+			help:  "A random hat on every bot, drawn from the ones its class can wear. It changes nothing about how they play.",
+			value: &f.edited.SrcdsBotHats, on: "a hat each", off: "stock heads",
+		},
+		&toggleField{
+			label: "Unusual effects",
+			help:  "A random unusual effect on that hat. Six particle effects on screen for the whole wave.",
+			value: &f.edited.SrcdsBotHatEffects, on: "and an effect on it", off: "no effects",
+		},
+		&toggleField{
+			label: "War paints",
+			help:  "A random war paint, at a random wear, on the three weapons each bot carries.",
+			value: &f.edited.SrcdsBotWeaponSkins, on: "painted weapons", off: "plain weapons",
+		},
+	)
 }
 
 func (f *settingsForm) seatField(seat int) field {

@@ -139,6 +139,12 @@ install_server_cfg() {
 	// order. A team named in the second beats the first.
 	sm_redbots_manager_class_blacklist "${SRCDS_BOT_CLASS_BLACKLIST:-}"
 	sm_redbots_manager_team_composition "${SRCDS_BOT_TEAM_COMP:-}"
+	// What the bots look like, none of which changes how they play: a hat
+	// each, an unusual effect on that hat, and a war paint on the three
+	// weapons they carry.
+	sm_redbots_manager_bot_hats ${SRCDS_BOT_HATS:-1}
+	sm_redbots_manager_bot_hat_effects ${SRCDS_BOT_HAT_EFFECTS:-0}
+	sm_redbots_manager_bot_weapon_skins ${SRCDS_BOT_WEAPON_SKINS:-0}
 
 	// The mission the run starts on, how long a cleared mission stays on
 	// the scoreboard before the next one loads, and whether the bots'
