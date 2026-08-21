@@ -6,6 +6,7 @@ import (
 
 	"github.com/charmbracelet/lipgloss"
 
+	"github.com/m-this/tf2-archipelago/launcher/internal/assets"
 	apruntime "github.com/m-this/tf2-archipelago/launcher/internal/runtime"
 	"github.com/m-this/tf2-archipelago/launcher/internal/session"
 )
@@ -74,6 +75,11 @@ func (m *model) header() string {
 		parts = append(parts, styleMuted.Render(m.mission))
 	}
 	parts = append(parts, styleMuted.Render(m.summary()))
+	// Which build this is, for the same reason the window puts it in its title:
+	// several builds carry one version and the question is always which.
+	if version := assets.LauncherVersion; version != "" {
+		parts = append(parts, styleMuted.Render(version))
+	}
 	return truncate(strings.Join(parts, "  "), m.width)
 }
 
