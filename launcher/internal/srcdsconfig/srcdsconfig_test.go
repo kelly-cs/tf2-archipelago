@@ -184,6 +184,8 @@ func TestInstallServerCfgCarriesTheRunAndTheBots(t *testing.T) {
 		SrcdsBotTeamComp:       []string{"engineer", "medic", "nobody", "heavyweapons"},
 		SrcdsBotLoadouts:       map[string]string{"scout": "milk"},
 		BotUpgradesChat:        true,
+		SrcdsBotHats:           true,
+		SrcdsBotWeaponSkins:    true,
 	}
 	if err := Install(s); err != nil {
 		t.Fatalf("Install: %v", err)
@@ -199,6 +201,10 @@ func TestInstallServerCfgCarriesTheRunAndTheBots(t *testing.T) {
 		`sm_redbots_manager_team_composition "engineer,medic,heavyweapons"`,
 		"sm_redbots_manager_use_custom_loadouts 1",
 		"tf2ap_bot_upgrades_chat 1",
+		// The looks, which are three separate ticks and not one
+		"sm_redbots_manager_bot_hats 1",
+		"sm_redbots_manager_bot_hat_effects 0",
+		"sm_redbots_manager_bot_weapon_skins 1",
 	} {
 		if !strings.Contains(string(cfg), want) {
 			t.Errorf("missing %q in:\n%s", want, cfg)

@@ -80,6 +80,17 @@ type Settings struct {
 	// chat. Off by default: it is a line per purchase.
 	BotUpgradesChat bool `json:"bot_upgrades_chat"`
 
+	// What the bots look like, which changes nothing about how they play. A
+	// hat each is on, because six mercenaries in the same stock hat is what a
+	// bot team looks like otherwise. The unusual effect on that hat and the war
+	// paints on the weapons are off: both are somebody's taste rather than an
+	// improvement, and the effects are a particle per bot on screen at all
+	// times. A config file written before these fields existed reads them as
+	// off, hats included, until they are ticked once.
+	SrcdsBotHats        bool `json:"srcds_bot_hats"`
+	SrcdsBotHatEffects  bool `json:"srcds_bot_hat_effects"`
+	SrcdsBotWeaponSkins bool `json:"srcds_bot_weapon_skins"`
+
 	// Run shape, for seed generation guidance (the launcher does not generate
 	// seeds itself, but it can write a starter YAML for the Archipelago app).
 	MvmMissionCount     int      `json:"mvm_mission_count"`
@@ -120,6 +131,7 @@ func Defaults() Settings {
 		SrcdsReach:          ReachLan,
 		SrcdsBots:           true,
 		SrcdsBotTeamSize:    6,
+		SrcdsBotHats:        true,
 		MvmMissionCount:     8,
 		MvmDifficulty:       "intermediate",
 		MvmGoal:             "final_boss",

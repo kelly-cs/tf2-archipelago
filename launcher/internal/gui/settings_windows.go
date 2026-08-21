@@ -78,6 +78,7 @@ func runSettingsDialog(owner walk.Form, s settings.Settings, repair func() ([]st
 		botsBox   *walk.CheckBox
 		botsSize  *walk.NumberEdit
 		buysBox   *walk.CheckBox
+		looksBox  cosmeticBoxes
 		classBox  = make([]*walk.CheckBox, len(botloadout.Classes))
 		loadoutBx = make([]*walk.ComboBox, len(botloadout.Classes))
 		seatBox   = make([]*walk.ComboBox, botSeats)
@@ -168,6 +169,9 @@ func runSettingsDialog(owner walk.Form, s settings.Settings, repair func() ([]st
 		next.SrcdsBots = botsBox.Checked()
 		next.SrcdsBotTeamSize = int(botsSize.Value())
 		next.BotUpgradesChat = buysBox.Checked()
+		next.SrcdsBotHats = looksBox.hats.Checked()
+		next.SrcdsBotHatEffects = looksBox.effects.Checked()
+		next.SrcdsBotWeaponSkins = looksBox.skins.Checked()
 		next.SrcdsBotClassBlacklist = nil
 		next.SrcdsBotLoadouts = make(map[string]string)
 		for i, class := range botloadout.Classes {
@@ -465,7 +469,7 @@ func runSettingsDialog(owner walk.Form, s settings.Settings, repair func() ([]st
 										Bottom: 9,
 									},
 								},
-								Children: botsRows(s, label, &botsBox, &botsSize, &buysBox, classBox, loadoutBx, seatBox),
+								Children: botsRows(s, label, &botsBox, &botsSize, &buysBox, &looksBox, classBox, loadoutBx, seatBox),
 							},
 						},
 					},
@@ -624,6 +628,7 @@ func leftAlign(edits ...*walk.NumberEdit) {
 func botsRows(
 	s settings.Settings, label func(text, help string) declarative.Label,
 	botsBox **walk.CheckBox, botsSize **walk.NumberEdit, buysBox **walk.CheckBox,
+	looksBox *cosmeticBoxes,
 	classBox []*walk.CheckBox, loadoutBx []*walk.ComboBox, seatBox []*walk.ComboBox,
 ) []declarative.Widget {
 	rows := []declarative.Widget{
@@ -666,7 +671,38 @@ func botsRows(
 			},
 		)
 	}
-	return rows
+	return append(rows, cosmeticRows(s, label, looksBox)...)
+}
+
+// cosmeticBoxes are the three looks-only ticks at the foot of the Bots tab.
+// One struct rather than three more pointer arguments, which are the same type
+// and would sit next to each other in the call.
+type cosmeticBoxes struct {
+	hats    *walk.CheckBox
+	effects *walk.CheckBox
+	skins   *walk.CheckBox
+}
+
+// cosmeticRows is what the bots look like. Last on the tab because none of it
+// changes a wave: a run everybody is watching is more fun when the six of them
+// do not look like the same mercenary six times.
+func cosmeticRows(
+	s settings.Settings, label func(text, help string) declarative.Label,
+	looksBox *cosmeticBoxes,
+) []declarative.Widget {
+	return []declarative.Widget{
+		declarative.TextLabel{
+			Text:       "How the bots look. None of this changes how they play.",
+			ColumnSpan: 2,
+			MaxSize:    declarative.Size{Width: sentenceWidth},
+		},
+		label("Hats", "A random hat on every bot, drawn from the ones its class can wear."),
+		declarative.CheckBox{AssignTo: &looksBox.hats, Text: "a hat each", Checked: s.SrcdsBotHats},
+		label("Unusual effects", "A random unusual effect on that hat. Six particle effects on screen for the whole wave, so it is off by default."),
+		declarative.CheckBox{AssignTo: &looksBox.effects, Text: "and an effect on it", Checked: s.SrcdsBotHatEffects},
+		label("War paints", "A random war paint, at a random wear, on the three weapons each bot carries."),
+		declarative.CheckBox{AssignTo: &looksBox.skins, Text: "painted weapons", Checked: s.SrcdsBotWeaponSkins},
+	}
 }
 
 // botSeats is how many bots RED can hold, which is the team size the Bots tab

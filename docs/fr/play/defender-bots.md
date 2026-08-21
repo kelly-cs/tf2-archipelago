@@ -36,6 +36,9 @@ Les réglages dans `.env` :
 | `SRCDS_BOT_CLASS_BLACKLIST` | vide | Les classes que les bots ne jouent jamais, séparées par des virgules : `sniper,spy` |
 | `SRCDS_BOT_TEAM_COMP` | vide | Les classes dont les bots remplissent RED, dans l'ordre. Voir ci-dessous. |
 | `TF2AP_BOT_UPGRADES_CHAT` | `0` | `1` écrit dans le chat ce que les bots achètent à la station d'améliorations |
+| `SRCDS_BOT_HATS` | `1` | Un chapeau au hasard sur chaque bot |
+| `SRCDS_BOT_HAT_EFFECTS` | `0` | `1` pose un effet unusual au hasard sur ce chapeau |
+| `SRCDS_BOT_WEAPON_SKINS` | `0` | `1` peint les trois armes que porte chaque bot |
 
 Baissez `SRCDS_BOT_TEAM_SIZE` pour une partie plus dure : à `4`, trois amis
 reçoivent un bot. Mettez `SRCDS_BOTS=0` quand vous êtes six et que les places
@@ -72,13 +75,23 @@ Le jeu ne permet plus d'inspecter les améliorations d'un coéquipier. Avec
 `TF2AP_BOT_UPGRADES_CHAT=1`, le chat dit ce que chaque bot achète, une ligne
 par achat. C'est désactivé par défaut parce qu'un bot achète beaucoup.
 
+Les trois derniers ne changent que l'apparence. Un bot tire au sort une fois un
+chapeau que sa classe peut porter et le garde jusqu'à la fin de la mission :
+c'est le chapeau qui permet de distinguer un Heavy d'un autre. Il ne retire au
+sort que s'il change de classe. Les effets sont désactivés par défaut parce que
+six particules unusual restent à l'écran toute la vague,
+et les peintures parce qu'un scattergun de base peint relève du goût de chacun
+plutôt que d'une amélioration. Aucun des trois ne touche à la façon dont un bot
+joue, à ce qu'il achète ou à ce qu'il porte.
+
 Tous prennent effet au chargement de la carte suivante. `make restart` est la
 façon sûre.
 
 Sur Windows, le lanceur a un onglet **Bots** pour les mêmes réglages. Six
 menus, un par place, nomment l'équipe dans l'ordre. Un équipement prédéfini
 par classe dit avec quelles armes un bot de cette classe apparaît. Les armes
-de base sont le défaut. Voir
+de base sont le défaut. Les trois cases au bas de cet onglet sont l'apparence.
+Voir
 [Installer sur Windows](../setup/install-windows.md).
 
 Un bot tient ses distances selon ce qu'il porte, pas selon sa classe. Un Brass
