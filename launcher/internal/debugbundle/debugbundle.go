@@ -60,6 +60,10 @@ func Write(s settings.Settings, versions map[string]string, stamp time.Time) (st
 	copyIn(archive, apruntime.ConsoleLogName, filepath.Join(game, apruntime.ConsoleLogName))
 	copyIn(archive, apruntime.ConsolePreviousName, filepath.Join(game, apruntime.ConsolePreviousName))
 	copyIn(archive, "server.cfg", filepath.Join(game, "cfg", "server.cfg"))
+	// The plugin's own config, which is written once and then belongs to the
+	// server. Two bundles were read without knowing that this file still said
+	// tf2ap_debug 0, which is why they held nothing worth reading.
+	copyIn(archive, "tf2_archipelago.cfg", filepath.Join(game, "cfg", "sourcemod", "tf2_archipelago.cfg"))
 
 	// The crash dumps, newest last. srcds runs under Breakpad and writes one
 	// per crash, and a crash that leaves no line in any log leaves one of
