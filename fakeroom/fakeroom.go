@@ -16,6 +16,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"math/rand/v2"
 	"net"
 	"net/http"
@@ -235,7 +236,7 @@ func (r *Room) handle(ctx context.Context, conn *websocket.Conn, cmd string,
 		return nil
 
 	case "Say":
-		return nil
+		return r.answer(ctx, conn, message, missions)
 	}
 	return nil
 }
@@ -552,4 +553,103 @@ func mustRaw(message map[string]json.RawMessage) []byte {
 		return []byte("{}")
 	}
 	return body
+}
+
+/* What a room of one says back to !ap.
+ *
+ * A real Archipelago server answers !missing, !checked and the rest, and the
+ * plugin forwards them for a player who has no Archipelago client open. This
+ * room used to take the command and say nothing at all, so every one of those
+ * documented commands was silence, and silence reads as a broken server rather
+ * than as a test room that never had an answer.
+ */
+func (r *Room) answer(ctx context.Context, conn *websocket.Conn,
+	message map[string]json.RawMessage, missions []string,
+) error {
+	var text string
+	if raw, ok := message["text"]; ok {
+		_ = json.Unmarshal(raw, &text)
+	}
+
+	// A copy, because the answer is built outside the lock and the traffic
+	// goroutine goes on checking things while it is.
+	r.mu.Lock()
+	checked := maps.Clone(r.checked)
+	r.mu.Unlock()
+
+	for _, line := range replyLines(text, checked, missions) {
+		r.say(ctx, conn, line)
+	}
+	return nil
+}
+
+// replyMax caps a reply. Chat carries one line at a time and a run holds a
+// couple of hundred locations, so the whole list would scroll the game's chat
+// off the screen and tell nobody anything.
+const replyMax = 8
+
+/* replyLines is what the room says to one line of chat, and nothing else.
+ *
+ * Pure, and separate from sending it: what this room knows how to answer is
+ * the part worth testing, and a websocket is not.
+ *
+ * Only the commands whose answer this room actually holds. Anything else says
+ * so, because a wrong answer from a test room is worse than no answer.
+ */
+func replyLines(text string, checked map[int64]bool, missions []string) []string {
+	text = strings.TrimSpace(text)
+	// Ordinary chat is not this room's business.
+	if !strings.HasPrefix(text, "!") {
+		return nil
+	}
+	command, _, _ := strings.Cut(strings.TrimPrefix(text, "!"), " ")
+
+	switch strings.ToLower(command) {
+	case "missing":
+		return locationLines(checked, missions, false)
+	case "checked":
+		return locationLines(checked, missions, true)
+	case "players":
+		return []string{"This is a room of one: the test room plays every other slot."}
+	case "hint":
+		return []string{"Every item in a test run is in this world, and they arrive in order as checks land."}
+	}
+	return []string{"The test room does not answer !" + command + ". A real Archipelago room does."}
+}
+
+// locationLines lists what has been checked, or what has not.
+func locationLines(checked map[int64]bool, missions []string, want bool) []string {
+	var names []string
+	total := 0
+	for _, popFile := range missions {
+		mission, known := gamedata.MissionByPopFile(popFile)
+		if !known {
+			continue
+		}
+		for _, location := range gamedata.Locations {
+			if location.Mission != mission.ID || checked[location.ID] != want {
+				continue
+			}
+			total++
+			if len(names) < replyMax {
+				names = append(names, location.Name)
+			}
+		}
+	}
+
+	word := "still to check"
+	if want {
+		word = "checked"
+	}
+	if total == 0 {
+		return []string{fmt.Sprintf("Nothing %s.", word)}
+	}
+	lines := []string{fmt.Sprintf("%d %s, starting with:", total, word)}
+	for _, name := range names {
+		lines = append(lines, "  "+name)
+	}
+	if total > len(names) {
+		lines = append(lines, fmt.Sprintf("  and %d more.", total-len(names)))
+	}
+	return lines
 }

@@ -336,3 +336,48 @@ func TestTheStartingInventoryFallsBackToAClass(t *testing.T) {
 		}
 	}
 }
+
+// The plugin forwards !ap commands to the room for a player with no
+// Archipelago client open. This room took them and said nothing at all, which
+// reads as a broken server rather than as a test room with no answer.
+func TestTheRoomAnswersTheChatCommands(t *testing.T) {
+	missions := []string{"mvm_coaltown"}
+	checked := map[int64]bool{}
+
+	// Coaltown is nine checks and none of them are done.
+	missing := strings.Join(locationLines(checked, missions, false), "\n")
+	if !strings.Contains(missing, "9 still to check") {
+		t.Errorf("!missing did not count the run's locations:\n%s", missing)
+	}
+	if lines := replyLines("!checked", checked, missions); !strings.Contains(lines[0], "Nothing checked") {
+		t.Errorf("!checked said %q", lines[0])
+	}
+	for _, command := range []string{"!players", "!hint Scout", "!nonsense"} {
+		if len(replyLines(command, checked, missions)) == 0 {
+			t.Errorf("%s was answered with silence", command)
+		}
+	}
+	if lines := replyLines("!nonsense", checked, missions); !strings.Contains(lines[0], "!nonsense") {
+		t.Errorf("an unknown command was not named back: %q", lines[0])
+	}
+}
+
+// A run holds a couple of hundred locations and chat carries one line at a
+// time, so the list is capped and says how much it left out.
+func TestTheRoomCapsTheList(t *testing.T) {
+	lines := locationLines(map[int64]bool{}, []string{"mvm_decoy", "mvm_coaltown"}, false)
+
+	if len(lines) > replyMax+2 {
+		t.Errorf("a reply of %d lines is too long for chat", len(lines))
+	}
+	if !strings.Contains(lines[len(lines)-1], "more") {
+		t.Errorf("the reply does not say what it left out: %q", lines[len(lines)-1])
+	}
+}
+
+// A line that is not a command is chat, and chat is not this room's business.
+func TestTheRoomIgnoresOrdinaryChat(t *testing.T) {
+	if lines := replyLines("hello everyone", map[int64]bool{}, []string{"mvm_coaltown"}); lines != nil {
+		t.Errorf("the room answered ordinary chat with %v", lines)
+	}
+}
