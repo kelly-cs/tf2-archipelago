@@ -128,7 +128,7 @@ compile depuis la source. TF2Attributes reçoit un correctif à nous depuis
 `deploy/patches/`, dont le README dit pourquoi.
 
 Le mod lui-même vient de notre fork, [m-this/tf2-mvm-bots][fork]. Sa branche
-`tf2ap` est un tag amont plus nos changements, et `DEFENDERBOTS_VERSION` nomme
+`main` est un tag amont plus nos changements, et `DEFENDERBOTS_VERSION` nomme
 un tag de cette branche.
 
 Le comportement des bots est celui du mod. Un bot qui rentre dans un mur se

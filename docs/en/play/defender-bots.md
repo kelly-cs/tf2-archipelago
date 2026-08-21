@@ -114,7 +114,7 @@ CBaseNPC, Actions, TF2Attributes, TF Econ Data and TF2Utils. The server builds
 them from source. TF2Attributes takes one fix of ours from `deploy/patches/`,
 whose README says why.
 
-The mod itself comes from our fork, [m-this/tf2-mvm-bots][fork]. Its `tf2ap`
+The mod itself comes from our fork, [m-this/tf2-mvm-bots][fork]. Its `main`
 branch is an upstream tag plus our changes, and `DEFENDERBOTS_VERSION` names a
 tag of it.
 
