@@ -173,16 +173,33 @@ public void OnClientCommandKeyValues_Post(int client, KeyValues kv)
     char upgrade[64];
     UpgradeLabel(index, upgrade, sizeof(upgrade));
 
+    /* The credits held afterwards, for a bot as readily as for a player.
+     *
+     * A play-test showed one medic asking for the same upgrade twenty-five
+     * times in one mission, ten of them inside thirty seconds. The line said
+     * what was asked for and not what it cost, so nothing in the log said
+     * whether the game was charging for those or refusing them at their
+     * ceiling, and those are different bugs.
+     *
+     * The same reasoning as the sale a player makes: what a station shows and
+     * what the game does are two things, and only the second moves money.
+     */
+    int credits = HasEntProp(client, Prop_Send, "m_nCurrency")
+        ? GetEntProp(client, Prop_Send, "m_nCurrency") : -1;
+
     if (!IsFakeClient(client))
     {
-        // The currency after the fact, which is what says whether the game took
-        // it. A sale that the station showed and the game refused looks exactly
-        // like a sale that worked, until these two lines disagree.
         AP_Debug("%N %s %s (%s) x%d, and holds %d credits.",
             client, count < 0 ? "sold" : "bought", upgrade, SlotLabel(slot), count < 0 ? -count : count,
-            HasEntProp(client, Prop_Send, "m_nCurrency") ? GetEntProp(client, Prop_Send, "m_nCurrency") : -1);
+            credits);
         return;
     }
+    // The log takes every bot purchase whatever the chat is set to: the chat is
+    // one line per tier and unreadable during a wave, and the log is what a
+    // debug bundle carries.
+    AP_Debug("%N %s %s (%s) x%d, and holds %d credits.",
+        client, count < 0 ? "sold" : "bought", upgrade, SlotLabel(slot), count < 0 ? -count : count,
+        credits);
     if (!g_CvarBotUpgradesChat.BoolValue)
     {
         return;
