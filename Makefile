@@ -15,6 +15,12 @@ export GO_VERSION
 # this project reads it from here.
 RELEASE_VERSION := $(shell sed -n 's/.*"world_version": "\([^"]*\)".*/\1/p' apworld/tf2_mvm/archipelago.json)
 
+# Which build this is, for the window title and the debug bundle. Between
+# releases a dozen builds carry the same version, and the commit is the only
+# thing that tells them apart. A tree with uncommitted work says so, because a
+# report from one cannot be traced to anything else.
+BUILD_COMMIT := $(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)$(shell git diff --quiet HEAD 2>/dev/null || echo +dirty)
+
 # --project-directory pins relative paths in the compose files to the repository
 # root. --env-file replaces the default .env rather than adding to it, so both
 # files have to be named: the pins first, then the operator's settings, which
@@ -272,7 +278,8 @@ LAUNCHER_LDFLAGS := -X github.com/m-this/tf2-archipelago/launcher/internal/asset
 	-X github.com/m-this/tf2-archipelago/launcher/internal/assets.MetamodVersion=$(MMSOURCE_VERSION) \
 	-X github.com/m-this/tf2-archipelago/launcher/internal/assets.RipextVersion=$(RIPEXT_VERSION) \
 	-X github.com/m-this/tf2-archipelago/launcher/internal/assets.ArchipelagoVersion=$(ARCHIPELAGO_VERSION) \
-	-X github.com/m-this/tf2-archipelago/launcher/internal/assets.DefenderbotsVersion=$(DEFENDERBOTS_VERSION)
+	-X github.com/m-this/tf2-archipelago/launcher/internal/assets.DefenderbotsVersion=$(DEFENDERBOTS_VERSION) \
+	-X github.com/m-this/tf2-archipelago/launcher/internal/assets.LauncherVersion=$(RELEASE_VERSION)-$(BUILD_COMMIT)
 
 # The bots go in as a Windows-only zip: the staged tree carries both platforms'
 # extensions, and the 20 MB of Linux .so has no business inside a .exe.

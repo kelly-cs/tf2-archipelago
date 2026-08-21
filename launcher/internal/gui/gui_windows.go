@@ -146,7 +146,7 @@ func Run(s settings.Settings, logger *slog.Logger) error {
 func (w *window) build() error {
 	return declarative.MainWindow{
 		AssignTo: &w.main,
-		Title:    "Mann vs Archipelago",
+		Title:    assets.Title("Mann vs Archipelago"),
 		Size:     declarative.Size{Width: 960, Height: 640},
 		Layout:   declarative.VBox{},
 		Children: []declarative.Widget{

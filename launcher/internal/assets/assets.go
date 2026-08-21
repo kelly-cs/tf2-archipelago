@@ -39,6 +39,12 @@ var (
 	RipextVersion      = ""
 	ArchipelagoVersion = ""
 
+	// LauncherVersion is this build of the launcher itself: the release it
+	// belongs to and the commit it was built from. The commit is the useful
+	// half between releases, when several builds carry the same version and
+	// the only question anybody has is which one they are running.
+	LauncherVersion = ""
+
 	// DefenderbotsVersion is the tag the embedded bot mod was built from. It
 	// installs no separate download, so nothing gates on it; it is here because
 	// a crash report that does not say which bots were playing cannot be read.
@@ -83,7 +89,17 @@ func Versions() map[string]string {
 		"ripext":       RipextVersion,
 		"archipelago":  ArchipelagoVersion,
 		"defenderbots": DefenderbotsVersion,
+		"launcher":     LauncherVersion,
 	}
+}
+
+// Title is what the window calls itself: the name, and the build behind it when
+// there is one. A hand build has no version injected and simply says the name.
+func Title(name string) string {
+	if LauncherVersion == "" {
+		return name
+	}
+	return name + "  " + LauncherVersion
 }
 
 // RequireVersions fails when any version string is empty. A binary built by
@@ -91,9 +107,9 @@ func Versions() map[string]string {
 // wrong versions; the Makefile sets them, so the installer gates on this.
 func RequireVersions() error {
 	for name, value := range Versions() {
-		// Not an install gate: nothing downloads by this version, it only
-		// names what is already embedded.
-		if name == "defenderbots" {
+		// Not install gates: nothing downloads by these, they only name what
+		// is already here.
+		if name == "defenderbots" || name == "launcher" {
 			continue
 		}
 		if value == "" {
