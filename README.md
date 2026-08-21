@@ -228,14 +228,16 @@ and is not affiliated with or endorsed by Valve Corporation.
 
 ## Credits
 
-The design comes from the Archipelago Discord thread. **Damonj17** set the
-premise and the shape of the items and the checks. **Roseburst** wrote the
-entire YAML options schema. **adeleine64DS**, **Amazia**, **Snolid Ice**,
-**mudkipslike**, **TheBreadstick**, **CrystalClear**, and **Pixel Silzavon**
-contributed. The starting data tables come from **ALPHAMARIOX**'s fork. The
-bots are [OfficerSpy's MvM Defender TFBots](https://github.com/OfficerSpy/TF2-MvM-Defender-TFBots),
-carried in [a fork](https://github.com/m-this/tf2-mvm-bots).
+The design comes from the Archipelago Discord thread.
 
-**EZKSupernova** play-tested the first runs and asked for the class blacklist,
-the excluded missions and the bots' purchases in the chat. **Cowser the
-Khelinace** found the DeathLink wording that said the wrong thing.
+- **Damonj17** set the premise and the shape of the items and the checks.
+- **Roseburst** wrote the entire YAML options schema.
+- **ALPHAMARIOX**'s fork is where the starting data tables come from.
+- **adeleine64DS**, **Amazia**, **Snolid Ice**, **mudkipslike**,
+  **TheBreadstick**, **CrystalClear** and **Pixel Silzavon** contributed.
+- **SwagDoll420** and **EZKSupernova** play-tested the runs the issue list
+  comes from. Most of what the bots do came from their reports: the class
+  blacklist, the excluded missions, and the bots' purchases in the chat.
+
+The bots are [OfficerSpy's MvM Defender TFBots](https://github.com/OfficerSpy/TF2-MvM-Defender-TFBots),
+carried in [a fork](https://github.com/m-this/tf2-mvm-bots).
