@@ -273,6 +273,10 @@ public void Event_BeginWave(Event event, const char[] name, bool dontBroadcast)
     g_CurrentWave = event.GetInt("wave_index") + 1;
     g_MaxWaves = event.GetInt("max_waves");
     g_PolledWave = g_CurrentWave;
+    // The mod adds its whole lineup at this moment whatever is already on RED,
+    // and this plugin has filled the team before it. One of the two has to
+    // count, and the seats belong to this one.
+    CreateTimer(BotTrimDelay, Timer_TrimBots);
     if (g_CurrentWave == 1)
     {
         g_MissionReported = false;
