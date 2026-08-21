@@ -40,7 +40,11 @@ GOLANGCI_LINT := go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$
 GOVULNCHECK := go run golang.org/x/vuln/cmd/govulncheck@$(GOVULNCHECK_VERSION)
 RUFF := uv run --quiet --with ruff==$(RUFF_VERSION) ruff
 SHADOW := uv run --quiet --with pillow==$(PILLOW_VERSION) python docs/shadow.py
-GO_SRC := $$(find . -type f -name '*.go')
+# Ours only. deploy/bots/build/ holds seven repositories this project fetches
+# and compiles, and one of them now carries Go of its own: formatting somebody
+# else's tree is not this project's business, and a fresh checkout of it must
+# not be able to fail our own format check.
+GO_SRC := $$(find . -type f -name '*.go' -not -path './deploy/bots/build/*')
 
 .PHONY: help seed up down restart logs ps rcon \
         check fmt fmt-check vet lint lint-fix fix-check vuln compile test shadows \
