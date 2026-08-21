@@ -388,11 +388,6 @@ func (f *settingsForm) botFields() []field {
 			help:  "A random unusual effect on that hat. Six particle effects on screen for the whole wave.",
 			value: &f.edited.SrcdsBotHatEffects, on: "and an effect on it", off: "no effects",
 		},
-		&toggleField{
-			label: "War paints",
-			help:  "A random war paint, at a random wear, on the three weapons each bot carries.",
-			value: &f.edited.SrcdsBotWeaponSkins, on: "painted weapons", off: "plain weapons",
-		},
 	)
 }
 

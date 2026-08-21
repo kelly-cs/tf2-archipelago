@@ -36,7 +36,6 @@ The settings in `.env`:
 | `TF2AP_BOT_UPGRADES_CHAT` | `0` | `1` writes what the bots buy at the upgrade station in the chat |
 | `SRCDS_BOT_HATS` | `1` | A random hat on every bot |
 | `SRCDS_BOT_HAT_EFFECTS` | `0` | `1` puts a random unusual effect on that hat |
-| `SRCDS_BOT_WEAPON_SKINS` | `0` | `1` paints the three weapons each bot carries |
 
 Lower `SRCDS_BOT_TEAM_SIZE` for a harder run. At `4`, three friends get one
 bot. Set `SRCDS_BOTS=0` when six of you play and the slots are yours.
@@ -69,13 +68,15 @@ The game no longer lets a player inspect a teammate's upgrades. With
 `TF2AP_BOT_UPGRADES_CHAT=1` the chat says what each bot buys, one line per
 purchase. It is off by default because a bot buys a lot.
 
-The last three are looks and nothing else. A bot draws a hat its class can
-wear once, and wears that one for the rest of the mission, so the hat is how
-you tell one Heavy from another. It draws again only if it changes class. The
-effects are off by default because six
-unusual particles are on screen for the whole wave, and the war paints because
-a painted stock scattergun is somebody's taste rather than an improvement.
-None of the three touches how a bot plays, what it buys or what it carries.
+The last two are looks and nothing else. A bot draws a hat its class can wear
+once, and wears that one for the rest of the mission, so the hat is how you
+tell one Heavy from another. It draws again only if it changes class. The
+effects are off by default because six unusual particles are on screen for the
+whole wave. Neither touches how a bot plays, what it buys or what it carries.
+
+War paints were here and are gone: they painted the weapon entities the upgrade
+station replaces, and the server died the moment two engineers finished
+shopping.
 
 All of them take effect at the next map load. `make restart` is the certain
 way.

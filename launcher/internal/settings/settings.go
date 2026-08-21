@@ -81,19 +81,21 @@ type Settings struct {
 	BotUpgradesChat bool `json:"bot_upgrades_chat"`
 
 	// What the bots look like, which changes nothing about how they play. A
-	// hat each is on, so is the unusual effect on it, and so are the war paints
-	// on the weapons: six mercenaries in the same stock hat is what a bot team
-	// looks like otherwise, and this is the part of the mod nobody has to think
-	// about.
+	// hat each is on and so is the unusual effect on it: six mercenaries in the
+	// same stock hat is what a bot team looks like otherwise, and this is the
+	// part of the mod nobody has to think about.
+	//
+	// War paints were here and are gone. They painted the weapon entities the
+	// upgrade station replaces, and the server died the moment two engineers
+	// finished shopping.
 	//
 	// A config file written before these fields existed does not mention them,
 	// and a bool nobody wrote reads back as false, so the whole lot arrived
 	// switched off on every install that had ever saved a setting. Load tells
 	// "the file said no" from "the file said nothing", which is what
 	// SrcdsLanLegacy does a few fields down for the same reason.
-	SrcdsBotHats        bool `json:"srcds_bot_hats"`
-	SrcdsBotHatEffects  bool `json:"srcds_bot_hat_effects"`
-	SrcdsBotWeaponSkins bool `json:"srcds_bot_weapon_skins"`
+	SrcdsBotHats       bool `json:"srcds_bot_hats"`
+	SrcdsBotHatEffects bool `json:"srcds_bot_hat_effects"`
 
 	// Run shape, for seed generation guidance (the launcher does not generate
 	// seeds itself, but it can write a starter YAML for the Archipelago app).
@@ -137,7 +139,6 @@ func Defaults() Settings {
 		SrcdsBotTeamSize:    6,
 		SrcdsBotHats:        true,
 		SrcdsBotHatEffects:  true,
-		SrcdsBotWeaponSkins: true,
 		MvmMissionCount:     8,
 		MvmDifficulty:       "intermediate",
 		MvmGoal:             "final_boss",
@@ -193,7 +194,7 @@ func parse(data []byte) (Settings, error) {
 	return s.withDefaults().withAppearanceDefaults(data), nil
 }
 
-// withAppearanceDefaults fills the three appearance switches a file that
+// withAppearanceDefaults fills the two appearance switches a file that
 // predates them does not mention. Called by parse, after the file's own values
 // are in.
 //
@@ -204,7 +205,6 @@ func (s Settings) withAppearanceDefaults(data []byte) Settings {
 	var said struct {
 		Hats    *bool `json:"srcds_bot_hats"`
 		Effects *bool `json:"srcds_bot_hat_effects"`
-		Skins   *bool `json:"srcds_bot_weapon_skins"`
 	}
 	// A file that parsed once parses again; anything else has already been
 	// reported by the caller.
@@ -217,9 +217,6 @@ func (s Settings) withAppearanceDefaults(data []byte) Settings {
 	}
 	if said.Effects == nil {
 		s.SrcdsBotHatEffects = d.SrcdsBotHatEffects
-	}
-	if said.Skins == nil {
-		s.SrcdsBotWeaponSkins = d.SrcdsBotWeaponSkins
 	}
 	return s
 }

@@ -133,24 +133,23 @@ func TestAConfigThatPredatesTheAppearanceSwitchesGetsTheDefaults(t *testing.T) {
 		t.Fatalf("parse: %v", err)
 	}
 
-	if !s.SrcdsBotHats || !s.SrcdsBotHatEffects || !s.SrcdsBotWeaponSkins {
-		t.Errorf("hats %v, effects %v, skins %v; want all on",
-			s.SrcdsBotHats, s.SrcdsBotHatEffects, s.SrcdsBotWeaponSkins)
+	if !s.SrcdsBotHats || !s.SrcdsBotHatEffects {
+		t.Errorf("hats %v, effects %v; want both on", s.SrcdsBotHats, s.SrcdsBotHatEffects)
 	}
 }
 
 // A file that says no is not a file that says nothing: unticking one has to
 // survive the next start.
 func TestTheAppearanceSwitchesStayOffWhenTheFileSaysSo(t *testing.T) {
-	s, err := parse([]byte(`{"srcds_bot_hats": false, "srcds_bot_hat_effects": false, "srcds_bot_weapon_skins": true}`))
+	s, err := parse([]byte(`{"srcds_bot_hats": false, "srcds_bot_hat_effects": true}`))
 	if err != nil {
 		t.Fatalf("parse: %v", err)
 	}
 
-	if s.SrcdsBotHats || s.SrcdsBotHatEffects {
-		t.Errorf("hats %v and effects %v were turned back on", s.SrcdsBotHats, s.SrcdsBotHatEffects)
+	if s.SrcdsBotHats {
+		t.Error("hats were off in the file and came back on")
 	}
-	if !s.SrcdsBotWeaponSkins {
-		t.Error("skins were on in the file and came back off")
+	if !s.SrcdsBotHatEffects {
+		t.Error("effects were on in the file and came back off")
 	}
 }

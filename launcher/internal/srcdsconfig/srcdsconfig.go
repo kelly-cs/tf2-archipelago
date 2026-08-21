@@ -58,7 +58,6 @@ func installServerCfg(gameDir string, s settings.Settings) error {
 		"BotUpgradesChat":   boolToInt(s.BotUpgradesChat),
 		"BotHats":           boolToInt(s.SrcdsBotHats),
 		"BotHatEffects":     boolToInt(s.SrcdsBotHatEffects),
-		"BotWeaponSkins":    boolToInt(s.SrcdsBotWeaponSkins),
 		"StartMission":      s.SrcdsStartMission,
 	}); err != nil {
 		return fmt.Errorf("cannot render server.cfg: %w", err)
