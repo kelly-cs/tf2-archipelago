@@ -39,6 +39,33 @@ char g_PlannedPopFile[64];
 // reloads the mission in place, so it cannot be run while the map still is.
 #define PopFileDelay 2.0
 
+/* The mission the plugin last asked the game for, and until when it is still
+ * waiting for it.
+ *
+ * A switch is not instant. A map change is a load, and the mission the map
+ * comes up with is its own default until tf_mvm_popfile lands two seconds
+ * later. The unlock set and the mission list, meanwhile, are re-fetched at
+ * every map start and answer off loopback in milliseconds.
+ *
+ * So the guard below used to run while the switch was still in the air, read
+ * the map's default mission as the mission the run is on, find it is not in the
+ * run, and move the server to the first unlocked mission of the list: the
+ * switch that was asked for was undone by the plugin that was making it, every
+ * time, which is why only tf2ap_start_mission appeared to work. That one is
+ * written into server.cfg and is already loaded before any of this runs.
+ *
+ * GetEngineTime and not GetGameTime: game time restarts at zero with the map,
+ * and this deadline has to survive exactly that.
+ */
+char g_SwitchingPopFile[64];
+float g_SwitchingUntil;
+
+// How long to wait for a switch before believing it will not happen. A map
+// change plus the popfile that follows it is a few seconds; a minute is the
+// point at which something else went wrong and the guard should have the
+// server back.
+#define SwitchGrace 60.0
+
 void Missions_Init()
 {
     g_CvarStartMission = CreateConVar("tf2ap_start_mission", "",
@@ -139,6 +166,12 @@ void Missions_OnListUpdated()
     MvM_PopFile(current, sizeof(current));
     bool playingMvM = MvM_IsActive();
 
+    // Nothing here may second-guess a switch that has not landed yet.
+    if (Missions_SwitchInFlight(current))
+    {
+        return;
+    }
+
     if (g_PlannedPopFile[0] != '\0')
     {
         if (StrEqual(g_PlannedPopFile, current, false))
@@ -191,6 +224,33 @@ void Missions_OnListUpdated()
     }
     AP_Announce("%s. The server moves to %s.", why, next.name);
     Missions_Load(next);
+}
+
+// Whether the plugin is still waiting for the mission it asked for.
+//
+// Arriving clears it. So does the grace running out, because a switch that
+// never lands must not leave the guard switched off for the evening: past it
+// the server goes back to being moved off a mission the run does not hold.
+static bool Missions_SwitchInFlight(const char[] current)
+{
+    if (g_SwitchingPopFile[0] == '\0')
+    {
+        return false;
+    }
+    if (StrEqual(g_SwitchingPopFile, current, false))
+    {
+        AP_Debug("The mission %s is loaded.", g_SwitchingPopFile);
+        g_SwitchingPopFile[0] = '\0';
+        return false;
+    }
+    if (GetEngineTime() > g_SwitchingUntil)
+    {
+        AP_Error("The mission %s never loaded. The server is on %s.", g_SwitchingPopFile, current);
+        g_SwitchingPopFile[0] = '\0';
+        return false;
+    }
+    AP_Debug("The plugin is still waiting for %s, and the game says %s.", g_SwitchingPopFile, current);
+    return true;
 }
 
 // Loads a mission of the run by popfile name if the run holds it and unlocked
@@ -270,6 +330,11 @@ static Action Timer_LoadPlanned(Handle timer)
 static void Missions_Load(Mission mission)
 {
     LogMessage("mission switched to %s (%s) on %s", mission.name, mission.popFile, mission.map);
+
+    // Before either branch: both are asking for a mission that is not loaded
+    // yet, and the guard has to know that for as long as it takes.
+    strcopy(g_SwitchingPopFile, sizeof(g_SwitchingPopFile), mission.popFile);
+    g_SwitchingUntil = GetEngineTime() + SwitchGrace;
 
     char current[64];
     GetCurrentMap(current, sizeof(current));
