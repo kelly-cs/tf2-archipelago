@@ -128,38 +128,38 @@ Randomized weapons with tiers need the tier to be the item id, because ADR 0001
 forbids an id whose meaning is rolled per seed, and that is a feature of its
 own size.
 
-## 4. The bots only turn up when the first wave starts. Open
+## 4. The bots only turn up when the first wave starts. Fixed here, not in the mod
 
-`deploy/srcds-entrypoint.sh` runs the mod in AUTO_BOTS, where `ManageDefenderBots`
-is called from the mod's `mvm_begin_wave` handler and from a one-second monitor
-that returns early unless the round is running. So between the map loading and
-the first wave there is nobody on RED but the players, and the bots appear at
-the moment the wave does.
+`deploy/srcds-entrypoint.sh` runs the mod in AUTO_BOTS, where
+`ManageDefenderBots` is called from the mod's `mvm_begin_wave` handler and from
+a one-second monitor that returns early unless the round is running. So between
+the map loading and the first wave there was nobody on RED but the players, and
+the bots appeared at the moment the wave did.
 
-What that costs is the upgrade station. A bot that spawns at wave start has not
-shopped, so wave 1 is played by six bots with stock weapons and no upgrades,
-and the engineer has no nest. It also makes the whole team look absent to a
-player who joins early and wonders whether the server is broken.
+What that cost is the upgrade station. A bot that spawns at wave start has not
+shopped, so wave one was played by six bots with stock weapons and no upgrades,
+and the engineer had nothing built because he had not existed long enough to
+build it. Reported from a play-test as the bots only joining on F4.
 
-Wanted: the bots take their seats as soon as the map is up, shop like everyone
-else, and hold the wave until they are prepared, which is what
-`UpdateDefenderReadiness` in the fork now does.
+`Bots_Fill` in `plugin/scripting/tf2_archipelago/bots.inc` now tops RED up
+every three seconds between waves, once a player is on the server. It is the
+same `sm_addbots` the disconnect backfill already used.
 
-Two ways in, and the choice is the work:
+Two things make it safe, and both were already here:
 
-- Ask from here. `Bots_Backfill` already calls `sm_addbots` between rounds, so
-  the same call on map start with the round in `BetweenRounds` would do it.
-  Cheap, and it puts this plugin in charge of something the mod owns.
-- Fix it in the fork. AUTO_BOTS fills on `mvm_begin_wave` because that is when
-  the mode was written to fill; filling between rounds as well is a change to
-  `Timer_ManageDefenderBots`, and it is the mod's own bug rather than ours.
+- a bot that turns up before the players is held unready until every player on
+  RED is ready, and never readies at all with nobody on RED. Otherwise filling
+  the team early means the bots starting wave one by themselves while the first
+  player is still choosing a class.
+- a seat is held for every player who is connected and not on RED yet, or this
+  fights `Bots_MakeRoom`: that frees a seat the moment a player connects, and a
+  fill three seconds later would put a bot back in it before they had finished
+  joining.
 
-Prefer the second. The first is a workaround for a mode that is meant to manage
-the bots and does not manage them before the first wave.
-
-Note that the two rules already shipped make the early join safe: bots never
-ready while a player on RED is not ready, and never ready at all when nobody is
-on RED, so bots on the server early cannot start a wave by themselves.
+Still worth doing in the mod one day, and that is where it belongs: AUTO_BOTS
+fills on `mvm_begin_wave` because that is when the mode was written to fill, and
+filling between rounds as well is a change to `Timer_ManageDefenderBots`. What
+is here is a plugin asking for something the mod is meant to manage.
 
 ## 5. De-upgrading appears not to take. Open, and it may be item 1
 
