@@ -159,7 +159,10 @@ stock bool MvM_CanPayCredits()
     }
     for (int client = 1; client <= MaxClients; client++)
     {
-        if (MvM_IsPlayer(client) && HasProp(client, "m_nCurrency"))
+        // Alive, because the money arrives as a pack to walk over and a dead
+        // player walks nowhere. Between waves everybody is alive; the check is
+        // for the moment after a wave is lost and before the respawn.
+        if (MvM_IsPlayer(client) && IsPlayerAlive(client))
         {
             return true;
         }
@@ -167,9 +170,29 @@ stock bool MvM_CanPayCredits()
     return false;
 }
 
-// UNVERIFIED m_nCurrency on CTFPlayer. Credits are per player, so a bundle pays
-// each of them fully. Returns how many players it paid, zero for none: the
-// caller holds the grant back rather than acknowledging a payment nobody got.
+/**
+ * Pay a bundle into the run.
+ *
+ * Credits are per player, so a bundle pays each of them fully. Returns how many
+ * players it paid, zero for none: the caller holds the grant back rather than
+ * acknowledging a payment nobody got.
+ *
+ * The money goes in as a currency pack the player picks up, which is the path
+ * the game itself uses when a robot drops cash. Writing m_nCurrency is the
+ * obvious way and it is the wrong one: it puts a number on the player that the
+ * game's own bookkeeping never saw, and two things read that bookkeeping rather
+ * than the number.
+ *
+ * The refund button is one. It does not hand back what was spent, it restores
+ * the balance the game recorded at wave start: 1200 on screen, 400 recorded,
+ * press refund and 800 of bundles are gone. Losing a wave is the other, and it
+ * restores the same record, which is where the negative balances came from.
+ *
+ * A pack is collected by walking over it, so it is dropped at the player's own
+ * feet and only between waves, where they are standing at the upgrade station
+ * anyway. m_bDistributed stays off: that flag means the team has already been
+ * paid, and a pack carrying it pays nobody.
+ */
 stock int MvM_GrantCredits(int amount)
 {
     if (amount <= 0 || !MvM_IsActive())
@@ -179,19 +202,50 @@ stock int MvM_GrantCredits(int amount)
     int paid = 0;
     for (int client = 1; client <= MaxClients; client++)
     {
-        if (!MvM_IsPlayer(client) || !HasProp(client, "m_nCurrency"))
+        if (!MvM_IsPlayer(client) || !IsPlayerAlive(client))
         {
             continue;
         }
-        int held = GetEntProp(client, Prop_Send, "m_nCurrency");
-        SetEntProp(client, Prop_Send, "m_nCurrency", held + amount);
-        paid++;
+        if (MvM_DropCredits(client, amount))
+        {
+            paid++;
+        }
     }
     if (paid > 0)
     {
         AP_Announce("The run received %d credits for %d player(s).", amount, paid);
     }
     return paid;
+}
+
+// One pack, at one player's feet. False when the game will not make one, which
+// leaves the grant unpaid and unacknowledged rather than half applied.
+static bool MvM_DropCredits(int client, int amount)
+{
+    int pack = CreateEntityByName("item_currencypack_custom");
+    if (pack == -1)
+    {
+        AP_Error("This server cannot make a currency pack. The bundle waits.");
+        return false;
+    }
+    // Before the spawn: the amount is read as the pack comes up, and a pack
+    // that spawned with the default is worth what the game felt like.
+    SetEntProp(pack, Prop_Send, "m_nAmount", amount);
+    DispatchSpawn(pack);
+    if (!IsValidEntity(pack))
+    {
+        AP_Error("The currency pack did not survive its spawn. The bundle waits.");
+        return false;
+    }
+
+    // At the feet and a little above them, so it lands rather than falling
+    // through whatever the player is standing on.
+    float origin[3];
+    GetClientAbsOrigin(client, origin);
+    origin[2] += 8.0;
+    TeleportEntity(pack, origin, NULL_VECTOR, NULL_VECTOR);
+    AP_Debug("A pack worth %d credits is at %N's feet.", amount, client);
+    return true;
 }
 
 // Everyone on RED, bots included. The kill is the whole effect: no wave-failed

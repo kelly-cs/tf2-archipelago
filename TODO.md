@@ -1,38 +1,43 @@
 # TODO
 
-## 1. A bundle spent on upgrades leaves the money negative. Open
+## 1. A bundle is money the game never recorded. Fixed, needs a play-test
 
-From the second play-test, and the half of "keep the cash after a failure" that
-was left undone. A bundle pays at the upgrade station now, which is where the
-money is meant to be spent. Spend it, then lose the wave, and the count goes
-negative. The upgrades bought with it stay.
+Two reports, one cause. Spend a bundle on upgrades and lose the wave, and the
+balance goes negative. Receive bundles, spend them, press refund, and the
+refund hands back the standard 400: "on wave start I had like 1200 after
+receiving bundles, spent it, and then clicked refund I had the standard 400."
 
-What the game does on a lost wave is put every player's credits back to what
-it recorded at the start of the wave. `MvM_GrantCredits` in
-`plugin/scripting/tf2_archipelago/mvm.inc` writes `m_nCurrency` straight onto
-the player, so the bundle never reached whatever the game restores from. The
-restore then hands back a number that does not include the bundle, the
-upgrades were paid for out of money the game does not believe existed, and the
-difference shows up as a negative balance. Nothing un-buys the upgrades,
-because the game has no reason to think anything was wrong.
+`MvM_GrantCredits` wrote `m_nCurrency` straight onto the player. That puts a
+number on the screen that the game's own bookkeeping never saw, and both of
+those buttons read the bookkeeping rather than the number. The refund does not
+give back what was spent: it restores the balance the game recorded at wave
+start, which was 400 because the 800 in bundles was never part of it. Losing a
+wave restores the same record, which is where the negative balance came from.
 
-Writing the property is the fault. The money has to go in through the path the
-game itself uses to hand out credits, so that the same bookkeeping that
-records a wave-start balance records the bundle too. That is
-`CTFGameRules::DistributeCurrencyAmount`, or `CTFPlayer::AddCurrency` beneath
-it, and reaching either means a signature in `gamedata/` and an SDK call.
-Neither is exposed to a plugin today, which is what "we might need another
-server mod for this" amounts to: either our own gamedata for those functions,
-or a mod that already carries them.
+The fix is to hand the money over the way the game does. `MvM_DropCredits`
+spawns an `item_currencypack_custom` worth the bundle at the player's feet, and
+picking it up goes through the game's own currency path, so the record includes
+it. `m_bDistributed` stays off: that flag means the team has already been paid,
+and a pack carrying it pays nobody. That is what `collectmoney.sp` in the bots
+mod reads it as, which is where the meaning was checked.
 
-Before writing any of it, reproduce and read the numbers: grant a bundle
-between waves, note the balance, spend part of it, lose the wave, note the
-balance again. That says whether the restore is a set to a recorded value or a
-refund of what was spent, and the two want different fixes.
+Not yet played. What to watch:
 
-The negative balance is the visible half. The invisible half is that a bundle
-paid this way is probably not counted anywhere else the game counts credits
-either, the end-of-mission tally included.
+- the refund after a bundle should hand back what the run actually held
+- a lost wave should not go negative
+- the pack is collected by walking over it. It is dropped at the player's own
+  feet, between waves, where they are standing at the upgrade station, so the
+  touch should be immediate. If a bundle ever goes uncollected the money is
+  gone and the grant was acknowledged anyway, which is the one thing this
+  design can get wrong that writing the property could not
+- the A+ rating counts cash dropped against cash collected. A pack that is
+  dropped and collected moves both halves and leaves the rating alone; one that
+  is missed lowers it, which is honest but worth seeing once
+
+The other half is `CTFGameRules::DistributeCurrencyAmount`, which is what the
+game calls itself. It wants a signature in our own gamedata for two platforms
+and upkeep across every Team Fortress 2 update. Worth it only if the pack turns
+out to be wrong.
 
 ## 2. Sign the Windows exe. Open
 
