@@ -24,6 +24,11 @@ bool g_Holding;
 // costs nothing.
 #define BotFillInterval 3.0
 
+// How long the mod is given to add its lineup before the seats are counted.
+// Its own add is one call inside the wave-begin handler, so this only has to
+// outlast the bots landing.
+#define BotTrimDelay 3.0
+
 // The upgrade names, in the order scripts/items/mvm_upgrades.txt lists the
 // entries the game actually loads. That order is the index MVM_Upgrade carries:
 // checked against CMannVsMachineUpgradeManager with sm_dump_upgrades in
@@ -519,6 +524,51 @@ static void Bots_Fill()
     g_NextFill = GetGameTime() + BotFillGrace;
 }
 
+/* RED came up over its team size, so the extra bots leave.
+ *
+ * The mod adds its whole chosen lineup when a wave begins, without counting who
+ * is already standing there: in its own mode nobody is, because it fills the
+ * team at that moment and not before. Filling the team early is what this
+ * plugin now does, so a six man RED that waited through the upgrade station
+ * came up at ten or twelve when the wave started.
+ *
+ * The seats are counted back after the mod has had its turn rather than the
+ * fill being taken out again, because either side adding without counting ends
+ * the same way, and this is the one rule that covers both. It is also where
+ * Bots_MakeRoom already lives: whose seat it is, is this plugin's question.
+ *
+ * Bots only, newest first. A human is never in the surplus.
+ */
+void Bots_TrimSurplus()
+{
+    if (!MvM_IsActive())
+    {
+        return;
+    }
+    int size = DefenderTeamSize();
+    int onRed = 0;
+    for (int client = 1; client <= MaxClients; client++)
+    {
+        if (IsClientInGame(client) && GetClientTeam(client) == TeamRed && !IsClientSourceTV(client))
+        {
+            onRed++;
+        }
+    }
+    // Highest index last in, near enough: the game hands out the lowest free
+    // slot, so the bots that arrived last hold the highest numbers.
+    for (int client = MaxClients; client >= 1 && onRed > size; client--)
+    {
+        if (!IsClientInGame(client) || !IsFakeClient(client) || IsClientSourceTV(client)
+            || GetClientTeam(client) != TeamRed)
+        {
+            continue;
+        }
+        AP_Debug("RED holds %d of %d. %N leaves.", onRed, size, client);
+        KickClient(client, "RED is full");
+        onRed--;
+    }
+}
+
 /* Whether anybody is here to play with.
  *
  * Any human on the server, not only one on RED: a player who has connected and
@@ -544,6 +594,12 @@ static bool Bots_AnyPlayerHere()
  * a wave that ends are all moments the team is short, and one poll covers them
  * without a hook for each.
  */
+public Action Timer_TrimBots(Handle timer)
+{
+    Bots_TrimSurplus();
+    return Plugin_Stop;
+}
+
 public Action Timer_FillTeam(Handle timer)
 {
     if (!g_CvarBotsBackfill.BoolValue || !Bots_AnyPlayerHere())
