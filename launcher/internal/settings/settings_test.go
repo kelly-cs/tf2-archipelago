@@ -123,3 +123,34 @@ func TestLoadMigratesTheStartMap(t *testing.T) {
 		t.Errorf("the start map survived the migration: %q", loaded.SrcdsStartMap)
 	}
 }
+
+// A config file written before the appearance switches existed does not
+// mention them, and a bool nobody wrote reads back as false. Every install that
+// had ever saved a setting opened the next version with the bots undressed.
+func TestAConfigThatPredatesTheAppearanceSwitchesGetsTheDefaults(t *testing.T) {
+	s, err := parse([]byte(`{"srcds_bot_team_size": 6}`))
+	if err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+
+	if !s.SrcdsBotHats || !s.SrcdsBotHatEffects || !s.SrcdsBotWeaponSkins {
+		t.Errorf("hats %v, effects %v, skins %v; want all on",
+			s.SrcdsBotHats, s.SrcdsBotHatEffects, s.SrcdsBotWeaponSkins)
+	}
+}
+
+// A file that says no is not a file that says nothing: unticking one has to
+// survive the next start.
+func TestTheAppearanceSwitchesStayOffWhenTheFileSaysSo(t *testing.T) {
+	s, err := parse([]byte(`{"srcds_bot_hats": false, "srcds_bot_hat_effects": false, "srcds_bot_weapon_skins": true}`))
+	if err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+
+	if s.SrcdsBotHats || s.SrcdsBotHatEffects {
+		t.Errorf("hats %v and effects %v were turned back on", s.SrcdsBotHats, s.SrcdsBotHatEffects)
+	}
+	if !s.SrcdsBotWeaponSkins {
+		t.Error("skins were on in the file and came back off")
+	}
+}

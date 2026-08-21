@@ -100,8 +100,10 @@ func (m *model) joinLine() string {
 // takes and what a friend is sent.
 func (m *model) joinAddresses() []string {
 	addresses := []string{}
+	// Named, and first. Over Steam this is the address: the ones under it are
+	// this network's and mean nothing to the friend being sent them.
 	if m.steamURL != "" {
-		addresses = append(addresses, m.steamURL+" (Steam)")
+		addresses = append(addresses, "Steam public IP: "+m.steamURL)
 	}
 	for _, address := range apruntime.LocalAddresses() {
 		addresses = append(addresses, fmt.Sprintf("%s:%d", address, m.settings.SrcdsPort))
@@ -113,7 +115,7 @@ func (m *model) joinAddresses() []string {
 }
 
 func (m *model) tabs() string {
-	names := []string{"Log", "Session"}
+	names := []string{"Session", "Log"}
 	rendered := make([]string, 0, len(names))
 	for i, name := range names {
 		if view(i) == m.view {

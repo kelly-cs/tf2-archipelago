@@ -33,6 +33,8 @@ func TestTheMainScreenSaysWhatIsGoingOn(t *testing.T) {
 	m.take(apruntime.Line{At: time.Now(), Source: "srcds", Text: "fake server up"})
 	m.drain()
 
+	// The screen opens on the run, so the log is the other tab.
+	m.view = viewLog
 	view := m.View()
 	for _, want := range []string{
 		"stopped",
@@ -58,6 +60,7 @@ func TestTheLogShowsItsEnd(t *testing.T) {
 		m.take(apruntime.Line{At: time.Now(), Source: "srcds", Text: "line " + itoa(i)})
 	}
 	m.drain()
+	m.view = viewLog
 
 	view := m.View()
 	if !strings.Contains(view, "line 199") {
@@ -72,10 +75,10 @@ func TestTheLogShowsItsEnd(t *testing.T) {
 func TestTheKeysDoWhatTheFooterSays(t *testing.T) {
 	m := screen(t)
 
-	if _, _ = m.Update(key("tab")); m.view != viewSession {
+	if _, _ = m.Update(key("tab")); m.view != viewLog {
 		t.Error("tab did not change the view")
 	}
-	if _, _ = m.Update(key("tab")); m.view != viewLog {
+	if _, _ = m.Update(key("tab")); m.view != viewSession {
 		t.Error("tab did not change it back")
 	}
 	if _, _ = m.Update(key("i")); !m.typing {
@@ -237,4 +240,13 @@ func itoa(i int) string {
 		i /= 10
 	}
 	return string(digits)
+}
+
+// The run is the first thing on screen and the log is the second, the way the
+// window has them.
+func TestTheScreenOpensOnTheRun(t *testing.T) {
+	m := screen(t)
+	if m.view != viewSession {
+		t.Errorf("the screen opens on view %d, want the session", m.view)
+	}
 }

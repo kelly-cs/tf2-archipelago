@@ -61,9 +61,11 @@ func Run(s settings.Settings, logger *slog.Logger) error {
 // view is which half of the screen the player is looking at.
 type view int
 
+// The run first and the log second, the way the window has them: the log is
+// what you want when something is wrong, the run is what you came for.
 const (
-	viewLog view = iota
-	viewSession
+	viewSession view = iota
+	viewLog
 )
 
 type model struct {
