@@ -152,7 +152,7 @@ jobs:
           } >> "$GITHUB_ENV"
 
       # `tf2ap.exe` is unsigned, so Windows warns about it and players are right
-      # to want to check what they downloaded. Until TODO item 13 lands, this
+      # to want to check what they downloaded. Until TODO item 2 lands, this
       # and the VirusTotal step below are what they have.
       - name: checksum the assets
         run: |
