@@ -143,7 +143,14 @@ func srcdsArgs(s settings.Settings, exeName string) []string {
 	// brings up an interactive text console, and this launcher gives it no
 	// terminal to bring it up on. The server then holds its port, burns a
 	// fifth of a core and never finishes loading the map.
-	flags := []string{"-game", "tf", "-usercon", "-console"}
+	//
+	// -condebug writes the same console to tf/console.log. The launcher already
+	// pipes the console into its own window and its own log, so this looks like
+	// the same thing twice, and it is not: the launcher's log covers the run the
+	// launcher is having, and a player who hits a bug restarts before asking
+	// about it. The game's file is the one that survives that restart, and it is
+	// what the debug bundle promises.
+	flags := []string{"-game", "tf", "-usercon", "-console", "-condebug"}
 	// -ip 0.0.0.0 binds every interface. Without it srcds binds to whatever
 	// its hostname resolves to, and on Debian that is 127.0.1.1: the game
 	// answers on every address, the rcon port answers only on that one, and
@@ -226,6 +233,9 @@ func runSrcdsWithSink(ctx context.Context, s settings.Settings, logger *slog.Log
 	if _, err := os.Stat(filepath.Join(gameDir, "srcds_run")); err == nil {
 		exeName = "srcds_run"
 	}
+	// Before the server opens it: -condebug appends, and one file holding every
+	// evening ever played is a file nobody can send anywhere.
+	RotateConsoleLog(gameDir)
 	cmd := exec.CommandContext(ctx, filepath.Join(gameDir, exeName), srcdsArgs(s, exeName)...)
 	cmd.Dir = gameDir
 	cmd.Env = srcdsEnv(s)

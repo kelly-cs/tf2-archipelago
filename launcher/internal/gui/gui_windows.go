@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
-	"path/filepath"
 	"runtime"
 	"strings"
 	"sync"
@@ -347,12 +346,9 @@ func (w *window) flush() {
 
 // openLogFile keeps this run's log next to the game files. The window shows
 // the same lines, but a file is what a player can send to somebody who can
-// read it. One run per file: the interesting one is always the last.
+// read it. One run per file, and the run before it is kept too.
 func (w *window) openLogFile(installRoot string) {
-	if err := os.MkdirAll(installRoot, 0o755); err != nil {
-		return
-	}
-	file, err := os.Create(filepath.Join(installRoot, "launcher.log"))
+	file, err := apruntime.CreateLogFile(installRoot)
 	if err != nil {
 		return
 	}

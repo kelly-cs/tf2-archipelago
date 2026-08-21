@@ -217,3 +217,14 @@ func TestRconAddressesStartAtLoopback(t *testing.T) {
 		}
 	}
 }
+
+// The game server writes its own console log, which is the one that survives
+// the restart a player makes before asking anybody about the bug.
+func TestSrcdsArgsAsksForTheConsoleLog(t *testing.T) {
+	s := settings.Defaults()
+	for _, exe := range []string{"srcds.exe", "srcds_run"} {
+		if !slices.Contains(srcdsArgs(s, exe), "-condebug") {
+			t.Errorf("%s starts without -condebug", exe)
+		}
+	}
+}

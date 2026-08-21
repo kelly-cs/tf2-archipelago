@@ -22,7 +22,7 @@ There is no client mod, so chat is the whole diagnostic surface. Three levels:
 | --- | --- | --- |
 | Announcements | Chat, unless `tf2ap_announce 0` | Waves cleared, items received, classes and slots unlocked |
 | Errors | Chat and the SourceMod log, always | Anything that went wrong, including the bridge being unreachable |
-| Debug | Chat, console and the log, when `tf2ap_debug 1` | Every bridge call, every queued objective, every wave event |
+| Debug | Console and the log at `tf2ap_debug 1`, chat as well at `2` | Every bridge call, every queued objective, every wave event |
 
 Errors reach chat even with announcements muted. If the bridge is down,
 players notice their checks stop landing before anyone else does. The
@@ -88,7 +88,7 @@ check by hand when the game fails to fire the expected event.
 | `tf2ap_bridge_url` | `http://127.0.0.1:24680` | Base URL of the bridge. Loopback. |
 | `tf2ap_announce` | `1` | Announce grants and cleared waves in chat |
 | `tf2ap_chat` | `1` | Show what the rest of the multiworld says |
-| `tf2ap_debug` | `0` | Echo every bridge call and game event |
+| `tf2ap_debug` | `1` | Every bridge call and game event: `0` none, `1` console and log, `2` chat as well |
 | `tf2ap_start_mission` | empty | The popfile the server starts on |
 | `tf2ap_next_mission_delay` | `30` | Seconds from a mission clear to the next mission. `0` leaves it to the game |
 | `tf2ap_bot_upgrades_chat` | `0` | Say what the defender bots buy at the upgrade station |
@@ -121,7 +121,8 @@ time.
 - `m_nCurrency` is how cash bundles are paid out.
 
 None of the fallbacks change the wire contract, so the bridge cannot tell
-the difference. Run the first live session with `tf2ap_debug 1`.
+the difference. Run the first live session with `tf2ap_debug 2`, which puts the
+same lines in the chat where somebody is watching.
 
 ## What it does
 

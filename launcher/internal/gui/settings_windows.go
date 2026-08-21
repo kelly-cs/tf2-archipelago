@@ -793,8 +793,9 @@ func saveDebugBundle(owner walk.Form, s settings.Settings) {
 		return
 	}
 	walk.MsgBox(owner, "Debug logs",
-		"Wrote "+path+"\n\nIt holds the launcher log, the SourceMod logs, the "+
-			"server console, the player file and the settings. The passwords are "+
+		"Wrote "+path+"\n\nIt holds this run's launcher log and the one before "+
+			"it, the SourceMod logs, the server console, what the bridge says "+
+			"about the run, the player file and the settings. The passwords are "+
 			"not in it.",
 		walk.MsgBoxIconInformation)
 	_ = winproc.Open(filepath.Dir(path))

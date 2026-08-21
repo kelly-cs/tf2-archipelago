@@ -2,14 +2,15 @@
 
 ## Avant que quelqu'un rejoigne
 
-Le plugin a un mode bavard. Activé, le serveur écrit dans le chat chaque
-événement de jeu qu'il voit et chaque appel qu'il fait. C'est bruyant, et
-c'est le moyen le plus rapide de voir ce que le serveur fait d'une vague.
-Activez-le pour la première soirée :
+Le plugin écrit déjà chaque événement de jeu qu'il voit et chaque appel qu'il
+fait dans la console et le journal SourceMod : la trace de la soirée est sur le
+disque quoi que vous fassiez. Il a un mode plus bavard qui met les mêmes lignes
+dans le chat, ce qui est le moyen le plus rapide de voir ce que le serveur fait
+d'une vague pendant qu'il le fait :
 
 ```
 rcon_password votre-SRCDS_RCONPW
-rcon tf2ap_debug 1
+rcon tf2ap_debug 2
 ```
 
 Tapez cela dans la console Team Fortress 2 après vous être connecté. Gardez le
