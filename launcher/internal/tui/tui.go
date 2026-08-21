@@ -247,7 +247,7 @@ func (m *model) applySettings(next settings.Settings) tea.Cmd {
 // button does: Steam owns the steam:// scheme and carries the password with it.
 func (m *model) join() tea.Cmd {
 	return func() tea.Msg {
-		link := apruntime.SteamConnectURL(m.settings)
+		link := apruntime.SteamConnectURL(m.settings, m.steamURL)
 		if err := winproc.OpenURL(link); err != nil {
 			return noticeMsg("cannot ask Steam to join: " + link +
 				". Start the game yourself and find the server under the LAN tab of the server browser.")

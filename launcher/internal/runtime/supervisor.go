@@ -262,6 +262,7 @@ func StartTestRoom(
 		Excluded:     s.MvmExcludedMissions,
 		Difficulty:   s.MvmDifficulty,
 		StartMission: s.MvmStartMission,
+		StartClass:   s.MvmStartClass,
 		DeathLink:    s.MvmDeathLink,
 		Log:          emit,
 	})
