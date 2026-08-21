@@ -19,6 +19,11 @@ bool g_Holding;
 // gate per call site is one call site away from being missed.
 #define BotReadyInterval 0.5
 
+// How often the team is topped up between waves. Slower than the ready hold:
+// this one asks the mod for bots, and a seat that is empty for three seconds
+// costs nothing.
+#define BotFillInterval 3.0
+
 // The upgrade names, in the order scripts/items/mvm_upgrades.txt lists the
 // entries the game actually loads. That order is the index MVM_Upgrade carries:
 // checked against CMannVsMachineUpgradeManager with sm_dump_upgrades in
@@ -46,8 +51,9 @@ void Bots_Init()
         "Put a bot back on RED when a player leaves between waves.", _, true, 0.0, true, 1.0);
     g_UpgradeNames = new ArrayList(ByteCountToCells(64));
 
-    // No TIMER_FLAG_NO_MAPCHANGE: the hold must outlive every map change.
+    // No TIMER_FLAG_NO_MAPCHANGE on either: they must outlive every map change.
     CreateTimer(BotReadyInterval, Timer_HoldBotsReady, _, TIMER_REPEAT);
+    CreateTimer(BotFillInterval, Timer_FillTeam, _, TIMER_REPEAT);
 }
 
 void Bots_OnMapStart()
@@ -391,20 +397,33 @@ void Bots_OnClientLeft(int client)
         return;
     }
     g_Leaving[client] = false;
-    Bots_Backfill();
+    Bots_Fill();
 }
 
 /**
- * A player left, so a bot takes the seat back.
+ * Fill RED, between waves.
  *
- * The mod fills RED when a wave begins and tops it up every second while the
- * wave runs. Between waves it does neither, which is where a player who leaves
- * during the upgrade station leaves a wave balanced for six to five bodies.
+ * The mod fills RED from its own mvm_begin_wave handler and tops it up every
+ * second while the wave runs. Between waves it does neither, which leaves two
+ * holes this closes.
  *
- * Only between waves, for that reason: during a wave the mod is already doing
- * it, and asking twice puts two bots in one seat.
+ * A player who leaves during the upgrade station leaves a wave balanced for six
+ * to five bodies. And, before the first wave of all, the bots were not there at
+ * all: they arrived at the moment the wave did, having never seen the upgrade
+ * station, so wave one was played by six bots with stock weapons, no upgrades
+ * and no sentry. The engineer had nothing built because he had not existed
+ * long enough to build it.
+ *
+ * Only between waves, for the same reason both times: during a wave the mod is
+ * already doing it, and asking twice puts two bots in one seat.
+ *
+ * Safe to do early only because of the two rules above: a bot that turns up
+ * before the players is held unready until they are ready, and never readies at
+ * all with nobody on RED. Without those, filling the team early would mean the
+ * bots starting wave one by themselves while the first player was still
+ * choosing a class.
  */
-static void Bots_Backfill()
+static void Bots_Fill()
 {
     if (!g_CvarBotsBackfill.BoolValue || !MvM_IsActive())
     {
@@ -421,19 +440,72 @@ static void Bots_Backfill()
     {
         return;
     }
-    int onRed = 0;
+    /* A seat is taken by whoever is on RED, and held for every player who is
+     * connected and not on it yet.
+     *
+     * Without the second half this fights Bots_MakeRoom: that frees a seat the
+     * moment a player connects, and a fill three seconds later put a bot back
+     * in it before the player had finished choosing a class. The game then
+     * refuses them RED for being full, which is the door this plugin exists to
+     * hold open.
+     *
+     * A player who sits in spectator all evening holds a seat by this rule.
+     * That is the right way round: the mod's own top-up fills it once the wave
+     * starts, and until then the seat is theirs to take.
+     */
+    int taken = 0;
     for (int client = 1; client <= MaxClients; client++)
     {
-        if (IsClientInGame(client) && GetClientTeam(client) == TeamRed)
+        if (!IsClientInGame(client) || IsClientSourceTV(client))
         {
-            onRed++;
+            continue;
+        }
+        if (GetClientTeam(client) == TeamRed || !IsFakeClient(client))
+        {
+            taken++;
         }
     }
-    int missing = DefenderTeamSize() - onRed;
+    int missing = DefenderTeamSize() - taken;
     if (missing <= 0)
     {
         return;
     }
-    AP_Debug("RED is down to %d between waves. %d bot(s) take the empty seats.", onRed, missing);
+    AP_Debug("RED holds %d of %d between waves. %d bot(s) take the empty seats.",
+        taken, DefenderTeamSize(), missing);
     ServerCommand("sm_addbots %d", missing);
+}
+
+/* Whether anybody is here to play with.
+ *
+ * Any human on the server, not only one on RED: a player who has connected and
+ * is still looking at the class menu is the moment the team should be forming,
+ * which is the whole point of filling it early.
+ */
+static bool Bots_AnyPlayerHere()
+{
+    for (int client = 1; client <= MaxClients; client++)
+    {
+        if (IsClientInGame(client) && !IsFakeClient(client) && !IsClientSourceTV(client))
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+/* The team forms while the players are still in the upgrade station.
+ *
+ * Runs on the same poll as the ready hold rather than on a player joining: a
+ * bot that is kicked to make room for that player, a mission that changes, and
+ * a wave that ends are all moments the team is short, and one poll covers them
+ * without a hook for each.
+ */
+public Action Timer_FillTeam(Handle timer)
+{
+    if (!g_CvarBotsBackfill.BoolValue || !Bots_AnyPlayerHere())
+    {
+        return Plugin_Continue;
+    }
+    Bots_Fill();
+    return Plugin_Continue;
 }
