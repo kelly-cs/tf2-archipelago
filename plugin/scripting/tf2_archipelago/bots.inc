@@ -35,6 +35,23 @@ bool g_Holding;
 // before it.
 ArrayList g_UpgradeNames;
 
+// When the next fill may ask, so that one ask is not made five times over.
+float g_NextFill;
+
+/* How long an ask is given to become a player before another one is made.
+ *
+ * A bot asked for is not a bot on RED: sm_addbots connects one, which takes a
+ * couple of seconds, and nothing on the team changes until it lands. The count
+ * below reads the team, so without this the next poll asked for the same empty
+ * seats again. The poll is the ready hold's, twice a second, and a round held
+ * by an engineer who could not finish his nest gave it minutes to do it in: a
+ * six man RED came up ten, and the server ran out of slots to make robots with.
+ *
+ * Five seconds is longer than a bot takes to connect and shorter than anybody
+ * waits for a seat to be filled.
+ */
+#define BotFillGrace 5.0
+
 // Wide enough for any line of mvm_upgrades.txt.
 #define UpgradeLineMax 256
 
@@ -59,6 +76,10 @@ void Bots_Init()
 void Bots_OnMapStart()
 {
     Bots_LoadUpgradeNames();
+
+    // The clock this is measured against restarts with the map, so a deadline
+    // left over from a long one would hold the fill off on the next.
+    g_NextFill = 0.0;
 }
 
 // Every "attribute" line the file means, in file order. Read through the game's
@@ -487,9 +508,15 @@ static void Bots_Fill()
     {
         return;
     }
+    // The last ask has not had time to arrive, and asking again would double it
+    if (GetGameTime() < g_NextFill)
+    {
+        return;
+    }
     AP_Debug("RED holds %d of %d between waves. %d bot(s) take the empty seats.",
         taken, DefenderTeamSize(), missing);
     ServerCommand("sm_addbots %d", missing);
+    g_NextFill = GetGameTime() + BotFillGrace;
 }
 
 /* Whether anybody is here to play with.
