@@ -81,12 +81,16 @@ type Settings struct {
 	BotUpgradesChat bool `json:"bot_upgrades_chat"`
 
 	// What the bots look like, which changes nothing about how they play. A
-	// hat each is on, because six mercenaries in the same stock hat is what a
-	// bot team looks like otherwise. The unusual effect on that hat and the war
-	// paints on the weapons are off: both are somebody's taste rather than an
-	// improvement, and the effects are a particle per bot on screen at all
-	// times. A config file written before these fields existed reads them as
-	// off, hats included, until they are ticked once.
+	// hat each is on, so is the unusual effect on it, and so are the war paints
+	// on the weapons: six mercenaries in the same stock hat is what a bot team
+	// looks like otherwise, and this is the part of the mod nobody has to think
+	// about.
+	//
+	// A config file written before these fields existed does not mention them,
+	// and a bool nobody wrote reads back as false, so the whole lot arrived
+	// switched off on every install that had ever saved a setting. Load tells
+	// "the file said no" from "the file said nothing", which is what
+	// SrcdsLanLegacy does a few fields down for the same reason.
 	SrcdsBotHats        bool `json:"srcds_bot_hats"`
 	SrcdsBotHatEffects  bool `json:"srcds_bot_hat_effects"`
 	SrcdsBotWeaponSkins bool `json:"srcds_bot_weapon_skins"`
@@ -132,6 +136,8 @@ func Defaults() Settings {
 		SrcdsBots:           true,
 		SrcdsBotTeamSize:    6,
 		SrcdsBotHats:        true,
+		SrcdsBotHatEffects:  true,
+		SrcdsBotWeaponSkins: true,
 		MvmMissionCount:     8,
 		MvmDifficulty:       "intermediate",
 		MvmGoal:             "final_boss",
@@ -168,12 +174,54 @@ func Load() (Settings, error) {
 	if err != nil {
 		return Settings{}, fmt.Errorf("cannot read %s: %w", path, err)
 	}
-	var s Settings
-	if err := json.Unmarshal(data, &s); err != nil {
+	s, err := parse(data)
+	if err != nil {
 		return Settings{}, fmt.Errorf("cannot parse %s: %w", path, err)
 	}
-	s = s.withDefaults()
 	return s, nil
+}
+
+// parse is the config file's bytes as settings, defaults filled in. Separate
+// from Load because the order matters and there is only one right one: the
+// file, then the defaults for what it left out, then the three switches that
+// have to tell "said no" from "said nothing".
+func parse(data []byte) (Settings, error) {
+	var s Settings
+	if err := json.Unmarshal(data, &s); err != nil {
+		return Settings{}, err
+	}
+	return s.withDefaults().withAppearanceDefaults(data), nil
+}
+
+// withAppearanceDefaults fills the three appearance switches a file that
+// predates them does not mention. Called by parse, after the file's own values
+// are in.
+//
+// It reads the same bytes a second time rather than making the fields
+// pointers: a *bool that every caller has to dereference is a worse trade than
+// one function that knows why these three are different from the rest.
+func (s Settings) withAppearanceDefaults(data []byte) Settings {
+	var said struct {
+		Hats    *bool `json:"srcds_bot_hats"`
+		Effects *bool `json:"srcds_bot_hat_effects"`
+		Skins   *bool `json:"srcds_bot_weapon_skins"`
+	}
+	// A file that parsed once parses again; anything else has already been
+	// reported by the caller.
+	if err := json.Unmarshal(data, &said); err != nil {
+		return s
+	}
+	d := Defaults()
+	if said.Hats == nil {
+		s.SrcdsBotHats = d.SrcdsBotHats
+	}
+	if said.Effects == nil {
+		s.SrcdsBotHatEffects = d.SrcdsBotHatEffects
+	}
+	if said.Skins == nil {
+		s.SrcdsBotWeaponSkins = d.SrcdsBotWeaponSkins
+	}
+	return s
 }
 
 // Render returns the settings as the JSON that Save writes. The debug bundle
