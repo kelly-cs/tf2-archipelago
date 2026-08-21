@@ -88,6 +88,7 @@ func TestEveryFieldHasAnEnvVar(t *testing.T) {
 		"SrcdsBotClassBlacklist": "SRCDS_BOT_CLASS_BLACKLIST",
 		"SrcdsBotLoadouts":       "SRCDS_BOT_LOADOUTS",
 		"SrcdsBotTeamComp":       "SRCDS_BOT_TEAM_COMP",
+		"SrcdsBotSeatLoadouts":   "SRCDS_BOT_SEAT_LOADOUTS",
 		"SrcdsBotHats":           "SRCDS_BOT_HATS",
 		"SrcdsBotHatEffects":     "SRCDS_BOT_HAT_EFFECTS",
 		"BotUpgradesChat":        "TF2AP_BOT_UPGRADES_CHAT",
@@ -105,6 +106,11 @@ func TestEveryFieldHasAnEnvVar(t *testing.T) {
 	// are never saved and never asked for, so there is nothing to set.
 	legacy := map[string]bool{"SrcdsLanLegacy": true}
 
+	// Fields the config file holds and the environment does not. A saved team
+	// is something somebody named in front of the window; a compose stack
+	// names its team in SRCDS_BOT_TEAM_COMP and has nowhere to click.
+	windowOnly := map[string]bool{"SrcdsBotTeamPresets": true}
+
 	known := map[string]bool{}
 	for _, name := range EnvNames {
 		known[name] = true
@@ -112,7 +118,7 @@ func TestEveryFieldHasAnEnvVar(t *testing.T) {
 
 	for structField := range reflect.TypeFor[Settings]().Fields() {
 		field := structField.Name
-		if legacy[field] {
+		if legacy[field] || windowOnly[field] {
 			continue
 		}
 		name, ok := byField[field]

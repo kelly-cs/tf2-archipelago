@@ -5,6 +5,7 @@ package gui
 import (
 	"context"
 	"fmt"
+	"maps"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -35,7 +36,7 @@ const labelWidth = 150
 // hundred characters wide, and every other row on the tab is stretched to match
 // it. A TextLabel wraps, but only inside a width somebody gives it: this is the
 // dialog's, less the label column and the margins.
-const sentenceWidth = 520
+const sentenceWidth = 980
 
 // tokenPageURL issues the Game Server Login Token the server logs in with.
 const tokenPageURL = "https://steamcommunity.com/dev/managegameservers"
@@ -71,17 +72,25 @@ func runSettingsDialog(owner walk.Form, s settings.Settings, repair func() ([]st
 
 		appEdit *walk.LineEdit
 
-		nameEdit  *walk.LineEdit
-		passEdit  *walk.LineEdit
-		portEdit  *walk.NumberEdit
-		adminEdit *walk.LineEdit
-		botsBox   *walk.CheckBox
-		botsSize  *walk.NumberEdit
-		buysBox   *walk.CheckBox
-		looksBox  cosmeticBoxes
-		classBox  = make([]*walk.CheckBox, len(botloadout.Classes))
-		loadoutBx = make([]*walk.ComboBox, len(botloadout.Classes))
-		seatBox   = make([]*walk.ComboBox, botSeats)
+		nameEdit   *walk.LineEdit
+		passEdit   *walk.LineEdit
+		portEdit   *walk.NumberEdit
+		adminEdit  *walk.LineEdit
+		botsBox    *walk.CheckBox
+		botsSize   *walk.NumberEdit
+		buysBox    *walk.CheckBox
+		looksBox   cosmeticBoxes
+		presetBox  *walk.ComboBox
+		presetName *walk.LineEdit
+		botTeam    = &botTeamEditor{
+			seatBox:    make([]*walk.ComboBox, botSeats),
+			seatLoadBx: make([]*walk.ComboBox, botSeats),
+			classBox:   make([]*walk.CheckBox, len(botloadout.Classes)),
+			loadoutBx:  make([]*walk.ComboBox, len(botloadout.Classes)),
+			presetBox:  &presetBox,
+			presetName: &presetName,
+			saved:      maps.Clone(s.SrcdsBotTeamPresets),
+		}
 
 		reachLan   *walk.RadioButton
 		reachSteam *walk.RadioButton
@@ -171,26 +180,12 @@ func runSettingsDialog(owner walk.Form, s settings.Settings, repair func() ([]st
 		next.BotUpgradesChat = buysBox.Checked()
 		next.SrcdsBotHats = looksBox.hats.Checked()
 		next.SrcdsBotHatEffects = looksBox.effects.Checked()
-		next.SrcdsBotClassBlacklist = nil
-		next.SrcdsBotLoadouts = make(map[string]string)
-		for i, class := range botloadout.Classes {
-			if !classBox[i].Checked() {
-				next.SrcdsBotClassBlacklist = append(next.SrcdsBotClassBlacklist, class.Key)
-			}
-			if pick := class.Loadouts[max(loadoutBx[i].CurrentIndex(), 0)]; pick.Key != botloadout.StockKey {
-				next.SrcdsBotLoadouts[class.Key] = pick.Key
-			}
-		}
-		// A seat left on the draw contributes nothing, so the list is the
-		// picked seats in seat order. All six on the draw leaves it empty,
-		// which is the mod deciding, the way it always did.
-		next.SrcdsBotTeamComp = nil
-		for _, box := range seatBox {
-			if index := box.CurrentIndex(); index > 0 {
-				next.SrcdsBotTeamComp = append(
-					next.SrcdsBotTeamComp, botloadout.Classes[index-1].Key)
-			}
-		}
+		// One description of what the seats and ticks mean, shared with the
+		// Save button. A seat left on the draw contributes nothing, so the
+		// list is the picked seats in seat order: all six on the draw leaves
+		// it empty, which is the mod deciding, the way it always did.
+		next = settings.WithBotTeam(next, botTeam.team())
+		next.SrcdsBotTeamPresets = botTeam.saved
 		return next, nil
 	}
 
@@ -265,9 +260,12 @@ func runSettingsDialog(owner walk.Form, s settings.Settings, repair func() ([]st
 		AssignTo:     &dialog,
 		Title:        "Settings",
 		CancelButton: &cancel,
-		Size:         declarative.Size{Width: 700, Height: 560},
-		MinSize:      declarative.Size{Width: 600, Height: 480},
-		Layout:       declarative.VBox{},
+		// Wider than it was: a seat is a class and the weapons it carries on
+		// one line, and the class pool is three ticks to a line with the same
+		// beside each of them.
+		Size:    declarative.Size{Width: 1180, Height: 720},
+		MinSize: declarative.Size{Width: 900, Height: 560},
+		Layout:  declarative.VBox{},
 		Children: []declarative.Widget{
 			declarative.TabWidget{
 				Pages: append([]declarative.TabPage{
@@ -458,7 +456,12 @@ func runSettingsDialog(owner walk.Form, s settings.Settings, repair func() ([]st
 						// display that scales.
 						Children: []declarative.Widget{
 							declarative.ScrollView{
-								HorizontalFixed: true,
+								// Not HorizontalFixed. Fixed, the view sizes
+								// itself to its content and then holds it against
+								// the scrollbar, with a hand's width of nothing
+								// down the left and the class rows squeezed into
+								// what is left.
+								HorizontalFixed: false,
 								Layout: declarative.Grid{
 									Columns: 2,
 									Margins: declarative.Margins{
@@ -468,7 +471,7 @@ func runSettingsDialog(owner walk.Form, s settings.Settings, repair func() ([]st
 										Bottom: 9,
 									},
 								},
-								Children: botsRows(s, label, &botsBox, &botsSize, &buysBox, &looksBox, classBox, loadoutBx, seatBox),
+								Children: botsRows(s, label, &botsBox, &botsSize, &buysBox, &looksBox, botTeam),
 							},
 						},
 					},
@@ -627,8 +630,7 @@ func leftAlign(edits ...*walk.NumberEdit) {
 func botsRows(
 	s settings.Settings, label func(text, help string) declarative.Label,
 	botsBox **walk.CheckBox, botsSize **walk.NumberEdit, buysBox **walk.CheckBox,
-	looksBox *cosmeticBoxes,
-	classBox []*walk.CheckBox, loadoutBx []*walk.ComboBox, seatBox []*walk.ComboBox,
+	looksBox *cosmeticBoxes, team *botTeamEditor,
 ) []declarative.Widget {
 	rows := []declarative.Widget{
 		label("Defender bots", "Fill the RED team with bots that play, so a wave balanced for six is winnable by fewer. They pick classes, fight and buy their own upgrades. A bot steps aside when a friend joins."),
@@ -642,34 +644,22 @@ func botsRows(
 		label("Purchases in chat", "Write what the bots buy at the upgrade station to the chat, since the game no longer lets you inspect a teammate's upgrades. One line per purchase, so it is off by default."),
 		declarative.CheckBox{AssignTo: buysBox, Text: "say what the bots buy", Checked: s.BotUpgradesChat},
 	}
-	rows = append(rows, seatRows(s, label, seatBox)...)
+	rows = append(rows, seatRows(s, label, team)...)
 	rows = append(rows, declarative.TextLabel{
-		Text:       "Classes the bots may play, and the weapons each class holds. Bots are poor snipers and spies; untick a class and they never pick it. Stock weapons are the mod's own default.",
+		Text: "The classes the mod may draw a seat left on the draw from. Bots are poor snipers and spies; " +
+			"untick one and they never pick it. The weapons a class holds when a seat does not say otherwise " +
+			"are on the line beside it.",
 		ColumnSpan: 2,
 		MaxSize:    declarative.Size{Width: sentenceWidth},
 	})
-	for i, class := range botloadout.Classes {
-		labels := make([]string, 0, len(class.Loadouts))
-		for _, loadout := range class.Loadouts {
-			labels = append(labels, loadout.Label())
-		}
-		rows = append(rows,
-			declarative.CheckBox{
-				AssignTo:    &classBox[i],
-				Text:        class.Name,
-				Checked:     !slices.Contains(s.SrcdsBotClassBlacklist, class.Key),
-				MinSize:     declarative.Size{Width: labelWidth},
-				ToolTipText: "Unticked, the bots never play " + class.Name + ".",
-			},
-			declarative.ComboBox{
-				AssignTo:      &loadoutBx[i],
-				Model:         labels,
-				Value:         class.LoadoutByKey(s.SrcdsBotLoadouts[class.Key]).Label(),
-				ToolTipText:   "The weapons a " + class.Name + " bot spawns with.",
-				StretchFactor: 1,
-			},
-		)
-	}
+	// Three to a line rather than nine lines of one, in a grid of its own: six
+	// columns is three pairs of a tick and the weapons beside it, and a grid
+	// lines the pairs up down the tab where a row of boxes does not.
+	rows = append(rows, declarative.Composite{
+		ColumnSpan: 2,
+		Layout:     declarative.Grid{Columns: classesPerRow * 2, MarginsZero: true},
+		Children:   classCells(s, team),
+	})
 	return append(rows, cosmeticRows(s, label, looksBox)...)
 }
 
@@ -702,6 +692,155 @@ func cosmeticRows(
 	}
 }
 
+/* botTeamEditor is the Bots tab's team, as the widgets hold it.
+ *
+ * Load and Save are two buttons that read and write every seat, every class
+ * tick and every weapons menu at once, so they need all of them in one place.
+ * Passing nine slices to two callbacks is what this is instead of.
+ */
+type botTeamEditor struct {
+	seatBox    []*walk.ComboBox
+	seatLoadBx []*walk.ComboBox
+	classBox   []*walk.CheckBox
+	loadoutBx  []*walk.ComboBox
+	presetBox  **walk.ComboBox
+	presetName **walk.LineEdit
+
+	// saved is the teams as they will be written back. A Save with the dialog
+	// cancelled afterwards keeps nothing, the way every other field works.
+	saved map[string]settings.BotTeam
+}
+
+// team is what the widgets currently describe.
+func (e *botTeamEditor) team() settings.BotTeam {
+	var out settings.BotTeam
+	for seat, box := range e.seatBox {
+		index := box.CurrentIndex()
+		if index <= 0 {
+			continue
+		}
+		class := botloadout.Classes[index-1]
+		out.Comp = append(out.Comp, class.Key)
+		out.SeatLoadouts = append(out.SeatLoadouts, seatLoadoutKey(class, e.seatLoadBx[seat]))
+	}
+	out.ClassLoadouts = make(map[string]string)
+	for i, class := range botloadout.Classes {
+		if !e.classBox[i].Checked() {
+			out.Blacklist = append(out.Blacklist, class.Key)
+		}
+		if pick := class.Loadouts[max(e.loadoutBx[i].CurrentIndex(), 0)]; pick.Key != botloadout.StockKey {
+			out.ClassLoadouts[class.Key] = pick.Key
+		}
+	}
+	return out
+}
+
+// show puts a team into the widgets.
+func (e *botTeamEditor) show(team settings.BotTeam) {
+	for seat, box := range e.seatBox {
+		name, loadout := drawSeatLabel, drawSeatLoadoutLabel
+		if seat < len(team.Comp) {
+			if class, found := botloadout.ClassByKey(team.Comp[seat]); found {
+				name = class.Name
+				key := ""
+				if seat < len(team.SeatLoadouts) {
+					key = team.SeatLoadouts[seat]
+				}
+				loadout = class.LoadoutByKey(key).Label()
+			}
+		}
+		_ = box.SetText(name)
+		_ = e.seatLoadBx[seat].SetModel(seatLoadoutChoices(classKeyOfLabel(name)))
+		_ = e.seatLoadBx[seat].SetText(loadout)
+	}
+	for i, class := range botloadout.Classes {
+		e.classBox[i].SetChecked(!slices.Contains(team.Blacklist, class.Key))
+		_ = e.loadoutBx[i].SetText(class.LoadoutByKey(team.ClassLoadouts[class.Key]).Label())
+	}
+}
+
+// load brings back a saved team, or says there is none by that name.
+func (e *botTeamEditor) load() {
+	name := strings.TrimSpace((*e.presetBox).Text())
+	team, found := e.saved[name]
+	if !found {
+		return
+	}
+	e.show(team)
+}
+
+// save keeps the team under the name in the box, and puts the name in the menu
+// so the next Load can find it.
+func (e *botTeamEditor) save() {
+	// The name box first: it is where a new name is typed. Blank means save
+	// over whichever team is picked in the menu, which is what somebody
+	// editing one they loaded is doing.
+	name := strings.TrimSpace((*e.presetName).Text())
+	if name == "" {
+		name = strings.TrimSpace((*e.presetBox).Text())
+	}
+	if name == "" {
+		return
+	}
+	if e.saved == nil {
+		e.saved = map[string]settings.BotTeam{}
+	}
+	e.saved[name] = e.team()
+
+	names := make([]string, 0, len(e.saved))
+	for saved := range e.saved {
+		names = append(names, saved)
+	}
+	slices.Sort(names)
+	_ = (*e.presetBox).SetModel(names)
+	_ = (*e.presetBox).SetText(name)
+	_ = (*e.presetName).SetText("")
+}
+
+// seatLoadoutKey is the preset a seat's weapons menu is showing, by key.
+func seatLoadoutKey(class botloadout.Class, box *walk.ComboBox) string {
+	index := box.CurrentIndex()
+	if index < 0 || index >= len(class.Loadouts) {
+		return botloadout.StockKey
+	}
+	return class.Loadouts[index].Key
+}
+
+// classesPerRow is how many class ticks share a line. Nine lines of one tick
+// was a column of nothing down the middle of the tab.
+const classesPerRow = 3
+
+// classCells is the class pool: every class as a tick and the weapons it holds.
+func classCells(s settings.Settings, team *botTeamEditor) []declarative.Widget {
+	var cells []declarative.Widget
+	for i := range botloadout.Classes {
+		class := botloadout.Classes[i]
+		labels := make([]string, 0, len(class.Loadouts))
+		for _, loadout := range class.Loadouts {
+			labels = append(labels, loadout.Label())
+		}
+		cells = append(cells,
+			declarative.CheckBox{
+				AssignTo:    &team.classBox[i],
+				Text:        class.Name,
+				Checked:     !slices.Contains(s.SrcdsBotClassBlacklist, class.Key),
+				MinSize:     declarative.Size{Width: 86},
+				ToolTipText: "Unticked, the mod never draws " + class.Name + ".",
+			},
+			declarative.ComboBox{
+				AssignTo:      &team.loadoutBx[i],
+				Model:         labels,
+				Value:         class.LoadoutByKey(s.SrcdsBotLoadouts[class.Key]).Label(),
+				ToolTipText:   "What a " + class.Name + " holds when the seat it fills does not say otherwise.",
+				MinSize:       declarative.Size{Width: 200},
+				MaxSize:       declarative.Size{Width: 260},
+				StretchFactor: 1,
+			},
+		)
+	}
+	return cells
+}
+
 // botSeats is how many bots RED can hold, which is the team size the Bots tab
 // caps at. A seat past the team size is simply never filled.
 const botSeats = 6
@@ -711,8 +850,7 @@ const botSeats = 6
 // and two Scouts on an Advanced mission, and a team with no Engineer ran out
 // of ammo against the tank.
 func seatRows(
-	s settings.Settings, label func(text, help string) declarative.Label,
-	seatBox []*walk.ComboBox,
+	s settings.Settings, label func(text, help string) declarative.Label, team *botTeamEditor,
 ) []declarative.Widget {
 	choices := make([]string, 0, len(botloadout.Classes)+1)
 	choices = append(choices, drawSeatLabel)
@@ -720,22 +858,144 @@ func seatRows(
 		choices = append(choices, class.Name)
 	}
 	rows := []declarative.Widget{declarative.TextLabel{
-		Text:       "The bot team, in order. The first seats are the ones filled when RED is short, so put the classes you cannot do without first. A seat left on the draw is one the mod picks, and a team named here beats the ticks below.",
+		Text: "The bot team, in order: what each seat plays and what it holds. The first seats are the ones " +
+			"filled when RED is short, so put the classes you cannot do without first. A seat left on the " +
+			"draw is one the mod picks, from the classes ticked below.",
 		ColumnSpan: 2,
 		MaxSize:    declarative.Size{Width: sentenceWidth},
 	}}
-	for seat := range seatBox {
+	rows = append(rows, presetRow(s, label, team)...)
+
+	for seat := range team.seatBox {
 		rows = append(rows,
-			label(fmt.Sprintf("Seat %d", seat+1), "The class of this seat. Humans take the seats first, so the last ones are rarely filled."),
-			declarative.ComboBox{
-				AssignTo:      &seatBox[seat],
-				Model:         choices,
-				Value:         seatValue(s.SrcdsBotTeamComp, seat),
-				StretchFactor: 1,
+			label(fmt.Sprintf("Seat %d", seat+1), "What this seat plays and what it carries. Humans take the seats first, so the last ones are rarely filled."),
+			// The class and its weapons on one line: two engineers are only
+			// worth naming separately if they can hold different things.
+			declarative.Composite{
+				Layout: declarative.HBox{MarginsZero: true},
+				Children: []declarative.Widget{
+					declarative.ComboBox{
+						AssignTo:              &team.seatBox[seat],
+						Model:                 choices,
+						Value:                 seatValue(s.SrcdsBotTeamComp, seat),
+						MinSize:               declarative.Size{Width: 140},
+						MaxSize:               declarative.Size{Width: 140},
+						OnCurrentIndexChanged: seatClassChanged(seat, team),
+					},
+					declarative.ComboBox{
+						AssignTo:      &team.seatLoadBx[seat],
+						Model:         seatLoadoutChoices(seatClassKey(s.SrcdsBotTeamComp, seat)),
+						Value:         seatLoadoutValue(s, seat),
+						ToolTipText:   "The weapons this seat carries. Follows the class, so a seat on the draw has nothing to hold.",
+						StretchFactor: 1,
+					},
+				},
 			},
 		)
 	}
 	return rows
+}
+
+// presetRow is the saved teams: pick one and load it, or name one and keep it.
+func presetRow(
+	s settings.Settings, label func(text, help string) declarative.Label, team *botTeamEditor,
+) []declarative.Widget {
+	return []declarative.Widget{
+		label("Saved teams", "A team is the seats, their weapons and the classes the mod may draw from. Type a name and press Save to keep the team below; pick one and press Load to bring it back."),
+		declarative.Composite{
+			Layout: declarative.HBox{MarginsZero: true},
+			Children: []declarative.Widget{
+				declarative.ComboBox{
+					AssignTo:      team.presetBox,
+					Model:         settings.BotTeamNames(s),
+					StretchFactor: 1,
+					ToolTipText:   "The teams you have saved. Pick one and press Load.",
+				},
+				declarative.LineEdit{
+					AssignTo:      team.presetName,
+					CueBanner:     "name this team",
+					StretchFactor: 1,
+					ToolTipText:   "The name Save keeps this team under. Blank saves over the one picked on the left.",
+				},
+				declarative.PushButton{
+					Text:        "Load",
+					ToolTipText: "Put the named team into the seats below.",
+					MinSize:     declarative.Size{Width: 70},
+					OnClicked:   team.load,
+				},
+				declarative.PushButton{
+					Text:        "Save",
+					ToolTipText: "Keep the team below under the name in the box.",
+					MinSize:     declarative.Size{Width: 70},
+					OnClicked:   team.save,
+				},
+			},
+		},
+	}
+}
+
+/* The weapons a seat may carry follow the class it plays.
+ *
+ * A menu of every class's loadouts would offer a Medic the Gunslinger. The
+ * choice is thrown away when the class changes, because a loadout for a class
+ * this seat no longer plays is not a choice anybody made.
+ */
+func seatLoadoutChoices(classKey string) []string {
+	class, found := botloadout.ClassByKey(classKey)
+	if !found {
+		return []string{drawSeatLoadoutLabel}
+	}
+	labels := make([]string, 0, len(class.Loadouts))
+	for _, loadout := range class.Loadouts {
+		labels = append(labels, loadout.Label())
+	}
+	return labels
+}
+
+// drawSeatLoadoutLabel is what a seat with no class of its own can hold, which
+// is nothing to choose: the mod draws the class and the class holds its own.
+const drawSeatLoadoutLabel = "follows the class"
+
+func seatClassKey(comp []string, seat int) string {
+	if seat >= len(comp) {
+		return ""
+	}
+	return comp[seat]
+}
+
+func seatLoadoutValue(s settings.Settings, seat int) string {
+	class, found := botloadout.ClassByKey(seatClassKey(s.SrcdsBotTeamComp, seat))
+	if !found {
+		return drawSeatLoadoutLabel
+	}
+	key := ""
+	if seat < len(s.SrcdsBotSeatLoadouts) {
+		key = s.SrcdsBotSeatLoadouts[seat]
+	}
+	return class.LoadoutByKey(key).Label()
+}
+
+// seatClassChanged refills that seat's weapons menu, because the old one
+// belongs to a class this seat no longer plays.
+func seatClassChanged(seat int, team *botTeamEditor) walk.EventHandler {
+	return func() {
+		box, loadout := team.seatBox[seat], team.seatLoadBx[seat]
+		if box == nil || loadout == nil {
+			return
+		}
+		_ = loadout.SetModel(seatLoadoutChoices(classKeyOfLabel(box.Text())))
+		_ = loadout.SetText(seatLoadoutChoices(classKeyOfLabel(box.Text()))[0])
+	}
+}
+
+// classKeyOfLabel is the mod's spelling of a class named in a menu.
+func classKeyOfLabel(name string) string {
+	for _, class := range botloadout.Classes {
+		if class.Name == name {
+			return class.Key
+		}
+	}
+	return ""
 }
 
 // drawSeatLabel is the first entry of every seat menu: the mod picks.

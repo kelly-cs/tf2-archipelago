@@ -29,7 +29,7 @@ func Install(s settings.Settings) error {
 	if err := installAdmins(gameDir, s.SrcdsAdminSteamIDs); err != nil {
 		return err
 	}
-	if err := installBotLoadout(gameDir, s.SrcdsBotLoadouts); err != nil {
+	if err := installBotLoadout(gameDir, s.SrcdsBotLoadouts, botloadout.Seats(s.SrcdsBotTeamComp, s.SrcdsBotSeatLoadouts)); err != nil {
 		return err
 	}
 	return installPluginCfg(gameDir)
@@ -96,9 +96,9 @@ func installAdmins(gameDir, list string) error {
 // installBotLoadout writes the bots' loadout file when a class has a preset,
 // and removes it otherwise: the mod reads the file's presence as "the server
 // decides", and stock everywhere is the mod's own default.
-func installBotLoadout(gameDir string, picks map[string]string) error {
+func installBotLoadout(gameDir string, picks map[string]string, seats []botloadout.Seat) error {
 	target := filepath.Join(gameDir, "addons", "sourcemod", "configs", "defenderbots", "loadout.cfg")
-	if !botloadout.Custom(picks) {
+	if !botloadout.Custom(picks) && !botloadout.CustomSeats(seats) {
 		if err := os.Remove(target); err != nil && !os.IsNotExist(err) {
 			return fmt.Errorf("cannot remove %s: %w", target, err)
 		}
@@ -107,7 +107,7 @@ func installBotLoadout(gameDir string, picks map[string]string) error {
 	if _, err := os.Stat(filepath.Dir(target)); os.IsNotExist(err) {
 		return nil
 	}
-	return writeIfChanged(target, []byte(botloadout.Render(picks)))
+	return writeIfChanged(target, []byte(botloadout.Render(picks, seats)))
 }
 
 // installPluginCfg drops the plugin's config once. After that the file belongs

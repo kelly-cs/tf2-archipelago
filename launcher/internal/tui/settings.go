@@ -44,12 +44,13 @@ type settingsForm struct {
 	focused int
 	offset  int
 
-	room   string // the room address as typed, parsed on save
-	warn   string
-	saved  func(settings.Settings) tea.Cmd
-	repair func() ([]string, error)
-	reset  func() (settings.Settings, error)
-	closed bool
+	room     string // the room address as typed, parsed on save
+	teamName string // what the next Save keeps the bot team under
+	warn     string
+	saved    func(settings.Settings) tea.Cmd
+	repair   func() ([]string, error)
+	reset    func() (settings.Settings, error)
+	closed   bool
 }
 
 type settingsTab struct {
@@ -366,10 +367,20 @@ func (f *settingsForm) botFields() []field {
 		},
 	}
 
-	// The seats, in the order they fill. This is the one thing a blacklist
-	// cannot say, and the reason the team composition exists.
+	// A team is worth naming once. The window has a menu and two buttons for
+	// this; here it is a list to load from and a name to save under.
+	fields = append(fields, f.loadTeamField(), f.saveTeamField(), &textField{
+		label:       "Team name",
+		help:        "The name Save this team as keeps it under.",
+		value:       &f.teamName,
+		placeholder: "two engineers, one medic",
+	})
+
+	// The seats, in the order they fill, each with what it plays and what it
+	// carries. Two engineers are only worth naming separately if they can hold
+	// different weapons.
 	for seat := range botSeats {
-		fields = append(fields, f.seatField(seat))
+		fields = append(fields, f.seatField(seat), f.seatLoadoutField(seat))
 	}
 
 	for _, class := range botloadout.Classes {
@@ -414,18 +425,121 @@ func (f *settingsForm) seatField(seat int) field {
 	}
 }
 
-// setSeat rewrites the composition from the seats that name a class. A seat
-// left to the mod contributes nothing, so the list is the picked seats in seat
-// order, which is what the convar reads.
+/* setSeat rewrites the team from the seats that name a class.
+ *
+ * A seat left to the mod contributes nothing, so the list is the picked seats
+ * in seat order, which is what the convar reads. The loadouts are rewritten
+ * with it and from the same array, or the two lists stop lining up the first
+ * time a seat in the middle is put back on the draw.
+ */
 func (f *settingsForm) setSeat(seat, index int) {
-	comp := make([]string, botSeats)
-	copy(comp, f.edited.SrcdsBotTeamComp)
+	seats := f.seats()
 	if index == 0 {
-		comp[seat] = ""
+		seats[seat] = botloadout.Seat{}
 	} else {
-		comp[seat] = botloadout.Classes[index-1].Key
+		class := botloadout.Classes[index-1]
+		// The weapons follow the class: a loadout for a class this seat no
+		// longer plays is not a choice anybody made.
+		if seats[seat].Class != class.Key {
+			seats[seat] = botloadout.Seat{Class: class.Key}
+		}
 	}
-	f.edited.SrcdsBotTeamComp = slices.DeleteFunc(comp, func(key string) bool { return key == "" })
+	f.setSeats(seats)
+}
+
+// seats is the team as an array of six, whatever the compacted lists hold.
+func (f *settingsForm) seats() []botloadout.Seat {
+	seats := make([]botloadout.Seat, botSeats)
+	copy(seats, botloadout.Seats(f.edited.SrcdsBotTeamComp, f.edited.SrcdsBotSeatLoadouts))
+	return seats
+}
+
+// setSeats writes the array back as the two compacted lists the mod reads.
+func (f *settingsForm) setSeats(seats []botloadout.Seat) {
+	f.edited.SrcdsBotTeamComp = nil
+	f.edited.SrcdsBotSeatLoadouts = nil
+	for _, seat := range seats {
+		if seat.Class == "" {
+			continue
+		}
+		f.edited.SrcdsBotTeamComp = append(f.edited.SrcdsBotTeamComp, seat.Class)
+		f.edited.SrcdsBotSeatLoadouts = append(f.edited.SrcdsBotSeatLoadouts, seat.Loadout)
+	}
+}
+
+// seatLoadoutField is what one seat carries. A seat with no class of its own
+// has nothing to choose: the mod draws the class and the class holds its own.
+func (f *settingsForm) seatLoadoutField(seat int) field {
+	seats := f.seats()
+	class, found := botloadout.ClassByKey(seats[seat].Class)
+	if !found {
+		return &choiceField{
+			label:   fmt.Sprintf("  Seat %d holds", seat+1),
+			help:    "Pick a class for this seat first. A seat on the draw holds whatever its class holds.",
+			options: []string{"follows the class"},
+			apply:   func(int) {},
+		}
+	}
+
+	options := make([]string, 0, len(class.Loadouts))
+	for _, loadout := range class.Loadouts {
+		options = append(options, loadout.Label())
+	}
+	index := slices.IndexFunc(class.Loadouts, func(l botloadout.Loadout) bool {
+		return l.Key == seats[seat].Loadout
+	})
+	return &choiceField{
+		label:   fmt.Sprintf("  Seat %d holds", seat+1),
+		help:    "The weapons this seat carries, which is what lets two engineers hold different things.",
+		options: options,
+		index:   max(index, 0),
+		apply: func(i int) {
+			seats := f.seats()
+			seats[seat].Loadout = class.Loadouts[i].Key
+			f.setSeats(seats)
+		},
+	}
+}
+
+// loadTeamField brings back a saved team.
+func (f *settingsForm) loadTeamField() field {
+	names := settings.BotTeamNames(f.edited)
+	options := append([]string{"keep the team below"}, names...)
+
+	return &choiceField{
+		label:   "Load a team",
+		help:    "A team is the seats, their weapons and the classes the mod may draw from. Saved teams are listed here.",
+		options: options,
+		apply: func(i int) {
+			if i == 0 || i > len(names) {
+				return
+			}
+			f.edited = settings.WithBotTeam(f.edited, f.edited.SrcdsBotTeamPresets[names[i-1]])
+			f.build()
+		},
+	}
+}
+
+// saveTeamField keeps the team below under a name.
+func (f *settingsForm) saveTeamField() field {
+	return &actionField{
+		label: "Save this team as",
+		help:  "Type a name in the box below it, then press enter here to keep the seats, their weapons and the class ticks under it.",
+		hint:  "enter",
+		run: func() tea.Cmd {
+			name := strings.TrimSpace(f.teamName)
+			if name == "" {
+				return func() tea.Msg { return noticeMsg("name the team first") }
+			}
+			if f.edited.SrcdsBotTeamPresets == nil {
+				f.edited.SrcdsBotTeamPresets = map[string]settings.BotTeam{}
+			}
+			f.edited.SrcdsBotTeamPresets[name] = settings.BotTeamOf(f.edited)
+			f.teamName = ""
+			f.build()
+			return func() tea.Msg { return noticeMsg("saved the team as " + name) }
+		},
+	}
 }
 
 func (f *settingsForm) classField(class botloadout.Class) field {
