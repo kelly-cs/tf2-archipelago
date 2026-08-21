@@ -191,9 +191,14 @@ func (w *window) build() error {
 					declarative.PushButton{Text: "Copy", ToolTipText: "Copy the join line to the clipboard.", OnClicked: w.copyJoin, MinSize: declarative.Size{Width: 60}},
 				},
 			},
+			// The run first, the log second. The log is what a player needs
+			// when something is wrong; the run is what they came for, and a
+			// window that opens on a wall of server output reads as a console
+			// somebody left running rather than as the thing they double-clicked.
 			declarative.TabWidget{
 				StretchFactor: 1,
 				Pages: []declarative.TabPage{
+					w.session.page(w.switchMission),
 					{
 						Title:  "Log",
 						Layout: declarative.VBox{MarginsZero: true},
@@ -220,7 +225,6 @@ func (w *window) build() error {
 							},
 						},
 					},
-					w.session.page(w.switchMission),
 				},
 			},
 		},
@@ -274,7 +278,12 @@ func (w *window) noteMission(mission string) {
 	w.mission = mission
 	w.mu.Unlock()
 	if changed && w.main != nil {
-		w.main.Synchronize(w.refresh)
+		w.main.Synchronize(func() {
+			w.refresh()
+			// The server's own word that the mission loaded, which is what
+			// the line under the Session button is waiting for.
+			w.session.noteSwitchLanded(mission)
+		})
 	}
 }
 
@@ -601,9 +610,12 @@ func (w *window) runRcon(command string) {
 // switcher, over rcon, which refuses a mission the run has not unlocked.
 func (w *window) switchMission(popFile string) {
 	if !w.supervisor.Running() {
+		w.session.saySwitch("The server is not running. Press Start first.")
 		w.say("the server is not running")
 		return
 	}
+	// The tab has already said what it is loading: it knows the mission's name
+	// and its map, and this only has the popfile.
 	w.runRcon("sm_ap_mission " + popFile)
 }
 

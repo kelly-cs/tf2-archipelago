@@ -19,8 +19,17 @@ type sessionTab struct {
 	run        *walk.Label
 	table      *walk.TableView
 	switchBt   *walk.PushButton
+	hint       *walk.Label
 	model      *missionsModel
 	running    bool
+
+	// The mission the last button press asked for, held until the server says
+	// it loaded. The line under the button is the only feedback a player gets
+	// without opening the log, and a map change takes long enough to doubt.
+	//
+	// The name and not the popfile: the server announces the mission it loaded
+	// by name, and that announcement is what clears this.
+	switching session.Mission
 }
 
 func newSessionTab() *sessionTab {
@@ -71,12 +80,17 @@ func (t *sessionTab) page(onSwitch func(popFile string)) declarative.TabPage {
 						Text:        "Play this mission",
 						ToolTipText: "Load the selected mission now, through the plugin's own switcher. A locked mission is refused.",
 						OnClicked: func() {
-							if popFile, ok := t.selected(); ok {
-								onSwitch(popFile)
+							mission, ok := t.selected()
+							if !ok {
+								return
 							}
+							t.switching = mission
+							t.saySwitch("Loading " + mission.Name + " on " + mission.Map +
+								". The map changes, which takes a few seconds.")
+							onSwitch(mission.PopFile)
 						},
 					},
-					declarative.Label{Text: "In the game, !ap status prints the same picture and !mission the same list.", TextColor: colorMuted},
+					declarative.Label{AssignTo: &t.hint, Text: hintIdle, TextColor: colorMuted},
 					declarative.HSpacer{},
 				},
 			},
@@ -84,12 +98,22 @@ func (t *sessionTab) page(onSwitch func(popFile string)) declarative.TabPage {
 	}
 }
 
-func (t *sessionTab) selected() (string, bool) {
+// hintIdle is what the line under the button says when nothing is happening:
+// where the same two answers live for someone who is in the game rather than
+// in front of this window.
+const hintIdle = "In the game, !ap status prints the same picture and !mission the same list."
+
+// saySwitch puts one line under the button, where the press was.
+func (t *sessionTab) saySwitch(text string) {
+	t.hint.SetText(text)
+}
+
+func (t *sessionTab) selected() (session.Mission, bool) {
 	index := t.table.CurrentIndex()
 	if index < 0 || index >= len(t.model.missions) {
-		return "", false
+		return session.Mission{}, false
 	}
-	return t.model.missions[index].PopFile, true
+	return t.model.missions[index], true
 }
 
 func (t *sessionTab) setRunning(running bool) {
@@ -98,17 +122,35 @@ func (t *sessionTab) setRunning(running bool) {
 		t.multiworld.SetText("The server is not running.")
 		t.run.SetText("")
 		t.model.set(nil)
+		t.switching = session.Mission{}
+		t.hint.SetText(hintIdle)
 	}
 	t.refreshButtons()
 }
 
+/* The button says what pressing it will do, and refuses what the run refuses.
+ *
+ * A locked mission used to offer the same button as an unlocked one, and the
+ * refusal arrived as a line of chat on a server the player may not be looking
+ * at. The ticket is somewhere in the multiworld, which is a rule of the game
+ * rather than a failure, so it belongs on the button rather than in a log.
+ */
 func (t *sessionTab) refreshButtons() {
-	popFile, ok := t.selected()
-	t.switchBt.SetEnabled(t.running && ok)
-	if ok {
-		t.switchBt.SetText("Play " + popFile)
-	} else {
+	mission, ok := t.selected()
+	if !ok {
+		t.switchBt.SetEnabled(false)
 		t.switchBt.SetText("Play this mission")
+		return
+	}
+	playable := t.running && mission.Unlocked
+	t.switchBt.SetEnabled(playable)
+	switch {
+	case !mission.Unlocked:
+		t.switchBt.SetText("Locked: " + mission.Name)
+	case t.running:
+		t.switchBt.SetText("Play " + mission.Name)
+	default:
+		t.switchBt.SetText("Play " + mission.Name)
 	}
 }
 
@@ -140,6 +182,17 @@ func (t *sessionTab) update(snapshot session.Snapshot, err error) {
 	t.run.SetText(strings.Join(run, "   "))
 	t.model.set(snapshot.Missions)
 	t.refreshButtons()
+}
+
+// noteSwitchLanded clears the waiting line once the run is on the mission the
+// button asked for. Nothing else clears it: a player who pressed the button
+// and got no answer is exactly the person who needs the line to stay.
+func (t *sessionTab) noteSwitchLanded(name string) {
+	if t.switching.Name == "" || name == "" || !strings.EqualFold(name, t.switching.Name) {
+		return
+	}
+	t.hint.SetText("Playing " + t.switching.Name + ".   " + hintIdle)
+	t.switching = session.Mission{}
 }
 
 // missionsModel is the table's data: the run's missions, in seed order.
