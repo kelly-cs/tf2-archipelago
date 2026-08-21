@@ -3,12 +3,15 @@ package debugbundle
 import (
 	"archive/zip"
 	"io"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 
+	apruntime "github.com/m-this/tf2-archipelago/launcher/internal/runtime"
 	"github.com/m-this/tf2-archipelago/launcher/internal/settings"
 )
 
@@ -115,4 +118,76 @@ func keys(m map[string]string) []string {
 		out = append(out, name)
 	}
 	return out
+}
+
+// The run before this one is in the bundle too. A player who hits a bug
+// restarts the server before going to look for the button, so the run that
+// broke is usually not the run the bundle is made from.
+func TestWriteKeepsThePreviousRun(t *testing.T) {
+	root := t.TempDir()
+	write(t, filepath.Join(root, apruntime.LogFileName), "this run\n")
+	write(t, filepath.Join(root, apruntime.LogPreviousName), "the run that broke\n")
+
+	s := settings.Defaults()
+	s.InstallRoot = root
+	path, err := Write(s, nil, time.Date(2026, 8, 18, 1, 2, 3, 0, time.UTC))
+	if err != nil {
+		t.Fatalf("Write: %v", err)
+	}
+	held := read(t, path)
+	if !strings.Contains(held[apruntime.LogPreviousName], "the run that broke") {
+		t.Errorf("the previous run is not in the bundle: %v", keys(held))
+	}
+}
+
+// What the bridge says about the run, and what the bundle says when it says
+// nothing. Both are worth having: no answer means the state came from nowhere,
+// rather than the run being empty.
+func TestWriteCarriesTheBridgeState(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/healthz":
+			_, _ = io.WriteString(w, `{"connected":true,"slot":"tf2","checks":7}`)
+		case "/missions":
+			_, _ = io.WriteString(w, `{"missions":[{"popfile":"mvm_decoy","cleared":true}]}`)
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer server.Close()
+
+	previous := bridgeURL
+	bridgeURL = server.URL
+	defer func() { bridgeURL = previous }()
+
+	s := settings.Defaults()
+	s.InstallRoot = t.TempDir()
+	path, err := Write(s, nil, time.Date(2026, 8, 18, 1, 2, 3, 0, time.UTC))
+	if err != nil {
+		t.Fatalf("Write: %v", err)
+	}
+	held := read(t, path)
+	if !strings.Contains(held["bridge.json"], `"checks": 7`) {
+		t.Errorf("the bundle does not carry the run: %q", held["bridge.json"])
+	}
+	if !strings.Contains(held["bridge.json"], "mvm_decoy") {
+		t.Errorf("the bundle does not carry the missions: %q", held["bridge.json"])
+	}
+}
+
+func TestWriteSaysWhenTheBridgeDidNotAnswer(t *testing.T) {
+	previous := bridgeURL
+	// Nothing listens here: a bundle made after everything was stopped.
+	bridgeURL = "http://127.0.0.1:1"
+	defer func() { bridgeURL = previous }()
+
+	s := settings.Defaults()
+	s.InstallRoot = t.TempDir()
+	path, err := Write(s, nil, time.Date(2026, 8, 18, 1, 2, 3, 0, time.UTC))
+	if err != nil {
+		t.Fatalf("Write: %v", err)
+	}
+	if held := read(t, path); !strings.Contains(held["bridge.json"], "error") {
+		t.Errorf("a refused bridge left no trace: %q", held["bridge.json"])
+	}
 }

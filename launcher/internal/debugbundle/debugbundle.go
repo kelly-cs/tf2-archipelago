@@ -1,6 +1,7 @@
 // Package debugbundle collects everything somebody would ask a play-tester for
-// into one zip: the launcher's log, SourceMod's error logs, the game server's
-// console log, the player file, and the settings with the passwords taken out.
+// into one zip: the launcher's log and the one before it, SourceMod's error
+// logs, the game server's console log, what the bridge says about the run, the
+// player file, and the settings with the passwords taken out.
 //
 // It exists because the alternative is asking a player to find five files in
 // three folders, and because a zip posted in a chat channel is the shortest
@@ -9,6 +10,8 @@ package debugbundle
 
 import (
 	"archive/zip"
+	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -17,12 +20,18 @@ import (
 	"strings"
 	"time"
 
+	apruntime "github.com/m-this/tf2-archipelago/launcher/internal/runtime"
+	"github.com/m-this/tf2-archipelago/launcher/internal/session"
 	"github.com/m-this/tf2-archipelago/launcher/internal/settings"
 )
 
 // fileBytesMax caps one file inside the zip. A console log from a long evening
 // runs to hundreds of megabytes, and the end of it is the part that matters.
 const fileBytesMax = 8 << 20
+
+// bridgeTimeout bounds the one request this package makes. The bridge is on
+// loopback, and a bundle must not hang on a bridge that is not running.
+const bridgeTimeout = 3 * time.Second
 
 // Write builds the zip next to the game files and returns its path. stamp names
 // it, so two bundles from one evening do not overwrite each other.
@@ -41,9 +50,15 @@ func Write(s settings.Settings, versions map[string]string, stamp time.Time) (st
 
 	add(archive, "summary.txt", strings.NewReader(summary(s, versions, stamp)))
 	add(archive, "config.json", strings.NewReader(redactedSettings(s)))
-	copyIn(archive, "launcher.log", filepath.Join(s.InstallRoot, "launcher.log"))
+	add(archive, "bridge.json", strings.NewReader(bridgeState()))
+	// The run before this one as well: a player who hits a bug restarts the
+	// server and then goes looking for the button, so the run that broke is
+	// usually not the run the bundle is made from.
+	copyIn(archive, apruntime.LogFileName, filepath.Join(s.InstallRoot, apruntime.LogFileName))
+	copyIn(archive, apruntime.LogPreviousName, filepath.Join(s.InstallRoot, apruntime.LogPreviousName))
 	copyIn(archive, "tf2.yaml", filepath.Join(s.InstallRoot, settings.PlayerFileName))
-	copyIn(archive, "console.log", filepath.Join(game, "console.log"))
+	copyIn(archive, apruntime.ConsoleLogName, filepath.Join(game, apruntime.ConsoleLogName))
+	copyIn(archive, apruntime.ConsolePreviousName, filepath.Join(game, apruntime.ConsolePreviousName))
 	copyIn(archive, "server.cfg", filepath.Join(game, "cfg", "server.cfg"))
 
 	// Every SourceMod log, because the error log names the plugin and the plain
@@ -57,6 +72,31 @@ func Write(s settings.Settings, versions map[string]string, stamp time.Time) (st
 		return "", fmt.Errorf("cannot finish %s: %w", path, err)
 	}
 	return path, nil
+}
+
+// bridgeURL is a variable so a test can point it at a bridge of its own.
+var bridgeURL = session.BridgeURL
+
+// bridgeState is what the bridge says about the run: whether it is connected,
+// what it has checked, and which missions it believes are unlocked.
+//
+// It is fetched rather than read off disk, so it only answers while the server
+// is up. A bundle made after everything was stopped carries the refusal, which
+// is itself worth reading: it says the state came from nowhere rather than
+// leaving a reader to assume the run was empty.
+func bridgeState() string {
+	ctx, cancel := context.WithTimeout(context.Background(), bridgeTimeout)
+	defer cancel()
+
+	snapshot, err := session.Fetch(ctx, bridgeURL)
+	if err != nil {
+		return fmt.Sprintf("{\n  \"error\": %q\n}\n", err.Error())
+	}
+	body, err := json.MarshalIndent(snapshot, "", "  ")
+	if err != nil {
+		return fmt.Sprintf("{\n  \"error\": %q\n}\n", err.Error())
+	}
+	return string(body) + "\n"
 }
 
 // summary is the first thing to read: what was installed, what the run is, and

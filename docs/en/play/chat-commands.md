@@ -125,7 +125,7 @@ place it belongs to, so the second report does nothing.
 ## The settings
 
 These are console variables. Set one for the session with
-`rcon tf2ap_debug 1`. To keep it across restarts, edit
+`rcon tf2ap_debug 2`. To keep it across restarts, edit
 `cfg/sourcemod/tf2_archipelago.cfg` in the game files. The stack never
 overwrites that file once it exists.
 
@@ -133,11 +133,13 @@ overwrites that file once it exists.
 | --- | --- | --- |
 | `tf2ap_announce` | `1` | Write the cleared waves and the received items in the chat |
 | `tf2ap_chat` | `1` | Write what the rest of the session says in the chat |
-| `tf2ap_debug` | `0` | Write every bridge call and every game event in the chat and the console |
+| `tf2ap_debug` | `1` | Every bridge call and game event. `0` writes none, `1` writes them to the console and the SourceMod log, `2` writes them to the chat as well. |
 | `tf2ap_bridge_url` | `http://127.0.0.1:24680` | Where the bridge is. Loopback only. Do not change it. |
 | `tf2ap_start_mission` | empty | The mission the server starts on, as a popfile name. The launcher and the image write it from their settings. |
 | `tf2ap_next_mission_delay` | `30` | Seconds between a mission clear and the next mission. `0` leaves the game's own cycle to it. |
 | `tf2ap_bot_upgrades_chat` | `0` | Write what the defender bots buy at the upgrade station in the chat. One line per purchase. |
+| `tf2ap_bots_wait_for_players` | `1` | Hold the bots unready until every player on RED is ready. With nobody on RED they never ready, so an empty server does not play the run by itself. |
+| `tf2ap_bots_backfill` | `1` | Put a bot back on RED when a player leaves between waves. During a wave the bot mod already does it. |
 
 Errors reach the chat whatever `tf2ap_announce` is set to. A failure that
 nobody can see gets blamed on the game.

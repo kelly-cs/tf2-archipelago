@@ -2,13 +2,15 @@
 
 ## Before anybody joins
 
-The plugin has a loud mode. With it on, the server writes every game event it
-sees and every call it makes into the chat. It is noisy, and it is the fastest
-way to see what the server does with a wave. Turn it on for the first evening:
+The plugin already writes every game event it sees and every call it makes to
+the console and the SourceMod log, so the record of the evening is on disk
+whatever you do. It has a louder mode that puts the same lines in the chat,
+which is the fastest way to watch what the server does with a wave as it
+happens:
 
 ```
 rcon_password your-SRCDS_RCONPW
-rcon tf2ap_debug 1
+rcon tf2ap_debug 2
 ```
 
 Type that in the Team Fortress 2 console after you connect. Keep the launcher's

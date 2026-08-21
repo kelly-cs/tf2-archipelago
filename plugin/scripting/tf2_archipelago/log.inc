@@ -18,13 +18,19 @@
 ConVar g_CvarAnnounce;
 ConVar g_CvarDebug;
 
+// What tf2ap_debug is worth. Chat is the loud one, so it is not the default:
+// the log costs nothing anybody reads and it is what a debug bundle carries.
+#define DebugOff 0
+#define DebugLog 1
+#define DebugChat 2
+
 void Log_Init()
 {
     g_CvarAnnounce = CreateConVar("tf2ap_announce", "1",
         "Write the received items and the unlocks to the chat.", _, true, 0.0, true, 1.0);
-    g_CvarDebug = CreateConVar("tf2ap_debug", "0",
-        "Write every bridge call and every game event to the chat and the console.",
-        _, true, 0.0, true, 1.0);
+    g_CvarDebug = CreateConVar("tf2ap_debug", "1",
+        "Every bridge call and game event: 0 writes none, 1 writes them to the console and the log, 2 writes them to the chat as well.",
+        _, true, 0.0, true, 2.0);
 }
 
 stock void AP_Announce(const char[] format, any ...)
@@ -48,15 +54,29 @@ stock void AP_Error(const char[] format, any ...)
     LogError("%s", message);
 }
 
+/* Every bridge call and every game event.
+ *
+ * The default writes them to the console and the SourceMod log and not to the
+ * chat. Nobody wants to play a wave through a running commentary, and the two
+ * files are what a player sends when something goes wrong: a bundle from a
+ * default install is diagnosable without asking that player to reproduce the
+ * bug a second time with a convar turned on.
+ *
+ * Cheap enough to leave on, because every call site here is an event: a wave,
+ * a grant, a request that failed. None of them is on a timer. */
 stock void AP_Debug(const char[] format, any ...)
 {
-    if (!g_CvarDebug.BoolValue)
+    int level = g_CvarDebug.IntValue;
+    if (level <= DebugOff)
     {
         return;
     }
     char message[ChatLineMax];
     VFormat(message, sizeof(message), format, 2);
-    PrintToChatAll("%s\x07AAAAAA%s", AP_TAG, message);
+    if (level >= DebugChat)
+    {
+        PrintToChatAll("%s\x07AAAAAA%s", AP_TAG, message);
+    }
     PrintToServer("[AP] debug: %s", message);
     LogMessage("%s", message);
 }

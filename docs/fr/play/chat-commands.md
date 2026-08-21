@@ -133,7 +133,7 @@ second rapport ne fait rien.
 ## Les réglages
 
 Ce sont des variables de console. Réglez-en une pour la session avec
-`rcon tf2ap_debug 1`. Pour la garder entre les redémarrages, modifiez
+`rcon tf2ap_debug 2`. Pour la garder entre les redémarrages, modifiez
 `cfg/sourcemod/tf2_archipelago.cfg` dans les fichiers du jeu. La stack
 n'écrase jamais ce fichier une fois qu'il existe.
 
@@ -141,11 +141,13 @@ n'écrase jamais ce fichier une fois qu'il existe.
 | --- | --- | --- |
 | `tf2ap_announce` | `1` | Écrit les vagues réussies et les items reçus dans le chat |
 | `tf2ap_chat` | `1` | Écrit ce que dit le reste de la session dans le chat |
-| `tf2ap_debug` | `0` | Écrit chaque appel au bridge et chaque événement de jeu dans le chat et la console |
+| `tf2ap_debug` | `1` | Chaque appel au bridge et chaque événement de jeu. `0` n'écrit rien, `1` écrit dans la console et le journal SourceMod, `2` écrit aussi dans le chat. |
 | `tf2ap_bridge_url` | `http://127.0.0.1:24680` | Où se trouve le bridge. Loopback uniquement. Ne le changez pas. |
 | `tf2ap_start_mission` | vide | La mission de départ du serveur, par nom de popfile. Le lanceur et l'image l'écrivent depuis leurs réglages. |
 | `tf2ap_next_mission_delay` | `30` | Secondes entre la fin d'une mission et la suivante. `0` laisse faire la rotation du jeu. |
 | `tf2ap_bot_upgrades_chat` | `0` | Écrit dans le chat ce que les bots défenseurs achètent à la station d'améliorations. Une ligne par achat. |
+| `tf2ap_bots_wait_for_players` | `1` | Garde les bots non prêts tant qu'un joueur de l'équipe RED ne l'est pas. Sans personne sur RED ils ne sont jamais prêts, donc un serveur vide ne joue pas la partie tout seul. |
+| `tf2ap_bots_backfill` | `1` | Remet un bot sur RED quand un joueur part entre deux vagues. Pendant une vague, le mod des bots le fait déjà. |
 
 Les erreurs atteignent le chat quel que soit le réglage de
 `tf2ap_announce`. Un échec que personne ne voit se retrouve reproché au
