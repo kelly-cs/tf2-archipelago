@@ -460,6 +460,22 @@ public void Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast
     }
 }
 
+// A bot leaving is the mod's business, or this plugin's own Bots_MakeRoom, and
+// backfilling that kick would put the bot straight back into the seat the
+// arriving player was making room in. The client is gone by _Post, so what it
+// was has to be recorded before it goes.
+public void OnClientDisconnect(int client)
+{
+    Bots_OnClientLeaving(client);
+}
+
+// _Post, because the seat is only free once the player is gone: counting RED
+// from OnClientDisconnect still counts the player who is leaving.
+public void OnClientDisconnect_Post(int client)
+{
+    Bots_OnClientLeft(client);
+}
+
 // The class menu issues joinclass, so this is the one place to refuse a locked class.
 // A player who is not on RED is asking to be. The bots fill RED to six and the
 // game refuses a seventh, so a spectator coming back finds the door shut: the

@@ -8,6 +8,16 @@
  */
 
 ConVar g_CvarBotUpgradesChat;
+ConVar g_CvarBotsWaitForPlayers;
+ConVar g_CvarBotsBackfill;
+
+// Whether the hold is on, so it is said once rather than twice a second.
+bool g_Holding;
+
+// How often the ready hold runs. The mod sets a bot ready from several places
+// and the hold takes it away again, so it is a poll rather than a gate: one
+// gate per call site is one call site away from being missed.
+#define BotReadyInterval 0.5
 
 // The upgrade names, in the order scripts/items/mvm_upgrades.txt lists them.
 // That order is the index the game's MVM_Upgrade command carries, and the
@@ -24,7 +34,14 @@ void Bots_Init()
 {
     g_CvarBotUpgradesChat = CreateConVar("tf2ap_bot_upgrades_chat", "0",
         "Write what the defender bots buy at the upgrade station to the chat.", _, true, 0.0, true, 1.0);
+    g_CvarBotsWaitForPlayers = CreateConVar("tf2ap_bots_wait_for_players", "1",
+        "Hold the bots unready until every player on RED is ready.", _, true, 0.0, true, 1.0);
+    g_CvarBotsBackfill = CreateConVar("tf2ap_bots_backfill", "1",
+        "Put a bot back on RED when a player leaves between waves.", _, true, 0.0, true, 1.0);
     g_UpgradeNames = new ArrayList(ByteCountToCells(64));
+
+    // No TIMER_FLAG_NO_MAPCHANGE: the hold must outlive every map change.
+    CreateTimer(BotReadyInterval, Timer_HoldBotsReady, _, TIMER_REPEAT);
 }
 
 void Bots_OnMapStart()
@@ -162,12 +179,7 @@ void Bots_MakeRoom()
     {
         return;
     }
-    int size = DefenderTeamSizeDefault;
-    ConVar teamSize = FindConVar("tf_mvm_defenders_team_size");
-    if (teamSize != null && teamSize.IntValue > 0)
-    {
-        size = teamSize.IntValue;
-    }
+    int size = DefenderTeamSize();
     int onRed = 0;
     int bot = 0;
     for (int client = 1; client <= MaxClients; client++)
@@ -188,4 +200,179 @@ void Bots_MakeRoom()
     }
     AP_Debug("RED is full at %d. A bot leaves for the player who arrived.", onRed);
     KickClient(bot, "Making room for a player");
+}
+
+// How many seats RED holds. The game's own number, and six when it will not say.
+static int DefenderTeamSize()
+{
+    ConVar teamSize = FindConVar("tf_mvm_defenders_team_size");
+    if (teamSize != null && teamSize.IntValue > 0)
+    {
+        return teamSize.IntValue;
+    }
+    return DefenderTeamSizeDefault;
+}
+
+// UNVERIFIED m_bPlayerReady on the game rules, which is what the F4 sets and
+// what the mod itself reads. Absent, nothing can be held, so nothing is.
+static bool IsReady(int client)
+{
+    if (FindSendPropInfo("CTFGameRulesProxy", "m_bPlayerReady") == -1)
+    {
+        return true;
+    }
+    return GameRules_GetProp("m_bPlayerReady", 1, client) != 0;
+}
+
+/**
+ * The bots do not start the wave. The players do.
+ *
+ * A bot readies up as soon as it has done its own job, which on a team of one
+ * player and five bots means the wave begins while that player is still in the
+ * upgrade station. So a bot that is ready is made unready again for as long as
+ * any player on RED is not.
+ *
+ * Nobody on RED is the same answer for a stronger reason: an empty server
+ * would otherwise play the run by itself, wave after wave, and check off
+ * locations nobody was there for.
+ *
+ * A poll and not a command listener. The mod lets its own bots through that
+ * listener on purpose, and it sets them ready from four places; taking the
+ * ready away wherever it came from is one rule instead of four.
+ */
+public Action Timer_HoldBotsReady(Handle timer)
+{
+    if (!g_CvarBotsWaitForPlayers.BoolValue || !MvM_IsActive())
+    {
+        return Plugin_Continue;
+    }
+    // A wave that is already running has nothing left to hold.
+    if (GameRules_GetRoundState() != RoundState_BetweenRounds)
+    {
+        return Plugin_Continue;
+    }
+    if (Bots_PlayersReady())
+    {
+        if (g_Holding)
+        {
+            g_Holding = false;
+            AP_Debug("Every player on RED is ready. The bots are let go.");
+        }
+        return Plugin_Continue;
+    }
+    // Edge-triggered: this runs twice a second, and a line each time would be
+    // the only thing in the log by the end of the evening.
+    if (!g_Holding)
+    {
+        g_Holding = true;
+        AP_Debug("The bots are held unready: %d player(s) on RED, not all ready.", Bots_PlayerCount());
+    }
+    for (int client = 1; client <= MaxClients; client++)
+    {
+        if (!IsClientInGame(client) || !IsFakeClient(client)
+            || GetClientTeam(client) != TeamRed || !IsReady(client))
+        {
+            continue;
+        }
+        // The same command the F4 sends, so the game does its own bookkeeping.
+        FakeClientCommand(client, "tournament_player_readystate 0");
+    }
+    return Plugin_Continue;
+}
+
+// How many players are on RED, bots excluded.
+static int Bots_PlayerCount()
+{
+    int players = 0;
+    for (int client = 1; client <= MaxClients; client++)
+    {
+        if (MvM_IsPlayer(client))
+        {
+            players++;
+        }
+    }
+    return players;
+}
+
+// Whether every player on RED is ready. False for an empty RED: no player is
+// not the same as every player.
+static bool Bots_PlayersReady()
+{
+    int players = 0;
+    for (int client = 1; client <= MaxClients; client++)
+    {
+        if (!MvM_IsPlayer(client))
+        {
+            continue;
+        }
+        players++;
+        if (!IsReady(client))
+        {
+            return false;
+        }
+    }
+    return players > 0;
+}
+
+// Whether the client leaving was a player. Read in _Post, where the client is
+// already gone and nothing can be asked about it any more.
+bool g_Leaving[MAXPLAYERS + 1];
+
+void Bots_OnClientLeaving(int client)
+{
+    g_Leaving[client] = IsClientInGame(client) && !IsFakeClient(client);
+}
+
+void Bots_OnClientLeft(int client)
+{
+    if (!g_Leaving[client])
+    {
+        return;
+    }
+    g_Leaving[client] = false;
+    Bots_Backfill();
+}
+
+/**
+ * A player left, so a bot takes the seat back.
+ *
+ * The mod fills RED when a wave begins and tops it up every second while the
+ * wave runs. Between waves it does neither, which is where a player who leaves
+ * during the upgrade station leaves a wave balanced for six to five bodies.
+ *
+ * Only between waves, for that reason: during a wave the mod is already doing
+ * it, and asking twice puts two bots in one seat.
+ */
+static void Bots_Backfill()
+{
+    if (!g_CvarBotsBackfill.BoolValue || !MvM_IsActive())
+    {
+        return;
+    }
+    if (GameRules_GetRoundState() != RoundState_BetweenRounds)
+    {
+        return;
+    }
+    // Mode 0 leaves the bots to an admin, and the mod being absent leaves them
+    // to nobody. Neither wants this plugin adding any.
+    ConVar mode = FindConVar("sm_redbots_manager_mode");
+    if (mode == null || mode.IntValue == 0)
+    {
+        return;
+    }
+    int onRed = 0;
+    for (int client = 1; client <= MaxClients; client++)
+    {
+        if (IsClientInGame(client) && GetClientTeam(client) == TeamRed)
+        {
+            onRed++;
+        }
+    }
+    int missing = DefenderTeamSize() - onRed;
+    if (missing <= 0)
+    {
+        return;
+    }
+    AP_Debug("RED is down to %d between waves. %d bot(s) take the empty seats.", onRed, missing);
+    ServerCommand("sm_addbots %d", missing);
 }
