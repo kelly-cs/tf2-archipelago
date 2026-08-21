@@ -504,11 +504,15 @@ func (w *window) refresh() {
 func joinLine(s settings.Settings, steamAddress string) string {
 	port := fmt.Sprintf("%d", s.SrcdsPort)
 	var parts []string
+	// First, and named, because over Steam this is the address: the ones below
+	// it are this network's and mean nothing to the friend being sent them.
+	// Valve hands it out a moment after the server starts and gives a new one
+	// every time, so it cannot be written down anywhere but here.
 	if s.SrcdsReach == settings.ReachSteam {
 		if steamAddress == "" {
-			parts = append(parts, "waiting for Steam to assign an address")
+			parts = append(parts, "Steam public IP: waiting for Steam to assign one")
 		} else {
-			parts = append(parts, steamAddress+" (Steam, from anywhere)")
+			parts = append(parts, "Steam public IP: "+steamAddress)
 		}
 	}
 	for _, address := range apruntime.LocalAddresses() {
@@ -538,7 +542,10 @@ func (w *window) copyJoin() {
 // The game takes a while to start, and nothing comes back to say it worked, so
 // the log carries the link. A player whose Steam did not answer can paste it.
 func (w *window) onJoin() {
-	link := apruntime.SteamConnectURL(w.supervisor.Settings())
+	w.mu.Lock()
+	steamAddress := w.steamAddress
+	w.mu.Unlock()
+	link := apruntime.SteamConnectURL(w.supervisor.Settings(), steamAddress)
 	w.say("joining: %s", link)
 	if err := winproc.OpenURL(link); err != nil {
 		w.say("cannot ask Steam to join: %v", err)
@@ -693,8 +700,10 @@ func (w *window) editSettings() {
 		}()
 		return
 	}
-	w.say("settings saved.")
-	go w.start()
+	// Stopped stays stopped. Saving a setting is not asking for a server, and
+	// a Save that started one took the 14 GB install with it the first time.
+	// Start is the button that starts the server, and it is the only one.
+	w.say("settings saved. Press Start when you want the server.")
 }
 
 // repair is what the dialog's Repair button calls. Everything the launcher

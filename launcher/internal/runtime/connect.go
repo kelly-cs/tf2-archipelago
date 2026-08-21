@@ -203,12 +203,23 @@ const GameAppID = "440"
 // the LAN tab of the server browser answers on the network address, which is
 // also the address that tab shows. So the link uses the first address the
 // machine has, and keeps loopback only for a machine that has none.
-func SteamConnectURL(s settings.Settings) string {
-	host := "127.0.0.1"
-	if local := LocalAddresses(); len(local) > 0 {
-		host = local[0]
+func SteamConnectURL(s settings.Settings, steamAddress string) string {
+	address := steamAddress
+	// Over Steam the relayed address is the server's address, and the machine
+	// running the launcher can reach it as readily as anybody else. Joining a
+	// local address instead worked here and nowhere else, so the link the log
+	// carries, which is the one a player pastes to a friend, went to a machine
+	// that friend has never heard of.
+	//
+	// Empty until Valve hands one out, and the local address is what there is
+	// until then.
+	if s.SrcdsReach != settings.ReachSteam || address == "" {
+		host := "127.0.0.1"
+		if local := LocalAddresses(); len(local) > 0 {
+			host = local[0]
+		}
+		address = net.JoinHostPort(host, strconv.Itoa(s.SrcdsPort))
 	}
-	address := net.JoinHostPort(host, strconv.Itoa(s.SrcdsPort))
 	arguments := "+connect " + address
 	if s.SrcdsPw != "" {
 		arguments += " +password " + s.SrcdsPw

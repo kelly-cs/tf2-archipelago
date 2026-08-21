@@ -8,10 +8,12 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/lxn/walk"
 	declarative "github.com/lxn/walk/declarative"
+	"github.com/lxn/win"
 
 	"github.com/m-this/tf2-archipelago/gamedata"
 	"github.com/m-this/tf2-archipelago/launcher/internal/assets"
@@ -26,6 +28,17 @@ import (
 // labelWidth keeps every tab's label column the same width, so the fields do
 // not jump when the player switches tab.
 const labelWidth = 150
+
+// sentenceWidth caps the paragraphs on the Bots tab.
+//
+// A Label does not wrap, so a sentence of two hundred characters is one row two
+// hundred characters wide, and every other row on the tab is stretched to match
+// it. A TextLabel wraps, but only inside a width somebody gives it: this is the
+// dialog's, less the label column and the margins.
+const sentenceWidth = 520
+
+// tokenPageURL issues the Game Server Login Token the server logs in with.
+const tokenPageURL = "https://steamcommunity.com/dev/managegameservers"
 
 // runSettingsDialog asks for the values worth changing between evenings, in
 // six tabs: what the run is, which missions it may draw, where the room is,
@@ -75,6 +88,7 @@ func runSettingsDialog(owner walk.Form, s settings.Settings, repair func() ([]st
 		reachHelp  *walk.TextLabel
 		tokenEdit  *walk.LineEdit
 		tokenWarn  *walk.Label
+		tokenLink  *walk.LinkLabel
 	)
 
 	tiers := runshape.Tiers()
@@ -211,6 +225,25 @@ func runSettingsDialog(owner walk.Form, s settings.Settings, repair func() ([]st
 				declarative.LineEdit{AssignTo: &tokenEdit, Text: s.SrcdsToken, CueBanner: "0"},
 				declarative.Label{Text: ""},
 				declarative.Label{AssignTo: &tokenWarn, Text: "", MaxSize: declarative.Size{Height: 18}},
+				// Steam is the only place a token comes from, and the page that
+				// issues one asks for two things a player has no way to guess:
+				// 440, which is Team Fortress 2, and a memo, which is theirs to
+				// choose and is never seen again.
+				declarative.LinkLabel{
+					AssignTo: &tokenLink,
+					// A LinkLabel with no width of its own takes none, and wraps
+					// its text one character to a line: the dialog grew to twice
+					// the height of the screen with a column of single letters
+					// down the middle of it.
+					ColumnSpan: 2,
+					MaxSize:    declarative.Size{Width: 470},
+					Text:       `<a href="` + tokenPageURL + `">Get one from Steam</a>: app id 440, and any memo you like, such as "TF2 Archipelago".`,
+					OnLinkActivated: func(link *walk.LinkLabelLink) {
+						if err := winproc.OpenURL(link.URL()); err != nil {
+							tokenWarn.SetText(err.Error())
+						}
+					},
+				},
 				declarative.TextLabel{
 					Text: "A forwarded port is the port above, opened on the router to this machine. " +
 						"Your friends join on your public address and that port; the local network " +
@@ -412,11 +445,27 @@ func runSettingsDialog(owner walk.Form, s settings.Settings, repair func() ([]st
 						// tab page does not scroll on its own, so the rows go in a
 						// ScrollView. Horizontal stays fixed: the rows are already
 						// as wide as the page, only height runs out.
+						//
+						// The vertical scrollbar sits over the right edge of the rows
+						// rather than beside them, so the last characters of every row
+						// went under it: the team size read as nothing at all, because
+						// the number in a NumberEdit is against its right edge. The
+						// margin is the room the scrollbar takes, asked of the system
+						// rather than guessed, because it is a different number on a
+						// display that scales.
 						Children: []declarative.Widget{
 							declarative.ScrollView{
 								HorizontalFixed: true,
-								Layout:          declarative.Grid{Columns: 2},
-								Children:        botsRows(s, label, &botsBox, &botsSize, &buysBox, classBox, loadoutBx, seatBox),
+								Layout: declarative.Grid{
+									Columns: 2,
+									Margins: declarative.Margins{
+										Left:   9,
+										Top:    9,
+										Right:  9 + int(win.GetSystemMetrics(win.SM_CXVSCROLL)),
+										Bottom: 9,
+									},
+								},
+								Children: botsRows(s, label, &botsBox, &botsSize, &buysBox, classBox, loadoutBx, seatBox),
 							},
 						},
 					},
@@ -475,6 +524,9 @@ func runSettingsDialog(owner walk.Form, s settings.Settings, repair func() ([]st
 		return s, false, err
 	}
 
+	// Numbers read from the left, like every other field in the dialog.
+	leftAlign(missions, sanityPct, portEdit, botsSize)
+
 	// The help under the buttons, and the complaint about a missing token. Both
 	// follow the selection, because a reach the player cannot use yet has to
 	// say so here rather than in the server log twenty minutes later.
@@ -482,6 +534,9 @@ func runSettingsDialog(owner walk.Form, s settings.Settings, repair func() ([]st
 		reach := checkedReach(reachSteam, reachPort)
 		reachHelp.SetText(reach.Help())
 		tokenWarn.SetText(tokenComplaint(reach, tokenEdit.Text()))
+		// Only where a token is worth anything: on the local network the server
+		// never logs in, and a link to go and fetch one is an errand for nothing.
+		tokenLink.SetVisible(reach.NeedsToken())
 	}
 	for _, button := range []*walk.RadioButton{reachLan, reachSteam, reachPort} {
 		button.CheckedChanged().Attach(explainReach)
@@ -531,6 +586,39 @@ func runSettingsDialog(owner walk.Form, s settings.Settings, repair func() ([]st
 	return edited, true, nil
 }
 
+/* Put a number field's text against its left edge.
+ *
+ * walk builds a NumberEdit out of an edit control it creates with ES_RIGHT and
+ * does not expose, so there is no way to ask for this through the API. A right
+ * aligned number is right for a column of figures and wrong for one field in a
+ * form: the value sits a hand's width from its label, against the far edge of
+ * the box, and on the Bots tab the scrollbar was over the top of it.
+ *
+ * The style is changed on the child window rather than by rebuilding anything.
+ * Only a child that says it is an edit control: a NumberEdit with its spin
+ * buttons on has a second child, and ES_RIGHT is UDS_HORZ to that one.
+ */
+func leftAlign(edits ...*walk.NumberEdit) {
+	for _, edit := range edits {
+		if edit == nil {
+			continue
+		}
+		for child := win.GetWindow(edit.Handle(), win.GW_CHILD); child != 0; child = win.GetWindow(child, win.GW_HWNDNEXT) {
+			var class [8]uint16
+			length, err := win.GetClassName(child, &class[0], len(class))
+			if err != nil || length == 0 {
+				continue
+			}
+			if !strings.EqualFold(syscall.UTF16ToString(class[:length]), "edit") {
+				continue
+			}
+			style := win.GetWindowLong(child, win.GWL_STYLE)
+			win.SetWindowLong(child, win.GWL_STYLE, style&^win.ES_RIGHT|win.ES_LEFT)
+			win.InvalidateRect(child, nil, true)
+		}
+	}
+}
+
 // botsRows is the Bots tab: whether the bots play, how many, which classes
 // they may pick, and what each class holds.
 func botsRows(
@@ -545,14 +633,16 @@ func botsRows(
 		declarative.NumberEdit{
 			AssignTo: botsSize, Value: float64(s.SrcdsBotTeamSize),
 			MinValue: 1, MaxValue: 6, Decimals: 0,
+			StretchFactor: 1,
 		},
 		label("Purchases in chat", "Write what the bots buy at the upgrade station to the chat, since the game no longer lets you inspect a teammate's upgrades. One line per purchase, so it is off by default."),
 		declarative.CheckBox{AssignTo: buysBox, Text: "say what the bots buy", Checked: s.BotUpgradesChat},
 	}
 	rows = append(rows, seatRows(s, label, seatBox)...)
-	rows = append(rows, declarative.Label{
+	rows = append(rows, declarative.TextLabel{
 		Text:       "Classes the bots may play, and the weapons each class holds. Bots are poor snipers and spies; untick a class and they never pick it. Stock weapons are the mod's own default.",
 		ColumnSpan: 2,
+		MaxSize:    declarative.Size{Width: sentenceWidth},
 	})
 	for i, class := range botloadout.Classes {
 		labels := make([]string, 0, len(class.Loadouts))
@@ -568,10 +658,11 @@ func botsRows(
 				ToolTipText: "Unticked, the bots never play " + class.Name + ".",
 			},
 			declarative.ComboBox{
-				AssignTo:    &loadoutBx[i],
-				Model:       labels,
-				Value:       class.LoadoutByKey(s.SrcdsBotLoadouts[class.Key]).Label(),
-				ToolTipText: "The weapons a " + class.Name + " bot spawns with.",
+				AssignTo:      &loadoutBx[i],
+				Model:         labels,
+				Value:         class.LoadoutByKey(s.SrcdsBotLoadouts[class.Key]).Label(),
+				ToolTipText:   "The weapons a " + class.Name + " bot spawns with.",
+				StretchFactor: 1,
 			},
 		)
 	}
@@ -595,17 +686,19 @@ func seatRows(
 	for _, class := range botloadout.Classes {
 		choices = append(choices, class.Name)
 	}
-	rows := []declarative.Widget{declarative.Label{
+	rows := []declarative.Widget{declarative.TextLabel{
 		Text:       "The bot team, in order. The first seats are the ones filled when RED is short, so put the classes you cannot do without first. A seat left on the draw is one the mod picks, and a team named here beats the ticks below.",
 		ColumnSpan: 2,
+		MaxSize:    declarative.Size{Width: sentenceWidth},
 	}}
 	for seat := range seatBox {
 		rows = append(rows,
 			label(fmt.Sprintf("Seat %d", seat+1), "The class of this seat. Humans take the seats first, so the last ones are rarely filled."),
 			declarative.ComboBox{
-				AssignTo: &seatBox[seat],
-				Model:    choices,
-				Value:    seatValue(s.SrcdsBotTeamComp, seat),
+				AssignTo:      &seatBox[seat],
+				Model:         choices,
+				Value:         seatValue(s.SrcdsBotTeamComp, seat),
+				StretchFactor: 1,
 			},
 		)
 	}

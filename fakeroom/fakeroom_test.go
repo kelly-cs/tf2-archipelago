@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"slices"
+	"strings"
 	"testing"
 	"time"
 
@@ -136,7 +137,7 @@ func TestGiftsAreFillerRatherThanProgression(t *testing.T) {
 // What the starting inventory holds is off the list the checks draw from, so
 // nothing is handed out twice.
 func TestTheUnlockOrderDropsWhatTheRunAlreadyHolds(t *testing.T) {
-	start := startingInventory("mvm_decoy")
+	start := startingInventory("mvm_decoy", "")
 	order := unlockOrder(start)
 
 	slots := 0
@@ -296,4 +297,42 @@ func seedOf(t *testing.T, address string) string {
 		t.Fatal(err)
 	}
 	return seed
+}
+
+// The class a test run starts on is the one the player asked for. It used to be
+// whichever came first in the tables, which is the Scout, so a run set up to
+// start on a Pyro started on a Scout and nothing said why.
+func TestTheStartingInventoryHoldsTheClassAskedFor(t *testing.T) {
+	for _, name := range []string{"Pyro", "Medic", "Spy"} {
+		start := startingInventory("mvm_decoy", name)
+
+		found := ""
+		for _, id := range start {
+			item, known := gamedata.ItemByID(id)
+			if known && item.Kind == gamedata.ItemClass {
+				found = item.Name
+			}
+		}
+		if !strings.Contains(found, name) {
+			t.Errorf("a run starting on %s holds %q", name, found)
+		}
+	}
+}
+
+// Random is what the settings offer, and an unknown name is what an edited
+// config file holds. Neither may leave the run with no class at all.
+func TestTheStartingInventoryFallsBackToAClass(t *testing.T) {
+	for _, name := range []string{"", "random", "Saxton Hale"} {
+		start := startingInventory("mvm_decoy", name)
+
+		classes := 0
+		for _, id := range start {
+			if item, known := gamedata.ItemByID(id); known && item.Kind == gamedata.ItemClass {
+				classes++
+			}
+		}
+		if classes != 1 {
+			t.Errorf("%q started the run with %d classes, want 1", name, classes)
+		}
+	}
 }

@@ -20,6 +20,7 @@ import (
 	"net"
 	"net/http"
 	"slices"
+	"strings"
 	"sync"
 	"time"
 
@@ -77,6 +78,13 @@ type Options struct {
 	// drawn. The same option the real generator takes.
 	StartMission string
 
+	// StartClass is the mercenary the run begins with, by name, empty or
+	// unknown for the first in the table. The same option the real generator
+	// takes, and for the same reason the difficulty is here: a test run that
+	// hands out a Scout whatever the player asked for is not a test of the
+	// evening they set up.
+	StartClass string
+
 	// DeathLink makes the made-up seed ask for it, so the deaths this room
 	// invents take the team down the way a real multiworld's would.
 	DeathLink bool
@@ -101,7 +109,7 @@ func Start(ctx context.Context, options Options) (*Room, string, error) {
 		missions = defaultMissions(options.MissionCount, options.Excluded,
 			options.Difficulty, options.StartMission)
 	}
-	start := startingInventory(missions[0])
+	start := startingInventory(missions[0], options.StartClass)
 	room := &Room{
 		listener:  listener,
 		log:       logf,
@@ -384,7 +392,7 @@ func fillerItem() int64 {
 // startingInventory is what a normal-tier run starts with, matching the
 // apworld's own rule: the first mission's ticket, one class, one weapon slot.
 // Without the ticket the plugin has no mission it may play.
-func startingInventory(popFile string) []int64 {
+func startingInventory(popFile, startClass string) []int64 {
 	var start []int64
 	if mission, known := gamedata.MissionByPopFile(popFile); known {
 		for _, item := range gamedata.Items {
@@ -394,15 +402,43 @@ func startingInventory(popFile string) []int64 {
 			}
 		}
 	}
-	for _, kind := range []gamedata.ItemKind{gamedata.ItemClass, gamedata.ItemWeaponSlot} {
+	if class, found := classItem(startClass); found {
+		start = append(start, class)
+	} else {
+		start = append(start, firstItemOfKind(gamedata.ItemClass)...)
+	}
+	start = append(start, firstItemOfKind(gamedata.ItemWeaponSlot)...)
+	return start
+}
+
+// classItem is the item that grants the named mercenary. A name nothing
+// matches is not an error here: the settings offer "random", and a test run
+// asked for a class it cannot place starts on the first one rather than on
+// none at all.
+func classItem(name string) (int64, bool) {
+	if name == "" {
+		return 0, false
+	}
+	for _, class := range gamedata.Classes {
+		if !strings.EqualFold(class.Name, name) {
+			continue
+		}
 		for _, item := range gamedata.Items {
-			if item.Kind == kind {
-				start = append(start, item.ID)
-				break
+			if item.Kind == gamedata.ItemClass && item.Class == class.ID {
+				return item.ID, true
 			}
 		}
 	}
-	return start
+	return 0, false
+}
+
+func firstItemOfKind(kind gamedata.ItemKind) []int64 {
+	for _, item := range gamedata.Items {
+		if item.Kind == kind {
+			return []int64{item.ID}
+		}
+	}
+	return nil
 }
 
 // say sends a chat line the way the server does, which the plugin repeats in the

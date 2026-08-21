@@ -86,20 +86,20 @@ func TestSteamConnectURL(t *testing.T) {
 		host = local[0]
 	}
 
-	if got := SteamConnectURL(s); got != "steam://run/440//+connect%20"+host+":27015" {
+	if got := SteamConnectURL(s, ""); got != "steam://run/440//+connect%20"+host+":27015" {
 		t.Errorf("with no password = %q", got)
 	}
 
 	s.SrcdsPw = "friends only/2"
 	want := "steam://run/440//+connect%20" + host + ":27015%20+password%20friends%20only%2F2"
-	if got := SteamConnectURL(s); got != want {
+	if got := SteamConnectURL(s, ""); got != want {
 		t.Errorf("with a password = %q, want %q", got, want)
 	}
 
 	// A port that is not the default has to reach the URL, or the button joins
 	// a server that is not the one running.
 	s.SrcdsPw, s.SrcdsPort = "", 27045
-	if got := SteamConnectURL(s); !strings.Contains(got, host+":27045") {
+	if got := SteamConnectURL(s, ""); !strings.Contains(got, host+":27045") {
 		t.Errorf("the port did not reach the link: %q", got)
 	}
 }
@@ -151,5 +151,31 @@ func TestSourceModWasUpdated(t *testing.T) {
 		if SourceModWasUpdated(line) {
 			t.Errorf("restarted for an ordinary line: %q", line)
 		}
+	}
+}
+
+// Over Steam the relayed address is the server's address, so the link goes
+// there rather than to an address only this network knows. It used to join a
+// local address whatever the reach was, which worked on the machine that ran
+// the launcher and nowhere else.
+func TestSteamConnectURLPrefersTheRelayedAddress(t *testing.T) {
+	s := settings.Settings{SrcdsPort: 27015, SrcdsReach: settings.ReachSteam}
+
+	got := SteamConnectURL(s, "169.254.13.42:20232")
+	if !strings.Contains(got, "169.254.13.42:20232") {
+		t.Errorf("the relayed address is not in %q", got)
+	}
+
+	// Valve hands it out a moment after the server starts, and until it does
+	// there is only the local address.
+	if got := SteamConnectURL(s, ""); strings.Contains(got, "169.254") {
+		t.Errorf("an address nobody handed out reached %q", got)
+	}
+
+	// Any other reach ignores it: a relayed address on a LAN server is one
+	// nothing routes to.
+	s.SrcdsReach = settings.ReachLan
+	if got := SteamConnectURL(s, "169.254.13.42:20232"); strings.Contains(got, "169.254") {
+		t.Errorf("a LAN server was joined over Steam: %q", got)
 	}
 }
