@@ -260,13 +260,16 @@ binary gives a scanner nothing to weigh against the heuristic. Go makes it
 worse only in that a static Go binary is a shape malware uses a lot; rewriting
 in another language would change nothing.
 
-The fix is a code signature. The SignPath Foundation signs open-source
-projects for free, and this project meets every condition it asks for: public
-repository, a recognised licence, artefacts built by CI, no obfuscation. Apply
-at [signpath.org/apply](https://signpath.org/apply), then add the signing step
-to `release.yml` between `make dist` and `gh release create`, so what gets
-uploaded is what got signed. Approval takes weeks, so applying is the first
-move, not the last.
+The fix is a code signature. The application to the SignPath Foundation, which
+signs open-source projects for free, is in. `release.yml` already carries the
+signing step, skipped until `SIGNPATH_API_TOKEN` exists, and it runs before the
+checksums and the attestation so those describe the signed exe. Granting needs
+`SIGNPATH_API_TOKEN` as a secret and `SIGNPATH_ORGANIZATION_ID` as a variable.
+
+The application is a long shot and should be treated as one. SignPath asks for
+an established project, and this one was four days old with no stars and about
+130 downloads when it applied. A rejection is the likely answer, and the
+fallback is a paid certificate.
 
 Azure Trusted Signing is the paid fallback at roughly nine euros a month, but
 it wants three years of verifiable identity history from an individual. Do not
