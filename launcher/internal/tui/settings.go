@@ -369,7 +369,7 @@ func (f *settingsForm) botFields() []field {
 
 	// A team is worth naming once. The window has a menu and two buttons for
 	// this; here it is a list to load from and a name to save under.
-	fields = append(fields, f.loadTeamField(), f.saveTeamField(), &textField{
+	fields = append(fields, f.loadTeamField(), f.saveTeamField(), f.removeTeamField(), &textField{
 		label:       "Team name",
 		help:        "The name Save this team as keeps it under.",
 		value:       &f.teamName,
@@ -516,6 +516,32 @@ func (f *settingsForm) loadTeamField() field {
 			}
 			f.edited = settings.WithBotTeam(f.edited, f.edited.SrcdsBotTeamPresets[names[i-1]])
 			f.build()
+		},
+	}
+}
+
+// removeTeamField throws a saved team away.
+//
+// By the name in the box, because that is the only thing here somebody has
+// typed on purpose: a list that deletes whatever it is scrolled past is a list
+// that deletes the wrong team.
+func (f *settingsForm) removeTeamField() field {
+	return &actionField{
+		label: "Remove the team named",
+		help:  "Type the name of a saved team in the box below, then press enter here to throw it away.",
+		hint:  "enter",
+		run: func() tea.Cmd {
+			name := strings.TrimSpace(f.teamName)
+			if name == "" {
+				return func() tea.Msg { return noticeMsg("name the team to remove first") }
+			}
+			if _, found := f.edited.SrcdsBotTeamPresets[name]; !found {
+				return func() tea.Msg { return noticeMsg("no team saved as " + name) }
+			}
+			delete(f.edited.SrcdsBotTeamPresets, name)
+			f.teamName = ""
+			f.build()
+			return func() tea.Msg { return noticeMsg("removed the team " + name) }
 		},
 	}
 }
