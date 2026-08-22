@@ -20,6 +20,7 @@ client à installer, aucune seconde fenêtre à garder ouverte.
 | `!ap help` | Affiche l'aide du serveur randomizer |
 | `!ap license` | Affiche la licence du serveur randomizer |
 | `!apchat nice one` | Parle aux autres joueurs de la session |
+| `!ap unlock mission` | Donne le prochain ticket de mission. Mode test uniquement : un vrai serveur de randomizer n'en a jamais entendu parler |
 
 Le serveur répond lui-même à `!ap status` et à `!mission`, donc ces deux
 commandes fonctionnent quand le serveur randomizer ne répond pas. Toute

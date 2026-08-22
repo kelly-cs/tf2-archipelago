@@ -577,10 +577,77 @@ func (r *Room) answer(ctx context.Context, conn *websocket.Conn,
 	checked := maps.Clone(r.checked)
 	r.mu.Unlock()
 
+	// One command the room answers with an item rather than a sentence, and
+	// the only one that changes the run.
+	if command, _, _ := strings.Cut(strings.TrimPrefix(strings.TrimSpace(text), "!"), " "); strings.EqualFold(command, "unlock") {
+		return r.unlockNextMission(ctx, conn)
+	}
+
 	for _, line := range replyLines(text, checked, missions) {
 		r.say(ctx, conn, line)
 	}
 	return nil
+}
+
+/* !ap unlock mission, which is a test room's answer to a long evening.
+ *
+ * A mission is unlocked by receiving its ticket, and the ticket is an item the
+ * seed placed somewhere. In a test run it is behind every class and every
+ * weapon slot, so the first one lands on the tenth check and a mission worth
+ * nine checks cannot reach it: the run reloads the same mission instead, which
+ * is correct and reads as broken.
+ *
+ * This hands the next ticket over, and hands it over the way a multiworld
+ * would: a ReceivedItems with the ticket in it, through the bridge, into the
+ * plugin's unlock set. Nothing here reaches around the path being tested,
+ * which is the point of a test room.
+ *
+ * The rest of the order is left alone. The ticket is moved to the front of
+ * what has not been handed out yet rather than added, so the run still holds
+ * exactly what the seed said it would.
+ */
+func (r *Room) unlockNextMission(ctx context.Context, conn *websocket.Conn) error {
+	r.mu.Lock()
+	ticket, found := takeNextTicket(r.items, r.next)
+	if !found {
+		r.mu.Unlock()
+		r.say(ctx, conn, "Every mission this run holds is already unlocked.")
+		return nil
+	}
+	at := r.given
+	r.next++
+	r.given++
+	r.mu.Unlock()
+
+	name := "a mission"
+	if item, known := gamedata.ItemByID(ticket); known {
+		name = item.Name
+	}
+	r.say(ctx, conn, "Unlocking "+name+".")
+	return write(ctx, conn, map[string]any{
+		"cmd": "ReceivedItems", "index": at,
+		"items": []map[string]any{{"item": ticket, "location": int64(1), "player": 1, "flags": 1}},
+	})
+}
+
+// takeNextTicket moves the next mission ticket to position next, so the next
+// item handed out is that ticket and everything after it keeps its order.
+func takeNextTicket(items []int64, next int) (int64, bool) {
+	if next < 0 || next >= len(items) {
+		return 0, false
+	}
+	for index := next; index < len(items); index++ {
+		item, known := gamedata.ItemByID(items[index])
+		if !known || item.Kind != gamedata.ItemMissionTicket {
+			continue
+		}
+		ticket := items[index]
+		// Right by one, from next up to the ticket. copy handles the overlap.
+		copy(items[next+1:index+1], items[next:index])
+		items[next] = ticket
+		return ticket, true
+	}
+	return 0, false
 }
 
 // replyMax caps a reply. Chat carries one line at a time and a run holds a

@@ -20,6 +20,7 @@ to install and no second window to keep open.
 | `!ap help` | Print the help of the randomizer server |
 | `!ap license` | Print the licence of the randomizer server |
 | `!apchat nice one` | Speak to the other players in the session |
+| `!ap unlock mission` | Hand over the next mission ticket. Test mode only: a real randomizer server has never heard of it |
 
 The game server itself answers `!ap status` and `!mission`, so they work when
 the randomizer server does not answer. Every other `!ap` command goes to the
