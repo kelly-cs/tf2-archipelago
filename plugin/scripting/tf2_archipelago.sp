@@ -189,6 +189,10 @@ public Action Command_Say(int client, const char[] command, int argc)
     {
         AP_PrintToClient(client, "!ap status shows the run: mission, wave, unlocks, and the bridge.");
         AP_PrintToClient(client, "!ap <command> sends a command to the multiworld: hint, missing, checked, players.");
+        // Said plainly rather than hidden behind a test-mode flag the plugin
+        // would have to be told about: in a real room the multiworld answers
+        // that it has never heard of it, which is what the line already says.
+        AP_PrintToClient(client, "!ap unlock mission hands over the next mission ticket, in test mode only.");
         AP_PrintToClient(client, "!apchat <text> speaks to the other players in the multiworld.");
         AP_PrintToClient(client, "!mission lists the run's missions.%s",
             CheckCommandAccess(client, "sm_ap_mission", ADMFLAG_CHANGEMAP) ? " !mission <number> switches to one." : "");

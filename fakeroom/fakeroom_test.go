@@ -381,3 +381,54 @@ func TestTheRoomIgnoresOrdinaryChat(t *testing.T) {
 		t.Errorf("the room answered ordinary chat with %v", lines)
 	}
 }
+
+// !ap unlock mission hands over the next ticket. A test run holds its tickets
+// behind every class and every weapon slot, so the first one lands on the tenth
+// check and a mission worth nine cannot reach it.
+func TestTakeNextTicketMovesItToTheFront(t *testing.T) {
+	items := unlockOrder(startingInventory("mvm_decoy", ""))
+
+	firstTicket := -1
+	for index, id := range items {
+		if item, known := gamedata.ItemByID(id); known && item.Kind == gamedata.ItemMissionTicket {
+			firstTicket = index
+			break
+		}
+	}
+	if firstTicket <= 0 {
+		t.Fatalf("the pool has its first ticket at %d, so there is nothing to move", firstTicket)
+	}
+
+	before := slices.Clone(items)
+	ticket, found := takeNextTicket(items, 0)
+	if !found {
+		t.Fatal("no ticket in the pool")
+	}
+	if items[0] != ticket {
+		t.Errorf("the ticket is at %v, not at the front", slices.Index(items, ticket))
+	}
+
+	// Everything else keeps its order: the run still holds what the seed said.
+	moved := slices.DeleteFunc(slices.Clone(items), func(id int64) bool { return id == ticket })
+	kept := slices.DeleteFunc(before, func(id int64) bool { return id == ticket })
+	if !slices.Equal(moved, kept) {
+		t.Error("moving the ticket reordered the rest of the pool")
+	}
+}
+
+// A run whose tickets have all been handed out says so rather than moving
+// something that is not a ticket.
+func TestTakeNextTicketWithNoneLeft(t *testing.T) {
+	items := []int64{}
+	for _, item := range gamedata.Items {
+		if item.Kind == gamedata.ItemClass {
+			items = append(items, item.ID)
+		}
+	}
+	if _, found := takeNextTicket(items, 0); found {
+		t.Error("a pool of classes gave up a ticket")
+	}
+	if _, found := takeNextTicket(items, len(items)); found {
+		t.Error("a pool with nothing left gave up a ticket")
+	}
+}
