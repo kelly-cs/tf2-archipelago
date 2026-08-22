@@ -6,8 +6,13 @@
 # clicked looks exactly like a working one.
 #
 # What it does: name a team, save it, move a seat away from what was saved,
-# load it back, and photograph each step. Seat 1 should read Pyro in step 4
-# and Scout in step 3, and config.json should hold the team.
+# load it back, save a second team and remove one, photographing each step.
+# Seat 1 should read Pyro in step 4 and Scout in step 3, and config.json should
+# hold one team at the end and two before the Remove.
+#
+# The coordinates are measured off a capture rather than guessed, and they move
+# when a button is added to a row: a click that lands on nothing looks exactly
+# like a button that does nothing, which is the failure this script is for.
 #
 # Two things about driving Win32 menus with xdotool, both learned the hard way:
 # a click opens the drop-down list, which then swallows the next click, so the
@@ -36,9 +41,9 @@ if [ "${WINDOW_SHOT_DISPLAY:-}" = 1 ]; then
 	import -window "$w" "${out%.png}-1-seat.png"
 
 	# Name it, then Save the team.
-	xdotool mousemove $((X + 560)) $((Y + 178)) click 1; sleep 1
+	xdotool mousemove $((X + 480)) $((Y + 178)) click 1; sleep 1
 	xdotool type --delay 80 "three down"; sleep 1
-	xdotool mousemove $((X + 812)) $((Y + 178)) click 1; sleep 2
+	xdotool mousemove $((X + 731)) $((Y + 178)) click 1; sleep 2
 	import -window "$w" "${out%.png}-2-saved.png"
 
 	# Move seat 1 away from what was saved.
@@ -49,8 +54,20 @@ if [ "${WINDOW_SHOT_DISPLAY:-}" = 1 ]; then
 
 	# Load it back, then close the dialog with its own Save so the seats reach
 	# the config file, which is what the assertion reads.
-	xdotool mousemove $((X + 731)) $((Y + 178)) click 1; sleep 2
+	xdotool mousemove $((X + 650)) $((Y + 178)) click 1; sleep 2
 	import -window "$w" "${out%.png}-4-loaded.png"
+	# Save a second team, then remove whichever the menu is showing: the one
+	# that is left says Remove took the right one and kept the rest.
+	xdotool mousemove $((X + 455)) $((Y + 204)) click 1; sleep 1
+	xdotool key Escape; sleep 1; xdotool key Up; sleep 1
+	xdotool mousemove $((X + 480)) $((Y + 178)) click 1; sleep 1
+	xdotool type --delay 60 "one up"; sleep 1
+	xdotool mousemove $((X + 731)) $((Y + 178)) click 1; sleep 2
+	import -window "$w" "${out%.png}-5-two-teams.png"
+
+	xdotool mousemove $((X + 812)) $((Y + 178)) click 1; sleep 2
+	import -window "$w" "${out%.png}-6-removed.png"
+
 	# The dialog's own Save. It refuses to close while the room address is
 	# empty and test mode is off, which is why the seats reach config.json
 	# only on a prefix that has a room set.

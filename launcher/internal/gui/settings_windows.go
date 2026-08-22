@@ -897,15 +897,46 @@ func (e *botTeamEditor) save() {
 		e.saved = map[string]settings.BotTeam{}
 	}
 	e.saved[name] = e.team()
+	_ = (*e.presetName).SetText("")
+	e.refreshNames(name)
+}
 
+/* remove throws away the team the menu is showing.
+ *
+ * The menu and not the name box: removing what somebody has typed but not
+ * saved would be removing nothing, and removing a team by typing its name
+ * exactly is a way to delete the wrong one.
+ */
+func (e *botTeamEditor) remove() {
+	name := strings.TrimSpace(comboValue(*e.presetBox))
+	if name == "" {
+		return
+	}
+	delete(e.saved, name)
+	e.refreshNames("")
+}
+
+// refreshNames puts the saved teams back in the menu, selects one, and writes
+// them to disk. Shared by Save and Remove: both change the same three things,
+// and a menu that disagrees with what is saved is worse than either.
+func (e *botTeamEditor) refreshNames(selected string) {
 	names := make([]string, 0, len(e.saved))
 	for saved := range e.saved {
 		names = append(names, saved)
 	}
 	slices.Sort(names)
+
 	_ = (*e.presetBox).SetModel(names)
-	_ = (*e.presetBox).SetCurrentIndex(slices.Index(names, name))
-	_ = (*e.presetName).SetText("")
+	switch {
+	case len(names) == 0:
+		// Nothing left to show. SetModel has already emptied the menu.
+	case slices.Contains(names, selected):
+		_ = (*e.presetBox).SetCurrentIndex(slices.Index(names, selected))
+	default:
+		// The one that was showing is gone, so the menu opens on the first of
+		// what is left rather than on nothing.
+		_ = (*e.presetBox).SetCurrentIndex(0)
+	}
 	if e.keep != nil {
 		e.keep(e.saved)
 	}
@@ -1041,6 +1072,12 @@ func presetRow(
 					ToolTipText: "Keep the team below under the name in the box.",
 					MinSize:     declarative.Size{Width: 70},
 					OnClicked:   team.save,
+				},
+				declarative.PushButton{
+					Text:        "Remove",
+					ToolTipText: "Throw away the team the menu is showing. The seats below are left as they are.",
+					MinSize:     declarative.Size{Width: 70},
+					OnClicked:   team.remove,
 				},
 			},
 		},
