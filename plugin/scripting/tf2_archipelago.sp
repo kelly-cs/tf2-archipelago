@@ -141,6 +141,8 @@ public void OnClientPutInServer(int client)
     // Client indexes are reused, so the previous occupant's cooldown is not
     // this player's.
     Bridge_ClearCooldown(client);
+    // Client indexes are reused, and so is the bundle ledger behind them.
+    MvM_ForgetBundles(client);
     if (IsFakeClient(client))
     {
         return;
@@ -253,6 +255,7 @@ public void OnMapStart()
     g_TankReported = false;
     g_GiantReported = false;
     Bots_OnMapStart();
+    MvM_OnMapStart();
 
     // The plugin's copy of the unlock set went with the map; ask before anyone spawns.
     Bridge_FetchUnlocks();

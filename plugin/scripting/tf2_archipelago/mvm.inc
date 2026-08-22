@@ -16,6 +16,10 @@
 // Keeps each missing-property complaint to one line rather than one per frame.
 StringMap g_WarnedProps;
 
+// The bundles handed to each player that the game's own record never saw.
+// Read in full where it is written back, below.
+static int g_BundleCredits[MAXPLAYERS + 1];
+
 void MvM_Init()
 {
     g_WarnedProps = new StringMap();
@@ -243,7 +247,78 @@ static bool MvM_DropCredits(int client, int amount)
     }
     int held = GetEntProp(client, Prop_Send, "m_nCurrency");
     SetEntProp(client, Prop_Send, "m_nCurrency", held + amount);
+    g_BundleCredits[client] += amount;
     return true;
+}
+
+/* What the game does not know it paid.
+ *
+ * A bundle written straight onto m_nCurrency is money the game's own record of
+ * the wave never saw, and the refund button does not hand back what was spent:
+ * it restores that record. So the bundles vanish, which is the bug a play-test
+ * found by spending 1200 and refunding into 400.
+ *
+ * The ledger is per client and it only grows, because the record the game
+ * restores never contains a single credit of ours. Correct balance after any
+ * restore is therefore the game's number plus everything we ever added. It is
+ * cleared on a map change, where the game clears its own side too.
+ */
+stock void MvM_ForgetBundles(int client)
+{
+    g_BundleCredits[client] = 0;
+}
+
+stock void MvM_OnMapStart()
+{
+    for (int client = 0; client <= MaxClients; client++)
+    {
+        g_BundleCredits[client] = 0;
+    }
+}
+
+/* Every command the upgrade station sends, so a refund can be put right.
+ *
+ * The name is the one thing here that is a guess. MVM_Respec is what the
+ * community documents the refund button as sending; anything else the station
+ * sends is written to the log once, which is how the next bundle says the
+ * real name if this one is wrong.
+ */
+stock void MvM_OnCommandKeyValues(int client, const char[] name)
+{
+    if (StrEqual(name, "MVM_Respec", false))
+    {
+        RequestFrame(Frame_RestoreBundles, GetClientUserId(client));
+        return;
+    }
+    if (StrEqual(name, "MVM_Upgrade", false))
+    {
+        return;
+    }
+    bool seen;
+    if (!g_WarnedProps.GetValue(name, seen))
+    {
+        g_WarnedProps.SetValue(name, true);
+        AP_Debug("The station sent %s, which nothing here handles.", name);
+    }
+}
+
+// A frame later, because the game writes the restored balance during the
+// command and a number put back before that is the number it overwrites.
+static void Frame_RestoreBundles(any userid)
+{
+    int client = GetClientOfUserId(userid);
+    if (client <= 0 || !IsClientInGame(client) || g_BundleCredits[client] <= 0)
+    {
+        return;
+    }
+    if (!HasProp(client, "m_nCurrency"))
+    {
+        return;
+    }
+    int held = GetEntProp(client, Prop_Send, "m_nCurrency");
+    SetEntProp(client, Prop_Send, "m_nCurrency", held + g_BundleCredits[client]);
+    AP_Debug("%N was refunded to %d credits, and %d of bundles went back on top.",
+        client, held, g_BundleCredits[client]);
 }
 
 // The names a currency pack's amount might go by, newest guess first. Checked

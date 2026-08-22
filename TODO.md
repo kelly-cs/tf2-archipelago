@@ -1,6 +1,6 @@
 # TODO
 
-## 1. A bundle is money the game never recorded. Open, and the pack does not work
+## 1. A bundle is money the game never recorded. Half fixed
 
 Two reports, one cause. Spend a bundle on upgrades and lose the wave, and the
 balance goes negative. Receive bundles, spend them, press refund, and the refund
@@ -13,8 +13,8 @@ those buttons read the bookkeeping rather than the number. The refund does not
 give back what was spent: it restores the balance the game recorded at wave
 start, which was 400 because the 800 in bundles was never part of it.
 
-The fix is to hand the money over the way the game does, and two attempts at it
-have failed on a live server:
+Handing the money over the way the game does was the plan, and the pack is out.
+Three attempts on a live server:
 
 - `SetEntProp(pack, Prop_Send, "m_nAmount")` throws. A throw aborts the whole
   callback, so the bundle was never paid, never acknowledged, and asked for
@@ -22,23 +22,29 @@ have failed on a live server:
   in ten minutes.
 - `Prop_Data` for the same name is not there either. That one said so once a
   bundle and paid nobody, which is the spam a play-test reported.
+- A probe over `m_nAmount`, `m_nCurrencyAmount` and `m_iAmount`, both tables,
+  answered on 2026-08-22: *"A currency pack here has none of the amount
+  properties."* `item_currencypack_custom` cannot be told what it is worth
+  through a property, and that route is closed.
 
-So `item_currencypack_custom` on this server has its amount under some third
-name, or under none. The plugin now checks a short list of candidates once,
-says in the log which one it found, and falls back to writing `m_nCurrency`,
-which is what has always paid. A bundle the refund forgets beats a bundle
-nobody receives.
+So the money keeps going on with `m_nCurrency`, and the bookkeeping is kept
+here instead. `g_BundleCredits` is a per-client ledger of everything a bundle
+ever added, cleared on a map change. The station's refund command is caught and
+the ledger is put back on top of the balance the game restored, one frame
+later, because the game writes that balance during the command.
 
-What to do next, in order:
+What is left:
 
-1. Read the next debug bundle for the line naming the property, or saying there
-   is none. That is one run's worth of waiting and it decides the rest.
-2. If there is none, `CTFGameRules::DistributeCurrencyAmount` is what the game
-   calls itself. It wants a signature in our own gamedata for two platforms and
-   upkeep across every Team Fortress 2 update, which is why it is second.
-
-Whatever pays, the pack has to be collected by walking over it, so payment
-still needs a live player and the money still goes in between waves.
+1. The refund command's name is a guess: `MVM_Respec`, which is what the
+   community documents the button as sending. Any other command the station
+   sends is now written to the log once, so the next debug bundle either shows
+   nothing (the guess was right) or names the real one.
+2. The lost wave restores the same record and is not covered yet. Same ledger,
+   different hook: `mvm_wave_failed` already reaches the plugin for Death Link.
+3. `CTFGameRules::DistributeCurrencyAmount` is what the game calls itself and
+   would make the ledger unnecessary. It wants a signature in our own gamedata
+   for two platforms and upkeep across every Team Fortress 2 update, which is
+   why it stays last.
 
 ## 2. Sign the Windows exe. Open
 
