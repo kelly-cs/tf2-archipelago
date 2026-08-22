@@ -390,13 +390,13 @@ func (f *settingsForm) botFields() []field {
 	// Last, because none of it changes a wave.
 	return append(fields,
 		&toggleField{
-			label: "Hats",
-			help:  "A random hat on every bot, drawn from the ones its class can wear. It changes nothing about how they play.",
-			value: &f.edited.SrcdsBotHats, on: "a hat each", off: "stock heads",
+			label: "Cosmetic items",
+			help:  "A random cosmetic item on every bot, hat or not, drawn from the ones its class can wear. It changes nothing about how they play.",
+			value: &f.edited.SrcdsBotHats, on: "one each", off: "stock looks",
 		},
 		&toggleField{
 			label: "Unusual effects",
-			help:  "A random unusual effect on that hat. Six particle effects on screen for the whole wave.",
+			help:  "A random unusual effect on that cosmetic item. Six particle effects on screen for the whole wave.",
 			value: &f.edited.SrcdsBotHatEffects, on: "and an effect on it", off: "no effects",
 		},
 	)
