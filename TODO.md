@@ -1,43 +1,44 @@
 # TODO
 
-## 1. A bundle is money the game never recorded. Fixed, needs a play-test
+## 1. A bundle is money the game never recorded. Open, and the pack does not work
 
 Two reports, one cause. Spend a bundle on upgrades and lose the wave, and the
-balance goes negative. Receive bundles, spend them, press refund, and the
-refund hands back the standard 400: "on wave start I had like 1200 after
-receiving bundles, spent it, and then clicked refund I had the standard 400."
+balance goes negative. Receive bundles, spend them, press refund, and the refund
+hands back the standard 400: "on wave start I had like 1200 after receiving
+bundles, spent it, and then clicked refund I had the standard 400."
 
-`MvM_GrantCredits` wrote `m_nCurrency` straight onto the player. That puts a
+`MvM_GrantCredits` writes `m_nCurrency` straight onto the player. That puts a
 number on the screen that the game's own bookkeeping never saw, and both of
 those buttons read the bookkeeping rather than the number. The refund does not
 give back what was spent: it restores the balance the game recorded at wave
-start, which was 400 because the 800 in bundles was never part of it. Losing a
-wave restores the same record, which is where the negative balance came from.
+start, which was 400 because the 800 in bundles was never part of it.
 
-The fix is to hand the money over the way the game does. `MvM_DropCredits`
-spawns an `item_currencypack_custom` worth the bundle at the player's feet, and
-picking it up goes through the game's own currency path, so the record includes
-it. `m_bDistributed` stays off: that flag means the team has already been paid,
-and a pack carrying it pays nobody. That is what `collectmoney.sp` in the bots
-mod reads it as, which is where the meaning was checked.
+The fix is to hand the money over the way the game does, and two attempts at it
+have failed on a live server:
 
-Not yet played. What to watch:
+- `SetEntProp(pack, Prop_Send, "m_nAmount")` throws. A throw aborts the whole
+  callback, so the bundle was never paid, never acknowledged, and asked for
+  again on the next poll: eighty exceptions and two hundred and forty dead packs
+  in ten minutes.
+- `Prop_Data` for the same name is not there either. That one said so once a
+  bundle and paid nobody, which is the spam a play-test reported.
 
-- the refund after a bundle should hand back what the run actually held
-- a lost wave should not go negative
-- the pack is collected by walking over it. It is dropped at the player's own
-  feet, between waves, where they are standing at the upgrade station, so the
-  touch should be immediate. If a bundle ever goes uncollected the money is
-  gone and the grant was acknowledged anyway, which is the one thing this
-  design can get wrong that writing the property could not
-- the A+ rating counts cash dropped against cash collected. A pack that is
-  dropped and collected moves both halves and leaves the rating alone; one that
-  is missed lowers it, which is honest but worth seeing once
+So `item_currencypack_custom` on this server has its amount under some third
+name, or under none. The plugin now checks a short list of candidates once,
+says in the log which one it found, and falls back to writing `m_nCurrency`,
+which is what has always paid. A bundle the refund forgets beats a bundle
+nobody receives.
 
-The other half is `CTFGameRules::DistributeCurrencyAmount`, which is what the
-game calls itself. It wants a signature in our own gamedata for two platforms
-and upkeep across every Team Fortress 2 update. Worth it only if the pack turns
-out to be wrong.
+What to do next, in order:
+
+1. Read the next debug bundle for the line naming the property, or saying there
+   is none. That is one run's worth of waiting and it decides the rest.
+2. If there is none, `CTFGameRules::DistributeCurrencyAmount` is what the game
+   calls itself. It wants a signature in our own gamedata for two platforms and
+   upkeep across every Team Fortress 2 update, which is why it is second.
+
+Whatever pays, the pack has to be collected by walking over it, so payment
+still needs a live player and the money still goes in between waves.
 
 ## 2. Sign the Windows exe. Open
 
