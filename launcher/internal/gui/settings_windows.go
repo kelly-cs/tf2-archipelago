@@ -346,35 +346,29 @@ func runSettingsDialog(owner walk.Form, s settings.Settings, repair func() ([]st
 						},
 					},
 					{
-						Title:  "Missions",
-						Layout: declarative.VBox{},
+						Title: "Missions",
+						// A grid, not a row of boxes per line: a composite lays
+						// itself out on its own, so the start mission menu began
+						// at one place and the start class menu at another.
+						Layout: declarative.Grid{Columns: 2},
 						Children: []declarative.Widget{
-							declarative.Composite{
-								Layout:  declarative.HBox{MarginsZero: true},
-								MaxSize: declarative.Size{Height: 28},
-								Children: []declarative.Widget{
-									label("Start mission", "Where the run begins, as map - mission. The seed starts there and the server boots there. Any lets the seed draw the easiest mission it took."),
-									declarative.ComboBox{
-										AssignTo: &startBox,
-										Model:    choiceLabels,
-										Value:    runshape.StartMissionLabel(s.MvmStartMission),
-									},
-								},
+							label("Start mission", "Where the run begins, as map - mission. The seed starts there and the server boots there. Any lets the seed draw the easiest mission it took."),
+							declarative.ComboBox{
+								AssignTo:      &startBox,
+								Model:         choiceLabels,
+								Value:         runshape.StartMissionLabel(s.MvmStartMission),
+								StretchFactor: 1,
 							},
-							declarative.Composite{
-								Layout:  declarative.HBox{MarginsZero: true},
-								MaxSize: declarative.Size{Height: 28},
-								Children: []declarative.Widget{
-									label("Start class", "The mercenary the run starts with. The tier of the start mission decides how many classes it starts with, and this names one of them."),
-									declarative.ComboBox{
-										AssignTo: &startClassBox,
-										Model:    classLabels,
-										Value:    runshape.StartClassLabel(s.MvmStartClass),
-									},
-								},
+							label("Start class", "The mercenary the run starts with. The tier of the start mission decides how many classes it starts with, and this names one of them."),
+							declarative.ComboBox{
+								AssignTo:      &startClassBox,
+								Model:         classLabels,
+								Value:         runshape.StartClassLabel(s.MvmStartClass),
+								StretchFactor: 1,
 							},
 							declarative.Label{
 								Text:        "Missions the run may draw. Untick one to keep it out of every seed generated from here: Caliginous Caper is one wave of 666 robots and an hour on its own. The tier above still applies.",
+								ColumnSpan:  2,
 								ToolTipText: "This is the excluded_missions option in tf2.yaml.",
 							},
 							declarative.TableView{
@@ -382,6 +376,7 @@ func runSettingsDialog(owner walk.Form, s settings.Settings, repair func() ([]st
 								Model:            pool,
 								CheckBoxes:       true,
 								AlternatingRowBG: true,
+								ColumnSpan:       2,
 								StretchFactor:    1,
 								Columns: []declarative.TableViewColumn{
 									{Title: "Mission", Width: 200},
@@ -391,8 +386,9 @@ func runSettingsDialog(owner walk.Form, s settings.Settings, repair func() ([]st
 								},
 							},
 							declarative.Composite{
-								Layout:  declarative.HBox{MarginsZero: true},
-								MaxSize: declarative.Size{Height: 30},
+								Layout:     declarative.HBox{MarginsZero: true},
+								ColumnSpan: 2,
+								MaxSize:    declarative.Size{Height: 30},
 								Children: []declarative.Widget{
 									declarative.PushButton{Text: "All", OnClicked: func() { pool.setAll(true) }},
 									declarative.PushButton{Text: "None", OnClicked: func() { pool.setAll(false) }},
@@ -420,6 +416,11 @@ func runSettingsDialog(owner walk.Form, s settings.Settings, repair func() ([]st
 								ColumnSpan:  2,
 								ToolTipText: "Another player who wants a slot of their own plays another game in the same room, from the Archipelago app.",
 							},
+							// Somewhere for the slack to go. Without it the grid
+							// shares it between the rows, which put a hand's
+							// width of nothing between every field and left the
+							// warning floating in the middle of the tab.
+							declarative.VSpacer{ColumnSpan: 2},
 						},
 					},
 					{
@@ -453,7 +454,7 @@ func runSettingsDialog(owner walk.Form, s settings.Settings, repair func() ([]st
 								Pages: []declarative.TabPage{
 									botsScrollPage("Team", 3, teamRows(s, label, &botsBox, &botsSize, &buysBox, botTeam)),
 									botsScrollPage("Classes", 4, classRows(s, botTeam)),
-									botsScrollPage("Looks", 2, cosmeticRows(s, label, &looksBox)),
+									botsScrollPage("Looks", 2, cosmeticRows(s, &looksBox)),
 								},
 							},
 						},
@@ -692,20 +693,29 @@ type cosmeticBoxes struct {
 // cosmeticRows is what the bots look like. Last on the tab because none of it
 // changes a wave: a run everybody is watching is more fun when the six of them
 // do not look like the same mercenary six times.
-func cosmeticRows(
-	s settings.Settings, label func(text, help string) declarative.Label,
-	looksBox *cosmeticBoxes,
-) []declarative.Widget {
+func cosmeticRows(s settings.Settings, looksBox *cosmeticBoxes) []declarative.Widget {
 	return []declarative.Widget{
 		declarative.TextLabel{
 			Text:       "How the bots look. None of this changes how they play.",
 			ColumnSpan: 2,
 			MaxSize:    declarative.Size{Width: sentenceWidth},
 		},
-		label("Hats", "A random hat on every bot, drawn from the ones its class can wear."),
-		declarative.CheckBox{AssignTo: &looksBox.hats, Text: "a hat each", Checked: s.SrcdsBotHats},
-		label("Unusual effects", "A random unusual effect on that hat. Six particle effects on screen for the whole wave, so it is off by default."),
-		declarative.CheckBox{AssignTo: &looksBox.effects, Text: "and an effect on it", Checked: s.SrcdsBotHatEffects},
+		// The tick says the whole thing, so there is nothing for a label
+		// beside it to add: "Hats" next to "a hat each" is the same word twice.
+		declarative.CheckBox{
+			AssignTo:    &looksBox.hats,
+			Text:        "Assign a random hat to each bot",
+			Checked:     s.SrcdsBotHats,
+			ColumnSpan:  2,
+			ToolTipText: "Drawn from the hats that bot's class can wear. It keeps the one it drew for the whole mission, which is how you tell one Heavy from another.",
+		},
+		declarative.CheckBox{
+			AssignTo:    &looksBox.effects,
+			Text:        "Assign a random unusual effect to each hat",
+			Checked:     s.SrcdsBotHatEffects,
+			ColumnSpan:  2,
+			ToolTipText: "Six particle effects on screen for the whole wave.",
+		},
 	}
 }
 

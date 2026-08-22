@@ -6,108 +6,114 @@ in the release notes, so this file is the only place to write it.
 
 ## v1.9.0
 
-The mission switcher works, the bots are a different team to play with, and a
-debug bundle is worth sending.
+Switching mission works. The bots take their seats before the wave instead of
+arriving with it, play like a team rather than six of the same mercenary, and
+can be named seat by seat. A debug bundle is finally worth sending.
 
 ### The run
 
-- Switching mission works. Picking one in the Session tab or with `!mission`
-  used to land back on the first mission of the list: the plugin read the map's
-  default mission while the switch was still loading, decided the run was not on
-  a mission it held, and moved the server off the switch it was making. Only the
-  starting mission in the settings appeared to work, because that one is written
-  into the server config before any of this runs.
-- The bots no longer start the wave without you. A defender bot that is ready is
-  made unready again while any player on RED is not, so the wave begins when the
-  team is in front of it rather than when the last bot finished shopping.
-- A server with nobody on RED never readies at all. It used to play the run by
-  itself, wave after wave, and check off locations nobody was there for.
-- A player who leaves between waves has their seat filled by a bot.
+- **Switching mission works.** Picking one in the Session tab or with
+  `!mission` used to land back on the first mission of the list: the plugin
+  read the map's default mission while the switch was still loading, decided
+  the run was not on a mission it held, and moved the server off the switch it
+  was making. Only the starting mission in the settings appeared to work,
+  because that one is written into the server config before any of this runs.
+- **The bots take their seats before the wave.** They used to arrive at the
+  moment it started, having never seen the upgrade station, so wave one was six
+  bots with stock weapons, no upgrades and no sentry. They now turn up as soon
+  as somebody is on the server, shop, and build.
+- **They no longer start the wave without you.** A bot that is ready is made
+  unready again while any player on RED is not, and a server with nobody on RED
+  never readies at all: it used to play the run by itself, wave after wave, and
+  check off locations nobody was there for.
+- A player who leaves between waves has their seat filled, and a player who
+  arrives gets one made for them.
+- **A cash bundle is money the game knows about.** Spend one and lose the wave
+  and the balance went negative; receive bundles, spend them, press refund, and
+  the refund handed back the standard 400. The plugin wrote the number straight
+  onto the player, and both of those buttons read the game's own record instead.
+  A bundle now arrives as cash to walk over, the way the game hands it out.
+- `!ap unlock mission` hands over the next mission ticket in test mode, for a
+  run whose tickets sit behind every class and weapon slot. Test mode also
+  answers `!ap missing`, `!ap checked` and the rest, which it used to take in
+  silence.
+- Test mode starts on the class you asked for. It handed out a Scout whatever
+  you picked.
 
 ### The bots
 
-Most of this release is here. The defender bots played like six of the same
-mercenary standing near the bomb; they now pick targets, hold ground and spend
-credits the way the guides say to.
+Most of this release. They played like six of the same mercenary standing near
+the bomb; they now pick targets, hold ground and spend credits the way the
+guides say to.
 
-- Targets in an order: the Medic first, then the Sniper and the Engineer, then
-  giants, rather than whatever is nearest. The distances that go with that order
-  were measured and corrected afterwards: ten runs on Decoy read 54 defender
-  deaths against the previous 43 for the same waves cleared, and the fix put a
-  matched pair at 56 against 25.
-- Each class carries a named loadout, read out of the game's own item schema:
-  Phlogistinator on the Pyro, Beggar's Bazooka on the Soldier, Wrangler and Jag
-  on the Engineer, Ubersaw on the Medic.
-- Pyros aim above a tank rather than at it, because flames rise and half of
-  every puff was going into the ground. Soldiers shoot the ground under a robot
-  Pyro instead of the Pyro, because a reflected rocket is their own damage
-  pointed at their team.
-- Engineers ready at a level three sentry and a level three dispenser, medics at
-  a full charge. They used to press ready the moment a sentry existed, and the
-  wave began in front of a level one still being hammered together.
-- The medigun goes on the biggest body in range rather than whoever the game
-  stood next to, which names the Heavy without a list to maintain, and follows
-  the health upgrades the team buys.
-- Engineers build on the spot they picked, keep rebuilding, split across the
-  ground a map names so one holds inside and one holds out, and give up on a
-  spot they cannot reach after twelve seconds instead of walking into a boulder
-  for the rest of the wave.
-- Bots look behind themselves while the team knows a Spy is about.
-- Soldiers and demomen buy reload speed first, because their damage is a burst
-  and the wait is what the credits buy; it used to rank seventh. Rocket
-  Specialist stops after the first tier, which is the one that does anything.
+- **Targets in an order**: the Medic first, then the Sniper and the Engineer,
+  then giants, rather than whatever is nearest. The distances behind that order
+  were measured and corrected: ten runs on Decoy read 54 defender deaths against
+  the previous 43 for the same waves cleared, and the fix put a matched pair at
+  56 against 25.
+- **Upgrade paths for every class**, and the upgrades these bots cannot use are
+  refused rather than ranked last. A Pyro bought airblast pushback with a
+  Phlogistinator; leftover credits went on canteens nobody drank.
+- **Engineers**: they build on the spot they picked and keep rebuilding, split
+  across the ground a map names so one holds inside and one holds out, build
+  teleporters, and give up on a spot they cannot reach instead of walking into a
+  boulder for the rest of the wave. A sentry they cannot carry to the nest goes
+  down beside them.
+- **Medics**: the medigun goes on the biggest body nearby rather than whoever
+  the game stood next to, they hold the wave until the charge is full, and they
+  stop dumping a whole wave's credits into one upgrade.
+- **Demomen** hold the stickybomb launcher, close to a range their pipes arrive
+  at, and put an empty launcher down in a fight instead of reloading it.
+- Each class carries a named loadout, and a seat can name its own: two engineers
+  can hold different weapons.
 - Blast, bullet and fire resistance are bought when the coming wave carries
   robots that deal that damage. They were ranked flat and near the bottom, and
   explosions are between forty five and sixty percent of every defender death on
   every map measured.
-- Sticky traps stack on one spot for a giant instead of carpeting ground for a
-  crowd.
-- Bots stop buying upgrades for weapons they are not holding. A negative
-  priority is a refusal now rather than a low bid, so a Pyro no longer works
-  down the list and buys airblast pushback, and Explode on Ignite needs a Gas
-  Passer in hand.
-- Hats, and unusual effects on them, in two ticks at the foot of the Bots tab.
-  A bot keeps its hat for the mission, which is how you tell one Heavy from
-  another. Nothing about it changes a wave.
+- Hats, and unusual effects on them, in two ticks. A bot keeps its hat for the
+  mission, which is how you tell one Heavy from another. War paints were tried
+  and removed: they painted the weapons the upgrade station replaces, and the
+  server died the moment two engineers finished shopping.
 - Any of this can be switched off one at a time with
   `sm_redbots_feature_<name>`, which is how two ways of playing get compared.
-- Four server crashes fixed: a table that wrote past its own fields during
-  `exec server.cfg`, a full path computation running once per spot per tick
-  under the watchdog, a write into the game's own medic action, and the Gas
-  Passer.
+- Several server crashes fixed, and several frames' worth of work taken out of
+  every tick: nav mesh searches for health, ammo and revive markers no longer
+  run per frame, and the shopping list is built once a session.
 
 ### The window
 
-- The Session tab is the first one and the log is the second.
-- A mission button names the mission rather than its pop file, a locked mission
-  says so on the button instead of refusing in chat afterwards, and pressing it
-  says what is loading until the server confirms it.
+- **The run is the first tab and the log is the second.** A mission button names
+  the mission rather than its pop file, a locked mission says so on the button
+  instead of refusing in chat afterwards, and pressing it says what is loading
+  until the server confirms it.
+- **The Bots tab is three pages**: Team, Classes and Looks. Each seat is a line
+  of what it plays and what it holds, teams can be saved by name, and the class
+  pool is two ticks to a line with the weapons beside each.
+- The title bar says which build it is, which matters when several carry the
+  same version.
 - Saving settings no longer starts a stopped server. Start is the button that
   starts the server.
-- Numbers read from the left, and the Bots tab no longer runs its last few
-  characters under its own scrollbar.
+- Numbers read from the left, columns line up, and no row runs under the
+  scrollbar any more.
 - Over Steam the join line reads `Steam public IP:` and the Join button goes to
   that address rather than to a local one that means nothing to the friend it
-  was sent to.
-- The Steam page that issues a login token is a link on the tab that needs one,
-  with the two things it asks for: app id 440, and a memo of your choosing.
+  was sent to. The page that issues a login token is a link on the tab that
+  needs one, with the two things it asks for: app id 440, and a memo.
+- The terminal launcher follows the window: the run first, the same seats and
+  saved teams, the same Steam address.
 
 ### When something goes wrong
 
+- **Debug logs hold what somebody needs to read them**: the game server's own
+  console log, which never existed before, the launcher log from the run before
+  this one, the crash dumps, what the bridge says about the run, and which
+  defender bots were playing.
+- The plugin writes what it does to the console and the SourceMod log by
+  default. Every purchase and sale at the upgrade station is written down,
+  players and bots, with the credits held afterwards.
 - The bots' purchases in chat named the wrong upgrade. `mvm_upgrades.txt` has 64
-  entries and the game loads 63, because one of them is commented out, so
-  everything past it was named after the upgrade before it. The line also says
-  how many tiers were bought, which is why credits appeared to go nowhere.
-- Debug logs now hold what somebody would need to read them: the game server's
-  own console log, which never existed before, the launcher log from the run
-  before this one, and what the bridge says about the run.
-- The plugin writes what it does to the server console and the SourceMod log by
-  default. `tf2ap_debug 2` puts it in the chat as well, which is what `1` used
-  to mean.
-- Every purchase and sale at the upgrade station is written down, players
-  included, with the credits held afterwards.
-- Test mode starts on the class the settings ask for. It handed out a Scout
-  whatever you picked.
+  entries and the game loads 63, because one is commented out, so everything
+  past it was named after the upgrade before it.
 - A defender bot version bump used to build the previous version and say
   nothing, on any machine that had built once, including CI.
 

@@ -390,8 +390,8 @@ captures: launcher-linux
 # second half.
 window-captures: launcher
 	mkdir -p docs/images/raw
-	./docs/window-shot.sh $(DIST)/tf2ap.exe docs/images/raw/launcher-main.png 20 main
-	./docs/window-shot.sh $(DIST)/tf2ap.exe docs/images/raw/launcher-settings.png 20 dialog
+	./docs/window-shot.sh $(DIST)/tf2ap.exe docs/images/raw/launcher-main.png 30 main
+	./docs/window-shot.sh $(DIST)/tf2ap.exe docs/images/raw/launcher-settings.png 30 dialog
 	$(MAKE) shadows
 
 # The drop shadow and the transparent margins, over whatever is in
