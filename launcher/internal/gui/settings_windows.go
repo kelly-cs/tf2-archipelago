@@ -442,36 +442,19 @@ func runSettingsDialog(owner walk.Form, s settings.Settings, repair func() ([]st
 					{
 						Title:  "Bots",
 						Layout: declarative.VBox{MarginsZero: true},
-						// Nine classes and six seats do not fit a short window, and a
-						// tab page does not scroll on its own, so the rows go in a
-						// ScrollView. Horizontal stays fixed: the rows are already
-						// as wide as the page, only height runs out.
-						//
-						// The vertical scrollbar sits over the right edge of the rows
-						// rather than beside them, so the last characters of every row
-						// went under it: the team size read as nothing at all, because
-						// the number in a NumberEdit is against its right edge. The
-						// margin is the room the scrollbar takes, asked of the system
-						// rather than guessed, because it is a different number on a
-						// display that scales.
+						// Three pages rather than one long one. A tab that holds
+						// the team, the class pool and the cosmetics at once is
+						// too wide for its widest row and too tall for the
+						// screen, and the rows of each section have nothing to
+						// do with the widths of the others.
 						Children: []declarative.Widget{
-							declarative.ScrollView{
-								// Not HorizontalFixed. Fixed, the view sizes
-								// itself to its content and then holds it against
-								// the scrollbar, with a hand's width of nothing
-								// down the left and the class rows squeezed into
-								// what is left.
-								HorizontalFixed: false,
-								Layout: declarative.Grid{
-									Columns: 2,
-									Margins: declarative.Margins{
-										Left:   9,
-										Top:    9,
-										Right:  9 + int(win.GetSystemMetrics(win.SM_CXVSCROLL)),
-										Bottom: 9,
-									},
+							declarative.TabWidget{
+								StretchFactor: 1,
+								Pages: []declarative.TabPage{
+									botsScrollPage("Team", 3, teamRows(s, label, &botsBox, &botsSize, &buysBox, botTeam)),
+									botsScrollPage("Classes", 4, classRows(s, botTeam)),
+									botsScrollPage("Looks", 2, cosmeticRows(s, label, &looksBox)),
 								},
-								Children: botsRows(s, label, &botsBox, &botsSize, &buysBox, &looksBox, botTeam),
 							},
 						},
 					},
@@ -627,45 +610,79 @@ func leftAlign(edits ...*walk.NumberEdit) {
 
 // botsRows is the Bots tab: whether the bots play, how many, which classes
 // they may pick, and what each class holds.
-func botsRows(
+/* teamRows is the Team page: three columns of label, class and weapons.
+ *
+ * One grid for the whole page rather than a row of boxes per seat. A composite
+ * per seat lays itself out on its own, so seat 4's class menu ended up a
+ * different width from seat 3's and nothing lined up down the page. A grid is
+ * what makes a column a column.
+ */
+func teamRows(
 	s settings.Settings, label func(text, help string) declarative.Label,
 	botsBox **walk.CheckBox, botsSize **walk.NumberEdit, buysBox **walk.CheckBox,
-	looksBox *cosmeticBoxes, team *botTeamEditor,
+	team *botTeamEditor,
 ) []declarative.Widget {
 	rows := []declarative.Widget{
 		label("Defender bots", "Fill the RED team with bots that play, so a wave balanced for six is winnable by fewer. They pick classes, fight and buy their own upgrades. A bot steps aside when a friend joins."),
-		declarative.CheckBox{AssignTo: botsBox, Text: "fill the RED team", Checked: s.SrcdsBots},
+		declarative.CheckBox{AssignTo: botsBox, Text: "fill the RED team", Checked: s.SrcdsBots, ColumnSpan: 2},
 		label("Fill RED to", "How many players RED holds, humans included. Lower it for a harder run."),
 		declarative.NumberEdit{
 			AssignTo: botsSize, Value: float64(s.SrcdsBotTeamSize),
 			MinValue: 1, MaxValue: 6, Decimals: 0,
-			StretchFactor: 1,
+			ColumnSpan: 2,
 		},
 		label("Purchases in chat", "Write what the bots buy at the upgrade station to the chat, since the game no longer lets you inspect a teammate's upgrades. One line per purchase, so it is off by default."),
-		declarative.CheckBox{AssignTo: buysBox, Text: "say what the bots buy", Checked: s.BotUpgradesChat},
+		declarative.CheckBox{AssignTo: buysBox, Text: "say what the bots buy", Checked: s.BotUpgradesChat, ColumnSpan: 2},
+		declarative.TextLabel{
+			Text: "The bot team, in order: what each seat plays and what it holds. The first seats are the ones " +
+				"filled when RED is short, so put the classes you cannot do without first. A seat left on the " +
+				"draw is one the mod picks, from the classes ticked on the next page.",
+			ColumnSpan: 3,
+			MaxSize:    declarative.Size{Width: sentenceWidth},
+		},
 	}
-	rows = append(rows, seatRows(s, label, team)...)
-	rows = append(rows, declarative.TextLabel{
-		Text: "The classes the mod may draw a seat left on the draw from. Bots are poor snipers and spies; " +
-			"untick one and they never pick it. The weapons a class holds when a seat does not say otherwise " +
-			"are on the line beside it.",
-		ColumnSpan: 2,
-		MaxSize:    declarative.Size{Width: sentenceWidth},
-	})
-	// Three to a line rather than nine lines of one, in a grid of its own: six
-	// columns is three pairs of a tick and the weapons beside it, and a grid
-	// lines the pairs up down the tab where a row of boxes does not.
-	rows = append(rows, declarative.Composite{
-		ColumnSpan: 2,
-		Layout:     declarative.Grid{Columns: classesPerRow * 2, MarginsZero: true},
-		Children:   classCells(s, team),
-	})
-	return append(rows, cosmeticRows(s, label, looksBox)...)
+	rows = append(rows, presetRow(s, label, team)...)
+
+	choices := make([]string, 0, len(botloadout.Classes)+1)
+	choices = append(choices, drawSeatLabel)
+	for _, class := range botloadout.Classes {
+		choices = append(choices, class.Name)
+	}
+	for seat := range team.seatBox {
+		rows = append(rows,
+			label(fmt.Sprintf("Seat %d", seat+1), "What this seat plays and what it carries. Humans take the seats first, so the last ones are rarely filled."),
+			declarative.ComboBox{
+				AssignTo:              &team.seatBox[seat],
+				Model:                 choices,
+				Value:                 seatValue(s.SrcdsBotTeamComp, seat),
+				MinSize:               declarative.Size{Width: 150},
+				OnCurrentIndexChanged: seatClassChanged(seat, team),
+			},
+			declarative.ComboBox{
+				AssignTo:      &team.seatLoadBx[seat],
+				Model:         seatLoadoutChoices(seatClassKey(s.SrcdsBotTeamComp, seat)),
+				Value:         seatLoadoutValue(s, seat),
+				ToolTipText:   "The weapons this seat carries. Follows the class, so a seat on the draw has nothing to hold.",
+				StretchFactor: 1,
+			},
+		)
+	}
+	return rows
 }
 
-// cosmeticBoxes are the three looks-only ticks at the foot of the Bots tab.
-// One struct rather than three more pointer arguments, which are the same type
-// and would sit next to each other in the call.
+// classRows is the Classes page: two pairs of a tick and its weapons to a line,
+// in four columns, so the ticks line up down the page and the menus have room.
+func classRows(s settings.Settings, team *botTeamEditor) []declarative.Widget {
+	rows := []declarative.Widget{declarative.TextLabel{
+		Text: "The classes the mod may draw a seat left on the draw from. Bots are poor snipers and spies; " +
+			"untick one and they never pick it. The weapons beside a class are what it holds when the seat " +
+			"it fills does not say otherwise.",
+		ColumnSpan: 4,
+		MaxSize:    declarative.Size{Width: sentenceWidth},
+	}}
+	return append(rows, classCells(s, team)...)
+}
+
 type cosmeticBoxes struct {
 	hats    *walk.CheckBox
 	effects *walk.CheckBox
@@ -806,9 +823,44 @@ func seatLoadoutKey(class botloadout.Class, box *walk.ComboBox) string {
 	return class.Loadouts[index].Key
 }
 
-// classesPerRow is how many class ticks share a line. Nine lines of one tick
-// was a column of nothing down the middle of the tab.
-const classesPerRow = 3
+/* botsScrollPage is one page of the Bots tab: a grid of columns wide, in a
+ * view that scrolls when the rows outgrow the window.
+ *
+ * The vertical scrollbar sits over the right edge of the rows rather than
+ * beside them, so the last characters of every row went under it: the team
+ * size read as nothing at all, because the number in a NumberEdit is against
+ * its right edge. The margin is the room the scrollbar takes, asked of the
+ * system rather than guessed, because it is a different number on a display
+ * that scales.
+ */
+func botsScrollPage(title string, columns int, rows []declarative.Widget) declarative.TabPage {
+	return declarative.TabPage{
+		Title:  title,
+		Layout: declarative.VBox{MarginsZero: true},
+		Children: []declarative.Widget{
+			declarative.ScrollView{
+				// Not HorizontalFixed. Fixed, the view sizes itself to its
+				// content and then holds it against the scrollbar, with a
+				// hand's width of nothing down the left.
+				HorizontalFixed: false,
+				Layout: declarative.Grid{
+					Columns: columns,
+					Margins: declarative.Margins{
+						Left:   9,
+						Top:    9,
+						Right:  9 + int(win.GetSystemMetrics(win.SM_CXVSCROLL)),
+						Bottom: 9,
+					},
+				},
+				// The slack goes at the bottom. Without somewhere to put it a
+				// grid hands it to the rows themselves, and a page of three
+				// rows had its two settings against the bottom of the window
+				// with the sentence explaining them at the top.
+				Children: append(rows, declarative.VSpacer{ColumnSpan: columns}),
+			},
+		},
+	}
+}
 
 // classCells is the class pool: every class as a tick and the weapons it holds.
 func classCells(s settings.Settings, team *botTeamEditor) []declarative.Widget {
@@ -832,8 +884,7 @@ func classCells(s settings.Settings, team *botTeamEditor) []declarative.Widget {
 				Model:         labels,
 				Value:         class.LoadoutByKey(s.SrcdsBotLoadouts[class.Key]).Label(),
 				ToolTipText:   "What a " + class.Name + " holds when the seat it fills does not say otherwise.",
-				MinSize:       declarative.Size{Width: 200},
-				MaxSize:       declarative.Size{Width: 260},
+				MinSize:       declarative.Size{Width: 220},
 				StretchFactor: 1,
 			},
 		)
@@ -845,65 +896,18 @@ func classCells(s settings.Settings, team *botTeamEditor) []declarative.Widget {
 // caps at. A seat past the team size is simply never filled.
 const botSeats = 6
 
-// seatRows is the ordered team: one menu per seat, first seat filled first. It
-// is what a blacklist cannot say. A random draw gave a play-test three Spies
-// and two Scouts on an Advanced mission, and a team with no Engineer ran out
-// of ammo against the tank.
-func seatRows(
-	s settings.Settings, label func(text, help string) declarative.Label, team *botTeamEditor,
-) []declarative.Widget {
-	choices := make([]string, 0, len(botloadout.Classes)+1)
-	choices = append(choices, drawSeatLabel)
-	for _, class := range botloadout.Classes {
-		choices = append(choices, class.Name)
-	}
-	rows := []declarative.Widget{declarative.TextLabel{
-		Text: "The bot team, in order: what each seat plays and what it holds. The first seats are the ones " +
-			"filled when RED is short, so put the classes you cannot do without first. A seat left on the " +
-			"draw is one the mod picks, from the classes ticked below.",
-		ColumnSpan: 2,
-		MaxSize:    declarative.Size{Width: sentenceWidth},
-	}}
-	rows = append(rows, presetRow(s, label, team)...)
-
-	for seat := range team.seatBox {
-		rows = append(rows,
-			label(fmt.Sprintf("Seat %d", seat+1), "What this seat plays and what it carries. Humans take the seats first, so the last ones are rarely filled."),
-			// The class and its weapons on one line: two engineers are only
-			// worth naming separately if they can hold different things.
-			declarative.Composite{
-				Layout: declarative.HBox{MarginsZero: true},
-				Children: []declarative.Widget{
-					declarative.ComboBox{
-						AssignTo:              &team.seatBox[seat],
-						Model:                 choices,
-						Value:                 seatValue(s.SrcdsBotTeamComp, seat),
-						MinSize:               declarative.Size{Width: 140},
-						MaxSize:               declarative.Size{Width: 140},
-						OnCurrentIndexChanged: seatClassChanged(seat, team),
-					},
-					declarative.ComboBox{
-						AssignTo:      &team.seatLoadBx[seat],
-						Model:         seatLoadoutChoices(seatClassKey(s.SrcdsBotTeamComp, seat)),
-						Value:         seatLoadoutValue(s, seat),
-						ToolTipText:   "The weapons this seat carries. Follows the class, so a seat on the draw has nothing to hold.",
-						StretchFactor: 1,
-					},
-				},
-			},
-		)
-	}
-	return rows
-}
-
 // presetRow is the saved teams: pick one and load it, or name one and keep it.
 func presetRow(
 	s settings.Settings, label func(text, help string) declarative.Label, team *botTeamEditor,
 ) []declarative.Widget {
 	return []declarative.Widget{
 		label("Saved teams", "A team is the seats, their weapons and the classes the mod may draw from. Type a name and press Save to keep the team below; pick one and press Load to bring it back."),
+		// Both remaining columns: a row that leaves a cell empty puts the next
+		// row's first widget in it, which walked every seat label one column
+		// to the right and wrapped its menus onto the line below.
 		declarative.Composite{
-			Layout: declarative.HBox{MarginsZero: true},
+			ColumnSpan: 2,
+			Layout:     declarative.HBox{MarginsZero: true},
 			Children: []declarative.Widget{
 				declarative.ComboBox{
 					AssignTo:      team.presetBox,
