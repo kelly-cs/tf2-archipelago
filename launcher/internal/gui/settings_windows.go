@@ -84,6 +84,9 @@ func runSettingsDialog(
 		botsSize   *walk.NumberEdit
 		buysBox    *walk.CheckBox
 		looksBox   cosmeticBoxes
+		botsHost   *walk.Composite
+		botsBuilt  bool
+		tabs       *walk.TabWidget
 		presetBox  *walk.ComboBox
 		presetName *walk.LineEdit
 		botTeam    = &botTeamEditor{
@@ -180,16 +183,23 @@ func runSettingsDialog(
 		next.SrcdsAdminSteamIDs = strings.TrimSpace(adminEdit.Text())
 		next.SrcdsReach = checkedReach(reachSteam, reachPort)
 		next.SrcdsToken = strings.TrimSpace(tokenEdit.Text())
-		next.SrcdsBots = botsBox.Checked()
-		next.SrcdsBotTeamSize = int(botsSize.Value())
-		next.BotUpgradesChat = buysBox.Checked()
-		next.SrcdsBotHats = looksBox.hats.Checked()
-		next.SrcdsBotHatEffects = looksBox.effects.Checked()
-		// One description of what the seats and ticks mean, shared with the
-		// Save button. A seat left on the draw contributes nothing, so the
-		// list is the picked seats in seat order: all six on the draw leaves
-		// it empty, which is the mod deciding, the way it always did.
-		next = settings.WithBotTeam(next, botTeam.team())
+		// The Bots tab is built when somebody opens it, so on a visit that
+		// never did there is nothing to read: next keeps what the settings
+		// came in with, which is what those fields still say.
+		if botsBuilt {
+			next.SrcdsBots = botsBox.Checked()
+			next.SrcdsBotTeamSize = int(botsSize.Value())
+			next.BotUpgradesChat = buysBox.Checked()
+			next.SrcdsBotHats = looksBox.hats.Checked()
+			next.SrcdsBotHatEffects = looksBox.effects.Checked()
+			// One description of what the seats and ticks mean, shared with
+			// the Save button. A seat left on the draw contributes nothing, so
+			// the list is the picked seats in seat order: all six on the draw
+			// leaves it empty, which is the mod deciding, as it always did.
+			next = settings.WithBotTeam(next, botTeam.team())
+		}
+		// Saved teams are written when Save is pressed on the tab, so they are
+		// on disk already; this keeps them in the settings the dialog returns.
 		next.SrcdsBotTeamPresets = botTeam.saved
 		return next, nil
 	}
@@ -274,6 +284,7 @@ func runSettingsDialog(
 		Layout:  declarative.VBox{},
 		Children: []declarative.Widget{
 			declarative.TabWidget{
+				AssignTo: &tabs,
 				Pages: append([]declarative.TabPage{
 					{
 						Title:  "Player options",
@@ -449,19 +460,23 @@ func runSettingsDialog(
 					{
 						Title:  "Bots",
 						Layout: declarative.VBox{MarginsZero: true},
-						// Three pages rather than one long one. A tab that holds
-						// the team, the class pool and the cosmetics at once is
-						// too wide for its widest row and too tall for the
-						// screen, and the rows of each section have nothing to
-						// do with the widths of the others.
+						/* Built when the tab is first opened, not when the dialog is.
+						 *
+						 * This one tab is two thirds of the time the window takes to
+						 * come up: 569ms with it, 245ms without, and 529ms with its
+						 * scroll views taken out, so it is the twenty-two menus on it.
+						 * walk already suspends the dialog while it builds, which is
+						 * what stops Windows redrawing and laying out per control, so
+						 * what is left is the cost of the controls themselves. The
+						 * remedy for that is not to make them until somebody looks.
+						 *
+						 * The dialog opens on Player options, so most visits never pay
+						 * for this tab at all.
+						 */
 						Children: []declarative.Widget{
-							declarative.TabWidget{
-								StretchFactor: 1,
-								Pages: []declarative.TabPage{
-									botsScrollPage("Team", 3, teamRows(s, label, &botsBox, &botsSize, &buysBox, botTeam)),
-									botsScrollPage("Classes", 4, classRows(s, botTeam)),
-									botsScrollPage("Looks", 2, cosmeticRows(s, &looksBox)),
-								},
+							declarative.Composite{
+								AssignTo: &botsHost,
+								Layout:   declarative.VBox{MarginsZero: true},
 							},
 						},
 					},
@@ -524,6 +539,22 @@ func runSettingsDialog(
 	// complaint without a number is a guess about which of sixty widgets is
 	// the expensive one.
 	say("the settings window took %s to build", time.Since(built).Round(time.Millisecond))
+
+	// The Bots tab, the first time somebody looks at it.
+	tabs.CurrentIndexChanged().Attach(func() {
+		// By title, not by index: the tabs a beta flag adds move the numbers.
+		page := tabs.Pages().At(tabs.CurrentIndex())
+		if botsBuilt || page == nil || page.Title() != "Bots" {
+			return
+		}
+		botsBuilt = true
+		started := time.Now()
+		if err := buildBotsTab(botsHost, s, label, &botsBox, &botsSize, &buysBox, &looksBox, botTeam); err != nil {
+			say("the bots tab did not build: %v", err)
+			return
+		}
+		say("the bots tab took %s to build", time.Since(started).Round(time.Millisecond))
+	})
 
 	// Numbers read from the left, like every other field in the dialog.
 	leftAlign(missions, sanityPct, portEdit, botsSize)
@@ -1348,4 +1379,35 @@ func keepBotTeams(teams map[string]settings.BotTeam) {
 	}
 	current.SrcdsBotTeamPresets = teams
 	_ = settings.Save(current)
+}
+
+/* buildBotsTab fills the Bots tab, the first time it is looked at.
+ *
+ * The same three pages the tab always had, made when they are wanted rather
+ * than when the dialog opens. declarative.NewBuilder is what lets a tree be
+ * built into a container that already exists, which is the whole trick.
+ *
+ * Suspended while it happens, for the reason walk suspends the dialog while it
+ * builds one: a container that is already on screen lays itself out and repaints
+ * per control added otherwise, and this one is on screen by definition.
+ */
+func buildBotsTab(
+	host *walk.Composite, s settings.Settings, label func(text, help string) declarative.Label,
+	botsBox **walk.CheckBox, botsSize **walk.NumberEdit, buysBox **walk.CheckBox,
+	looksBox *cosmeticBoxes, team *botTeamEditor,
+) error {
+	if host == nil {
+		return fmt.Errorf("the bots tab has nowhere to go")
+	}
+	host.SetSuspended(true)
+	defer host.SetSuspended(false)
+
+	return declarative.TabWidget{
+		StretchFactor: 1,
+		Pages: []declarative.TabPage{
+			botsScrollPage("Team", 3, teamRows(s, label, botsBox, botsSize, buysBox, team)),
+			botsScrollPage("Classes", 4, classRows(s, team)),
+			botsScrollPage("Looks", 2, cosmeticRows(s, looksBox)),
+		},
+	}.Create(declarative.NewBuilder(host))
 }
