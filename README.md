@@ -22,7 +22,7 @@ the same unlocks.
 > VirusTotal report, and `make launcher` builds the same exe on your machine.
 
 <p align="center">
-  <img alt="The launcher: a log, Start and Stop, an rcon box" src="docs/images/launcher-main.png" width="820">
+  <img alt="The launcher: the run, Start and Stop, a Join button" src="docs/images/launcher-main.png" width="820">
 </p>
 
 ## What talks to Archipelago
