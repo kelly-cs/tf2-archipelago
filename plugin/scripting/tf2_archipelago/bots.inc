@@ -176,6 +176,8 @@ public void OnClientCommandKeyValues_Post(int client, KeyValues kv)
     }
     char name[32];
     kv.GetSectionName(name, sizeof(name));
+    // The money side wants the refund as much as this wants the purchase.
+    MvM_OnCommandKeyValues(client, name);
     if (!StrEqual(name, "MVM_Upgrade"))
     {
         return;
