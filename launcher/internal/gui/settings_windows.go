@@ -822,19 +822,57 @@ func (e *botTeamEditor) show(team settings.BotTeam) {
 				loadout = class.LoadoutByKey(key).Label()
 			}
 		}
-		_ = box.SetText(name)
+		selectInCombo(box, name)
 		_ = e.seatLoadBx[seat].SetModel(seatLoadoutChoices(classKeyOfLabel(name)))
-		_ = e.seatLoadBx[seat].SetText(loadout)
+		selectInCombo(e.seatLoadBx[seat], loadout)
 	}
 	for i, class := range botloadout.Classes {
 		e.classBox[i].SetChecked(!slices.Contains(team.Blacklist, class.Key))
-		_ = e.loadoutBx[i].SetText(class.LoadoutByKey(team.ClassLoadouts[class.Key]).Label())
+		selectInCombo(e.loadoutBx[i], class.LoadoutByKey(team.ClassLoadouts[class.Key]).Label())
 	}
+}
+
+/* selectInCombo picks an entry in a menu by what it says.
+ *
+ * SetText is the obvious way and it does nothing at all here. These menus are
+ * drop-down lists, which have no edit field, and SetWindowText on one of those
+ * is a documented no-op: Load appeared to do nothing because every widget it
+ * wrote to ignored it.
+ *
+ * The selection is CB_SETCURSEL, which walk spells SetCurrentIndex, and an
+ * index is what a list has instead of text.
+ */
+func selectInCombo(box *walk.ComboBox, value string) {
+	if box == nil {
+		return
+	}
+	model, ok := box.Model().([]string)
+	if !ok {
+		return
+	}
+	if index := slices.Index(model, value); index >= 0 {
+		_ = box.SetCurrentIndex(index)
+	}
+}
+
+// comboValue is what a menu is showing, by its model rather than its window
+// text: the same drop-down list that ignores SetText is one whose text is the
+// selection, and reading the model says so without depending on that.
+func comboValue(box *walk.ComboBox) string {
+	if box == nil {
+		return ""
+	}
+	model, ok := box.Model().([]string)
+	index := box.CurrentIndex()
+	if !ok || index < 0 || index >= len(model) {
+		return ""
+	}
+	return model[index]
 }
 
 // load brings back a saved team, or says there is none by that name.
 func (e *botTeamEditor) load() {
-	name := strings.TrimSpace((*e.presetBox).Text())
+	name := strings.TrimSpace(comboValue(*e.presetBox))
 	team, found := e.saved[name]
 	if !found {
 		return
@@ -850,7 +888,7 @@ func (e *botTeamEditor) save() {
 	// editing one they loaded is doing.
 	name := strings.TrimSpace((*e.presetName).Text())
 	if name == "" {
-		name = strings.TrimSpace((*e.presetBox).Text())
+		name = strings.TrimSpace(comboValue(*e.presetBox))
 	}
 	if name == "" {
 		return
