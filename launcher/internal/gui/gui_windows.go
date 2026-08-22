@@ -670,7 +670,7 @@ func (w *window) idle() {
 // The rest stay in `tf2ap.exe -configure`.
 func (w *window) editSettings() {
 	s := w.supervisor.Settings()
-	next, ok, err := runSettingsDialog(w.main, s, w.repair, w.resetSettings)
+	next, ok, err := runSettingsDialog(w.main, s, w.repair, w.resetSettings, w.say)
 	if err != nil {
 		w.say("settings: %v", err)
 		return

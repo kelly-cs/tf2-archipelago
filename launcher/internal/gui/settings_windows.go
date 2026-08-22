@@ -48,7 +48,11 @@ const tokenPageURL = "https://steamcommunity.com/dev/managegameservers"
 // or a login token is.
 //
 // It returns the edited settings and whether the player accepted them.
-func runSettingsDialog(owner walk.Form, s settings.Settings, repair func() ([]string, error), reset func() error) (settings.Settings, bool, error) {
+func runSettingsDialog(
+	owner walk.Form, s settings.Settings,
+	repair func() ([]string, error), reset func() error,
+	say func(format string, args ...any),
+) (settings.Settings, bool, error) {
 	var (
 		dialog *walk.Dialog
 		accept *walk.PushButton
@@ -89,6 +93,7 @@ func runSettingsDialog(owner walk.Form, s settings.Settings, repair func() ([]st
 			loadoutBx:  make([]*walk.ComboBox, len(botloadout.Classes)),
 			presetBox:  &presetBox,
 			presetName: &presetName,
+			keep:       keepBotTeams,
 			saved:      maps.Clone(s.SrcdsBotTeamPresets),
 		}
 
@@ -256,6 +261,7 @@ func runSettingsDialog(owner walk.Form, s settings.Settings, repair func() ([]st
 		},
 	}
 
+	built := time.Now()
 	err := declarative.Dialog{
 		AssignTo:     &dialog,
 		Title:        "Settings",
@@ -513,6 +519,11 @@ func runSettingsDialog(owner walk.Form, s settings.Settings, repair func() ([]st
 	if err != nil {
 		return s, false, err
 	}
+	// How long the window took to build, in the log a debug bundle carries. A
+	// settings dialog that takes a second to appear is a complaint, and a
+	// complaint without a number is a guess about which of sixty widgets is
+	// the expensive one.
+	say("the settings window took %s to build", time.Since(built).Round(time.Millisecond))
 
 	// Numbers read from the left, like every other field in the dialog.
 	leftAlign(missions, sanityPct, portEdit, botsSize)
@@ -733,9 +744,13 @@ type botTeamEditor struct {
 	presetBox  **walk.ComboBox
 	presetName **walk.LineEdit
 
-	// saved is the teams as they will be written back. A Save with the dialog
-	// cancelled afterwards keeps nothing, the way every other field works.
+	// saved is the teams as they stand. Save and Load write and read this, and
+	// keep is what puts it on disk: a saved team outlives the dialog whatever
+	// happens to the rest of the fields, because saving a team and then
+	// pressing Cancel because you changed your mind about a port is not asking
+	// for the team to be forgotten.
 	saved map[string]settings.BotTeam
+	keep  func(map[string]settings.BotTeam)
 }
 
 // team is what the widgets currently describe.
@@ -820,8 +835,11 @@ func (e *botTeamEditor) save() {
 	}
 	slices.Sort(names)
 	_ = (*e.presetBox).SetModel(names)
-	_ = (*e.presetBox).SetText(name)
+	_ = (*e.presetBox).SetCurrentIndex(slices.Index(names, name))
 	_ = (*e.presetName).SetText("")
+	if e.keep != nil {
+		e.keep(e.saved)
+	}
 }
 
 // seatLoadoutKey is the preset a seat's weapons menu is showing, by key.
@@ -872,6 +890,14 @@ func botsScrollPage(title string, columns int, rows []declarative.Widget) declar
 	}
 }
 
+// firstName is what a menu of saved teams opens on, and "" for none saved.
+func firstName(names []string) string {
+	if len(names) == 0 {
+		return ""
+	}
+	return names[0]
+}
+
 // classCells is the class pool: every class as a tick and the weapons it holds.
 func classCells(s settings.Settings, team *botTeamEditor) []declarative.Widget {
 	var cells []declarative.Widget
@@ -920,8 +946,12 @@ func presetRow(
 			Layout:     declarative.HBox{MarginsZero: true},
 			Children: []declarative.Widget{
 				declarative.ComboBox{
-					AssignTo:      team.presetBox,
-					Model:         settings.BotTeamNames(s),
+					AssignTo: team.presetBox,
+					Model:    settings.BotTeamNames(s),
+					// Opened on the first saved team rather than on nothing: a
+					// menu showing an empty box next to a Load button reads as
+					// having nothing saved at all.
+					Value:         firstName(settings.BotTeamNames(s)),
 					StretchFactor: 1,
 					ToolTipText:   "The teams you have saved. Pick one and press Load.",
 				},
@@ -998,7 +1028,11 @@ func seatClassChanged(seat int, team *botTeamEditor) walk.EventHandler {
 			return
 		}
 		_ = loadout.SetModel(seatLoadoutChoices(classKeyOfLabel(box.Text())))
-		_ = loadout.SetText(seatLoadoutChoices(classKeyOfLabel(box.Text()))[0])
+		// By index, not by text. Setting the text of a menu that has a model
+		// selects nothing, and nothing shows as an empty box: a seat whose
+		// class had just changed looked like it held no weapons at all.
+		// Index zero is the class's stock loadout.
+		_ = loadout.SetCurrentIndex(0)
 	}
 }
 
@@ -1295,4 +1329,23 @@ func goalLabel(goals []runshape.Goal, key string) string {
 		}
 	}
 	return fmt.Sprintf("%v", goals[0].Label())
+}
+
+/* keepBotTeams writes the saved teams to the config file, on their own.
+ *
+ * Everything else in this dialog is written when it is closed with Save, which
+ * is right for a field somebody is still editing and wrong for a team they have
+ * just named: saving one and then pressing Cancel, because the port was a typo,
+ * threw the team away with the typo.
+ *
+ * The file is read back and only this key is replaced, so a launcher writing a
+ * team does not overwrite whatever else has changed on disk since it opened.
+ */
+func keepBotTeams(teams map[string]settings.BotTeam) {
+	current, err := settings.Load()
+	if err != nil {
+		return
+	}
+	current.SrcdsBotTeamPresets = teams
+	_ = settings.Save(current)
 }
