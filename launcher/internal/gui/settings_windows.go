@@ -743,17 +743,17 @@ func cosmeticRows(s settings.Settings, looksBox *cosmeticBoxes) []declarative.Wi
 			MaxSize:    declarative.Size{Width: sentenceWidth},
 		},
 		// The tick says the whole thing, so there is nothing for a label
-		// beside it to add: "Hats" next to "a hat each" is the same word twice.
+		// beside it to add: a second "Cosmetic items" would be the same words twice.
 		declarative.CheckBox{
 			AssignTo:    &looksBox.hats,
-			Text:        "Assign a random hat to each bot",
+			Text:        "Assign a random cosmetic item to each bot",
 			Checked:     s.SrcdsBotHats,
 			ColumnSpan:  2,
-			ToolTipText: "Drawn from the hats that bot's class can wear. It keeps the one it drew for the whole mission, which is how you tell one Heavy from another.",
+			ToolTipText: "Drawn from the cosmetic items that bot's class can wear, hat or not. It keeps the one it drew for the whole mission, which is how you tell one Heavy from another.",
 		},
 		declarative.CheckBox{
 			AssignTo:    &looksBox.effects,
-			Text:        "Assign a random unusual effect to each hat",
+			Text:        "Assign a random unusual effect to each cosmetic item",
 			Checked:     s.SrcdsBotHatEffects,
 			ColumnSpan:  2,
 			ToolTipText: "Six particle effects on screen for the whole wave.",
