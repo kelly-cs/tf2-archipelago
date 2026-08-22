@@ -218,39 +218,88 @@ stock int MvM_GrantCredits(int amount)
     return paid;
 }
 
-// One pack, at one player's feet. False when the game will not make one, which
-// leaves the grant unpaid and unacknowledged rather than half applied.
+/* One pack, at one player's feet, or the property write that always worked.
+ *
+ * The pack is the right shape and it has not worked yet. m_nAmount is not a
+ * send property on this server and not a data property either: the first
+ * spelling threw eighty times in ten minutes and left a dead pack behind each
+ * time, and the second says so once a bundle and pays nobody.
+ *
+ * So the property write is back, and the pack is tried first only while
+ * something says which name to use. Writing m_nCurrency is what has always
+ * paid, and it is what the refund and the wave-loss restore do not know about:
+ * that is TODO item 1, still open, and a bundle nobody receives is worse than
+ * a bundle the refund forgets.
+ */
 static bool MvM_DropCredits(int client, int amount)
+{
+    if (MvM_PackCredits(client, amount))
+    {
+        return true;
+    }
+    if (!HasProp(client, "m_nCurrency"))
+    {
+        return false;
+    }
+    int held = GetEntProp(client, Prop_Send, "m_nCurrency");
+    SetEntProp(client, Prop_Send, "m_nCurrency", held + amount);
+    return true;
+}
+
+// The names a currency pack's amount might go by, newest guess first. Checked
+// rather than assumed, because two of them have already been wrong.
+static const char PackAmountProps[][] = {"m_nAmount", "m_nCurrencyAmount", "m_iAmount"};
+
+/* MvM_PackCredits hands the money over as a pack the player walks into, which
+ * is how the game itself pays. False when this server's packs cannot be told
+ * what they are worth, which is every server so far.
+ *
+ * Said once per map rather than once per bundle. A line that repeats every few
+ * seconds is a line nobody reads, and it drowns the log a bundle carries.
+ */
+static bool g_PackAmountChecked;
+static int g_PackAmountProp = -1;
+
+static bool MvM_PackCredits(int client, int amount)
 {
     int pack = CreateEntityByName("item_currencypack_custom");
     if (pack == -1)
     {
-        AP_Error("This server cannot make a currency pack. The bundle waits.");
         return false;
     }
-    /* m_nAmount is a data property and not a networked one.
-     *
-     * Asked for as a send property it throws, and a throw here aborts the
-     * whole callback: the bundle was never paid, never acknowledged, and asked
-     * for again on the next poll, which left one dead pack per attempt behind
-     * it. A play-test made two hundred and forty of them in ten minutes.
-     *
-     * So the property is checked before it is written, and a pack that cannot
-     * be told what it is worth is removed rather than left standing.
-     */
-    if (!HasEntProp(pack, Prop_Data, "m_nAmount"))
+    if (!g_PackAmountChecked)
+    {
+        g_PackAmountChecked = true;
+        for (int index = 0; index < sizeof(PackAmountProps); index++)
+        {
+            if (HasEntProp(pack, Prop_Data, PackAmountProps[index])
+                || HasEntProp(pack, Prop_Send, PackAmountProps[index]))
+            {
+                g_PackAmountProp = index;
+                break;
+            }
+        }
+        if (g_PackAmountProp == -1)
+        {
+            AP_Debug("A currency pack here has none of the amount properties. Bundles pay the player directly.");
+        }
+        else
+        {
+            AP_Debug("A currency pack here carries %s.", PackAmountProps[g_PackAmountProp]);
+        }
+    }
+    if (g_PackAmountProp == -1)
     {
         RemoveEntity(pack);
-        AP_Error("This server's currency packs have no m_nAmount. The bundle waits.");
         return false;
     }
-    // Before the spawn: the amount is read as the pack comes up, and a pack
-    // that spawned with the default is worth what the game felt like.
-    SetEntProp(pack, Prop_Data, "m_nAmount", amount);
+
+    bool sent = HasEntProp(pack, Prop_Send, PackAmountProps[g_PackAmountProp]);
+    SetEntProp(pack, sent ? Prop_Send : Prop_Data, PackAmountProps[g_PackAmountProp], amount);
     DispatchSpawn(pack);
     if (!IsValidEntity(pack))
     {
-        AP_Error("The currency pack did not survive its spawn. The bundle waits.");
+        // Nothing to remove: a spawn that failed took the entity with it.
         return false;
     }
 
