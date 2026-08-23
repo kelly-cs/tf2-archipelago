@@ -24,8 +24,10 @@ near the bomb.
   return what you spent: it restores the balance the game recorded, and a bundle
   was never in that record. The plugin now keeps its own count of every credit a
   bundle added and puts it back on top of the refund.
-- Losing a wave still restores the same record, so a wave lost after spending
-  bundles can still read low. That half is not fixed yet.
+- **Losing a wave no longer leaves you in the red.** The same restore runs when
+  a wave is lost, and it took the bundles you had spent off a balance that never
+  held them, which is where the negative money came from. The bundles go back on
+  top, and a balance that would still be negative is put at zero.
 - **The bots take their seats before the wave.** They used to arrive at the
   moment it started, having never seen the upgrade station, so wave one was six
   bots with stock weapons, no upgrades and no sentry. They now turn up as soon

@@ -302,12 +302,31 @@ stock void MvM_OnCommandKeyValues(int client, const char[] name)
     }
 }
 
+/* A lost wave restores the same record the refund does, and to everyone.
+ *
+ * The balance can come back negative there: the game restores what it recorded
+ * at wave start, and the bundles that were spent on top of it were never in
+ * that number, so the subtraction runs past zero. Same ledger, same frame's
+ * delay, and a balance that would still be negative is put at zero rather than
+ * left as a number no upgrade station can spend.
+ */
+stock void MvM_RestoreBundlesAll()
+{
+    for (int client = 1; client <= MaxClients; client++)
+    {
+        if (MvM_IsPlayer(client))
+        {
+            RequestFrame(Frame_RestoreBundles, GetClientUserId(client));
+        }
+    }
+}
+
 // A frame later, because the game writes the restored balance during the
 // command and a number put back before that is the number it overwrites.
 static void Frame_RestoreBundles(any userid)
 {
     int client = GetClientOfUserId(userid);
-    if (client <= 0 || !IsClientInGame(client) || g_BundleCredits[client] <= 0)
+    if (client <= 0 || !IsClientInGame(client))
     {
         return;
     }
@@ -316,9 +335,18 @@ static void Frame_RestoreBundles(any userid)
         return;
     }
     int held = GetEntProp(client, Prop_Send, "m_nCurrency");
-    SetEntProp(client, Prop_Send, "m_nCurrency", held + g_BundleCredits[client]);
-    AP_Debug("%N was refunded to %d credits, and %d of bundles went back on top.",
-        client, held, g_BundleCredits[client]);
+    int owed = held + g_BundleCredits[client];
+    if (owed < 0)
+    {
+        owed = 0;
+    }
+    if (owed == held)
+    {
+        return;
+    }
+    SetEntProp(client, Prop_Send, "m_nCurrency", owed);
+    AP_Debug("%N came back to %d credits, and %d of bundles put that at %d.",
+        client, held, g_BundleCredits[client], owed);
 }
 
 // The names a currency pack's amount might go by, newest guess first. Checked
