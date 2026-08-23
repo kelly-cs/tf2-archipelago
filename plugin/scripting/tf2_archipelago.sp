@@ -367,6 +367,10 @@ public void Event_WaveFailed(Event event, const char[] name, bool dontBroadcast)
         AP_Debug("The game reported a lost wave with no wave running. The plugin ignores it.");
         return;
     }
+    // The game restores each balance to what it recorded at wave start, which
+    // never held a bundle. Without this the spent bundles come off a number
+    // that never had them, and the balance goes negative.
+    MvM_RestoreBundlesAll();
     ReportWaveFailed(g_CurrentWave);
 }
 

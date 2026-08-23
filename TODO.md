@@ -39,8 +39,11 @@ What is left:
    community documents the button as sending. Any other command the station
    sends is now written to the log once, so the next debug bundle either shows
    nothing (the guess was right) or names the real one.
-2. The lost wave restores the same record and is not covered yet. Same ledger,
-   different hook: `mvm_wave_failed` already reaches the plugin for Death Link.
+2. The lost wave is covered by the same ledger, on `mvm_wave_failed`, and a
+   balance that would still come back negative is put at zero. Watch a debug
+   bundle for the line saying what each player came back to: if the game
+   restores after the event rather than during it, the frame's delay is not
+   enough and it wants a short timer instead.
 3. `CTFGameRules::DistributeCurrencyAmount` is what the game calls itself and
    would make the ledger unnecessary. It wants a signature in our own gamedata
    for two platforms and upkeep across every Team Fortress 2 update, which is
