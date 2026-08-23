@@ -6,79 +6,100 @@ in the release notes, so this file is the only place to write it.
 
 ## v1.9.0
 
-Switching mission works. The bots take their seats before the wave instead of
-arriving with it, play like a team rather than six of the same mercenary, and
-can be named seat by seat. A debug bundle is finally worth sending.
+Switching mission works, the bots take their seats before the wave starts, and
+a debug bundle finally holds what somebody needs to read it. Most of the
+release is the bots: they used to play like six of the same mercenary standing
+near the bomb.
 
 ### The run
 
 - **Switching mission works.** Picking one in the Session tab or with
-  `!mission` used to land back on the first mission of the list: the plugin
-  read the map's default mission while the switch was still loading, decided
-  the run was not on a mission it held, and moved the server off the switch it
-  was making. Only the starting mission in the settings appeared to work,
-  because that one is written into the server config before any of this runs.
+  `!mission` used to land back on the first mission of the list. The plugin read
+  the map's default mission while the switch was still loading, decided the run
+  was not on a mission it held, and moved the server off the switch it was
+  making. Only the starting mission in the settings appeared to work, because
+  that one is written into the server config before any of this runs.
+- **A refund gives your cash bundles back.** Receive bundles, spend them, press
+  refund, and the refund handed back the standard 400. The refund does not
+  return what you spent: it restores the balance the game recorded, and a bundle
+  was never in that record. The plugin now keeps its own count of every credit a
+  bundle added and puts it back on top of the refund.
+- Losing a wave still restores the same record, so a wave lost after spending
+  bundles can still read low. That half is not fixed yet.
 - **The bots take their seats before the wave.** They used to arrive at the
   moment it started, having never seen the upgrade station, so wave one was six
   bots with stock weapons, no upgrades and no sentry. They now turn up as soon
   as somebody is on the server, shop, and build.
 - **They no longer start the wave without you.** A bot that is ready is made
   unready again while any player on RED is not, and a server with nobody on RED
-  never readies at all: it used to play the run by itself, wave after wave, and
+  never readies at all. It used to play the run by itself, wave after wave, and
   check off locations nobody was there for.
 - A player who leaves between waves has their seat filled, and a player who
   arrives gets one made for them.
-- **A cash bundle is money the game knows about.** Spend one and lose the wave
-  and the balance went negative; receive bundles, spend them, press refund, and
-  the refund handed back the standard 400. The plugin wrote the number straight
-  onto the player, and both of those buttons read the game's own record instead.
-  A bundle now arrives as cash to walk over, the way the game hands it out.
-- `!ap unlock mission` hands over the next mission ticket in test mode, for a
-  run whose tickets sit behind every class and weapon slot. Test mode also
-  answers `!ap missing`, `!ap checked` and the rest, which it used to take in
-  silence.
-- Test mode starts on the class you asked for. It handed out a Scout whatever
-  you picked.
+- Test mode behaves like a real room: `!ap unlock mission` hands over the next
+  mission ticket, `!ap missing`, `!ap checked` and the rest answer instead of
+  saying nothing, and you start on the class you asked for rather than always a
+  Scout.
 
 ### The bots
 
-Most of this release. They played like six of the same mercenary standing near
-the bomb; they now pick targets, hold ground and spend credits the way the
-guides say to.
+**Who they shoot.** The Medic first, then the Sniper and the Engineer, then
+giants, rather than whatever is nearest. The distances behind that order were
+measured and corrected: ten runs on Decoy read 54 defender deaths against the
+previous 43 for the same waves cleared, and the fix put a matched pair at 56
+against 25. A bot with nothing to fight holds the hatch instead of standing
+still, and one the nav mesh will not path steps toward its target rather than
+giving up.
 
-- **Targets in an order**: the Medic first, then the Sniper and the Engineer,
-  then giants, rather than whatever is nearest. The distances behind that order
-  were measured and corrected: ten runs on Decoy read 54 defender deaths against
-  the previous 43 for the same waves cleared, and the fix put a matched pair at
-  56 against 25.
-- **Upgrade paths for every class**, and the upgrades these bots cannot use are
-  refused rather than ranked last. A Pyro bought airblast pushback with a
-  Phlogistinator; leftover credits went on canteens nobody drank.
-- **Engineers**: they build on the spot they picked and keep rebuilding, split
-  across the ground a map names so one holds inside and one holds out, build
-  teleporters, and give up on a spot they cannot reach instead of walking into a
-  boulder for the rest of the wave. A sentry they cannot carry to the nest goes
-  down beside them.
-- **Medics**: the medigun goes on the biggest body nearby rather than whoever
-  the game stood next to, they hold the wave until the charge is full, and they
-  stop dumping a whole wave's credits into one upgrade.
-- **Demomen** hold the stickybomb launcher, close to a range their pipes arrive
-  at, and put an empty launcher down in a fight instead of reloading it.
-- Each class carries a named loadout, and a seat can name its own: two engineers
-  can hold different weapons.
-- Blast, bullet and fire resistance are bought when the coming wave carries
-  robots that deal that damage. They were ranked flat and near the bottom, and
-  explosions are between forty five and sixty percent of every defender death on
-  every map measured.
-- Hats, and unusual effects on them, in two ticks. A bot keeps its hat for the
-  mission, which is how you tell one Heavy from another. War paints were tried
-  and removed: they painted the weapons the upgrade station replaces, and the
-  server died the moment two engineers finished shopping.
-- Any of this can be switched off one at a time with
-  `sm_redbots_feature_<name>`, which is how two ways of playing get compared.
-- Several server crashes fixed, and several frames' worth of work taken out of
-  every tick: nav mesh searches for health, ammo and revive markers no longer
-  run per frame, and the shopping list is built once a session.
+**What they buy.** Upgrade paths for every class, and the upgrades these bots
+cannot use are refused rather than ranked last: a Pyro was buying airblast
+pushback with a Phlogistinator. Blast, bullet and fire resistance are bought
+when the coming wave carries robots that deal that damage, which matters
+because explosions are between forty five and sixty percent of every defender
+death on every map measured. Leftover credits stay in the wallet instead of
+going on canteens nobody drank.
+
+**Engineers.** They build on the spot they picked and keep rebuilding it, split
+across the ground a map names so one holds inside and one holds out, and they
+put their teleporter exits on different spots. They stop carrying the sentry
+around mid-wave, stop dropping a half-built nest wherever the clock caught
+them, and give up on a spot they cannot reach instead of walking into a boulder
+for the rest of the wave. A sentry that cannot reach the nest goes down beside
+them, the disposable sentry is placed beside the real one on purpose, and an
+engineer with no sentry left rides his own teleporter home. A map can now say
+which dispenser spot belongs to which nest.
+
+**Medics.** The medigun goes on the Heavy, or the biggest body nearby, rather
+than whoever the game stood them next to. They shop before they follow anybody,
+hold the wave until the charge is full, stop following a patient into the
+respawn room, and stop dumping a whole wave's credits into one upgrade.
+
+**Soldiers and Demomen.** They stop blowing themselves up: no aiming at the
+feet of a robot standing on them, and the Demoman throws a pipe as far as it
+actually flies. A pipe may leave while the aim is still moving, a rocket may
+not, which is the difference between the two arcs. Demomen hold the stickybomb
+launcher, close to a range their pipes arrive at, and put an empty launcher
+down in a fight instead of reloading it. The Soldier carries the stock rocket
+launcher.
+
+**Scouts and Pyros.** The Pyro walks in instead of parking at shotgun range.
+Money on the ground gets picked up.
+
+**How they look.** Each class carries a named loadout and a seat can name its
+own, so two engineers can hold different weapons. A random cosmetic item, and
+an unusual effect on it, in two ticks; a bot keeps what it drew for the whole
+mission, which is how you tell one Heavy from another. War paints were tried
+and removed: they painted the weapons the upgrade station replaces, and the
+server died the moment two engineers finished shopping.
+
+**Under the hood.** Several server crashes fixed, buildings go on ground that
+exists, and a wearable sweep that could not terminate now does. Several frames'
+worth of work came out of every tick: nav mesh searches for health, ammo and
+revive markers no longer run per frame, the shopping list is built once a
+session, and hats are handed out one bot at a time. Any of this can be switched
+off one feature at a time with `sm_redbots_feature_<name>`, which is how two
+ways of playing get compared, and a feature that lost its measured A/B was
+deleted rather than left in.
 
 ### The window
 
