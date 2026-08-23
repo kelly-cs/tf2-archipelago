@@ -71,14 +71,25 @@ them, the disposable sentry is placed beside the real one on purpose, and an
 engineer with no sentry left rides his own teleporter home. A map can now say
 which dispenser spot belongs to which nest.
 
-**Medics.** The medigun goes on the Heavy, or the biggest body nearby, rather
-than whoever the game stood them next to. They shop before they follow anybody,
-hold the wave until the charge is full, stop following a patient into the
-respawn room, and stop dumping a whole wave's credits into one upgrade.
+**Medics.** They walk again. The mod used to take the walking, the aim and the
+trigger off the game's own medic so it could pick the patient itself, and the
+walking was the price: a refused path leaves the bot nudging forward 120 units
+at a time, so on Decoy a medic sat 10400 units from a patient four hundred
+units away and never closed. The patient choice went back to the game with the
+rest of it, and on Coal Town the beam went from connected in 5 to 17 percent of
+samples to 61 percent, movement between samples from 0 to 70 units to 337, and
+ubers deployed in a mission from one to six. They still shop before they follow
+anybody, hold the wave until the charge is full, and stop dumping a whole
+wave's credits into one upgrade.
 
-**Soldiers and Demomen.** They stop blowing themselves up: no aiming at the
-feet of a robot standing on them, and the Demoman throws a pipe as far as it
-actually flies. A pipe may leave while the aim is still moving, a rocket may
+**Soldiers and Demomen.** They stop blowing themselves up, which the Demoman
+was doing by an order of magnitude more than anyone else: 2571 points of
+self-harm and four suicides in six waves, against 187 for the next worst, and
+all of it at tanks. He now keeps his distance from a hull like the Soldier
+does, stops rating the stickybomb launcher as a tank weapon, and no longer
+detonates a sticky trap while six of his bombs are sitting on the hull in front
+of him. Neither aims at the feet of a robot standing on them, and the Demoman
+throws a pipe as far as it actually flies. A pipe may leave while the aim is still moving, a rocket may
 not, which is the difference between the two arcs. Demomen hold the stickybomb
 launcher, close to a range their pipes arrive at, and put an empty launcher
 down in a fight instead of reloading it. The Soldier carries the stock rocket
