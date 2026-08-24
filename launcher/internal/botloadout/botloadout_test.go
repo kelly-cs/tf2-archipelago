@@ -1,6 +1,7 @@
 package botloadout
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 )
@@ -38,10 +39,10 @@ func TestBlacklistKeepsTheModsOrderAndSpelling(t *testing.T) {
 	}
 	// Order and repeats are the point of a composition, and a blacklist has
 	// neither: it is a set, so it renders in the table's order.
-	if got := Composition([]string{"medic", "heavyweapons", "nobody", "heavyweapons"}); got != "medic,heavyweapons,heavyweapons" {
+	if got := Composition([]string{"medic", "heavyweapons", "heavyweapons"}, nil); got != "medic,heavyweapons,heavyweapons" {
 		t.Errorf("composition = %q", got)
 	}
-	if got := Composition(nil); got != "" {
+	if got := Composition(nil, nil); got != "" {
 		t.Errorf("empty composition = %q", got)
 	}
 	if got := Blacklist(nil); got != "" {
@@ -105,5 +106,83 @@ func TestSeatsWithNoLoadoutsAreNotCustom(t *testing.T) {
 	seats := Seats([]string{"scout", "soldier"}, []string{"", StockKey})
 	if CustomSeats(seats) {
 		t.Error("stock seats asked for a loadout file")
+	}
+}
+
+/* From the 1.9.0 play-test: seats set to "Let the mod pick" drew classes the
+ * Classes tab had unticked. Both halves are here. Dropping a draw seat moves
+ * every seat after it up one, and an empty string makes the mod play the map's
+ * default lineup, which beats the blacklist.
+ */
+func TestCompositionKeepsDrawSeats(t *testing.T) {
+	for _, test := range []struct {
+		name      string
+		comp      []string
+		blacklist []string
+		want      string
+	}{
+		{
+			"a draw seat in the middle holds its place",
+			[]string{"engineer", "", "heavyweapons"},
+			nil, "engineer,,heavyweapons",
+		},
+		{
+			"a draw seat first holds its place",
+			[]string{"", "engineer"},
+			nil, ",engineer",
+		},
+		{
+			"trailing draw seats say nothing and are dropped",
+			[]string{"engineer", "", ""},
+			nil, "engineer",
+		},
+		{
+			"an unknown class is a hole rather than a shift",
+			[]string{"medic", "nobody", "heavyweapons"},
+			nil, "medic,,heavyweapons",
+		},
+		{
+			"every seat on the draw leaves the lineup to the mod",
+			[]string{"", "", ""},
+			nil, "",
+		},
+		{
+			"every seat on the draw, with classes unticked, still names the seats",
+			[]string{"", "", ""},
+			[]string{"sniper"},
+			",,",
+		},
+		{
+			"nothing at all, with classes unticked, still names the seats",
+			nil,
+			[]string{"sniper"},
+			",,,,,",
+		},
+		{"nothing at all", nil, nil, ""},
+	} {
+		if got := Composition(test.comp, test.blacklist); got != test.want {
+			t.Errorf("%s: composition = %q, want %q", test.name, got, test.want)
+		}
+	}
+}
+
+// Seat n of the convar is block "n" of the loadout file, or one engineer gets
+// the other's weapons.
+func TestSeatNumbersAgreeWithTheComposition(t *testing.T) {
+	comp := []string{"", "engineer", "", "heavyweapons"}
+	loadouts := []string{"", "ranger", "", "brass"}
+
+	entries := strings.Split(Composition(comp, nil), ",")
+	rendered := Render(nil, Seats(comp, loadouts))
+
+	for seat, class := range entries {
+		if class == "" {
+			continue
+		}
+		block := fmt.Sprintf("\t\t\"%d\"\n\t\t{\n\t\t\t\"class\"\t\"%s\"\n", seat+1, class)
+		if !strings.Contains(rendered, block) {
+			t.Errorf("seat %d of the convar is %s, and the loadout file does not say so:\n%s",
+				seat+1, class, rendered)
+		}
 	}
 }
