@@ -1,0 +1,118 @@
+diff --git a/source/redbots3/behavior/gotoupgrade.sp b/source/redbots3/behavior/gotoupgrade.sp
+--- a/source/redbots3/behavior/gotoupgrade.sp
++++ b/source/redbots3/behavior/gotoupgrade.sp
+@@ -78,10 +78,13 @@ public Action CTFBotGotoUpgrade_Update(BehaviorAction action, int actor, float i
+ 	if (m_flRepathTime[actor] <= GetGameTime())
+ 	{
+ 		m_flRepathTime[actor] = GetGameTime() + GetRandomFloat(1.0, 2.0);
+-		m_pPath[actor].ComputeToPos(myBot, center);
++		RepathToPos(actor, myBot, center);
+ 	}
+ 	
+-	m_pPath[actor].Update(myBot);
++	if (PathFailedFor(actor))
++		NudgeTowardsGoal(actor, myBot, center);
++	else
++		m_pPath[actor].Update(myBot);
+ 	
+ 	return action.Continue();
+ }
+diff --git a/source/redbots3/behavior/movetofront.sp b/source/redbots3/behavior/movetofront.sp
+--- a/source/redbots3/behavior/movetofront.sp
++++ b/source/redbots3/behavior/movetofront.sp
+@@ -174,10 +174,13 @@ public Action CTFBotMoveToFront_Update(BehaviorAction action, int actor, float i
+ 	if (m_flRepathTime[actor] <= GetGameTime())
+ 	{
+ 		m_flRepathTime[actor] = GetGameTime() + GetRandomFloat(3.0, 4.0);
+-		m_pPath[actor].ComputeToPos(myBot, m_vecGoalArea[actor]);
++		RepathToPos(actor, myBot, m_vecGoalArea[actor]);
+ 	}
+ 	
+-	m_pPath[actor].Update(myBot);
++	if (PathFailedFor(actor))
++		NudgeTowardsGoal(actor, myBot, m_vecGoalArea[actor]);
++	else
++		m_pPath[actor].Update(myBot);
+ 	
+ 	return action.Continue();
+ }
+diff --git a/source/redbots3/behavior/upgrade.sp b/source/redbots3/behavior/upgrade.sp
+--- a/source/redbots3/behavior/upgrade.sp
++++ b/source/redbots3/behavior/upgrade.sp
+@@ -244,5 +244,6 @@ public void CTFBotUpgrade_OnEnd(BehaviorAction action, int actor, BehaviorAction
+ 		g_iBuyUpgradesNumber[actor] = 0;
+ 		
+ 		TF2_SetInUpgradeZone(actor, false);
++		LeaveDisconnectedDefenderSpawn(actor);
+ 	}
+ }
+diff --git a/source/redbots3/nextbot_behavior.sp b/source/redbots3/nextbot_behavior.sp
+--- a/source/redbots3/nextbot_behavior.sp
++++ b/source/redbots3/nextbot_behavior.sp
+@@ -121,7 +121,7 @@ bool PathFailedFor(int client)
+ 	return m_bPathFailed[client];
+ }
+ 
+-static void NudgeTowardsGoal(int client, INextBot myBot, const float goal[3])
++void NudgeTowardsGoal(int client, INextBot myBot, const float goal[3])
+ {
+ 	ILocomotion myLoco = myBot.GetLocomotionInterface();
+ 	
+@@ -179,6 +179,46 @@ static void NotePathResult(int actor, bool built)
+ 	m_bPathFailed[actor] = failed;
+ }
+ 
++/* Put a defender onto the battlefield mesh when RED spawn is a disconnected NAV island
++
++The hatch is the one anchor every working MvM map has. Its nearest NAV area is on the component
++the fight eventually reaches, and testing a path to that area's centre distinguishes a bot merely
++standing in spawn from one whose spawn mesh truly has no connection. Connected maps do nothing.
++
++The destination is a random point in the hatch area rather than the capture brush's centre, which
++may be inside the hatch model. From there the normal front, patient, nest and attack behaviours
++take over. A map with no NAV at all still returns false and remains honestly unsupported. */
++bool LeaveDisconnectedDefenderSpawn(int client)
++{
++	if (!TF2Util_IsPointInRespawnRoom(WorldSpaceCenter(client), client))
++		return false;
++
++	int hatch = GetCapturableAreaTrigger(GetPlayerEnemyTeam(client));
++
++	if (hatch == -1)
++		return false;
++
++	CNavArea area = TheNavMesh.GetNearestNavArea(WorldSpaceCenter(hatch), true, 1000.0, true, true, GetClientTeam(client));
++
++	if (area == NULL_AREA)
++		return false;
++
++	float anchor[3]; area.GetCenter(anchor);
++
++	if (IsPathToVectorPossible(client, anchor))
++		return false;
++
++	float destination[3]; CNavArea_GetRandomPoint(area, destination);
++	destination[2] += 10.0;
++
++	TeleportEntity(client, destination, NULL_VECTOR, NULL_VECTOR);
++	CBaseCombatCharacter(client).UpdateLastKnownArea();
++	m_flRepathTime[client] = 0.0;
++
++	LogMessage("LeaveDisconnectedDefenderSpawn: %N's spawn has no route to the hatch; moved them onto the battlefield NAV mesh", client);
++	return true;
++}
++
+ #include "behavior/attack.sp"
+ #include "behavior/markgiant.sp"
+ #include "behavior/collectmoney.sp"
+@@ -1412,6 +1452,10 @@ public Action CTFBotSpyLeaveSpawnRoom_OnStart(BehaviorAction action, int actor,
+ Action GetDesiredBotAction(int client, BehaviorAction action)
+ {
+ 	RoundState state = GameRules_GetRoundState();
++
++	//A respawn during a wave returns the bot to the same disconnected NAV island.
++	if (state == RoundState_RoundRunning && g_bHasUpgraded[client])
++		LeaveDisconnectedDefenderSpawn(client);
+ 	
+ 	if (state == RoundState_BetweenRounds)
+ 	{

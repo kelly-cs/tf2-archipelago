@@ -108,6 +108,40 @@ buys uber rate, a Rescue Ranger buys metal. An Engineer buys the sentry,
 because that is where its damage is, and a Medic buys healing rather than a
 syringe gun. Resistances come last: a bot respawns every wave.
 
+## Checking a community map
+
+A BSP loading is not proof that defender bots can play it. A community map
+needs a matching `tf/maps/<map>.nav`; without that mesh a TFBot has no route.
+The files under `addons/sourcemod/configs/defenderbots/map/` are authored
+sniper and Engineer positions. They improve a map, but are not a substitute
+for its NAV mesh and are not required for the fighting classes to walk.
+
+The useful test is a wave, not a ready screen:
+
+1. Start the mission, join RED and press F4 twice so the defender team fills.
+2. Wait until the bots finish shopping and the wave begins.
+3. From an admin game console, run `sm_dump_front`.
+4. Run it again 15 seconds later.
+
+The command prints each bot's current job, distance from its goal, stuck-reset
+count and dead-end-path count. A goal distance that never falls, or increasing
+dead-end paths while the bot remains in spawn, identifies a NAV/path problem.
+A bot reported as `shopping` is an upgrade-station problem instead. A bot at
+its nest or holding the front is deliberately standing still.
+
+For an unattended regression test, the defender-bot source staged under
+`deploy/bots/build/src/defenderbots/testbed/` includes `sweep.sh`. It runs every
+installed `mvm_*.bsp` with a fake RED host and records whether waves clear:
+
+```sh
+deploy/bots/build/src/defenderbots/testbed/sweep.sh --waves 1 \
+  --maps "mvm_area_52_rc3 mvm_autumnull_rc2"
+```
+
+The test bed needs Docker. A single cleared wave is the compatibility smoke
+test; judging whether the bots play well takes repeated waves and watching
+them. Never label a map bot-compatible from BSP/NAV filenames alone.
+
 ## Who wrote them
 
 [OfficerSpy/TF2-MvM-Defender-TFBots][mod], GPL-3.0, plus five dependencies:
