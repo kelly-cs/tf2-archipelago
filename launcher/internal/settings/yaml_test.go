@@ -121,7 +121,9 @@ func TestPlayerYAMLNamesTheExcludedMissions(t *testing.T) {
 	if strings.Contains(got, "mvm_nowhere") {
 		t.Errorf("a popfile the tables do not know reached the file:\n%s", got)
 	}
-	if !strings.Contains(PlayerYAML(Defaults(), ""), "  excluded_missions: []\n") {
+	empty := Defaults()
+	empty.MvmExcludedMissions = []string{}
+	if !strings.Contains(PlayerYAML(empty, ""), "  excluded_missions: []\n") {
 		t.Error("an empty exclusion list is not written as an empty list")
 	}
 }

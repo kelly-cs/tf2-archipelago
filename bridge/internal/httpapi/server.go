@@ -30,7 +30,7 @@ import (
 // APIVersion is the contract with the plugin. The plugin reads it at startup
 // and says so in chat when it does not match: the two ship in one compose file,
 // so a mismatch means one image was updated and the other was not.
-const APIVersion = 3
+const APIVersion = 4
 
 // wavesObservedMax bounds what the game is believed about a mission's length.
 // The property behind it has never been seen answer, so anything past what a
@@ -104,11 +104,13 @@ type deathsResponse struct {
 // name does not contain one that can be relied on (mvm_ghost_town_666 runs on
 // mvm_ghost_town), and gamedata is where that fact already lives.
 type mission struct {
-	PopFile  string `json:"popfile"`
-	Name     string `json:"name"`
-	Map      string `json:"map"`
-	Waves    int    `json:"waves"`
-	Unlocked bool   `json:"unlocked"`
+	PopFile      string `json:"popfile"`
+	Name         string `json:"name"`
+	Map          string `json:"map"`
+	Waves        int    `json:"waves"`
+	Source       string `json:"source"`
+	UpgradesFile string `json:"upgrades_file,omitempty"`
+	Unlocked     bool   `json:"unlocked"`
 
 	// Cleared is the mission clear check being on the bridge's disk. The plugin
 	// chains from a cleared mission to the next unlocked one that is not, so
@@ -385,15 +387,24 @@ func missionsFor(drawn, unlocked []string, checks []int64) ([]mission, []string)
 		}
 		played, _ := gamedata.MapByID(known.Map)
 		missions = append(missions, mission{
-			PopFile:  known.PopFile,
-			Name:     known.Name,
-			Map:      played.Name,
-			Waves:    int(known.Waves),
-			Unlocked: slices.Contains(unlocked, known.PopFile),
-			Cleared:  slices.Contains(checks, known.ClearLocationID()),
+			PopFile:      known.PopFile,
+			Name:         known.Name,
+			Map:          played.Name,
+			Waves:        int(known.Waves),
+			Source:       missionSource(known),
+			UpgradesFile: gamedata.MissionUpgradesFile(known.ID),
+			Unlocked:     slices.Contains(unlocked, known.PopFile),
+			Cleared:      slices.Contains(checks, known.ClearLocationID()),
 		})
 	}
 	return missions, unknown
+}
+
+func missionSource(m gamedata.Mission) string {
+	if gamedata.IsCommunityMission(m.ID) {
+		return "Potato Archive"
+	}
+	return "Valve"
 }
 
 // getGrants long-polls: the plugin passes the sequence it last applied and the

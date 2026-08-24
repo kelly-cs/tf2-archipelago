@@ -60,6 +60,10 @@ char g_PlannedPopFile[64];
 char g_SwitchingPopFile[64];
 float g_SwitchingUntil;
 
+// The SetCustomUpgradesFile input rebuilds the game's upgrade manager. Do not
+// fire it again merely because another Archipelago grant refreshed the list.
+char g_AppliedUpgradesFile[PLATFORM_MAX_PATH];
+
 // How long to wait for a switch before believing it will not happen. A map
 // change plus the popfile that follows it is a few seconds; a minute is the
 // point at which something else went wrong and the guard should have the
@@ -77,6 +81,7 @@ void Missions_Init()
 
 void Missions_OnConfigsExecuted()
 {
+    g_AppliedUpgradesFile[0] = '\0';
     if (g_PendingPopFile[0] != '\0')
     {
         CreateTimer(PopFileDelay, Timer_ApplyPendingPopFile);
@@ -92,9 +97,72 @@ static Action Timer_ApplyPendingPopFile(Handle timer)
         return Plugin_Stop;
     }
     AP_Debug("The plugin names the mission %s now that the map is up.", g_PendingPopFile);
+    Mission mission;
+    if (Missions_Find(g_PendingPopFile, mission))
+    {
+        Missions_ApplyUpgrades(mission);
+    }
     ServerCommand("tf_mvm_popfile %s", g_PendingPopFile);
     g_PendingPopFile[0] = '\0';
     return Plugin_Stop;
+}
+
+// The game and every client must parse the same upgrade table. Register every
+// custom file in the run as soon as the bridge names it, before the player is
+// sent to the map that uses it.
+void Missions_RegisterUpgradeDownloads()
+{
+    Mission mission;
+    for (int index = 0; index < Bridge_MissionCount(); index++)
+    {
+        if (!Bridge_MissionAt(index, mission) || mission.upgradesFile[0] == '\0')
+        {
+            continue;
+        }
+        if (!FileExists(mission.upgradesFile, true))
+        {
+            AP_Error("Custom upgrades are missing from the server: %s", mission.upgradesFile);
+            continue;
+        }
+        AddFileToDownloadsTable(mission.upgradesFile);
+    }
+}
+
+static void Missions_ApplyUpgrades(Mission mission)
+{
+    char upgrades[PLATFORM_MAX_PATH];
+    if (mission.upgradesFile[0] == '\0')
+    {
+        strcopy(upgrades, sizeof(upgrades), "scripts/items/mvm_upgrades.txt");
+    }
+    else
+    {
+        strcopy(upgrades, sizeof(upgrades), mission.upgradesFile);
+        if (!FileExists(upgrades, true))
+        {
+            AP_Error("%s needs the missing upgrade file %s. Valve upgrades stay active.",
+                mission.name, upgrades);
+            return;
+        }
+    }
+
+    if (StrEqual(g_AppliedUpgradesFile, upgrades, false))
+    {
+        return;
+    }
+
+    int rules = FindEntityByClassname(-1, "tf_gamerules");
+    if (rules == -1)
+    {
+        AP_Error("The game rules are not ready; custom upgrades for %s could not be selected.",
+            mission.name);
+        return;
+    }
+    SetVariantString(upgrades);
+    AcceptEntityInput(rules, "SetCustomUpgradesFile");
+    strcopy(g_AppliedUpgradesFile, sizeof(g_AppliedUpgradesFile), upgrades);
+    Bots_UseUpgradeFile(upgrades);
+    AP_Debug("The upgrade station uses %s for %s.", upgrades, mission.name);
 }
 
 static bool Missions_Find(const char[] popFile, Mission mission)
@@ -200,6 +268,7 @@ void Missions_OnListUpdated()
     bool inRun = playingMvM && Missions_Find(current, loaded);
     if (inRun && Missions_Playable(loaded))
     {
+        Missions_ApplyUpgrades(loaded);
         return;
     }
     char why[96];
@@ -341,6 +410,7 @@ static void Missions_Load(Mission mission)
     if (StrEqual(current, mission.map, false) && MvM_IsActive())
     {
         AP_Announce("Mission: %s. Reloading.", mission.name);
+        Missions_ApplyUpgrades(mission);
         ServerCommand("tf_mvm_popfile %s", mission.popFile);
         return;
     }

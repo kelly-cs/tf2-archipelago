@@ -12,7 +12,7 @@
 
 // The plugin-facing contract. The bridge reports its own; a mismatch means one
 // half of the compose file was updated and the other was not.
-#define BridgeAPIVersion 3
+#define BridgeAPIVersion 4
 
 // A mission is at most nine objectives, so nearing this means the bridge has been gone a long time.
 #define PendingMax 64
@@ -39,6 +39,7 @@ enum struct Mission
     char popFile[64];
     char name[64];
     char map[64];
+    char upgradesFile[PLATFORM_MAX_PATH];
     int waves;
     bool unlocked;
     bool cleared;
@@ -414,6 +415,14 @@ static void OnMissions(HTTPResponse response, any value, const char[] error)
         entry.GetString("popfile", mission.popFile, sizeof(mission.popFile));
         entry.GetString("name", mission.name, sizeof(mission.name));
         entry.GetString("map", mission.map, sizeof(mission.map));
+        if (entry.HasKey("upgrades_file"))
+        {
+            entry.GetString("upgrades_file", mission.upgradesFile, sizeof(mission.upgradesFile));
+        }
+        else
+        {
+            mission.upgradesFile[0] = '\0';
+        }
         mission.waves = entry.GetInt("waves");
         mission.unlocked = entry.GetBool("unlocked");
         mission.cleared = entry.GetBool("cleared");
@@ -423,6 +432,7 @@ static void OnMissions(HTTPResponse response, any value, const char[] error)
     delete missions;
 
     AP_Debug("The plugin holds %d mission(s) of the run.", g_Missions.Length);
+    Missions_RegisterUpgradeDownloads();
     Missions_OnListUpdated();
 }
 

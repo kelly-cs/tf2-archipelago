@@ -3,6 +3,7 @@ package gamedata
 import (
 	"fmt"
 	"slices"
+	"strings"
 )
 
 // Validate re-checks every invariant the id scheme rests on. The exporter runs
@@ -24,6 +25,14 @@ func validateEntities() error {
 	}
 	if err := unique("map name", len(Maps), func(i int) any { return Maps[i].Name }); err != nil {
 		return err
+	}
+	for _, m := range Maps {
+		if m.ID < 1 || m.Name == "" {
+			return fmt.Errorf("map id %d has an empty or invalid identity", m.ID)
+		}
+		if !safeConsoleName(m.Name) {
+			return fmt.Errorf("map %q: name must contain only lowercase letters, digits and underscores", m.Name)
+		}
 	}
 	if err := unique("class id", len(Classes), func(i int) any { return Classes[i].ID }); err != nil {
 		return err
@@ -77,14 +86,38 @@ func validateMissions() error {
 		if m.Waves < 1 || m.Waves > WavesMax {
 			return fmt.Errorf("mission %q: %d waves, outside 1..%d", m.PopFile, m.Waves, WavesMax)
 		}
+		if !safeConsoleName(m.PopFile) {
+			return fmt.Errorf("mission %q: pop_file must contain only lowercase letters, digits and underscores", m.PopFile)
+		}
 		if _, ok := MapByID(m.Map); !ok {
 			return fmt.Errorf("mission %q: unknown map id %d", m.PopFile, m.Map)
 		}
 		if int(m.Difficulty) >= len(difficultyKeys) || m.Difficulty.Key() == "" {
 			return fmt.Errorf("mission %q: unknown difficulty %d", m.PopFile, m.Difficulty)
 		}
+		upgrades := MissionUpgradesFile(m.ID)
+		if upgrades != "" && (!strings.HasPrefix(upgrades, "scripts/items/mvm_upgrades_") ||
+			!strings.HasSuffix(upgrades, ".txt") || strings.Contains(upgrades, "..") ||
+			strings.Contains(upgrades, `\`)) {
+			return fmt.Errorf("mission %q: unsafe upgrades_file %q", m.PopFile, upgrades)
+		}
 	}
 	return nil
+}
+
+// Map and popfile names are interpolated into server commands. Restricting
+// them to the filename vocabulary used by TF2 also prevents whitespace or a
+// command separator in an operator-authored manifest from becoming a command.
+func safeConsoleName(name string) bool {
+	if name == "" {
+		return false
+	}
+	for _, r := range name {
+		if (r < 'a' || r > 'z') && (r < '0' || r > '9') && r != '_' {
+			return false
+		}
+	}
+	return true
 }
 
 func validateIDs() error {

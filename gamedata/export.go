@@ -35,8 +35,9 @@ type difficultyJSON struct {
 }
 
 type mapJSON struct {
-	ID   MapID  `json:"id"`
-	Name string `json:"name"`
+	ID        MapID  `json:"id"`
+	Name      string `json:"name"`
+	Community bool   `json:"community"`
 }
 
 type classJSON struct {
@@ -65,6 +66,9 @@ type missionJSON struct {
 	Waves      uint8          `json:"waves"`
 	HasTank    bool           `json:"has_tank"`
 	HasGiant   bool           `json:"has_giant"`
+	Community  bool           `json:"community"`
+	Playable   bool           `json:"playable"`
+	Upgrades   string         `json:"upgrades_file,omitempty"`
 	Locations  []locationJSON `json:"locations"`
 }
 
@@ -130,7 +134,7 @@ func buildMetaFile() metaFile {
 		meta.Difficulties = append(meta.Difficulties, difficultyJSON{d, d.Key(), d.String()})
 	}
 	for _, m := range Maps {
-		meta.Maps = append(meta.Maps, mapJSON(m))
+		meta.Maps = append(meta.Maps, mapJSON{m.ID, m.Name, IsCommunityMap(m.ID)})
 	}
 	// Named field by field rather than converted: Class carries a slot order
 	// the apworld has no use for, and the export must not grow one silently.
@@ -162,6 +166,9 @@ func buildMissionsFile() missionsFile {
 			Waves:      m.Waves,
 			HasTank:    m.HasTank,
 			HasGiant:   m.HasGiant,
+			Community:  IsCommunityMission(m.ID),
+			Playable:   IsPlayableMission(m.ID),
+			Upgrades:   MissionUpgradesFile(m.ID),
 			Locations:  byMission[m.ID],
 		})
 	}

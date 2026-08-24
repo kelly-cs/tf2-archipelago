@@ -124,6 +124,22 @@ func TestLoadMigratesTheStartMap(t *testing.T) {
 	}
 }
 
+func TestLoadMovesAnUnsupportedRafModStartToSafeDefaults(t *testing.T) {
+	loaded, err := parse([]byte(`{
+		"srcds_start_mission":"mvm_kelly_rc1b_adv_mobocracy",
+		"mvm_start_mission":"mvm_kelly_rc1b_adv_mobocracy"
+	}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if loaded.SrcdsStartMission != Defaults().SrcdsStartMission {
+		t.Errorf("server start = %q, want %q", loaded.SrcdsStartMission, Defaults().SrcdsStartMission)
+	}
+	if loaded.MvmStartMission != "" {
+		t.Errorf("run still starts on unsupported mission %q", loaded.MvmStartMission)
+	}
+}
+
 // A config file written before the appearance switches existed does not
 // mention them, and a bool nobody wrote reads back as false. Every install that
 // had ever saved a setting opened the next version with the bots undressed.

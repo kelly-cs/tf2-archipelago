@@ -55,7 +55,7 @@ func PlayerYAML(s Settings, archipelagoVersion string) string {
 // know.
 func ExcludedMissionNames(s Settings) []string {
 	names := make([]string, 0, len(s.MvmExcludedMissions))
-	for _, mission := range gamedata.Missions {
+	for _, mission := range gamedata.PlayableMissions() {
 		if slices.Contains(s.MvmExcludedMissions, mission.PopFile) {
 			names = append(names, mission.Name)
 		}
@@ -74,7 +74,7 @@ func StartMissionName(s Settings) string {
 	if s.MvmStartMission == "" {
 		return randomOption
 	}
-	for _, mission := range gamedata.Missions {
+	for _, mission := range gamedata.PlayableMissions() {
 		if mission.PopFile == s.MvmStartMission {
 			return mission.Name
 		}

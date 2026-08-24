@@ -1,0 +1,33 @@
+"upgrades"
+{
+    "ItemUpgrades"
+    {
+        "1"
+        {
+            "attribute" "damage bonus"
+            "icon" "achievements/tf_heavy_damage_with_minigun"
+            "increment" "0.20"
+            "cap" "2.0"
+            "cost" "350"
+        }
+        "2"
+        {
+            "attribute" "fire rate bonus"
+            "icon" "achievements/tf_scout_dodge_damage"
+            "increment" "-0.10"
+            "cap" "0.60"
+            "cost" "250"
+        }
+    }
+    "PlayerUpgrades"
+    {
+        "1"
+        {
+            "attribute" "max health additive bonus"
+            "icon" "achievements/tf_medic_heal_under_fire"
+            "increment" "25"
+            "cap" "100"
+            "cost" "200"
+        }
+    }
+}

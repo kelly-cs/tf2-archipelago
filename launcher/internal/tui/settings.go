@@ -165,6 +165,26 @@ func (f *settingsForm) missionFields() []field {
 	classes := runshape.StartClassChoices()
 
 	fields := []field{
+		&textField{
+			label:       "Asset pack folder",
+			help:        "Cache folder for archive-assets.zip and mlarchive-assets.zip; Start downloads selected missing packs.",
+			value:       &f.edited.CommunityContentDir,
+			placeholder: filepath.Join("C:", "Users", "Admin", "tf2"),
+		},
+		&choiceField{
+			label:   "Potato Archive",
+			help:    "Download archive-assets.zip when missing, install it, and put its 15 portable missions in the pool.",
+			options: []string{"disabled", "download and install"},
+			index:   boolIndex(slices.Contains(f.edited.CommunityPacks, settings.CommunityPackPotato)),
+			apply:   func(i int) { f.setCommunityPack(settings.CommunityPackPotato, i == 1) },
+		},
+		&choiceField{
+			label:   "Moonlight Archive",
+			help:    "Download mlarchive-assets.zip when missing, install it, and put its 4 portable missions in the pool.",
+			options: []string{"disabled", "download and install"},
+			index:   boolIndex(slices.Contains(f.edited.CommunityPacks, settings.CommunityPackMoonlight)),
+			apply:   func(i int) { f.setCommunityPack(settings.CommunityPackMoonlight, i == 1) },
+		},
 		&choiceField{
 			label:   "Start mission",
 			help:    "Where the run begins. The seed starts there and the server boots there.",
@@ -174,6 +194,12 @@ func (f *settingsForm) missionFields() []field {
 				f.edited.MvmStartMission = choices[i].PopFile
 				if choices[i].PopFile != "" {
 					f.edited.SrcdsStartMission = choices[i].PopFile
+					f.edited.MvmExcludedMissions = slices.DeleteFunc(f.edited.MvmExcludedMissions, func(popFile string) bool {
+						return popFile == choices[i].PopFile
+					})
+					if mission, ok := gamedata.MissionByPopFile(choices[i].PopFile); ok {
+						f.enableCommunityPack(gamedata.MissionPack(mission.ID))
+					}
 				}
 			},
 		},
@@ -202,10 +228,44 @@ func (f *settingsForm) missionFields() []field {
 
 	// One row per mission, because the pool is what the seed draws from and
 	// the window gives it a table with a tick in every row.
-	for _, mission := range gamedata.Missions {
+	for _, mission := range gamedata.PlayableMissions() {
 		fields = append(fields, f.poolField(mission))
 	}
 	return fields
+}
+
+func boolIndex(value bool) int {
+	if value {
+		return 1
+	}
+	return 0
+}
+
+func (f *settingsForm) enableCommunityPack(pack string) {
+	if pack != "" && !slices.Contains(f.edited.CommunityPacks, pack) {
+		f.edited.CommunityPacks = append(f.edited.CommunityPacks, pack)
+	}
+}
+
+func (f *settingsForm) setCommunityPack(pack string, enabled bool) {
+	f.edited.CommunityPacks = slices.DeleteFunc(f.edited.CommunityPacks, func(name string) bool { return name == pack })
+	if enabled {
+		f.edited.CommunityPacks = append(f.edited.CommunityPacks, pack)
+	}
+	for _, mission := range gamedata.PlayableMissions() {
+		if gamedata.MissionPack(mission.ID) != pack {
+			continue
+		}
+		f.edited.MvmExcludedMissions = slices.DeleteFunc(f.edited.MvmExcludedMissions, func(popFile string) bool {
+			return popFile == mission.PopFile
+		})
+		if !enabled {
+			f.edited.MvmExcludedMissions = append(f.edited.MvmExcludedMissions, mission.PopFile)
+		}
+	}
+	// The mission rows capture their ticks, so rebuild them after changing a
+	// whole pack rather than leaving their labels one keypress behind.
+	f.build()
 }
 
 // setPool is All and None: the excluded list is every mission or none of them,
@@ -213,7 +273,7 @@ func (f *settingsForm) missionFields() []field {
 func (f *settingsForm) setPool(inPool bool) tea.Cmd {
 	excluded := []string{}
 	if !inPool {
-		for _, mission := range gamedata.Missions {
+		for _, mission := range gamedata.PlayableMissions() {
 			excluded = append(excluded, mission.PopFile)
 		}
 	}
@@ -230,12 +290,19 @@ func (f *settingsForm) setPool(inPool bool) tea.Cmd {
 // left out, so the row reads the other way round from what it writes.
 func (f *settingsForm) poolField(mission gamedata.Mission) field {
 	played, _ := gamedata.MapByID(mission.Map)
+	source := "Valve"
+	switch gamedata.MissionPack(mission.ID) {
+	case "archive-assets.zip":
+		source = "Potato Archive"
+	case "mlarchive-assets.zip":
+		source = "Moonlight Archive"
+	}
 	inPool := !slices.Contains(f.edited.MvmExcludedMissions, mission.PopFile)
 	held := inPool
 
 	return &poolToggle{
 		toggleField: toggleField{
-			label: fmt.Sprintf("%s (%s)", mission.Name, played.Name),
+			label: fmt.Sprintf("[%s] %s (%s)", source, mission.Name, played.Name),
 			help:  fmt.Sprintf("%s, %d waves. Off means the seed never draws it.", mission.Difficulty.String(), mission.Waves),
 			value: &held, on: "in the pool", off: "left out",
 		},

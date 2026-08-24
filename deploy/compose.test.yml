@@ -17,6 +17,7 @@ services:
       AP_SLOT_NAME: tf2
       MVM_MISSION_COUNT: 8
       MVM_DIFFICULTY: intermediate
+      MVM_EXCLUDED_MISSIONS: mvm_kelly_rc1b_adv_mobocracy,mvm_sharp_rc9_adv_sudden_equinox,mvm_condemned_b3_exp_trespasser,mvm_condemned_b3_exp_trespasser_remaster
       MVM_GOAL: final_boss
 
   bridge:

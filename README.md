@@ -113,6 +113,11 @@ building them. See
 
 The first start downloads about 14 GB of game files.
 
+Custom MvM packs can be overlaid without modifying the container image. The
+[community content guide](./community-content/README.md) covers custom BSPs,
+population files, per-mission `mvm_upgrades_*.txt` tables, stable Archipelago
+IDs, validation, and the rebuild/relaunch sequence.
+
 ## The bots on your team
 
 Valve balances every wave for six players. The server fills the RED team with

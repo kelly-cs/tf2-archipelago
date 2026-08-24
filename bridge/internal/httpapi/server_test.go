@@ -160,6 +160,17 @@ func TestMissionsNameTheMapAndWhatIsUnlocked(t *testing.T) {
 	if haunted.Name != "Caliginous Caper" || haunted.Waves != 1 {
 		t.Errorf("the haunted mission came back as %+v", haunted)
 	}
+	if haunted.UpgradesFile != "" {
+		t.Errorf("a Valve mission selected %q", haunted.UpgradesFile)
+	}
+	if haunted.Source != "Valve" {
+		t.Errorf("Valve mission source = %q", haunted.Source)
+	}
+	community, _ := gamedata.MissionByPopFile("mvm_sharp_rc9_adv_sudden_equinox")
+	got, _ := missionsFor([]string{community.PopFile}, nil, nil)
+	if len(got) != 1 || got[0].Source != "Potato Archive" || got[0].UpgradesFile == "" {
+		t.Errorf("community mission = %+v", got)
+	}
 	if !haunted.Unlocked {
 		t.Error("the mission whose ticket the run holds is not marked unlocked")
 	}

@@ -12,7 +12,7 @@ import pkgutil
 from dataclasses import dataclass
 
 # A version mismatch is a hard stop: half-reading a moved table makes a seed wrong undetectably.
-FORMAT_VERSION = 2
+FORMAT_VERSION = 4
 
 
 class DataFormatError(Exception):
@@ -54,6 +54,9 @@ class Mission:
     waves: int
     has_tank: bool
     has_giant: bool
+    community: bool
+    playable: bool
+    upgrades_file: str
     locations: tuple[Location, ...]
 
 
@@ -80,6 +83,9 @@ def _read_missions() -> tuple[Mission, ...]:
             waves=entry["waves"],
             has_tank=entry["has_tank"],
             has_giant=entry["has_giant"],
+            community=entry["community"],
+            playable=entry["playable"],
+            upgrades_file=entry.get("upgrades_file", ""),
             locations=tuple(
                 Location(
                     id=location["id"],
@@ -142,7 +148,9 @@ CLASS_ITEM_BY_MERC: dict[str, str] = {
 if len(CLASS_ITEM_BY_MERC) != len(CLASS_NAMES):
     raise DataFormatError("a class item names a class the meta export does not have")
 
-MISSION_NAMES: frozenset[str] = frozenset(mission.name for mission in MISSIONS)
+MISSION_NAMES: frozenset[str] = frozenset(
+    mission.name for mission in MISSIONS if mission.playable
+)
 FILLER_NAMES: tuple[str, ...] = tuple(
     item.name for item in ITEMS if item.classification == "filler"
 )

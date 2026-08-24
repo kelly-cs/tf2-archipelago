@@ -80,7 +80,7 @@ void Bots_Init()
 
 void Bots_OnMapStart()
 {
-    Bots_LoadUpgradeNames();
+    Bots_UseUpgradeFile("scripts/items/mvm_upgrades.txt");
 
     // The clock this is measured against restarts with the map, so a deadline
     // left over from a long one would hold the fill off on the next.
@@ -89,13 +89,13 @@ void Bots_OnMapStart()
 
 // Every "attribute" line the file means, in file order. Read through the game's
 // own file system, because the file lives inside a VPK rather than on disk.
-static void Bots_LoadUpgradeNames()
+void Bots_UseUpgradeFile(const char[] path)
 {
     g_UpgradeNames.Clear();
-    File file = OpenFile("scripts/items/mvm_upgrades.txt", "r", true);
+    File file = OpenFile(path, "r", true);
     if (file == null)
     {
-        AP_Debug("The plugin cannot read mvm_upgrades.txt. Bot purchases show as numbers.");
+        AP_Debug("The plugin cannot read %s. Bot purchases show as numbers.", path);
         return;
     }
     char line[UpgradeLineMax];
@@ -113,7 +113,7 @@ static void Bots_LoadUpgradeNames()
         }
     }
     delete file;
-    AP_Debug("The plugin read %d upgrade names.", g_UpgradeNames.Length);
+    AP_Debug("The plugin read %d upgrade names from %s.", g_UpgradeNames.Length, path);
 }
 
 // One KeyValues line with its comment cut off. A // outside quotes starts one,
