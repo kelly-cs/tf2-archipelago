@@ -266,3 +266,17 @@ outline that `spec.md` is built on.
 >     the grappling hook
 >     random weapons with randomized stats potentially with a tier system so early unlocks drop low tiered weapons and late unlocks drop higher tier weapons
 >     progressive returning bomb (an unlock that makes the bomb slowly move back when left without a robot picking it up and each progressive unlock makes it move back faster)
+
+## A goal that finished itself
+
+> I found that if a different world completes their goal and collects all it's
+> remaining items if the items are under mission completed checks it will just
+> mark the mission as being completed even if you haven't actually beaten the
+> mission yet.
+> I've had my run goal completed even though I've only played 3 of the 5
+> missions I had drawn
+>
+> Easy way to solve this would be to add a trophy item of some kind that is only
+> set to appear on the mission completion check, like Mario Kart games do for
+> their cups. You could even be cute and name it the Australium Medal or
+> something like that.

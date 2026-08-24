@@ -162,8 +162,10 @@ func (s *Store) AddCheck(id int64) (bool, error) {
 		return false, nil
 	}
 	s.data.Checks = append(s.data.Checks, id)
+	s.data.Played = append(s.data.Played, id)
 	if err := s.persist(); err != nil {
 		s.data.Checks = s.data.Checks[:len(s.data.Checks)-1]
+		s.data.Played = s.data.Played[:len(s.data.Played)-1]
 		return false, err
 	}
 	s.lastCheckName, s.lastCheckAt = location.Name, time.Now()
@@ -203,6 +205,15 @@ func (s *Store) AdoptChecks(ids []int64) (int, error) {
 	}
 	s.broadcast()
 	return adopted, nil
+}
+
+// Played is the locations this server checked itself, which is the only list
+// the win may be read off. Archipelago checks a location for a player who
+// collects their items out of it, and that is not this team beating anything.
+func (s *Store) Played() []int64 {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return slices.Clone(s.data.Played)
 }
 
 // Checks is every location reported so far. The whole set goes upstream every
