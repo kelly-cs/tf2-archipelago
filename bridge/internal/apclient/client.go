@@ -366,7 +366,10 @@ func (c *Client) report(ctx context.Context, conn *websocket.Conn) error {
 	c.mu.Lock()
 	slot := c.slot
 	c.mu.Unlock()
-	if c.opts.Store.GoalSent() || !slot.goalReached(checks) {
+	// The win comes off what this server played, not off what the multiworld
+	// says is checked: another player collecting their items out of a mission's
+	// clear location checks it, and that beat nothing.
+	if c.opts.Store.GoalSent() || !slot.goalReached(c.opts.Store.Played()) {
 		return nil
 	}
 	if err := c.send(ctx, conn, statusUpdateMessage{Cmd: "StatusUpdate", Status: statusGoal}); err != nil {

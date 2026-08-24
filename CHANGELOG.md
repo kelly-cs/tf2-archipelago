@@ -28,6 +28,12 @@ near the bomb.
   a wave is lost, and it took the bundles you had spent off a balance that never
   held them, which is where the negative money came from. The bundles go back on
   top, and a balance that would still be negative is put at zero.
+- **Your run no longer finishes itself.** Somebody else finishing their game and
+  running `!collect` checks every location that held their items, and a mission
+  clear can be one of them. The bridge read the win off the room's list of
+  checked locations, so a play-tester was told their run was complete having
+  beaten three of their five missions. The win is now read only off what this
+  server played.
 - **The bots take their seats before the wave.** They used to arrive at the
   moment it started, having never seen the upgrade station, so wave one was six
   bots with stock weapons, no upgrades and no sentry. They now turn up as soon

@@ -7,12 +7,13 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"strings"
 )
 
 const (
 	// FormatVersion is the shape of the state file this binary writes.
-	FormatVersion = 2
+	FormatVersion = 3
 
 	// FormatVersionMin is the oldest shape it can still read. A file older than
 	// that is an error rather than a guess: it holds the only record of what a
@@ -35,6 +36,18 @@ type snapshot struct {
 	Seed string `json:"seed"`
 
 	Checks []int64 `json:"checks"`
+
+	/* Played is the subset of Checks this server did itself.
+	 *
+	 * Checks is what the multiworld says this slot has checked, and another
+	 * player running !collect checks every location holding their items,
+	 * including a mission's clear. Adopting that is right for the run's
+	 * bookkeeping and wrong for the win: a play-tester was told their run was
+	 * complete having beaten three of five missions.
+	 *
+	 * So the goal reads this list, which only the plugin writes.
+	 */
+	Played []int64 `json:"played"`
 
 	// Items are received item ids in the order Archipelago sent them; the index
 	// into this list is the index it deduplicates on.
@@ -76,6 +89,13 @@ func readSnapshot(path string) (snapshot, int, error) {
 	// since is zero, which is what an older file means by leaving it out.
 	wasVersion := loaded.FormatVersion
 	loaded.FormatVersion = FormatVersion
+	// A file written before Played existed cannot say which of its checks the
+	// server made, and the run in it was played by somebody. Taking them all is
+	// the reading that does not ask a team to replay an evening; the distinction
+	// starts holding from here on.
+	if wasVersion < 3 && loaded.Played == nil {
+		loaded.Played = slices.Clone(loaded.Checks)
+	}
 	return loaded, wasVersion, nil
 }
 

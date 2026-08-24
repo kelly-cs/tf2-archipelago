@@ -613,3 +613,50 @@ func progressiveSlotID(t *testing.T) int64 {
 	t.Fatal("no weapon slot item in the tables")
 	return 0
 }
+
+func TestAnAdoptedCheckIsNotOneThisServerPlayed(t *testing.T) {
+	store := openTemp(t)
+	mission := firstMission(t)
+
+	// Another player collecting their items out of this world's locations is
+	// what checks a mission's clear without anybody beating it.
+	if _, err := store.AdoptChecks([]int64{mission.ClearLocationID()}); err != nil {
+		t.Fatal(err)
+	}
+	if got := store.Checks(); len(got) != 1 {
+		t.Fatalf("%d checks held, want the adopted one", len(got))
+	}
+	if got := store.Played(); len(got) != 0 {
+		t.Fatalf("played %v, want nothing: the run has not been played", got)
+	}
+
+	if _, err := store.AddCheck(mission.WaveLocationID(1)); err != nil {
+		t.Fatal(err)
+	}
+	played := store.Played()
+	if len(played) != 1 || played[0] != mission.WaveLocationID(1) {
+		t.Fatalf("played %v, want the wave this server reported", played)
+	}
+}
+
+func TestPlayedSurvivesAReopen(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "bridge.json")
+	store, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	mission := firstMission(t)
+	if _, err := store.AddCheck(mission.ClearLocationID()); err != nil {
+		t.Fatal(err)
+	}
+
+	reopened, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	played := reopened.Played()
+	if len(played) != 1 || played[0] != mission.ClearLocationID() {
+		t.Fatalf("played %v after a reopen, want the clear", played)
+	}
+}

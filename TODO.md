@@ -220,3 +220,29 @@ The fix is a comment strip before the split: a `//` outside quotes ends the
 line, which is what KeyValues does and what the file expects, since it also
 puts a note after a value. The same parse over the file the server ships now
 gives the game's 63 names, in the game's order.
+
+## 7. The goal read a check somebody else made. Fixed in the bridge, open in the apworld
+
+A play-tester was told their run was complete having beaten three of the five
+missions they drew. Another player in the room finished, ran `!collect`, and
+Archipelago checked every location holding that player's items, mission clears
+among them. The bridge adopts the room's checked list on connect, which is what
+makes a lost state file survivable, and it read the win off that same list.
+
+Fixed by keeping the two apart. `Played` is the locations this server checked
+itself, only the plugin writes it, and the goal is read off it. `Checks` still
+holds everything the room says, because that is what `!checked` and a recovered
+state file are for. State format 3; a file written before it takes its checks as
+played, since the run in it was played by somebody.
+
+What is still open is the report's own suggestion, and it is the better shape:
+
+- Lock a trophy item onto every mission clear, an **Australium Medal**, so no
+  other player's item is ever under one and `!collect` cannot touch it. The goal
+  becomes `state.has("Australium Medal", player, target)` rather than
+  `can_reach_location`, which is what generation logic wants anyway.
+- It costs the multiworld eight locations' worth of other people's items, which
+  is a real loss: a mission clear is one of the better checks this world offers.
+- It needs an item id, so it is a gamedata change on the Go side, a regenerated
+  `data.py`, and a data format bump. That is why it waits for the next time the
+  format moves rather than going out on its own.

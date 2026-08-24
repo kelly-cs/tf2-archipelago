@@ -52,7 +52,9 @@ func (s SlotData) validate() error {
 	return nil
 }
 
-// goalReached reads the win off the checks: a mission is cleared when its clear location is.
+// goalReached reads the win off the locations this server checked itself: a
+// mission is cleared when its clear location is one of them. The list the
+// multiworld holds is a different thing, and it moves when other people finish.
 func (s SlotData) goalReached(checks []int64) bool {
 	switch s.Goal {
 	case "final_boss":
