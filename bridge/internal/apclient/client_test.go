@@ -33,6 +33,11 @@ type fakeRoom struct {
 	// dropFirst hangs up right after the first handshake, the way a server restarting mid-run does.
 	dropFirst bool
 
+	// checkedLocations is what the room claims this slot has already checked,
+	// the way another player's !collect checks a location that holds this
+	// slot's item.
+	checkedLocations []int64
+
 	mu       sync.Mutex
 	sessions int
 }
@@ -110,7 +115,7 @@ func (f *fakeRoom) acknowledge(ctx context.Context, conn *websocket.Conn) error 
 			"cmd":               "Connected",
 			"team":              0,
 			"slot":              1,
-			"checked_locations": []int64{},
+			"checked_locations": f.checkedLocations,
 			"slot_data":         f.slotData,
 		},
 		map[string]any{"cmd": "ReceivedItems", "index": 0, "items": items},
@@ -440,4 +445,57 @@ func TestSlotDataFromAnotherFormatIsFatal(t *testing.T) {
 	case <-time.After(3 * time.Second):
 		t.Fatal("the client accepted a seed it cannot read")
 	}
+}
+
+// TestAnAdoptedGoalIsNotAnnouncedByItself covers the report a play-tester
+// filed: another player finishing their game and running !collect checks
+// every location that holds their item, a mission clear among them, and the
+// room hands that back on the very first handshake. Adopting it must not
+// read as this server having beaten the mission.
+func TestAnAdoptedGoalIsNotAnnouncedByItself(t *testing.T) {
+	goalMission, _ := gamedata.MissionByPopFile("mvm_decoy")
+	room := &fakeRoom{
+		seed:             "seed-1",
+		slotData:         slotDataFor("final_boss", "mvm_decoy", "mvm_decoy"),
+		checkedLocations: []int64{goalMission.ClearLocationID()},
+	}
+	client, store := runClient(t, room)
+	waitFor(t, "the handshake", func() bool { return client.Health().Connected })
+	waitFor(t, "the adopted check to be held", func() bool {
+		return len(store.Checks()) == 1
+	})
+
+	deadline := time.After(200 * time.Millisecond)
+	for {
+		select {
+		case message := <-room.heard:
+			var cmd string
+			if err := json.Unmarshal(message["cmd"], &cmd); err != nil {
+				t.Fatal(err)
+			}
+			if cmd == "StatusUpdate" {
+				t.Fatal("the goal was announced from a check the room adopted, not one this server played")
+			}
+		case <-deadline:
+			goto reported
+		}
+	}
+reported:
+	if store.GoalSent() {
+		t.Fatal("goal_sent was set without this server ever playing the goal mission")
+	}
+
+	// The same mission, actually cleared here, is what the run's own win looks like.
+	if _, err := store.AddCheck(goalMission.ClearLocationID()); err != nil {
+		t.Fatal(err)
+	}
+	message := awaitCommand(t, room, "StatusUpdate")
+	var status int
+	if err := json.Unmarshal(message["status"], &status); err != nil {
+		t.Fatal(err)
+	}
+	if status != statusGoal {
+		t.Fatalf("status = %d, want %d", status, statusGoal)
+	}
+	waitFor(t, "the win to be recorded", store.GoalSent)
 }
