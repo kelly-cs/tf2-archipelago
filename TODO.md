@@ -1,6 +1,81 @@
 # TODO
 
-## 1. A bundle is money the game never recorded. Half fixed
+Bugs first. Every feature below is off by default and none of them ships before
+the bugs above it, because a feature built on broken money or a broken lineup
+inherits the bug.
+
+## Bugs, most impactful first
+
+### 8. RED gets nine bots when the mission loads. Half fixed
+
+Peppy: "the server is putting 9 bots on red team sometimes, it happens when the
+mission is loaded but once the wave is restarted it fixes itself."
+
+One ask adds more than it asked for, and it is the mod that does the adding.
+`sm_addbots N` runs `AddBotsBasedOnLineupMode(N)`, which calls
+`AddBotsFromTeamComposition(N)` first: that adds the seats the named team still
+wants and reports success only when it filled all N. A team that does not name
+every seat cannot, so the caller falls through to the lineup mode and adds N
+more on top. Three named seats and an ask for six is three plus six.
+
+Which is nine, and it is nine at mission load rather than mid-mission because
+that is the one moment RED is empty and the whole six are asked for at once.
+
+Why the wave restart cleared it: the only trim this plugin ran was scheduled
+three seconds after `mvm_begin_wave`, so between the map loading and the first
+wave nothing counted the team at all.
+
+Fixed here, which is the half this repository owns. `Bots_Fill` runs
+`Bots_TrimSurplus` on its own poll now, so RED comes back to its size within
+three seconds wherever the surplus came from, and the debug log says who left.
+
+The other half is the mod's and it is the actual bug:
+`AddBotsBasedOnLineupMode` has to subtract what the composition already added
+before it falls back. It is filed as tf2-mvm-bots item 18, with the test-bed
+repro, because a fix there is worth more than a trim here: a bot that is added
+and kicked three seconds later still spent a seat and still cost the wave its
+upgrade time.
+
+### 9. "Let the mod pick" picks classes that are unticked. Fixed here
+
+Peppy: "the bot seats I set as 'Let the mod pick' still picks from classes that
+I have unchecked in the Classes tab."
+
+Two faults, both in the launcher, both about what a draw seat is worth.
+
+A seat is a place in `sm_redbots_manager_team_composition`, counted from one,
+and the mod reads a seat it cannot parse as a seat it should leave to the
+lineup mode. Both settings pages stored the classes somebody named and dropped
+the draws, so naming seat 4 and leaving the first three to the mod stored one
+class, and the mod filled it as seat 1. The loadout file numbers seats from the
+same list, so the Wrangler went to whichever engineer came first rather than to
+the seat that asked for it.
+
+And a team of nothing but draws stored nothing, which is an empty convar, and
+an empty convar is what makes the mod fall back to the map's own default
+lineup. It then treats that default as a team somebody named, and a named team
+beats the blacklist: `IsBotClassBlacklisted` returns false for any class the
+composition mentions. So the map's guess played the classes the Classes tab had
+unticked, which is exactly the report.
+
+Fixed. A draw seat is an empty entry rather than a missing one, end to end: the
+window, the console form, `SRCDS_BOT_TEAM_COMP` and `SRCDS_BOT_SEAT_LOADOUTS`
+through `SplitSeats`, and `Composition`, which writes `engineer,,heavyweapons`
+and keeps seat 3 on 3. Trailing draws name no seat and are still dropped. When
+every seat is a draw and some class is unticked, the seats go out as holes
+anyway, so the string is not empty and the map's guess never gets to overrule
+the ticks.
+
+Tested where the bug was: `botloadout` for the convar and for the loadout
+file's seat numbers agreeing with it, `settings` for the environment
+round-trip, `tui` for a seat keeping its number when the seat before it goes
+back on the draw, and `gui` for what the Bots tab means, which is now a plain
+value the Win32 widgets are read into so it can be tested off Windows.
+
+What is still open is the mod's own rule, and it belongs there: a lineup the
+map guessed at should not beat a blacklist somebody set. tf2-mvm-bots item 7.
+
+### 1. A bundle is money the game never recorded. Half fixed
 
 Two reports, one cause. Spend a bundle on upgrades and lose the wave, and the
 balance goes negative. Receive bundles, spend them, press refund, and the refund
@@ -49,7 +124,62 @@ What is left:
    for two platforms and upkeep across every Team Fortress 2 update, which is
    why it stays last.
 
-## 2. Sign the Windows exe. Open
+### 5. De-upgrading appears not to take. Open, and it may be item 1
+
+From the play-test: buy an upgrade, sell it again before leaving the upgrade
+station, and it stays bought. Reported as "not sure if it is the AP or MvM in
+general", and that is still the open question.
+
+Nothing in this plugin touches a purchase. `Unlocks_EnforceSlots` removes
+weapons in slots the run has not opened and leaves every other slot alone, and
+the upgrade command is only read, never blocked.
+
+The hypothesis worth testing first is item 1 above. `MvM_GrantCredits` writes
+`m_nCurrency` straight onto the player, so after a Cash Bundle the player's
+credits and the number the game recorded for the wave disagree. A refund pays
+back through the game's own accounting, and accounting that has been written
+around from outside is exactly the kind that refuses a transaction while
+showing it as accepted.
+
+That gives a test that costs one evening: sell an upgrade on a run where no
+Cash Bundle has landed yet, and sell one after a bundle has. If only the second
+fails, this is item 1 and not a Valve bug, and fixing item 1 fixes both.
+
+The plugin now writes every purchase and every sale to the SourceMod log,
+players included, with the credits held afterwards. So a bundle from the
+evening says whether the sale reached the game at all, which is the half nobody
+could see: a sale the station accepted and the game ignored looks the same as
+one that worked, from the chair.
+
+### 7. The goal read a check somebody else made. Fixed in the bridge, open in the apworld
+
+A play-tester was told their run was complete having beaten three of the five
+missions they drew. Another player in the room finished, ran `!collect`, and
+Archipelago checked every location holding that player's items, mission clears
+among them. The bridge adopts the room's checked list on connect, which is what
+makes a lost state file survivable, and it read the win off that same list.
+
+Fixed by keeping the two apart. `Played` is the locations this server checked
+itself, only the plugin writes it, and the goal is read off it. `Checks` still
+holds everything the room says, because that is what `!checked` and a recovered
+state file are for. State format 3; a file written before it takes its checks as
+played, since the run in it was played by somebody.
+
+What is still open is the report's own suggestion, and it is the better shape:
+
+- Lock a trophy item onto every mission clear, an **Australium Medal**, so no
+  other player's item is ever under one and `!collect` cannot touch it. The goal
+  becomes `state.has("Australium Medal", player, target)` rather than
+  `can_reach_location`, which is what generation logic wants anyway.
+- It costs the multiworld eight locations' worth of other people's items, which
+  is a real loss: a mission clear is one of the better checks this world offers.
+- It needs an item id, so it is a gamedata change on the Go side, a regenerated
+  `data.py`, and a data format bump. That is why it waits for the next time the
+  format moves rather than going out on its own.
+
+## Distribution
+
+### 2. Sign the Windows exe. Open
 
 Players report SmartScreen blocking `tf2ap.exe` and Defender quarantining it.
 Nothing is wrong with the binary. The launcher unpacks embedded archives into
@@ -89,7 +219,19 @@ about Defender eating the extracted SourceMod DLLs instead of the launcher,
 the answer is a documented exclusion for the TF2 install path in the Windows
 guide, not more signing.
 
-## 3. Four optional unlocks from Peppy's post. Open
+## Features. All requested, all off by default
+
+Every item here is a feature and not a fix. Each one gets its own YAML option in
+`apworld/tf2_mvm/options.py`, off by default, the same shape as `death_link`, so
+a seed that does not ask for it gets none of it in the pool and an existing seed
+keeps meaning what it meant. The progressive ones are a count rather than a
+boolean: zero copies is off, N copies is how many steps the run walks.
+
+None of them starts before the bugs above. Two of them are blocked on item 1 by
+construction, and the rest would be built on a lineup that item 9 says does not
+do what the settings page asked for.
+
+### 3. Feature: four optional unlocks from Peppy's post. Off by default, open
 
 From the second post in
 [`docs/en/discord-mvm-thread.md`](docs/en/discord-mvm-thread.md). Not started,
@@ -143,106 +285,54 @@ Randomized weapons with tiers need the tier to be the item id, because ADR 0001
 forbids an id whose meaning is rolled per seed, and that is a feature of its
 own size.
 
-## 4. The bots only turn up when the first wave starts. Fixed here, not in the mod
+### 10. Feature: per-class weapon slot unlocks. Off by default, open
 
-`deploy/srcds-entrypoint.sh` runs the mod in AUTO_BOTS, where
-`ManageDefenderBots` is called from the mod's `mvm_begin_wave` handler and from
-a one-second monitor that returns early unless the round is running. So between
-the map loading and the first wave there was nobody on RED but the players, and
-the bots appeared at the moment the wave did.
+CaptPurpleHeart: "I personally would love per-class weapon slot unlocks."
 
-What that cost is the upgrade station. A bot that spawns at wave start has not
-shopped, so wave one was played by six bots with stock weapons and no upgrades,
-and the engineer had nothing built because he had not existed long enough to
-build it. Reported from a play-test as the bots only joining on F4.
+Today a slot unlock is one item for every class: `Unlocks_EnforceSlots` strips
+a weapon from a slot the run has not opened, without asking who is holding it.
+Per class it is nine items a slot instead of one, which is a much larger pool
+and a much longer run, and both of those are the point of asking for it.
 
-`Bots_Fill` in `plugin/scripting/tf2_archipelago/bots.inc` now tops RED up
-every three seconds between waves, once a player is on the server. It is the
-same `sm_addbots` the disconnect backfill already used.
+It is one option, a boolean, off by default: with it off the run keeps today's
+one-item-per-slot unlocks and nothing about an existing seed changes.
 
-Two things make it safe, and both were already here:
+It is a gamedata change on the Go side, so it wants an item id per class per
+slot, a regenerated `data.py` and a data format bump, and it should ride the
+same bump as the Australium Medal in item 7 rather than moving the format
+twice.
 
-- a bot that turns up before the players is held unready until every player on
-  RED is ready, and never readies at all with nobody on RED. Otherwise filling
-  the team early means the bots starting wave one by themselves while the first
-  player is still choosing a class.
-- a seat is held for every player who is connected and not on RED yet, or this
-  fights `Bots_MakeRoom`: that frees a seat the moment a player connects, and a
-  fill three seconds later would put a bot back in it before they had finished
-  joining.
+The open design question is what a run starts with. Nine classes times three
+slots with nothing unlocked is a team that cannot shoot; the honest shape is
+probably that the primary of the class you spawn as is free and everything else
+is earned, but that is a generation-logic argument and it needs writing down
+before any id is minted.
 
-Still worth doing in the mod one day, and that is where it belongs: AUTO_BOTS
-fills on `mvm_begin_wave` because that is when the mode was written to fill, and
-filling between rounds as well is a change to `Timer_ManageDefenderBots`. What
-is here is a plugin asking for something the mod is meant to manage.
+### 11. Feature: Progressive Starting Money. Off by default, open
 
-## 5. De-upgrading appears not to take. Open, and it may be item 1
+CaptPurpleHeart: "an option to have 'Progressive Starting Money' items, where
+at the start of every Wave 1, you get X amount more starting money per every
+progressive starting money upgrade found."
 
-From the play-test: buy an upgrade, sell it again before leaving the upgrade
-station, and it stays bought. Reported as "not sure if it is the AP or MvM in
-general", and that is still the open question.
+Same shape as the three progressives in item 3: a YAML option that is a count,
+off at zero, so a seed that leaves it out keeps meaning what it meant.
 
-Nothing in this plugin touches a purchase. `Unlocks_EnforceSlots` removes
-weapons in slots the run has not opened and leaves every other slot alone, and
-the upgrade command is only read, never blocked.
+It is blocked on item 1 for the same reason progressive credit amount is.
+Money handed over by writing `m_nCurrency` is money the game's bookkeeping
+never saw, so a starting grant inherits the negative balance on a lost wave and
+the refund that hands back 400. Item 1's ledger covers a bundle; a starting
+grant is the same money by a different door, and it wants the same ledger,
+which is one more argument for `DistributeCurrencyAmount` over writing the
+property.
 
-The hypothesis worth testing first is item 1 above. `MvM_GrantCredits` writes
-`m_nCurrency` straight onto the player, so after a Cash Bundle the player's
-credits and the number the game recorded for the wave disagree. A refund pays
-back through the game's own accounting, and accounting that has been written
-around from outside is exactly the kind that refuses a transaction while
-showing it as accepted.
+Note also that this one interacts with the wave-one restart: "at the start of
+every Wave 1" is a mission start, and a mission restarted from the vote menu is
+a wave one too. Decide whether restarting pays again before implementing, or
+the answer will be decided by whichever event handler happened to be wired.
+## Done, kept for the record
 
-That gives a test that costs one evening: sell an upgrade on a run where no
-Cash Bundle has landed yet, and sell one after a bundle has. If only the second
-fails, this is item 1 and not a Valve bug, and fixing item 1 fixes both.
+- The bots only turn up when the first wave starts. `Bots_Fill` tops RED up
+  every three seconds between waves so the bots shop and the engineer builds.
+- The bot upgrade chat named the wrong upgrade. `Bots_LoadUpgradeNames` counted
+  a commented-out `attribute` line, so 44 of the 63 names were off by one.
 
-The plugin now writes every purchase and every sale to the SourceMod log,
-players included, with the credits held afterwards. So a bundle from the
-evening says whether the sale reached the game at all, which is the half nobody
-could see: a sale the station accepted and the game ignored looks the same as
-one that worked, from the chair.
-
-## 6. The bot upgrade chat named the wrong upgrade. Done
-
-From the same play-test: the chat showed defender bots buying upgrades their
-class cannot have, while inspecting those bots showed the right upgrades on
-them. So the purchases were fine and the line describing them was not.
-
-`sm_dump_upgrades` in `tf2-mvm-bots` walks `CMannVsMachineUpgradeManager` and
-prints the index the game holds each upgrade at. It holds 63.
-`scripts/items/mvm_upgrades.txt` has 64 `attribute` lines, because entry 14,
-`heal rate bonus`, is commented out line by line and `Bots_LoadUpgradeNames`
-counted it. Indices 0 to 18 were right; from 19 on every purchase was named
-after the upgrade before it, which is 44 of the 63.
-
-The fix is a comment strip before the split: a `//` outside quotes ends the
-line, which is what KeyValues does and what the file expects, since it also
-puts a note after a value. The same parse over the file the server ships now
-gives the game's 63 names, in the game's order.
-
-## 7. The goal read a check somebody else made. Fixed in the bridge, open in the apworld
-
-A play-tester was told their run was complete having beaten three of the five
-missions they drew. Another player in the room finished, ran `!collect`, and
-Archipelago checked every location holding that player's items, mission clears
-among them. The bridge adopts the room's checked list on connect, which is what
-makes a lost state file survivable, and it read the win off that same list.
-
-Fixed by keeping the two apart. `Played` is the locations this server checked
-itself, only the plugin writes it, and the goal is read off it. `Checks` still
-holds everything the room says, because that is what `!checked` and a recovered
-state file are for. State format 3; a file written before it takes its checks as
-played, since the run in it was played by somebody.
-
-What is still open is the report's own suggestion, and it is the better shape:
-
-- Lock a trophy item onto every mission clear, an **Australium Medal**, so no
-  other player's item is ever under one and `!collect` cannot touch it. The goal
-  becomes `state.has("Australium Medal", player, target)` rather than
-  `can_reach_location`, which is what generation logic wants anyway.
-- It costs the multiworld eight locations' worth of other people's items, which
-  is a real loss: a mission clear is one of the better checks this world offers.
-- It needs an item id, so it is a gamedata change on the Go side, a regenerated
-  `data.py`, and a data format bump. That is why it waits for the next time the
-  format moves rather than going out on its own.

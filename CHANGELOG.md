@@ -4,6 +4,20 @@ What each release changes, for somebody who plays the game. The workflow in
 `.github/workflows/release.yml` reads the section matching the tag and puts it
 in the release notes, so this file is the only place to write it.
 
+## Unreleased
+
+### The bots
+
+- A bot seat left on "Let the mod pick" stays where you put it. The launcher
+  stored only the classes you named and left the draws out. A class in seat 4
+  then played as seat 1, and its weapons went to another bot.
+- Unticking a class in the Classes tab now holds even when every seat is left to
+  the mod. A team that named nobody let the map's own default lineup through, and
+  the mod plays a named lineup whatever the ticks say.
+- RED comes back to its size within three seconds instead of at the next wave.
+  One request for six bots added nine at mission load, and they stayed until
+  somebody restarted the wave.
+
 ## v1.9.0
 
 Most of this release is the bots.
