@@ -17,6 +17,11 @@ in the release notes, so this file is the only place to write it.
 - RED comes back to its size within three seconds instead of at the next wave.
   One request for six bots added nine at mission load, and they stayed until
   somebody restarted the wave.
+- The bots mod is on v2.11.0. Two of the play-test reports are fixed there: a
+  partial bot team no longer puts nine bots on RED, and the engineers and medics
+  no longer stand where the wave left them for the whole break. That is what was
+  reported as the engineers freezing in spawn after a lost wave or a mission
+  restart.
 
 ## v1.9.0
 
