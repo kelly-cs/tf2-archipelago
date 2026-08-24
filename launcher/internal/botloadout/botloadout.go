@@ -249,21 +249,47 @@ func Blacklist(classes []string) string {
 	return strings.Join(kept, ",")
 }
 
-// Composition is the value of sm_redbots_manager_team_composition: the class
-// keys the bots fill RED with, in the order given, unknown keys dropped.
-//
-// Order is what a blacklist cannot say, and it is the whole point: the first
-// entries are the seats that get filled when the team is short. Repeats are
-// kept, because two Heavies is a team somebody may want.
-func Composition(classes []string) string {
-	kept := make([]string, 0, len(classes))
-	for _, wanted := range classes {
+/* Composition is the value of sm_redbots_manager_team_composition: the class
+ * keys the bots fill RED with, one entry per seat, in seat order. The mod
+ * fills the first entries when the team is short, and keeps the repeats: two
+ * Heavies is a team somebody asked for.
+ *
+ * A seat left on the draw is an empty entry. The mod counts a seat by its
+ * place in this list. Drop the empty and seat 4 becomes seat 1, and the
+ * loadout file names the wrong bot.
+ *
+ * An empty string makes the mod play the map's own default lineup, and a named
+ * lineup beats the blacklist. So a team of nothing but draws still writes its
+ * seats when a class is unticked.
+ */
+func Composition(comp, blacklist []string) string {
+	seats := make([]string, 0, len(comp))
+	for _, wanted := range comp {
+		key := ""
 		for _, class := range Classes {
 			if class.Key == wanted {
-				kept = append(kept, class.Key)
+				key = class.Key
 				break
 			}
 		}
+		seats = append(seats, key)
 	}
-	return strings.Join(kept, ",")
+	for len(seats) > 0 && seats[len(seats)-1] == "" {
+		seats = seats[:len(seats)-1]
+	}
+	if len(seats) == 0 {
+		if Blacklist(blacklist) == "" {
+			return ""
+		}
+		if len(comp) > 0 {
+			seats = make([]string, len(comp))
+		} else {
+			seats = make([]string, botSeats)
+		}
+	}
+	return strings.Join(seats, ",")
 }
+
+// botSeats is how many seats a team of nothing but draws writes out. At least
+// as many as the settings page offers.
+const botSeats = 6

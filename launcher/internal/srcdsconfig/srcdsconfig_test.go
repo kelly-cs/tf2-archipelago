@@ -196,8 +196,9 @@ func TestInstallServerCfgCarriesTheRunAndTheBots(t *testing.T) {
 	for _, want := range []string{
 		`tf2ap_start_mission "mvm_coaltown_intermediate"`,
 		`sm_redbots_manager_class_blacklist "sniper,spy"`,
-		// In the order given, and the class the mod does not have is dropped.
-		`sm_redbots_manager_team_composition "engineer,medic,heavyweapons"`,
+		// In the order given, and the class the mod does not have leaves a hole
+		// rather than moving the seat after it up one.
+		`sm_redbots_manager_team_composition "engineer,medic,,heavyweapons"`,
 		"sm_redbots_manager_use_custom_loadouts 1",
 		"tf2ap_bot_upgrades_chat 1",
 		// The looks, which are three separate ticks and not one

@@ -1,0 +1,70 @@
+package gui
+
+import (
+	"github.com/m-this/tf2-archipelago/launcher/internal/botloadout"
+	"github.com/m-this/tf2-archipelago/launcher/internal/settings"
+)
+
+/* botTeamPicks is what the Bots tab's widgets say, as numbers. The tab only
+ * builds on Windows, so the rules below hold what it means.
+ *
+ * A seat menu opens on the draw, so zero is the draw and a class is its place
+ * in botloadout.Classes plus one. The loadout indexes are places in that
+ * class's presets. Ticked holds one entry per class, in the same order.
+ */
+type botTeamPicks struct {
+	SeatClass    []int
+	SeatLoadout  []int
+	Ticked       []bool
+	ClassLoadout []int
+}
+
+// botTeamFrom is the team those picks describe. A seat left on the draw is an
+// empty entry, because the mod counts a seat by its place in the list. It drops
+// the trailing draws, which name no seat.
+func botTeamFrom(picks botTeamPicks) settings.BotTeam {
+	var out settings.BotTeam
+	named := -1
+	for seat, index := range picks.SeatClass {
+		if index > 0 && index <= len(botloadout.Classes) {
+			named = seat
+		}
+	}
+	for seat := 0; seat <= named; seat++ {
+		index := picks.SeatClass[seat]
+		if index <= 0 || index > len(botloadout.Classes) {
+			out.Comp = append(out.Comp, "")
+			out.SeatLoadouts = append(out.SeatLoadouts, "")
+			continue
+		}
+		class := botloadout.Classes[index-1]
+		out.Comp = append(out.Comp, class.Key)
+		out.SeatLoadouts = append(out.SeatLoadouts, loadoutKeyAt(class, at(picks.SeatLoadout, seat)))
+	}
+	out.ClassLoadouts = make(map[string]string)
+	for index, class := range botloadout.Classes {
+		if index < len(picks.Ticked) && !picks.Ticked[index] {
+			out.Blacklist = append(out.Blacklist, class.Key)
+		}
+		if key := loadoutKeyAt(class, at(picks.ClassLoadout, index)); key != botloadout.StockKey {
+			out.ClassLoadouts[class.Key] = key
+		}
+	}
+	return out
+}
+
+// loadoutKeyAt is the preset at that place, and stock for anything else: a menu
+// with nothing chosen reports -1.
+func loadoutKeyAt(class botloadout.Class, index int) string {
+	if index < 0 || index >= len(class.Loadouts) {
+		return botloadout.StockKey
+	}
+	return class.Loadouts[index].Key
+}
+
+func at(values []int, index int) int {
+	if index < 0 || index >= len(values) {
+		return 0
+	}
+	return values[index]
+}

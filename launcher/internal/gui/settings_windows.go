@@ -784,28 +784,25 @@ type botTeamEditor struct {
 	keep  func(map[string]settings.BotTeam)
 }
 
-// team is what the widgets currently describe.
+// team is what the widgets currently describe. The widgets are read into
+// numbers and botTeamFrom says what they mean, because that half has rules
+// worth testing and this half needs a window.
 func (e *botTeamEditor) team() settings.BotTeam {
-	var out settings.BotTeam
+	picks := botTeamPicks{
+		SeatClass:    make([]int, len(e.seatBox)),
+		SeatLoadout:  make([]int, len(e.seatBox)),
+		Ticked:       make([]bool, len(botloadout.Classes)),
+		ClassLoadout: make([]int, len(botloadout.Classes)),
+	}
 	for seat, box := range e.seatBox {
-		index := box.CurrentIndex()
-		if index <= 0 {
-			continue
-		}
-		class := botloadout.Classes[index-1]
-		out.Comp = append(out.Comp, class.Key)
-		out.SeatLoadouts = append(out.SeatLoadouts, seatLoadoutKey(class, e.seatLoadBx[seat]))
+		picks.SeatClass[seat] = box.CurrentIndex()
+		picks.SeatLoadout[seat] = e.seatLoadBx[seat].CurrentIndex()
 	}
-	out.ClassLoadouts = make(map[string]string)
-	for i, class := range botloadout.Classes {
-		if !e.classBox[i].Checked() {
-			out.Blacklist = append(out.Blacklist, class.Key)
-		}
-		if pick := class.Loadouts[max(e.loadoutBx[i].CurrentIndex(), 0)]; pick.Key != botloadout.StockKey {
-			out.ClassLoadouts[class.Key] = pick.Key
-		}
+	for i := range botloadout.Classes {
+		picks.Ticked[i] = e.classBox[i].Checked()
+		picks.ClassLoadout[i] = e.loadoutBx[i].CurrentIndex()
 	}
-	return out
+	return botTeamFrom(picks)
 }
 
 // show puts a team into the widgets.
@@ -940,15 +937,6 @@ func (e *botTeamEditor) refreshNames(selected string) {
 	if e.keep != nil {
 		e.keep(e.saved)
 	}
-}
-
-// seatLoadoutKey is the preset a seat's weapons menu is showing, by key.
-func seatLoadoutKey(class botloadout.Class, box *walk.ComboBox) string {
-	index := box.CurrentIndex()
-	if index < 0 || index >= len(class.Loadouts) {
-		return botloadout.StockKey
-	}
-	return class.Loadouts[index].Key
 }
 
 /* botsScrollPage is one page of the Bots tab: a grid of columns wide, in a

@@ -425,13 +425,9 @@ func (f *settingsForm) seatField(seat int) field {
 	}
 }
 
-/* setSeat rewrites the team from the seats that name a class.
- *
- * A seat left to the mod contributes nothing, so the list is the picked seats
- * in seat order, which is what the convar reads. The loadouts are rewritten
- * with it and from the same array, or the two lists stop lining up the first
- * time a seat in the middle is put back on the draw.
- */
+// setSeat rewrites the team from the seats. The loadouts come from the same
+// array. Otherwise the two lists stop lining up when a middle seat goes back on
+// the draw.
 func (f *settingsForm) setSeat(seat, index int) {
 	seats := f.seats()
 	if index == 0 {
@@ -454,14 +450,19 @@ func (f *settingsForm) seats() []botloadout.Seat {
 	return seats
 }
 
-// setSeats writes the array back as the two compacted lists the mod reads.
+// setSeats writes the array back as the two lists the mod reads. A seat left to
+// the mod is an empty entry, because the mod counts seats by their place in the
+// list. It drops the trailing draws, which carry no seat number.
 func (f *settingsForm) setSeats(seats []botloadout.Seat) {
+	last := -1
+	for index, seat := range seats {
+		if seat.Class != "" {
+			last = index
+		}
+	}
 	f.edited.SrcdsBotTeamComp = nil
 	f.edited.SrcdsBotSeatLoadouts = nil
-	for _, seat := range seats {
-		if seat.Class == "" {
-			continue
-		}
+	for _, seat := range seats[:last+1] {
 		f.edited.SrcdsBotTeamComp = append(f.edited.SrcdsBotTeamComp, seat.Class)
 		f.edited.SrcdsBotSeatLoadouts = append(f.edited.SrcdsBotSeatLoadouts, seat.Loadout)
 	}
