@@ -485,6 +485,10 @@ static void Bots_Fill()
     {
         return;
     }
+    // One ask can add more than it asked for, so the surplus goes on this poll
+    // rather than three seconds after the next wave begins.
+    Bots_TrimSurplus();
+
     /* A seat is taken by whoever is on RED, and held for every player who is
      * connected and not on it yet.
      *
@@ -528,11 +532,14 @@ static void Bots_Fill()
 
 /* RED came up over its team size, so the extra bots leave.
  *
- * The mod adds its whole chosen lineup when a wave begins, without counting who
- * is already standing there: in its own mode nobody is, because it fills the
- * team at that moment and not before. Filling the team early is what this
- * plugin now does, so a six man RED that waited through the upgrade station
- * came up at ten or twelve when the wave started.
+ * Two things overfill it. The mod adds its whole chosen lineup when a wave
+ * begins, without counting who is already standing there. This plugin fills the
+ * team before that, so a six man RED came up at ten or twelve.
+ *
+ * And one ask can add more than it asked for. sm_addbots fills the seats the
+ * mod's named team wants. When that team does not name every seat, the mod
+ * falls back to the lineup mode and adds the whole count again. Three named
+ * seats and an ask for six is nine bots.
  *
  * The seats are counted back after the mod has had its turn rather than the
  * fill being taken out again, because either side adding without counting ends
