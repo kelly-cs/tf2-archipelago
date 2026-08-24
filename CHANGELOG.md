@@ -6,69 +6,56 @@ in the release notes, so this file is the only place to write it.
 
 ## v1.9.0
 
-Mission switch works, the bots take their seats before the wave starts, and a
-debug bundle holds what somebody needs to read it. Most of the release is the
-bots.
+Most of this release is the bots.
 
 ### The run
 
-- Mission switch works. The plugin read the map's default mission mid-switch and
-  moved the server back to the first mission of the list.
-- A refund gives your cash bundles back. The plugin counts every credit a bundle
-  added and puts it back on top of the refund.
-- A lost wave no longer leaves you in the red. Spent bundles go back on top, and
-  a balance still below zero goes to zero.
-- Your run no longer finishes itself. Another player's `!collect` checks a
-  mission clear, and the bridge read that as your win.
-- The win now comes off what this server played.
-- The bots take their seats before the wave. They arrived as it started, with
-  stock weapons, no upgrades and no sentry.
-- The bots no longer start the wave without you. A server with nobody on RED
-  never readies at all.
-- The bots fill the seat of a player who leaves between waves, and make a seat
-  for a player who arrives.
-- Test mode behaves like a real room: `!ap unlock mission` hands over the next
-  ticket, `!ap missing` and `!ap checked` answer, and you start on the class you
-  asked for.
+- Mission switch works from the Session tab and from `!mission`.
+- A refund returns your cash bundles. The plugin counts every credit a bundle
+  adds, and puts that count back on top of the refund.
+- A lost wave returns the bundles you spent. A balance below zero goes to zero.
+- The win comes off the locations this server played. Another player's
+  `!collect` checks a mission clear without ending your run.
+- Bots take their seats as soon as somebody joins the server. They shop at the
+  upgrade station and build before the wave starts.
+- Bots ready up only after every player on RED is ready. A server with nobody
+  on RED never readies at all.
+- Bots fill the seat of a player who leaves between waves, and free a seat for
+  a player who arrives.
+- Test mode answers as a real room does. `!ap unlock mission` hands over the
+  next ticket, `!ap missing` and `!ap checked` reply, and you start on the class
+  you asked for.
 
 ### The bots
 
-- They shoot the Medic first, then the Sniper and the Engineer, then giants,
-  rather than whatever stands nearest.
-- Ten runs on Decoy read 54 defender deaths against 43 before, and a matched
-  pair after the fix read 56 against 25.
-- A bot with nothing to fight holds the hatch, and a bot the nav mesh refuses a
-  path steps toward its target.
-- Every class has upgrade paths, and a bot refuses an upgrade it cannot use: a
-  Pyro bought airblast pushback with a Phlogistinator.
+- Bots shoot the Medic first, then the Sniper and the Engineer, then giants.
+- Ten runs on Decoy measure 25 defender deaths, against 56 for the same waves
+  without the target order.
+- A bot with nothing to fight holds the hatch. A bot the nav mesh refuses a path
+  steps toward its target.
+- Every class has upgrade paths, and a bot refuses an upgrade it cannot use. A
+  Phlogistinator Pyro has no use for airblast pushback.
 - Bots buy blast, bullet and fire resistance against the wave to come.
   Explosions cause 45 to 60 percent of defender deaths on every map measured.
-- Leftover credits stay in the wallet instead of buying canteens nobody drank.
+- Leftover credits stay in the wallet.
 - Engineers build on the spot they picked and rebuild it there, one nest inside
   and one out, with the teleporter exits apart.
-- Engineers stop carrying the sentry mid-wave, stop dropping a half-built nest,
-  and give up on a spot they cannot reach.
-- A sentry that cannot reach the nest goes down beside the engineer, and the
+- Engineers keep the sentry on its spot through the wave, finish the nest they
+  start, and give up on a spot they cannot reach.
+- A sentry that cannot reach the nest goes down beside the engineer. The
   disposable sentry goes beside the real one on purpose.
 - An engineer with no sentry left rides his own teleporter home.
 - A map can name which dispenser spot belongs to which nest.
-- Medics walk again. The mod took the walk, the aim and the trigger off the
-  game's own medic to pick the patient itself.
-- A refused path leaves a bot 120 units forward at a time: on Decoy a medic sat
-  10400 units from a patient 400 units away and never closed.
-- The game picks the patient again. On Coal Town the beam connects in 61 percent
-  of samples, up from 5 to 17 percent.
-- Movement between samples went from 0 to 70 units up to 337, and ubers in a
-  mission from one to six.
-- The mod points the game's own heal action at the biggest body: 75 percent
-  connected, and 72 percent of that on a Heavy.
+- The game walks the Medic, and the mod points the game's own heal action at the
+  biggest body nearby.
+- On Coal Town the beam connects in 75 percent of samples, and 72 percent of
+  those samples show a Heavy on the end of it.
+- A Medic deploys six ubers in a mission, and moves 337 units between samples.
 - Medics shop before they follow anybody, hold the wave until the charge is
-  full, and stop spending a whole wave's credits on one upgrade.
-- Soldiers and Demomen stop blowing themselves up. The Demoman did 2571 points
-  of self-harm and four suicides in six waves, against 187 for the next worst.
-- The Demoman keeps his distance from a tank hull, and drops the stickybomb
-  launcher as a tank weapon.
-- He no longer detonates a sticky trap under his own pipes.
+  full, and spread a wave's credits over more than one upgrade.
+- Soldiers and Demomen keep their distance from a tank hull.
+- The Demoman rates the stickybomb launcher as no tank weapon, and holds the
+  detonator while his own pipes sit on a hull.
 - Neither aims at the feet of a robot that stands on them, and the Demoman
   throws a pipe as far as it flies.
 - A pipe can leave while the aim still moves, a rocket cannot, which is the
@@ -82,11 +69,11 @@ bots.
   engineers can hold different weapons.
 - A bot draws a random cosmetic, and an unusual effect on it, in two ticks, and
   keeps it for the whole mission.
-- War paints are gone. They painted the weapons the upgrade station replaces,
-  and the server died when two engineers finished shopping.
-- This release fixes several server crashes. Buildings go on ground that exists,
-  and a wearable sweep that never ended now ends.
-- Nav mesh searches for health, ammo and revive markers no longer run per frame.
+- Bots wear no war paint. It painted the weapons the upgrade station replaces,
+  and killed the server when two engineers finished shopping.
+- Buildings go on ground that exists, and the wearable sweep ends.
+- Nav mesh searches for health, ammo and revive markers run less than once a
+  frame.
 - The plugin builds the shopping list once a session, and hands out hats one bot
   at a time.
 - `sm_redbots_feature_<name>` switches any of this off one feature at a time,
@@ -103,12 +90,12 @@ bots.
   name. The class pool is two ticks to a line.
 - The title bar says which build it is, which matters when several carry the
   same version.
-- Save no longer starts a stopped server. Start is the button that starts the
+- Save leaves a stopped server stopped. Start is the button that starts the
   server.
 - Numbers read from the left, columns line up, and no row runs under the
   scrollbar.
-- Over Steam the join line reads `Steam public IP:` and the Join button goes to
-  that address rather than a local one.
+- Over Steam the join line reads `Steam public IP:`, and the Join button goes to
+  that address.
 - The page that issues a login token is a link on the tab that needs one, with
   app id 440 and a memo.
 - The terminal launcher follows the window: the run first, the same seats and
@@ -116,18 +103,17 @@ bots.
 
 ### When something goes wrong
 
-- Debug logs hold the game server's own console log, which never existed
-  before, plus the last launcher log and the crash dumps.
+- Debug logs hold the game server's own console log, the last launcher log and
+  the crash dumps.
 - They also hold what the bridge says about the run, and which defender bots
   played.
 - The plugin writes what it does to the console and the SourceMod log by
   default.
 - The plugin writes down every purchase and sale at the upgrade station, players
   and bots, with the credits held after.
-- The bots named the wrong upgrade in chat. `mvm_upgrades.txt` has 64 entries
-  and the game loads 63, so every name past the commented-out one shifted.
-- A defender bot version bump built the previous version and said nothing, on
-  any machine that built once before, including CI.
+- The bots name the upgrade they bought. `mvm_upgrades.txt` has 64 entries and
+  the game loads 63, because one entry carries a comment marker.
+- A defender bot version bump builds that version, on any machine and in CI.
 
 ## v1.8.2
 
