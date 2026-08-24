@@ -78,7 +78,10 @@ at a time, so on Decoy a medic sat 10400 units from a patient four hundred
 units away and never closed. The patient choice went back to the game with the
 rest of it, and on Coal Town the beam went from connected in 5 to 17 percent of
 samples to 61 percent, movement between samples from 0 to 70 units to 337, and
-ubers deployed in a mission from one to six. They still shop before they follow
+ubers deployed in a mission from one to six. The Heavy is back on the end of the
+beam without any of that cost: the mod points the game's own heal action at the
+biggest body rather than replacing it, which reads 75 percent connected, and
+72 percent of that on a Heavy. They still shop before they follow
 anybody, hold the wave until the charge is full, and stop dumping a whole
 wave's credits into one upgrade.
 
