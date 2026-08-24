@@ -151,6 +151,11 @@ func (s *Store) BindSeed(seed string) (string, error) {
 
 // AddCheck records a location the plugin reported and reports whether it was
 // new. The plugin retries on timeout, so a repeat has to be a no-op.
+//
+// A location can already be in Checks without being in Played: the room
+// handed it back as adopted, from somebody else's !collect, before this
+// server ever played it. That is not a repeat, it is the first time this
+// server has earned it, and Played has to gain it even though Checks does not.
 func (s *Store) AddCheck(id int64) (bool, error) {
 	location, known := gamedata.LocationByID(id)
 	if !known {
@@ -158,14 +163,27 @@ func (s *Store) AddCheck(id int64) (bool, error) {
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if slices.Contains(s.data.Checks, id) {
+	alreadyChecked := slices.Contains(s.data.Checks, id)
+	alreadyPlayed := slices.Contains(s.data.Played, id)
+	if alreadyChecked && alreadyPlayed {
 		return false, nil
 	}
-	s.data.Checks = append(s.data.Checks, id)
-	s.data.Played = append(s.data.Played, id)
+	checksGrew, playedGrew := false, false
+	if !alreadyChecked {
+		s.data.Checks = append(s.data.Checks, id)
+		checksGrew = true
+	}
+	if !alreadyPlayed {
+		s.data.Played = append(s.data.Played, id)
+		playedGrew = true
+	}
 	if err := s.persist(); err != nil {
-		s.data.Checks = s.data.Checks[:len(s.data.Checks)-1]
-		s.data.Played = s.data.Played[:len(s.data.Played)-1]
+		if checksGrew {
+			s.data.Checks = s.data.Checks[:len(s.data.Checks)-1]
+		}
+		if playedGrew {
+			s.data.Played = s.data.Played[:len(s.data.Played)-1]
+		}
 		return false, err
 	}
 	s.lastCheckName, s.lastCheckAt = location.Name, time.Now()
