@@ -72,16 +72,33 @@ fetch() {
 # the signal that upstream moved and the fix needs rebasing or dropping.
 #
 # Already applied is not that failure. The checkouts survive between runs, here
-# and in CI's cache, so a second run finds its own work: --reverse --check asks
-# whether this exact patch is already in the tree and moves on if it is.
+# and in CI's cache, so a checksum stamp identifies the exact patch series that
+# produced the cached tree.
 apply_patches() {
-	dir="$src/$1"
-	for patch in "$patches/$1"/*.patch; do
-		[ -e "$patch" ] || return 0
-		git -C "$dir" apply --reverse --check "$patch" 2>/dev/null && continue
+	patch_project=$1
+	dir="$src/$patch_project"
+	set -- "$patches/$patch_project"/*.patch
+	[ -e "$1" ] || return 0
+
+	# Patches may deliberately build on one another. Checking each patch in isolation cannot
+	# recognize an already-applied stack when a later patch edits an earlier patch's lines. A
+	# checksum stamp recognizes the complete stack; a changed stack restores only this generated
+	# dependency checkout before applying the new series.
+	patch_fingerprint=$(cksum "$@")
+	patch_stamp="$dir/.tf2ap-patchset"
+	[ "$(cat "$patch_stamp" 2>/dev/null)" = "$patch_fingerprint" ] && return 0
+
+	if ! git -C "$dir" diff --quiet; then
+		echo "restoring $patch_project before applying an updated patch set"
+		git -C "$dir" restore --worktree .
+	fi
+
+	for patch in "$@"; do
 		echo "applying $(basename "$patch")"
 		git -C "$dir" apply --whitespace=nowarn "$patch"
 	done
+
+	printf '%s\n' "$patch_fingerprint" >"$patch_stamp"
 }
 
 # --- Sources for the plugins ---

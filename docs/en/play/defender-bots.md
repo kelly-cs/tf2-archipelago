@@ -125,14 +125,33 @@ so a slow upgrade purchase cannot trigger the watchdog. A separate twelve
 second deadline catches bots that keep moving or jumping around inside one
 corner and would otherwise fool the distance-based check.
 
+Spawn detection includes a 512-unit margin around the world-space bounds of
+each RED `func_respawnroom`, because some community maps leave the stuck corner
+just outside the trigger itself. These settings take effect immediately:
+
+```text
+sm_redbots_spawn_nav_recovery 1
+sm_redbots_spawn_nav_recovery_radius 512
+sm_redbots_spawn_nav_recovery_time 12
+```
+
+The radius accepts `0` through `4096`; the deadline accepts `1` through `120`
+seconds. Use `sm_dump_spawn_nav` through rcon while bots are stuck. It reports
+whether each bot is strictly inside spawn, its distance from the nearest spawn
+brush, whether it is eligible, its watchdog timers, and whether the hatch has
+NAV. `sm_recover_spawn_bots` immediately moves eligible defender bots within
+the configured radius and is useful for proving the destination works while
+the automatic trigger is being diagnosed.
+
 This is enabled for every map and has no map-name or coordinate allowlist. A
 normal connected map is unchanged. Recovery also refuses to act on humans,
 bots outside spawn, maps without an active capture zone, and maps without a
 walkable NAV area near that zone. It cannot make a map with no usable NAV mesh
 bot-compatible.
 
-To verify a community map, start a wave and run `sm_dump_front` from an admin
-console twice, about 15 seconds apart. Goal distances should fall as bots move.
+To verify a community map, start a wave and run `sm_dump_front` and
+`sm_dump_spawn_nav` from an admin console. Run them again about 15 seconds
+later. Goal distances should fall as bots move.
 When recovery is needed, the server log contains
 `SpawnNavRecovery` and the bot appears near the hatch.
 Increasing dead-end-path counts elsewhere on the battlefield indicate a

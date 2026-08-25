@@ -1,0 +1,211 @@
+diff --git a/source/redbots3/nextbot_behavior.sp b/source/redbots3/nextbot_behavior.sp
+--- a/source/redbots3/nextbot_behavior.sp
++++ b/source/redbots3/nextbot_behavior.sp
+@@ -114,7 +114,6 @@ static int m_iPathFailures[MAXPLAYERS + 1];
+ //supposed to be leaving spawn, independently of what the path builder claimed.
+ #define SPAWN_EXIT_WATCH_INTERVAL  1.0
+ #define SPAWN_EXIT_STALL_TIME      6.0
+-#define SPAWN_EXIT_MAX_TIME        12.0
+ #define SPAWN_EXIT_PROGRESS        96.0
+ 
+ static float m_vecSpawnExitProgress[MAXPLAYERS + 1][3];
+@@ -130,6 +129,72 @@ void ResetSpawnExitWatch(int client)
+ 	m_flSpawnExitWatchAt[client] = 0.0;
+ }
+ 
++static float DistanceFromPointToBounds(const float point[3], const float mins[3], const float maxs[3])
++{
++	float squared;
++
++	for (int axis = 0; axis < 3; axis++)
++	{
++		float outside;
++
++		if (point[axis] < mins[axis])
++			outside = mins[axis] - point[axis];
++		else if (point[axis] > maxs[axis])
++			outside = point[axis] - maxs[axis];
++
++		squared += outside * outside;
++	}
++
++	return SquareRoot(squared);
++}
++
++static float DistanceToClosestDefenderSpawn(int client)
++{
++	float point[3]; point = WorldSpaceCenter(client);
++	float closest = -1.0;
++	int room = -1;
++
++	while ((room = FindEntityByClassname(room, "func_respawnroom")) != -1)
++	{
++		int team = BaseEntity_GetTeamNumber(room);
++
++		if (team != 0 && team != GetClientTeam(client))
++			continue;
++
++		if (HasEntProp(room, Prop_Data, "m_bDisabled") && GetEntProp(room, Prop_Data, "m_bDisabled"))
++			continue;
++
++		float origin[3]; origin = GetAbsOrigin(room);
++		float mins[3]; GetEntPropVector(room, Prop_Data, "m_vecMins", mins);
++		float maxs[3]; GetEntPropVector(room, Prop_Data, "m_vecMaxs", maxs);
++		AddVectors(mins, origin, mins);
++		AddVectors(maxs, origin, maxs);
++
++		float distance = DistanceFromPointToBounds(point, mins, maxs);
++
++		if (closest < 0.0 || distance < closest)
++			closest = distance;
++	}
++
++	return closest;
++}
++
++static bool IsInOrNearDefenderSpawn(int client)
++{
++	if (TF2Util_IsPointInRespawnRoom(WorldSpaceCenter(client), client))
++		return true;
++
++	float distance = DistanceToClosestDefenderSpawn(client);
++	return distance >= 0.0 && distance <= redbots_manager_spawn_nav_recovery_radius.FloatValue;
++}
++
++static bool ShouldWatchDefenderSpawnExit(int client)
++{
++	RoundState state = GameRules_GetRoundState();
++	return state == RoundState_RoundRunning ? g_bHasUpgraded[client] :
++		state == RoundState_BetweenRounds && (g_bShoppedThisBreak[client] || !redbots_manager_bot_use_upgrades.BoolValue);
++}
++
+ int PathFailuresOf(int client)
+ {
+ 	return m_iPathFailures[client];
+@@ -213,7 +278,7 @@ static bool MoveDefenderFromSpawnToHatch(int client, const char[] reason)
+ 	if (client < 1 || client > MaxClients || !IsClientInGame(client) || !IsPlayerAlive(client) || !g_bIsDefenderBot[client])
+ 		return false;
+ 
+-	if (!TF2Util_IsPointInRespawnRoom(WorldSpaceCenter(client), client))
++	if (!IsInOrNearDefenderSpawn(client))
+ 		return false;
+ 
+ 	int hatch = GetCapturableAreaTrigger(GetPlayerEnemyTeam(client));
+@@ -244,7 +309,7 @@ bool RecoverDefenderFromDisconnectedSpawn(int client)
+ 	if (client < 1 || client > MaxClients || !IsClientInGame(client) || !IsPlayerAlive(client) || !g_bIsDefenderBot[client])
+ 		return false;
+ 
+-	if (!TF2Util_IsPointInRespawnRoom(WorldSpaceCenter(client), client))
++	if (!IsInOrNearDefenderSpawn(client))
+ 		return false;
+ 
+ 	int hatch = GetCapturableAreaTrigger(GetPlayerEnemyTeam(client));
+@@ -267,11 +332,8 @@ bool RecoverDefenderFromDisconnectedSpawn(int client)
+ 
+ void WatchDefenderSpawnExit(int client)
+ {
+-	RoundState state = GameRules_GetRoundState();
+-	bool shouldLeave = state == RoundState_RoundRunning ? g_bHasUpgraded[client] :
+-		state == RoundState_BetweenRounds && (g_bShoppedThisBreak[client] || !redbots_manager_bot_use_upgrades.BoolValue);
+-
+-	if (!shouldLeave || TF2_IsInUpgradeZone(client) || !TF2Util_IsPointInRespawnRoom(WorldSpaceCenter(client), client))
++	if (!redbots_manager_spawn_nav_recovery.BoolValue || !ShouldWatchDefenderSpawnExit(client) ||
++		TF2_IsInUpgradeZone(client) || !IsInOrNearDefenderSpawn(client))
+ 	{
+ 		ResetSpawnExitWatch(client);
+ 		return;
+@@ -286,9 +348,9 @@ void WatchDefenderSpawnExit(int client)
+ 
+ 	if (m_flSpawnExitStartedAt[client] == 0.0)
+ 		m_flSpawnExitStartedAt[client] = now;
+-	else if (now - m_flSpawnExitStartedAt[client] >= SPAWN_EXIT_MAX_TIME)
++	else if (now - m_flSpawnExitStartedAt[client] >= redbots_manager_spawn_nav_recovery_time.FloatValue)
+ 	{
+-		MoveDefenderFromSpawnToHatch(client, "remained in spawn for twelve seconds while trying to leave");
++		MoveDefenderFromSpawnToHatch(client, "exceeded the configured time for leaving spawn");
+ 		return;
+ 	}
+ 
+@@ -311,6 +373,50 @@ void WatchDefenderSpawnExit(int client)
+ 	MoveDefenderFromSpawnToHatch(client, "made no spawn-exit progress for six seconds");
+ }
+ 
++public Action Command_DumpSpawnNav(int client, int args)
++{
++	ReplyToCommand(client, "Spawn NAV recovery: enabled %d, radius %.0f, max time %.1f", redbots_manager_spawn_nav_recovery.BoolValue,
++		redbots_manager_spawn_nav_recovery_radius.FloatValue, redbots_manager_spawn_nav_recovery_time.FloatValue);
++
++	for (int bot = 1; bot <= MaxClients; bot++)
++	{
++		if (!IsClientInGame(bot) || !IsPlayerAlive(bot) || !g_bIsDefenderBot[bot])
++			continue;
++
++		bool strict = TF2Util_IsPointInRespawnRoom(WorldSpaceCenter(bot), bot);
++		float distance = DistanceToClosestDefenderSpawn(bot);
++		bool near = strict || distance >= 0.0 && distance <= redbots_manager_spawn_nav_recovery_radius.FloatValue;
++		float now = GetGameTime();
++		float watched = m_flSpawnExitStartedAt[bot] > 0.0 ? now - m_flSpawnExitStartedAt[bot] : 0.0;
++		float stalled = m_flSpawnExitProgressAt[bot] > 0.0 ? now - m_flSpawnExitProgressAt[bot] : 0.0;
++		float moved = m_flSpawnExitProgressAt[bot] > 0.0 ? GetVectorDistance(GetAbsOrigin(bot), m_vecSpawnExitProgress[bot]) : 0.0;
++		int hatch = GetCapturableAreaTrigger(GetPlayerEnemyTeam(bot));
++		bool hatchNav = hatch != -1 && TheNavMesh.GetNearestNavArea(WorldSpaceCenter(hatch), true, 1000.0, true, true, GetClientTeam(bot)) != NULL_AREA;
++
++		ReplyToCommand(client, "%N: strict %d, spawn distance %.0f, near %d, eligible %d, upgrade zone %d, watched %.1fs, stalled %.1fs, moved %.0f, hatch %d, hatch NAV %d",
++			bot, strict, distance, near, ShouldWatchDefenderSpawnExit(bot), TF2_IsInUpgradeZone(bot), watched, stalled, moved, hatch, hatchNav);
++	}
++
++	return Plugin_Handled;
++}
++
++public Action Command_RecoverSpawnBots(int client, int args)
++{
++	int recovered;
++
++	for (int bot = 1; bot <= MaxClients; bot++)
++	{
++		if (!IsClientInGame(bot) || !IsPlayerAlive(bot) || !g_bIsDefenderBot[bot] || !IsInOrNearDefenderSpawn(bot))
++			continue;
++
++		if (MoveDefenderFromSpawnToHatch(bot, "was manually recovered by an admin"))
++			recovered++;
++	}
++
++	ReplyToCommand(client, "Recovered %d defender bot(s) from the configured spawn radius.", recovered);
++	return Plugin_Handled;
++}
++
+ #include "behavior/attack.sp"
+ #include "behavior/markgiant.sp"
+ #include "behavior/collectmoney.sp"
+diff --git a/source/tf2_defenderbots.sp b/source/tf2_defenderbots.sp
+--- a/source/tf2_defenderbots.sp
++++ b/source/tf2_defenderbots.sp
+@@ -217,6 +217,9 @@ ConVar redbots_manager_engineer_nest_depth;
+ ConVar redbots_manager_engineer_nest_relocate;
+ ConVar redbots_manager_engineer_nest_relocate_score_gain_min;
+ ConVar redbots_manager_bot_use_upgrades;
++ConVar redbots_manager_spawn_nav_recovery;
++ConVar redbots_manager_spawn_nav_recovery_radius;
++ConVar redbots_manager_spawn_nav_recovery_time;
+ ConVar redbots_manager_bot_hats;
+ ConVar redbots_manager_bot_hat_effects;
+ ConVar redbots_manager_bot_buyback_chance;
+@@ -304,6 +307,9 @@ public void OnPluginStart()
+ 	redbots_manager_engineer_nest_relocate = CreateConVar("sm_redbots_manager_engineer_nest_relocate", "0", "Let engineers move their nest between waves when a better spot opens up. Crashes the server, see TODO item 10.", FCVAR_NOTIFY);
+ 	redbots_manager_engineer_nest_relocate_score_gain_min = CreateConVar("sm_redbots_manager_engineer_nest_relocate_score_gain_min", "40.0", "How much better a nest spot has to score than the one an engineer holds before he moves to it between waves. 0 makes him move for any improvement at all.", FCVAR_NOTIFY, true, 0.0, true, 200.0);
+ 	redbots_manager_bot_use_upgrades = CreateConVar("sm_redbots_manager_bot_use_upgrades", "1", "Enable bots to buy upgrades.", FCVAR_NOTIFY);
++	redbots_manager_spawn_nav_recovery = CreateConVar("sm_redbots_spawn_nav_recovery", "1", "Recover prepared defender bots that cannot leave spawn.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
++	redbots_manager_spawn_nav_recovery_radius = CreateConVar("sm_redbots_spawn_nav_recovery_radius", "512.0", "Distance outside a RED spawn brush that still counts as spawn for navigation recovery.", FCVAR_NOTIFY, true, 0.0, true, 4096.0);
++	redbots_manager_spawn_nav_recovery_time = CreateConVar("sm_redbots_spawn_nav_recovery_time", "12.0", "Maximum seconds a prepared defender may remain in or near spawn before recovery.", FCVAR_NOTIFY, true, 1.0, true, 120.0);
+ 	redbots_manager_bot_hats = CreateConVar("sm_redbots_manager_bot_hats", "1", "Give every defender bot a random hat its class can wear. Looks only.", FCVAR_NOTIFY);
+ 	redbots_manager_bot_hat_effects = CreateConVar("sm_redbots_manager_bot_hat_effects", "0", "Put a random unusual effect on that hat. Needs the hats above.", FCVAR_NOTIFY);
+ 	redbots_manager_bot_buyback_chance = CreateConVar("sm_redbots_manager_bot_buyback_chance", "5", "Chance for bots to buyback into the game.", FCVAR_NOTIFY);
+@@ -361,6 +367,8 @@ public void OnPluginStart()
+ 	RegAdminCmd("sm_dump_nest", Command_DumpNest, ADMFLAG_GENERIC);
+ 	RegAdminCmd("sm_dump_medic", Command_DumpMedic, ADMFLAG_GENERIC);
+ 	RegAdminCmd("sm_dump_front", Command_DumpFront, ADMFLAG_GENERIC);
++	RegAdminCmd("sm_dump_spawn_nav", Command_DumpSpawnNav, ADMFLAG_GENERIC);
++	RegAdminCmd("sm_recover_spawn_bots", Command_RecoverSpawnBots, ADMFLAG_GENERIC);
+ 	
+ 	AddCommandListener(Listener_TournamentPlayerReadystate, "tournament_player_readystate");
+ 	
