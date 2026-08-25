@@ -48,12 +48,14 @@
 # Disabled by default; enable only when an integration needs fresh .beads/issues.jsonl.
 # Use relative paths under .beads/ for JSONL import/export filenames.
 export:
-  auto: true
-  path: issues.jsonl
-  interval: 60s
-  git-add: true
+    auto: true
+    path: issues.jsonl
+    interval: 60s
+    git-add: true
 import:
-  path: issues.jsonl
+    path: issues.jsonl
+sync:
+    remote: "ssh://git@git-ssh.croque.top:3579/mathis/tf2-archipelago.git"
 
 # Integration settings (access with 'bd config get/set')
 # Non-secret keys (stored in the database):
