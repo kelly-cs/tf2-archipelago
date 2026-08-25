@@ -56,6 +56,12 @@ you with the Archipelago app, writes the player file, bundles the logs to send
 when something looks wrong, and puts every answer back to its default. A
 **Test mode** plays without any room at all.
 
+The Missions tab's **Check Run Selection** action counts the eligible
+missions, checks, and required unlocks before generation. The same preflight
+runs automatically when settings are saved, a player file is written, a seed
+is generated, or Test mode starts; the official Archipelago generator repeats
+the check.
+
 <p align="center">
   <img alt="Settings: the player options tab" src="docs/images/launcher-settings.png" width="740">
 </p>

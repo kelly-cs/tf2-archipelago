@@ -262,6 +262,9 @@ func runSettingsDialog(
 		// Saved teams are written when Save is pressed on the tab, so they are
 		// on disk already; this keeps them in the settings the dialog returns.
 		next.SrcdsBotTeamPresets = botTeam.saved
+		if _, err := settings.CheckRunSelection(next); err != nil {
+			return next, err
+		}
 		return next, nil
 	}
 
@@ -463,9 +466,18 @@ func runSettingsDialog(
 									declarative.CheckBox{AssignTo: &moonlightBox, Text: "Moonlight Archive", Checked: moonlightSelected, OnCheckedChanged: func() { pool.setPack(settings.CommunityPackMoonlight, moonlightBox.Checked()) }},
 								},
 							},
-							declarative.TextLabel{
-								Text:       "Compatibility: 19 stock-TF2 missions with BSP and NAV files are selectable on Windows and Linux. Bogland and Cyberia are shown red and locked because their packs have no bot NAV; RafMod missions remain reserved and hidden.",
-								ColumnSpan: 2, MinSize: declarative.Size{Width: 700},
+							declarative.Label{Text: "Archipelago capacity", ToolTipText: "Check that the eligible mission pool has enough locations for all mission, class, and weapon-slot unlocks."},
+							declarative.PushButton{
+								Text: "Check Run Selection",
+								OnClicked: func() {
+									next, err := collect()
+									if err != nil {
+										walk.MsgBox(dialog, "Archipelago run selection", err.Error(), walk.MsgBoxIconWarning)
+										return
+									}
+									result, _ := settings.CheckRunSelection(next)
+									walk.MsgBox(dialog, "Archipelago run selection", result.Summary(), walk.MsgBoxIconInformation)
+								},
 							},
 							label("Start mission", "Where the run begins, as map - mission. The seed starts there and the server boots there. Any lets the seed draw the easiest mission it took."),
 							declarative.ComboBox{

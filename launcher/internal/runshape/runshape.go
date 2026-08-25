@@ -24,8 +24,9 @@ type Tier struct {
 
 // Tiers lists the pools worth offering, easiest first.
 //
-// Haunted is left out. It holds one mission, and a pool of one gives too few
-// locations for the items of a run, so generation stops with an error.
+// Haunted is left out as a useful launcher preset. It holds only Caliginous
+// Caper, so it has no mission-ticket progression and commits the run to one
+// unusually long 666-robot mission. Hand-authored YAML may still use it.
 func Tiers() []Tier {
 	tiers := make([]Tier, 0, len(gamedata.Difficulties))
 	for _, difficulty := range gamedata.Difficulties {
