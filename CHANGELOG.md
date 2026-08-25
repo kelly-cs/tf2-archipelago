@@ -22,6 +22,10 @@ in the release notes, so this file is the only place to write it.
   and medics no longer stand where the wave left them for the whole break, and a
   class you untick is never played, whatever the map would have picked. The
   sniper standing in spawn was the same freeze as the engineers.
+- On an advanced or expert mission the bots wait for the wave beside the
+  engineer's sentry instead of at the robots' own gate, which is four fewer
+  deaths an attempt on the wave a player reported as unwinnable. That wave is
+  still lost by a team of bots alone.
 
 ## v1.9.0
 
