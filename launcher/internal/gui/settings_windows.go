@@ -466,10 +466,6 @@ func runSettingsDialog(
 									declarative.CheckBox{AssignTo: &moonlightBox, Text: "Moonlight Archive", Checked: moonlightSelected, OnCheckedChanged: func() { pool.setPack(settings.CommunityPackMoonlight, moonlightBox.Checked()) }},
 								},
 							},
-							declarative.TextLabel{
-								Text:       "Compatibility: 19 stock-TF2 missions with BSP and NAV files are selectable on Windows and Linux. Bogland and Cyberia are shown red and locked because their packs have no bot NAV; RafMod missions remain reserved and hidden.",
-								ColumnSpan: 2, MinSize: declarative.Size{Width: 700},
-							},
 							declarative.Label{Text: "Archipelago capacity", ToolTipText: "Check that the eligible mission pool has enough locations for all mission, class, and weapon-slot unlocks."},
 							declarative.PushButton{
 								Text: "Check Run Selection",
