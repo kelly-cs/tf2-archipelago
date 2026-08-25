@@ -203,6 +203,12 @@ func (f *settingsForm) missionFields() []field {
 			hint:  "enter",
 			run:   f.useLocalCommunityAssets,
 		},
+		&actionField{
+			label: "Check Run Selection",
+			help:  "Confirm that the eligible mission pool has enough checks to hold every mission, class, and weapon-slot unlock.",
+			hint:  "enter",
+			run:   f.checkRunSelection,
+		},
 		&choiceField{
 			label:   "Start mission",
 			help:    "Where the run begins. The seed starts there and the server boots there.",
@@ -254,6 +260,16 @@ func (f *settingsForm) missionFields() []field {
 		}
 	}
 	return fields
+}
+
+func (f *settingsForm) checkRunSelection() tea.Cmd {
+	return func() tea.Msg {
+		result, err := settings.CheckRunSelection(f.edited)
+		if err != nil {
+			return noticeMsg(err.Error())
+		}
+		return noticeMsg(result.Summary())
+	}
 }
 
 func (f *settingsForm) downloadSelectedCommunityAssets() tea.Cmd {
@@ -865,12 +881,19 @@ func (f *settingsForm) save() tea.Cmd {
 	if f.edited.SrcdsReach.NeedsToken() && !settings.HasToken(f.edited.SrcdsToken) {
 		f.warn = "that reach needs a login token, or the server stays on the local network"
 	}
+	if _, err := settings.CheckRunSelection(f.edited); err != nil {
+		f.warn = err.Error()
+		return nil
+	}
 	f.closed = true
 	return f.saved(f.edited)
 }
 
 func (f *settingsForm) generateSeed() tea.Cmd {
 	return func() tea.Msg {
+		if _, err := settings.CheckRunSelection(f.edited); err != nil {
+			return noticeMsg(err.Error())
+		}
 		if _, err := generate.FindApp(f.edited.ArchipelagoDir); err != nil {
 			return noticeMsg("the Archipelago app was not found in " +
 				strings.Join(generate.SearchPath(f.edited.ArchipelagoDir), ", "))

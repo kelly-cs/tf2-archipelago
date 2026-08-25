@@ -112,6 +112,9 @@ func run(logger *slog.Logger) error {
 
 	if *configureFlag {
 		s = configure(ui.New(), s)
+		if _, err := settings.CheckRunSelection(s); err != nil {
+			return err
+		}
 		if err := settings.Save(s); err != nil {
 			return fmt.Errorf("cannot save the configuration: %w", err)
 		}

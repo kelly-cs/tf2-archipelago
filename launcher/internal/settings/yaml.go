@@ -106,6 +106,9 @@ const PlayerFileName = "tf2.yaml"
 // copy here follows whatever the settings now say. The copy the player put in
 // the Archipelago app is theirs and is never touched.
 func WritePlayerFile(s Settings, archipelagoVersion string) (string, error) {
+	if _, err := CheckRunSelection(s); err != nil {
+		return "", err
+	}
 	if err := os.MkdirAll(s.InstallRoot, 0o755); err != nil {
 		return "", fmt.Errorf("cannot create %s: %w", s.InstallRoot, err)
 	}
