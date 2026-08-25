@@ -121,7 +121,9 @@ Some meshes report a valid route even though locomotion repeatedly jumps into
 a corner. A second watchdog samples actual horizontal movement once per second
 after shopping. If a bot remains in spawn without making 96 units of progress
 for six seconds, it uses the same hatch recovery. Shopping bots are excluded,
-so a slow upgrade purchase cannot trigger the watchdog.
+so a slow upgrade purchase cannot trigger the watchdog. A separate twelve
+second deadline catches bots that keep moving or jumping around inside one
+corner and would otherwise fool the distance-based check.
 
 This is enabled for every map and has no map-name or coordinate allowlist. A
 normal connected map is unchanged. Recovery also refuses to act on humans,
