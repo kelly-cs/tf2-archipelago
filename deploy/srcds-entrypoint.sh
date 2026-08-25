@@ -166,6 +166,12 @@ install_server_cfg() {
 	sv_pausable 0
 	setpause 0
 
+	// A stock server refuses direct downloads larger than 16 MB. Potato maps
+	// such as Autumnull fit under Source's 64 MB direct-download cap.
+	sv_allowdownload 1
+	sv_allowupload 0
+	net_maxfilesize 64
+
 	// Long enough to stop a scan, short enough that fat-fingering the password
 	// does not lock the operator out for a day.
 	sv_rcon_banpenalty 15

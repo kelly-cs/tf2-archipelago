@@ -126,8 +126,10 @@ community-content/
     └── scripts/items/mvm_upgrades_tf2ap_example.txt
 ```
 
-The server copies this tree into TF2's game directory on startup. Maps are
-downloaded by joining clients. Custom upgrade tables are added to Source's
+The server copies this tree into TF2's game directory on startup. Joining
+clients receive the active map through Source's direct downloader; the managed
+server configuration raises its stock 16 MB limit to the 64 MB engine cap.
+Custom upgrade tables are added to Source's
 download table and selected automatically whenever Archipelago changes to the
 mission that names them. Population files and `.nav` files are server-side.
 
