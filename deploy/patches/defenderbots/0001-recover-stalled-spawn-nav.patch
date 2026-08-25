@@ -50,17 +50,42 @@ diff --git a/source/redbots3/behavior/movetofront.sp b/source/redbots3/behavior/
 diff --git a/source/redbots3/behavior/upgrade.sp b/source/redbots3/behavior/upgrade.sp
 --- a/source/redbots3/behavior/upgrade.sp
 +++ b/source/redbots3/behavior/upgrade.sp
-@@ -244,5 +244,6 @@ public void CTFBotUpgrade_OnEnd(BehaviorAction action, int actor, BehaviorAction
+@@ -244,6 +244,7 @@ public void CTFBotUpgrade_OnEnd(BehaviorAction action, int actor, BehaviorAction
  		g_iBuyUpgradesNumber[actor] = 0;
  		
  		TF2_SetInUpgradeZone(actor, false);
 +		RecoverDefenderFromDisconnectedSpawn(actor);
  	}
  }
+ 
 diff --git a/source/redbots3/nextbot_behavior.sp b/source/redbots3/nextbot_behavior.sp
 --- a/source/redbots3/nextbot_behavior.sp
 +++ b/source/redbots3/nextbot_behavior.sp
-@@ -121,7 +121,7 @@ bool PathFailedFor(int client)
+@@ -110,6 +110,23 @@ bot doing this often is a bot the map's nav mesh has a hole in. */
+ static bool m_bPathFailed[MAXPLAYERS + 1];
+ static int m_iPathFailures[MAXPLAYERS + 1];
+ 
++//A valid path can still drive a bot into a corner forever. Watch real progress while it is
++//supposed to be leaving spawn, independently of what the path builder claimed.
++#define SPAWN_EXIT_WATCH_INTERVAL  1.0
++#define SPAWN_EXIT_STALL_TIME      6.0
++#define SPAWN_EXIT_PROGRESS        96.0
++
++static float m_vecSpawnExitProgress[MAXPLAYERS + 1][3];
++static float m_flSpawnExitProgressAt[MAXPLAYERS + 1];
++static float m_flSpawnExitWatchAt[MAXPLAYERS + 1];
++
++void ResetSpawnExitWatch(int client)
++{
++	m_vecSpawnExitProgress[client] = NULL_VECTOR;
++	m_flSpawnExitProgressAt[client] = 0.0;
++	m_flSpawnExitWatchAt[client] = 0.0;
++}
++
+ int PathFailuresOf(int client)
+ {
+ 	return m_iPathFailures[client];
+@@ -121,7 +138,7 @@ bool PathFailedFor(int client)
  	return m_bPathFailed[client];
  }
  
@@ -69,7 +94,7 @@ diff --git a/source/redbots3/nextbot_behavior.sp b/source/redbots3/nextbot_behav
  {
  	ILocomotion myLoco = myBot.GetLocomotionInterface();
  	
-@@ -179,6 +179,50 @@ static void NotePathResult(int actor, bool built)
+@@ -179,6 +196,110 @@ static void NotePathResult(int actor, bool built)
  	m_bPathFailed[actor] = failed;
  }
  
@@ -82,6 +107,37 @@ diff --git a/source/redbots3/nextbot_behavior.sp b/source/redbots3/nextbot_behav
 +The destination is a random point in the hatch area rather than the capture brush's centre, which
 +may be inside the hatch model. From there the normal front, patient, nest and attack behaviours
 +take over. A map with no NAV at all still returns false and remains honestly unsupported. */
++static bool MoveDefenderFromSpawnToHatch(int client, const char[] reason)
++{
++	if (client < 1 || client > MaxClients || !IsClientInGame(client) || !IsPlayerAlive(client) || !g_bIsDefenderBot[client])
++		return false;
++
++	if (!TF2Util_IsPointInRespawnRoom(WorldSpaceCenter(client), client))
++		return false;
++
++	int hatch = GetCapturableAreaTrigger(GetPlayerEnemyTeam(client));
++
++	if (hatch == -1)
++		return false;
++
++	CNavArea area = TheNavMesh.GetNearestNavArea(WorldSpaceCenter(hatch), true, 1000.0, true, true, GetClientTeam(client));
++
++	if (area == NULL_AREA)
++		return false;
++
++	float destination[3]; CNavArea_GetRandomPoint(area, destination);
++	destination[2] += 10.0;
++	float stopped[3];
++
++	TeleportEntity(client, destination, NULL_VECTOR, stopped);
++	CBaseCombatCharacter(client).UpdateLastKnownArea();
++	m_flRepathTime[client] = 0.0;
++	ResetSpawnExitWatch(client);
++
++	LogMessage("SpawnNavRecovery: %N %s; moved them to the battlefield NAV mesh near the hatch", client, reason);
++	return true;
++}
++
 +bool RecoverDefenderFromDisconnectedSpawn(int client)
 +{
 +	if (client < 1 || client > MaxClients || !IsClientInGame(client) || !IsPlayerAlive(client) || !g_bIsDefenderBot[client])
@@ -105,22 +161,51 @@ diff --git a/source/redbots3/nextbot_behavior.sp b/source/redbots3/nextbot_behav
 +	if (IsPathToVectorPossible(client, anchor))
 +		return false;
 +
-+	float destination[3]; CNavArea_GetRandomPoint(area, destination);
-+	destination[2] += 10.0;
-+	float stopped[3];
++	return MoveDefenderFromSpawnToHatch(client, "has no route out of spawn");
++}
 +
-+	TeleportEntity(client, destination, NULL_VECTOR, stopped);
-+	CBaseCombatCharacter(client).UpdateLastKnownArea();
-+	m_flRepathTime[client] = 0.0;
++void WatchDefenderSpawnExit(int client)
++{
++	RoundState state = GameRules_GetRoundState();
++	bool shouldLeave = state == RoundState_RoundRunning ? g_bHasUpgraded[client] :
++		state == RoundState_BetweenRounds && (g_bShoppedThisBreak[client] || !redbots_manager_bot_use_upgrades.BoolValue);
 +
-+	LogMessage("RecoverDefenderFromDisconnectedSpawn: %N's spawn has no route to the hatch; moved them onto the battlefield NAV mesh", client);
-+	return true;
++	if (!shouldLeave || TF2_IsInUpgradeZone(client) || !TF2Util_IsPointInRespawnRoom(WorldSpaceCenter(client), client))
++	{
++		ResetSpawnExitWatch(client);
++		return;
++	}
++
++	float now = GetGameTime();
++
++	if (m_flSpawnExitWatchAt[client] > now)
++		return;
++
++	m_flSpawnExitWatchAt[client] = now + SPAWN_EXIT_WATCH_INTERVAL;
++
++	float here[3]; here = GetAbsOrigin(client);
++	float flatHere[3]; flatHere = here;
++	float flatPrevious[3]; flatPrevious = m_vecSpawnExitProgress[client];
++	flatHere[2] = 0.0;
++	flatPrevious[2] = 0.0;
++
++	if (m_flSpawnExitProgressAt[client] == 0.0 || GetVectorDistance(flatHere, flatPrevious) >= SPAWN_EXIT_PROGRESS)
++	{
++		m_vecSpawnExitProgress[client] = here;
++		m_flSpawnExitProgressAt[client] = now;
++		return;
++	}
++
++	if (now - m_flSpawnExitProgressAt[client] < SPAWN_EXIT_STALL_TIME)
++		return;
++
++	MoveDefenderFromSpawnToHatch(client, "made no spawn-exit progress for six seconds");
 +}
 +
  #include "behavior/attack.sp"
  #include "behavior/markgiant.sp"
  #include "behavior/collectmoney.sp"
-@@ -1412,6 +1456,10 @@ public Action CTFBotSpyLeaveSpawnRoom_OnStart(BehaviorAction action, int actor,
+@@ -1412,6 +1533,10 @@ public Action CTFBotSpyLeaveSpawnRoom_OnStart(BehaviorAction action, int actor,
  Action GetDesiredBotAction(int client, BehaviorAction action)
  {
  	RoundState state = GameRules_GetRoundState();
@@ -131,3 +216,31 @@ diff --git a/source/redbots3/nextbot_behavior.sp b/source/redbots3/nextbot_behav
  	
  	if (state == RoundState_BetweenRounds)
  	{
+diff --git a/source/tf2_defenderbots.sp b/source/tf2_defenderbots.sp
+--- a/source/tf2_defenderbots.sp
++++ b/source/tf2_defenderbots.sp
+@@ -564,6 +564,7 @@ public void OnClientDisconnect(int client)
+ 		CreateTimer(0.1, Timer_RefillDefenderTeam, _, TIMER_FLAG_NO_MAPCHANGE);
+ 	
+ 	g_bIsDefenderBot[client] = false;
++	ResetSpawnExitWatch(client);
+ 	
+ 	g_bChoosingBotClasses[client] = false;
+ 	
+@@ -604,6 +605,7 @@ public void OnClientPutInServer(int client)
+ 	g_bHasBoughtUpgrades[client] = false;
+ 	
+ 	ResetNextBot(client);
++	ResetSpawnExitWatch(client);
+ 	
+ #if defined IDLEBOT_AIMING
+ 	BotAim(client).Reset();
+@@ -629,6 +631,8 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
+ 	
+ 	if (IsPlayerAlive(client))
+ 	{
++		WatchDefenderSpawnExit(client);
++
+ 		if (g_arrExtraButtons[client].iPress != 0)
+ 		{
+ 			if (g_arrExtraButtons[client].iPress & IN_BACK)

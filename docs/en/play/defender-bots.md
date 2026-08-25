@@ -117,6 +117,12 @@ to the active bomb hatch. If there is no route, it moves only that bot to a
 random walkable point around the hatch and lets its normal class behavior
 continue. The same check covers a mid-wave respawn.
 
+Some meshes report a valid route even though locomotion repeatedly jumps into
+a corner. A second watchdog samples actual horizontal movement once per second
+after shopping. If a bot remains in spawn without making 96 units of progress
+for six seconds, it uses the same hatch recovery. Shopping bots are excluded,
+so a slow upgrade purchase cannot trigger the watchdog.
+
 This is enabled for every map and has no map-name or coordinate allowlist. A
 normal connected map is unchanged. Recovery also refuses to act on humans,
 bots outside spawn, maps without an active capture zone, and maps without a
@@ -126,7 +132,7 @@ bot-compatible.
 To verify a community map, start a wave and run `sm_dump_front` from an admin
 console twice, about 15 seconds apart. Goal distances should fall as bots move.
 When recovery is needed, the server log contains
-`RecoverDefenderFromDisconnectedSpawn` and the bot appears near the hatch.
+`SpawnNavRecovery` and the bot appears near the hatch.
 Increasing dead-end-path counts elsewhere on the battlefield indicate a
 different NAV problem rather than the disconnected-spawn case.
 
