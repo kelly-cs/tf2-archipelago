@@ -105,7 +105,7 @@ func run(logger *slog.Logger) error {
 	}
 
 	if *installFlag {
-		_, err := installer.Ensure(context.Background(), s.InstallRoot, logf(logger))
+		_, err := installer.Ensure(context.Background(), s.InstallRoot, settings.CommunityArchives(s), logf(logger))
 		return err
 	}
 
@@ -175,7 +175,7 @@ func writeStarterYAML(s settings.Settings) error {
 }
 
 func ensureInstalled(s settings.Settings, logger *slog.Logger) settings.Settings {
-	result, err := installer.Ensure(context.Background(), s.InstallRoot, logf(logger))
+	result, err := installer.Ensure(context.Background(), s.InstallRoot, settings.CommunityArchives(s), logf(logger))
 	if err != nil {
 		logger.Error("install failed", "error", err, "advice", installer.RepairAdvice)
 		os.Exit(1)
