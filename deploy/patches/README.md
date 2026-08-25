@@ -11,6 +11,7 @@ upstream tag, tag the result, and bump `DEFENDERBOTS_VERSION`.
 
 | Patch | Why |
 | --- | --- |
+| `defenderbots/0001-recover-disconnected-spawn-nav.patch` | Defender bots retry refused setup paths. A bot still in spawn with no NAV route to the active bomb hatch is moved to a random walkable point around the hatch; connected maps are unchanged. |
 | `tf2attributes/0001-drop-pragma-unused-before-declaration.patch` | `#pragma unused` sits above the function it names, and spcomp 1.12 resolves it before the declaration exists. Nothing compiles without this. |
 | `actions/0001-drop-libudis86-and-asm-sources.patch` | Only for a from-source build of the extension. SourceMod removed `public/libudis86` and `public/asm` in commit `e07c120c`; the AMBuilder still lists them. |
 | `actions/0002-do-not-treat-sdk-warnings-as-errors.patch` | Only for a from-source build. `-Werror` against the current hl2sdk fails on `#pragma warning` blocks in `vstdlib/random.h`. |

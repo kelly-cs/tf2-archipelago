@@ -108,6 +108,28 @@ buys uber rate, a Rescue Ranger buys metal. An Engineer buys the sentry,
 because that is where its damage is, and a Medic buys healing rather than a
 syringe gun. Resistances come last: a bot respawns every wave.
 
+## Community-map navigation recovery
+
+Defender bots recover automatically when a community map puts RED spawn on a
+disconnected NAV island. When a bot finishes shopping or starts its walk to
+the front, the plugin tests whether its current spawn position has a NAV route
+to the active bomb hatch. If there is no route, it moves only that bot to a
+random walkable point around the hatch and lets its normal class behavior
+continue. The same check covers a mid-wave respawn.
+
+This is enabled for every map and has no map-name or coordinate allowlist. A
+normal connected map is unchanged. Recovery also refuses to act on humans,
+bots outside spawn, maps without an active capture zone, and maps without a
+walkable NAV area near that zone. It cannot make a map with no usable NAV mesh
+bot-compatible.
+
+To verify a community map, start a wave and run `sm_dump_front` from an admin
+console twice, about 15 seconds apart. Goal distances should fall as bots move.
+When recovery is needed, the server log contains
+`RecoverDefenderFromDisconnectedSpawn` and the bot appears near the hatch.
+Increasing dead-end-path counts elsewhere on the battlefield indicate a
+different NAV problem rather than the disconnected-spawn case.
+
 ## Who wrote them
 
 [OfficerSpy/TF2-MvM-Defender-TFBots][mod], GPL-3.0, plus five dependencies:
