@@ -603,6 +603,31 @@ func cashBundleID(t *testing.T) int64 {
 	return 0
 }
 
+func TestWeaponBuffIsPersistentUnlockState(t *testing.T) {
+	var item gamedata.Item
+	for _, candidate := range gamedata.Items {
+		if candidate.Kind == gamedata.ItemWeaponBuff {
+			item = candidate
+			break
+		}
+	}
+	if item.ID == 0 {
+		t.Fatal("no weapon buff item in gamedata")
+	}
+	store := openTemp(t)
+	if err := store.ApplyItems(0, []int64{item.ID}); err != nil {
+		t.Fatal(err)
+	}
+	buff, ok := gamedata.WeaponBuffByID(item.WeaponBuff)
+	if !ok {
+		t.Fatalf("unknown weapon buff id %d", item.WeaponBuff)
+	}
+	held := store.Unlocks().Of(gamedata.ItemWeaponBuff)
+	if len(held) != 1 || held[0] != buff.Key {
+		t.Fatalf("weapon buff unlocks = %v, want %q", held, buff.Key)
+	}
+}
+
 func progressiveSlotID(t *testing.T) int64 {
 	t.Helper()
 	for _, item := range gamedata.Items {

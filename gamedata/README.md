@@ -16,16 +16,17 @@ project knows, and for every Archipelago id. Read [ADR
 | `ids.go` | The base id and every derivation from it |
 | `locations.go` | The 210 checks, and the objective the plugin reports for each |
 | `items.go` | The item pool template |
+| `weapons_generated.go` | Append-only functional weapon catalog and passive buffs |
 | `validate.go` | Every invariant the id scheme rests on |
 | `export.go` | Writes `apworld/tf2_mvm/data/*.json` |
 
-Not here yet, and deliberately not in v1: weapons, upgrade lines, canteens,
-allied robot templates, traps. Weapon *slots* are enough to make a progression,
-and the weapon table is the largest data-entry job in the project. The starting
-point when they land is `worlds/tf2/Items.py` in ALPHAMARIOX's fork, 556 lines
-of Python dicts: port them to Go, do not vendor the Python. See
-[`../docs/en/prior-art.md`](../docs/en/prior-art.md) for what is in there and what is
-broken in it.
+Not here yet: canteens, allied robot templates and traps. Weapon ownership
+still uses progressive slots; `WeaponBuffs` adds useful, item-specific bonuses
+without making a particular loadout part of the completion logic.
+
+`tools/import_tf2_weapons.py` reads Valve's installed item schema to discover
+new functional weapons. Its output is reviewed and appended rather than used
+at build time: a game update must never renumber existing Archipelago ids.
 
 ## What does not go here
 

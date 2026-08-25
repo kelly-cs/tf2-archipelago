@@ -89,6 +89,7 @@ type itemJSON struct {
 	MissionID      MissionID `json:"mission_id,omitempty"`
 	ClassID        ClassID   `json:"class_id,omitempty"`
 	Credits        uint16    `json:"credits,omitempty"`
+	WeaponBuffID   uint16    `json:"weapon_buff_id,omitempty"`
 }
 
 // Export writes the three data files into dir, replacing what is there.
@@ -183,6 +184,7 @@ func buildItemsFile() itemsFile {
 			MissionID:      it.Mission,
 			ClassID:        it.Class,
 			Credits:        it.Credits,
+			WeaponBuffID:   it.WeaponBuff,
 		})
 	}
 	return file

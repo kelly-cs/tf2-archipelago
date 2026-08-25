@@ -196,6 +196,18 @@ class TF2MvMWorld(World):
             self.create_item(data.PROGRESSIVE_WEAPON_SLOT)
             for _ in range(data.WEAPON_SLOT_COUNT - slots_held)
         ]
+
+        # Weapon buffs are useful filler: every functional weapon is in the
+        # data package, while a seed draws as many distinct buffs as its chosen
+        # missions have checks left to hold. This keeps small runs valid.
+        buff_count = min(
+            len(data.WEAPON_BUFF_NAMES),
+            self._check_count(self.missions) - len(pool),
+        )
+        pool += [
+            self.create_item(name)
+            for name in self.random.sample(data.WEAPON_BUFF_NAMES, buff_count)
+        ]
         pool += [self.create_filler() for _ in range(self._check_count(self.missions) - len(pool))]
         self.multiworld.itempool += pool
 

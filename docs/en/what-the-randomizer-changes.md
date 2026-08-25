@@ -47,8 +47,20 @@ gives it to you: at spawn, at the resupply locker, and at the upgrade station.
 If the weapon that goes away is the one in your hands, the server puts another
 one there, so you are never left holding nothing.
 
-The individual weapons are not randomized. The Scattergun and the
-Force-A-Nature are the same item to this run: a primary weapon slot.
+Weapon ownership is not randomized. The Scattergun and the Force-A-Nature are
+the same item to the slot lock: either can be equipped once Primary is open.
+
+Individual weapons can receive useful passive buffs, however. The catalog has
+one buff for each functional weapon and named reskin in TF2. A buff only
+applies to that item definition, and combines with upgrades bought at the MvM
+station. Examples include extra damage, faster firing or reload, a larger
+clip, healing on kill, and bleed on hit.
+
+A run samples distinct buffs to fill the checks left after its required
+classes, slots and mission tickets. Small runs therefore contain a subset of
+the catalog; a run never creates more items than it has locations. Entering an
+upgrade station opens a numbered menu listing the buffs that apply to the
+weapons in the current loadout. `sm_ap_buffs` opens the same menu on demand.
 
 ## The missions sit behind tickets
 

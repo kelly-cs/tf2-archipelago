@@ -112,6 +112,8 @@ rcon sm_ap_status
 | `sm_ap_status` | Print the mission, the wave, which game events exist, the unlocks, the missions, the state of the chat relay, the queue depth, and the last error |
 | `sm_ap_mission` | List the missions of the run. With an argument, switch to one |
 | `sm_ap_resync` | Ask the bridge for the unlock set again |
+| `sm_ap_buffs` | Open the numbered menu of buffs applying to the current loadout |
+| `sm_ap_buff_test` | Temporarily unlock the active weapon's buff for a local test; root admin only |
 | `sm_ap_report wave_cleared 3` | Report a cleared wave by hand |
 | `sm_ap_report mission_cleared` | Report a cleared mission by hand |
 

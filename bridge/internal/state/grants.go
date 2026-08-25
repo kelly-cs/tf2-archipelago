@@ -118,6 +118,13 @@ func grantFor(item gamedata.Item, slotsGranted int) (Grant, bool) {
 	case gamedata.ItemCredits:
 		return Grant{Kind: item.Kind.Key(), Amount: int(item.Credits), Name: item.Name}, true
 
+	case gamedata.ItemWeaponBuff:
+		buff, ok := gamedata.WeaponBuffByID(item.WeaponBuff)
+		if !ok {
+			return Grant{}, false
+		}
+		return Grant{Kind: item.Kind.Key(), Key: buff.Key, Name: item.Name}, true
+
 	default:
 		return Grant{}, false
 	}

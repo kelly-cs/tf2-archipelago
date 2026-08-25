@@ -9,6 +9,7 @@ const (
 	ItemClass
 	ItemWeaponSlot
 	ItemCredits
+	ItemWeaponBuff
 )
 
 var itemKindKeys = [...]string{
@@ -16,11 +17,12 @@ var itemKindKeys = [...]string{
 	ItemClass:         "class",
 	ItemWeaponSlot:    "weapon_slot",
 	ItemCredits:       "credits",
+	ItemWeaponBuff:    "weapon_buff",
 }
 
 // ItemKinds is every kind that exists, in id order. The bridge walks it to
 // build the unlock set, so a kind added here needs no second list anywhere.
-var ItemKinds = []ItemKind{ItemMissionTicket, ItemClass, ItemWeaponSlot, ItemCredits}
+var ItemKinds = []ItemKind{ItemMissionTicket, ItemClass, ItemWeaponSlot, ItemCredits, ItemWeaponBuff}
 
 // Key is the string on the wire between the bridge and the plugin.
 func (k ItemKind) Key() string { return itemKindKeys[k] }
@@ -48,6 +50,7 @@ type Item struct {
 	Mission        MissionID
 	Class          ClassID
 	Credits        uint16
+	WeaponBuff     uint16
 }
 
 // ProgressiveWeaponSlotName is the one item that unlocks loadout slots: copy n
@@ -87,7 +90,7 @@ func ItemByID(id int64) (Item, bool) {
 }
 
 func buildItems() []Item {
-	all := make([]Item, 0, len(Missions)+len(Classes)+2)
+	all := make([]Item, 0, len(Missions)+len(Classes)+len(WeaponBuffs)+2)
 	for _, m := range Missions {
 		all = append(all, Item{
 			ID:             m.TicketItemID(),
@@ -122,5 +125,14 @@ func buildItems() []Item {
 		Classification: Filler,
 		Credits:        cashBundleCredits,
 	})
+	for _, buff := range WeaponBuffs {
+		all = append(all, Item{
+			ID:             buff.ItemID(),
+			Name:           buff.ItemName(),
+			Kind:           ItemWeaponBuff,
+			Classification: Useful,
+			WeaponBuff:     buff.ID,
+		})
+	}
 	return all
 }

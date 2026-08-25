@@ -319,6 +319,1702 @@
       "classification": "filler",
       "count": 0,
       "credits": 200
+    },
+    {
+      "id": 7443005001,
+      "name": "Weapon Buff: Air Strike — +10% firing speed",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 1
+    },
+    {
+      "id": 7443005002,
+      "name": "Weapon Buff: Ali Baba's Wee Booties — +5% movement speed while active",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 2
+    },
+    {
+      "id": 7443005003,
+      "name": "Weapon Buff: Ambassador — +25% clip size",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 3
+    },
+    {
+      "id": 7443005004,
+      "name": "Weapon Buff: Amputator — 2 seconds of critical hits on kill",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 4
+    },
+    {
+      "id": 7443005005,
+      "name": "Weapon Buff: Ap-Sap — +5% movement speed while active",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 5
+    },
+    {
+      "id": 7443005006,
+      "name": "Weapon Buff: Apoco-Fists — +10% damage",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 6
+    },
+    {
+      "id": 7443005007,
+      "name": "Weapon Buff: Atomizer — +10% firing speed",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 7
+    },
+    {
+      "id": 7443005008,
+      "name": "Weapon Buff: AWPer Hand — +10% firing speed",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 8
+    },
+    {
+      "id": 7443005009,
+      "name": "Weapon Buff: Axtinguisher — inflicts 3 seconds of bleed",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 9
+    },
+    {
+      "id": 7443005010,
+      "name": "Weapon Buff: B.A.S.E. Jumper — +25% clip size",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 10
+    },
+    {
+      "id": 7443005011,
+      "name": "Weapon Buff: Baby Face's Blaster — +15 health on kill",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 11
+    },
+    {
+      "id": 7443005012,
+      "name": "Weapon Buff: Back Scatter — inflicts 3 seconds of bleed",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 12
+    },
+    {
+      "id": 7443005013,
+      "name": "Weapon Buff: Back Scratcher — +10% firing speed",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 13
+    },
+    {
+      "id": 7443005014,
+      "name": "Weapon Buff: Backburner — +10% damage",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 14
+    },
+    {
+      "id": 7443005015,
+      "name": "Weapon Buff: Bat — inflicts 3 seconds of bleed",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 15
+    },
+    {
+      "id": 7443005016,
+      "name": "Weapon Buff: Bat Outta Hell — 2 seconds of critical hits on kill",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 16
+    },
+    {
+      "id": 7443005017,
+      "name": "Weapon Buff: Battalion's Backup — +20% banner duration",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 17
+    },
+    {
+      "id": 7443005018,
+      "name": "Weapon Buff: Bazaar Bargain — +15 health on kill",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 18
+    },
+    {
+      "id": 7443005019,
+      "name": "Weapon Buff: Beggar's Bazooka — +25% clip size",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 19
+    },
+    {
+      "id": 7443005020,
+      "name": "Weapon Buff: Big Earner — +15 health on kill",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 20
+    },
+    {
+      "id": 7443005021,
+      "name": "Weapon Buff: Big Kill — +10% damage",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 21
+    },
+    {
+      "id": 7443005022,
+      "name": "Weapon Buff: Black Box — 2 seconds of critical hits on kill",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 22
+    },
+    {
+      "id": 7443005023,
+      "name": "Weapon Buff: Black Rose — +15% jump height",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 23
+    },
+    {
+      "id": 7443005024,
+      "name": "Weapon Buff: Blutsauger — +25% clip size",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 24
+    },
+    {
+      "id": 7443005025,
+      "name": "Weapon Buff: Bonesaw — +10% firing speed",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 25
+    },
+    {
+      "id": 7443005026,
+      "name": "Weapon Buff: Bonk! Atomic Punch — inflicts 3 seconds of bleed",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 26
+    },
+    {
+      "id": 7443005027,
+      "name": "Weapon Buff: Bootlegger — +5% movement speed while active",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 27
+    },
+    {
+      "id": 7443005028,
+      "name": "Weapon Buff: Boston Basher — 2 seconds of critical hits on kill",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 28
+    },
+    {
+      "id": 7443005029,
+      "name": "Weapon Buff: Bottle — +15% jump height",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 29
+    },
+    {
+      "id": 7443005030,
+      "name": "Weapon Buff: Brass Beast — +15% reload speed",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30
+    },
+    {
+      "id": 7443005031,
+      "name": "Weapon Buff: Bread Bite — +10% firing speed",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 31
+    },
+    {
+      "id": 7443005032,
+      "name": "Weapon Buff: Buff Banner — +20% banner duration",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 32
+    },
+    {
+      "id": 7443005033,
+      "name": "Weapon Buff: Buffalo Steak Sandvich — inflicts 3 seconds of bleed",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 33
+    },
+    {
+      "id": 7443005034,
+      "name": "Weapon Buff: Bushwacka — 2 seconds of critical hits on kill",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 34
+    },
+    {
+      "id": 7443005035,
+      "name": "Weapon Buff: Candy Cane — +15% jump height",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 35
+    },
+    {
+      "id": 7443005036,
+      "name": "Weapon Buff: Chargin' Targe — +5% movement speed while active",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 36
+    },
+    {
+      "id": 7443005037,
+      "name": "Weapon Buff: Claidheamh Mòr — +10% firing speed",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 37
+    },
+    {
+      "id": 7443005038,
+      "name": "Weapon Buff: Classic — +25% clip size",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 38
+    },
+    {
+      "id": 7443005039,
+      "name": "Weapon Buff: Cleaner's Carbine — +15 health on kill",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 39
+    },
+    {
+      "id": 7443005040,
+      "name": "Weapon Buff: Cloak and Dagger — +5% movement speed while active",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 40
+    },
+    {
+      "id": 7443005041,
+      "name": "Weapon Buff: Concheror — +20% banner duration",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 41
+    },
+    {
+      "id": 7443005042,
+      "name": "Weapon Buff: Conniver's Kunai — +10% damage",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 42
+    },
+    {
+      "id": 7443005043,
+      "name": "Weapon Buff: Conscientious Objector — +10% firing speed",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 43
+    },
+    {
+      "id": 7443005044,
+      "name": "Weapon Buff: Construction PDA — +5% movement speed while active",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 44
+    },
+    {
+      "id": 7443005045,
+      "name": "Weapon Buff: Cow Mangler 5000 — inflicts 3 seconds of bleed",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 45
+    },
+    {
+      "id": 7443005046,
+      "name": "Weapon Buff: Cozy Camper — +5% movement speed while active",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 46
+    },
+    {
+      "id": 7443005047,
+      "name": "Weapon Buff: Crit-a-Cola — inflicts 3 seconds of bleed",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 47
+    },
+    {
+      "id": 7443005048,
+      "name": "Weapon Buff: Crossing Guard — +10% damage",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 48
+    },
+    {
+      "id": 7443005049,
+      "name": "Weapon Buff: Crusader's Crossbow — +10% firing speed",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 49
+    },
+    {
+      "id": 7443005050,
+      "name": "Weapon Buff: Dalokohs Bar — +10% firing speed",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 50
+    },
+    {
+      "id": 7443005051,
+      "name": "Weapon Buff: Darwin's Danger Shield — +5% movement speed while active",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 51
+    },
+    {
+      "id": 7443005052,
+      "name": "Weapon Buff: Dead Ringer — +5% movement speed while active",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 52
+    },
+    {
+      "id": 7443005053,
+      "name": "Weapon Buff: Deflector — +15 health on kill",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 53
+    },
+    {
+      "id": 7443005054,
+      "name": "Weapon Buff: Degreaser — inflicts 3 seconds of bleed",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 54
+    },
+    {
+      "id": 7443005055,
+      "name": "Weapon Buff: Destruction PDA — +5% movement speed while active",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 55
+    },
+    {
+      "id": 7443005056,
+      "name": "Weapon Buff: Detonator — +10% damage",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 56
+    },
+    {
+      "id": 7443005057,
+      "name": "Weapon Buff: Diamondback — +10% firing speed",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 57
+    },
+    {
+      "id": 7443005058,
+      "name": "Weapon Buff: Direct Hit — +15% reload speed",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 58
+    },
+    {
+      "id": 7443005059,
+      "name": "Weapon Buff: Disciplinary Action — +15% jump height",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 59
+    },
+    {
+      "id": 7443005060,
+      "name": "Weapon Buff: Disguise Kit — +5% movement speed while active",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 60
+    },
+    {
+      "id": 7443005061,
+      "name": "Weapon Buff: Dragon's Fury — inflicts 3 seconds of bleed",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 61
+    },
+    {
+      "id": 7443005062,
+      "name": "Weapon Buff: Enforcer — 2 seconds of critical hits on kill",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 62
+    },
+    {
+      "id": 7443005063,
+      "name": "Weapon Buff: Enthusiast's Timepiece — +5% movement speed while active",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 63
+    },
+    {
+      "id": 7443005064,
+      "name": "Weapon Buff: Equalizer — 2 seconds of critical hits on kill",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 64
+    },
+    {
+      "id": 7443005065,
+      "name": "Weapon Buff: Escape Plan — +15% jump height",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 65
+    },
+    {
+      "id": 7443005066,
+      "name": "Weapon Buff: Eureka Effect — +10% damage",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 66
+    },
+    {
+      "id": 7443005067,
+      "name": "Weapon Buff: Eviction Notice — +10% firing speed",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 67
+    },
+    {
+      "id": 7443005068,
+      "name": "Weapon Buff: Eyelander — +15 health on kill",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 68
+    },
+    {
+      "id": 7443005069,
+      "name": "Weapon Buff: Family Business — 2 seconds of critical hits on kill",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 69
+    },
+    {
+      "id": 7443005070,
+      "name": "Weapon Buff: Fan O'War — 2 seconds of critical hits on kill",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 70
+    },
+    {
+      "id": 7443005071,
+      "name": "Weapon Buff: Fire Axe — +15% jump height",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 71
+    },
+    {
+      "id": 7443005072,
+      "name": "Weapon Buff: Fishcake — +15% reload speed",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 72
+    },
+    {
+      "id": 7443005073,
+      "name": "Weapon Buff: Fists — +10% firing speed",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 73
+    },
+    {
+      "id": 7443005074,
+      "name": "Weapon Buff: Fists of Steel — +15 health on kill",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 74
+    },
+    {
+      "id": 7443005075,
+      "name": "Weapon Buff: Flame Thrower — inflicts 3 seconds of bleed",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 75
+    },
+    {
+      "id": 7443005076,
+      "name": "Weapon Buff: Flare Gun — +15 health on kill",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 76
+    },
+    {
+      "id": 7443005077,
+      "name": "Weapon Buff: Flying Guillotine — inflicts 3 seconds of bleed",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 77
+    },
+    {
+      "id": 7443005078,
+      "name": "Weapon Buff: Force-a-Nature — +10% firing speed",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 78
+    },
+    {
+      "id": 7443005079,
+      "name": "Weapon Buff: Fortified Compound — +15% projectile speed",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 79
+    },
+    {
+      "id": 7443005080,
+      "name": "Weapon Buff: Freedom Staff — +15 health on kill",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 80
+    },
+    {
+      "id": 7443005081,
+      "name": "Weapon Buff: Frontier Justice — +15 health on kill",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 81
+    },
+    {
+      "id": 7443005082,
+      "name": "Weapon Buff: Frying Pan — 2 seconds of critical hits on kill",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 82
+    },
+    {
+      "id": 7443005083,
+      "name": "Weapon Buff: Gas Passer — 2 seconds of critical hits on kill",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 83
+    },
+    {
+      "id": 7443005084,
+      "name": "Weapon Buff: Gloves of Running Urgently — +10% damage",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 84
+    },
+    {
+      "id": 7443005085,
+      "name": "Weapon Buff: Golden Frying Pan — +10% firing speed",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 85
+    },
+    {
+      "id": 7443005086,
+      "name": "Weapon Buff: Golden Wrench — +15 health on kill",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 86
+    },
+    {
+      "id": 7443005087,
+      "name": "Weapon Buff: Grenade Launcher — +15% projectile speed",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 87
+    },
+    {
+      "id": 7443005088,
+      "name": "Weapon Buff: Gunboats — +5% movement speed while active",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 88
+    },
+    {
+      "id": 7443005089,
+      "name": "Weapon Buff: Gunslinger — +15% jump height",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 89
+    },
+    {
+      "id": 7443005090,
+      "name": "Weapon Buff: Half-Zatoichi — +10% damage",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 90
+    },
+    {
+      "id": 7443005091,
+      "name": "Weapon Buff: Ham Shank — +10% firing speed",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 91
+    },
+    {
+      "id": 7443005092,
+      "name": "Weapon Buff: Hitman's Heatmaker — +10% firing speed",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 92
+    },
+    {
+      "id": 7443005093,
+      "name": "Weapon Buff: Holiday Punch — inflicts 3 seconds of bleed",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 93
+    },
+    {
+      "id": 7443005094,
+      "name": "Weapon Buff: Holy Mackerel — 2 seconds of critical hits on kill",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 94
+    },
+    {
+      "id": 7443005095,
+      "name": "Weapon Buff: Homewrecker — +15% jump height",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 95
+    },
+    {
+      "id": 7443005096,
+      "name": "Weapon Buff: Horseless Headless Horsemann's Headtaker — +10% damage",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 96
+    },
+    {
+      "id": 7443005097,
+      "name": "Weapon Buff: Hot Hand — +10% firing speed",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 97
+    },
+    {
+      "id": 7443005098,
+      "name": "Weapon Buff: Huntsman — +15% reload speed",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 98
+    },
+    {
+      "id": 7443005099,
+      "name": "Weapon Buff: Huo-Long Heater — +10% firing speed",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 99
+    },
+    {
+      "id": 7443005100,
+      "name": "Weapon Buff: Invis Watch — +5% movement speed while active",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 100
+    },
+    {
+      "id": 7443005101,
+      "name": "Weapon Buff: Iron Bomber — inflicts 3 seconds of bleed",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 101
+    },
+    {
+      "id": 7443005102,
+      "name": "Weapon Buff: Iron Curtain — +15 health on kill",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 102
+    },
+    {
+      "id": 7443005103,
+      "name": "Weapon Buff: Jag — +10% firing speed",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 103
+    },
+    {
+      "id": 7443005104,
+      "name": "Weapon Buff: Jarate — 2 seconds of critical hits on kill",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 104
+    },
+    {
+      "id": 7443005105,
+      "name": "Weapon Buff: Killing Gloves of Boxing — inflicts 3 seconds of bleed",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 105
+    },
+    {
+      "id": 7443005106,
+      "name": "Weapon Buff: Knife — 2 seconds of critical hits on kill",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 106
+    },
+    {
+      "id": 7443005107,
+      "name": "Weapon Buff: Kritzkrieg — +10% healing",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 107
+    },
+    {
+      "id": 7443005108,
+      "name": "Weapon Buff: Kukri — +10% damage",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 108
+    },
+    {
+      "id": 7443005109,
+      "name": "Weapon Buff: L'Étranger — +15 health on kill",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 109
+    },
+    {
+      "id": 7443005110,
+      "name": "Weapon Buff: Liberty Launcher — 2 seconds of critical hits on kill",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 110
+    },
+    {
+      "id": 7443005111,
+      "name": "Weapon Buff: Loch-n-Load — +15% projectile speed",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 111
+    },
+    {
+      "id": 7443005112,
+      "name": "Weapon Buff: Lollichop — 2 seconds of critical hits on kill",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 112
+    },
+    {
+      "id": 7443005113,
+      "name": "Weapon Buff: Loose Cannon — +10% firing speed",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 113
+    },
+    {
+      "id": 7443005114,
+      "name": "Weapon Buff: Lugermorph — +15% reload speed",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 114
+    },
+    {
+      "id": 7443005115,
+      "name": "Weapon Buff: Machina — +25% clip size",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 115
+    },
+    {
+      "id": 7443005116,
+      "name": "Weapon Buff: Mad Milk — +15 health on kill",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 116
+    },
+    {
+      "id": 7443005117,
+      "name": "Weapon Buff: Manmelter — inflicts 3 seconds of bleed",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 117
+    },
+    {
+      "id": 7443005118,
+      "name": "Weapon Buff: Mantreads — +5% movement speed while active",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 118
+    },
+    {
+      "id": 7443005119,
+      "name": "Weapon Buff: Market Gardener — +15% jump height",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 119
+    },
+    {
+      "id": 7443005120,
+      "name": "Weapon Buff: Maul — +10% damage",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 120
+    },
+    {
+      "id": 7443005121,
+      "name": "Weapon Buff: Medi Gun — +10% healing",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 121
+    },
+    {
+      "id": 7443005122,
+      "name": "Weapon Buff: Memory Maker — +15 health on kill",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 122
+    },
+    {
+      "id": 7443005123,
+      "name": "Weapon Buff: Minigun — +15 health on kill",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 123
+    },
+    {
+      "id": 7443005124,
+      "name": "Weapon Buff: Mutated Milk — inflicts 3 seconds of bleed",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 124
+    },
+    {
+      "id": 7443005125,
+      "name": "Weapon Buff: Natascha — 2 seconds of critical hits on kill",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 125
+    },
+    {
+      "id": 7443005126,
+      "name": "Weapon Buff: Necro Smasher — +10% damage",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 126
+    },
+    {
+      "id": 7443005127,
+      "name": "Weapon Buff: Neon Annihilator — +10% firing speed",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 127
+    },
+    {
+      "id": 7443005128,
+      "name": "Weapon Buff: Nessie's Nine Iron — +15 health on kill",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 128
+    },
+    {
+      "id": 7443005129,
+      "name": "Weapon Buff: Original — +10% firing speed",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 129
+    },
+    {
+      "id": 7443005130,
+      "name": "Weapon Buff: Overdose — +15 health on kill",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 130
+    },
+    {
+      "id": 7443005131,
+      "name": "Weapon Buff: Pain Train — +15% jump height",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 131
+    },
+    {
+      "id": 7443005132,
+      "name": "Weapon Buff: Panic Attack — 2 seconds of critical hits on kill",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 132
+    },
+    {
+      "id": 7443005133,
+      "name": "Weapon Buff: PDA — +5% movement speed while active",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 133
+    },
+    {
+      "id": 7443005134,
+      "name": "Weapon Buff: Persian Persuader — +15 health on kill",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 134
+    },
+    {
+      "id": 7443005135,
+      "name": "Weapon Buff: Phlogistinator — +15% reload speed",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 135
+    },
+    {
+      "id": 7443005136,
+      "name": "Weapon Buff: Pistol — +25% clip size",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 136
+    },
+    {
+      "id": 7443005137,
+      "name": "Weapon Buff: Pomson 6000 — +15 health on kill",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 137
+    },
+    {
+      "id": 7443005138,
+      "name": "Weapon Buff: Postal Pummeler — +10% damage",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 138
+    },
+    {
+      "id": 7443005139,
+      "name": "Weapon Buff: Powerjack — +10% firing speed",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 139
+    },
+    {
+      "id": 7443005140,
+      "name": "Weapon Buff: Pretty Boy's Pocket Pistol — +10% damage",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 140
+    },
+    {
+      "id": 7443005141,
+      "name": "Weapon Buff: Quick-Fix — +10% healing",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 141
+    },
+    {
+      "id": 7443005142,
+      "name": "Weapon Buff: Quickiebomb Launcher — +15% reload speed",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 142
+    },
+    {
+      "id": 7443005143,
+      "name": "Weapon Buff: Quäckenbirdt — +5% movement speed while active",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 143
+    },
+    {
+      "id": 7443005144,
+      "name": "Weapon Buff: Rainblower — +15 health on kill",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 144
+    },
+    {
+      "id": 7443005145,
+      "name": "Weapon Buff: Razorback — +5% movement speed while active",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 145
+    },
+    {
+      "id": 7443005146,
+      "name": "Weapon Buff: Red-Tape Recorder — +5% movement speed while active",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 146
+    },
+    {
+      "id": 7443005147,
+      "name": "Weapon Buff: Reissued Enthusiast's Timepiece — +5% movement speed while active",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 147
+    },
+    {
+      "id": 7443005148,
+      "name": "Weapon Buff: Reissued Iron Curtain — +10% firing speed",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 148
+    },
+    {
+      "id": 7443005149,
+      "name": "Weapon Buff: Reissued Lugermorph — +15% reload speed",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 149
+    },
+    {
+      "id": 7443005150,
+      "name": "Weapon Buff: Rescue Ranger — +25% clip size",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 150
+    },
+    {
+      "id": 7443005151,
+      "name": "Weapon Buff: Reserve Shooter — +15 health on kill",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 151
+    },
+    {
+      "id": 7443005152,
+      "name": "Weapon Buff: Revolver — inflicts 3 seconds of bleed",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 152
+    },
+    {
+      "id": 7443005153,
+      "name": "Weapon Buff: Righteous Bison — 2 seconds of critical hits on kill",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 153
+    },
+    {
+      "id": 7443005154,
+      "name": "Weapon Buff: Robo-Sandvich — +10% damage",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 154
+    },
+    {
+      "id": 7443005155,
+      "name": "Weapon Buff: Rocket Jumper — +25% clip size",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 155
+    },
+    {
+      "id": 7443005156,
+      "name": "Weapon Buff: Rocket Launcher — +15 health on kill",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 156
+    },
+    {
+      "id": 7443005157,
+      "name": "Weapon Buff: Sandman — +10% firing speed",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 157
+    },
+    {
+      "id": 7443005158,
+      "name": "Weapon Buff: Sandvich — +15 health on kill",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 158
+    },
+    {
+      "id": 7443005159,
+      "name": "Weapon Buff: Sapper — +5% movement speed while active",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 159
+    },
+    {
+      "id": 7443005160,
+      "name": "Weapon Buff: Saxxy — 2 seconds of critical hits on kill",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 160
+    },
+    {
+      "id": 7443005161,
+      "name": "Weapon Buff: Scattergun — +10% damage",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 161
+    },
+    {
+      "id": 7443005162,
+      "name": "Weapon Buff: Scorch Shot — +15% reload speed",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 162
+    },
+    {
+      "id": 7443005163,
+      "name": "Weapon Buff: Scotsman's Skullcutter — +10% firing speed",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 163
+    },
+    {
+      "id": 7443005164,
+      "name": "Weapon Buff: Scottish Handshake — +15 health on kill",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 164
+    },
+    {
+      "id": 7443005165,
+      "name": "Weapon Buff: Scottish Resistance — +15 health on kill",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 165
+    },
+    {
+      "id": 7443005166,
+      "name": "Weapon Buff: Second Banana — inflicts 3 seconds of bleed",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 166
+    },
+    {
+      "id": 7443005167,
+      "name": "Weapon Buff: Self-Aware Beauty Mark — 2 seconds of critical hits on kill",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 167
+    },
+    {
+      "id": 7443005168,
+      "name": "Weapon Buff: Shahanshah — +10% damage",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 168
+    },
+    {
+      "id": 7443005169,
+      "name": "Weapon Buff: Sharp Dresser — +10% firing speed",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 169
+    },
+    {
+      "id": 7443005170,
+      "name": "Weapon Buff: Sharpened Volcano Fragment — +15 health on kill",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 170
+    },
+    {
+      "id": 7443005171,
+      "name": "Weapon Buff: Short Circuit — +25% clip size",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 171
+    },
+    {
+      "id": 7443005172,
+      "name": "Weapon Buff: Shortstop — +15 health on kill",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 172
+    },
+    {
+      "id": 7443005173,
+      "name": "Weapon Buff: Shotgun — inflicts 3 seconds of bleed",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 173
+    },
+    {
+      "id": 7443005174,
+      "name": "Weapon Buff: Shovel — +10% damage",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 174
+    },
+    {
+      "id": 7443005175,
+      "name": "Weapon Buff: SMG — +10% damage",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 175
+    },
+    {
+      "id": 7443005176,
+      "name": "Weapon Buff: Snack Attack — +5% movement speed while active",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 176
+    },
+    {
+      "id": 7443005177,
+      "name": "Weapon Buff: Sniper Rifle — +15% reload speed",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 177
+    },
+    {
+      "id": 7443005178,
+      "name": "Weapon Buff: Soda Popper — +25% clip size",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 178
+    },
+    {
+      "id": 7443005179,
+      "name": "Weapon Buff: Solemn Vow — +15% jump height",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 179
+    },
+    {
+      "id": 7443005180,
+      "name": "Weapon Buff: Southern Hospitality — +10% damage",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 180
+    },
+    {
+      "id": 7443005181,
+      "name": "Weapon Buff: Splendid Screen — +5% movement speed while active",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 181
+    },
+    {
+      "id": 7443005182,
+      "name": "Weapon Buff: Spy-Cicle — +15 health on kill",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 182
+    },
+    {
+      "id": 7443005183,
+      "name": "Weapon Buff: Sticky Jumper — +10% firing speed",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 183
+    },
+    {
+      "id": 7443005184,
+      "name": "Weapon Buff: Stickybomb Launcher — +15% reload speed",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 184
+    },
+    {
+      "id": 7443005185,
+      "name": "Weapon Buff: Sun-on-a-Stick — +15% jump height",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 185
+    },
+    {
+      "id": 7443005186,
+      "name": "Weapon Buff: Sydney Sleeper — +15 health on kill",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 186
+    },
+    {
+      "id": 7443005187,
+      "name": "Weapon Buff: Syringe Gun — inflicts 3 seconds of bleed",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 187
+    },
+    {
+      "id": 7443005188,
+      "name": "Weapon Buff: Thermal Thruster — +15 health on kill",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 188
+    },
+    {
+      "id": 7443005189,
+      "name": "Weapon Buff: Third Degree — inflicts 3 seconds of bleed",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 189
+    },
+    {
+      "id": 7443005190,
+      "name": "Weapon Buff: Three-Rune Blade — 2 seconds of critical hits on kill",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 190
+    },
+    {
+      "id": 7443005191,
+      "name": "Weapon Buff: Tide Turner — +5% movement speed while active",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 191
+    },
+    {
+      "id": 7443005192,
+      "name": "Weapon Buff: Tomislav — +25% clip size",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 192
+    },
+    {
+      "id": 7443005193,
+      "name": "Weapon Buff: Tribalman's Shiv — +10% firing speed",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 193
+    },
+    {
+      "id": 7443005194,
+      "name": "Weapon Buff: Ullapool Caber — +15 health on kill",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 194
+    },
+    {
+      "id": 7443005195,
+      "name": "Weapon Buff: Unarmed Combat — inflicts 3 seconds of bleed",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 195
+    },
+    {
+      "id": 7443005196,
+      "name": "Weapon Buff: Vaccinator — +10% healing",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 196
+    },
+    {
+      "id": 7443005197,
+      "name": "Weapon Buff: Vita-Saw — +15% jump height",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 197
+    },
+    {
+      "id": 7443005198,
+      "name": "Weapon Buff: Wanga Prick — +10% damage",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 198
+    },
+    {
+      "id": 7443005199,
+      "name": "Weapon Buff: Warrior's Spirit — +10% firing speed",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 199
+    },
+    {
+      "id": 7443005200,
+      "name": "Weapon Buff: Widowmaker — +15 health on kill",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 200
+    },
+    {
+      "id": 7443005201,
+      "name": "Weapon Buff: Winger — inflicts 3 seconds of bleed",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 201
+    },
+    {
+      "id": 7443005202,
+      "name": "Weapon Buff: Wrangler — 2 seconds of critical hits on kill",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 202
+    },
+    {
+      "id": 7443005203,
+      "name": "Weapon Buff: Wrap Assassin — +15% jump height",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 203
+    },
+    {
+      "id": 7443005204,
+      "name": "Weapon Buff: Wrench — +10% damage",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 204
+    },
+    {
+      "id": 7443005205,
+      "name": "Weapon Buff: Your Eternal Reward — +10% firing speed",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 205
+    },
+    {
+      "id": 7443005206,
+      "name": "Weapon Buff: Übersaw — +15 health on kill",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 206
+    },
+    {
+      "id": 7443005207,
+      "name": "Weapon Buff: Batsaber — +15% jump height",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 207
+    },
+    {
+      "id": 7443005208,
+      "name": "Weapon Buff: C.A.P.P.E.R — 2 seconds of critical hits on kill",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 208
+    },
+    {
+      "id": 7443005209,
+      "name": "Weapon Buff: Giger Counter — +10% firing speed",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 209
+    },
+    {
+      "id": 7443005210,
+      "name": "Weapon Buff: Nostromo Napalmer — +10% damage",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 210
+    },
+    {
+      "id": 7443005211,
+      "name": "Weapon Buff: Prinny Machete — inflicts 3 seconds of bleed",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 211
+    },
+    {
+      "id": 7443005212,
+      "name": "Weapon Buff: Shooting Star — +10% damage",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 212
     }
   ]
 }

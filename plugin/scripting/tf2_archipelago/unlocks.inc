@@ -74,6 +74,7 @@ void Unlocks_Clear()
         g_SlotUnlocked[slot] = false;
     }
     g_UnlockedMissions.Clear();
+    WeaponBuffs_Clear();
 }
 
 TFClassType Unlocks_ClassFromKey(const char[] key)
@@ -185,6 +186,7 @@ void Unlocks_ApplyToAll()
         }
         Unlocks_EnforceClass(client);
         Unlocks_EnforceSlots(client);
+        WeaponBuffs_Apply(client);
     }
 }
 

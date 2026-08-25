@@ -4,6 +4,17 @@ What each release changes, for somebody who plays the game. The workflow in
 `.github/workflows/release.yml` reads the section matching the tag and puts it
 in the release notes, so this file is the only place to write it.
 
+## v1.10.0
+
+### Weapon buffs
+
+- The item table has a useful passive buff for each of TF2's 212 functional
+  weapons and named reskins. A run samples distinct buffs to fit its checks.
+- Buffs compose with upgrades bought at the MvM station and are reapplied at
+  spawn, resupply and loadout changes.
+- Entering an upgrade station opens a numbered summary for the current
+  loadout. `sm_ap_buffs` opens it again.
+
 ## v1.9.0
 
 Most of this release is the bots.

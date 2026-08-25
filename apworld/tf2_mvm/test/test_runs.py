@@ -18,6 +18,13 @@ from . import TF2MvMTestBase
 class TestDefaults(TF2MvMTestBase):
     options: ClassVar[dict[str, Any]] = {}
 
+    def test_weapon_buffs_fill_the_useful_space_without_duplicates(self) -> None:
+        buffs = [
+            item.name for item in self.multiworld.itempool if item.name in data.WEAPON_BUFF_NAMES
+        ]
+        self.assertGreater(len(buffs), 0)
+        self.assertEqual(len(buffs), len(set(buffs)))
+
 
 class TestWholeRoster(TF2MvMTestBase):
     options: ClassVar[dict[str, Any]] = {"mission_count": 29, "difficulty_pool": "normal"}

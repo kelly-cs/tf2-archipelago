@@ -17,16 +17,19 @@
 #include <tf2>
 #include <tf2_stocks>
 #include <ripext>
+#include <tf2attributes>
 
 #include "tf2_archipelago/log.inc"
 #include "tf2_archipelago/mvm.inc"
 #include "tf2_archipelago/unlocks.inc"
+#include "tf2_archipelago/weapon_buffs_data.inc"
+#include "tf2_archipelago/weapon_buffs.inc"
 #include "tf2_archipelago/deathlink.inc"
 #include "tf2_archipelago/bridge.inc"
 #include "tf2_archipelago/missions.inc"
 #include "tf2_archipelago/bots.inc"
 
-#define PLUGIN_VERSION "1.9.0"
+#define PLUGIN_VERSION "1.10.0"
 
 // Only used when the wave events turn out not to exist.
 #define WavePollInterval 1.0
@@ -71,6 +74,7 @@ public void OnPluginStart()
     Log_Init();
     MvM_Init();
     Unlocks_Init();
+    WeaponBuffs_Init();
     Bridge_Init();
     Missions_Init();
     Bots_Init();
@@ -104,6 +108,10 @@ public void OnPluginStart()
         "Ask the bridge for the unlock set again");
     RegAdminCmd("sm_ap_mission", Command_Mission, ADMFLAG_CHANGEMAP,
         "List the run's missions, or switch to one: sm_ap_mission [number|popfile]");
+    RegConsoleCmd("sm_ap_buffs", Command_WeaponBuffs,
+        "Show the Archipelago buffs for your current loadout");
+    RegAdminCmd("sm_ap_buff_test", Command_TestWeaponBuff, ADMFLAG_ROOT,
+        "Temporarily unlock the buff for your active weapon");
 
     AutoExecConfig(true, "tf2_archipelago");
 
@@ -463,6 +471,7 @@ public void Event_InventoryApplied(Event event, const char[] name, bool dontBroa
     if (MvM_IsPlayer(client))
     {
         Unlocks_EnforceSlots(client);
+        WeaponBuffs_Apply(client);
     }
 }
 
