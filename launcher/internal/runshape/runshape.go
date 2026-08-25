@@ -32,7 +32,7 @@ func Tiers() []Tier {
 			continue
 		}
 		tier := Tier{Key: difficulty.Key()}
-		for _, mission := range gamedata.Missions {
+		for _, mission := range gamedata.PlayableMissions() {
 			if mission.Difficulty >= difficulty {
 				tier.Missions++
 				tier.Waves += int(mission.Waves)
@@ -51,7 +51,7 @@ func MissionsInPool(key string) int {
 			return tier.Missions
 		}
 	}
-	return len(gamedata.Missions)
+	return len(gamedata.PlayableMissions())
 }
 
 // Label describes a tier in one line, for a menu.
@@ -103,16 +103,27 @@ type MissionChoice struct {
 // MissionChoices lists every mission the tables know, in table order, which
 // is map by map and easiest first.
 func MissionChoices() []MissionChoice {
-	choices := make([]MissionChoice, 0, len(gamedata.Missions))
-	for _, mission := range gamedata.Missions {
+	playable := gamedata.PlayableMissions()
+	choices := make([]MissionChoice, 0, len(playable))
+	for _, mission := range playable {
 		played, _ := gamedata.MapByID(mission.Map)
 		choices = append(choices, MissionChoice{
 			PopFile: mission.PopFile,
-			Label: fmt.Sprintf("%s - %s (%s, %d waves)",
-				played.Name, mission.Name, mission.Difficulty.Key(), mission.Waves),
+			Label: fmt.Sprintf("[%s] %s - %s (%s, %d waves)",
+				missionSource(mission), played.Name, mission.Name, mission.Difficulty.Key(), mission.Waves),
 		})
 	}
 	return choices
+}
+
+func missionSource(mission gamedata.Mission) string {
+	switch gamedata.MissionPack(mission.ID) {
+	case "archive-assets.zip":
+		return "Potato Archive"
+	case "mlarchive-assets.zip":
+		return "Moonlight Archive"
+	}
+	return "Valve"
 }
 
 // MissionLabel is the label of one popfile, or the popfile itself when the

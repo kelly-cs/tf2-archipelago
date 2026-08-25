@@ -166,17 +166,17 @@ func TestTheMissionPoolTakesAllAndNone(t *testing.T) {
 	m.Update(key(","))
 	m.form.tab = 1
 
-	// Start mission, start class, All, None: the third and fourth rows.
-	m.form.focused = 3
+	// Folder, two packs, start mission, start class, All, None.
+	m.form.focused = 6
 	m.Update(key("enter"))
-	if got := len(m.form.edited.MvmExcludedMissions); got != len(gamedata.Missions) {
-		t.Errorf("None left %d missions out, want all %d", got, len(gamedata.Missions))
+	if got := len(m.form.edited.MvmExcludedMissions); got != len(gamedata.PlayableMissions()) {
+		t.Errorf("None left %d missions out, want all %d", got, len(gamedata.PlayableMissions()))
 	}
 	if view := m.form.view(100, 30); !strings.Contains(view, "left out") {
 		t.Errorf("the rows still say the missions are in the pool:\n%s", view)
 	}
 
-	m.form.focused = 2
+	m.form.focused = 5
 	m.Update(key("enter"))
 	if got := len(m.form.edited.MvmExcludedMissions); got != 0 {
 		t.Errorf("All left %d missions out, want none", got)

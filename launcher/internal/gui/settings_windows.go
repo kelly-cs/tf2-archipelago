@@ -73,6 +73,9 @@ func runSettingsDialog(
 		startBox      *walk.ComboBox
 		startClassBox *walk.ComboBox
 		poolView      *walk.TableView
+		contentEdit   *walk.LineEdit
+		potatoBox     *walk.CheckBox
+		moonlightBox  *walk.CheckBox
 
 		appEdit *walk.LineEdit
 
@@ -125,7 +128,9 @@ func runSettingsDialog(
 		choiceLabels = append(choiceLabels, choice.Label)
 	}
 	classLabels := runshape.StartClassChoices()
-	pool := newPoolModel(s.MvmExcludedMissions)
+	potatoSelected := slices.Contains(s.CommunityPacks, settings.CommunityPackPotato)
+	moonlightSelected := slices.Contains(s.CommunityPacks, settings.CommunityPackMoonlight)
+	pool := newPoolModel(s.MvmExcludedMissions, s.CommunityPacks)
 
 	current := settings.Room{Host: s.APHost, Port: s.APPort}
 	edited := s
@@ -161,6 +166,14 @@ func runSettingsDialog(
 		next.MvmGoal = goals[max(goalBox.CurrentIndex(), 0)].Key
 		next.MvmMissionsanityPct = int(sanityPct.Value())
 		next.MvmDeathLink = deathLink.Checked()
+		next.CommunityContentDir = strings.TrimSpace(contentEdit.Text())
+		next.CommunityPacks = []string{}
+		if potatoBox.Checked() {
+			next.CommunityPacks = append(next.CommunityPacks, settings.CommunityPackPotato)
+		}
+		if moonlightBox.Checked() {
+			next.CommunityPacks = append(next.CommunityPacks, settings.CommunityPackMoonlight)
+		}
 		next.MvmExcludedMissions = pool.excluded()
 		next.ArchipelagoDir = strings.TrimSpace(appEdit.Text())
 
@@ -171,6 +184,24 @@ func runSettingsDialog(
 		next.MvmStartMission = choices[max(startBox.CurrentIndex(), 0)].PopFile
 		if next.MvmStartMission != "" {
 			next.SrcdsStartMission = next.MvmStartMission
+			next.MvmExcludedMissions = slices.DeleteFunc(next.MvmExcludedMissions, func(popFile string) bool {
+				return popFile == next.MvmStartMission
+			})
+			if mission, ok := gamedata.MissionByPopFile(next.MvmStartMission); ok {
+				pack := gamedata.MissionPack(mission.ID)
+				if pack != "" && !slices.Contains(next.CommunityPacks, pack) {
+					next.CommunityPacks = append(next.CommunityPacks, pack)
+				}
+			}
+		}
+		for _, pack := range []string{settings.CommunityPackPotato, settings.CommunityPackMoonlight} {
+			if !slices.Contains(next.CommunityPacks, pack) {
+				for _, mission := range gamedata.PlayableMissions() {
+					if gamedata.MissionPack(mission.ID) == pack && !slices.Contains(next.MvmExcludedMissions, mission.PopFile) {
+						next.MvmExcludedMissions = append(next.MvmExcludedMissions, mission.PopFile)
+					}
+				}
+			}
 		}
 		next.MvmStartClass = ""
 		if index := startClassBox.CurrentIndex(); index > 0 {
@@ -369,6 +400,26 @@ func runSettingsDialog(
 						// at one place and the start class menu at another.
 						Layout: declarative.Grid{Columns: 2},
 						Children: []declarative.Widget{
+							label("Asset pack folder", "Cache folder for archive-assets.zip and mlarchive-assets.zip. Start downloads a selected full pack here when it is missing, then installs it into the dedicated server."),
+							declarative.Composite{
+								Layout: declarative.HBox{MarginsZero: true},
+								Children: []declarative.Widget{
+									declarative.LineEdit{AssignTo: &contentEdit, Text: s.CommunityContentDir},
+									declarative.PushButton{Text: "Browse", OnClicked: func() { browseForCommunity(dialog, contentEdit) }},
+								},
+							},
+							label("Community packs", "Select the full Potato packs to download (when missing), install, and include in the mission pool."),
+							declarative.Composite{
+								Layout: declarative.HBox{MarginsZero: true},
+								Children: []declarative.Widget{
+									declarative.CheckBox{AssignTo: &potatoBox, Text: "Potato Archive", Checked: potatoSelected, OnCheckedChanged: func() { pool.setPack(settings.CommunityPackPotato, potatoBox.Checked()) }},
+									declarative.CheckBox{AssignTo: &moonlightBox, Text: "Moonlight Archive", Checked: moonlightSelected, OnCheckedChanged: func() { pool.setPack(settings.CommunityPackMoonlight, moonlightBox.Checked()) }},
+								},
+							},
+							declarative.TextLabel{
+								Text:       "Compatibility: 19 conservative stock-TF2 missions with BSP and NAV files are selectable on Windows and Linux. RafMod missions and Bogland/Cyberia (no NAV) remain reserved but hidden.",
+								ColumnSpan: 2, MinSize: declarative.Size{Width: 700},
+							},
 							label("Start mission", "Where the run begins, as map - mission. The seed starts there and the server boots there. Any lets the seed draw the easiest mission it took."),
 							declarative.ComboBox{
 								AssignTo:      &startBox,
@@ -398,6 +449,7 @@ func runSettingsDialog(
 								Columns: []declarative.TableViewColumn{
 									{Title: "Mission", Width: 200},
 									{Title: "Map", Width: 130},
+									{Title: "Source", Width: 110},
 									{Title: "Tier", Width: 90},
 									{Title: "Waves", Width: 50},
 								},
@@ -1177,10 +1229,12 @@ type poolModel struct {
 	inPool   []bool
 }
 
-func newPoolModel(excluded []string) *poolModel {
-	model := &poolModel{missions: gamedata.Missions, inPool: make([]bool, len(gamedata.Missions))}
+func newPoolModel(excluded, enabledPacks []string) *poolModel {
+	missions := gamedata.PlayableMissions()
+	model := &poolModel{missions: missions, inPool: make([]bool, len(missions))}
 	for i, mission := range model.missions {
-		model.inPool[i] = !slices.Contains(excluded, mission.PopFile)
+		pack := gamedata.MissionPack(mission.ID)
+		model.inPool[i] = !slices.Contains(excluded, mission.PopFile) && (pack == "" || slices.Contains(enabledPacks, pack))
 	}
 	return model
 }
@@ -1196,9 +1250,29 @@ func (m *poolModel) Value(row, col int) any {
 		played, _ := gamedata.MapByID(mission.Map)
 		return played.Name
 	case 2:
+		switch gamedata.MissionPack(mission.ID) {
+		case settings.CommunityPackPotato:
+			return "Potato Archive"
+		case settings.CommunityPackMoonlight:
+			return "Moonlight Archive"
+		}
+		return "Valve"
+	case 3:
 		return mission.Difficulty.String()
 	default:
 		return int(mission.Waves)
+	}
+}
+
+func browseForCommunity(owner walk.Form, edit *walk.LineEdit) {
+	dialog := walk.FileDialog{Title: "Where are the Potato/Moonlight asset ZIPs?", InitialDirPath: strings.TrimSpace(edit.Text())}
+	accepted, err := dialog.ShowBrowseFolder(owner)
+	if err != nil {
+		walk.MsgBox(owner, "Community content", err.Error(), walk.MsgBoxIconError)
+		return
+	}
+	if accepted && dialog.FilePath != "" {
+		_ = edit.SetText(dialog.FilePath)
 	}
 }
 
@@ -1212,6 +1286,15 @@ func (m *poolModel) SetChecked(row int, checked bool) error {
 func (m *poolModel) setAll(checked bool) {
 	for i := range m.inPool {
 		m.inPool[i] = checked
+	}
+	m.PublishRowsReset()
+}
+
+func (m *poolModel) setPack(pack string, checked bool) {
+	for i, mission := range m.missions {
+		if gamedata.MissionPack(mission.ID) == pack {
+			m.inPool[i] = checked
+		}
 	}
 	m.PublishRowsReset()
 }

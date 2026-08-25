@@ -29,7 +29,7 @@ class MissionCount(Range):
 
     display_name = "Mission Count"
     range_start = 1
-    range_end = len(data.MISSIONS)
+    range_end = sum(mission.playable for mission in data.MISSIONS)
     default = 8
 
 
@@ -58,7 +58,7 @@ class ExcludedMissions(OptionSet):
     """
 
     display_name = "Excluded Missions"
-    valid_keys = frozenset(mission.name for mission in data.MISSIONS)
+    valid_keys = frozenset(mission.name for mission in data.MISSIONS if mission.playable)
 
 
 # FreeText and not Choice: a Choice needs one class attribute per value, and

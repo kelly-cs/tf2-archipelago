@@ -3,6 +3,9 @@ package installer
 import (
 	"archive/zip"
 	"bytes"
+	"context"
+	"io"
+	"net/http"
 	"os"
 	"path/filepath"
 	"testing"
@@ -64,6 +67,70 @@ func TestUnzipToRejectsAnEscapingEntry(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(dir, "escaped.txt")); err == nil {
 		t.Error("the entry was written outside the install directory")
+	}
+}
+
+func TestInstallCommunityZipStripsTFDownload(t *testing.T) {
+	root := t.TempDir()
+	archive := filepath.Join(root, "archive-assets.zip")
+	if err := os.WriteFile(archive, zipWith(t, map[string]string{
+		"tf/download/maps/mvm_example.bsp":                        "map",
+		"tf/download/scripts/population/mvm_example_adv_test.pop": "pop",
+		"outside.txt": "ignored",
+	}), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	modDir := filepath.Join(root, "server", "tf")
+	if err := installCommunityZip(archive, modDir); err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"maps/mvm_example.bsp", "scripts/population/mvm_example_adv_test.pop"} {
+		if _, err := os.Stat(filepath.Join(modDir, filepath.FromSlash(name))); err != nil {
+			t.Errorf("missing %s: %v", name, err)
+		}
+	}
+	if _, err := os.Stat(filepath.Join(modDir, "outside.txt")); !os.IsNotExist(err) {
+		t.Errorf("non-TF archive entry was installed: %v", err)
+	}
+}
+
+func TestInstallCommunityArchivesDownloadsMissingKnownPack(t *testing.T) {
+	data := zipWith(t, map[string]string{
+		"tf/download/maps/mvm_example.bsp": "map",
+	})
+	oldClient := communityHTTPClient
+	communityHTTPClient = &http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
+		return &http.Response{
+			StatusCode:    http.StatusOK,
+			Body:          io.NopCloser(bytes.NewReader(data)),
+			ContentLength: int64(len(data)),
+		}, nil
+	})}
+	t.Cleanup(func() { communityHTTPClient = oldClient })
+
+	root := t.TempDir()
+	archive := filepath.Join(root, "packs", "archive-assets.zip")
+	modDir := filepath.Join(root, "server", "tf")
+	if err := installCommunityArchives(context.Background(), []string{archive}, modDir, func(string, ...any) {}); err != nil {
+		t.Fatal(err)
+	}
+	for _, path := range []string{archive, filepath.Join(modDir, "maps", "mvm_example.bsp")} {
+		if _, err := os.Stat(path); err != nil {
+			t.Errorf("missing %s: %v", path, err)
+		}
+	}
+}
+
+type roundTripFunc func(*http.Request) (*http.Response, error)
+
+func (f roundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) {
+	return f(req)
+}
+
+func TestDownloadCommunityArchiveRejectsAnUnknownPack(t *testing.T) {
+	err := downloadCommunityArchive(context.Background(), filepath.Join(t.TempDir(), "other.zip"), func(string, ...any) {})
+	if err == nil {
+		t.Fatal("an unknown pack was downloaded")
 	}
 }
 
