@@ -134,6 +134,16 @@ func TestDownloadCommunityArchiveRejectsAnUnknownPack(t *testing.T) {
 	}
 }
 
+func TestFetchCommunityArchivesRejectsAnInvalidCachedPack(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "archive-assets.zip")
+	if err := os.WriteFile(path, []byte("not a zip"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := FetchCommunityArchives(context.Background(), []string{path}, func(string, ...any) {}); err == nil {
+		t.Fatal("an invalid cached pack was accepted")
+	}
+}
+
 func TestCleanKeepsWhatCannotBeFetchedAgain(t *testing.T) {
 	root := t.TempDir()
 	write := func(parts ...string) string {

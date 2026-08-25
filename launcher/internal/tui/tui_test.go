@@ -166,8 +166,17 @@ func TestTheMissionPoolTakesAllAndNone(t *testing.T) {
 	m.Update(key(","))
 	m.form.tab = 1
 
-	// Folder, two packs, start mission, start class, All, None.
-	m.form.focused = 6
+	find := func(label string) int {
+		for i, row := range m.form.fields() {
+			if row.Label() == label {
+				return i
+			}
+		}
+		t.Fatalf("missing %q row", label)
+		return -1
+	}
+
+	m.form.focused = find("None in the pool")
 	m.Update(key("enter"))
 	if got := len(m.form.edited.MvmExcludedMissions); got != len(gamedata.PlayableMissions()) {
 		t.Errorf("None left %d missions out, want all %d", got, len(gamedata.PlayableMissions()))
@@ -176,11 +185,30 @@ func TestTheMissionPoolTakesAllAndNone(t *testing.T) {
 		t.Errorf("the rows still say the missions are in the pool:\n%s", view)
 	}
 
-	m.form.focused = 5
+	m.form.focused = find("All in the pool")
 	m.Update(key("enter"))
 	if got := len(m.form.edited.MvmExcludedMissions); got != 0 {
 		t.Errorf("All left %d missions out, want none", got)
 	}
+}
+
+func TestMissionsWithoutBotNavAreVisibleButCannotBeEnabled(t *testing.T) {
+	m := screen(t)
+	m.Update(key(","))
+	m.form.tab = 1
+	for _, row := range m.form.fields() {
+		if !strings.Contains(row.Label(), "Swamp Fever") {
+			continue
+		}
+		if !strings.Contains(row.Value(), "missing bot .nav") {
+			t.Fatalf("unavailable row = %q", row.Value())
+		}
+		if row.Handle(key(" ")) {
+			t.Fatal("the unavailable mission accepted a toggle")
+		}
+		return
+	}
+	t.Fatal("Swamp Fever is not visible in the mission list")
 }
 
 // Repair and Reset ask twice, because there is no taking either one back.

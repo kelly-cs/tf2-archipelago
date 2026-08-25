@@ -126,15 +126,12 @@ func Ensure(ctx context.Context, installRoot string, communityArchives []string,
 }
 
 func installCommunityArchives(ctx context.Context, archives []string, modDir string, logf func(string, ...any)) error {
+	if err := FetchCommunityArchives(ctx, archives, logf); err != nil {
+		return err
+	}
 	stampDir := filepath.Join(modDir, ".tf2ap-community")
 	for _, path := range archives {
 		info, err := os.Stat(path)
-		if errors.Is(err, fs.ErrNotExist) {
-			if err := downloadCommunityArchive(ctx, path, logf); err != nil {
-				return fmt.Errorf("cannot download community pack %s: %w", filepath.Base(path), err)
-			}
-			info, err = os.Stat(path)
-		}
 		if err != nil {
 			return fmt.Errorf("cannot use community pack %s: %w", path, err)
 		}
@@ -155,6 +152,32 @@ func installCommunityArchives(ctx context.Context, archives []string, modDir str
 		if err := os.WriteFile(stamp, []byte(identity), 0o644); err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+// FetchCommunityArchives downloads recognized full-with-maps Potato packs
+// that are not already cached, and validates every selected ZIP. It is
+// exported for the launchers' explicit Download Potato assets action; Ensure
+// calls the same path so Start remains a fallback for players who skip it.
+func FetchCommunityArchives(ctx context.Context, archives []string, logf func(string, ...any)) error {
+	for _, path := range archives {
+		_, err := os.Stat(path)
+		if errors.Is(err, fs.ErrNotExist) {
+			if err := downloadCommunityArchive(ctx, path, logf); err != nil {
+				return fmt.Errorf("cannot download community pack %s: %w", filepath.Base(path), err)
+			}
+		} else if err != nil {
+			return fmt.Errorf("cannot use community pack %s: %w", path, err)
+		}
+		reader, err := zip.OpenReader(path)
+		if err != nil {
+			return fmt.Errorf("community pack %s is not a valid ZIP: %w", path, err)
+		}
+		if err := reader.Close(); err != nil {
+			return fmt.Errorf("cannot close community pack %s: %w", path, err)
+		}
+		logf("community pack ready: %s", filepath.Base(path))
 	}
 	return nil
 }

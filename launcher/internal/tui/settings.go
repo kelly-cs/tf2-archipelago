@@ -25,6 +25,7 @@ import (
 	"github.com/m-this/tf2-archipelago/launcher/internal/botloadout"
 	"github.com/m-this/tf2-archipelago/launcher/internal/debugbundle"
 	"github.com/m-this/tf2-archipelago/launcher/internal/generate"
+	"github.com/m-this/tf2-archipelago/launcher/internal/installer"
 	"github.com/m-this/tf2-archipelago/launcher/internal/runshape"
 	"github.com/m-this/tf2-archipelago/launcher/internal/settings"
 	"github.com/m-this/tf2-archipelago/launcher/internal/winproc"
@@ -185,6 +186,12 @@ func (f *settingsForm) missionFields() []field {
 			index:   boolIndex(slices.Contains(f.edited.CommunityPacks, settings.CommunityPackMoonlight)),
 			apply:   func(i int) { f.setCommunityPack(settings.CommunityPackMoonlight, i == 1) },
 		},
+		&actionField{
+			label: "Download Potato assets",
+			help:  "Fetch and validate both official full-with-maps Potato/Moonlight packs now. Existing valid ZIPs are reused.",
+			hint:  "enter",
+			run:   f.downloadPotatoAssets,
+		},
 		&choiceField{
 			label:   "Start mission",
 			help:    "Where the run begins. The seed starts there and the server boots there.",
@@ -231,7 +238,29 @@ func (f *settingsForm) missionFields() []field {
 	for _, mission := range gamedata.PlayableMissions() {
 		fields = append(fields, f.poolField(mission))
 	}
+	for _, mission := range gamedata.Missions {
+		if gamedata.MissionRequirement(mission.ID) == "no_nav" {
+			fields = append(fields, unavailableMissionField(mission))
+		}
+	}
 	return fields
+}
+
+func (f *settingsForm) downloadPotatoAssets() tea.Cmd {
+	folder := strings.TrimSpace(f.edited.CommunityContentDir)
+	archives := settings.CommunityArchives(settings.Settings{
+		CommunityContentDir: folder,
+		CommunityPacks:      []string{settings.CommunityPackPotato, settings.CommunityPackMoonlight},
+	})
+	return func() tea.Msg {
+		if folder == "" {
+			return noticeMsg("choose an asset pack folder first")
+		}
+		if err := installer.FetchCommunityArchives(context.Background(), archives, func(string, ...any) {}); err != nil {
+			return noticeMsg("Potato assets: " + err.Error())
+		}
+		return noticeMsg("Potato and Moonlight full-with-maps packs are ready in " + folder)
+	}
 }
 
 func boolIndex(value bool) int {
@@ -319,6 +348,26 @@ type poolToggle struct {
 	form    *settingsForm
 	held    *bool
 }
+
+type unavailablePoolField struct {
+	label string
+	help  string
+}
+
+func unavailableMissionField(mission gamedata.Mission) field {
+	played, _ := gamedata.MapByID(mission.Map)
+	return &unavailablePoolField{
+		label: fmt.Sprintf("[Potato Archive] %s (%s)", mission.Name, played.Name),
+		help:  "The asset pack has this map's BSP but no bot navigation mesh. It cannot be enabled in a seed.",
+	}
+}
+
+func (f *unavailablePoolField) Label() string { return f.label }
+func (f *unavailablePoolField) Help() string  { return f.help }
+func (f *unavailablePoolField) Value() string {
+	return styleStopped.Render("missing bot .nav — unavailable")
+}
+func (f *unavailablePoolField) Handle(tea.KeyMsg) bool { return false }
 
 func (p *poolToggle) Handle(msg tea.KeyMsg) bool {
 	if !p.toggleField.Handle(msg) {

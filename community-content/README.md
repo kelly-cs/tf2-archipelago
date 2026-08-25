@@ -11,7 +11,9 @@ C:\Users\Admin\tf2\mlarchive-assets.zip
 
 In `tf2ap.exe`, open **Settings → Missions**, set **Asset pack folder** to
 `C:\Users\Admin\tf2`, and tick **Potato Archive** and/or **Moonlight Archive**.
-Press **Start**. If a selected ZIP is absent, the launcher downloads it from
+Press **Download Potato assets** to fetch and validate both official
+full-with-maps packs before starting. Alternatively, press **Start**: if a
+selected ZIP is absent, the launcher downloads it from
 Potato's official archive host into that folder, validates the completed ZIP,
 and then streams it into the dedicated server. Existing downloads are reused;
 later starts skip unchanged archives. Cancelling cannot leave a partial file
@@ -37,7 +39,8 @@ conservative, stock-syntax mission on each of 19 community maps:
 
 This was checked against the actual ZIP central directories and population
 files. The selection deliberately rejects missions containing obvious
-RafMod-only population directives. Bogland and Cyberia are also hidden because
+RafMod-only population directives. Bogland and Cyberia are shown in red but
+locked out of the pool because
 the current full archives contain their BSPs but no NAV files; that avoids maps
 where the included defender bots cannot route. `Anomalous Materials` was loaded with
 the current stock Linux SRCDS parser. The same parser and content format are

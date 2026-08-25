@@ -21,6 +21,7 @@ import (
 	"github.com/m-this/tf2-archipelago/launcher/internal/botloadout"
 	"github.com/m-this/tf2-archipelago/launcher/internal/debugbundle"
 	"github.com/m-this/tf2-archipelago/launcher/internal/generate"
+	"github.com/m-this/tf2-archipelago/launcher/internal/installer"
 	"github.com/m-this/tf2-archipelago/launcher/internal/runshape"
 	"github.com/m-this/tf2-archipelago/launcher/internal/settings"
 	"github.com/m-this/tf2-archipelago/launcher/internal/winproc"
@@ -76,6 +77,8 @@ func runSettingsDialog(
 		contentEdit   *walk.LineEdit
 		potatoBox     *walk.CheckBox
 		moonlightBox  *walk.CheckBox
+		fetchPacks    *walk.PushButton
+		fetchStatus   *walk.Label
 
 		appEdit *walk.LineEdit
 
@@ -406,8 +409,18 @@ func runSettingsDialog(
 								Children: []declarative.Widget{
 									declarative.LineEdit{AssignTo: &contentEdit, Text: s.CommunityContentDir},
 									declarative.PushButton{Text: "Browse", OnClicked: func() { browseForCommunity(dialog, contentEdit) }},
+									declarative.PushButton{
+										AssignTo:    &fetchPacks,
+										Text:        "Download Potato assets",
+										ToolTipText: "Download and validate Potato's archive-assets.zip and mlarchive-assets.zip full-with-maps packs now. Start also downloads a selected missing pack.",
+										OnClicked: func() {
+											fetchPotatoAssets(owner, dialog, contentEdit, fetchPacks, fetchStatus, say)
+										},
+									},
 								},
 							},
+							declarative.Label{Text: ""},
+							declarative.Label{AssignTo: &fetchStatus, Text: "Downloads both official full-with-maps packs; existing valid ZIPs are reused.", TextColor: colorMuted},
 							label("Community packs", "Select the full Potato packs to download (when missing), install, and include in the mission pool."),
 							declarative.Composite{
 								Layout: declarative.HBox{MarginsZero: true},
@@ -417,7 +430,7 @@ func runSettingsDialog(
 								},
 							},
 							declarative.TextLabel{
-								Text:       "Compatibility: 19 conservative stock-TF2 missions with BSP and NAV files are selectable on Windows and Linux. RafMod missions and Bogland/Cyberia (no NAV) remain reserved but hidden.",
+								Text:       "Compatibility: 19 stock-TF2 missions with BSP and NAV files are selectable on Windows and Linux. Bogland and Cyberia are shown red and locked because their packs have no bot NAV; RafMod missions remain reserved and hidden.",
 								ColumnSpan: 2, MinSize: declarative.Size{Width: 700},
 							},
 							label("Start mission", "Where the run begins, as map - mission. The seed starts there and the server boots there. Any lets the seed draw the easiest mission it took."),
@@ -452,6 +465,7 @@ func runSettingsDialog(
 									{Title: "Source", Width: 110},
 									{Title: "Tier", Width: 90},
 									{Title: "Waves", Width: 50},
+									{Title: "Compatibility", Width: 130},
 								},
 							},
 							declarative.Composite{
@@ -1230,11 +1244,16 @@ type poolModel struct {
 }
 
 func newPoolModel(excluded, enabledPacks []string) *poolModel {
-	missions := gamedata.PlayableMissions()
+	var missions []gamedata.Mission
+	for _, mission := range gamedata.Missions {
+		if gamedata.IsPlayableMission(mission.ID) || gamedata.MissionRequirement(mission.ID) == "no_nav" {
+			missions = append(missions, mission)
+		}
+	}
 	model := &poolModel{missions: missions, inPool: make([]bool, len(missions))}
 	for i, mission := range model.missions {
 		pack := gamedata.MissionPack(mission.ID)
-		model.inPool[i] = !slices.Contains(excluded, mission.PopFile) && (pack == "" || slices.Contains(enabledPacks, pack))
+		model.inPool[i] = gamedata.IsPlayableMission(mission.ID) && !slices.Contains(excluded, mission.PopFile) && (pack == "" || slices.Contains(enabledPacks, pack))
 	}
 	return model
 }
@@ -1259,8 +1278,19 @@ func (m *poolModel) Value(row, col int) any {
 		return "Valve"
 	case 3:
 		return mission.Difficulty.String()
-	default:
+	case 4:
 		return int(mission.Waves)
+	default:
+		if gamedata.MissionRequirement(mission.ID) == "no_nav" {
+			return "Missing bot .nav"
+		}
+		return "Ready"
+	}
+}
+
+func (m *poolModel) StyleCell(style *walk.CellStyle) {
+	if gamedata.MissionRequirement(m.missions[style.Row()].ID) == "no_nav" {
+		style.TextColor = colorStopped
 	}
 }
 
@@ -1276,23 +1306,73 @@ func browseForCommunity(owner walk.Form, edit *walk.LineEdit) {
 	}
 }
 
+func fetchPotatoAssets(
+	sync walk.Form, dialog *walk.Dialog, folderEdit *walk.LineEdit,
+	button *walk.PushButton, status *walk.Label, say func(string, ...any),
+) {
+	folder := strings.TrimSpace(folderEdit.Text())
+	if folder == "" {
+		walk.MsgBox(dialog, "Download Potato assets", "Choose an asset pack folder first.", walk.MsgBoxIconWarning)
+		return
+	}
+	archives := settings.CommunityArchives(settings.Settings{
+		CommunityContentDir: folder,
+		CommunityPacks:      []string{settings.CommunityPackPotato, settings.CommunityPackMoonlight},
+	})
+	button.SetEnabled(false)
+	status.SetTextColor(colorStarting)
+	_ = status.SetText("Downloading full-with-maps Potato packs; progress is also in the main log.")
+
+	go func() {
+		logf := func(format string, args ...any) {
+			message := fmt.Sprintf(format, args...)
+			say("Potato assets: %s", message)
+			sync.Synchronize(func() {
+				if !dialog.IsDisposed() {
+					_ = status.SetText(message)
+				}
+			})
+		}
+		err := installer.FetchCommunityArchives(context.Background(), archives, logf)
+		sync.Synchronize(func() {
+			if dialog.IsDisposed() {
+				return
+			}
+			button.SetEnabled(true)
+			if err != nil {
+				status.SetTextColor(colorStopped)
+				_ = status.SetText("Download failed: " + err.Error())
+				walk.MsgBox(dialog, "Download Potato assets", err.Error(), walk.MsgBoxIconError)
+				return
+			}
+			status.SetTextColor(colorRunning)
+			_ = status.SetText("Potato and Moonlight full-with-maps packs are ready in " + folder)
+		})
+	}()
+}
+
 func (m *poolModel) Checked(row int) bool { return m.inPool[row] }
 
 func (m *poolModel) SetChecked(row int, checked bool) error {
+	if !gamedata.IsPlayableMission(m.missions[row].ID) {
+		m.inPool[row] = false
+		m.PublishRowsReset()
+		return nil
+	}
 	m.inPool[row] = checked
 	return nil
 }
 
 func (m *poolModel) setAll(checked bool) {
 	for i := range m.inPool {
-		m.inPool[i] = checked
+		m.inPool[i] = checked && gamedata.IsPlayableMission(m.missions[i].ID)
 	}
 	m.PublishRowsReset()
 }
 
 func (m *poolModel) setPack(pack string, checked bool) {
 	for i, mission := range m.missions {
-		if gamedata.MissionPack(mission.ID) == pack {
+		if gamedata.MissionPack(mission.ID) == pack && gamedata.IsPlayableMission(mission.ID) {
 			m.inPool[i] = checked
 		}
 	}
