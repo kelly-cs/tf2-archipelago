@@ -117,7 +117,7 @@ func Ensure(ctx context.Context, installRoot string, communityArchives []string,
 	if err := installMods(ctx, filepath.Join(result.GameDir, "tf"), logf); err != nil {
 		return result, err
 	}
-	if err := installCommunityArchives(ctx, communityArchives, filepath.Join(result.GameDir, "tf"), logf); err != nil {
+	if err := installCommunityArchives(communityArchives, filepath.Join(result.GameDir, "tf"), logf); err != nil {
 		return result, err
 	}
 	result.Done.SourcemodInstalled = true
@@ -125,16 +125,13 @@ func Ensure(ctx context.Context, installRoot string, communityArchives []string,
 	return result, nil
 }
 
-func installCommunityArchives(ctx context.Context, archives []string, modDir string, logf func(string, ...any)) error {
+func installCommunityArchives(archives []string, modDir string, logf func(string, ...any)) error {
+	if err := ValidateCommunityArchives(archives, logf); err != nil {
+		return err
+	}
 	stampDir := filepath.Join(modDir, ".tf2ap-community")
 	for _, path := range archives {
 		info, err := os.Stat(path)
-		if errors.Is(err, fs.ErrNotExist) {
-			if err := downloadCommunityArchive(ctx, path, logf); err != nil {
-				return fmt.Errorf("cannot download community pack %s: %w", filepath.Base(path), err)
-			}
-			info, err = os.Stat(path)
-		}
 		if err != nil {
 			return fmt.Errorf("cannot use community pack %s: %w", path, err)
 		}
@@ -159,10 +156,64 @@ func installCommunityArchives(ctx context.Context, archives []string, modDir str
 	return nil
 }
 
+// DownloadCommunityArchives is the only path that fetches community content.
+// It downloads recognized full-with-maps Potato packs that are not already
+// cached, then validates every selected ZIP. Start deliberately does not call
+// this function: network downloads require an explicit UI action.
+func DownloadCommunityArchives(ctx context.Context, archives []string, logf func(string, ...any)) error {
+	for _, path := range archives {
+		_, err := os.Stat(path)
+		if errors.Is(err, fs.ErrNotExist) {
+			if err := downloadCommunityArchive(ctx, path, logf); err != nil {
+				return fmt.Errorf("cannot download community pack %s: %w", filepath.Base(path), err)
+			}
+		} else if err != nil {
+			return fmt.Errorf("cannot use community pack %s: %w", path, err)
+		}
+	}
+	return ValidateCommunityArchives(archives, logf)
+}
+
+// ValidateCommunityArchives accepts only existing, readable ZIPs and performs
+// no network access. Ensure uses this before installing selected local packs.
+func ValidateCommunityArchives(archives []string, logf func(string, ...any)) error {
+	for _, path := range archives {
+		if err := validateCommunityArchive(path); err != nil {
+			return err
+		}
+		logf("community pack ready: %s", filepath.Base(path))
+	}
+	return nil
+}
+
+// AvailableCommunityArchives returns the valid files from archives. It is the
+// launchers' source of truth for which community mission rows may be shown.
+func AvailableCommunityArchives(archives []string) []string {
+	available := make([]string, 0, len(archives))
+	for _, path := range archives {
+		if validateCommunityArchive(path) == nil {
+			available = append(available, path)
+		}
+	}
+	return available
+}
+
+func validateCommunityArchive(path string) error {
+	reader, err := zip.OpenReader(path)
+	if err != nil {
+		return fmt.Errorf("community pack %s is not a valid ZIP: %w", path, err)
+	}
+	if err := reader.Close(); err != nil {
+		return fmt.Errorf("cannot close community pack %s: %w", path, err)
+	}
+	return nil
+}
+
 // downloadCommunityArchive caches a recognized full asset pack next to the
 // locally supplied packs. A partial response is written under a temporary
-// name and validated before rename, so cancelling Start can never leave a
-// corrupt ZIP that the next run mistakes for a completed download.
+// name and validated before rename, so cancelling the explicit download can
+// never leave a corrupt ZIP that the next attempt mistakes for a completed
+// download.
 func downloadCommunityArchive(ctx context.Context, path string, logf func(string, ...any)) error {
 	name := filepath.Base(path)
 	url, known := communityArchiveURLs[name]

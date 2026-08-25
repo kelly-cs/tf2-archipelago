@@ -26,7 +26,7 @@ type Settings struct {
 	// installer puts it. Empty means look in the usual places.
 	ArchipelagoDir string `json:"archipelago_dir,omitempty"`
 
-	// CommunityContentDir holds downloaded Potato/Moonlight asset archives.
+	// CommunityContentDir holds downloaded or user-supplied community archives.
 	// CommunityPacks names the archives the launcher installs into SRCDS.
 	CommunityContentDir string   `json:"community_content_dir,omitempty"`
 	CommunityPacks      []string `json:"community_packs"`
@@ -410,6 +410,16 @@ func CommunityArchives(s Settings) []string {
 		}
 	}
 	return paths
+}
+
+// KnownCommunityArchives resolves every supported pack under dir, whether or
+// not it is selected. The UIs use this to discover already-downloaded or local
+// files before deciding which community missions may be shown.
+func KnownCommunityArchives(dir string) []string {
+	return []string{
+		filepath.Join(dir, CommunityPackPotato),
+		filepath.Join(dir, CommunityPackMoonlight),
+	}
 }
 
 func defaultCommunityContentDir() string {

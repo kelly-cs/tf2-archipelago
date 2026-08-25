@@ -11,11 +11,36 @@ mlarchive-assets.zip
 
 In `tf2ap.exe`, open **Settings → Missions**, choose the folder that will hold
 the ZIPs, and tick **Potato Archive** and/or **Moonlight Archive**. Press
-**Start**. If a selected ZIP is absent, the launcher downloads it from Potato's
-official archive host into that folder, validates the completed ZIP, and then
-streams it into the dedicated server. Existing downloads are reused; later
-starts skip unchanged archives. Cancelling cannot leave a partial file that the
-next run mistakes for a complete pack.
+**Download Selected Community Assets** to fetch only the checked packs. This
+button is the only operation that downloads community content. **Start** never
+downloads a community file: it validates and installs selected local ZIPs, and
+reports a missing or invalid ZIP instead. Existing valid downloads are reused.
+A cancelled download leaves only a disposable `.partial` file.
+
+Community mission and start-mission rows are not populated merely because a
+pack checkbox is selected. They appear only after the matching ZIP exists and
+validates. Maps without a bot `.nav` then appear in red as unavailable and
+cannot be added to a seed.
+
+### Use asset ZIPs you already have
+
+Keep the original full-with-maps ZIP intact; do not extract or rename it. Put
+either or both supported ZIPs directly in the folder selected in the launcher:
+
+```text
+archive-assets.zip
+mlarchive-assets.zip
+```
+
+Then press **Use Local Community Assets**, choose that folder, and let the
+launcher validate the files. It checks the matching pack boxes and refreshes
+the mission list without contacting the network. On the terminal interface,
+type the folder into **Asset pack folder** first and activate the same action.
+
+The ZIP may have Potato's normal `tf/download/...` root or a direct `tf/...`
+root. The launcher reads it in place and installs its contents beneath the
+dedicated server's `tf/` directory; it does not move, rewrite, or delete the
+source archive.
 
 The recognized downloads are:
 
@@ -71,14 +96,15 @@ names and offer the same 19 portable community maps.
 1. Run `dist\tf2ap.exe`.
 2. Open **Settings → Missions**.
 3. Choose the folder for the supported ZIPs and tick both archives for the full
-   set. The launcher downloads either full pack if it is not already there.
+    set. Press **Download Selected Community Assets**, or press **Use Local
+    Community Assets** if the ZIPs are already in the selected folder.
 4. Choose any available community mission as the start mission.
 5. Tick the community missions wanted in the pool and untick unwanted Valve
    missions. Save.
 6. For local play, enable **Test mode**; otherwise press **Generate seed**,
    upload the generated archive to Archipelago, and enter the new room.
-7. Press **Start**. The first run installs TF2 and extracts the selected asset
-   pack.
+7. Press **Start**. The first run installs TF2 and extracts the selected local
+   asset pack; it performs no community download.
 8. In the server console or RCON, run `sm_ap_status`. In game, `!mission`
    lists the run and `!mission <number>` switches missions once their tickets
    are unlocked.
@@ -97,8 +123,9 @@ community-content/
     └── scripts/population/mvm_underground_rc3_welcometomymine.pop
 ```
 
-The server copies this tree into TF2's game directory on startup. Maps are
-downloaded by joining clients.
+The server copies this tree into TF2's game directory on startup. Joining
+clients receive the active map through Source's direct downloader; the managed
+server configuration raises its stock 16 MB limit to the 64 MB engine cap.
 Population files and `.nav` files are server-side.
 
 Prefer a map whose client assets are packed into its BSP. If a content pack
