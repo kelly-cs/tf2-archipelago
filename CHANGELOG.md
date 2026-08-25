@@ -17,15 +17,14 @@ in the release notes, so this file is the only place to write it.
 - RED comes back to its size within three seconds instead of at the next wave.
   One request for six bots added nine at mission load, and they stayed until
   somebody restarted the wave.
-- The bots mod is on v2.12.0. Most of the play-test reports about the bots are
+- The bots mod is on v2.13.2. Most of the play-test reports about the bots are
   fixed there: a partial bot team no longer puts nine bots on RED, the engineers
   and medics no longer stand where the wave left them for the whole break, and a
   class you untick is never played, whatever the map would have picked. The
-  sniper standing in spawn was the same freeze as the engineers.
-- On an advanced or expert mission the bots wait for the wave beside the
-  engineer's sentry instead of at the robots' own gate, which is four fewer
-  deaths an attempt on the wave a player reported as unwinnable. That wave is
-  still lost by a team of bots alone.
+  sniper standing in spawn was the same freeze as the engineers, and so was the
+  engineer freezing after a lost wave or a mission restart.
+- The bots also stop crashing the server when nest relocation is switched on,
+  which was a nav mesh search with no limit on it.
 
 ## v1.9.0
 
