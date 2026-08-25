@@ -116,7 +116,9 @@ The first start downloads about 14 GB of game files.
 Custom MvM packs can be overlaid without modifying the container image. The
 [community content guide](./community-content/README.md) covers custom BSPs,
 population files, stable Archipelago IDs, validation, and the rebuild/relaunch
-sequence.
+sequence. In the standalone launcher, community downloads happen only through
+**Download Selected Community Assets**. Use **Use Local Community Assets** for
+full pack ZIPs you already have; **Start** never downloads community content.
 
 ## The bots on your team
 

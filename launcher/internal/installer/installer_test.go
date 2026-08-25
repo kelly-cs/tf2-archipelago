@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"bytes"
 	"context"
+	"errors"
 	"io"
 	"net/http"
 	"os"
@@ -94,12 +95,14 @@ func TestInstallCommunityZipStripsTFDownload(t *testing.T) {
 	}
 }
 
-func TestInstallCommunityArchivesDownloadsMissingKnownPack(t *testing.T) {
+func TestDownloadCommunityArchivesDownloadsOnlyTheSelectedPack(t *testing.T) {
 	data := zipWith(t, map[string]string{
 		"tf/download/maps/mvm_example.bsp": "map",
 	})
+	requests := 0
 	oldClient := communityHTTPClient
 	communityHTTPClient = &http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
+		requests++
 		return &http.Response{
 			StatusCode:    http.StatusOK,
 			Body:          io.NopCloser(bytes.NewReader(data)),
@@ -110,14 +113,37 @@ func TestInstallCommunityArchivesDownloadsMissingKnownPack(t *testing.T) {
 
 	root := t.TempDir()
 	archive := filepath.Join(root, "packs", "archive-assets.zip")
-	modDir := filepath.Join(root, "server", "tf")
-	if err := installCommunityArchives(context.Background(), []string{archive}, modDir, func(string, ...any) {}); err != nil {
+	if err := DownloadCommunityArchives(context.Background(), []string{archive}, func(string, ...any) {}); err != nil {
 		t.Fatal(err)
 	}
-	for _, path := range []string{archive, filepath.Join(modDir, "maps", "mvm_example.bsp")} {
-		if _, err := os.Stat(path); err != nil {
-			t.Errorf("missing %s: %v", path, err)
-		}
+	if requests != 1 {
+		t.Fatalf("download requests = %d, want one selected pack", requests)
+	}
+	if _, err := os.Stat(archive); err != nil {
+		t.Errorf("missing %s: %v", archive, err)
+	}
+	if _, err := os.Stat(filepath.Join(root, "packs", "mlarchive-assets.zip")); !os.IsNotExist(err) {
+		t.Errorf("an unselected pack was downloaded: %v", err)
+	}
+}
+
+func TestInstallCommunityArchivesNeverDownloadsAMissingPack(t *testing.T) {
+	requested := false
+	oldClient := communityHTTPClient
+	communityHTTPClient = &http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
+		requested = true
+		return nil, errors.New("network must not be used")
+	})}
+	t.Cleanup(func() { communityHTTPClient = oldClient })
+
+	root := t.TempDir()
+	archive := filepath.Join(root, "archive-assets.zip")
+	err := installCommunityArchives([]string{archive}, filepath.Join(root, "server", "tf"), func(string, ...any) {})
+	if err == nil {
+		t.Fatal("Start accepted a missing selected pack")
+	}
+	if requested {
+		t.Fatal("Start attempted to download a missing community pack")
 	}
 }
 
@@ -131,6 +157,38 @@ func TestDownloadCommunityArchiveRejectsAnUnknownPack(t *testing.T) {
 	err := downloadCommunityArchive(context.Background(), filepath.Join(t.TempDir(), "other.zip"), func(string, ...any) {})
 	if err == nil {
 		t.Fatal("an unknown pack was downloaded")
+	}
+}
+
+func TestValidateCommunityArchivesRejectsAnInvalidCachedPack(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "archive-assets.zip")
+	if err := os.WriteFile(path, []byte("not a zip"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := ValidateCommunityArchives([]string{path}, func(string, ...any) {}); err == nil {
+		t.Fatal("an invalid cached pack was accepted")
+	}
+}
+
+func TestAvailableCommunityArchivesRequiresAValidLocalZIP(t *testing.T) {
+	root := t.TempDir()
+	missing := filepath.Join(root, "archive-assets.zip")
+	invalid := filepath.Join(root, "mlarchive-assets.zip")
+	if err := os.WriteFile(invalid, []byte("not a zip"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if got := AvailableCommunityArchives([]string{missing, invalid}); len(got) != 0 {
+		t.Fatalf("unavailable archives reported as ready: %v", got)
+	}
+
+	if err := os.WriteFile(missing, zipWith(t, map[string]string{
+		"tf/download/maps/mvm_example.bsp": "map",
+	}), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	got := AvailableCommunityArchives([]string{missing, invalid})
+	if len(got) != 1 || got[0] != missing {
+		t.Fatalf("available archives = %v, want only %s", got, missing)
 	}
 }
 

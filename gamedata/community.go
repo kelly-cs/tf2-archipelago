@@ -245,3 +245,9 @@ func PlayableMissions() []Mission {
 func MissionPack(id MissionID) string {
 	return communityContent.Packs[id]
 }
+// MissionRequirement reports why a cataloged community mission is not a
+// portable choice. Blank means the mission is supported by the stock server.
+// Launchers use this to show unavailable content without making it seedable.
+func MissionRequirement(id MissionID) string {
+	return communityContent.Requirements[id]
+}
