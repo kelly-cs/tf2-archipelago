@@ -39,6 +39,10 @@ const botSeats = 6
 // the settings the rows write into.
 type settingsForm struct {
 	edited settings.Settings
+	// communityAvailable is derived from valid local ZIPs, never merely from
+	// checkbox state. Community mission rows stay absent until their assets
+	// can actually be used.
+	communityAvailable []string
 
 	tabs    []settingsTab
 	tab     int
@@ -68,6 +72,7 @@ type settingsDeps struct {
 func newSettingsForm(s settings.Settings, deps settingsDeps) *settingsForm {
 	form := &settingsForm{edited: s, saved: deps.saved, repair: deps.repair, reset: deps.reset}
 	form.room = settings.Room{Host: s.APHost, Port: s.APPort, TLS: s.APTls}.String()
+	form.communityAvailable = availableCommunityPackNames(s.CommunityContentDir)
 	form.build()
 	return form
 }
@@ -158,7 +163,7 @@ func (f *settingsForm) playerFields() []field {
 }
 
 func (f *settingsForm) missionFields() []field {
-	choices := runshape.StartMissionChoices()
+	choices := runshape.StartMissionChoicesForPacks(f.communityAvailable)
 	choiceLabels := make([]string, 0, len(choices))
 	for _, choice := range choices {
 		choiceLabels = append(choiceLabels, choice.Label)
@@ -168,29 +173,35 @@ func (f *settingsForm) missionFields() []field {
 	fields := []field{
 		&textField{
 			label:       "Asset pack folder",
-			help:        "Cache folder for archive-assets.zip and mlarchive-assets.zip; Start downloads selected missing packs.",
+			help:        "Folder containing archive-assets.zip and/or mlarchive-assets.zip. Start never downloads community files.",
 			value:       &f.edited.CommunityContentDir,
 			placeholder: filepath.Join("C:", "Users", "Admin", "tf2"),
 		},
 		&choiceField{
 			label:   "Potato Archive",
-			help:    "Download archive-assets.zip when missing, install it, and put its 15 portable missions in the pool.",
-			options: []string{"disabled", "download and install"},
+			help:    "Select archive-assets.zip for the explicit download action and for installation when the local ZIP is valid.",
+			options: []string{"disabled", "selected"},
 			index:   boolIndex(slices.Contains(f.edited.CommunityPacks, settings.CommunityPackPotato)),
 			apply:   func(i int) { f.setCommunityPack(settings.CommunityPackPotato, i == 1) },
 		},
 		&choiceField{
 			label:   "Moonlight Archive",
-			help:    "Download mlarchive-assets.zip when missing, install it, and put its 4 portable missions in the pool.",
-			options: []string{"disabled", "download and install"},
+			help:    "Select mlarchive-assets.zip for the explicit download action and for installation when the local ZIP is valid.",
+			options: []string{"disabled", "selected"},
 			index:   boolIndex(slices.Contains(f.edited.CommunityPacks, settings.CommunityPackMoonlight)),
 			apply:   func(i int) { f.setCommunityPack(settings.CommunityPackMoonlight, i == 1) },
 		},
 		&actionField{
-			label: "Download Potato assets",
-			help:  "Fetch and validate both official full-with-maps Potato/Moonlight packs now. Existing valid ZIPs are reused.",
+			label: "Download Selected Community Assets",
+			help:  "Fetch only the checked full-with-maps community packs. This is the launcher's only community download action.",
 			hint:  "enter",
-			run:   f.downloadPotatoAssets,
+			run:   f.downloadSelectedCommunityAssets,
+		},
+		&actionField{
+			label: "Use Local Community Assets",
+			help:  "Validate archive-assets.zip and mlarchive-assets.zip already present in the asset pack folder, then show their missions.",
+			hint:  "enter",
+			run:   f.useLocalCommunityAssets,
 		},
 		&choiceField{
 			label:   "Start mission",
@@ -235,32 +246,94 @@ func (f *settingsForm) missionFields() []field {
 
 	// One row per mission, because the pool is what the seed draws from and
 	// the window gives it a table with a tick in every row.
-	for _, mission := range gamedata.PlayableMissions() {
-		fields = append(fields, f.poolField(mission))
-	}
-	for _, mission := range gamedata.Missions {
-		if gamedata.MissionRequirement(mission.ID) == "no_nav" {
+	for _, mission := range runshape.VisibleMissions(f.communityAvailable) {
+		if gamedata.IsPlayableMission(mission.ID) {
+			fields = append(fields, f.poolField(mission))
+		} else if gamedata.MissionRequirement(mission.ID) == "no_nav" {
 			fields = append(fields, unavailableMissionField(mission))
 		}
 	}
 	return fields
 }
 
-func (f *settingsForm) downloadPotatoAssets() tea.Cmd {
+func (f *settingsForm) downloadSelectedCommunityAssets() tea.Cmd {
 	folder := strings.TrimSpace(f.edited.CommunityContentDir)
-	archives := settings.CommunityArchives(settings.Settings{
-		CommunityContentDir: folder,
-		CommunityPacks:      []string{settings.CommunityPackPotato, settings.CommunityPackMoonlight},
-	})
+	selected := f.edited
+	selected.CommunityContentDir = folder
+	archives := settings.CommunityArchives(selected)
 	return func() tea.Msg {
 		if folder == "" {
 			return noticeMsg("choose an asset pack folder first")
 		}
-		if err := installer.FetchCommunityArchives(context.Background(), archives, func(string, ...any) {}); err != nil {
-			return noticeMsg("Potato assets: " + err.Error())
+		if len(archives) == 0 {
+			return noticeMsg("select at least one community pack first")
 		}
-		return noticeMsg("Potato and Moonlight full-with-maps packs are ready in " + folder)
+		if err := installer.DownloadCommunityArchives(context.Background(), archives, func(string, ...any) {}); err != nil {
+			return noticeMsg("community assets: " + err.Error())
+		}
+		return communityAssetsMsg{
+			notice:    "Selected community packs are ready in " + folder,
+			available: availableCommunityPackNames(folder),
+		}
 	}
+}
+
+func (f *settingsForm) useLocalCommunityAssets() tea.Cmd {
+	folder := strings.TrimSpace(f.edited.CommunityContentDir)
+	return func() tea.Msg {
+		if folder == "" {
+			return noticeMsg("choose an asset pack folder first")
+		}
+		available := availableCommunityPackNames(folder)
+		if len(available) == 0 {
+			return noticeMsg("no valid archive-assets.zip or mlarchive-assets.zip was found in " + folder)
+		}
+		return communityAssetsMsg{
+			notice:      "Using local community packs from " + folder,
+			available:   available,
+			selectPacks: true,
+		}
+	}
+}
+
+func availableCommunityPackNames(folder string) []string {
+	paths := installer.AvailableCommunityArchives(settings.KnownCommunityArchives(strings.TrimSpace(folder)))
+	packs := make([]string, 0, len(paths))
+	for _, path := range paths {
+		packs = append(packs, filepath.Base(path))
+	}
+	return packs
+}
+
+type communityAssetsMsg struct {
+	notice      string
+	available   []string
+	selectPacks bool
+}
+
+func (f *settingsForm) applyCommunityAssets(msg communityAssetsMsg) {
+	f.communityAvailable = slices.Clone(msg.available)
+	if msg.selectPacks {
+		for _, pack := range []string{settings.CommunityPackPotato, settings.CommunityPackMoonlight} {
+			f.edited.CommunityPacks = slices.DeleteFunc(f.edited.CommunityPacks, func(name string) bool { return name == pack })
+			selected := slices.Contains(msg.available, pack)
+			if selected {
+				f.edited.CommunityPacks = append(f.edited.CommunityPacks, pack)
+			}
+			for _, mission := range gamedata.PlayableMissions() {
+				if gamedata.MissionPack(mission.ID) != pack {
+					continue
+				}
+				f.edited.MvmExcludedMissions = slices.DeleteFunc(f.edited.MvmExcludedMissions, func(popFile string) bool {
+					return popFile == mission.PopFile
+				})
+				if !selected {
+					f.edited.MvmExcludedMissions = append(f.edited.MvmExcludedMissions, mission.PopFile)
+				}
+			}
+		}
+	}
+	f.build()
 }
 
 func boolIndex(value bool) int {
@@ -300,10 +373,19 @@ func (f *settingsForm) setCommunityPack(pack string, enabled bool) {
 // setPool is All and None: the excluded list is every mission or none of them,
 // and the rows are made again, because each one captured its own tick.
 func (f *settingsForm) setPool(inPool bool) tea.Cmd {
-	excluded := []string{}
+	excluded := make([]string, 0)
 	if !inPool {
 		for _, mission := range gamedata.PlayableMissions() {
 			excluded = append(excluded, mission.PopFile)
+		}
+	} else {
+		visible := runshape.VisibleMissions(f.communityAvailable)
+		for _, mission := range gamedata.PlayableMissions() {
+			if gamedata.MissionPack(mission.ID) != "" && !slices.ContainsFunc(visible, func(candidate gamedata.Mission) bool {
+				return candidate.ID == mission.ID
+			}) {
+				excluded = append(excluded, mission.PopFile)
+			}
 		}
 	}
 	f.edited.MvmExcludedMissions = excluded

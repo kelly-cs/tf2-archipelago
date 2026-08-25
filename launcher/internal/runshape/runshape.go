@@ -7,6 +7,7 @@ package runshape
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/m-this/tf2-archipelago/gamedata"
@@ -103,9 +104,37 @@ type MissionChoice struct {
 // MissionChoices lists every mission the tables know, in table order, which
 // is map by map and easiest first.
 func MissionChoices() []MissionChoice {
-	playable := gamedata.PlayableMissions()
+	return MissionChoicesForPacks([]string{"archive-assets.zip", "mlarchive-assets.zip"})
+}
+
+// VisibleMissions is the mission table a launcher may populate from the packs
+// that exist locally. Valve missions are always present. Portable community
+// missions and the locked no-NAV rows appear only after their owning archive
+// has been downloaded or supplied locally; RafMod-only missions stay hidden.
+func VisibleMissions(availablePacks []string) []gamedata.Mission {
+	var visible []gamedata.Mission
+	for _, mission := range gamedata.Missions {
+		pack := gamedata.MissionPack(mission.ID)
+		switch {
+		case pack == "" && gamedata.IsPlayableMission(mission.ID):
+			visible = append(visible, mission)
+		case pack != "" && slices.Contains(availablePacks, pack) &&
+			(gamedata.IsPlayableMission(mission.ID) || gamedata.MissionRequirement(mission.ID) == "no_nav"):
+			visible = append(visible, mission)
+		}
+	}
+	return visible
+}
+
+// MissionChoicesForPacks excludes unavailable and locked community missions
+// from menus that can actually select a starting mission.
+func MissionChoicesForPacks(availablePacks []string) []MissionChoice {
+	playable := VisibleMissions(availablePacks)
 	choices := make([]MissionChoice, 0, len(playable))
 	for _, mission := range playable {
+		if !gamedata.IsPlayableMission(mission.ID) {
+			continue
+		}
 		played, _ := gamedata.MapByID(mission.Map)
 		choices = append(choices, MissionChoice{
 			PopFile: mission.PopFile,
@@ -145,6 +174,11 @@ const AnyLabel = "Any - the run draws it"
 // that decides where a run begins. The empty popfile is the draw.
 func StartMissionChoices() []MissionChoice {
 	return append([]MissionChoice{{PopFile: "", Label: AnyLabel}}, MissionChoices()...)
+}
+
+// StartMissionChoicesForPacks is the availability-aware start menu.
+func StartMissionChoicesForPacks(availablePacks []string) []MissionChoice {
+	return append([]MissionChoice{{PopFile: "", Label: AnyLabel}}, MissionChoicesForPacks(availablePacks)...)
 }
 
 // StartMissionLabel is what StartMissionChoices shows for one popfile.

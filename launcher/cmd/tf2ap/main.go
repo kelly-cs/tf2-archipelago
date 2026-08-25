@@ -18,6 +18,7 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"syscall"
 
@@ -315,7 +316,7 @@ func configureServer(p *ui.Prompt, s settings.Settings) settings.Settings {
 	s.SrcdsRconPw = p.Password("RCON password", s.SrcdsRconPw)
 	s.SrcdsPw = p.Password("Player password (blank for none)", s.SrcdsPw)
 	s.SrcdsPort = p.Int("Game port", s.SrcdsPort)
-	s.SrcdsStartMission = p.Select("Start mission", missionOptions(), s.SrcdsStartMission)
+	s.SrcdsStartMission = p.Select("Start mission", missionOptions(s), s.SrcdsStartMission)
 	s.SrcdsAdminSteamIDs = p.Text("Admin Steam IDs (comma-separated, blank for none)", s.SrcdsAdminSteamIDs)
 	for _, reach := range settings.Reaches() {
 		fmt.Printf("  %-6s %s\n", reach, reach.Help())
@@ -375,10 +376,15 @@ func configureInstall(p *ui.Prompt, s settings.Settings) settings.Settings {
 	return s
 }
 
-// missionOptions lists the 29 Valve missions as map - mission. gamedata owns
-// that list; see ADR 0001.
-func missionOptions() []ui.Option {
-	choices := runshape.MissionChoices()
+// missionOptions lists Valve missions plus missions whose community archives
+// validate locally. gamedata owns the catalog; see ADR 0001.
+func missionOptions(s settings.Settings) []ui.Option {
+	availablePaths := installer.AvailableCommunityArchives(settings.KnownCommunityArchives(s.CommunityContentDir))
+	availablePacks := make([]string, 0, len(availablePaths))
+	for _, path := range availablePaths {
+		availablePacks = append(availablePacks, filepath.Base(path))
+	}
+	choices := runshape.MissionChoicesForPacks(availablePacks)
 	options := make([]ui.Option, 0, len(choices))
 	for _, choice := range choices {
 		options = append(options, ui.Option{Value: choice.PopFile, Label: choice.Label})
