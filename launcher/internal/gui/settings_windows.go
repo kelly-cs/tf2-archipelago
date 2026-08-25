@@ -1342,7 +1342,7 @@ func (m *poolModel) StyleCell(style *walk.CellStyle) {
 }
 
 func browseForCommunity(owner walk.Form, edit *walk.LineEdit) bool {
-	dialog := walk.FileDialog{Title: "Where are the Potato/Moonlight asset ZIPs?", InitialDirPath: strings.TrimSpace(edit.Text())}
+	dialog := walk.FileDialog{Title: "Where are the asset ZIPs?", InitialDirPath: strings.TrimSpace(edit.Text())}
 	accepted, err := dialog.ShowBrowseFolder(owner)
 	if err != nil {
 		walk.MsgBox(owner, "Community content", err.Error(), walk.MsgBoxIconError)
