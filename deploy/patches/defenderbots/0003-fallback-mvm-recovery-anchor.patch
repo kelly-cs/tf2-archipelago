@@ -1,0 +1,156 @@
+diff --git a/source/redbots3/nextbot_behavior.sp b/source/redbots3/nextbot_behavior.sp
+--- a/source/redbots3/nextbot_behavior.sp
++++ b/source/redbots3/nextbot_behavior.sp
+@@ -264,6 +264,97 @@ static void NotePathResult(int actor, bool built)
+ 	m_bPathFailed[actor] = failed;
+ }
+ 
++static CNavArea FindSpawnRecoveryArea(int client, char[] source, int sourceLength)
++{
++	int anchor = GetCapturableAreaTrigger(GetPlayerEnemyTeam(client));
++
++	if (anchor != -1)
++	{
++		CNavArea area = TheNavMesh.GetNearestNavArea(WorldSpaceCenter(anchor), true, 1500.0, true, true, TEAM_ANY);
++
++		if (area != NULL_AREA)
++		{
++			strcopy(source, sourceLength, "capture trigger");
++			return area;
++		}
++	}
++
++	float clientPosition[3]; clientPosition = WorldSpaceCenter(client);
++	float closest = 999999.0;
++	CNavArea best = NULL_AREA;
++	int entity = -1;
++
++	while ((entity = FindEntityByClassname(entity, "func_capturezone")) != -1)
++	{
++		CNavArea area = TheNavMesh.GetNearestNavArea(WorldSpaceCenter(entity), true, 1500.0, true, true, TEAM_ANY);
++
++		if (area == NULL_AREA)
++			continue;
++
++		float distance = GetVectorDistance(clientPosition, WorldSpaceCenter(entity));
++
++		if (distance < closest)
++		{
++			closest = distance;
++			best = area;
++		}
++	}
++
++	if (best != NULL_AREA)
++	{
++		strcopy(source, sourceLength, "func_capturezone");
++		return best;
++	}
++
++	entity = -1;
++	closest = 999999.0;
++
++	while ((entity = FindEntityByClassname(entity, "team_control_point")) != -1)
++	{
++		CNavArea area = TheNavMesh.GetNearestNavArea(WorldSpaceCenter(entity), true, 1500.0, true, true, TEAM_ANY);
++
++		if (area == NULL_AREA)
++			continue;
++
++		float distance = GetVectorDistance(clientPosition, WorldSpaceCenter(entity));
++
++		if (distance < closest)
++		{
++			closest = distance;
++			best = area;
++		}
++	}
++
++	if (best != NULL_AREA)
++	{
++		strcopy(source, sourceLength, "control point");
++		return best;
++	}
++
++	float shortestBombTravel = 999999.0;
++
++	for (int i = 0; i < TheNavAreas.Count; i++)
++	{
++		CTFNavArea area = view_as<CTFNavArea>(TheNavAreas.Get(i));
++
++		if (area == NULL_AREA || area.HasAttributeTF(RED_SPAWN_ROOM) || area.HasAttributeTF(BLUE_SPAWN_ROOM))
++			continue;
++
++		float travel = GetTravelDistanceToBombTarget(area);
++
++		if (travel >= 0.0 && travel < shortestBombTravel)
++		{
++			shortestBombTravel = travel;
++			best = area;
++		}
++	}
++
++	if (best != NULL_AREA)
++		strcopy(source, sourceLength, "bomb-target NAV");
++
++	return best;
++}
++
+ /* Put a defender onto the battlefield mesh when its spawn is a disconnected NAV island
+ 
+ The hatch is the one anchor every working MvM map has. Its nearest NAV area is on the component
+@@ -281,12 +372,8 @@ static bool MoveDefenderFromSpawnToHatch(int client, const char[] reason)
+ 	if (!IsInOrNearDefenderSpawn(client))
+ 		return false;
+ 
+-	int hatch = GetCapturableAreaTrigger(GetPlayerEnemyTeam(client));
+-
+-	if (hatch == -1)
+-		return false;
+-
+-	CNavArea area = TheNavMesh.GetNearestNavArea(WorldSpaceCenter(hatch), true, 1000.0, true, true, GetClientTeam(client));
++	char anchorSource[32];
++	CNavArea area = FindSpawnRecoveryArea(client, anchorSource, sizeof(anchorSource));
+ 
+ 	if (area == NULL_AREA)
+ 		return false;
+@@ -300,7 +387,7 @@ static bool MoveDefenderFromSpawnToHatch(int client, const char[] reason)
+ 	m_flRepathTime[client] = 0.0;
+ 	ResetSpawnExitWatch(client);
+ 
+-	LogMessage("SpawnNavRecovery: %N %s; moved them to the battlefield NAV mesh near the hatch", client, reason);
++	LogMessage("SpawnNavRecovery: %N %s; moved them using %s", client, reason, anchorSource);
+ 	return true;
+ }
+ 
+@@ -312,12 +399,8 @@ bool RecoverDefenderFromDisconnectedSpawn(int client)
+ 	if (!IsInOrNearDefenderSpawn(client))
+ 		return false;
+ 
+-	int hatch = GetCapturableAreaTrigger(GetPlayerEnemyTeam(client));
+-
+-	if (hatch == -1)
+-		return false;
+-
+-	CNavArea area = TheNavMesh.GetNearestNavArea(WorldSpaceCenter(hatch), true, 1000.0, true, true, GetClientTeam(client));
++	char anchorSource[32];
++	CNavArea area = FindSpawnRecoveryArea(client, anchorSource, sizeof(anchorSource));
+ 
+ 	if (area == NULL_AREA)
+ 		return false;
+@@ -390,11 +473,11 @@ public Action Command_DumpSpawnNav(int client, int args)
+ 		float watched = m_flSpawnExitStartedAt[bot] > 0.0 ? now - m_flSpawnExitStartedAt[bot] : 0.0;
+ 		float stalled = m_flSpawnExitProgressAt[bot] > 0.0 ? now - m_flSpawnExitProgressAt[bot] : 0.0;
+ 		float moved = m_flSpawnExitProgressAt[bot] > 0.0 ? GetVectorDistance(GetAbsOrigin(bot), m_vecSpawnExitProgress[bot]) : 0.0;
+-		int hatch = GetCapturableAreaTrigger(GetPlayerEnemyTeam(bot));
+-		bool hatchNav = hatch != -1 && TheNavMesh.GetNearestNavArea(WorldSpaceCenter(hatch), true, 1000.0, true, true, GetClientTeam(bot)) != NULL_AREA;
++		char anchorSource[32];
++		bool anchorNav = FindSpawnRecoveryArea(bot, anchorSource, sizeof(anchorSource)) != NULL_AREA;
+ 
+-		ReplyToCommand(client, "%N: strict %d, spawn distance %.0f, near %d, eligible %d, upgrade zone %d, watched %.1fs, stalled %.1fs, moved %.0f, hatch %d, hatch NAV %d",
+-			bot, strict, distance, near, ShouldWatchDefenderSpawnExit(bot), TF2_IsInUpgradeZone(bot), watched, stalled, moved, hatch, hatchNav);
++		ReplyToCommand(client, "%N: strict %d, spawn distance %.0f, near %d, eligible %d, upgrade zone %d, watched %.1fs, stalled %.1fs, moved %.0f, anchor %s, anchor NAV %d",
++			bot, strict, distance, near, ShouldWatchDefenderSpawnExit(bot), TF2_IsInUpgradeZone(bot), watched, stalled, moved, anchorSource, anchorNav);
+ 	}
+ 
+ 	return Plugin_Handled;

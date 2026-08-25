@@ -139,7 +139,9 @@ The radius accepts `0` through `4096`; the deadline accepts `1` through `120`
 seconds. Use `sm_dump_spawn_nav` through rcon while bots are stuck. It reports
 whether each bot is strictly inside spawn, its distance from the nearest spawn
 brush, whether it is eligible, its watchdog timers, and whether the hatch has
-NAV. `sm_recover_spawn_bots` immediately moves eligible defender bots within
+NAV. The recovery anchor is selected from a capture trigger, MvM
+`func_capturezone`, control point, or bomb-target NAV distance, in that order.
+`sm_recover_spawn_bots` immediately moves eligible defender bots within
 the configured radius and is useful for proving the destination works while
 the automatic trigger is being diagnosed.
 

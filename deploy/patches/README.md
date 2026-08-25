@@ -13,6 +13,7 @@ upstream tag, tag the result, and bump `DEFENDERBOTS_VERSION`.
 | --- | --- |
 | `defenderbots/0001-recover-stalled-spawn-nav.patch` | Defender bots retry refused paths. A prepared bot still in spawn with no hatch route, less than 96 units of progress over six seconds, or twelve total seconds spent trying to leave is moved near the hatch. |
 | `defenderbots/0002-add-spawn-slop-and-debug.patch` | Extends spawn detection around each RED spawn brush, exposes the recovery radius and deadline as live convars, and adds diagnostic/manual-recovery admin commands. |
+| `defenderbots/0003-fallback-mvm-recovery-anchor.patch` | Community maps do not all expose the hatch as a capturable-area trigger. Recovery falls back through `func_capturezone`, control points, and bomb-target NAV travel distance, and diagnostics report which anchor won. |
 | `tf2attributes/0001-drop-pragma-unused-before-declaration.patch` | `#pragma unused` sits above the function it names, and spcomp 1.12 resolves it before the declaration exists. Nothing compiles without this. |
 | `actions/0001-drop-libudis86-and-asm-sources.patch` | Only for a from-source build of the extension. SourceMod removed `public/libudis86` and `public/asm` in commit `e07c120c`; the AMBuilder still lists them. |
 | `actions/0002-do-not-treat-sdk-warnings-as-errors.patch` | Only for a from-source build. `-Werror` against the current hl2sdk fails on `#pragma warning` blocks in `vstdlib/random.h`. |
