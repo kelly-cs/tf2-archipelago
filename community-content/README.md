@@ -217,6 +217,14 @@ registered community missions then participate in the existing difficulty,
 mission-count, start-mission, and exclusion options alongside Valve missions.
 Use `MVM_EXCLUDED_MISSIONS` if a particular custom mission should not be drawn.
 
+In the standalone launcher, press **Check Run Selection** after choosing the
+pool. It reports the eligible missions, their cataloged checks, and the unlocks
+that must fit. The same check runs automatically before saving, writing
+`tf2.yaml`, generating a seed, and starting Test mode. This guarantees the
+catalog is logically large enough; runtime certification of a community
+mission's declared waves, tank, and giant remains a separate compatibility
+level.
+
 ## Rebuild and relaunch
 
 Community content changes require an SRCDS restart. Manifest changes also

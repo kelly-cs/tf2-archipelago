@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/m-this/tf2-archipelago/gamedata"
 )
 
 func TestPlayerYAMLHoldsTheRunShape(t *testing.T) {
@@ -72,6 +74,21 @@ func TestWritePlayerFile(t *testing.T) {
 	body, _ = os.ReadFile(path)
 	if !strings.Contains(string(body), "goal: missionsanity") {
 		t.Errorf("the file was not rewritten:\n%s", body)
+	}
+}
+
+func TestWritePlayerFileRejectsAnEmptyMissionPool(t *testing.T) {
+	s := Defaults()
+	s.InstallRoot = t.TempDir()
+	for _, mission := range gamedata.PlayableMissions() {
+		s.MvmExcludedMissions = append(s.MvmExcludedMissions, mission.PopFile)
+	}
+	_, err := WritePlayerFile(s, "0.6.7")
+	if err == nil || !strings.Contains(err.Error(), "no missions remain") {
+		t.Fatalf("WritePlayerFile error = %v", err)
+	}
+	if _, statErr := os.Stat(filepath.Join(s.InstallRoot, PlayerFileName)); !os.IsNotExist(statErr) {
+		t.Fatalf("invalid player file was written: %v", statErr)
 	}
 }
 
