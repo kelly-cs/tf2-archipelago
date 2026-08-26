@@ -101,7 +101,35 @@ stock bool MvM_IsGiant(int client)
     {
         return false;
     }
-    return GetEntProp(client, Prop_Send, "m_bIsMiniBoss") != 0;
+    if (GetEntProp(client, Prop_Send, "m_bIsMiniBoss") == 0)
+    {
+        return false;
+    }
+    return !MvM_IsSentryBuster(client);
+}
+
+/* A sentry buster carries m_bIsMiniBoss and is not a giant.
+ *
+ * It usually dies by blowing itself up, so without this the mission's giant
+ * check is spent by a robot nobody killed. Worse quietly than loudly:
+ * g_GiantReported latches for the rest of the mission, so the real giant that
+ * dies later reports nothing and no line anywhere says it was missed.
+ *
+ * The model is the test the defender bot mod already uses, in its own
+ * source/redbots3/util.sp. Same string, and it needs no gamedata.
+ *
+ * A buster killed by the team is excluded too, rather than only one that
+ * detonates. It is one rule instead of two, and it matches what a player means
+ * by killing a giant.
+ */
+stock bool MvM_IsSentryBuster(int client)
+{
+    char model[PLATFORM_MAX_PATH];
+    if (!GetClientModel(client, model, sizeof(model)))
+    {
+        return false;
+    }
+    return StrEqual(model, "models/bots/demo/bot_sentry_buster.mdl");
 }
 
 // UNVERIFIED m_iszMvMPopfileName: scripts/population/mvm_decoy.pop, trimmed to mvm_decoy.
