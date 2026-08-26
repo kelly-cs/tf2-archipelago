@@ -284,6 +284,14 @@ static bool MvM_DropCredits(int client, int amount)
  * restore is therefore the game's number plus everything we ever added. It is
  * cleared on a map change, where the game clears its own side too.
  */
+// Everything a bundle ever added to this client, which is what the game's own
+// record of the wave is missing. Read across the plugin boundary by the defender
+// bot mod, so a bot that respawns is not reset to a number with no bundles in it.
+stock int MvM_BundleCredits(int client)
+{
+    return (client >= 0 && client <= MAXPLAYERS) ? g_BundleCredits[client] : 0;
+}
+
 stock void MvM_ForgetBundles(int client)
 {
     g_BundleCredits[client] = 0;
