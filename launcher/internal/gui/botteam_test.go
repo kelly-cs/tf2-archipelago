@@ -38,7 +38,11 @@ func TestBotTeamFromPicksKeepsTheSeatsAndTheTicks(t *testing.T) {
 		t.Errorf("blacklist = %q", got)
 	}
 	// The unticked class reaches the mod, and the seats keep their numbers.
-	if got := botloadout.Composition(team.Comp, team.Blacklist); got != ",engineer,,heavyweapons" {
+	//
+	// Padded to the full team because a class is unticked. A named lineup
+	// outranks the blacklist, so any seat left unwritten is one the mod draws
+	// without consulting it, which is how an unticked class reached RED.
+	if got := botloadout.Composition(team.Comp, team.Blacklist); got != ",engineer,,heavyweapons,," {
 		t.Errorf("composition = %q", got)
 	}
 }
