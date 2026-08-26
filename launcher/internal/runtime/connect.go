@@ -110,6 +110,9 @@ func LocalAddresses() []string {
 	return found
 }
 
+// routeLookupTimeout bounds the route question below.
+const routeLookupTimeout = time.Second
+
 /* preferredAddress is the one this machine would send from, asked of the OS.
  *
  * The order net.Interfaces returns is arbitrary, and a machine with Docker,
@@ -125,7 +128,13 @@ func LocalAddresses() []string {
  * machine really reaches the network on.
  */
 func preferredOutboundAddress() string {
-	conn, err := net.Dial("udp4", "192.0.2.1:9")
+	// Bounded, though a UDP dial only consults the routing table and does not
+	// wait for anybody: a machine with no route at all should not hold the
+	// interface up while it finds that out.
+	ctx, cancel := context.WithTimeout(context.Background(), routeLookupTimeout)
+	defer cancel()
+	var dialer net.Dialer
+	conn, err := dialer.DialContext(ctx, "udp4", "192.0.2.1:9")
 	if err != nil {
 		return ""
 	}
