@@ -3,7 +3,7 @@
 - **Status**: Accepted
 - **Date**: 2026-08-13
 - **Deciders**: project owner
-- **Related**: `docs/spec.md`, `docs/prior-art.md`, ADR 0002
+- **Related**: `docs/spec.md`, ADR 0002
 
 ## Context
 
