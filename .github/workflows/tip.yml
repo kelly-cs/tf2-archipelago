@@ -168,6 +168,13 @@ jobs:
           # without the other.
           git push origin ":refs/tags/tip" 2>/dev/null || true
 
+          # And the local one, which the remote delete does not touch. This job
+          # checks out at fetch-depth 0 so that `git describe` can find the last
+          # release, and that fetches every tag, tip included: without this,
+          # `git tag tip` dies with "tag 'tip' already exists" before anything
+          # reaches the remote.
+          git tag -d tip 2>/dev/null || true
+
           git tag tip "$GITHUB_SHA"
           git push origin "refs/tags/tip"
 
