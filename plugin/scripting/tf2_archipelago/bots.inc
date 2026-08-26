@@ -606,7 +606,51 @@ static bool Bots_AnyPlayerHere()
 public Action Timer_TrimBots(Handle timer)
 {
     Bots_TrimSurplus();
+    Bots_LogLineup();
     return Plugin_Stop;
+}
+
+/* Who is on RED, and what they are playing.
+ *
+ * The one line a debug bundle could not answer. A blacklisted Spy was drawn
+ * into a lineup for a whole evening and the logs held nothing to prove it: the
+ * player had to send a screenshot of the team panel, because bot class is
+ * printed nowhere. Reading a bundle should not need a photograph.
+ *
+ * Written when the wave starts and the team has settled, which is after the
+ * trim above: RED before that is whatever the mod and this plugin have each
+ * added without seeing the other.
+ */
+void Bots_LogLineup()
+{
+    char line[512];
+    int count = 0;
+    for (int client = 1; client <= MaxClients; client++)
+    {
+        if (!IsClientInGame(client) || IsClientSourceTV(client) || GetClientTeam(client) != TeamRed)
+        {
+            continue;
+        }
+        TFClassType class = TF2_GetPlayerClass(client);
+        char key[16];
+        if (class > TFClass_Unknown && view_as<int>(class) < sizeof(g_ClassKeys))
+        {
+            strcopy(key, sizeof(key), g_ClassKeys[view_as<int>(class)]);
+        }
+        else
+        {
+            strcopy(key, sizeof(key), "none");
+        }
+        Format(line, sizeof(line), "%s%s%N (%s%s)", line, count == 0 ? "" : ", ",
+            client, key, IsFakeClient(client) ? " bot" : " player");
+        count++;
+    }
+    if (count == 0)
+    {
+        AP_Debug("RED is empty at the wave start.");
+        return;
+    }
+    AP_Debug("RED holds %d at the wave start: %s", count, line);
 }
 
 public Action Timer_FillTeam(Handle timer)
