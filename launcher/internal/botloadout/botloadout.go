@@ -277,17 +277,36 @@ func Composition(comp, blacklist []string) string {
 	for len(seats) > 0 && seats[len(seats)-1] == "" {
 		seats = seats[:len(seats)-1]
 	}
-	if len(seats) == 0 {
-		if Blacklist(blacklist) == "" {
-			return ""
-		}
-		if len(comp) > 0 {
-			seats = make([]string, len(comp))
-		} else {
-			seats = make([]string, botSeats)
+	/* A named lineup beats the blacklist, so a short one has to cover every seat
+	 *
+	 * The mod fills the seats this names and draws the rest itself, and what it
+	 * draws does not consult the blacklist. One named Scout against a team of
+	 * six therefore handed five seats back to the mod, blacklist and all, and a
+	 * Spy that had been unticked walked onto RED. Reported from play.
+	 *
+	 * The pad below already existed for a lineup of nothing but draws. It only
+	 * ran when there was nothing to trim to, so a lineup with one entry in it
+	 * skipped it. The rule is the same either way: with a blacklist, every seat
+	 * is written. */
+	if Blacklist(blacklist) != "" {
+		for len(seats) < seatsWanted(comp) {
+			seats = append(seats, "")
 		}
 	}
+	if len(seats) == 0 {
+		return ""
+	}
 	return strings.Join(seats, ",")
+}
+
+// seatsWanted is how many seats a lineup has to write out to keep the mod from
+// drawing any itself. The settings page offers botSeats, and a comp longer than
+// that is the operator asking for a bigger team than the page can show.
+func seatsWanted(comp []string) int {
+	if len(comp) > botSeats {
+		return len(comp)
+	}
+	return botSeats
 }
 
 // botSeats is how many seats a team of nothing but draws writes out. At least

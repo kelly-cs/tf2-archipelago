@@ -147,10 +147,13 @@ func TestCompositionKeepsDrawSeats(t *testing.T) {
 			nil, "",
 		},
 		{
-			"every seat on the draw, with classes unticked, still names the seats",
+			// Three seats named left seats four to six to the mod, which draws
+			// them without consulting the blacklist. With a blacklist the whole
+			// team is written, however short the lineup was.
+			"a short lineup, with classes unticked, still names every seat",
 			[]string{"", "", ""},
 			[]string{"sniper"},
-			",,",
+			",,,,,",
 		},
 		{
 			"nothing at all, with classes unticked, still names the seats",
@@ -184,5 +187,37 @@ func TestSeatNumbersAgreeWithTheComposition(t *testing.T) {
 			t.Errorf("seat %d of the convar is %s, and the loadout file does not say so:\n%s",
 				seat+1, class, rendered)
 		}
+	}
+}
+
+/*
+A blacklist has to reach every seat, not only the named ones.
+
+The mod fills the seats a lineup names and draws the rest itself, and what it
+draws never consults the blacklist. One named Scout against a six-man team gave
+five seats back to the mod, and a Spy that had been unticked walked onto RED.
+*/
+func TestAShortLineupStillCoversEverySeat(t *testing.T) {
+	got := Composition([]string{"scout"}, []string{"spy"})
+	if want := "scout,,,,,"; got != want {
+		t.Errorf("Composition(scout, blacklist spy) = %q, want %q", got, want)
+	}
+}
+
+// Without a blacklist there is nothing to enforce, so a short lineup stays
+// short and the mod draws the rest as it likes.
+func TestAShortLineupWithNoBlacklistIsLeftAlone(t *testing.T) {
+	if got := Composition([]string{"scout"}, nil); got != "scout" {
+		t.Errorf("Composition(scout, no blacklist) = %q, want %q", got, "scout")
+	}
+}
+
+// A lineup longer than the settings page offers is the operator asking for a
+// bigger team, and every one of those seats still has to be written.
+func TestALongLineupIsNotTruncated(t *testing.T) {
+	comp := []string{"scout", "soldier", "pyro", "demoman", "heavyweapons", "engineer", "medic"}
+	got := Composition(comp, []string{"spy"})
+	if want := strings.Join(comp, ","); got != want {
+		t.Errorf("Composition(seven seats) = %q, want %q", got, want)
 	}
 }

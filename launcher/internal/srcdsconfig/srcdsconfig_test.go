@@ -198,7 +198,12 @@ func TestInstallServerCfgCarriesTheRunAndTheBots(t *testing.T) {
 		`sm_redbots_manager_class_blacklist "sniper,spy"`,
 		// In the order given, and the class the mod does not have leaves a hole
 		// rather than moving the seat after it up one.
-		`sm_redbots_manager_team_composition "engineer,medic,,heavyweapons"`,
+		//
+		// Padded to the full team because the blacklist above is not empty. A
+		// named lineup outranks the blacklist, so any seat this does not name
+		// is one the mod draws for itself without consulting it, which is how
+		// an unticked Spy reached RED.
+		`sm_redbots_manager_team_composition "engineer,medic,,heavyweapons,,"`,
 		"sm_redbots_manager_use_custom_loadouts 1",
 		"tf2ap_bot_upgrades_chat 1",
 		// The looks, which are three separate ticks and not one
