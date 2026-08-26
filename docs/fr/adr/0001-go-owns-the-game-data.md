@@ -3,7 +3,7 @@
 - **Statut** : Accepté
 - **Date** : 2026-08-13
 - **Décideurs** : le propriétaire du projet
-- **Lié à** : `docs/spec.md`, `docs/prior-art.md`, ADR 0002
+- **Lié à** : `docs/spec.md`, ADR 0002
 
 ## Contexte
 
