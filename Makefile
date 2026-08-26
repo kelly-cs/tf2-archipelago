@@ -72,6 +72,7 @@ GO_SRC := $$(find . -type f -name '*.go' -not -path './deploy/bots/build/*')
         apworld-fmt apworld-test apworld-build plugin bots bots-from-source \
         integration build docs \
         docs-build docs-down dist compose-release version-check clean \
+        go-version-check \
         launcher launcher-assets launcher-assets-common \
         launcher-linux launcher-assets-linux captures embed-placeholders
 
@@ -493,7 +494,14 @@ version-check:
 # --- The gate ---
 
 # Everything CI runs, cheapest failure first. Green here means green there.
-check: fmt-check lint fix-check compile test vuln apworld-lint plugin apworld-test docs-build compose-release integration
+# go-version-check first: a builder on the wrong Go makes lint fail in a way
+# that reads as a linter bug rather than a stale pin.
+check: go-version-check fmt-check lint fix-check compile test vuln apworld-lint plugin apworld-test docs-build compose-release integration
+
+# The go directive owns the version. Two pins cannot read it, so this says when
+# they have drifted rather than leaving it to whoever hits the failure.
+go-version-check:
+	./deploy/check-go-version.sh
 
 clean: .env
 	$(COMPOSE) down -v
