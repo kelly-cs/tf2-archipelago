@@ -9,13 +9,18 @@ in the release notes, so this file is the only place to write it.
 ### Weapon buffs
 
 - Every positive effect in the first-pass catalog can land on each of TF2's
-  212 functional weapons and named reskins: 13,568 deliberately silly
+  212 functional weapons and named reskins: 16,960 deliberately silly
   permutations. A run samples permutations to fit its checks.
 - Numeric effects add levels; on/off effects clamp at one. Projectile count
   and speed, bleed, afterburn, ignite, gasoline and Mad Milk are included.
 - Two YAML options split spare checks between weapon buffs and cash, and
   control how often a numeric permutation repeats as another level. Toggle
   effects are never duplicated.
+- The catalog also includes slow on hit, 50% faster gestures and consumables,
+  active regeneration, deploy and meter speed, ammo on hit, mini-crits on kill,
+  healing received, blast-jump bonuses, minigun spin-up, airblast cost, Über
+  duration, Spy reveal and speed on hit. Heal on kill and immunity to
+  self-inflicted blast damage remain available from the first pass.
 - Projectile count adds pellets to hitscan weapons and additional rockets per
   trigger pull. Extra rockets ignore direct contact with their shooter while
   retaining normal explosion splash damage.

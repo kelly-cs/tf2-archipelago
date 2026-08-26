@@ -80,6 +80,10 @@ func TestEveryRequestedSillyEffectIsAvailableForEveryWeapon(t *testing.T) {
 		"ignite":           BuffToggle,
 		"gasoline":         BuffToggle,
 		"mad-milk":         BuffToggle,
+		"no-self-blast":    BuffToggle,
+		"heal-on-kill":     BuffAdd,
+		"slow-on-hit":      BuffToggle,
+		"gesture-speed":    BuffPercentage,
 	}
 	for _, effect := range WeaponEffects {
 		if mode, ok := wanted[effect.Key]; ok {
@@ -91,6 +95,26 @@ func TestEveryRequestedSillyEffectIsAvailableForEveryWeapon(t *testing.T) {
 	}
 	if len(wanted) != 0 {
 		t.Fatalf("missing requested effects: %v", wanted)
+	}
+}
+
+func TestRequestedSecondPassEffectValues(t *testing.T) {
+	wanted := map[string]float32{
+		"heal-on-kill":  15,
+		"no-self-blast": 1,
+		"slow-on-hit":   1,
+		"gesture-speed": 0.50,
+	}
+	for _, effect := range WeaponEffects {
+		if value, ok := wanted[effect.Key]; ok {
+			if effect.Increment != value {
+				t.Errorf("%s increment = %.2f, want %.2f", effect.Key, effect.Increment, value)
+			}
+			delete(wanted, effect.Key)
+		}
+	}
+	if len(wanted) != 0 {
+		t.Fatalf("missing requested second-pass effects: %v", wanted)
 	}
 }
 

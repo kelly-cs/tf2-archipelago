@@ -62,6 +62,14 @@ Projectile count adds pellets to hitscan weapons and additional rockets per
 trigger pull. Extra rockets ignore direct contact with their shooter while
 retaining normal explosion splash damage.
 
+The second pass adds slow on hit, 50% faster gestures and consumable use,
+active health regeneration, faster deploy, meter recharge and minigun spin-up,
+ammo on hit, mini-crits on kill, increased healing received, rocket-jump damage
+resistance, stronger self-damage launch force, cheaper airblasts, longer Über,
+revealing cloaked or disguised victims and a speed boost on hit. Effects tied
+to a mechanic remain eligible on every weapon deliberately; they simply matter
+most on weapons that exercise that mechanic.
+
 A run samples weapon/effect permutations for the checks left after its required
 classes, slots and mission tickets. By default, buffs occupy 75% of this spare
 space and cash fills the rest. Each buff draw has a 25% chance to add another
