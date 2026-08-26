@@ -134,11 +134,13 @@ func summary(s settings.Settings, versions map[string]string, stamp time.Time) s
 		fmt.Fprintf(&b, "%-13s %s\n", name, versions[name])
 	}
 	b.WriteString(configDrift(s))
-	b.WriteString(scanLogs(
+	found, sawCrash := scanLogs(
 		filepath.Join(s.InstallRoot, apruntime.LogFileName),
 		filepath.Join(s.InstallRoot, apruntime.LogPreviousName),
 		filepath.Join(s.InstallRoot, "tf-dedicated", "tf", apruntime.ConsoleLogName),
-	))
+	)
+	b.WriteString(found)
+	b.WriteString(crashDumpNote(s, sawCrash))
 
 	b.WriteString("\nPasswords are not in this file, and not in config.json either.\n")
 	return b.String()
@@ -166,6 +168,26 @@ func configDrift(s settings.Settings) string {
 	}
 	return "\nserver.cfg     DIFFERS from these settings: the running server is not\n" +
 		"               playing what config.json in this bundle says. Compare the two.\n"
+}
+
+/* crashDumpNote says when the logs hold a crash and the bundle holds no dump.
+ *
+ * The minidump is the only file that names the function the server died in, and
+ * a bundle without one looks exactly like a bundle from a run that never
+ * crashed. One arrived with two access violations in it and an empty crashes/
+ * folder, and the absence had to be noticed rather than read.
+ */
+func crashDumpNote(s settings.Settings, sawCrash bool) string {
+	if !sawCrash {
+		return ""
+	}
+	game := filepath.Join(s.InstallRoot, "tf-dedicated", "tf")
+	if len(newestCrashDumps(game, 1)) > 0 {
+		return "\n  A crash dump is in crashes/. That is the file worth reading first.\n"
+	}
+	return "\n  NO CRASH DUMP was found, though the logs hold a crash. srcds runs under\n" +
+		"  Breakpad and should write one. Look under the install root for a .mdmp or\n" +
+		"  .dmp, and say where it was if you find one.\n"
 }
 
 // redactedSettings renders the settings with every secret replaced.
@@ -199,18 +221,47 @@ func redactedSettings(s settings.Settings) string {
  * part of it crashed, and it never cleans them up. Newest by modification time
  * rather than by name: the names carry a crash id, not a date.
  */
+/* newestCrashDumps looks where srcds actually drops one.
+ *
+ * A bundle arrived with two access violations in its logs and no crashes/
+ * folder in it, which is the one file that names the function the server died
+ * in. Two guesses were wrong: only `.mdmp` was matched, and only two
+ * directories were searched.
+ *
+ * Breakpad writes beside the binary, so the game directory and its parent are
+ * the likely places, but the launcher's own working directory is the install
+ * root and a dump can land there instead. Some builds write `.dmp`, and some
+ * drop the file into a CrashDumps folder rather than beside themselves.
+ *
+ * Reading a directory that does not exist is the normal case here, not an
+ * error: most installs have none of the optional ones.
+ */
 func newestCrashDumps(gameDir string, limit int) []string {
+	root := filepath.Dir(filepath.Dir(gameDir))
+	dirs := []string{gameDir, filepath.Dir(gameDir), root}
+	for _, base := range []string{gameDir, filepath.Dir(gameDir), root} {
+		for _, name := range []string{"crashdumps", "CrashDumps"} {
+			dirs = append(dirs, filepath.Join(base, name))
+		}
+	}
+
+	seen := map[string]bool{}
 	var found []string
-	for _, dir := range []string{gameDir, filepath.Dir(gameDir)} {
+	for _, dir := range dirs {
 		entries, err := os.ReadDir(dir)
 		if err != nil {
 			continue
 		}
 		for _, entry := range entries {
-			if entry.IsDir() || !strings.HasSuffix(strings.ToLower(entry.Name()), ".mdmp") {
+			if entry.IsDir() || !isCrashDump(entry.Name()) {
 				continue
 			}
-			found = append(found, filepath.Join(dir, entry.Name()))
+			path := filepath.Join(dir, entry.Name())
+			if seen[path] {
+				continue
+			}
+			seen[path] = true
+			found = append(found, path)
 		}
 	}
 	sort.Slice(found, func(i, j int) bool {
@@ -220,6 +271,12 @@ func newestCrashDumps(gameDir string, limit int) []string {
 		found = found[len(found)-limit:]
 	}
 	return found
+}
+
+// isCrashDump covers both suffixes srcds has been seen to write.
+func isCrashDump(name string) bool {
+	lower := strings.ToLower(name)
+	return strings.HasSuffix(lower, ".mdmp") || strings.HasSuffix(lower, ".dmp")
 }
 
 func modTime(path string) time.Time {

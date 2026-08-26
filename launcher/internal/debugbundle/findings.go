@@ -65,8 +65,11 @@ type rule struct {
 
 // rules are ordered by how much a hit matters, because that is the order the
 // summary prints them in.
+// crashRule is the name of the rule whose hits mean a minidump should exist.
+const crashRule = "the game server crashed"
+
 var rules = []rule{
-	{"the game server crashed", func(l string) bool {
+	{crashRule, func(l string) bool {
 		return strings.Contains(l, "CRASHED") ||
 			strings.Contains(l, "exit status 0xc0") ||
 			strings.Contains(l, "signal: segmentation fault") ||
@@ -88,8 +91,10 @@ type hit struct {
 }
 
 // scanLogs reads the named files and reports what matched, plus the lines that
-// repeat far more than a log should need to.
-func scanLogs(paths ...string) string {
+// repeat far more than a log should need to. The second return says whether a
+// crash was among them, which decides whether a missing minidump is worth
+// pointing out.
+func scanLogs(paths ...string) (string, bool) {
 	found := map[string]*hit{}
 	repeats := map[string]int{}
 	shape := map[string]string{}
@@ -143,9 +148,9 @@ func scanLogs(paths ...string) string {
 		_ = file.Close()
 	}
 	if lines == 0 {
-		return ""
+		return "", false
 	}
-	return render(found, repeats, shape, lines)
+	return render(found, repeats, shape, lines), found[crashRule] != nil
 }
 
 func render(found map[string]*hit, repeats map[string]int, shape map[string]string, lines int) string {
