@@ -528,6 +528,14 @@ static void Bots_Fill()
         taken, DefenderTeamSize(), missing);
     ServerCommand("sm_addbots %d", missing);
     g_NextFill = GetGameTime() + BotFillGrace;
+
+    /* And count the seats back once the mod has had its turn
+     *
+     * The trim above only ever saw the previous poll's surplus. An ask that
+     * added six where five were wanted survived until the next poll, and the
+     * poll returns early once the wave starts, so it survived the whole wave
+     * in a seat that belongs to a player. */
+    CreateTimer(BotTrimDelay, Timer_TrimBots);
 }
 
 /* RED came up over its team size, so the extra bots leave.
@@ -554,7 +562,18 @@ void Bots_TrimSurplus()
     {
         return;
     }
-    int size = DefenderTeamSize();
+    /* The same seat arithmetic the fill uses, or the two fight
+     *
+     * Bots_Fill counts a connected player as holding a seat wherever he is
+     * standing, so it will not add a bot for one. The trim counted RED alone,
+     * so it left RED full of bots while a player who had just reconnected sat
+     * in spectator and the game refused him the team. That is the second half
+     * of what was reported as "what is with the 7 players". */
+    int size = DefenderTeamSize() - Bots_SeatsHeldOffRed();
+    if (size < 0)
+    {
+        size = 0;
+    }
     int onRed = 0;
     for (int client = 1; client <= MaxClients; client++)
     {
@@ -576,6 +595,29 @@ void Bots_TrimSurplus()
         KickClient(client, "RED is full");
         onRed--;
     }
+}
+
+/* Seats belonging to players who are connected but not on RED yet.
+ *
+ * Someone choosing a class, someone the game has just put in spectator, someone
+ * who reconnected mid-mission. Bots_Fill already holds a seat for each of them,
+ * so this is the same count and the trim can hold the same ones.
+ */
+static int Bots_SeatsHeldOffRed()
+{
+    int held = 0;
+    for (int client = 1; client <= MaxClients; client++)
+    {
+        if (!IsClientInGame(client) || IsClientSourceTV(client) || IsFakeClient(client))
+        {
+            continue;
+        }
+        if (GetClientTeam(client) != TeamRed)
+        {
+            held++;
+        }
+    }
+    return held;
 }
 
 /* Whether anybody is here to play with.
