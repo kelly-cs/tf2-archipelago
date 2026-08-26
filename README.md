@@ -112,9 +112,8 @@ Mann vs Machine is the mode this works in.
 - [Table of contents](./docs/en/SUMMARY.md)
 - [Design spec](./docs/en/spec.md): scope, locations, items, goals
 - [The decisions](./docs/en/adr/), and why the alternatives lost
-- [Prior art](./docs/en/prior-art.md)
 - [The Discord thread](./docs/en/discord-mvm-thread.md) that designed this,
-  word for word
+  word for word. Not in the book: it is a record, not a page to read.
 - [Glossary](./CONTEXT.md): Archipelago and MvM share words but not their
   meanings
 - [Code signing policy](./docs/en/code-signing.md)
