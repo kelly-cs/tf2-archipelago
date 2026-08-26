@@ -79,8 +79,12 @@ jobs:
             -t "$IMAGE/archipelago:nightly" .
           docker push "$IMAGE/archipelago:nightly"
 
+      # BUILD_CHANNEL is what puts "nightly" in the window title and the debug
+      # bundle instead of the release version this was built past. Without it a
+      # build from main after 1.9.0 calls itself 1.9.0 and a player reporting a
+      # bug on it looks like a player on the release.
       - name: build the files
-        run: make dist
+        run: make dist BUILD_CHANNEL=nightly
 
       - name: pin the compose file to nightly
         run: sed -i "s/:-latest}/:-nightly}/g" dist/compose.yaml
