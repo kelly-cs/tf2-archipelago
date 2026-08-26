@@ -6,8 +6,8 @@ on:
     branches: [main]
 
 # One tip build at a time, and a newer push wins. Two of these racing would both
-# force-move the same tag, and whichever finished second would leave the release
-# describing a commit the tag no longer points at.
+# delete and recreate the same tag, and whichever finished second would leave the
+# release describing a commit the tag no longer points at.
 concurrency:
   group: tip
   cancel-in-progress: true
@@ -140,21 +140,36 @@ jobs:
             dist/tf2ap.exe
             dist/tf2ap-linux-amd64
 
-      # The release goes first and the tag moves second. A release is bound to a
-      # tag name, so moving the tag under a live release leaves it describing a
-      # commit that is no longer there; deleting it first means the window where
-      # `tip` is wrong is a window where it is absent instead.
+      # The tag is deleted and made again rather than force-moved.
       #
-      # --cleanup-tag is deliberately not used: it would delete the tag this job
-      # is about to move, and a deleted tag is a deleted ref other clones keep.
+      # A repository rule on this repo refuses a force-update of a tag: the very
+      # first tip run created refs/tags/tip and succeeded, and every run since
+      # was rejected with "GH013: Cannot update this protected ref". Creating is
+      # allowed, updating is not, so the only move left is to remove the ref and
+      # create it again.
+      #
+      # This is what the earlier version of this step deliberately did not do,
+      # for a real reason: a deleted ref is one other clones keep, and anybody
+      # who fetched tip keeps a tag pointing at a commit that is no longer
+      # named. That cost is now the price of the feature working at all, and it
+      # is a cost tip already advertises, being a tag that is replaced without
+      # warning.
+      #
+      # The release goes before the tag either way. A release is bound to a tag
+      # name, so removing the tag under a live release leaves it describing a
+      # commit that is gone.
       - name: replace the tip release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release delete tip --yes 2>/dev/null || true
+          gh release delete tip --yes --cleanup-tag 2>/dev/null || true
+          # Belt and braces: --cleanup-tag only removes the tag when there was a
+          # release to delete, and a half-finished earlier run can leave one
+          # without the other.
+          git push origin ":refs/tags/tip" 2>/dev/null || true
 
-          git tag -f tip "$GITHUB_SHA"
-          git push -f origin refs/tags/tip
+          git tag tip "$GITHUB_SHA"
+          git push origin "refs/tags/tip"
 
           # shellcheck disable=SC2086
           gh release create tip \
