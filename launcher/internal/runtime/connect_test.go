@@ -1,6 +1,7 @@
 package runtime
 
 import (
+	"slices"
 	"strings"
 	"testing"
 
@@ -204,5 +205,40 @@ func TestItemServerLine(t *testing.T) {
 		if got := ItemServerLine(line); got != "" {
 			t.Errorf("%q was read as an item server line: %q", line, got)
 		}
+	}
+}
+
+/*
+The join link has to name the address the machine really answers on.
+
+A bundle carried four: 192.168.50.105 beside 192.168.34.1, 192.168.222.1 and
+172.25.192.1, which are the adapters Docker, WSL and a virtual machine leave
+behind. net.Interfaces returns them in no useful order, and taking the first
+sent players at an adapter with nothing behind it: "connection failed after 4
+retries", a stall at two bars, while the LAN tab of the server browser found
+the same server first try.
+*/
+func TestTheRoutableAddressComesFirst(t *testing.T) {
+	preferred := preferredOutboundAddress()
+	if preferred == "" {
+		t.Skip("no route out of this machine, so there is no preference to check")
+	}
+	addresses := LocalAddresses()
+	if len(addresses) == 0 {
+		t.Skip("no addresses on this machine")
+	}
+	if !slices.Contains(addresses, preferred) {
+		t.Fatalf("the routable address %s is not in %v", preferred, addresses)
+	}
+	if addresses[0] != preferred {
+		t.Errorf("addresses = %v, want %s first", addresses, preferred)
+	}
+}
+
+// The dial must not actually talk to anything: 192.0.2.1 is the documentation
+// range and nothing routes there, which is the point.
+func TestThePreferredAddressIsNotLoopback(t *testing.T) {
+	if got := preferredOutboundAddress(); got != "" && strings.HasPrefix(got, "127.") {
+		t.Errorf("preferred address = %q, which is loopback", got)
 	}
 }
