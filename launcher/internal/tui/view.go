@@ -48,9 +48,12 @@ func (m *model) View() string {
 	out.WriteString(m.tabs())
 	out.WriteString("\n")
 
-	if m.view == viewLog {
+	switch m.view {
+	case viewBots:
+		out.WriteString(m.bots())
+	case viewLog:
 		out.WriteString(m.log())
-	} else {
+	case viewSession:
 		out.WriteString(m.session())
 	}
 
@@ -121,7 +124,7 @@ func (m *model) joinAddresses() []string {
 }
 
 func (m *model) tabs() string {
-	names := []string{"Session", "Log"}
+	names := []string{"Session", "Bot Switcher", "Log"}
 	rendered := make([]string, 0, len(names))
 	for i, name := range names {
 		if view(i) == m.view {
@@ -284,8 +287,14 @@ func (m *model) keys() string {
 		{"tab", "view"},
 		{"i", "rcon"},
 	}
-	if m.view == viewSession {
+	switch m.view {
+	case viewSession:
 		pairs = append(pairs, [2]string{"p", "play mission"})
+	case viewBots:
+		pairs = append(pairs, [2]string{"a", "apply team"})
+	case viewLog:
+		// The log has no key of its own: everything it offers is in the row
+		// above, and scrolling is the arrows.
 	}
 	pairs = append(pairs, [2]string{"q", "quit"})
 

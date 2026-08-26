@@ -75,12 +75,17 @@ func TestTheLogShowsItsEnd(t *testing.T) {
 func TestTheKeysDoWhatTheFooterSays(t *testing.T) {
 	m := screen(t)
 
-	if _, _ = m.Update(key("tab")); m.view != viewLog {
-		t.Error("tab did not change the view")
+	// Round the three tabs and back, which is what the footer's one entry says
+	// tab does. shift+tab is the same ring the other way.
+	for _, want := range []view{viewBots, viewLog, viewSession} {
+		if _, _ = m.Update(key("tab")); m.view != want {
+			t.Errorf("tab reached view %d, want %d", m.view, want)
+		}
 	}
-	if _, _ = m.Update(key("tab")); m.view != viewSession {
-		t.Error("tab did not change it back")
+	if _, _ = m.Update(key("shift+tab")); m.view != viewLog {
+		t.Errorf("shift+tab reached view %d, want %d", m.view, viewLog)
 	}
+	m.view = viewSession
 	if _, _ = m.Update(key("i")); !m.typing {
 		t.Error("i did not reach the rcon line")
 	}
