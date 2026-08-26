@@ -129,14 +129,14 @@ that directory, and nothing deletes it for you.
 ## Without the repository
 
 Every release attaches a `compose.yaml` that names published images instead of
-building them, and the `.env.example` that goes with it. A machine with Docker
+building them, and the `env.example` that goes with it. A machine with Docker
 needs nothing else: no clone, no Go, and no compiler.
 
 ```sh
 mkdir mann-vs-archipelago && cd mann-vs-archipelago
 base=https://github.com/m-this/tf2-archipelago/releases/latest/download
 curl -fsSLO "$base/compose.yaml"
-curl -fsSL -o .env "$base/.env.example"
+curl -fsSL -o .env "$base/env.example"
 ```
 
 Set `SRCDS_RCONPW` in `.env`, then make a session and start:

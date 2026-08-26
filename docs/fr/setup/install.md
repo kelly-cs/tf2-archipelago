@@ -131,14 +131,14 @@ ignore ce dossier, et rien ne le supprime pour vous.
 ## Sans le dépôt
 
 Chaque release attache un `compose.yaml` qui nomme des images publiées au lieu
-de les construire, et le `.env.example` qui va avec. Une machine avec Docker n'a
+de les construire, et le `env.example` qui va avec. Une machine avec Docker n'a
 besoin de rien d'autre : ni clone, ni Go, ni compilateur.
 
 ```sh
 mkdir mann-vs-archipelago && cd mann-vs-archipelago
 base=https://github.com/m-this/tf2-archipelago/releases/latest/download
 curl -fsSLO "$base/compose.yaml"
-curl -fsSL -o .env "$base/.env.example"
+curl -fsSL -o .env "$base/env.example"
 ```
 
 Réglez `SRCDS_RCONPW` dans `.env`, puis fabriquez une session et démarrez :

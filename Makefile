@@ -447,7 +447,10 @@ docs-down: .env
 dist: apworld-build plugin bots launcher launcher-linux compose-release
 	cp plugin/build/tf2_archipelago.smx $(DIST)/
 	cp apworld/tf2_mvm/data/*.json $(DIST)/
-	cp deploy/.env.example $(DIST)/.env.example
+	# env.example, not .env.example: gh release create renames an asset whose
+	# name starts with a dot, so the documented URL 404'd on every release
+	# while default.env.example quietly served the file (apw-6xe).
+	cp deploy/.env.example $(DIST)/env.example
 	# The bot stack as one archive rooted at addons/, so a server that is not
 	# this image installs it by unzipping into the game directory. Both the
 	# Linux .so and the Windows .dll are in it: SourceMod takes the one its
