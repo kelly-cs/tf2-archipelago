@@ -1,18 +1,18 @@
-name: Tip
+name: Nightly
 
 on:
   workflow_dispatch:
   push:
     branches: [main]
 
-# One tip build at a time, and a newer push wins. Two of these racing would both
+# One nightly build at a time, and a newer push wins. Two of these racing would both
 # delete and recreate the same tag, and whichever finished second would leave the
 # release describing a commit the tag no longer points at.
 concurrency:
-  group: tip
+  group: nightly
   cancel-in-progress: true
 
-# What `tip` is: a tag that always points at the head of main, with a prerelease
+# What `nightly` is: a tag that always points at the head of main, with a prerelease
 # hanging off it carrying the same files a real release carries. Ghostty does
 # this and the reason to copy it is that a release candidate nobody can download
 # is not a release candidate.
@@ -24,7 +24,7 @@ concurrency:
 # GitHub-only, like the release job: ghcr.io, the release API and the `gh` CLI
 # are all GitHub's. The Forgejo mirror reads this file and skips it.
 jobs:
-  tip:
+  nightly:
     if: github.server_url == 'https://github.com'
     runs-on: ubuntu-latest
     permissions:
@@ -47,7 +47,7 @@ jobs:
         run: echo "IMAGE=ghcr.io/${{ github.repository }}" >> "$GITHUB_ENV"
 
       # No `make version-check`. That target asks whether a tag agrees with the
-      # version in the tree, and `tip` is not a version: it disagrees with every
+      # version in the tree, and `nightly` is not a version: it disagrees with every
       # tree by design.
 
       - name: log in to ghcr.io
@@ -55,35 +55,35 @@ jobs:
           echo "${{ github.token }}" \
             | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
 
-      # `:tip` and never `:latest`. A release moves `latest` because a release is
+      # `:nightly` and never `:latest`. A release moves `latest` because a release is
       # what `make up` should get by default; this must not, or every push to
       # main would land on anybody running the published stack.
       - name: build and push the bridge image
         run: |
-          docker build -f deploy/Dockerfile.bridge -t "$IMAGE/bridge:tip" .
-          docker push "$IMAGE/bridge:tip"
+          docker build -f deploy/Dockerfile.bridge -t "$IMAGE/bridge:nightly" .
+          docker push "$IMAGE/bridge:nightly"
 
       - name: build and push the srcds image
         run: |
           . deploy/env/versions.env
           docker build -f deploy/Dockerfile.srcds \
             --build-arg "RIPEXT_VERSION=$RIPEXT_VERSION" \
-            -t "$IMAGE/srcds:tip" .
-          docker push "$IMAGE/srcds:tip"
+            -t "$IMAGE/srcds:nightly" .
+          docker push "$IMAGE/srcds:nightly"
 
       - name: build and push the archipelago image
         run: |
           . deploy/env/versions.env
           docker build -f deploy/Dockerfile.archipelago \
             --build-arg "ARCHIPELAGO_VERSION=$ARCHIPELAGO_VERSION" \
-            -t "$IMAGE/archipelago:tip" .
-          docker push "$IMAGE/archipelago:tip"
+            -t "$IMAGE/archipelago:nightly" .
+          docker push "$IMAGE/archipelago:nightly"
 
       - name: build the files
         run: make dist
 
-      - name: pin the compose file to tip
-        run: sed -i "s/:-latest}/:-tip}/g" dist/compose.yaml
+      - name: pin the compose file to nightly
+        run: sed -i "s/:-latest}/:-nightly}/g" dist/compose.yaml
 
       # The notes are the commit list since the last real tag, which is the thing
       # a CHANGELOG.md section gets written from. `git describe` finds that tag;
@@ -98,8 +98,8 @@ jobs:
             printf 'Built from `%s`.\n\n' "$GITHUB_SHA"
 
             printf '## Downloads\n\n'
-            printf -- '- [tf2ap.exe](https://github.com/%s/releases/download/tip/tf2ap.exe) for Windows\n' "${{ github.repository }}"
-            printf -- '- [tf2ap-linux-amd64](https://github.com/%s/releases/download/tip/tf2ap-linux-amd64) for Linux\n\n' "${{ github.repository }}"
+            printf -- '- [tf2ap.exe](https://github.com/%s/releases/download/nightly/tf2ap.exe) for Windows\n' "${{ github.repository }}"
+            printf -- '- [tf2ap-linux-amd64](https://github.com/%s/releases/download/nightly/tf2ap-linux-amd64) for Linux\n\n' "${{ github.repository }}"
 
             if [ -n "$last" ]; then
               printf '## Since %s\n\n' "$last"
@@ -108,8 +108,8 @@ jobs:
               printf '## Every commit so far\n\n'
               git log --no-merges --pretty='- %s'
             fi
-          } > /tmp/tip-notes.md
-          cat /tmp/tip-notes.md
+          } > /tmp/nightly-notes.md
+          cat /tmp/nightly-notes.md
 
       - name: name the assets
         run: |
@@ -132,7 +132,7 @@ jobs:
 
       # Worth doing here even though the exe is unsigned either way: an
       # attestation is the only check somebody has on a file this workflow built,
-      # and a tip build is exactly the file nobody has a reason to trust.
+      # and a nightly build is exactly the file nobody has a reason to trust.
       - name: attest the binaries
         uses: actions/attest-build-provenance@v3
         with:
@@ -140,50 +140,53 @@ jobs:
             dist/tf2ap.exe
             dist/tf2ap-linux-amd64
 
-      # The tag is deleted and made again rather than force-moved.
+      # The tag is deleted and made again rather than force-moved, and the repo
+      # must not have immutable releases switched on.
       #
-      # A repository rule on this repo refuses a force-update of a tag: the very
-      # first tip run created refs/tags/tip and succeeded, and every run since
-      # was rejected with "GH013: Cannot update this protected ref". Creating is
-      # allowed, updating is not, so the only move left is to remove the ref and
-      # create it again.
+      # Both of those are scars. A force-update of the tag is refused with
+      # "GH013: Cannot update this protected ref", so the ref is removed and
+      # remade instead. And this workflow used to be called `tip` until GitHub
+      # reserved that name for good: immutable releases locks a tag the moment a
+      # release is published against it, and deleting the release and disabling
+      # the feature afterwards does not give the name back. `tip` is unusable on
+      # this repo forever, by any identity, which a local push proved while a
+      # throwaway tag beside it went through.
       #
-      # This is what the earlier version of this step deliberately did not do,
-      # for a real reason: a deleted ref is one other clones keep, and anybody
-      # who fetched tip keeps a tag pointing at a commit that is no longer
-      # named. That cost is now the price of the feature working at all, and it
-      # is a cost tip already advertises, being a tag that is replaced without
-      # warning.
+      # So: leave immutable releases off, or scope it to refs/tags/v* where it
+      # belongs. Turn it on repo-wide and the first run here burns `nightly` too,
+      # and the fix is another rename.
       #
       # The release goes before the tag either way. A release is bound to a tag
       # name, so removing the tag under a live release leaves it describing a
-      # commit that is gone.
-      - name: replace the tip release
+      # commit that is gone. The cost of deleting is a ref other clones keep,
+      # which is a cost this tag already advertises: it is replaced without
+      # warning.
+      - name: replace the nightly release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release delete tip --yes --cleanup-tag 2>/dev/null || true
+          gh release delete nightly --yes --cleanup-tag 2>/dev/null || true
           # Belt and braces: --cleanup-tag only removes the tag when there was a
           # release to delete, and a half-finished earlier run can leave one
           # without the other.
-          git push origin ":refs/tags/tip" 2>/dev/null || true
+          git push origin ":refs/tags/nightly" 2>/dev/null || true
 
           # And the local one, which the remote delete does not touch. This job
           # checks out at fetch-depth 0 so that `git describe` can find the last
-          # release, and that fetches every tag, tip included: without this,
-          # `git tag tip` dies with "tag 'tip' already exists" before anything
+          # release, and that fetches every tag, nightly included: without this,
+          # `git tag nightly` dies with "tag 'nightly' already exists" before anything
           # reaches the remote.
-          git tag -d tip 2>/dev/null || true
+          git tag -d nightly 2>/dev/null || true
 
-          git tag tip "$GITHUB_SHA"
-          git push origin "refs/tags/tip"
+          git tag nightly "$GITHUB_SHA"
+          git push origin "refs/tags/nightly"
 
           # shellcheck disable=SC2086
-          gh release create tip \
+          gh release create nightly \
             --verify-tag \
             --prerelease \
-            --title "tip" \
-            --notes-file /tmp/tip-notes.md \
+            --title "nightly" \
+            --notes-file /tmp/nightly-notes.md \
             $ASSETS dist/SHA256SUMS
 
       # No signing and no VirusTotal, on purpose. The SignPath policy is
