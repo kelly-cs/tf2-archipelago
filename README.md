@@ -90,6 +90,15 @@ what the run is set to before it starts:
 
 [The Linux guide](./docs/en/setup/install-linux.md) has the rest.
 
+### Trying what is not released yet
+
+The [`tip`](https://github.com/m-this/tf2-archipelago/releases/tag/tip) release
+is the head of `main`, rebuilt on every push. Same files as a real release, and
+the Docker images are tagged `tip` rather than `latest`.
+
+It is replaced without warning and nothing promises it works. Use it to try a
+fix before it ships, and report what it does; use a real release to play.
+
 ## Docker
 
 For any machine with Docker:
