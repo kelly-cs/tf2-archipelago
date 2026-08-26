@@ -128,6 +128,8 @@ public void OnPluginStart()
         "Show the state of the Archipelago integration");
     RegAdminCmd("sm_ap_report", Command_Report, ADMFLAG_ROOT,
         "Report an objective by hand: sm_ap_report <wave_cleared|mission_cleared|death> [wave]");
+    RegAdminCmd("sm_ap_bundle", Command_Bundle, ADMFLAG_ROOT,
+        "Pay a Cash Bundle by hand, the way a grant from the room would: sm_ap_bundle [credits]");
     RegAdminCmd("sm_ap_resync", Command_Resync, ADMFLAG_GENERIC,
         "Ask the bridge for the unlock set again");
     RegAdminCmd("sm_ap_mission", Command_Mission, ADMFLAG_CHANGEMAP,
@@ -677,6 +679,43 @@ static char[] Status_SlotList()
 }
 
 // Tests the wiring without playing a wave, and sends a check the game failed to fire an event for.
+/* A bundle without a room, for the same reason sm_ap_report exists
+ *
+ * Credits only ever reach a player through Bridge_PollGrants, which is an HTTP
+ * poll to the bridge. A test-bed has no bridge and no room, so nothing on it can
+ * ever be paid, and the whole of the bundle accounting is unreachable there:
+ * whether bots are paid, whether a refund puts the ledger back, whether a bot
+ * keeps its bundles across a reseat. None of it can be measured by playing.
+ *
+ * This is the same call the poll makes, so what it exercises is the real path
+ * and not a second one written for testing.
+ */
+public Action Command_Bundle(int client, int argc)
+{
+    int amount = 200;
+    if (argc >= 1)
+    {
+        char arg[16];
+        GetCmdArg(1, arg, sizeof(arg));
+        amount = StringToInt(arg);
+    }
+    if (amount <= 0)
+    {
+        ReplyToCommand(client, "[AP] Usage: sm_ap_bundle [credits], and credits must be above zero");
+        return Plugin_Handled;
+    }
+
+    if (!MvM_CanPayCredits())
+    {
+        ReplyToCommand(client, "[AP] Nothing payable now: this wants Mann vs Machine, between waves, with somebody alive on RED.");
+        return Plugin_Handled;
+    }
+
+    int paid = MvM_GrantCredits(amount);
+    ReplyToCommand(client, "[AP] %d credits paid to %d defender(s).", amount, paid);
+    return Plugin_Handled;
+}
+
 public Action Command_Report(int client, int argc)
 {
     if (argc < 1)
