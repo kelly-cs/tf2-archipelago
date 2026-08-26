@@ -66,6 +66,34 @@ bool g_TankReported;
 // hundreds of robot deaths, and once this is set the handler is one bool read.
 bool g_GiantReported;
 
+/* What the defender bot mod needs from this plugin, and nothing more.
+ *
+ * A Cash Bundle is written straight onto m_nCurrency, so the game's own record
+ * of the wave never sees it. The bot mod sets a bot's currency from that record
+ * whenever one joins, which silently throws every bundle the bot was paid away.
+ * It cannot add them back without being told the number, and this is the number.
+ *
+ * A native rather than a convar or a file: it is read at the moment a bot spawns
+ * and it has to be the current value, not one from whenever something last wrote
+ * it down.
+ */
+public APLRes AskPluginLoad2(Handle self, bool late, char[] error, int length)
+{
+    CreateNative("TF2AP_GetBundleCredits", Native_GetBundleCredits);
+    RegPluginLibrary("tf2_archipelago");
+    return APLRes_Success;
+}
+
+static any Native_GetBundleCredits(Handle plugin, int numParams)
+{
+    int client = GetNativeCell(1);
+    if (client < 1 || client > MaxClients)
+    {
+        return ThrowNativeError(SP_ERROR_NATIVE, "client %d is not a client", client);
+    }
+    return MvM_BundleCredits(client);
+}
+
 public void OnPluginStart()
 {
     Log_Init();
