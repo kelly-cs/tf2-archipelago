@@ -57,6 +57,24 @@ stock bool MvM_IsActive()
     return strncmp(map, "mvm_", 4, false) == 0;
 }
 
+/* Everybody holding the bomb line, human or defender bot.
+ *
+ * Separate from MvM_IsPlayer on purpose, and the two are not interchangeable.
+ * MvM_IsPlayer answers "is this somebody the run belongs to", which is what
+ * unlock enforcement and the ready gate want, and its !IsFakeClient is what
+ * leaves a defender bot's loadout alone. This one answers "is this somebody who
+ * fights for RED", which is what being paid depends on.
+ *
+ * Widening MvM_IsPlayer instead would have paid the bots and stripped their
+ * weapons in the same edit.
+ */
+stock bool MvM_IsDefender(int client)
+{
+    return client > 0 && client <= MaxClients
+        && IsClientInGame(client)
+        && GetClientTeam(client) == TeamRed;
+}
+
 // Humans on RED only: the robots are bots on BLU, and stripping one would take the wave apart.
 stock bool MvM_IsPlayer(int client)
 {
@@ -206,7 +224,10 @@ stock int MvM_GrantCredits(int amount)
     int paid = 0;
     for (int client = 1; client <= MaxClients; client++)
     {
-        if (!MvM_IsPlayer(client) || !IsPlayerAlive(client))
+        // Defenders, not players. Five of the six RED seats are usually bots,
+        // and a bundle that pays only the humans leaves the team that has to
+        // hold the bomb unable to buy anything with it.
+        if (!MvM_IsDefender(client) || !IsPlayerAlive(client))
         {
             continue;
         }
@@ -217,7 +238,7 @@ stock int MvM_GrantCredits(int amount)
     }
     if (paid > 0)
     {
-        AP_Announce("The run received %d credits for %d player(s).", amount, paid);
+        AP_Announce("The run received %d credits for %d defender(s).", amount, paid);
     }
     return paid;
 }
@@ -314,7 +335,8 @@ stock void MvM_RestoreBundlesAll()
 {
     for (int client = 1; client <= MaxClients; client++)
     {
-        if (MvM_IsPlayer(client))
+        // Whoever was paid is whoever is owed, so this walks defenders too.
+        if (MvM_IsDefender(client))
         {
             RequestFrame(Frame_RestoreBundles, GetClientUserId(client));
         }
