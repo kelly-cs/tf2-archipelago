@@ -179,3 +179,30 @@ func TestSteamConnectURLPrefersTheRelayedAddress(t *testing.T) {
 		t.Errorf("a LAN server was joined over Steam: %q", got)
 	}
 }
+
+/*
+The item server is what hands out weapons, and its absence is silent.
+
+A player ran a whole evening on stock and could not tell an outage from a setup
+step he had missed. The success line has one wording and the failures have
+several, so the success is what is matched.
+*/
+func TestItemServerLine(t *testing.T) {
+	up := "Current item schema is up-to-date with version 760AF0C1."
+	if got := ItemServerLine(up); got == "" || !strings.Contains(got, "weapons are available") {
+		t.Errorf("the up-to-date line said %q", got)
+	}
+	// Anything else about the schema is passed through rather than read.
+	other := "Failed to load item schema"
+	if got := ItemServerLine(other); !strings.Contains(got, "Failed to load item schema") {
+		t.Errorf("a schema failure said %q", got)
+	}
+	for _, line := range []string{
+		"Server is hibernating",
+		"L 08/26/2026 - 07:58:45: [tf2_archipelago.smx] anything",
+	} {
+		if got := ItemServerLine(line); got != "" {
+			t.Errorf("%q was read as an item server line: %q", line, got)
+		}
+	}
+}

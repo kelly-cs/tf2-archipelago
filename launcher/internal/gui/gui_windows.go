@@ -262,6 +262,9 @@ func (w *window) append(line apruntime.Line) {
 		if address := apruntime.FakeIPAddress(line.Text); address != "" {
 			w.noteSteamAddress(address)
 		}
+		if note := apruntime.ItemServerLine(line.Text); note != "" {
+			w.say("%s", note)
+		}
 		if apruntime.SourceModWasUpdated(line.Text) {
 			w.restartForSourcemod()
 		}

@@ -172,6 +172,9 @@ func (m *model) session() string {
 		 * C key on the log tab, which is a keystroke nobody finds without
 		 * being told. Reported from play as "no clear display of where the IP
 		 * is to connect". */
+		if m.itemServer != "" {
+			rows = append(rows, styleMuted.Render(m.itemServer))
+		}
 		rows = append(rows, "")
 		for _, line := range apruntime.ConnectLines(m.settings) {
 			rows = append(rows, styleMuted.Render(line))

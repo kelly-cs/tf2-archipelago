@@ -89,6 +89,11 @@ type model struct {
 	status   string
 	mission  string
 	notice   string
+	// itemServer is the last thing the game server said about Steam's item
+	// server, which is what hands out weapons. Kept on the model rather than
+	// left in the log, because a player who is playing full stock needs to be
+	// told why without reading a thousand lines.
+	itemServer string
 	steamURL string
 	form     *settingsForm
 	snapshot session.Snapshot
@@ -119,6 +124,9 @@ func (m *model) drain() {
 	for _, line := range pending {
 		if address := apruntime.FakeIPAddress(strings.TrimSpace(line)); address != "" {
 			m.steamURL = address
+		}
+		if note := apruntime.ItemServerLine(line); note != "" {
+			m.itemServer = note
 		}
 		if mission := apruntime.LoadedMission(line); mission != "" {
 			m.mission = mission

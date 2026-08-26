@@ -181,6 +181,34 @@ func SourceModWasUpdated(line string) bool {
 	return strings.Contains(line, sourcemodUpdatedPrefix)
 }
 
+/* itemSchemaPrefix is srcds saying it reached Steam's item server.
+ *
+ * That server is what hands out weapons. Without it every player and every bot
+ * plays full stock, and the game says nothing about why: a player reported
+ * running a whole evening on stock without being able to tell an outage from a
+ * setup step he had missed.
+ *
+ * The success line is matched rather than a failure, because the failure has
+ * several wordings and the success has one. Anything else on the same subject
+ * is passed through as-is by ItemServerLine, which is enough to say that
+ * something happened without claiming to know what.
+ */
+const itemSchemaPrefix = "Current item schema is up-to-date"
+
+// ItemServerLine turns one line of server output into something worth showing a
+// player, or "" for every other line.
+func ItemServerLine(line string) string {
+	if strings.Contains(line, itemSchemaPrefix) {
+		return "the item server answered: weapons are available"
+	}
+	if !strings.Contains(strings.ToLower(line), "item schema") {
+		return ""
+	}
+	// Not the up-to-date line, so it is the item server having something to
+	// say. Passed through rather than interpreted.
+	return "item server: " + strings.TrimSpace(line)
+}
+
 // GameAppID is Team Fortress 2 in the Steam client. The dedicated server is a
 // different application, 232250, and the two are not interchangeable here.
 const GameAppID = "440"
