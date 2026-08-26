@@ -64,6 +64,23 @@ entries are rarely reached. The names are the mod's, the same as the blacklist.
 A team named here beats the blacklist. A list shorter than the empty seats
 leaves the rest to the mod.
 
+## Changing the team mid-mission
+
+A lineup picked for wave 1 is the wrong lineup for wave 5, and until now the
+only move was to restart the mission.
+
+The launcher has a **Bot Switcher** tab, between the mission list and the log.
+It shows what each seat plays and carries. Change the team on the Bots page of
+the settings, then press Apply: the mod swaps the seats whose class moved and
+leaves the rest alone. Nobody loses the wave, and the bots keep the money they
+have earned.
+
+In the game, `!ap bots` opens the same team as a menu. Pick a seat, pick a
+class. It needs the same admin flag as switching the mission.
+
+A change during a wave waits for the break. A bot pulled out mid-wave drops its
+buildings, and its replacement walks in from spawn with the bomb halfway home.
+
 The game no longer lets a player inspect a teammate's upgrades. With
 `TF2AP_BOT_UPGRADES_CHAT=1` the chat says what each bot buys, one line per
 purchase. It is off by default because a bot buys a lot.

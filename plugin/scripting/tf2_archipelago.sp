@@ -25,6 +25,7 @@
 #include "tf2_archipelago/bridge.inc"
 #include "tf2_archipelago/missions.inc"
 #include "tf2_archipelago/bots.inc"
+#include "tf2_archipelago/botswitch.inc"
 
 #define PLUGIN_VERSION "1.10.0"
 
@@ -225,9 +226,18 @@ public Action Command_Say(int client, const char[] command, int argc)
         // would have to be told about: in a real room the multiworld answers
         // that it has never heard of it, which is what the line already says.
         AP_PrintToClient(client, "!ap unlock mission hands over the next mission ticket, in test mode only.");
+        AP_PrintToClient(client, "!ap bots changes what the bots on RED play, seat by seat.");
         AP_PrintToClient(client, "!apchat <text> speaks to the other players in the multiworld.");
         AP_PrintToClient(client, "!mission lists the run's missions.%s",
             CheckCommandAccess(client, "sm_ap_mission", ADMFLAG_CHANGEMAP) ? " !mission <number> switches to one." : "");
+        return Plugin_Handled;
+    }
+    if (StrEqual(message, "!ap bots", false) || StrEqual(message, "!apbots", false))
+    {
+        if (BotSwitchAllowed(client))
+        {
+            BotSwitch_Open(client);
+        }
         return Plugin_Handled;
     }
     if (StrEqual(message, "!ap status", false) || StrEqual(message, "!apstatus", false))
@@ -555,6 +565,21 @@ public Action Command_JoinClass(int client, const char[] command, int argc)
 
 // The map rotation belongs to the operator, so the switcher does too. Anyone
 // else asking is told no rather than left wondering why nothing happened.
+/* Who may retype the lineup.
+
+The same flag the mission switch asks for. Both decide what everybody on RED
+plays for the rest of the run, and a team somebody else keeps rearranging is the
+same nuisance as a mission somebody else keeps loading. */
+static bool BotSwitchAllowed(int client)
+{
+    if (CheckCommandAccess(client, "sm_ap_bots", ADMFLAG_CHANGEMAP))
+    {
+        return true;
+    }
+    AP_PrintToClient(client, "Only an admin changes the bot team.");
+    return false;
+}
+
 static bool MissionSwitchAllowed(int client)
 {
     if (CheckCommandAccess(client, "sm_ap_mission", ADMFLAG_CHANGEMAP))
