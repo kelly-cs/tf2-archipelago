@@ -23,6 +23,7 @@ import (
 	apruntime "github.com/m-this/tf2-archipelago/launcher/internal/runtime"
 	"github.com/m-this/tf2-archipelago/launcher/internal/session"
 	"github.com/m-this/tf2-archipelago/launcher/internal/settings"
+	"github.com/m-this/tf2-archipelago/launcher/internal/srcdsconfig"
 )
 
 // fileBytesMax caps one file inside the zip. A console log from a long evening
@@ -132,8 +133,39 @@ func summary(s settings.Settings, versions map[string]string, stamp time.Time) s
 	for _, name := range names {
 		fmt.Fprintf(&b, "%-13s %s\n", name, versions[name])
 	}
+	b.WriteString(configDrift(s))
+	b.WriteString(scanLogs(
+		filepath.Join(s.InstallRoot, apruntime.LogFileName),
+		filepath.Join(s.InstallRoot, apruntime.LogPreviousName),
+		filepath.Join(s.InstallRoot, "tf-dedicated", "tf", apruntime.ConsoleLogName),
+	))
+
 	b.WriteString("\nPasswords are not in this file, and not in config.json either.\n")
 	return b.String()
+}
+
+/* configDrift says whether the server.cfg on disk is the one these settings
+ * render.
+ *
+ * A bundle once held a config.json that blacklisted the Spy beside a server.cfg
+ * that blacklisted nothing, and the disagreement was the whole bug. Reading it
+ * meant knowing to compare the two files by eye. The summary should say it.
+ */
+func configDrift(s settings.Settings) string {
+	target := filepath.Join(s.InstallRoot, "tf-dedicated", "tf", "cfg", "server.cfg")
+	onDisk, err := os.ReadFile(target)
+	if err != nil {
+		return "\nserver.cfg     not readable, so the server is running on something unknown\n"
+	}
+	wanted, err := srcdsconfig.RenderServerCfg(s)
+	if err != nil {
+		return ""
+	}
+	if string(onDisk) == wanted {
+		return "\nserver.cfg     matches these settings\n"
+	}
+	return "\nserver.cfg     DIFFERS from these settings: the running server is not\n" +
+		"               playing what config.json in this bundle says. Compare the two.\n"
 }
 
 // redactedSettings renders the settings with every secret replaced.

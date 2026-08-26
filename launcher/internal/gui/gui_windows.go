@@ -26,7 +26,6 @@ import (
 	apruntime "github.com/m-this/tf2-archipelago/launcher/internal/runtime"
 	"github.com/m-this/tf2-archipelago/launcher/internal/session"
 	"github.com/m-this/tf2-archipelago/launcher/internal/settings"
-	"github.com/m-this/tf2-archipelago/launcher/internal/srcdsconfig"
 	"github.com/m-this/tf2-archipelago/launcher/internal/winproc"
 )
 
@@ -422,10 +421,6 @@ func (w *window) start() {
 		}
 		w.say("install failed: %v", err)
 		w.say("%s.", installer.RepairAdvice)
-		return
-	}
-	if err := srcdsconfig.Install(s); err != nil {
-		w.say("cannot write the server configs: %v", err)
 		return
 	}
 	// The game server inherits the hidden console allocated at startup, so it
