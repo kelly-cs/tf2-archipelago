@@ -48,3 +48,4 @@
 {"id":"int-8d9c684a86935c37ab1eb2b93cb5d293","kind":"field_change","created_at":"2026-08-26T20:25:11.907733256Z","actor":"m-this","issue_id":"apw-4cb","extra":{"field":"status","new_value":"open","old_value":"in_progress"}}
 {"id":"int-b97ba84f8a083f2a50156baaad97fe47","kind":"field_change","created_at":"2026-08-26T20:27:07.354881193Z","actor":"omae-beads","issue_id":"apw-gb8","extra":{"field":"status","new_value":"deferred","old_value":"blocked"}}
 {"id":"int-1d1d50405172205977b00559036badbb","kind":"field_change","created_at":"2026-08-26T21:18:36.318538822Z","actor":"omae-beads","issue_id":"apw-4cb","extra":{"field":"status","new_value":"closed","old_value":"open","reason":"Closed"}}
+{"id":"int-34a7d36158761700cf208cc559c4f175","kind":"field_change","created_at":"2026-08-26T21:19:06.028073149Z","actor":"omae-beads","issue_id":"apw-48u","extra":{"field":"status","new_value":"closed","old_value":"open","reason":"Closed"}}
