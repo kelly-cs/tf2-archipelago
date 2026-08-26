@@ -21,6 +21,19 @@ RELEASE_VERSION := $(shell sed -n 's/.*"world_version": "\([^"]*\)".*/\1/p' apwo
 # report from one cannot be traced to anything else.
 BUILD_COMMIT := $(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)$(shell git diff --quiet HEAD 2>/dev/null || echo +dirty)
 
+# Which channel this build came from, for the window title and the bundle.
+#
+# A build made from main after 1.9.0 called itself "1.9.0-837b556", which reads
+# as the release it is not: a player on it reports a 1.9.0 bug and nobody knows
+# the difference until somebody reads the commit. The nightly workflow passes
+# BUILD_CHANNEL=nightly so the title says what it is.
+#
+# Only the displayed string. RELEASE_VERSION stays the release the apworld owns,
+# because the Windows version resource below takes it as $(RELEASE_VERSION).0
+# and that field has to be four numbers.
+BUILD_CHANNEL ?=
+LAUNCHER_VERSION := $(if $(BUILD_CHANNEL),$(BUILD_CHANNEL),$(RELEASE_VERSION))-$(BUILD_COMMIT)
+
 # --project-directory pins relative paths in the compose files to the repository
 # root. --env-file replaces the default .env rather than adding to it, so both
 # files have to be named: the pins first, then the operator's settings, which
@@ -279,7 +292,7 @@ LAUNCHER_LDFLAGS := -X github.com/m-this/tf2-archipelago/launcher/internal/asset
 	-X github.com/m-this/tf2-archipelago/launcher/internal/assets.RipextVersion=$(RIPEXT_VERSION) \
 	-X github.com/m-this/tf2-archipelago/launcher/internal/assets.ArchipelagoVersion=$(ARCHIPELAGO_VERSION) \
 	-X github.com/m-this/tf2-archipelago/launcher/internal/assets.DefenderbotsVersion=$(DEFENDERBOTS_VERSION) \
-	-X github.com/m-this/tf2-archipelago/launcher/internal/assets.LauncherVersion=$(RELEASE_VERSION)-$(BUILD_COMMIT)
+	-X github.com/m-this/tf2-archipelago/launcher/internal/assets.LauncherVersion=$(LAUNCHER_VERSION)
 
 # The bots go in as a Windows-only zip: the staged tree carries both platforms'
 # extensions, and the 20 MB of Linux .so has no business inside a .exe.
