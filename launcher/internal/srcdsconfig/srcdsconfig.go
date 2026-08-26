@@ -40,9 +40,20 @@ func installServerCfg(gameDir string, s settings.Settings) error {
 	if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
 		return fmt.Errorf("cannot create the cfg directory: %w", err)
 	}
+	rendered, err := RenderServerCfg(s)
+	if err != nil {
+		return err
+	}
+	return writeIfChanged(target, []byte(rendered))
+}
+
+// RenderServerCfg returns what server.cfg holds for these settings, without
+// writing it. The debug bundle uses it to say whether the file the server is
+// reading still matches the settings the launcher holds.
+func RenderServerCfg(s settings.Settings) (string, error) {
 	tmpl, err := template.New("server.cfg").Parse(assets.ServerCfgTemplate())
 	if err != nil {
-		return fmt.Errorf("cannot parse the server.cfg template: %w", err)
+		return "", fmt.Errorf("cannot parse the server.cfg template: %w", err)
 	}
 	var buf bytes.Buffer
 	if err := tmpl.Execute(&buf, map[string]any{
@@ -60,9 +71,9 @@ func installServerCfg(gameDir string, s settings.Settings) error {
 		"BotHatEffects":     boolToInt(s.SrcdsBotHatEffects),
 		"StartMission":      s.SrcdsStartMission,
 	}); err != nil {
-		return fmt.Errorf("cannot render server.cfg: %w", err)
+		return "", fmt.Errorf("cannot render server.cfg: %w", err)
 	}
-	return writeIfChanged(target, buf.Bytes())
+	return buf.String(), nil
 }
 
 // installAdmins writes admins_simple.ini from a comma/space/newline-separated

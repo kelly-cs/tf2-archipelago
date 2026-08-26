@@ -25,6 +25,7 @@ import (
 	"github.com/m-this/tf2-archipelago/gamedata"
 	"github.com/m-this/tf2-archipelago/launcher/internal/installer"
 	"github.com/m-this/tf2-archipelago/launcher/internal/settings"
+	"github.com/m-this/tf2-archipelago/launcher/internal/srcdsconfig"
 	"github.com/m-this/tf2-archipelago/launcher/internal/winproc"
 )
 
@@ -44,6 +45,12 @@ func closeTestRoom(room *fakeroom.Room) {
 }
 
 func Run(ctx context.Context, s settings.Settings, logger *slog.Logger) error {
+	// Console mode has no interface to change a setting from, but it shares
+	// this entry point with anything that does. Rendering here keeps the one
+	// rule: a server that starts, starts from the settings it was given.
+	if err := srcdsconfig.Install(s); err != nil {
+		return err
+	}
 	bridgeCfg, err := bridgeConfig(s)
 	if err != nil {
 		return err
