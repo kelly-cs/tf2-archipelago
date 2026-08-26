@@ -165,6 +165,17 @@ func (m *model) session() string {
 		if line := m.runLine(); line != "" {
 			rows = append(rows, styleMuted.Render(line))
 		}
+		/* Where to connect, on the tab a player looks at
+		 *
+		 * The window has carried these since the Session tab existed. The
+		 * terminal never did, so on Linux the only way to the address was the
+		 * C key on the log tab, which is a keystroke nobody finds without
+		 * being told. Reported from play as "no clear display of where the IP
+		 * is to connect". */
+		rows = append(rows, "")
+		for _, line := range apruntime.ConnectLines(m.settings) {
+			rows = append(rows, styleMuted.Render(line))
+		}
 		rows = append(rows, "")
 		rows = append(rows, m.missionRows(height-len(rows))...)
 	}
