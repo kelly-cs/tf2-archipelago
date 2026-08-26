@@ -229,7 +229,7 @@ func (m *model) missionRows(height int) []string {
 
 func style(mission session.Mission) lipgloss.Style {
 	switch {
-	case mission.Cleared:
+	case mission.Played:
 		return styleCleared
 	case !mission.Unlocked:
 		return styleLocked
@@ -238,10 +238,19 @@ func style(mission session.Mission) lipgloss.Style {
 	}
 }
 
+/* missionState is what this player did, not what the room holds.
+ *
+ * A mission another world's !collect touched has its check on the disk without
+ * anybody here playing it. Drawn as "cleared" it made the run list stop saying
+ * what this player had done, which is what Peppy reported. The two are shown
+ * apart: cleared is yours, collected is the room's.
+ */
 func missionState(mission session.Mission) string {
 	switch {
-	case mission.Cleared:
+	case mission.Played:
 		return "cleared"
+	case mission.Cleared:
+		return "collected"
 	case mission.Unlocked:
 		return "unlocked"
 	default:
