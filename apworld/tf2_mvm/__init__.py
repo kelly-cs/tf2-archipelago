@@ -197,19 +197,30 @@ class TF2MvMWorld(World):
             for _ in range(data.WEAPON_SLOT_COUNT - slots_held)
         ]
 
-        # Weapon buffs are useful filler: every functional weapon is in the
-        # data package, while a seed draws as many distinct buffs as its chosen
-        # missions have checks left to hold. This keeps small runs valid.
-        buff_count = min(
-            len(data.WEAPON_BUFF_NAMES),
-            self._check_count(self.missions) - len(pool),
-        )
-        pool += [
-            self.create_item(name)
-            for name in self.random.sample(data.WEAPON_BUFF_NAMES, buff_count)
-        ]
+        # Buffs and cash share the non-progression space. Numeric permutations
+        # may repeat as levels; toggle permutations remain unique.
+        open_slots = self._check_count(self.missions) - len(pool)
+        buff_count = math.ceil(open_slots * self.options.weapon_buff_percentage.value / 100)
+        pool += [self.create_item(name) for name in self._draw_weapon_buffs(buff_count)]
         pool += [self.create_filler() for _ in range(self._check_count(self.missions) - len(pool))]
         self.multiworld.itempool += pool
+
+    def _draw_weapon_buffs(self, count: int) -> list[str]:
+        """Draw reward names, repeating numeric buffs but never toggles."""
+        unused = list(data.WEAPON_BUFF_NAMES)
+        stackable_drawn: list[str] = []
+        drawn: list[str] = []
+        stack_chance = self.options.weapon_buff_stack_chance.value
+        while len(drawn) < count and (unused or stackable_drawn):
+            stack = bool(stackable_drawn) and self.random.randrange(100) < stack_chance
+            if stack or not unused:
+                drawn.append(self.random.choice(stackable_drawn))
+                continue
+            name = unused.pop(self.random.randrange(len(unused)))
+            drawn.append(name)
+            if name in data.STACKABLE_WEAPON_BUFF_NAMES:
+                stackable_drawn.append(name)
+        return drawn
 
     def set_rules(self) -> None:
         if self.options.goal.current_key == "missionsanity":

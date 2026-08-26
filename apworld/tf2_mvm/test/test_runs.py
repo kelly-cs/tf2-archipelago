@@ -18,12 +18,61 @@ from . import TF2MvMTestBase
 class TestDefaults(TF2MvMTestBase):
     options: ClassVar[dict[str, Any]] = {}
 
-    def test_weapon_buffs_fill_the_useful_space_without_duplicates(self) -> None:
+    def test_weapon_buffs_and_cash_share_the_non_progression_space(self) -> None:
+        buffs = [
+            item.name for item in self.multiworld.itempool if item.name in data.WEAPON_BUFF_NAMES
+        ]
+        cash = [item for item in self.multiworld.itempool if item.name in data.FILLER_NAMES]
+        self.assertGreater(len(buffs), 0)
+        self.assertGreater(len(cash), 0)
+        self.assertEqual(math.ceil((len(buffs) + len(cash)) * 0.75), len(buffs))
+
+    def test_only_numeric_weapon_buffs_repeat(self) -> None:
+        buffs = [
+            item.name for item in self.multiworld.itempool if item.name in data.WEAPON_BUFF_NAMES
+        ]
+        repeated = {name for name in buffs if buffs.count(name) > 1}
+        self.assertLessEqual(repeated, data.STACKABLE_WEAPON_BUFF_NAMES)
+
+
+class TestNoWeaponBuffs(TF2MvMTestBase):
+    options: ClassVar[dict[str, Any]] = {"weapon_buff_percentage": 0}
+
+    def test_every_non_progression_reward_is_cash(self) -> None:
+        self.assertFalse(
+            any(item.name in data.WEAPON_BUFF_NAMES for item in self.multiworld.itempool)
+        )
+        self.assertTrue(any(item.name in data.FILLER_NAMES for item in self.multiworld.itempool))
+
+
+class TestUniqueWeaponBuffs(TF2MvMTestBase):
+    options: ClassVar[dict[str, Any]] = {
+        "weapon_buff_percentage": 100,
+        "weapon_buff_stack_chance": 0,
+    }
+
+    def test_every_spare_reward_is_a_distinct_buff(self) -> None:
         buffs = [
             item.name for item in self.multiworld.itempool if item.name in data.WEAPON_BUFF_NAMES
         ]
         self.assertGreater(len(buffs), 0)
         self.assertEqual(len(buffs), len(set(buffs)))
+        self.assertFalse(any(item.name in data.FILLER_NAMES for item in self.multiworld.itempool))
+
+
+class TestStackedWeaponBuffs(TF2MvMTestBase):
+    options: ClassVar[dict[str, Any]] = {
+        "weapon_buff_percentage": 100,
+        "weapon_buff_stack_chance": 100,
+    }
+
+    def test_repeated_rewards_are_numeric_levels(self) -> None:
+        buffs = [
+            item.name for item in self.multiworld.itempool if item.name in data.WEAPON_BUFF_NAMES
+        ]
+        repeated = {name for name in buffs if buffs.count(name) > 1}
+        self.assertTrue(repeated)
+        self.assertLessEqual(repeated, data.STACKABLE_WEAPON_BUFF_NAMES)
 
 
 class TestWholeRoster(TF2MvMTestBase):

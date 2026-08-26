@@ -28,6 +28,12 @@ Les options se trouvent sous `Team Fortress 2 Mann vs Machine` :
   tous. `expert` n'autorise qu'Expert et Haunted.
 - `goal` : `final_boss` ou `missionsanity`.
 - `missionsanity_percentage` : quelle part de la partie Missionsanity demande.
+- `weapon_buff_percentage` : quelle part des récompenses hors progression
+  devient une amélioration d'arme plutôt que de l'argent. La valeur par défaut
+  est 75.
+- `weapon_buff_stack_chance` : la fréquence à laquelle un niveau numérique
+  supplémentaire d'une amélioration déjà tirée apparaît. Les effets activés ou
+  désactivés ne se répètent jamais. La valeur par défaut est 25.
 - `death_link` : désactivé par défaut. Ici une mort est une vague perdue :
   en perdre une tue tous les joueurs liés, et l'une de leurs morts anéantit
   votre équipe, ce qui fait perdre la vague.

@@ -10,9 +10,12 @@ in the release notes, so this file is the only place to write it.
 
 - Every positive effect in the first-pass catalog can land on each of TF2's
   212 functional weapons and named reskins: 13,568 deliberately silly
-  permutations. A run samples distinct permutations to fit its checks.
+  permutations. A run samples permutations to fit its checks.
 - Numeric effects add levels; on/off effects clamp at one. Projectile count
   and speed, bleed, afterburn, ignite, gasoline and Mad Milk are included.
+- Two YAML options split spare checks between weapon buffs and cash, and
+  control how often a numeric permutation repeats as another level. Toggle
+  effects are never duplicated.
 - Projectile count adds pellets to hitscan weapons and additional rockets per
   trigger pull. Extra rockets ignore direct contact with their shooter while
   retaining normal explosion splash damage.

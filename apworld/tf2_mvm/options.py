@@ -132,6 +132,33 @@ class MissionsanityPercentage(Range):
     default = 80
 
 
+class WeaponBuffPercentage(Range):
+    """Percentage of non-progression checks that award a weapon buff.
+
+    The remaining space contains cash filler. Set this to zero for a run with
+    no weapon buffs, or 100 for upgrades in every spare location.
+    """
+
+    display_name = "Weapon Buff Percentage"
+    range_start = 0
+    range_end = 100
+    default = 75
+
+
+class WeaponBuffStackChance(Range):
+    """Chance that a weapon-buff reward adds another level to a numeric buff
+    already drawn for this seed.
+
+    On/off effects are never repeated. At zero every buff reward is a distinct
+    weapon/effect permutation.
+    """
+
+    display_name = "Weapon Buff Stack Chance"
+    range_start = 0
+    range_end = 100
+    default = 25
+
+
 @dataclass
 class TF2MvMOptions(PerGameCommonOptions):
     mission_count: MissionCount
@@ -141,6 +168,8 @@ class TF2MvMOptions(PerGameCommonOptions):
     start_class: StartClass
     goal: Goal
     missionsanity_percentage: MissionsanityPercentage
+    weapon_buff_percentage: WeaponBuffPercentage
+    weapon_buff_stack_chance: WeaponBuffStackChance
     death_link: DeathLink
 
 
@@ -149,6 +178,7 @@ option_groups = [
         "Run shape", [MissionCount, DifficultyPool, ExcludedMissions, StartMission, StartClass]
     ),
     OptionGroup("Goal", [Goal, MissionsanityPercentage]),
+    OptionGroup("Rewards", [WeaponBuffPercentage, WeaponBuffStackChance]),
 ]
 
 # Checked rather than trusted: a tier added to the export and not here would silently drop missions.

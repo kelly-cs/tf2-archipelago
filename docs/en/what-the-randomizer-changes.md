@@ -62,11 +62,17 @@ Projectile count adds pellets to hitscan weapons and additional rockets per
 trigger pull. Extra rockets ignore direct contact with their shooter while
 retaining normal explosion splash damage.
 
-A run samples distinct weapon/effect permutations to fill the checks left after its required
-classes, slots and mission tickets. Small runs therefore contain a subset of
-the catalog; a run never creates more items than it has locations. Entering an
-upgrade station opens a numbered menu listing the buffs that apply to the
-weapons in the current loadout. `sm_ap_buffs` opens the same menu on demand.
+A run samples weapon/effect permutations for the checks left after its required
+classes, slots and mission tickets. By default, buffs occupy 75% of this spare
+space and cash fills the rest. Each buff draw has a 25% chance to add another
+level to a numeric permutation already in the seed; toggle effects never
+repeat. `weapon_buff_percentage` and `weapon_buff_stack_chance` control those
+two percentages in the player YAML. Small runs therefore contain a subset of
+the catalog, and a run never creates more items than it has locations.
+
+Entering an upgrade station opens a numbered menu listing the buffs that apply
+to the weapons in the current loadout. `sm_ap_buffs` opens the same menu on
+demand.
 
 ## The missions sit behind tickets
 

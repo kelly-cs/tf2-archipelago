@@ -129,3 +129,24 @@ func TestLegacyPermutationKeepsItsIDAndEveryEffectExists(t *testing.T) {
 		}
 	}
 }
+
+func TestItemExportMarksOnlyNumericBuffsStackable(t *testing.T) {
+	for _, item := range buildItemsFile().Items {
+		if item.WeaponBuffID == 0 {
+			if item.Stackable {
+				t.Errorf("non-buff item %q is stackable", item.Name)
+			}
+			continue
+		}
+		buff, ok := WeaponBuffByID(item.WeaponBuffID)
+		if !ok {
+			t.Errorf("item %q has unknown weapon buff %d", item.Name, item.WeaponBuffID)
+			continue
+		}
+		want := buff.Mode != BuffToggle
+		if item.Stackable != want {
+			t.Errorf("%s stackable = %t, want %t for mode %d",
+				buff.Key, item.Stackable, want, buff.Mode)
+		}
+	}
+}

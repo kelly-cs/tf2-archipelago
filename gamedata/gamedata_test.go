@@ -314,7 +314,7 @@ func TestItemPoolCoversEveryGate(t *testing.T) {
 		case ItemCredits:
 			// Filler, counted by the pool builder rather than here.
 		case ItemWeaponBuff:
-			// Useful filler, sampled without replacement by the pool builder.
+			// Useful rewards, sampled and sometimes stacked by the pool builder.
 		}
 		if it.Classification == Progression && it.Count == 0 {
 			t.Errorf("%q is progression with no copies in the pool", it.Name)
