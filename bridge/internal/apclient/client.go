@@ -12,6 +12,8 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"sort"
+	"strconv"
 	"sync"
 	"time"
 
@@ -75,6 +77,7 @@ type Client struct {
 	conn      *websocket.Conn
 	connected bool
 	slot      SlotData
+	names     *nameBook
 	lastError string
 }
 
@@ -224,10 +227,15 @@ func (c *Client) handle(
 		return c.onConnectionRefused(message)
 	case "ReceivedItems":
 		return c.onReceivedItems(ctx, conn, message)
+	case "DataPackage":
+		return c.onDataPackage(message)
 	case "PrintJSON":
 		var printed printJSON
 		if err := json.Unmarshal(message, &printed); err == nil {
-			text := printed.text()
+			c.mu.Lock()
+			names := c.names
+			c.mu.Unlock()
+			text := printed.text(names)
 			c.opts.Logger.InfoContext(ctx, "archipelago", "message", text)
 			c.opts.Chat.Append(text)
 		}
@@ -268,6 +276,78 @@ func (c *Client) onRoomInfo(ctx context.Context, conn *websocket.Conn, message j
 // onConnected records the seed's shape. The pump wakes on ready and reports;
 // the only thing sent from here is the DeathLink tag, which cannot go on
 // Connect because the slot data that decides it is what Connected carries.
+/* onDataPackage fills in the item and location names.
+ *
+ * The server sends them keyed by game and named-to-id, which is the wrong way
+ * round for reading a chat line, so they are turned over here once rather than
+ * on every message.
+ */
+func (c *Client) onDataPackage(message json.RawMessage) error {
+	var payload dataPackage
+	if err := json.Unmarshal(message, &payload); err != nil {
+		return err
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.names == nil {
+		c.names = newNameBook()
+	}
+	for game, names := range payload.Data.Games {
+		items := make(map[int64]string, len(names.ItemNameToID))
+		for name, id := range names.ItemNameToID {
+			items[id] = name
+		}
+		places := make(map[int64]string, len(names.LocationNameToID))
+		for name, id := range names.LocationNameToID {
+			places[id] = name
+		}
+		c.names.items[game] = items
+		c.names.places[game] = places
+	}
+	return nil
+}
+
+/* rememberNames records who is in the room and what each of them is playing.
+ *
+ * Connected carries both, so player names cost nothing extra. The games are
+ * what the data package request is built from, and what decides whose item
+ * numbering an id belongs to.
+ */
+func (c *Client) rememberNames(payload connected) []string {
+	book := newNameBook()
+	for _, player := range payload.Players {
+		name := player.Alias
+		if name == "" {
+			name = player.Name
+		}
+		book.players[player.Slot] = name
+	}
+	seen := map[string]bool{}
+	var games []string
+	for slot, info := range payload.SlotInfo {
+		number, err := strconv.Atoi(slot)
+		if err != nil {
+			continue
+		}
+		book.games[number] = info.Game
+		if info.Game != "" && !seen[info.Game] {
+			seen[info.Game] = true
+			games = append(games, info.Game)
+		}
+	}
+	sort.Strings(games)
+
+	c.mu.Lock()
+	if c.names != nil {
+		// A reconnect keeps the names already fetched: the room is the same
+		// one, and asking again would print numbers until the reply lands.
+		book.items, book.places = c.names.items, c.names.places
+	}
+	c.names = book
+	c.mu.Unlock()
+	return games
+}
+
 func (c *Client) onConnected(
 	ctx context.Context, conn *websocket.Conn, message json.RawMessage, ready chan struct{},
 ) error {
@@ -281,6 +361,18 @@ func (c *Client) onConnected(
 	}
 	if err := slot.validate(); err != nil {
 		return permanentError{err}
+	}
+	/* Who everybody is, and then what their items are called
+	 *
+	 * The names cost one request and the room does not change while a session
+	 * lasts, so this happens once per connect. A failure to ask is not a
+	 * failure to play: the chat falls back to printing ids, which is what it
+	 * did before it asked at all.
+	 */
+	if games := c.rememberNames(payload); len(games) > 0 {
+		if err := c.send(ctx, conn, getDataPackage{Cmd: "GetDataPackage", Games: games}); err != nil {
+			c.opts.Logger.WarnContext(ctx, "cannot ask for the item names, chat will show ids", "error", err)
+		}
 	}
 	// The server holds the same check list for this slot, and the seed is
 	// already bound, so this is the run coming back after a state file was lost

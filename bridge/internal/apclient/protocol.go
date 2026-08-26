@@ -2,6 +2,7 @@ package apclient
 
 import (
 	"encoding/json"
+	"strconv"
 	"strings"
 )
 
@@ -98,6 +99,36 @@ type connected struct {
 	Slot             int             `json:"slot"`
 	CheckedLocations []int64         `json:"checked_locations"`
 	SlotData         json.RawMessage `json:"slot_data"`
+	Players          []networkPlayer `json:"players"`
+	SlotInfo         map[string]struct {
+		Name string `json:"name"`
+		Game string `json:"game"`
+	} `json:"slot_info"`
+}
+
+// networkPlayer is who else is in the multiworld. Alias is what somebody
+// renamed themselves to and wins over the slot name when it is set.
+type networkPlayer struct {
+	Team  int    `json:"team"`
+	Slot  int    `json:"slot"`
+	Alias string `json:"alias"`
+	Name  string `json:"name"`
+}
+
+// getDataPackage asks for the item and location names of the games in the room.
+// Without it every id in a chat line prints as a number.
+type getDataPackage struct {
+	Cmd   string   `json:"cmd"`
+	Games []string `json:"games"`
+}
+
+type dataPackage struct {
+	Data struct {
+		Games map[string]struct {
+			ItemNameToID     map[string]int64 `json:"item_name_to_id"`
+			LocationNameToID map[string]int64 `json:"location_name_to_id"`
+		} `json:"games"`
+	} `json:"data"`
 }
 
 type connectionRefused struct {
@@ -119,14 +150,34 @@ type receivedItems struct {
 type printJSON struct {
 	Type string `json:"type"`
 	Data []struct {
-		Text string `json:"text"`
+		// Text carries the id itself when Type names one, which is why a
+		// reader that takes Text alone prints numbers at people.
+		Type   string `json:"type"`
+		Text   string `json:"text"`
+		Player int    `json:"player"`
 	} `json:"data"`
 }
 
-func (p printJSON) text() string {
+// text assembles the line, turning every id part back into a name. A nil book
+// is the pre-handshake case and leaves the ids alone.
+func (p printJSON) text(names *nameBook) string {
 	var message strings.Builder
 	for _, part := range p.Data {
-		message.WriteString(part.Text)
+		if names == nil {
+			message.WriteString(part.Text)
+			continue
+		}
+		id, err := strconv.ParseInt(part.Text, 10, 64)
+		switch {
+		case part.Type == "player_id" && err == nil:
+			message.WriteString(names.player(int(id)))
+		case part.Type == "item_id" && err == nil:
+			message.WriteString(names.item(id, part.Player))
+		case part.Type == "location_id" && err == nil:
+			message.WriteString(names.location(id, part.Player))
+		default:
+			message.WriteString(part.Text)
+		}
 	}
 	return message.String()
 }
