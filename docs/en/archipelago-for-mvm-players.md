@@ -56,7 +56,7 @@ are:
 | `Progressive Weapon Slot` | Opens one more weapon slot. Which one depends on the class: see [What the randomizer changes](what-the-randomizer-changes.md) |
 | `Mission Ticket: Crash Course` and one per mission | Marks that mission as part of the run |
 | `Cash Bundle` | Pays 200 credits to every player on the server, at the next upgrade station |
-| `Weapon Buff: Reserve Shooter — ...` and one for every functional weapon | Adds the named passive effect whenever that weapon is equipped |
+| `Weapon Buff: Reserve Shooter — ...` and every weapon/effect permutation | Adds the named passive effect whenever that weapon is equipped |
 
 An item may belong to any slot in the multiworld. Clearing a wave on your
 server may hand a sword to the Zelda player. Their items arrive in your chat

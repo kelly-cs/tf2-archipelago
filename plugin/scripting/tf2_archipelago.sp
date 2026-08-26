@@ -13,6 +13,7 @@
 #pragma newdecls required
 
 #include <sourcemod>
+#include <sdkhooks>
 #include <sdktools>
 #include <tf2>
 #include <tf2_stocks>
@@ -111,7 +112,9 @@ public void OnPluginStart()
     RegConsoleCmd("sm_ap_buffs", Command_WeaponBuffs,
         "Show the Archipelago buffs for your current loadout");
     RegAdminCmd("sm_ap_buff_test", Command_TestWeaponBuff, ADMFLAG_ROOT,
-        "Temporarily unlock the buff for your active weapon");
+        "Test an active-weapon effect: sm_ap_buff_test <number|key|all> [levels]");
+    RegAdminCmd("sm_ap_projectile_debug", Command_ProjectileDebug, ADMFLAG_ROOT,
+        "Toggle projectile diagnostics: sm_ap_projectile_debug [on|off]");
 
     AutoExecConfig(true, "tf2_archipelago");
 

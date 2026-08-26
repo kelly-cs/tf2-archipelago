@@ -113,7 +113,13 @@ rcon sm_ap_status
 | `sm_ap_mission` | List the missions of the run. With an argument, switch to one |
 | `sm_ap_resync` | Ask the bridge for the unlock set again |
 | `sm_ap_buffs` | Open the numbered menu of buffs applying to the current loadout |
-| `sm_ap_buff_test` | Temporarily unlock the active weapon's buff for a local test; root admin only |
+| `sm_ap_buff_test <1-64\|effect-key\|all> [levels]` | Add one effect, or every effect, to the active weapon for a local test; root admin only |
+| `sm_ap_projectile_debug [on\|off]` | Toggle detailed projectile creation logs and show the active weapon's projectile-count state; root admin only |
+
+In chat, omit the `sm_` prefix and use `!ap_buff_test projectile-count 3`.
+From the TF2 client console, send the command to the server with
+`cmd sm_ap_buff_test projectile-count 3`; entering `sm_ap_buff_test` directly
+asks the client for a local command and prints `Unknown command`.
 | `sm_ap_report wave_cleared 3` | Report a cleared wave by hand |
 | `sm_ap_report mission_cleared` | Report a cleared mission by hand |
 

@@ -7,24 +7,38 @@ import (
 	"testing"
 )
 
-func TestWeaponBuffCatalogCoversTheFunctionalWeapons(t *testing.T) {
-	if len(WeaponBuffs) < 212 {
-		t.Fatalf("catalog has %d weapon buffs, want at least 212", len(WeaponBuffs))
+func TestWeaponBuffCatalogIsEveryWeaponEffectPermutation(t *testing.T) {
+	if len(Weapons) < 212 {
+		t.Fatalf("catalog has %d weapons, want at least 212", len(Weapons))
+	}
+	if got, want := len(WeaponBuffs), len(Weapons)*len(WeaponEffects); got != want {
+		t.Fatalf("catalog has %d permutations, want %d", got, want)
 	}
 	var definitions []int
+	for _, weapon := range Weapons {
+		if weapon.ID == 0 || weapon.Key == "" || weapon.Name == "" {
+			t.Errorf("incomplete weapon: %+v", weapon)
+		}
+		if len(weapon.DefIndexes) == 0 {
+			t.Errorf("%s has no item definition", weapon.Name)
+		}
+		for _, definition := range weapon.DefIndexes {
+			if slices.Contains(definitions, definition) {
+				t.Errorf("item definition %d belongs to more than one weapon", definition)
+			}
+			definitions = append(definitions, definition)
+		}
+	}
+	seen := make(map[[2]uint16]bool, len(WeaponBuffs))
 	for _, buff := range WeaponBuffs {
 		if buff.ID == 0 || buff.Key == "" || buff.Weapon == "" || buff.Attribute == "" || buff.Description == "" {
 			t.Errorf("incomplete weapon buff: %+v", buff)
 		}
-		if len(buff.DefIndexes) == 0 {
-			t.Errorf("%s has no item definition", buff.Weapon)
+		pair := [2]uint16{buff.WeaponID, uint16(buff.EffectID)}
+		if seen[pair] {
+			t.Errorf("duplicate weapon/effect permutation %v", pair)
 		}
-		for _, definition := range buff.DefIndexes {
-			if slices.Contains(definitions, definition) {
-				t.Errorf("item definition %d belongs to more than one buff", definition)
-			}
-			definitions = append(definitions, definition)
-		}
+		seen[pair] = true
 	}
 	if len(definitions) < 400 {
 		t.Fatalf("catalog covers %d concrete item definitions, want at least 400", len(definitions))
@@ -32,10 +46,10 @@ func TestWeaponBuffCatalogCoversTheFunctionalWeapons(t *testing.T) {
 }
 
 func TestReserveShooterHasAConcreteBuff(t *testing.T) {
-	for _, buff := range WeaponBuffs {
-		if buff.Weapon == "Reserve Shooter" {
-			if !slices.Contains(buff.DefIndexes, 415) {
-				t.Fatalf("Reserve Shooter definitions = %v, want 415", buff.DefIndexes)
+	for _, weapon := range Weapons {
+		if weapon.Name == "Reserve Shooter" {
+			if !slices.Contains(weapon.DefIndexes, 415) {
+				t.Fatalf("Reserve Shooter definitions = %v, want 415", weapon.DefIndexes)
 			}
 			return
 		}
@@ -52,6 +66,66 @@ func TestGeneratedPluginCatalogContainsEveryBuffKey(t *testing.T) {
 	for _, buff := range WeaponBuffs {
 		if !strings.Contains(text, `"`+buff.Key+`"`) {
 			t.Errorf("generated plugin catalog has no key %q", buff.Key)
+		}
+	}
+}
+
+func TestEveryRequestedSillyEffectIsAvailableForEveryWeapon(t *testing.T) {
+	wanted := map[string]BuffMode{
+		"projectile-count": BuffPercentage,
+		"projectile-speed": BuffPercentage,
+		"bleed":            BuffAdd,
+		"afterburn-damage": BuffPercentage,
+		"airborne-crits":   BuffToggle,
+		"ignite":           BuffToggle,
+		"gasoline":         BuffToggle,
+		"mad-milk":         BuffToggle,
+	}
+	for _, effect := range WeaponEffects {
+		if mode, ok := wanted[effect.Key]; ok {
+			if effect.Mode != mode {
+				t.Errorf("%s mode = %d, want %d", effect.Key, effect.Mode, mode)
+			}
+			delete(wanted, effect.Key)
+		}
+	}
+	if len(wanted) != 0 {
+		t.Fatalf("missing requested effects: %v", wanted)
+	}
+}
+
+func TestWeaponEffectsUseDistinctSchemaAttributes(t *testing.T) {
+	seen := make(map[string]string, len(WeaponEffects))
+	for _, effect := range WeaponEffects {
+		if previous, duplicate := seen[effect.Attribute]; duplicate {
+			t.Errorf("effects %q and %q both use schema attribute %q",
+				previous, effect.Key, effect.Attribute)
+		}
+		seen[effect.Attribute] = effect.Key
+	}
+	if got := seen["bullets per shot bonus"]; got != "projectile-count" {
+		t.Errorf("projectile-count schema mapping = %q, want bullets per shot bonus", got)
+	}
+}
+
+func TestLegacyPermutationKeepsItsIDAndEveryEffectExists(t *testing.T) {
+	for _, old := range legacyWeaponBuffs {
+		seenEffects := make(map[uint8]bool, len(WeaponEffects))
+		keptLegacy := false
+		for _, buff := range WeaponBuffs {
+			if buff.WeaponID != old.ID {
+				continue
+			}
+			seenEffects[buff.EffectID] = true
+			if buff.Attribute == old.Attribute {
+				keptLegacy = buff.ID == old.ID && buff.Key == old.Key
+			}
+		}
+		if !keptLegacy {
+			t.Errorf("%s did not retain legacy id %d and key %q", old.Weapon, old.ID, old.Key)
+		}
+		if len(seenEffects) != len(WeaponEffects) {
+			t.Errorf("%s has %d effects, want %d", old.Weapon, len(seenEffects), len(WeaponEffects))
 		}
 	}
 }

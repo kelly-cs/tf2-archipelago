@@ -628,6 +628,24 @@ func TestWeaponBuffIsPersistentUnlockState(t *testing.T) {
 	}
 }
 
+func TestRepeatedWeaponBuffCopiesSurviveUnlockResync(t *testing.T) {
+	var item gamedata.Item
+	for _, candidate := range gamedata.Items {
+		if candidate.Kind == gamedata.ItemWeaponBuff {
+			item = candidate
+			break
+		}
+	}
+	store := openTemp(t)
+	if err := store.ApplyItems(0, []int64{item.ID, item.ID, item.ID}); err != nil {
+		t.Fatal(err)
+	}
+	held := store.Unlocks().Of(gamedata.ItemWeaponBuff)
+	if len(held) != 3 || held[0] != held[1] || held[1] != held[2] {
+		t.Fatalf("repeated weapon buff unlocks = %v, want three copies", held)
+	}
+}
+
 func progressiveSlotID(t *testing.T) int64 {
 	t.Helper()
 	for _, item := range gamedata.Items {

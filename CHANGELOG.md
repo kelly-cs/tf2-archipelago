@@ -8,12 +8,20 @@ in the release notes, so this file is the only place to write it.
 
 ### Weapon buffs
 
-- The item table has a useful passive buff for each of TF2's 212 functional
-  weapons and named reskins. A run samples distinct buffs to fit its checks.
+- Every positive effect in the first-pass catalog can land on each of TF2's
+  212 functional weapons and named reskins: 13,568 deliberately silly
+  permutations. A run samples distinct permutations to fit its checks.
+- Numeric effects add levels; on/off effects clamp at one. Projectile count
+  and speed, bleed, afterburn, ignite, gasoline and Mad Milk are included.
+- Projectile count adds pellets to hitscan weapons and additional rockets per
+  trigger pull. Extra rockets ignore direct contact with their shooter while
+  retaining normal explosion splash damage.
 - Buffs compose with upgrades bought at the MvM station and are reapplied at
   spawn, resupply and loadout changes.
 - Entering an upgrade station opens a numbered summary for the current
   loadout. `sm_ap_buffs` opens it again.
+- Root admins can test one effect or the entire catalog on their active weapon
+  with `sm_ap_buff_test <number|effect-key|all> [levels]`.
 
 ## v1.9.0
 

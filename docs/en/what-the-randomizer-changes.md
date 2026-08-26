@@ -50,13 +50,19 @@ one there, so you are never left holding nothing.
 Weapon ownership is not randomized. The Scattergun and the Force-A-Nature are
 the same item to the slot lock: either can be equipped once Primary is open.
 
-Individual weapons can receive useful passive buffs, however. The catalog has
-one buff for each functional weapon and named reskin in TF2. A buff only
-applies to that item definition, and combines with upgrades bought at the MvM
-station. Examples include extra damage, faster firing or reload, a larger
-clip, healing on kill, and bleed on hit.
+Individual weapons can receive useful passive buffs, however. Every one of the
+212 functional weapons and named reskins can roll every positive effect in the
+catalog, including combinations the stock game would never create. A buff only
+applies to that item definition and combines with upgrades bought at the MvM
+station. Numeric effects add another level each time; on/off effects such as
+airborne crits, ignite, Gas Passer gasoline and Mad Milk clamp at one. Other
+effects include projectile count and speed, bleed duration, afterburn damage,
+extra damage, faster firing or reload, a larger clip and healing on kill.
+Projectile count adds pellets to hitscan weapons and additional rockets per
+trigger pull. Extra rockets ignore direct contact with their shooter while
+retaining normal explosion splash damage.
 
-A run samples distinct buffs to fill the checks left after its required
+A run samples distinct weapon/effect permutations to fill the checks left after its required
 classes, slots and mission tickets. Small runs therefore contain a subset of
 the catalog; a run never creates more items than it has locations. Entering an
 upgrade station opens a numbered menu listing the buffs that apply to the

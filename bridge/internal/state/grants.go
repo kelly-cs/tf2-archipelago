@@ -147,7 +147,13 @@ func unlocksFrom(grants []Grant, resumeFrom int) Unlocks {
 		if !state {
 			continue
 		}
-		unlocks.ByKind[grant.Kind] = appendOnce(held, grant.Key)
+		// Numeric weapon effects count copies. Preserve their duplicate keys so
+		// a plugin rebuilding state after a map change restores every level.
+		if grant.Kind == gamedata.ItemWeaponBuff.Key() {
+			unlocks.ByKind[grant.Kind] = append(held, grant.Key)
+		} else {
+			unlocks.ByKind[grant.Kind] = appendOnce(held, grant.Key)
+		}
 	}
 	return unlocks
 }

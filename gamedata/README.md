@@ -16,7 +16,8 @@ project knows, and for every Archipelago id. Read [ADR
 | `ids.go` | The base id and every derivation from it |
 | `locations.go` | The 210 checks, and the objective the plugin reports for each |
 | `items.go` | The item pool template |
-| `weapons_generated.go` | Append-only functional weapon catalog and passive buffs |
+| `weapons_generated.go` | Append-only functional weapon catalog and legacy item IDs |
+| `weapon_effects.go` | Positive effects paired with every functional weapon |
 | `validate.go` | Every invariant the id scheme rests on |
 | `export.go` | Writes `apworld/tf2_mvm/data/*.json` |
 

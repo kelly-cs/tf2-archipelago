@@ -1,8 +1,10 @@
 // Initial catalog imported from TF2's item schema. IDs and keys are append-only.
 package gamedata
 
-// WeaponBuffs is the stable catalog of functional weapon buffs.
-var WeaponBuffs = []WeaponBuff{
+// legacyWeaponBuffs is the first shipped one-buff-per-weapon catalog. Its IDs
+// remain the first permutation for each weapon; weapon_buffs.go expands this
+// into the complete weapon x positive-effect catalog.
+var legacyWeaponBuffs = []WeaponBuff{
 	{
 		ID: 1, Key: "weapon-001", Weapon: "Air Strike",
 		DefIndexes: []int{1104}, Attribute: "fire rate bonus", Value: 0.90,

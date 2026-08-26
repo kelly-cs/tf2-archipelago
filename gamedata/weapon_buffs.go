@@ -2,18 +2,49 @@ package gamedata
 
 //go:generate go run ./cmd/pluginbuffs ../plugin/scripting/tf2_archipelago/weapon_buffs_data.inc
 
-// WeaponBuff is one useful Archipelago item and the attribute it adds while
-// that weapon is equipped. DefIndexes groups stock definitions shared by
-// classes and named definitions that resolve to the same inventory weapon.
+// BuffMode describes how repeated copies compose with the weapon's existing
+// attribute (including values bought at an MvM upgrade station).
+type BuffMode uint8
+
+const (
+	BuffAdd BuffMode = iota + 1
+	BuffPercentage
+	BuffToggle
+)
+
+// Weapon is one inventory weapon and every concrete definition that resolves
+// to it. ID is append-only because it participates in item IDs.
+type Weapon struct {
+	ID         uint16
+	Key        string
+	Name       string
+	DefIndexes []int
+}
+
+// WeaponEffect is one positive TF2 item attribute. Every effect is deliberately
+// paired with every weapon, including combinations the stock game never uses.
+type WeaponEffect struct {
+	ID          uint8
+	Key         string
+	Attribute   string
+	Increment   float32
+	Mode        BuffMode
+	Description string
+}
+
+// WeaponBuff is one weapon/effect permutation exposed as an Archipelago item.
 type WeaponBuff struct {
 	ID          uint16
 	Key         string
+	WeaponID    uint16
+	EffectID    uint8
 	Weapon      string
 	DefIndexes  []int
 	Attribute   string
 	Value       float32
 	Description string
 	Additive    bool
+	Mode        BuffMode
 }
 
 func (b WeaponBuff) ItemID() int64 {
@@ -25,6 +56,47 @@ func (b WeaponBuff) ItemName() string {
 }
 
 var weaponBuffsByID = indexWeaponBuffs()
+
+// Weapons keeps the stable weapon roster separate from the effects so the
+// SourcePawn tables do not repeat 400 definition indexes for every effect.
+var Weapons = buildWeapons()
+
+// WeaponBuffs is every possible weapon/effect permutation. The legacy entry
+// for each weapon retains its old ID and key; all other IDs live in fixed
+// effect blocks, so adding an effect or weapon cannot renumber an old item.
+var WeaponBuffs = buildWeaponBuffs()
+
+func buildWeapons() []Weapon {
+	weapons := make([]Weapon, 0, len(legacyWeaponBuffs))
+	for _, old := range legacyWeaponBuffs {
+		weapons = append(weapons, Weapon{
+			ID: old.ID, Key: old.Key, Name: old.Weapon, DefIndexes: old.DefIndexes,
+		})
+	}
+	return weapons
+}
+
+func buildWeaponBuffs() []WeaponBuff {
+	all := make([]WeaponBuff, 0, len(Weapons)*len(WeaponEffects))
+	for _, weapon := range Weapons {
+		legacy := legacyWeaponBuffs[weapon.ID-1]
+		for _, effect := range WeaponEffects {
+			id := uint16(10000 + int(effect.ID)*256 + int(weapon.ID))
+			key := weapon.Key + "-" + effect.Key
+			if effect.Attribute == legacy.Attribute {
+				id, key = legacy.ID, legacy.Key
+			}
+			all = append(all, WeaponBuff{
+				ID: id, Key: key, WeaponID: weapon.ID, EffectID: effect.ID,
+				Weapon: weapon.Name, DefIndexes: weapon.DefIndexes,
+				Attribute: effect.Attribute, Value: effect.Increment,
+				Description: effect.Description, Additive: effect.Mode == BuffAdd,
+				Mode: effect.Mode,
+			})
+		}
+	}
+	return all
+}
 
 func indexWeaponBuffs() map[uint16]WeaponBuff {
 	byID := make(map[uint16]WeaponBuff, len(WeaponBuffs))
