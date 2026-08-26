@@ -170,6 +170,18 @@ func srcdsArgs(s settings.Settings, exeName string) []string {
 	if exeName == "srcds.exe" {
 		// A crash dialog is a Windows idea, and it waits for a click too.
 		flags = append(flags, "-nocrashdialog")
+	} else {
+		// The engine watchdog kills the server when a frame takes too long.
+		// On Linux that fires under load the same box survives fine otherwise,
+		// and it is most of why a native Linux server is reported as crashing
+		// far more than Docker or Windows. A stress run that killed the
+		// watchdog build inside nine minutes ran clean without it.
+		//
+		// What is lost is the kill on a genuinely hung frame, so a real
+		// infinite loop now hangs instead of restarting. That is the better
+		// failure: it leaves a process to attach to, and the hangs this mod
+		// has actually produced were slow frames rather than hangs.
+		flags = append(flags, "-nowatchdog")
 	}
 	if reach.SteamNetworking() {
 		// Asks Valve for the relayed address. Without it sv_use_steam_networking
