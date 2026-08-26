@@ -86,19 +86,19 @@ type model struct {
 	command string
 	typing  bool
 
-	status   string
-	mission  string
-	notice   string
+	status  string
+	mission string
+	notice  string
 	// itemServer is the last thing the game server said about Steam's item
 	// server, which is what hands out weapons. Kept on the model rather than
 	// left in the log, because a player who is playing full stock needs to be
 	// told why without reading a thousand lines.
 	itemServer string
-	steamURL string
-	form     *settingsForm
-	snapshot session.Snapshot
-	fetchErr error
-	selected int
+	steamURL   string
+	form       *settingsForm
+	snapshot   session.Snapshot
+	fetchErr   error
+	selected   int
 }
 
 func newModel(s settings.Settings) *model {
