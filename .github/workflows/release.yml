@@ -56,7 +56,7 @@ jobs:
         run: |
           docker build -f deploy/Dockerfile.bridge \
             -t "$IMAGE/bridge:$GITHUB_REF_NAME" -t "$IMAGE/bridge:latest" .
-          docker push --all-tags "$IMAGE/bridge"
+          deploy/push-image.sh --all-tags "$IMAGE/bridge"
 
       - name: build and push the srcds image
         run: |
@@ -64,7 +64,7 @@ jobs:
           docker build -f deploy/Dockerfile.srcds \
             --build-arg "RIPEXT_VERSION=$RIPEXT_VERSION" \
             -t "$IMAGE/srcds:$GITHUB_REF_NAME" -t "$IMAGE/srcds:latest" .
-          docker push --all-tags "$IMAGE/srcds"
+          deploy/push-image.sh --all-tags "$IMAGE/srcds"
 
       - name: build and push the archipelago image
         run: |
@@ -73,7 +73,7 @@ jobs:
             --build-arg "ARCHIPELAGO_VERSION=$ARCHIPELAGO_VERSION" \
             -t "$IMAGE/archipelago:$GITHUB_REF_NAME" \
             -t "$IMAGE/archipelago:latest" .
-          docker push --all-tags "$IMAGE/archipelago"
+          deploy/push-image.sh --all-tags "$IMAGE/archipelago"
 
       - name: build the files
         run: make dist

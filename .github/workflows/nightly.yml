@@ -61,7 +61,7 @@ jobs:
       - name: build and push the bridge image
         run: |
           docker build -f deploy/Dockerfile.bridge -t "$IMAGE/bridge:nightly" .
-          docker push "$IMAGE/bridge:nightly"
+          deploy/push-image.sh "$IMAGE/bridge:nightly"
 
       - name: build and push the srcds image
         run: |
@@ -69,7 +69,7 @@ jobs:
           docker build -f deploy/Dockerfile.srcds \
             --build-arg "RIPEXT_VERSION=$RIPEXT_VERSION" \
             -t "$IMAGE/srcds:nightly" .
-          docker push "$IMAGE/srcds:nightly"
+          deploy/push-image.sh "$IMAGE/srcds:nightly"
 
       - name: build and push the archipelago image
         run: |
@@ -77,7 +77,7 @@ jobs:
           docker build -f deploy/Dockerfile.archipelago \
             --build-arg "ARCHIPELAGO_VERSION=$ARCHIPELAGO_VERSION" \
             -t "$IMAGE/archipelago:nightly" .
-          docker push "$IMAGE/archipelago:nightly"
+          deploy/push-image.sh "$IMAGE/archipelago:nightly"
 
       # BUILD_CHANNEL is what puts "nightly" in the window title and the debug
       # bundle instead of the release version this was built past. Without it a
