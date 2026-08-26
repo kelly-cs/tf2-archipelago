@@ -234,11 +234,9 @@ func (f *settingsForm) poolField(mission gamedata.Mission) field {
 	held := inPool
 
 	return &poolToggle{
-		toggleField: toggleField{
-			label: fmt.Sprintf("%s (%s)", mission.Name, played.Name),
-			help:  fmt.Sprintf("%s, %d waves. Off means the seed never draws it.", mission.Difficulty.String(), mission.Waves),
-			value: &held, on: "in the pool", off: "left out",
-		},
+		label: fmt.Sprintf("%s (%s)", mission.Name, played.Name),
+		help:  fmt.Sprintf("%s, %d waves. Off means the seed never draws it.", mission.Difficulty.String(), mission.Waves),
+		value: &held, on: "in the pool", off: "left out",
 		popFile: mission.PopFile,
 		form:    f,
 		held:    &held,
@@ -328,21 +326,17 @@ func (f *settingsForm) serverFields() []field {
 			run:   f.debugBundle,
 		},
 		&confirmField{
-			actionField: actionField{
-				label: "Repair",
-				help:  "Throw SteamCMD and the mods away and fetch them again. Keeps the game files and the run.",
-				hint:  "enter",
-				run:   f.runRepair,
-			},
+			label:   "Repair",
+			help:    "Throw SteamCMD and the mods away and fetch them again. Keeps the game files and the run.",
+			hint:    "enter",
+			run:     f.runRepair,
 			warning: "this stops the server, then removes SteamCMD, the mods and Steam's record of the download. No 14 GB again, no lost checks.",
 		},
 		&confirmField{
-			actionField: actionField{
-				label: "Reset settings",
-				help:  "Put every setting back to what a fresh install has. Keeps the game files and where they are.",
-				hint:  "enter",
-				run:   f.runReset,
-			},
+			label:   "Reset settings",
+			help:    "Put every setting back to what a fresh install has. Keeps the game files and where they are.",
+			hint:    "enter",
+			run:     f.runReset,
 			warning: "this puts the room, the passwords, the missions, the bots and who can join back to their defaults.",
 		},
 	}
@@ -574,11 +568,9 @@ func (f *settingsForm) classField(class botloadout.Class) field {
 	held := allowed
 
 	return &classToggle{
-		toggleField: toggleField{
-			label: class.Name,
-			help:  "Off means the bots never play it. A class named in a seat above beats this.",
-			value: &held, on: "they play it", off: "never",
-		},
+		label: class.Name,
+		help:  "Off means the bots never play it. A class named in a seat above beats this.",
+		value: &held, on: "they play it", off: "never",
 		key:  class.Key,
 		form: f,
 		held: &held,

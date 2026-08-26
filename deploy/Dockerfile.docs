@@ -35,5 +35,5 @@ RUN cp CONTEXT.md docs/en/glossary.md \
 	&& npx --yes honkit@${HONKIT_VERSION} build docs /book \
 	&& cp docs-index.html /book/index.html
 
-FROM nginx:1.30.4-alpine
+FROM nginx:1.31.4-alpine
 COPY --from=build /book /usr/share/nginx/html

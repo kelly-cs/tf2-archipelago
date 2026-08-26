@@ -187,8 +187,8 @@ func TestTheMissionPoolTakesAllAndNone(t *testing.T) {
 func TestTheUndoableActionsAskTwice(t *testing.T) {
 	ran := 0
 	row := &confirmField{
-		actionField: actionField{label: "Repair", run: func() tea.Cmd { ran++; return nil }},
-		warning:     "this stops the server",
+		label: "Repair", run: func() tea.Cmd { ran++; return nil },
+		warning: "this stops the server",
 	}
 
 	row.Handle(key("enter"))
