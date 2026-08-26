@@ -176,6 +176,11 @@ func srcdsArgs(s settings.Settings, exeName string) []string {
 	}
 	if exeName == "srcds.exe" {
 		// A crash dialog is a Windows idea, and it waits for a click too.
+		//
+		// -nowatchdog does not belong here. The watchdog is POSIX only: tier0
+		// arms it with alarm() and SIGALRM, and every one of the four
+		// Plat_*WatchdogTimer functions is an empty stub in the Windows build.
+		// Passing the flag would read like protection that was never there.
 		flags = append(flags, "-nocrashdialog")
 	} else {
 		// The engine watchdog kills the server when a frame takes too long.
@@ -188,6 +193,11 @@ func srcdsArgs(s settings.Settings, exeName string) []string {
 		// infinite loop now hangs instead of restarting. That is the better
 		// failure: it leaves a process to attach to, and the hangs this mod
 		// has actually produced were slow frames rather than hangs.
+		//
+		// There is no middle setting to reach for. tier0 parses this with a
+		// strstr over the command line, the timeout is whatever the engine
+		// passed capped at five minutes, and the one scale factor is 1 in a
+		// release build and 10 in a debug one. On or off is the whole choice.
 		flags = append(flags, "-nowatchdog")
 	}
 	if reach.SteamNetworking() {
