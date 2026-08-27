@@ -16,14 +16,18 @@ ConVar g_WeaponBuffProjectileDebug;
 bool g_WeaponBuffFiringExtra;
 int g_WeaponBuffLastExtra;
 Handle g_WeaponBuffFlareCreate;
+Handle g_WeaponBuffArrowCreate;
 Handle g_WeaponBuffProjectileGetDamage;
 Handle g_WeaponBuffProjectileSetDamage;
 Handle g_WeaponBuffFlareAdd;
 bool g_WeaponBuffNativeExtra[2049];
 float g_WeaponBuffNativeExtraBorn[2049];
+bool g_WeaponBuffArrowExtra[2049];
+bool g_WeaponBuffArrowTouched[2049];
+float g_WeaponBuffArrowOrigin[2049][3];
 int g_WeaponBuffStickyMimic[2049];
 int g_WeaponBuffLastButtons[MAXPLAYERS + 1];
-#define ProjectileDebugLineCount 12
+#define ProjectileDebugLineCount 24
 char g_WeaponBuffProjectileLines[ProjectileDebugLineCount][256];
 int g_WeaponBuffProjectileLineNext;
 int g_WeaponBuffProjectileLineHeld;
@@ -46,7 +50,7 @@ void WeaponBuffs_Init()
 {
     g_WeaponBuffProjectileDebug = CreateConVar("tf2ap_projectile_debug", "0",
         "Log extra-projectile creation and lifetime", FCVAR_NONE, true, 0.0, true, 1.0);
-    WeaponBuffs_InitFlareCalls();
+    WeaponBuffs_InitProjectileCalls();
     for (int client = 1; client <= MaxClients; client++)
     {
         if (IsClientInGame(client))
@@ -56,13 +60,27 @@ void WeaponBuffs_Init()
     }
 }
 
-static void WeaponBuffs_InitFlareCalls()
+static void WeaponBuffs_InitProjectileCalls()
 {
     GameData config = LoadGameConfigFile("tf2_archipelago");
     if (config == null)
     {
-        LogError("Projectile-count flare fanout disabled: tf2_archipelago gamedata is missing.");
+        LogError("Native projectile-count backends disabled: tf2_archipelago gamedata is missing.");
         return;
+    }
+
+    StartPrepSDKCall(SDKCall_Static);
+    if (PrepSDKCall_SetFromConf(config, SDKConf_Signature, "CTFProjectile_Arrow::Create"))
+    {
+        PrepSDKCall_AddParameter(SDKType_Vector, SDKPass_Pointer);
+        PrepSDKCall_AddParameter(SDKType_QAngle, SDKPass_Pointer);
+        PrepSDKCall_AddParameter(SDKType_Float, SDKPass_Plain);
+        PrepSDKCall_AddParameter(SDKType_Float, SDKPass_Plain);
+        PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_Plain);
+        PrepSDKCall_AddParameter(SDKType_CBaseEntity, SDKPass_Pointer);
+        PrepSDKCall_AddParameter(SDKType_CBaseEntity, SDKPass_Pointer);
+        PrepSDKCall_SetReturnInfo(SDKType_CBaseEntity, SDKPass_Pointer);
+        g_WeaponBuffArrowCreate = EndPrepSDKCall();
     }
 
     StartPrepSDKCall(SDKCall_Static);
@@ -104,6 +122,10 @@ static void WeaponBuffs_InitFlareCalls()
     {
         LogError("Projectile-count flare fanout disabled: this TF2 build does not match the native flare gamedata.");
     }
+    if (g_WeaponBuffArrowCreate == null)
+    {
+        LogError("Projectile-count arrow fanout disabled: this TF2 build does not match the native arrow gamedata.");
+    }
 }
 
 void WeaponBuffs_HookClient(int client)
@@ -127,6 +149,8 @@ public void OnEntityCreated(int entity, const char[] classname)
     }
     g_WeaponBuffNativeExtra[entity] = g_WeaponBuffFiringExtra;
     g_WeaponBuffNativeExtraBorn[entity] = GetGameTime();
+    g_WeaponBuffArrowExtra[entity] = false;
+    g_WeaponBuffArrowTouched[entity] = false;
     if (WeaponBuffs_IsProjectile(classname) && g_WeaponBuffProjectileDebug != null
         && g_WeaponBuffProjectileDebug.BoolValue)
     {
@@ -162,6 +186,8 @@ public void OnEntityDestroyed(int entity)
                 entity, GetGameTime() - g_WeaponBuffNativeExtraBorn[entity]);
         }
         g_WeaponBuffNativeExtra[entity] = false;
+        g_WeaponBuffArrowExtra[entity] = false;
+        g_WeaponBuffArrowTouched[entity] = false;
     }
 }
 
@@ -222,6 +248,10 @@ static void WeaponBuffs_LogProjectile(const char[] label, int entity)
         ? GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity") : -1;
     int launcher = HasEntProp(entity, Prop_Send, "m_hLauncher")
         ? GetEntPropEnt(entity, Prop_Send, "m_hLauncher") : -1;
+    int originalLauncher = HasEntProp(entity, Prop_Send, "m_hOriginalLauncher")
+        ? GetEntPropEnt(entity, Prop_Send, "m_hOriginalLauncher") : -1;
+    int projectileType = HasEntProp(entity, Prop_Send, "m_iProjectileType")
+        ? GetEntProp(entity, Prop_Send, "m_iProjectileType") : -1;
     int team = GetEntProp(entity, Prop_Send, "m_iTeamNum");
     int collision = GetEntProp(entity, Prop_Send, "m_CollisionGroup");
     float damage = HasEntProp(entity, Prop_Data, "m_flDamage")
@@ -229,9 +259,9 @@ static void WeaponBuffs_LogProjectile(const char[] label, int entity)
     float origin[3], velocity[3];
     GetEntPropVector(entity, Prop_Data, "m_vecAbsOrigin", origin);
     GetEntPropVector(entity, Prop_Data, "m_vecAbsVelocity", velocity);
-    WeaponBuffs_DebugLog("[AP projectile] %s entity=%d owner=%d launcher=%d team=%d collision=%d damage=%.1f origin=%.1f %.1f %.1f velocity=%.1f %.1f %.1f",
-        label, entity, owner, launcher, team, collision, damage, origin[0], origin[1], origin[2],
-        velocity[0], velocity[1], velocity[2]);
+    WeaponBuffs_DebugLog("[AP projectile] %s entity=%d owner=%d launcher=%d original=%d type=%d team=%d collision=%d damage=%.1f origin=%.1f %.1f %.1f velocity=%.1f %.1f %.1f",
+        label, entity, owner, launcher, originalLauncher, projectileType, team, collision,
+        damage, origin[0], origin[1], origin[2], velocity[0], velocity[1], velocity[2]);
 }
 
 static int WeaponBuffs_MimicType(int source, const char[] classname)
@@ -248,9 +278,14 @@ static int WeaponBuffs_MimicType(int source, const char[] classname)
         }
         return 1;
     }
-    if (StrEqual(classname, "tf_projectile_arrow", false)) return 2;
     if (StrEqual(classname, "tf_projectile_pipe_remote", false)) return 3;
     return -1;
+}
+
+static bool WeaponBuffs_IsArrow(const char[] classname)
+{
+    return StrEqual(classname, "tf_projectile_arrow", false)
+        || StrEqual(classname, "tf_projectile_healing_bolt", false);
 }
 
 static void WeaponBuffs_CopySendInt(int source, int extra, const char[] property)
@@ -453,6 +488,102 @@ static int WeaponBuffs_FireNativeFlare(int owner, int launcher, float damage,
     return extra;
 }
 
+static int WeaponBuffs_FireNativeArrow(int source, int owner, int launcher, float speed,
+    float damage, bool critical, const float origin[3], const float angles[3],
+    const float velocity[3])
+{
+    if (g_WeaponBuffArrowCreate == null || g_WeaponBuffProjectileSetDamage == null
+        || !HasEntProp(source, Prop_Send, "m_iProjectileType"))
+    {
+        return -1;
+    }
+
+    int projectileType = GetEntProp(source, Prop_Send, "m_iProjectileType");
+    float gravity = GetEntityGravity(source);
+    g_WeaponBuffLastExtra = -1;
+    g_WeaponBuffFiringExtra = true;
+    int extra = SDKCall(g_WeaponBuffArrowCreate, origin, angles, speed, gravity,
+        projectileType, owner, owner);
+    g_WeaponBuffFiringExtra = false;
+    if (extra <= MaxClients || !IsValidEntity(extra))
+    {
+        return -1;
+    }
+
+    // Create()/InitArrow() supplies the private scorer, hit list, touch
+    // callback and launch time that cannot be reproduced with netprops.
+    SDKCall(g_WeaponBuffProjectileSetDamage, extra, damage);
+    if (HasEntProp(extra, Prop_Send, "m_hLauncher"))
+    {
+        SetEntPropEnt(extra, Prop_Send, "m_hLauncher", launcher);
+    }
+    if (HasEntProp(extra, Prop_Send, "m_hOriginalLauncher"))
+    {
+        SetEntPropEnt(extra, Prop_Send, "m_hOriginalLauncher", launcher);
+    }
+    WeaponBuffs_CopySendInt(source, extra, "m_bCritical");
+    WeaponBuffs_CopySendInt(source, extra, "m_bArrowAlight");
+    WeaponBuffs_CopySendInt(source, extra, "m_bChargedShot");
+    WeaponBuffs_CopySendInt(source, extra, "m_CollisionGroup");
+    if (!HasEntProp(source, Prop_Send, "m_bCritical")
+        && HasEntProp(extra, Prop_Send, "m_bCritical"))
+    {
+        SetEntProp(extra, Prop_Send, "m_bCritical", critical);
+    }
+    if (HasEntProp(extra, Prop_Send, "m_vInitialVelocity"))
+    {
+        SetEntPropVector(extra, Prop_Send, "m_vInitialVelocity", velocity);
+    }
+    TeleportEntity(extra, NULL_VECTOR, angles, velocity);
+
+    g_WeaponBuffArrowExtra[extra] = true;
+    g_WeaponBuffArrowTouched[extra] = false;
+    g_WeaponBuffArrowOrigin[extra] = origin;
+    SDKHook(extra, SDKHook_StartTouch, WeaponBuffs_ArrowStartTouch);
+    CreateTimer(0.15, WeaponBuffs_ArrowFlightCheck, EntIndexToEntRef(extra),
+        TIMER_FLAG_NO_MAPCHANGE);
+    return extra;
+}
+
+public Action WeaponBuffs_ArrowStartTouch(int entity, int other)
+{
+    if (!g_WeaponBuffArrowExtra[entity] || g_WeaponBuffArrowTouched[entity])
+    {
+        return Plugin_Continue;
+    }
+    g_WeaponBuffArrowTouched[entity] = true;
+    SDKUnhook(entity, SDKHook_StartTouch, WeaponBuffs_ArrowStartTouch);
+    if (g_WeaponBuffProjectileDebug.BoolValue)
+    {
+        char classname[64] = "worldspawn";
+        if (other > 0 && IsValidEntity(other))
+        {
+            GetEntityClassname(other, classname, sizeof(classname));
+        }
+        WeaponBuffs_DebugLog("[AP projectile] arrow-extra entity=%d first-touch=%d class=%s age=%.3f",
+            entity, other, classname, GetGameTime() - g_WeaponBuffNativeExtraBorn[entity]);
+    }
+    return Plugin_Continue;
+}
+
+public Action WeaponBuffs_ArrowFlightCheck(Handle timer, any reference)
+{
+    int entity = EntRefToEntIndex(reference);
+    if (entity <= MaxClients || !IsValidEntity(entity) || !g_WeaponBuffArrowExtra[entity]
+        || !g_WeaponBuffProjectileDebug.BoolValue)
+    {
+        return Plugin_Stop;
+    }
+    float origin[3], velocity[3];
+    GetEntPropVector(entity, Prop_Data, "m_vecAbsOrigin", origin);
+    GetEntPropVector(entity, Prop_Data, "m_vecAbsVelocity", velocity);
+    float distance = GetVectorDistance(origin, g_WeaponBuffArrowOrigin[entity]);
+    WeaponBuffs_DebugLog("[AP projectile] arrow-extra entity=%d flight age=%.3f moved=%.1f speed=%.1f touched=%d",
+        entity, GetGameTime() - g_WeaponBuffNativeExtraBorn[entity], distance,
+        GetVectorLength(velocity), g_WeaponBuffArrowTouched[entity]);
+    return Plugin_Stop;
+}
+
 static void WeaponBuffs_ScheduleNativeFlare(int owner, int launcher, float damage,
     bool critical, const float origin[3], const float angles[3], const float velocity[3],
     float delay)
@@ -650,6 +781,7 @@ static void WeaponBuffs_FireExtraProjectiles(any reference)
     GetEntityClassname(source, classname, sizeof(classname));
     int mimicType = WeaponBuffs_MimicType(source, classname);
     bool isFlare = StrEqual(classname, "tf_projectile_flare", false);
+    bool isArrow = WeaponBuffs_IsArrow(classname);
     float flareOrigin[3];
     if (isFlare)
     {
@@ -691,6 +823,22 @@ static void WeaponBuffs_FireExtraProjectiles(any reference)
                 extraOrigin, angles, velocity, 0.02 * float(copy + 1));
             continue;
         }
+        else if (isArrow)
+        {
+            // Native InitArrow records the real player scorer and excludes the
+            // shooter from the arrow's private hit list. A small longitudinal
+            // stagger keeps the fanout entities from beginning coincident.
+            float extraOrigin[3], direction[3];
+            extraOrigin = origin;
+            NormalizeVector(velocity, direction);
+            float clearance = 8.0 + float(copy) * 2.0;
+            for (int axis = 0; axis < 3; axis++)
+            {
+                extraOrigin[axis] += direction[axis] * clearance;
+            }
+            extra = WeaponBuffs_FireNativeArrow(source, owner, launcher, speed,
+                damage, critical, extraOrigin, angles, velocity);
+        }
         else if (mimicType >= 0)
         {
             extra = WeaponBuffs_FireMimicProjectile(mimicType, owner, launcher,
@@ -710,7 +858,8 @@ static void WeaponBuffs_FireExtraProjectiles(any reference)
             continue;
         }
         WeaponBuffs_LogProjectile(isFlare ? "native-flare-extra"
-            : (mimicType >= 0 ? "mimic-extra" : "clone-extra"), extra);
+            : (isArrow ? "native-arrow-extra"
+                : (mimicType >= 0 ? "mimic-extra" : "clone-extra")), extra);
     }
 }
 
@@ -718,6 +867,13 @@ public void WeaponBuffs_OnTakeDamagePost(int victim, int attacker, int inflictor
     float damage, int damagetype, int weapon, const float damageForce[3],
     const float damagePosition[3], int damagecustom)
 {
+    if (inflictor > MaxClients && inflictor < sizeof(g_WeaponBuffArrowExtra)
+        && IsValidEntity(inflictor) && g_WeaponBuffArrowExtra[inflictor]
+        && g_WeaponBuffProjectileDebug.BoolValue)
+    {
+        WeaponBuffs_DebugLog("[AP projectile] arrow-extra entity=%d damaged victim=%d attacker=%d weapon=%d amount=%.1f custom=%d",
+            inflictor, victim, attacker, weapon, damage, damagecustom);
+    }
     if (victim < 1 || victim > MaxClients || attacker < 1 || attacker > MaxClients
         || victim == attacker || !IsClientInGame(victim) || !IsClientInGame(attacker)
         || GetClientTeam(victim) == GetClientTeam(attacker) || (damagetype & DMG_BURN) != 0)
@@ -749,10 +905,10 @@ public Action Command_ProjectileDebug(int client, int args)
         g_WeaponBuffProjectileDebug.BoolValue = StrEqual(wanted, "on", false)
             || StrEqual(wanted, "1");
     }
-    ReplyToCommand(client, "[AP] Projectile debug %s; backend=mimic, native flare, plus family clone.",
+    ReplyToCommand(client, "[AP] Projectile debug %s; backend=mimic, native flare/arrow, plus family clone.",
         g_WeaponBuffProjectileDebug.BoolValue ? "ON" : "OFF");
-    ReplyToCommand(client, "[AP] Native flare calls: create=%d get-damage=%d set-damage=%d add-detonator=%d.",
-        g_WeaponBuffFlareCreate != null, g_WeaponBuffProjectileGetDamage != null,
+    ReplyToCommand(client, "[AP] Native calls: arrow=%d flare=%d get-damage=%d set-damage=%d add-detonator=%d.",
+        g_WeaponBuffArrowCreate != null, g_WeaponBuffFlareCreate != null, g_WeaponBuffProjectileGetDamage != null,
         g_WeaponBuffProjectileSetDamage != null, g_WeaponBuffFlareAdd != null);
     if (args == 0 && g_WeaponBuffProjectileLineHeld > 0)
     {
