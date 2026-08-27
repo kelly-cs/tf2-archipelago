@@ -237,7 +237,8 @@ static int WeaponBuffs_CloneProjectile(int source, const char[] classname, int o
     // Projectile type selects the correct model and behavior for arrows,
     // healing bolts and the festive variants, and must be set before Spawn.
     WeaponBuffs_CopySendInt(source, extra, "m_iProjectileType");
-    if (HasEntProp(extra, Prop_Send, "m_hOwnerEntity"))
+    bool isFlare = StrEqual(classname, "tf_projectile_flare", false);
+    if (!isFlare && HasEntProp(extra, Prop_Send, "m_hOwnerEntity"))
     {
         SetEntPropEnt(extra, Prop_Send, "m_hOwnerEntity", owner);
     }
@@ -258,6 +259,15 @@ static int WeaponBuffs_CloneProjectile(int source, const char[] classname, int o
     TeleportEntity(extra, origin, angles, NULL_VECTOR);
     DispatchSpawn(extra);
     ActivateEntity(extra);
+    // Flare Spawn() performs a one-time line trace to its owner and fizzles
+    // when that trace sees world geometry. A clone made one frame after the
+    // shot can be beyond a corner even though the original spawned safely.
+    // Assigning its owner immediately after Spawn preserves attribution while
+    // avoiding a second, no-longer-relevant muzzle safety trace.
+    if (isFlare && HasEntProp(extra, Prop_Send, "m_hOwnerEntity"))
+    {
+        SetEntPropEnt(extra, Prop_Send, "m_hOwnerEntity", owner);
+    }
 
     WeaponBuffs_CopySendEntity(source, extra, "m_hLauncher");
     WeaponBuffs_CopySendEntity(source, extra, "m_hOriginalLauncher");
