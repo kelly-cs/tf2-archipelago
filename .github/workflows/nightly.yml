@@ -1,0 +1,199 @@
+name: Nightly
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+# One nightly build at a time, and a newer push wins. Two of these racing would both
+# delete and recreate the same tag, and whichever finished second would leave the
+# release describing a commit the tag no longer points at.
+concurrency:
+  group: nightly
+  cancel-in-progress: true
+
+# What `nightly` is: a tag that always points at the head of main, with a prerelease
+# hanging off it carrying the same files a real release carries. Ghostty does
+# this and the reason to copy it is that a release candidate nobody can download
+# is not a release candidate.
+#
+# It buys two things. Somebody who wants to try what just landed downloads an exe
+# instead of building one. And the notes below list every commit since the last
+# real tag, which is the raw material for that tag's CHANGELOG.md section.
+#
+# GitHub-only, like the release job: ghcr.io, the release API and the `gh` CLI
+# are all GitHub's. The Forgejo mirror reads this file and skips it.
+jobs:
+  nightly:
+    if: github.server_url == 'https://github.com'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+      id-token: write
+      attestations: write
+    steps:
+      # Deep, unlike the release job. `git describe` below needs the tag history
+      # to find the last real release, and a shallow clone has none of it.
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: name the images
+        run: echo "IMAGE=ghcr.io/${{ github.repository }}" >> "$GITHUB_ENV"
+
+      # No `make version-check`. That target asks whether a tag agrees with the
+      # version in the tree, and `nightly` is not a version: it disagrees with every
+      # tree by design.
+
+      - name: log in to ghcr.io
+        run: |
+          echo "${{ github.token }}" \
+            | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+      # `:nightly` and never `:latest`. A release moves `latest` because a release is
+      # what `make up` should get by default; this must not, or every push to
+      # main would land on anybody running the published stack.
+      - name: build and push the bridge image
+        run: |
+          docker build -f deploy/Dockerfile.bridge -t "$IMAGE/bridge:nightly" .
+          deploy/push-image.sh "$IMAGE/bridge:nightly"
+
+      - name: build and push the srcds image
+        run: |
+          . deploy/env/versions.env
+          docker build -f deploy/Dockerfile.srcds \
+            --build-arg "RIPEXT_VERSION=$RIPEXT_VERSION" \
+            -t "$IMAGE/srcds:nightly" .
+          deploy/push-image.sh "$IMAGE/srcds:nightly"
+
+      - name: build and push the archipelago image
+        run: |
+          . deploy/env/versions.env
+          docker build -f deploy/Dockerfile.archipelago \
+            --build-arg "ARCHIPELAGO_VERSION=$ARCHIPELAGO_VERSION" \
+            -t "$IMAGE/archipelago:nightly" .
+          deploy/push-image.sh "$IMAGE/archipelago:nightly"
+
+      # BUILD_CHANNEL is what puts "nightly" in the window title and the debug
+      # bundle instead of the release version this was built past. Without it a
+      # build from main after 1.9.0 calls itself 1.9.0 and a player reporting a
+      # bug on it looks like a player on the release.
+      - name: build the files
+        run: make dist BUILD_CHANNEL=nightly
+
+      - name: pin the compose file to nightly
+        run: sed -i "s/:-latest}/:-nightly}/g" dist/compose.yaml
+
+      # The notes are the commit list since the last real tag, which is the thing
+      # a CHANGELOG.md section gets written from. `git describe` finds that tag;
+      # with none yet, the whole history is the answer and the range is empty.
+      - name: write the notes
+        run: |
+          last=$(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null || true)
+          {
+            printf '**This is not a release.** It is the head of `main`, rebuilt on every push,\n'
+            printf 'and it is replaced without warning. For something that stays put, use the\n'
+            printf '[latest release](https://github.com/%s/releases/latest).\n\n' "${{ github.repository }}"
+            printf 'Built from `%s`.\n\n' "$GITHUB_SHA"
+
+            printf '## Downloads\n\n'
+            printf -- '- [tf2ap.exe](https://github.com/%s/releases/download/nightly/tf2ap.exe) for Windows\n' "${{ github.repository }}"
+            printf -- '- [tf2ap-linux-amd64](https://github.com/%s/releases/download/nightly/tf2ap-linux-amd64) for Linux\n\n' "${{ github.repository }}"
+
+            if [ -n "$last" ]; then
+              printf '## Since %s\n\n' "$last"
+              git log --no-merges --pretty='- %s' "$last..HEAD"
+            else
+              printf '## Every commit so far\n\n'
+              git log --no-merges --pretty='- %s'
+            fi
+          } > /tmp/nightly-notes.md
+          cat /tmp/nightly-notes.md
+
+      - name: name the assets
+        run: |
+          {
+            echo 'ASSETS<<EOF'
+            for f in tf2ap.exe tf2ap-linux-amd64 compose.yaml env.example \
+                     tf2_mvm.apworld tf2_archipelago.smx tf2-defender-bots.zip \
+                     meta.json items.json missions.json; do
+              echo "dist/$f"
+            done
+            echo EOF
+          } >> "$GITHUB_ENV"
+
+      - name: checksum the assets
+        run: |
+          cd dist
+          # shellcheck disable=SC2086
+          sha256sum $(echo "$ASSETS" | sed 's|^dist/||') > SHA256SUMS
+          cat SHA256SUMS
+
+      # Worth doing here even though the exe is unsigned either way: an
+      # attestation is the only check somebody has on a file this workflow built,
+      # and a nightly build is exactly the file nobody has a reason to trust.
+      - name: attest the binaries
+        uses: actions/attest-build-provenance@v3
+        with:
+          subject-path: |
+            dist/tf2ap.exe
+            dist/tf2ap-linux-amd64
+
+      # The tag is deleted and made again rather than force-moved, and the repo
+      # must not have immutable releases switched on.
+      #
+      # Both of those are scars. A force-update of the tag is refused with
+      # "GH013: Cannot update this protected ref", so the ref is removed and
+      # remade instead. And this workflow used to be called `tip` until GitHub
+      # reserved that name for good: immutable releases locks a tag the moment a
+      # release is published against it, and deleting the release and disabling
+      # the feature afterwards does not give the name back. `tip` is unusable on
+      # this repo forever, by any identity, which a local push proved while a
+      # throwaway tag beside it went through.
+      #
+      # So: leave immutable releases off, or scope it to refs/tags/v* where it
+      # belongs. Turn it on repo-wide and the first run here burns `nightly` too,
+      # and the fix is another rename.
+      #
+      # The release goes before the tag either way. A release is bound to a tag
+      # name, so removing the tag under a live release leaves it describing a
+      # commit that is gone. The cost of deleting is a ref other clones keep,
+      # which is a cost this tag already advertises: it is replaced without
+      # warning.
+      - name: replace the nightly release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete nightly --yes --cleanup-tag 2>/dev/null || true
+          # Belt and braces: --cleanup-tag only removes the tag when there was a
+          # release to delete, and a half-finished earlier run can leave one
+          # without the other.
+          git push origin ":refs/tags/nightly" 2>/dev/null || true
+
+          # And the local one, which the remote delete does not touch. This job
+          # checks out at fetch-depth 0 so that `git describe` can find the last
+          # release, and that fetches every tag, nightly included: without this,
+          # `git tag nightly` dies with "tag 'nightly' already exists" before anything
+          # reaches the remote.
+          git tag -d nightly 2>/dev/null || true
+
+          git tag nightly "$GITHUB_SHA"
+          git push origin "refs/tags/nightly"
+
+          # shellcheck disable=SC2086
+          gh release create nightly \
+            --verify-tag \
+            --prerelease \
+            --title "nightly" \
+            --notes-file /tmp/nightly-notes.md \
+            $ASSETS dist/SHA256SUMS
+
+      # No signing and no VirusTotal, on purpose. The SignPath policy is
+      # release-signing and this is not a release; a scan of a binary that is
+      # replaced several times a day spends the quota that the tags people
+      # actually download need.

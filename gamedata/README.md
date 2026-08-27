@@ -22,11 +22,36 @@ project knows, and for every Archipelago id. Read [ADR
 
 Not here yet, and deliberately not in v1: weapons, upgrade lines, canteens,
 allied robot templates, traps. Weapon *slots* are enough to make a progression,
-and the weapon table is the largest data-entry job in the project. The starting
-point when they land is `worlds/tf2/Items.py` in ALPHAMARIOX's fork, 556 lines
-of Python dicts: port them to Go, do not vendor the Python. See
-[`../docs/en/prior-art.md`](../docs/en/prior-art.md) for what is in there and what is
-broken in it.
+and the weapon table is the largest data-entry job in the project.
+
+## When the weapon tables land
+
+The starting point is `worlds/tf2/Items.py` in
+[ALPHAMARIOX's fork](https://github.com/ArchipelagoMW/Archipelago/compare/main...ALPHAMARIOX:TF2-MvM-Archipelago:main),
+556 lines of Python dicts: `credits_table`, `upgrades_table`, `class_table`,
+`weapon_table` (210 lines, the big one), `weapon_slot_table`, `canteens_table`,
+`robots_table`, `wave_table`, `mission_table`, `map_table` and `trap_table`.
+
+Port them to Go. Do not vendor the Python. Once translated, this package owns
+them and the Python side reads the exported JSON.
+
+The `Group(IntFlag)` enum in the same file is a clean categorisation scheme.
+Port it to a Go bitmask over the same names, so the two stay comparable.
+
+Treat that fork as a data dump, not an implementation. It has no `World`
+subclass, no regions, no rules and no client, and it does not generate.
+
+### Two defects in it, which this package must not inherit
+
+- **The game name disagrees with itself.** `Items.py` declares
+  `"Team Fortress 2 Mann Vs. Machine"` and `Locations.py` declares
+  `"Team Fortress 2"`. The game string is the multiworld's primary key for a
+  slot, so it has to be one value in one place. This package picks it once and
+  exports it.
+- **Nothing there enforces id stability.** Never renumber an Archipelago id
+  once a seed exists. The fork's two empty converter stubs were meant to solve
+  that. [ADR 0001](../docs/en/adr/0001-go-owns-the-game-data.md) says what this
+  project does instead, and `validate.go` enforces it.
 
 ## What does not go here
 

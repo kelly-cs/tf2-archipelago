@@ -114,6 +114,20 @@ type mission struct {
 	// chains from a cleared mission to the next unlocked one that is not, so
 	// it has to know both.
 	Cleared bool `json:"cleared"`
+
+	/* Played is this server having actually cleared it.
+	 *
+	 * A check reaches the disk when anybody in the room sends it, and another
+	 * world running !collect on its goal sends every one it still holds. That
+	 * marked missions here as cleared that nobody on this server had played,
+	 * and the run list stopped saying what this player had done. Reported by
+	 * Peppy after apw-o75 pointed the goal at played and left the display
+	 * reading checks.
+	 *
+	 * Cleared stays what it was, because the plugin chains on it and the room's
+	 * answer is the right one for "is this check already spent". The two are
+	 * shown apart rather than merged. */
+	Played bool `json:"played"`
 }
 
 type missionsResponse struct {
@@ -362,6 +376,7 @@ func (s *Server) getMissions(w http.ResponseWriter, r *http.Request) {
 		s.client.Health().Missions,
 		s.store.Unlocks().Of(gamedata.ItemMissionTicket),
 		s.store.Checks(),
+		s.store.Played(),
 	)
 	for _, popFile := range unknown {
 		s.logger.WarnContext(r.Context(), "the seed holds a mission the tables do not",
@@ -374,7 +389,7 @@ func (s *Server) getMissions(w http.ResponseWriter, r *http.Request) {
 // and reports the ones the tables do not know. A seed from a newer gamedata is
 // the only way that happens, and skipping such a mission beats serving a name
 // and a map this binary would be guessing at.
-func missionsFor(drawn, unlocked []string, checks []int64) ([]mission, []string) {
+func missionsFor(drawn, unlocked []string, checks, own []int64) ([]mission, []string) {
 	missions := make([]mission, 0, len(drawn))
 	var unknown []string
 	for _, popFile := range drawn {
@@ -391,6 +406,7 @@ func missionsFor(drawn, unlocked []string, checks []int64) ([]mission, []string)
 			Waves:    int(known.Waves),
 			Unlocked: slices.Contains(unlocked, known.PopFile),
 			Cleared:  slices.Contains(checks, known.ClearLocationID()),
+			Played:   slices.Contains(own, known.ClearLocationID()),
 		})
 	}
 	return missions, unknown

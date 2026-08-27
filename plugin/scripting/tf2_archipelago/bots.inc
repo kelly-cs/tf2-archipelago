@@ -485,6 +485,10 @@ static void Bots_Fill()
     {
         return;
     }
+    // One ask can add more than it asked for, so the surplus goes on this poll
+    // rather than three seconds after the next wave begins.
+    Bots_TrimSurplus();
+
     /* A seat is taken by whoever is on RED, and held for every player who is
      * connected and not on it yet.
      *
@@ -524,15 +528,26 @@ static void Bots_Fill()
         taken, DefenderTeamSize(), missing);
     ServerCommand("sm_addbots %d", missing);
     g_NextFill = GetGameTime() + BotFillGrace;
+
+    /* And count the seats back once the mod has had its turn
+     *
+     * The trim above only ever saw the previous poll's surplus. An ask that
+     * added six where five were wanted survived until the next poll, and the
+     * poll returns early once the wave starts, so it survived the whole wave
+     * in a seat that belongs to a player. */
+    CreateTimer(BotTrimDelay, Timer_TrimBots);
 }
 
 /* RED came up over its team size, so the extra bots leave.
  *
- * The mod adds its whole chosen lineup when a wave begins, without counting who
- * is already standing there: in its own mode nobody is, because it fills the
- * team at that moment and not before. Filling the team early is what this
- * plugin now does, so a six man RED that waited through the upgrade station
- * came up at ten or twelve when the wave started.
+ * Two things overfill it. The mod adds its whole chosen lineup when a wave
+ * begins, without counting who is already standing there. This plugin fills the
+ * team before that, so a six man RED came up at ten or twelve.
+ *
+ * And one ask can add more than it asked for. sm_addbots fills the seats the
+ * mod's named team wants. When that team does not name every seat, the mod
+ * falls back to the lineup mode and adds the whole count again. Three named
+ * seats and an ask for six is nine bots.
  *
  * The seats are counted back after the mod has had its turn rather than the
  * fill being taken out again, because either side adding without counting ends
@@ -547,7 +562,18 @@ void Bots_TrimSurplus()
     {
         return;
     }
-    int size = DefenderTeamSize();
+    /* The same seat arithmetic the fill uses, or the two fight
+     *
+     * Bots_Fill counts a connected player as holding a seat wherever he is
+     * standing, so it will not add a bot for one. The trim counted RED alone,
+     * so it left RED full of bots while a player who had just reconnected sat
+     * in spectator and the game refused him the team. That is the second half
+     * of what was reported as "what is with the 7 players". */
+    int size = DefenderTeamSize() - Bots_SeatsHeldOffRed();
+    if (size < 0)
+    {
+        size = 0;
+    }
     int onRed = 0;
     for (int client = 1; client <= MaxClients; client++)
     {
@@ -569,6 +595,29 @@ void Bots_TrimSurplus()
         KickClient(client, "RED is full");
         onRed--;
     }
+}
+
+/* Seats belonging to players who are connected but not on RED yet.
+ *
+ * Someone choosing a class, someone the game has just put in spectator, someone
+ * who reconnected mid-mission. Bots_Fill already holds a seat for each of them,
+ * so this is the same count and the trim can hold the same ones.
+ */
+static int Bots_SeatsHeldOffRed()
+{
+    int held = 0;
+    for (int client = 1; client <= MaxClients; client++)
+    {
+        if (!IsClientInGame(client) || IsClientSourceTV(client) || IsFakeClient(client))
+        {
+            continue;
+        }
+        if (GetClientTeam(client) != TeamRed)
+        {
+            held++;
+        }
+    }
+    return held;
 }
 
 /* Whether anybody is here to play with.
@@ -599,7 +648,51 @@ static bool Bots_AnyPlayerHere()
 public Action Timer_TrimBots(Handle timer)
 {
     Bots_TrimSurplus();
+    Bots_LogLineup();
     return Plugin_Stop;
+}
+
+/* Who is on RED, and what they are playing.
+ *
+ * The one line a debug bundle could not answer. A blacklisted Spy was drawn
+ * into a lineup for a whole evening and the logs held nothing to prove it: the
+ * player had to send a screenshot of the team panel, because bot class is
+ * printed nowhere. Reading a bundle should not need a photograph.
+ *
+ * Written when the wave starts and the team has settled, which is after the
+ * trim above: RED before that is whatever the mod and this plugin have each
+ * added without seeing the other.
+ */
+void Bots_LogLineup()
+{
+    char line[512];
+    int count = 0;
+    for (int client = 1; client <= MaxClients; client++)
+    {
+        if (!IsClientInGame(client) || IsClientSourceTV(client) || GetClientTeam(client) != TeamRed)
+        {
+            continue;
+        }
+        TFClassType class = TF2_GetPlayerClass(client);
+        char key[16];
+        if (class > TFClass_Unknown && view_as<int>(class) < sizeof(g_ClassKeys))
+        {
+            strcopy(key, sizeof(key), g_ClassKeys[view_as<int>(class)]);
+        }
+        else
+        {
+            strcopy(key, sizeof(key), "none");
+        }
+        Format(line, sizeof(line), "%s%s%N (%s%s)", line, count == 0 ? "" : ", ",
+            client, key, IsFakeClient(client) ? " bot" : " player");
+        count++;
+    }
+    if (count == 0)
+    {
+        AP_Debug("RED is empty at the wave start.");
+        return;
+    }
+    AP_Debug("RED holds %d at the wave start: %s", count, line);
 }
 
 public Action Timer_FillTeam(Handle timer)

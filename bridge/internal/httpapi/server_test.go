@@ -142,7 +142,10 @@ func TestMissionsNameTheMapAndWhatIsUnlocked(t *testing.T) {
 	// missions, a run holds a handful of them.
 	drawn := []string{"mvm_ghost_town_666", "mvm_coaltown_intermediate"}
 	coaltown, _ := gamedata.MissionByPopFile("mvm_coaltown_intermediate")
-	missions, unknown := missionsFor(drawn, []string{"mvm_ghost_town_666"}, []int64{coaltown.ClearLocationID()})
+	// Checked by the room but not played here, which is the case another
+	// world's !collect produces.
+	missions, unknown := missionsFor(
+		drawn, []string{"mvm_ghost_town_666"}, []int64{coaltown.ClearLocationID()}, nil)
 
 	if len(unknown) != 0 {
 		t.Fatalf("the tables did not know %v", unknown)
@@ -175,7 +178,7 @@ func TestMissionsNameTheMapAndWhatIsUnlocked(t *testing.T) {
 }
 
 func TestMissionsSkipWhatTheTablesDoNotKnow(t *testing.T) {
-	missions, unknown := missionsFor([]string{"mvm_potato", "mvm_coaltown"}, nil, nil)
+	missions, unknown := missionsFor([]string{"mvm_potato", "mvm_coaltown"}, nil, nil, nil)
 	if len(missions) != 1 || missions[0].PopFile != "mvm_coaltown" {
 		t.Fatalf("missions = %+v", missions)
 	}
@@ -573,5 +576,35 @@ func TestMessagesStartFromNow(t *testing.T) {
 	decode(t, get(t, handler, "/messages?since=-1"), &response)
 	if len(response.Messages) != 0 {
 		t.Fatalf("a negative sequence returned %d message(s)", len(response.Messages))
+	}
+}
+
+/*
+Cleared is what the room holds; played is what this server did.
+
+Another world running !collect on its goal sends every check it still holds,
+which marked missions here as cleared that nobody on this server had played.
+Reported by Peppy: "it does make it harder to keep track of what you've
+actually completed or not".
+*/
+func TestAMissionCheckedByTheRoomIsNotPlayedHere(t *testing.T) {
+	drawn := []string{"mvm_coaltown_intermediate", "mvm_ghost_town_666"}
+	coaltown, _ := gamedata.MissionByPopFile("mvm_coaltown_intermediate")
+	ghost, _ := gamedata.MissionByPopFile("mvm_ghost_town_666")
+
+	missions, _ := missionsFor(drawn, drawn,
+		[]int64{coaltown.ClearLocationID(), ghost.ClearLocationID()},
+		[]int64{ghost.ClearLocationID()})
+
+	if len(missions) != 2 {
+		t.Fatalf("missions = %+v", missions)
+	}
+	if !missions[0].Cleared || missions[0].Played {
+		t.Errorf("the collected mission = cleared %v, played %v; want cleared, not played",
+			missions[0].Cleared, missions[0].Played)
+	}
+	if !missions[1].Cleared || !missions[1].Played {
+		t.Errorf("the played mission = cleared %v, played %v; want both",
+			missions[1].Cleared, missions[1].Played)
 	}
 }

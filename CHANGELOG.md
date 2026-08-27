@@ -4,6 +4,86 @@ What each release changes, for somebody who plays the game. The workflow in
 `.github/workflows/release.yml` reads the section matching the tag and puts it
 in the release notes, so this file is the only place to write it.
 
+## Unreleased
+
+## v1.10.0
+
+Most of this release is what the 1.9.0 play-tests found.
+
+### The run
+
+- Items and locations print by name in chat. They arrived as bare numbers: the
+  bridge never asked the multiworld for the names.
+- The mission list says what you cleared. Another world running `!collect` on
+  its goal marks every check it still holds. Those missions then read as cleared
+  here, though nobody on this server played them. Yours now read "cleared", the
+  room's read "collected".
+- A sentry buster blowing itself up is no longer the giant kill. It carries the
+  giant flag, so it took the mission's giant check with it and the real giant
+  that died later reported nothing.
+- Cash Bundles pay the bots as well as the players, and a bot that rejoins keeps
+  what its bundles paid for.
+
+### Getting a server up
+
+- The connect address is on the Session tab of the terminal interface, as the
+  full `connect` command rather than a bare address. It was only reachable by
+  pressing C on the log tab.
+- Joining from the launcher aims at the address your machine actually answers
+  on. Docker, WSL and virtual machines each leave one behind, and the link took
+  whichever came first. That gives "connection failed after 4 retries" and a
+  stall at two bars. The LAN tab of the server browser finds the same server
+  first try.
+- Settings changed in the terminal interface reach the server. `server.cfg` was
+  written once when the launcher started and never again. The launcher saved a
+  class you unticked mid-session, showed it unticked, and played it anyway.
+- The launcher says whether Steam's item server answered. Without it everybody
+  plays full stock and nothing said why, which is indistinguishable from a setup
+  step you missed.
+- The Docker quick start downloads a file that exists. The documented URL
+  returned 404 on every release, and `curl` fails silently, so you got no `.env`
+  and hit a missing password several steps later.
+- A crash reads as a crash. The launcher reported one as "bridge stopping",
+  which is its own shutdown message, so the component that had not failed was
+  the one people reported.
+
+### The bots
+
+- RED holds its size. One request for six bots added nine at mission load, and
+  they stayed until somebody restarted a wave. A surplus now goes within three
+  seconds. A player who reconnects mid-mission gets their seat back instead of
+  spectator.
+- A class you untick is never drawn. A lineup that named some seats left the
+  rest to the mod, blacklist and all, and an unticked Spy walked onto RED.
+- One build press makes one building. The engineer asked whether he had
+  succeeded in the same frame as he pressed, and the game answers on the next
+  one. So he pressed again, and two dispensers stood under one engineer. Four
+  waves of the test bed counted eighteen of those before, and none after.
+- Engineers stop buying the disposable mini sentry. Measured over six waves of
+  Decoy: defender deaths per wave ran 0 to 10 without it and 11 to 17 with it,
+  and sentries lost doubled. It is a switch, `sm_redbots_feature_engineer_disposable`,
+  if you want it back.
+- Teleporter exits go outside the blast that kills the sentry. The engineer put
+  one 150 units from the nest, and a sentry buster reaches 400. One buster took
+  the sentry and the team's forward spawn together.
+- Decoy has its sniper spots back. A test removed them and every build since
+  carried the gap.
+- A bot at the upgrade station follows your ready. It had no readiness of its
+  own while shopping, so it never pressed F4 and the wave waited on it. A bot
+  mid-taunt readies too.
+- Raising the RED team size says what the game allows. Asking for twelve
+  silently produced no bots at all, which left fewer than asking for six.
+
+### Under it
+
+- Native Linux servers keep the engine watchdog off. It kills the server when a
+  frame takes too long, which fires under load a machine survives otherwise.
+- Debug bundles open with what looks wrong: crashes, plugin exceptions, stuck
+  bots, and the lines a run repeated most. They also say whether `server.cfg`
+  still matches the settings beside it, and where to look when a crash left no
+  dump.
+- The bots mod is on v2.17.1.
+
 ## v1.9.0
 
 Most of this release is the bots.

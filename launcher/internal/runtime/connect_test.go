@@ -1,6 +1,7 @@
 package runtime
 
 import (
+	"slices"
 	"strings"
 	"testing"
 
@@ -177,5 +178,67 @@ func TestSteamConnectURLPrefersTheRelayedAddress(t *testing.T) {
 	s.SrcdsReach = settings.ReachLan
 	if got := SteamConnectURL(s, "169.254.13.42:20232"); strings.Contains(got, "169.254") {
 		t.Errorf("a LAN server was joined over Steam: %q", got)
+	}
+}
+
+/*
+The item server is what hands out weapons, and its absence is silent.
+
+A player ran a whole evening on stock and could not tell an outage from a setup
+step he had missed. The success line has one wording and the failures have
+several, so the success is what is matched.
+*/
+func TestItemServerLine(t *testing.T) {
+	up := "Current item schema is up-to-date with version 760AF0C1."
+	if got := ItemServerLine(up); got == "" || !strings.Contains(got, "weapons are available") {
+		t.Errorf("the up-to-date line said %q", got)
+	}
+	// Anything else about the schema is passed through rather than read.
+	other := "Failed to load item schema"
+	if got := ItemServerLine(other); !strings.Contains(got, "Failed to load item schema") {
+		t.Errorf("a schema failure said %q", got)
+	}
+	for _, line := range []string{
+		"Server is hibernating",
+		"L 08/26/2026 - 07:58:45: [tf2_archipelago.smx] anything",
+	} {
+		if got := ItemServerLine(line); got != "" {
+			t.Errorf("%q was read as an item server line: %q", line, got)
+		}
+	}
+}
+
+/*
+The join link has to name the address the machine really answers on.
+
+A bundle carried four: 192.168.50.105 beside 192.168.34.1, 192.168.222.1 and
+172.25.192.1, which are the adapters Docker, WSL and a virtual machine leave
+behind. net.Interfaces returns them in no useful order, and taking the first
+sent players at an adapter with nothing behind it: "connection failed after 4
+retries", a stall at two bars, while the LAN tab of the server browser found
+the same server first try.
+*/
+func TestTheRoutableAddressComesFirst(t *testing.T) {
+	preferred := preferredOutboundAddress()
+	if preferred == "" {
+		t.Skip("no route out of this machine, so there is no preference to check")
+	}
+	addresses := LocalAddresses()
+	if len(addresses) == 0 {
+		t.Skip("no addresses on this machine")
+	}
+	if !slices.Contains(addresses, preferred) {
+		t.Fatalf("the routable address %s is not in %v", preferred, addresses)
+	}
+	if addresses[0] != preferred {
+		t.Errorf("addresses = %v, want %s first", addresses, preferred)
+	}
+}
+
+// The dial must not actually talk to anything: 192.0.2.1 is the documentation
+// range and nothing routes there, which is the point.
+func TestThePreferredAddressIsNotLoopback(t *testing.T) {
+	if got := preferredOutboundAddress(); got != "" && strings.HasPrefix(got, "127.") {
+		t.Errorf("preferred address = %q, which is loopback", got)
 	}
 }

@@ -6,14 +6,17 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"os/exec"
 	"path/filepath"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/m-this/tf2-archipelago/bridge"
 	"github.com/m-this/tf2-archipelago/bridge/config"
 	"github.com/m-this/tf2-archipelago/fakeroom"
 	"github.com/m-this/tf2-archipelago/launcher/internal/settings"
+	"github.com/m-this/tf2-archipelago/launcher/internal/srcdsconfig"
 )
 
 // roomCloseGrace bounds the wait when the test room is asked to stop.
@@ -87,6 +90,14 @@ func (s *Supervisor) Start(onExit func(error)) error {
 	}
 	cfg, err := bridgeConfig(s.settings)
 	if err != nil {
+		s.mu.Unlock()
+		return err
+	}
+	// The game server reads server.cfg once, at its own startup, so the file
+	// has to hold the settings this start is using. Rendering it here rather
+	// than once per launcher run is what makes a class unticked in the
+	// interface reach the server it is unticked for.
+	if err := srcdsconfig.Install(s.settings); err != nil {
 		s.mu.Unlock()
 		return err
 	}
@@ -293,7 +304,58 @@ func wrapExit(what string, err error) error {
 	if err == nil {
 		return fmt.Errorf("%s stopped", what)
 	}
+	if note := crashNote(err); note != "" {
+		return fmt.Errorf("%s CRASHED: %w (%s)", what, err, note)
+	}
 	return fmt.Errorf("%s stopped: %w", what, err)
+}
+
+/* crashNote names the exit statuses that mean the process died rather than
+ * returned, and says so in words a player can repeat.
+ *
+ * It exists because "game server stopped: exit status 0xc0000005" reads like
+ * every other stop. A crash was reported for weeks as "bridge stopping", which
+ * is the launcher's own orderly shutdown printed on the way out: the last line
+ * a player sees is the one they report, and it named the component that had not
+ * failed. A crash has to outrank the shutdown noise around it.
+ */
+func crashNote(err error) string {
+	var exit *exec.ExitError
+	if !errors.As(err, &exit) {
+		return ""
+	}
+	// A signal is a Unix crash: SIGSEGV, SIGABRT, SIGBUS and the rest arrive
+	// this way rather than as an exit code.
+	if status, ok := exit.Sys().(syscall.WaitStatus); ok && status.Signaled() {
+		return "killed by " + status.Signal().String() + ", so this is a crash and not a stop"
+	}
+	code := exit.ExitCode()
+	if code < 0 {
+		return ""
+	}
+	// Windows reports an unhandled exception as the NTSTATUS itself, and every
+	// one of those has the top two bits set. 0xc0000005 is the access
+	// violation the game dies with most often.
+	if uint32(code)&0xC0000000 == 0xC0000000 {
+		if name := ntStatusNames[uint32(code)]; name != "" {
+			return name + ", so this is a crash and not a stop"
+		}
+		return "an unhandled exception, so this is a crash and not a stop"
+	}
+	return ""
+}
+
+// ntStatusNames covers the handful worth naming. Anything else still reports as
+// a crash, just without the word for it.
+var ntStatusNames = map[uint32]string{
+	0xC0000005: "access violation",
+	0xC0000006: "in-page error",
+	0xC000001D: "illegal instruction",
+	0xC0000025: "unrecoverable exception",
+	0xC0000094: "integer divide by zero",
+	0xC00000FD: "stack overflow",
+	0xC0000409: "stack buffer overrun",
+	0xC0000374: "corrupted heap",
 }
 
 // sinkWriter turns a stream of bytes into whole lines for the sink.

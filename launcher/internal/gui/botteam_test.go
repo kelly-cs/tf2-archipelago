@@ -1,0 +1,135 @@
+package gui
+
+import (
+	"slices"
+	"strings"
+	"testing"
+
+	"github.com/m-this/tf2-archipelago/launcher/internal/botloadout"
+)
+
+/* What the window's Bots tab means, without the window. From the 1.9.0
+ * play-test: the seats named on the page were not the seats the mod filled.
+ */
+func TestBotTeamFromPicksKeepsTheSeatsAndTheTicks(t *testing.T) {
+	engineer, heavy := classIndex(t, "engineer"), classIndex(t, "heavyweapons")
+	sniper := classIndex(t, "sniper")
+
+	picks := botTeamPicks{
+		// Seat 1 draws, seat 2 is an Engineer, seat 3 draws, seat 4 a Heavy.
+		SeatClass:    []int{0, engineer + 1, 0, heavy + 1},
+		SeatLoadout:  make([]int, 4),
+		Ticked:       ticks(true),
+		ClassLoadout: make([]int, len(botloadout.Classes)),
+	}
+	picks.SeatLoadout[1] = 1 // the Engineer's first preset
+	picks.Ticked[sniper] = false
+
+	team := botTeamFrom(picks, botloadout.Library{})
+
+	if got := strings.Join(team.Comp, ","); got != ",engineer,,heavyweapons" {
+		t.Errorf("comp = %q", got)
+	}
+	// A draw seat carries no weapons; a named seat says stock, because that is a
+	// choice somebody made.
+	if got := strings.Join(team.SeatLoadouts, ","); got != ",ranger,,stock" {
+		t.Errorf("seat loadouts = %q", got)
+	}
+	if got := strings.Join(team.Blacklist, ","); got != "sniper" {
+		t.Errorf("blacklist = %q", got)
+	}
+	// The unticked class reaches the mod, and the seats keep their numbers.
+	//
+	// Padded to the full team because a class is unticked. A named lineup
+	// outranks the blacklist, so any seat left unwritten is one the mod draws
+	// without consulting it, which is how an unticked class reached RED.
+	if got := botloadout.Composition(team.Comp, team.Blacklist); got != ",engineer,,heavyweapons,," {
+		t.Errorf("composition = %q", got)
+	}
+}
+
+// Every seat on the draw still writes its seats when a class is unticked, or
+// the mod plays the map's own lineup instead.
+func TestBotTeamFromPicksAllDraw(t *testing.T) {
+	picks := botTeamPicks{
+		SeatClass:    make([]int, 6),
+		SeatLoadout:  make([]int, 6),
+		Ticked:       ticks(true),
+		ClassLoadout: make([]int, len(botloadout.Classes)),
+	}
+	picks.Ticked[classIndex(t, "spy")] = false
+
+	team := botTeamFrom(picks, botloadout.Library{})
+
+	if len(team.Comp) != 0 {
+		t.Errorf("comp = %q, want nothing named", team.Comp)
+	}
+	if got := botloadout.Composition(team.Comp, team.Blacklist); got != ",,,,," {
+		t.Errorf("composition = %q", got)
+	}
+}
+
+func ticks(value bool) []bool {
+	out := make([]bool, len(botloadout.Classes))
+	for i := range out {
+		out[i] = value
+	}
+	return out
+}
+
+func classIndex(t *testing.T, key string) int {
+	t.Helper()
+	for index, class := range botloadout.Classes {
+		if class.Key == key {
+			return index
+		}
+	}
+	t.Fatalf("no class %q", key)
+	return -1
+}
+
+/*
+	A loadout the player built is read back out of the menu as itself.
+
+The menus are read as indexes, so the list they were filled from and the list
+they are read against have to be the same one. Fill from the presets and read
+against presets-plus-built, or the other way round, and a built loadout at the
+bottom comes back as whichever preset sits at its index.
+*/
+func TestABuiltLoadoutSurvivesTheMenuIndexes(t *testing.T) {
+	library := botloadout.Library{Built: map[string]botloadout.Built{
+		"Gas runner": {Class: "pyro", Primary: 594, Second: 1180, Melee: botloadout.Stock, PDA2: botloadout.Stock},
+	}}
+	pyro, _ := botloadout.ClassByKey("pyro")
+	at := len(library.Choices(pyro)) - 1
+
+	picks := botTeamPicks{
+		SeatClass:    make([]int, 2),
+		SeatLoadout:  make([]int, 2),
+		Ticked:       make([]bool, len(botloadout.Classes)),
+		ClassLoadout: make([]int, len(botloadout.Classes)),
+	}
+	pyroAt := slices.IndexFunc(botloadout.Classes, func(c botloadout.Class) bool { return c.Key == "pyro" })
+	picks.SeatClass[0] = pyroAt + 1
+	picks.SeatLoadout[0] = at
+	picks.ClassLoadout[pyroAt] = at
+	for i := range picks.Ticked {
+		picks.Ticked[i] = true
+	}
+
+	team := botTeamFrom(picks, library)
+	want := botloadout.CustomKey("Gas runner")
+	if team.SeatLoadouts[0] != want {
+		t.Errorf("seat one holds %q, want %q", team.SeatLoadouts[0], want)
+	}
+	if team.ClassLoadouts["pyro"] != want {
+		t.Errorf("the pyro holds %q, want %q", team.ClassLoadouts["pyro"], want)
+	}
+
+	// And with no built loadouts, the same index is a preset rather than a
+	// key nothing can resolve.
+	bare := botTeamFrom(picks, botloadout.Library{})
+	if botloadout.CustomName(bare.SeatLoadouts[0]) != "" {
+		t.Errorf("an empty library produced a custom key: %q", bare.SeatLoadouts[0])
+	}
+}

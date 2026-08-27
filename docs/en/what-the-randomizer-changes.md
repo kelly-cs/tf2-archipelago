@@ -59,6 +59,28 @@ The plugin does not refuse a map. If the server runs a mission whose ticket the
 run has not found, the chat says so and the waves still count as checks. The
 map rotation belongs to you, not to the randomizer.
 
+### Logic is per mission, not per wave
+
+A mission is one region. Every check inside it sits behind the same gate: the
+waves, the tank, the giant and the clear. So a ticket puts the whole mission in
+logic at once. No seed puts wave 3 in logic and leaves wave 6 out of it. The
+answer to "how much of a wave am I expected to do" is the whole mission.
+
+A ticket alone is not always enough. Each tier also asks for some classes and
+weapon slots before the generator calls its missions beatable:
+
+| Tier | Classes | Weapon slots |
+| --- | --- | --- |
+| Normal | 1 | 1 |
+| Intermediate | 2 | 1 |
+| Advanced | 3 | 2 |
+| Expert | 4 | 3 |
+| Haunted | 5 | 3 |
+
+Both counts are always reachable: every seed's pool holds every class and every
+weapon slot. The counts sit below what a real team wants, on purpose. Logic
+decides what is possible, and a wave that is merely hard is still possible.
+
 ## A cleared wave is a check
 
 Each wave that the team clears reports one check. Each mission that the team

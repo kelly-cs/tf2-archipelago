@@ -87,8 +87,8 @@ func ApplyEnv(s Settings) Settings {
 	num(&s.SrcdsBotTeamSize, "SRCDS_BOT_TEAM_SIZE")
 	list(&s.SrcdsBotClassBlacklist, "SRCDS_BOT_CLASS_BLACKLIST")
 	pairs(&s.SrcdsBotLoadouts, "SRCDS_BOT_LOADOUTS")
-	list(&s.SrcdsBotTeamComp, "SRCDS_BOT_TEAM_COMP")
-	list(&s.SrcdsBotSeatLoadouts, "SRCDS_BOT_SEAT_LOADOUTS")
+	seatList(&s.SrcdsBotTeamComp, "SRCDS_BOT_TEAM_COMP")
+	seatList(&s.SrcdsBotSeatLoadouts, "SRCDS_BOT_SEAT_LOADOUTS")
 	boolean(&s.SrcdsBotHats, "SRCDS_BOT_HATS")
 	boolean(&s.SrcdsBotHatEffects, "SRCDS_BOT_HAT_EFFECTS")
 	boolean(&s.BotUpgradesChat, "TF2AP_BOT_UPGRADES_CHAT")
@@ -176,6 +176,16 @@ func list(target *[]string, name string) {
 	*target = SplitList(value)
 }
 
+// seatList reads a list where entry n is seat n of RED. Drop the empties the
+// way list does and every seat after a draw moves up one.
+func seatList(target *[]string, name string) {
+	value, ok := os.LookupEnv(name)
+	if !ok {
+		return
+	}
+	*target = SplitSeats(value)
+}
+
 // pairs reads "key=value,key=value".
 func pairs(target *map[string]string, name string) {
 	value, ok := os.LookupEnv(name)
@@ -194,6 +204,20 @@ func pairs(target *map[string]string, name string) {
 
 // SplitList splits on commas and drops blanks, the way every list in an .env
 // file is written.
+// SplitSeats is SplitList that keeps the empties, because a seat nobody named
+// is still a seat. It drops the trailing empties, which name no seat.
+func SplitSeats(value string) []string {
+	var out []string
+	last := -1
+	for entry := range strings.SplitSeq(value, ",") {
+		out = append(out, strings.TrimSpace(entry))
+		if out[len(out)-1] != "" {
+			last = len(out) - 1
+		}
+	}
+	return out[:last+1]
+}
+
 func SplitList(value string) []string {
 	var out []string
 	for entry := range strings.SplitSeq(value, ",") {

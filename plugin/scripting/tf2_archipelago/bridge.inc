@@ -68,6 +68,33 @@ ArrayList g_Pending;
 ArrayList g_Missions;
 bool g_FetchingMissions;
 
+/* When a loop has already booked its own next request
+ *
+ * A held grant leaves the cursor behind the bridge on purpose, so OnGrants asks
+ * again on the retry timer rather than straight away: that is what turns a hold
+ * into a wait for the upgrade station. In between, no request is in flight, and
+ * the watchdog below could not tell that from a loop that had died. Both timers
+ * run on RetryInterval, so it could not tell every five seconds, for the rest
+ * of the session. One bundle held 586 copies of the line.
+ *
+ * A deadline rather than a flag, so a retry that never arrives still hands the
+ * loop back to the watchdog instead of parking it forever. That is the whole
+ * reason the watchdog exists.
+ */
+float g_GrantRetryAt;
+float g_ChatRetryAt;
+float g_DeathsRetryAt;
+float g_UnlocksRetryAt;
+
+// Long enough that the watchdog does not race a retry landing on the same poll
+#define RetryGrace 1.0
+
+// Whether a loop has a request booked that has not come due yet
+static bool Booked(float due)
+{
+    return due > 0.0 && GetGameTime() < due + RetryGrace;
+}
+
 bool g_PollingChat;
 
 // A negative sequence means "start from now": joining late must not replay hours of chat.
@@ -271,20 +298,20 @@ static void OnObjectivePosted(HTTPResponse response, any value, const char[] err
 // except something outside the loop looking in.
 static Action Timer_DrainPending(Handle timer)
 {
-    if (g_HaveUnlocks && !g_PollingGrants)
+    if (g_HaveUnlocks && !g_PollingGrants && !Booked(g_GrantRetryAt))
     {
         AP_Debug("The grant poll had stopped. The plugin starts it again.");
         Bridge_PollGrants();
     }
-    if (!g_HaveUnlocks)
+    if (!g_HaveUnlocks && !Booked(g_UnlocksRetryAt))
     {
         Bridge_FetchUnlocks();
     }
-    if (!g_PollingChat)
+    if (!g_PollingChat && !Booked(g_ChatRetryAt))
     {
         Bridge_PollMessages();
     }
-    if (!g_PollingDeaths)
+    if (!g_PollingDeaths && !Booked(g_DeathsRetryAt))
     {
         Bridge_PollDeaths();
     }
@@ -491,12 +518,14 @@ static void OnUnlocks(HTTPResponse response, any value, const char[] error)
     if (!StrEqual(error, ""))
     {
         Bridge_NoteError("The plugin cannot get the unlock set. %s", error);
+        g_UnlocksRetryAt = GetGameTime() + RetryInterval;
         CreateTimer(RetryInterval, Timer_FetchUnlocksAgain);
         return;
     }
     if (response.Status != HTTPStatus_OK)
     {
         Bridge_NoteError("The bridge answered %d for the unlock set.", response.Status);
+        g_UnlocksRetryAt = GetGameTime() + RetryInterval;
         CreateTimer(RetryInterval, Timer_FetchUnlocksAgain);
         return;
     }
@@ -525,6 +554,7 @@ static void OnUnlocks(HTTPResponse response, any value, const char[] error)
 
 static Action Timer_FetchUnlocksAgain(Handle timer)
 {
+    g_UnlocksRetryAt = 0.0;
     Bridge_FetchUnlocks();
     return Plugin_Stop;
 }
@@ -636,6 +666,7 @@ void Bridge_PollGrants()
 
 static void Bridge_PollGrantsLater()
 {
+    g_GrantRetryAt = GetGameTime() + RetryInterval;
     CreateTimer(RetryInterval, Timer_PollAgain);
 }
 
@@ -700,6 +731,7 @@ static void OnGrants(HTTPResponse response, any value, const char[] error)
 
 static Action Timer_PollAgain(Handle timer)
 {
+    g_GrantRetryAt = 0.0;
     Bridge_PollGrants();
     return Plugin_Stop;
 }
@@ -827,6 +859,7 @@ static void OnMessages(HTTPResponse response, any value, const char[] error)
     {
         // Quiet on purpose: the objective and grant paths already report an unreachable bridge.
         AP_Debug("The message request failed. The plugin tries again.");
+        g_ChatRetryAt = GetGameTime() + RetryInterval;
         CreateTimer(RetryInterval, Timer_PollMessagesAgain);
         return;
     }
@@ -856,6 +889,7 @@ static void OnMessages(HTTPResponse response, any value, const char[] error)
 
 static Action Timer_PollMessagesAgain(Handle timer)
 {
+    g_ChatRetryAt = 0.0;
     Bridge_PollMessages();
     return Plugin_Stop;
 }
@@ -884,6 +918,7 @@ static void OnDeaths(HTTPResponse response, any value, const char[] error)
     if (!StrEqual(error, "") || response.Status != HTTPStatus_OK)
     {
         AP_Debug("The death request failed. The plugin tries again.");
+        g_DeathsRetryAt = GetGameTime() + RetryInterval;
         CreateTimer(RetryInterval, Timer_PollDeathsAgain);
         return;
     }
@@ -920,6 +955,7 @@ static void OnDeaths(HTTPResponse response, any value, const char[] error)
 
 static Action Timer_PollDeathsAgain(Handle timer)
 {
+    g_DeathsRetryAt = 0.0;
     Bridge_PollDeaths();
     return Plugin_Stop;
 }

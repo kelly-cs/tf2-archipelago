@@ -65,6 +65,30 @@ dont la partie n'a pas trouvé le ticket, le chat le dit et les vagues
 comptent quand même comme des checks. La rotation des cartes vous
 appartient, pas au randomizer.
 
+### La logique est par mission, pas par vague
+
+Une mission est une seule région et toutes ses checks partagent la même porte :
+les vagues, le tank, le géant et la réussite. Un ticket met donc la mission
+entière en logique d'un coup. Aucune graine ne met la vague 3 en logique et la
+vague 6 hors logique. La réponse à « quelle part d'une vague dois-je faire » est
+donc : la mission entière.
+
+Un ticket ne suffit pas toujours. Chaque palier demande aussi un nombre de
+classes et d'emplacements d'arme avant que ses missions comptent pour battables :
+
+| Palier | Classes | Emplacements |
+| --- | --- | --- |
+| Normal | 1 | 1 |
+| Intermediate | 2 | 1 |
+| Advanced | 3 | 2 |
+| Expert | 4 | 3 |
+| Haunted | 5 | 3 |
+
+Les deux comptes restent toujours atteignables : le pool de chaque graine tient
+toutes les classes et tous les emplacements. Ils restent volontairement sous ce
+qu'une vraie équipe demande. La logique tranche ce qui est possible, et une
+vague seulement difficile reste possible.
+
 ## Une vague réussie est une check
 
 Chaque vague que l'équipe réussit rapporte une check. Chaque mission que

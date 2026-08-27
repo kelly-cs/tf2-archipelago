@@ -64,6 +64,37 @@ entries are rarely reached. The names are the mod's, the same as the blacklist.
 A team named here beats the blacklist. A list shorter than the empty seats
 leaves the rest to the mod.
 
+## Building a loadout
+
+The presets cover the common builds. To make your own, open the **Loadouts**
+page of the settings, pick a class, pick a weapon per slot, type a name and
+press Save.
+
+The loadout then appears at the bottom of every weapon menu for that class, on
+the Team page and the Classes page. A loadout belongs to one class, because a
+Medic cannot hold a Gunslinger.
+
+Remove one and any seat still naming it plays stock. The team is not lost.
+
+## Changing the team mid-mission
+
+A lineup chosen for wave 1 is the wrong lineup for wave 5. Until now the only
+fix was to restart the mission.
+
+The launcher has a **Bot Switcher** tab, between the mission list and the log.
+It shows what each seat plays and what it carries. To change the team, open the
+Bots page of the settings, set the seats, then press Apply.
+
+The mod replaces only the seats whose class changed, and leaves the others
+alone. The wave continues, and the bots keep the money they earned.
+
+In the game, `!ap bots` opens the same team as a menu. Pick a seat, then pick a
+class. It needs the same admin right as the mission switch.
+
+A change made during a wave takes effect at the next break. A bot removed
+during a wave drops its buildings, and its replacement starts again from spawn
+while the robots carry the bomb forward.
+
 The game no longer lets a player inspect a teammate's upgrades. With
 `TF2AP_BOT_UPGRADES_CHAT=1` the chat says what each bot buys, one line per
 purchase. It is off by default because a bot buys a lot.

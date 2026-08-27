@@ -48,9 +48,12 @@ func (m *model) View() string {
 	out.WriteString(m.tabs())
 	out.WriteString("\n")
 
-	if m.view == viewLog {
+	switch m.view {
+	case viewBots:
+		out.WriteString(m.bots())
+	case viewLog:
 		out.WriteString(m.log())
-	} else {
+	case viewSession:
 		out.WriteString(m.session())
 	}
 
@@ -121,7 +124,7 @@ func (m *model) joinAddresses() []string {
 }
 
 func (m *model) tabs() string {
-	names := []string{"Session", "Log"}
+	names := []string{"Session", "Bot Switcher", "Log"}
 	rendered := make([]string, 0, len(names))
 	for i, name := range names {
 		if view(i) == m.view {
@@ -163,6 +166,20 @@ func (m *model) session() string {
 	default:
 		rows = append(rows, "Multiworld: "+m.snapshot.Health.Summary())
 		if line := m.runLine(); line != "" {
+			rows = append(rows, styleMuted.Render(line))
+		}
+		/* Where to connect, on the tab a player looks at
+		 *
+		 * The window has carried these since the Session tab existed. The
+		 * terminal never did, so on Linux the only way to the address was the
+		 * C key on the log tab, which is a keystroke nobody finds without
+		 * being told. Reported from play as "no clear display of where the IP
+		 * is to connect". */
+		if m.itemServer != "" {
+			rows = append(rows, styleMuted.Render(m.itemServer))
+		}
+		rows = append(rows, "")
+		for _, line := range apruntime.ConnectLines(m.settings) {
 			rows = append(rows, styleMuted.Render(line))
 		}
 		rows = append(rows, "")
@@ -218,7 +235,7 @@ func (m *model) missionRows(height int) []string {
 
 func style(mission session.Mission) lipgloss.Style {
 	switch {
-	case mission.Cleared:
+	case mission.Played:
 		return styleCleared
 	case !mission.Unlocked:
 		return styleLocked
@@ -227,10 +244,19 @@ func style(mission session.Mission) lipgloss.Style {
 	}
 }
 
+/* missionState is what this player did, not what the room holds.
+ *
+ * A mission another world's !collect touched has its check on the disk without
+ * anybody here playing it. Drawn as "cleared" it made the run list stop saying
+ * what this player had done, which is what Peppy reported. The two are shown
+ * apart: cleared is yours, collected is the room's.
+ */
 func missionState(mission session.Mission) string {
 	switch {
-	case mission.Cleared:
+	case mission.Played:
 		return "cleared"
+	case mission.Cleared:
+		return "collected"
 	case mission.Unlocked:
 		return "unlocked"
 	default:
@@ -261,8 +287,14 @@ func (m *model) keys() string {
 		{"tab", "view"},
 		{"i", "rcon"},
 	}
-	if m.view == viewSession {
+	switch m.view {
+	case viewSession:
 		pairs = append(pairs, [2]string{"p", "play mission"})
+	case viewBots:
+		pairs = append(pairs, [2]string{"a", "apply team"})
+	case viewLog:
+		// The log has no key of its own: everything it offers is in the row
+		// above, and scrolling is the arrows.
 	}
 	pairs = append(pairs, [2]string{"q", "quit"})
 

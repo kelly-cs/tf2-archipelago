@@ -43,6 +43,11 @@ type Mission struct {
 	Source   string `json:"source"`
 	Unlocked bool   `json:"unlocked"`
 	Cleared  bool   `json:"cleared"`
+
+	// Played is this server having cleared it, where Cleared is only the room
+	// holding the check. Another world's !collect sends every check it still
+	// has, so the two disagree and the run list has to show what you did.
+	Played bool `json:"played"`
 }
 
 // Snapshot is one reading of the run.

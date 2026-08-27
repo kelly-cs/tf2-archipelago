@@ -1,9 +1,9 @@
 # Install on Linux
 
-One file. No Docker, no clone, no compiler. The same program as the Windows
-launcher, with the same interface drawn in the terminal rather than in a
-window: the log, the run's missions, the rcon line, and the same six tabs of
-settings. Nothing to install for it, and it works over SSH.
+One file. No Docker, no clone, no compiler. This is the same program as the
+Windows launcher. It draws the same interface in the terminal rather than in a
+window. You get the log, the run's missions, the Bot Switcher, the rcon line
+and the same seven tabs of settings. Nothing to install for it, and it works over SSH.
 
 Download `tf2ap-linux-amd64` from the
 [latest release](https://github.com/m-this/tf2-archipelago/releases/latest),
@@ -30,10 +30,11 @@ Then the interface opens on it.
 | `r` | Restart it |
 | `j` | Start Team Fortress 2 and join |
 | `c` | Copy the join line, for sending to a friend |
-| `,` | The settings, in the six tabs the window uses |
-| `tab` | Between the log and the run |
+| `,` | The settings, in the seven tabs the window uses |
+| `tab` | Between the run, the Bot Switcher and the log |
 | `i` | The rcon line. `esc` gives the keys back |
 | `p` | On the run's tab, load the mission the cursor is on |
+| `a` | On the Bot Switcher, hand the bot team to the running server |
 | `q` | Quit, which stops the server |
 
 `tf2ap-linux-amd64 -console` prints the log and nothing else, which is what a

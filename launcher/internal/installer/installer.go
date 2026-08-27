@@ -36,6 +36,7 @@ const (
 	gigabyte                  = 1_000_000_000
 	gameBytesNeeded           = 20 * gigabyte
 	communityProgressInterval = 250_000_000
+	communityDownloadTimeout  = 2 * time.Hour
 )
 
 // communityArchiveURLs are the full Potato asset packs. The "no maps"
@@ -47,7 +48,7 @@ var communityArchiveURLs = map[string]string{
 	"mlarchive-assets.zip": "https://dlml.potato.tf/mlarchive-assets.zip",
 }
 
-var communityHTTPClient = http.DefaultClient
+var communityHTTPClient = &http.Client{Timeout: communityDownloadTimeout}
 
 // Status reports what the installer did, for the UI to show.
 type Status struct {

@@ -31,8 +31,9 @@
 ## Reference
 
 * [Design spec](spec.md)
+* [The repository](repository.md)
 * [ADR 0001: Go owns the game data](adr/0001-go-owns-the-game-data.md)
 * [ADR 0002: Server-side plugin with a Go bridge](adr/0002-server-side-plugin-with-a-go-bridge.md)
-* [Prior art](prior-art.md)
-* [The Discord thread](discord-mvm-thread.md)
 * [Glossary](glossary.md)
+* [Code signing policy](code-signing.md)
+* [Trademarks and artwork](licences.md)

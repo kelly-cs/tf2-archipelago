@@ -85,7 +85,7 @@ func loadCommunity(body []byte) (loadedCommunity, error) {
 		if entry.ID < CommunityIDMin {
 			return loadedCommunity{}, fmt.Errorf("community map %q: id %d must be at least %d", entry.Name, entry.ID, CommunityIDMin)
 		}
-		content.Maps = append(content.Maps, Map{ID: entry.ID, Name: entry.Name})
+		content.Maps = append(content.Maps, Map(entry))
 	}
 	for _, entry := range file.Missions {
 		if entry.ID < CommunityIDMin {

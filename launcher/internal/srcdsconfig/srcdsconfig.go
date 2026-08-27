@@ -13,6 +13,7 @@ import (
 	"text/template"
 
 	"github.com/m-this/tf2-archipelago/launcher/internal/assets"
+	"github.com/m-this/tf2-archipelago/launcher/internal/botlive"
 	"github.com/m-this/tf2-archipelago/launcher/internal/botloadout"
 	"github.com/m-this/tf2-archipelago/launcher/internal/settings"
 )
@@ -29,7 +30,8 @@ func Install(s settings.Settings) error {
 	if err := installAdmins(gameDir, s.SrcdsAdminSteamIDs); err != nil {
 		return err
 	}
-	if err := installBotLoadout(gameDir, s.SrcdsBotLoadouts, botloadout.Seats(s.SrcdsBotTeamComp, s.SrcdsBotSeatLoadouts)); err != nil {
+	if err := installBotLoadout(gameDir, botlive.LibraryOf(s), s.SrcdsBotLoadouts,
+		botloadout.Seats(s.SrcdsBotTeamComp, s.SrcdsBotSeatLoadouts)); err != nil {
 		return err
 	}
 	return installPluginCfg(gameDir)
@@ -40,9 +42,20 @@ func installServerCfg(gameDir string, s settings.Settings) error {
 	if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
 		return fmt.Errorf("cannot create the cfg directory: %w", err)
 	}
+	rendered, err := RenderServerCfg(s)
+	if err != nil {
+		return err
+	}
+	return writeIfChanged(target, []byte(rendered))
+}
+
+// RenderServerCfg returns what server.cfg holds for these settings, without
+// writing it. The debug bundle uses it to say whether the file the server is
+// reading still matches the settings the launcher holds.
+func RenderServerCfg(s settings.Settings) (string, error) {
 	tmpl, err := template.New("server.cfg").Parse(assets.ServerCfgTemplate())
 	if err != nil {
-		return fmt.Errorf("cannot parse the server.cfg template: %w", err)
+		return "", fmt.Errorf("cannot parse the server.cfg template: %w", err)
 	}
 	var buf bytes.Buffer
 	if err := tmpl.Execute(&buf, map[string]any{
@@ -53,16 +66,17 @@ func installServerCfg(gameDir string, s settings.Settings) error {
 		"BotsMode":          botsMode(s.SrcdsBots),
 		"BotTeamSize":       s.SrcdsBotTeamSize,
 		"BotClassBlacklist": botloadout.Blacklist(s.SrcdsBotClassBlacklist),
-		"BotTeamComp":       botloadout.Composition(s.SrcdsBotTeamComp),
-		"BotCustomLoadouts": boolToInt(botloadout.Custom(s.SrcdsBotLoadouts)),
-		"BotUpgradesChat":   boolToInt(s.BotUpgradesChat),
-		"BotHats":           boolToInt(s.SrcdsBotHats),
-		"BotHatEffects":     boolToInt(s.SrcdsBotHatEffects),
-		"StartMission":      s.SrcdsStartMission,
+		"BotTeamComp":       botloadout.Composition(s.SrcdsBotTeamComp, s.SrcdsBotClassBlacklist),
+		"BotCustomLoadouts": boolToInt(botlive.LibraryOf(s).Anything(s.SrcdsBotLoadouts,
+			botloadout.Seats(s.SrcdsBotTeamComp, s.SrcdsBotSeatLoadouts))),
+		"BotUpgradesChat": boolToInt(s.BotUpgradesChat),
+		"BotHats":         boolToInt(s.SrcdsBotHats),
+		"BotHatEffects":   boolToInt(s.SrcdsBotHatEffects),
+		"StartMission":    s.SrcdsStartMission,
 	}); err != nil {
-		return fmt.Errorf("cannot render server.cfg: %w", err)
+		return "", fmt.Errorf("cannot render server.cfg: %w", err)
 	}
-	return writeIfChanged(target, buf.Bytes())
+	return buf.String(), nil
 }
 
 // installAdmins writes admins_simple.ini from a comma/space/newline-separated
@@ -96,9 +110,9 @@ func installAdmins(gameDir, list string) error {
 // installBotLoadout writes the bots' loadout file when a class has a preset,
 // and removes it otherwise: the mod reads the file's presence as "the server
 // decides", and stock everywhere is the mod's own default.
-func installBotLoadout(gameDir string, picks map[string]string, seats []botloadout.Seat) error {
+func installBotLoadout(gameDir string, library botloadout.Library, picks map[string]string, seats []botloadout.Seat) error {
 	target := filepath.Join(gameDir, "addons", "sourcemod", "configs", "defenderbots", "loadout.cfg")
-	if !botloadout.Custom(picks) && !botloadout.CustomSeats(seats) {
+	if !library.Anything(picks, seats) {
 		if err := os.Remove(target); err != nil && !os.IsNotExist(err) {
 			return fmt.Errorf("cannot remove %s: %w", target, err)
 		}
@@ -107,7 +121,7 @@ func installBotLoadout(gameDir string, picks map[string]string, seats []botloado
 	if _, err := os.Stat(filepath.Dir(target)); os.IsNotExist(err) {
 		return nil
 	}
-	return writeIfChanged(target, []byte(botloadout.Render(picks, seats)))
+	return writeIfChanged(target, []byte(library.Render(picks, seats)))
 }
 
 // installPluginCfg drops the plugin's config once. After that the file belongs
