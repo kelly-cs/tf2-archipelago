@@ -50,11 +50,11 @@ one there, so you are never left holding nothing.
 Weapon ownership is not randomized. The Scattergun and the Force-A-Nature are
 the same item to the slot lock: either can be equipped once Primary is open.
 
-Individual weapons can receive useful passive buffs, however. Every one of the
-212 functional weapons and named reskins can roll every positive effect in the
-catalog, including combinations the stock game would never create. A buff only
-applies to that item definition and combines with upgrades bought at the MvM
-station. Numeric effects add another level each time; on/off effects such as
+Individual weapons can receive useful passive buffs, however. The catalog
+contains curated weapon/effect combinations, including many combinations the
+stock game would never create. A buff applies to that functional weapon family
+and combines with upgrades bought at the MvM station. Numeric effects add
+another level each time; on/off effects such as
 airborne crits, ignite, Gas Passer gasoline and Mad Milk clamp at one. Other
 effects include projectile count and speed, bleed duration, afterburn damage,
 extra damage, faster firing or reload, a larger clip and healing on kill.
@@ -66,9 +66,14 @@ The second pass adds slow on hit, 50% faster gestures and consumable use,
 active health regeneration, faster deploy, meter recharge and minigun spin-up,
 ammo on hit, mini-crits on kill, increased healing received, rocket-jump damage
 resistance, stronger self-damage launch force, cheaper airblasts, longer Über,
-revealing cloaked or disguised victims and a speed boost on hit. Effects tied
-to a mechanic remain eligible on every weapon deliberately; they simply matter
-most on weapons that exercise that mechanic.
+revealing cloaked or disguised victims and a speed boost on hit.
+
+Mechanic-specific effects stay with weapons that can use them: airblast with
+airblast-capable flamethrowers, building and metal effects with Engineer items,
+healing and Über effects with Medi Guns, and banner duration with banners.
+Passive equipment and consumables do not draw combat effects. Functional
+reskins share one pool, so a Pistol reward also follows the Lugermorph and
+C.A.P.P.E.R., for example.
 
 A run samples weapon/effect permutations for the checks left after its required
 classes, slots and mission tickets. By default every spare check is a buff and

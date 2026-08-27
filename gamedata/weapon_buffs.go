@@ -19,6 +19,9 @@ type Weapon struct {
 	Key        string
 	Name       string
 	DefIndexes []int
+	// ApplyID is the canonical member of a functional reskin family. Rewards
+	// for any historical family member accumulate on this weapon index.
+	ApplyID uint16
 }
 
 // WeaponEffect is one positive TF2 item attribute. Every effect is deliberately
@@ -34,17 +37,19 @@ type WeaponEffect struct {
 
 // WeaponBuff is one weapon/effect permutation exposed as an Archipelago item.
 type WeaponBuff struct {
-	ID          uint16
-	Key         string
-	WeaponID    uint16
-	EffectID    uint8
-	Weapon      string
-	DefIndexes  []int
-	Attribute   string
-	Value       float32
-	Description string
-	Additive    bool
-	Mode        BuffMode
+	ID            uint16
+	Key           string
+	WeaponID      uint16
+	ApplyWeaponID uint16
+	EffectID      uint8
+	Weapon        string
+	DefIndexes    []int
+	Attribute     string
+	Value         float32
+	Description   string
+	Additive      bool
+	Mode          BuffMode
+	Eligible      bool
 }
 
 func (b WeaponBuff) ItemID() int64 {
@@ -71,8 +76,10 @@ func buildWeapons() []Weapon {
 	for _, old := range legacyWeaponBuffs {
 		weapons = append(weapons, Weapon{
 			ID: old.ID, Key: old.Key, Name: old.Weapon, DefIndexes: old.DefIndexes,
+			ApplyID: old.ID,
 		})
 	}
+	mergeWeaponFamilies(weapons)
 	return weapons
 }
 
@@ -80,6 +87,7 @@ func buildWeaponBuffs() []WeaponBuff {
 	all := make([]WeaponBuff, 0, len(Weapons)*len(WeaponEffects))
 	for _, weapon := range Weapons {
 		legacy := legacyWeaponBuffs[weapon.ID-1]
+		canonical := Weapons[weapon.ApplyID-1]
 		for _, effect := range WeaponEffects {
 			id := uint16(10000 + int(effect.ID)*256 + int(weapon.ID))
 			key := weapon.Key + "-" + effect.Key
@@ -87,11 +95,13 @@ func buildWeaponBuffs() []WeaponBuff {
 				id, key = legacy.ID, legacy.Key
 			}
 			all = append(all, WeaponBuff{
-				ID: id, Key: key, WeaponID: weapon.ID, EffectID: effect.ID,
-				Weapon: weapon.Name, DefIndexes: weapon.DefIndexes,
+				ID: id, Key: key, WeaponID: weapon.ID, ApplyWeaponID: weapon.ApplyID,
+				EffectID: effect.ID,
+				Weapon:   weapon.Name, DefIndexes: weapon.DefIndexes,
 				Attribute: effect.Attribute, Value: effect.Increment,
 				Description: effect.Description, Additive: effect.Mode == BuffAdd,
-				Mode: effect.Mode,
+				Mode:     effect.Mode,
+				Eligible: weapon.ID == weapon.ApplyID && weaponEffectEligible(canonical, effect),
 			})
 		}
 	}

@@ -69,6 +69,7 @@ class Item:
     credits: int
     weapon_buff_id: int
     stackable: bool
+    eligible: bool
 
 
 def _read_missions() -> tuple[Mission, ...]:
@@ -109,6 +110,7 @@ def _read_items() -> tuple[Item, ...]:
             credits=entry.get("credits", 0),
             weapon_buff_id=entry.get("weapon_buff_id", 0),
             stackable=entry.get("stackable", False),
+            eligible=entry.get("eligible", False),
         )
         for entry in _load("items.json")["items"]
     )
@@ -151,10 +153,10 @@ FILLER_NAMES: tuple[str, ...] = tuple(
     item.name for item in ITEMS if item.classification == "filler"
 )
 WEAPON_BUFF_NAMES: tuple[str, ...] = tuple(
-    item.name for item in ITEMS if item.kind == "weapon_buff"
+    item.name for item in ITEMS if item.kind == "weapon_buff" and item.eligible
 )
 STACKABLE_WEAPON_BUFF_NAMES: frozenset[str] = frozenset(
-    item.name for item in ITEMS if item.kind == "weapon_buff" and item.stackable
+    item.name for item in ITEMS if item.kind == "weapon_buff" and item.eligible and item.stackable
 )
 
 _weapon_slot_items = [item for item in ITEMS if item.kind == "weapon_slot"]

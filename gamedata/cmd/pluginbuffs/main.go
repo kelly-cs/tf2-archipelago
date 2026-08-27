@@ -27,7 +27,7 @@ func main() {
 	}
 	out.WriteString("};\n\nint g_WeaponBuffWeapon[] = {\n")
 	for _, buff := range gamedata.WeaponBuffs {
-		fmt.Fprintf(&out, "    %d,\n", buff.WeaponID-1)
+		fmt.Fprintf(&out, "    %d,\n", buff.ApplyWeaponID-1)
 	}
 	out.WriteString("};\n\nint g_WeaponBuffEffect[] = {\n")
 	for _, buff := range gamedata.WeaponBuffs {
@@ -70,6 +70,9 @@ func main() {
 	out.WriteString("};\n\n// Item definition index, then zero-based weapon index.\n")
 	out.WriteString("int g_WeaponByDefinition[][2] = {\n")
 	for index, weapon := range gamedata.Weapons {
+		if weapon.ApplyID != weapon.ID {
+			continue
+		}
 		for _, definition := range weapon.DefIndexes {
 			fmt.Fprintf(&out, "    { %d, %d },\n", definition, index)
 		}

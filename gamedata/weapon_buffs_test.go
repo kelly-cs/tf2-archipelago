@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestWeaponBuffCatalogIsEveryWeaponEffectPermutation(t *testing.T) {
+func TestWeaponBuffCatalogPreservesEveryWeaponEffectPermutation(t *testing.T) {
 	if len(Weapons) < 212 {
 		t.Fatalf("catalog has %d weapons, want at least 212", len(Weapons))
 	}
@@ -21,6 +21,9 @@ func TestWeaponBuffCatalogIsEveryWeaponEffectPermutation(t *testing.T) {
 		}
 		if len(weapon.DefIndexes) == 0 {
 			t.Errorf("%s has no item definition", weapon.Name)
+		}
+		if weapon.ApplyID != weapon.ID {
+			continue
 		}
 		for _, definition := range weapon.DefIndexes {
 			if slices.Contains(definitions, definition) {
@@ -42,6 +45,118 @@ func TestWeaponBuffCatalogIsEveryWeaponEffectPermutation(t *testing.T) {
 	}
 	if len(definitions) < 400 {
 		t.Fatalf("catalog covers %d concrete item definitions, want at least 400", len(definitions))
+	}
+}
+
+func weaponNamed(t *testing.T, name string) Weapon {
+	t.Helper()
+	for _, weapon := range Weapons {
+		if weapon.Name == name {
+			return weapon
+		}
+	}
+	t.Fatalf("weapon %q is absent", name)
+	return Weapon{}
+}
+
+func buffNamed(t *testing.T, weaponName, effectKey string) WeaponBuff {
+	t.Helper()
+	weapon := weaponNamed(t, weaponName)
+	for _, buff := range WeaponBuffs {
+		if buff.WeaponID == weapon.ID && WeaponEffects[buff.EffectID-1].Key == effectKey {
+			return buff
+		}
+	}
+	t.Fatalf("buff %s/%s is absent", weaponName, effectKey)
+	return WeaponBuff{}
+}
+
+func TestOnlyCuratedPermutationsAreEligibleRewards(t *testing.T) {
+	eligible := 0
+	for _, buff := range WeaponBuffs {
+		if buff.Eligible {
+			eligible++
+		}
+	}
+	if eligible == 0 || eligible >= len(WeaponBuffs) {
+		t.Fatalf("eligible buffs = %d of %d, want a non-empty curated subset", eligible, len(WeaponBuffs))
+	}
+}
+
+func TestFunctionalReskinsShareOneRewardPool(t *testing.T) {
+	for _, family := range weaponFamilies {
+		canonical := weaponNamed(t, family[0])
+		for _, name := range family {
+			member := weaponNamed(t, name)
+			if member.ApplyID != canonical.ID {
+				t.Errorf("%s applies to weapon %d, want %s (%d)", name, member.ApplyID, canonical.Name, canonical.ID)
+			}
+			for _, definition := range member.DefIndexes {
+				if !slices.Contains(canonical.DefIndexes, definition) {
+					t.Errorf("%s family does not include definition %d from %s", canonical.Name, definition, name)
+				}
+			}
+			if name != canonical.Name && buffNamed(t, name, "damage").Eligible {
+				t.Errorf("reskin %s has a separate eligible reward pool", name)
+			}
+		}
+	}
+}
+
+func TestMechanicSpecificEffectsStayOnTheirWeapons(t *testing.T) {
+	cases := []struct {
+		effects []string
+		allowed map[string]bool
+	}{
+		{[]string{"airblast-power", "airblast-rate", "charged-airblast", "airblast-cost"}, airblastWeapons},
+		{[]string{"building-health", "sentry-fire-rate", "disposable-sentry", "metal-regen", "max-metal", "construction-rate", "repair-rate"}, engineerWeapons},
+		{[]string{"healing", "uber-rate", "uber-on-hit", "uber-duration"}, mediguns},
+		{[]string{"banner-duration"}, banners},
+	}
+	for _, test := range cases {
+		for _, weapon := range Weapons {
+			if weapon.ApplyID != weapon.ID {
+				continue
+			}
+			for _, effect := range test.effects {
+				if got, want := buffNamed(t, weapon.Name, effect).Eligible, test.allowed[weapon.Name]; got != want {
+					t.Errorf("%s/%s eligible = %t, want %t", weapon.Name, effect, got, want)
+				}
+			}
+		}
+	}
+}
+
+func TestPassiveAndConsumableItemsDoNotDrawDamageBuffs(t *testing.T) {
+	for _, name := range []string{"Razorback", "Sandvich", "Bonk! Atomic Punch", "Medi Gun", "Buff Banner"} {
+		if buffNamed(t, name, "damage").Eligible {
+			t.Errorf("%s still draws damage buffs", name)
+		}
+	}
+	for _, buff := range WeaponBuffs {
+		if buff.WeaponID == weaponNamed(t, "Razorback").ID && buff.Eligible {
+			t.Errorf("passive Razorback still draws %s", WeaponEffects[buff.EffectID-1].Key)
+		}
+	}
+}
+
+func TestThrownMetersAndProjectileMeleesKeepProjectileUpgrades(t *testing.T) {
+	for _, name := range []string{"Gas Passer", "Jarate", "Mad Milk", "Sandman", "Wrap Assassin"} {
+		for _, effect := range []string{"projectile-count", "projectile-speed"} {
+			if !buffNamed(t, name, effect).Eligible {
+				t.Errorf("%s lost useful %s", name, effect)
+			}
+		}
+	}
+}
+
+func TestCliplessWeaponsDoNotDrawClipOrReloadBuffs(t *testing.T) {
+	for _, name := range []string{"Flame Thrower", "Minigun", "Sniper Rifle", "Huntsman"} {
+		for _, effect := range []string{"clip-size", "reload-rate"} {
+			if buffNamed(t, name, effect).Eligible {
+				t.Errorf("clipless %s still draws %s", name, effect)
+			}
+		}
 	}
 }
 
@@ -70,7 +185,7 @@ func TestGeneratedPluginCatalogContainsEveryBuffKey(t *testing.T) {
 	}
 }
 
-func TestEveryRequestedSillyEffectIsAvailableForEveryWeapon(t *testing.T) {
+func TestEveryRequestedSillyEffectKeepsItsStackingMode(t *testing.T) {
 	wanted := map[string]BuffMode{
 		"projectile-count": BuffPercentage,
 		"projectile-speed": BuffPercentage,
