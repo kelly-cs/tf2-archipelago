@@ -453,6 +453,24 @@ static int WeaponBuffs_FireNativeFlare(int owner, int launcher, float damage,
     return extra;
 }
 
+static void WeaponBuffs_FlareMuzzleOrigin(int owner, const float shotAngles[3],
+    float origin[3])
+{
+    float ahead[3], right[3], up[3];
+    GetClientEyePosition(owner, origin);
+    GetAngleVectors(shotAngles, ahead, right, up);
+    float vertical = (GetEntityFlags(owner) & FL_DUCKING) != 0 ? 8.0 : -3.0;
+    for (int axis = 0; axis < 3; axis++)
+    {
+        // Mirrors CTFWeaponBaseGun::FireFlare's (23.5, 12, -3/8)
+        // GetProjectileFireSetup offset. In particular, do not create extras
+        // at the original projectile's one-frame-old position: coincident
+        // flares touch each other and enter their 0.1-second ImpactThink.
+        origin[axis] += ahead[axis] * 23.5
+            + right[axis] * 12.0 + up[axis] * vertical;
+    }
+}
+
 static int WeaponBuffs_EntityOwner(int entity)
 {
     if (entity > 0 && entity <= MaxClients)
@@ -579,6 +597,14 @@ static void WeaponBuffs_FireExtraProjectiles(any reference)
     char classname[64];
     GetEntityClassname(source, classname, sizeof(classname));
     int mimicType = WeaponBuffs_MimicType(source, classname);
+    bool isFlare = StrEqual(classname, "tf_projectile_flare", false);
+    float flareOrigin[3];
+    if (isFlare)
+    {
+        float sourceAngles[3];
+        GetVectorAngles(sourceVelocity, sourceAngles);
+        WeaponBuffs_FlareMuzzleOrigin(owner, sourceAngles, flareOrigin);
+    }
 
     for (int copy = 0; copy < copies; copy++)
     {
@@ -592,12 +618,11 @@ static void WeaponBuffs_FireExtraProjectiles(any reference)
         velocity[1] = x * Sine(radians) + velocity[1] * Cosine(radians);
         GetVectorAngles(velocity, angles);
 
-        bool isFlare = StrEqual(classname, "tf_projectile_flare", false);
         int extra;
         if (isFlare)
         {
             extra = WeaponBuffs_FireNativeFlare(owner, launcher, damage, critical,
-                origin, angles, velocity);
+                flareOrigin, angles, velocity);
         }
         else if (mimicType >= 0)
         {
