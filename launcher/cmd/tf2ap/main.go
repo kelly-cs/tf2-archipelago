@@ -67,11 +67,7 @@ func run(logger *slog.Logger) error {
 	flag.Parse()
 
 	if *showVersion {
-		v := assets.Versions()
-		fmt.Printf("tf2ap %s\n", version)
-		for _, name := range []string{"metamod", "sourcemod", "ripext", "archipelago"} {
-			fmt.Printf("  %-12s %s\n", name+":", v[name])
-		}
+		printVersion()
 		return nil
 	}
 
@@ -126,6 +122,14 @@ func run(logger *slog.Logger) error {
 		return gui.Run(s, nil)
 	}
 	return guided(logger, s, !*consoleFlag)
+}
+
+func printVersion() {
+	v := assets.Versions()
+	fmt.Printf("tf2ap %s\n", version)
+	for _, name := range []string{"metamod", "sourcemod", "ripext", "archipelago"} {
+		fmt.Printf("  %-12s %s\n", name+":", v[name])
+	}
 }
 
 /*

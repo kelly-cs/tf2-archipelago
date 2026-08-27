@@ -148,11 +148,17 @@ func Custom(picks map[string]string) bool {
  * the alternative is a launcher that cannot say what it means.
  */
 func Render(picks map[string]string, seats []Seat) string {
+	return Library{}.Render(picks, seats)
+}
+
+// Render is the same file, with the loadouts the player built available to the
+// seats and classes that name one.
+func (l Library) Render(picks map[string]string, seats []Seat) string {
 	var b strings.Builder
 	b.WriteString("// Managed by tf2ap. Edits here are replaced the next time the launcher starts.\n")
 	b.WriteString("\"loadout\"\n{\n")
 	for _, class := range Classes {
-		loadout := class.LoadoutByKey(picks[class.Key])
+		loadout := l.Loadout(class, picks[class.Key])
 		if loadout.Key == StockKey {
 			continue
 		}
@@ -160,7 +166,7 @@ func Render(picks map[string]string, seats []Seat) string {
 		writeSlots(&b, "\t\t", loadout)
 		b.WriteString("\t}\n")
 	}
-	writeSeats(&b, seats)
+	l.writeSeats(&b, seats)
 	b.WriteString("}\n")
 	return b.String()
 }
@@ -199,7 +205,7 @@ func CustomSeats(seats []Seat) bool {
 	return false
 }
 
-func writeSeats(b *strings.Builder, seats []Seat) {
+func (l Library) writeSeats(b *strings.Builder, seats []Seat) {
 	named := 0
 	for _, seat := range seats {
 		if seat.Class != "" {
@@ -220,7 +226,7 @@ func writeSeats(b *strings.Builder, seats []Seat) {
 		}
 		fmt.Fprintf(b, "\t\t\"%d\"\n\t\t{\n", index+1)
 		fmt.Fprintf(b, "\t\t\t\"class\"\t\"%s\"\n", class.Key)
-		writeSlots(b, "\t\t\t", class.LoadoutByKey(seat.Loadout))
+		writeSlots(b, "\t\t\t", l.Loadout(class, seat.Loadout))
 		b.WriteString("\t\t}\n")
 	}
 	b.WriteString("\t}\n")
@@ -249,21 +255,66 @@ func Blacklist(classes []string) string {
 	return strings.Join(kept, ",")
 }
 
-// Composition is the value of sm_redbots_manager_team_composition: the class
-// keys the bots fill RED with, in the order given, unknown keys dropped.
-//
-// Order is what a blacklist cannot say, and it is the whole point: the first
-// entries are the seats that get filled when the team is short. Repeats are
-// kept, because two Heavies is a team somebody may want.
-func Composition(classes []string) string {
-	kept := make([]string, 0, len(classes))
-	for _, wanted := range classes {
+/* Composition is the value of sm_redbots_manager_team_composition: the class
+ * keys the bots fill RED with, one entry per seat, in seat order. The mod
+ * fills the first entries when the team is short, and keeps the repeats: two
+ * Heavies is a team somebody asked for.
+ *
+ * A seat left on the draw is an empty entry. The mod counts a seat by its
+ * place in this list. Drop the empty and seat 4 becomes seat 1, and the
+ * loadout file names the wrong bot.
+ *
+ * An empty string makes the mod play the map's own default lineup, and a named
+ * lineup beats the blacklist. So a team of nothing but draws still writes its
+ * seats when a class is unticked.
+ */
+func Composition(comp, blacklist []string) string {
+	seats := make([]string, 0, len(comp))
+	for _, wanted := range comp {
+		key := ""
 		for _, class := range Classes {
 			if class.Key == wanted {
-				kept = append(kept, class.Key)
+				key = class.Key
 				break
 			}
 		}
+		seats = append(seats, key)
 	}
-	return strings.Join(kept, ",")
+	for len(seats) > 0 && seats[len(seats)-1] == "" {
+		seats = seats[:len(seats)-1]
+	}
+	/* A named lineup beats the blacklist, so a short one has to cover every seat
+	 *
+	 * The mod fills the seats this names and draws the rest itself, and what it
+	 * draws does not consult the blacklist. One named Scout against a team of
+	 * six therefore handed five seats back to the mod, blacklist and all, and a
+	 * Spy that had been unticked walked onto RED. Reported from play.
+	 *
+	 * The pad below already existed for a lineup of nothing but draws. It only
+	 * ran when there was nothing to trim to, so a lineup with one entry in it
+	 * skipped it. The rule is the same either way: with a blacklist, every seat
+	 * is written. */
+	if Blacklist(blacklist) != "" {
+		for len(seats) < seatsWanted(comp) {
+			seats = append(seats, "")
+		}
+	}
+	if len(seats) == 0 {
+		return ""
+	}
+	return strings.Join(seats, ",")
 }
+
+// seatsWanted is how many seats a lineup has to write out to keep the mod from
+// drawing any itself. The settings page offers botSeats, and a comp longer than
+// that is the operator asking for a bigger team than the page can show.
+func seatsWanted(comp []string) int {
+	if len(comp) > botSeats {
+		return len(comp)
+	}
+	return botSeats
+}
+
+// botSeats is how many seats a team of nothing but draws writes out. At least
+// as many as the settings page offers.
+const botSeats = 6

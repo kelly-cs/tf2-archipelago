@@ -21,6 +21,7 @@ import (
 	"github.com/lxn/win"
 
 	"github.com/m-this/tf2-archipelago/launcher/internal/assets"
+	"github.com/m-this/tf2-archipelago/launcher/internal/botlive"
 	"github.com/m-this/tf2-archipelago/launcher/internal/installer"
 	"github.com/m-this/tf2-archipelago/launcher/internal/rcon"
 	apruntime "github.com/m-this/tf2-archipelago/launcher/internal/runtime"
@@ -70,6 +71,7 @@ type window struct {
 	joinBt     *walk.PushButton
 	settingsBt *walk.PushButton
 	session    *sessionTab
+	bots       *botsTab
 
 	supervisor *apruntime.Supervisor
 	logger     *slog.Logger
@@ -107,7 +109,7 @@ func Run(s settings.Settings, logger *slog.Logger) error {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	w := &window{logger: logger, session: newSessionTab()}
+	w := &window{logger: logger, session: newSessionTab(), bots: newBotsTab()}
 	w.supervisor = apruntime.NewSupervisor(s, nil, w.append)
 	w.openLogFile(s.InstallRoot)
 	defer func() {
@@ -202,6 +204,7 @@ func (w *window) build() error {
 				StretchFactor: 1,
 				Pages: []declarative.TabPage{
 					w.session.page(w.switchMission),
+					w.bots.page(w.editSettings, w.applyCurrentBotTeam),
 					{
 						Title:  "Log",
 						Layout: declarative.VBox{MarginsZero: true},
@@ -262,6 +265,9 @@ func (w *window) append(line apruntime.Line) {
 	if line.Source == "srcds" {
 		if address := apruntime.FakeIPAddress(line.Text); address != "" {
 			w.noteSteamAddress(address)
+		}
+		if note := apruntime.ItemServerLine(line.Text); note != "" {
+			w.say("%s", note)
 		}
 		if apruntime.SourceModWasUpdated(line.Text) {
 			w.restartForSourcemod()
@@ -424,10 +430,6 @@ func (w *window) start() {
 		w.say("%s.", installer.RepairAdvice)
 		return
 	}
-	if err := srcdsconfig.Install(s); err != nil {
-		w.say("cannot write the server configs: %v", err)
-		return
-	}
 	// The game server inherits the hidden console allocated at startup, so it
 	// opens no window of its own. Taking the focus back covers the case where
 	// something did appear.
@@ -498,6 +500,34 @@ func (w *window) refresh() {
 	w.joinBt.SetEnabled(running)
 	w.command.SetEnabled(running)
 	w.session.setRunning(running)
+	w.bots.show(s)
+	w.bots.setRunning(running)
+}
+
+// applyBotTeam hands the team the settings hold to the running server. The
+// files first, because the mod reads the loadout file when it is told to
+// reseat: the other order gives the team back its old weapons.
+func (w *window) applyBotTeam(before settings.Settings) {
+	if !w.supervisor.Running() {
+		w.bots.say("The server is not running. Press Start first.")
+		return
+	}
+	s := w.supervisor.Settings()
+	if err := srcdsconfig.Install(s); err != nil {
+		w.bots.say("Cannot write the bot files: " + err.Error())
+		w.say("bots: %v", err)
+		return
+	}
+	w.bots.say("Applying the team. The bots keep the money they have earned.")
+	for _, command := range botlive.Commands(before, s) {
+		w.runRcon(command)
+	}
+}
+
+// applyCurrentBotTeam is the tab's button: hand the team over as it stands,
+// which is a change to the server and none to the settings.
+func (w *window) applyCurrentBotTeam() {
+	w.applyBotTeam(w.supervisor.Settings())
 }
 
 // joinLine is what the status bar shows under the buttons: every address of
@@ -691,22 +721,32 @@ func (w *window) editSettings() {
 	w.writePlayerFile(next)
 	w.refresh()
 
-	// A setting reaches the game server through server.cfg and the command
-	// line, both of which it reads once at startup. Saving one while the
-	// server runs used to change nothing until the player pressed Restart
-	// themselves, and the log line saying so was easy to miss.
-	if w.supervisor.Running() {
-		w.say("settings saved. Restarting the server to apply them.")
-		go func() {
-			w.supervisor.Stop()
-			w.start()
-		}()
+	/* Stopped stays stopped. Saving a setting is not asking for a server, and a
+	 * Save that started one took the 14 GB install with it the first time.
+	 * Start is the button that starts the server, and it is the only one. */
+	if !w.supervisor.Running() {
+		w.say("settings saved. Press Start when you want the server.")
 		return
 	}
-	// Stopped stays stopped. Saving a setting is not asking for a server, and
-	// a Save that started one took the 14 GB install with it the first time.
-	// Start is the button that starts the server, and it is the only one.
-	w.say("settings saved. Press Start when you want the server.")
+
+	/* A bot team is the one change the running mission takes: the mod re-reads
+	 * its lineup from a convar and its weapons from a file. Restarting for it
+	 * ended the mission somebody was four waves into, which is what made
+	 * changing a lineup mid-run not worth doing. */
+	if botlive.LiveOnly(s, next) {
+		w.applyBotTeam(s)
+		return
+	}
+
+	// Everything else reaches the game server through server.cfg and the
+	// command line, both of which it reads once at startup. Saving one while
+	// the server runs used to change nothing until the player pressed Restart
+	// themselves, and the log line saying so was easy to miss.
+	w.say("settings saved. Restarting the server to apply them.")
+	go func() {
+		w.supervisor.Stop()
+		w.start()
+	}()
 }
 
 // repair is what the dialog's Repair button calls. Everything the launcher

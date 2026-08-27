@@ -146,9 +146,7 @@ CLASS_ITEM_BY_MERC: dict[str, str] = {
 if len(CLASS_ITEM_BY_MERC) != len(CLASS_NAMES):
     raise DataFormatError("a class item names a class the meta export does not have")
 
-MISSION_NAMES: frozenset[str] = frozenset(
-    mission.name for mission in MISSIONS if mission.playable
-)
+MISSION_NAMES: frozenset[str] = frozenset(mission.name for mission in MISSIONS if mission.playable)
 FILLER_NAMES: tuple[str, ...] = tuple(
     item.name for item in ITEMS if item.classification == "filler"
 )

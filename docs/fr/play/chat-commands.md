@@ -80,6 +80,12 @@ n'importe quelle autre commande :
 | --- | --- |
 | `!mission 3` | Passe à la troisième mission de la liste |
 | `!mission mvm_decoy_intermediate` | Passe par le nom du fichier de mission |
+| `!ap bots` | Ouvre l'équipe de bots en menu. Choisissez une place, choisissez une classe |
+
+`!ap bots` demande le même droit que le changement de mission. Les deux
+décident ce que toute l'équipe RED joue pour le reste de la partie. Un
+changement fait pendant une vague prend effet à la pause suivante, parce qu'un
+bot retiré pendant une vague laisse tomber ses constructions.
 
 Un joueur qui n'est pas admin reçoit un refus plutôt qu'un silence. Une
 mission que la partie n'a pas débloquée est refusée à tout le monde : son

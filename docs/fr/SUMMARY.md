@@ -31,8 +31,9 @@
 ## Référence
 
 * [Cahier des charges](spec.md)
+* [Le dépôt](repository.md)
 * [ADR 0001 : Go possède les données de jeu](adr/0001-go-owns-the-game-data.md)
 * [ADR 0002 : Plugin côté serveur avec un bridge Go](adr/0002-server-side-plugin-with-a-go-bridge.md)
-* [Travaux antérieurs](prior-art.md)
-* [Le fil Discord](discord-mvm-thread.md)
 * [Glossaire](glossary.md)
+* [Politique de signature de code](code-signing.md)
+* [Marques et illustrations](licences.md)

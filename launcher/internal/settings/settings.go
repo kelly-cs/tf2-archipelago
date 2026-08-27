@@ -13,6 +13,7 @@ import (
 	"slices"
 
 	"github.com/m-this/tf2-archipelago/gamedata"
+	"github.com/m-this/tf2-archipelago/launcher/internal/botloadout"
 )
 
 // Settings is everything the launcher asks for and remembers. Fields are the
@@ -96,6 +97,16 @@ type Settings struct {
 	//
 	// A seat with no entry falls back to the class's own pick.
 	SrcdsBotSeatLoadouts []string `json:"srcds_bot_seat_loadouts,omitempty"`
+
+	/* SrcdsBotCustomLoadouts is the loadouts the player has built, keyed by the
+	 * name they gave. A seat or a class names one with the custom: prefix, so a
+	 * built loadout is a loadout key like any other and nothing downstream has
+	 * to know the difference.
+	 *
+	 * A team naming one that has since been deleted plays stock, which is the
+	 * same rule an unknown preset key already follows.
+	 */
+	SrcdsBotCustomLoadouts map[string]botloadout.Built `json:"srcds_bot_custom_loadouts,omitempty"`
 
 	// BotUpgradesChat writes what the bots buy at the upgrade station to the
 	// chat. Off by default: it is a line per purchase.

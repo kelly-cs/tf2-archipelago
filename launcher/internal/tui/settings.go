@@ -49,8 +49,9 @@ type settingsForm struct {
 	focused int
 	offset  int
 
-	room     string // the room address as typed, parsed on save
-	teamName string // what the next Save keeps the bot team under
+	room     string       // the room address as typed, parsed on save
+	teamName string       // what the next Save keeps the bot team under
+	draft    loadoutDraft // the loadout the Loadouts page is building
 	warn     string
 	saved    func(settings.Settings) tea.Cmd
 	repair   func() ([]string, error)
@@ -87,6 +88,7 @@ func (f *settingsForm) build() {
 		{title: "Archipelago room", fields: f.roomFields()},
 		{title: "Game server", fields: f.serverFields()},
 		{title: "Bots", fields: f.botFields()},
+		{title: "Loadouts", fields: f.loadoutFields()},
 		{title: "Who can join (beta)", fields: f.reachFields()},
 	}
 }
@@ -162,15 +164,8 @@ func (f *settingsForm) playerFields() []field {
 	}
 }
 
-func (f *settingsForm) missionFields() []field {
-	choices := runshape.StartMissionChoicesForPacks(f.communityAvailable)
-	choiceLabels := make([]string, 0, len(choices))
-	for _, choice := range choices {
-		choiceLabels = append(choiceLabels, choice.Label)
-	}
-	classes := runshape.StartClassChoices()
-
-	fields := []field{
+func (f *settingsForm) communityMissionFields() []field {
+	return []field{
 		&textField{
 			label:       "Asset pack folder",
 			help:        "Folder containing archive-assets.zip and/or mlarchive-assets.zip. Start never downloads community files.",
@@ -209,6 +204,18 @@ func (f *settingsForm) missionFields() []field {
 			hint:  "enter",
 			run:   f.checkRunSelection,
 		},
+	}
+}
+
+func (f *settingsForm) missionFields() []field {
+	choices := runshape.StartMissionChoicesForPacks(f.communityAvailable)
+	choiceLabels := make([]string, 0, len(choices))
+	for _, choice := range choices {
+		choiceLabels = append(choiceLabels, choice.Label)
+	}
+	classes := runshape.StartClassChoices()
+
+	fields := append(f.communityMissionFields(),
 		&choiceField{
 			label:   "Start mission",
 			help:    "Where the run begins. The seed starts there and the server boots there.",
@@ -248,7 +255,7 @@ func (f *settingsForm) missionFields() []field {
 			hint:  "enter",
 			run:   func() tea.Cmd { return f.setPool(false) },
 		},
-	}
+	)
 
 	// One row per mission, because the pool is what the seed draws from and
 	// the window gives it a table with a tick in every row.
@@ -428,11 +435,11 @@ func (f *settingsForm) poolField(mission gamedata.Mission) field {
 	held := inPool
 
 	return &poolToggle{
-		toggleField: toggleField{
-			label: fmt.Sprintf("[%s] %s (%s)", source, mission.Name, played.Name),
-			help:  fmt.Sprintf("%s, %d waves. Off means the seed never draws it.", mission.Difficulty.String(), mission.Waves),
-			value: &held, on: "in the pool", off: "left out",
-		},
+		label:   fmt.Sprintf("[%s] %s (%s)", source, mission.Name, played.Name),
+		help:    fmt.Sprintf("%s, %d waves. Off means the seed never draws it.", mission.Difficulty.String(), mission.Waves),
+		value:   &held,
+		on:      "in the pool",
+		off:     "left out",
 		popFile: mission.PopFile,
 		form:    f,
 		held:    &held,
@@ -542,21 +549,17 @@ func (f *settingsForm) serverFields() []field {
 			run:   f.debugBundle,
 		},
 		&confirmField{
-			actionField: actionField{
-				label: "Repair",
-				help:  "Throw SteamCMD and the mods away and fetch them again. Keeps the game files and the run.",
-				hint:  "enter",
-				run:   f.runRepair,
-			},
+			label:   "Repair",
+			help:    "Throw SteamCMD and the mods away and fetch them again. Keeps the game files and the run.",
+			hint:    "enter",
+			run:     f.runRepair,
 			warning: "this stops the server, then removes SteamCMD, the mods and Steam's record of the download. No 14 GB again, no lost checks.",
 		},
 		&confirmField{
-			actionField: actionField{
-				label: "Reset settings",
-				help:  "Put every setting back to what a fresh install has. Keeps the game files and where they are.",
-				hint:  "enter",
-				run:   f.runReset,
-			},
+			label:   "Reset settings",
+			help:    "Put every setting back to what a fresh install has. Keeps the game files and where they are.",
+			hint:    "enter",
+			run:     f.runReset,
 			warning: "this puts the room, the passwords, the missions, the bots and who can join back to their defaults.",
 		},
 	}
@@ -639,13 +642,9 @@ func (f *settingsForm) seatField(seat int) field {
 	}
 }
 
-/* setSeat rewrites the team from the seats that name a class.
- *
- * A seat left to the mod contributes nothing, so the list is the picked seats
- * in seat order, which is what the convar reads. The loadouts are rewritten
- * with it and from the same array, or the two lists stop lining up the first
- * time a seat in the middle is put back on the draw.
- */
+// setSeat rewrites the team from the seats. The loadouts come from the same
+// array. Otherwise the two lists stop lining up when a middle seat goes back on
+// the draw.
 func (f *settingsForm) setSeat(seat, index int) {
 	seats := f.seats()
 	if index == 0 {
@@ -668,14 +667,19 @@ func (f *settingsForm) seats() []botloadout.Seat {
 	return seats
 }
 
-// setSeats writes the array back as the two compacted lists the mod reads.
+// setSeats writes the array back as the two lists the mod reads. A seat left to
+// the mod is an empty entry, because the mod counts seats by their place in the
+// list. It drops the trailing draws, which carry no seat number.
 func (f *settingsForm) setSeats(seats []botloadout.Seat) {
+	last := -1
+	for index, seat := range seats {
+		if seat.Class != "" {
+			last = index
+		}
+	}
 	f.edited.SrcdsBotTeamComp = nil
 	f.edited.SrcdsBotSeatLoadouts = nil
-	for _, seat := range seats {
-		if seat.Class == "" {
-			continue
-		}
+	for _, seat := range seats[:last+1] {
 		f.edited.SrcdsBotTeamComp = append(f.edited.SrcdsBotTeamComp, seat.Class)
 		f.edited.SrcdsBotSeatLoadouts = append(f.edited.SrcdsBotSeatLoadouts, seat.Loadout)
 	}
@@ -695,24 +699,32 @@ func (f *settingsForm) seatLoadoutField(seat int) field {
 		}
 	}
 
-	options := make([]string, 0, len(class.Loadouts))
-	for _, loadout := range class.Loadouts {
+	choices := f.library().Choices(class)
+	options := make([]string, 0, len(choices))
+	for _, loadout := range choices {
 		options = append(options, loadout.Label())
 	}
-	index := slices.IndexFunc(class.Loadouts, func(l botloadout.Loadout) bool {
+	index := slices.IndexFunc(choices, func(l botloadout.Loadout) bool {
 		return l.Key == seats[seat].Loadout
 	})
 	return &choiceField{
 		label:   fmt.Sprintf("  Seat %d holds", seat+1),
-		help:    "The weapons this seat carries, which is what lets two engineers hold different things.",
+		help:    "The weapons this seat carries, which is what lets two engineers hold different things. Loadouts you built for this class are at the bottom.",
 		options: options,
 		index:   max(index, 0),
 		apply: func(i int) {
 			seats := f.seats()
-			seats[seat].Loadout = class.Loadouts[i].Key
+			seats[seat].Loadout = choices[i].Key
 			f.setSeats(seats)
 		},
 	}
+}
+
+// library is the loadouts this form can offer, built from what is edited now
+// rather than from what was saved: a loadout built on the Loadouts page is
+// pickable on the Bots page without leaving the settings.
+func (f *settingsForm) library() botloadout.Library {
+	return botloadout.Library{Built: f.edited.SrcdsBotCustomLoadouts}
 }
 
 // loadTeamField brings back a saved team.
@@ -787,11 +799,9 @@ func (f *settingsForm) classField(class botloadout.Class) field {
 	held := allowed
 
 	return &classToggle{
-		toggleField: toggleField{
-			label: class.Name,
-			help:  "Off means the bots never play it. A class named in a seat above beats this.",
-			value: &held, on: "they play it", off: "never",
-		},
+		label: class.Name,
+		help:  "Off means the bots never play it. A class named in a seat above beats this.",
+		value: &held, on: "they play it", off: "never",
 		key:  class.Key,
 		form: f,
 		held: &held,
@@ -819,23 +829,24 @@ func (c *classToggle) Handle(msg tea.KeyMsg) bool {
 }
 
 func (f *settingsForm) loadoutField(class botloadout.Class) field {
-	options := make([]string, 0, len(class.Loadouts))
-	for _, loadout := range class.Loadouts {
+	choices := f.library().Choices(class)
+	options := make([]string, 0, len(choices))
+	for _, loadout := range choices {
 		options = append(options, loadout.Label())
 	}
 	current := f.edited.SrcdsBotLoadouts[class.Key]
-	index := max(slices.IndexFunc(class.Loadouts, func(l botloadout.Loadout) bool { return l.Key == current }), 0)
+	index := max(slices.IndexFunc(choices, func(l botloadout.Loadout) bool { return l.Key == current }), 0)
 
 	return &choiceField{
 		label:   "  " + class.Name + " loadout",
-		help:    "What a bot of this class spawns with. Stock is the game's own.",
+		help:    "What a bot of this class spawns with. Stock is the game's own, and loadouts you built for this class are at the bottom.",
 		options: options,
 		index:   index,
 		apply: func(i int) {
 			if f.edited.SrcdsBotLoadouts == nil {
 				f.edited.SrcdsBotLoadouts = map[string]string{}
 			}
-			pick := class.Loadouts[i]
+			pick := choices[i]
 			if pick.Key == botloadout.StockKey {
 				delete(f.edited.SrcdsBotLoadouts, class.Key)
 				return

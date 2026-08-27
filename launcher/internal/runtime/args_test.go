@@ -141,6 +141,18 @@ func TestSrcdsRunsWithAConsoleOnEitherPlatform(t *testing.T) {
 	}
 }
 
+// The watchdog goes off on Linux only. Windows is not reported as crashing and
+// keeps the kill on a hung frame; Linux trades it away for a server that lives
+// through load.
+func TestTheWatchdogIsOffOnLinuxOnly(t *testing.T) {
+	if !slices.Contains(srcdsArgs(settings.Settings{SrcdsPort: 27015}, "srcds_run"), "-nowatchdog") {
+		t.Error("srcds_run keeps the watchdog that kills it under load")
+	}
+	if slices.Contains(srcdsArgs(settings.Settings{SrcdsPort: 27015}, "srcds.exe"), "-nowatchdog") {
+		t.Error("srcds.exe lost its watchdog, and Windows was not the platform crashing")
+	}
+}
+
 // The map is the start mission's, not the mission name. Ghost Town is the case
 // that defeats trimming the popfile: mvm_ghost_town_666 runs on mvm_ghost_town.
 func TestTheMapComesFromTheStartMission(t *testing.T) {

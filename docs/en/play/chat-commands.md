@@ -75,6 +75,12 @@ and it works in the normal chat, like any other command:
 | --- | --- |
 | `!mission 3` | Switch to the third mission in the list |
 | `!mission mvm_decoy_intermediate` | Switch by mission file name |
+| `!ap bots` | Open the bot team as a menu. Pick a seat, pick a class |
+
+`!ap bots` needs the same right as the mission switch. Both decide what the
+whole RED team plays for the rest of the run. A change made during a wave takes
+effect at the next break, because a bot removed during a wave drops its
+buildings.
 
 A player who is not an admin is told no rather than ignored. A mission the run
 has not unlocked is refused for everybody: its ticket is somewhere in the

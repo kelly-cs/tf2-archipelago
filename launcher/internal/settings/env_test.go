@@ -2,6 +2,7 @@ package settings
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -110,8 +111,14 @@ func TestEveryFieldHasAnEnvVar(t *testing.T) {
 
 	// Fields the config file holds and the environment does not. A saved team
 	// is something somebody named in front of the window; a compose stack
-	// names its team in SRCDS_BOT_TEAM_COMP and has nowhere to click.
-	windowOnly := map[string]bool{"SrcdsBotTeamPresets": true}
+	// names its team in SRCDS_BOT_TEAM_COMP and has nowhere to click. A built
+	// loadout is the same: four item indexes and a name, put together in a
+	// menu, and a seat names one with the custom: prefix in the team it is
+	// already setting.
+	windowOnly := map[string]bool{
+		"SrcdsBotTeamPresets":    true,
+		"SrcdsBotCustomLoadouts": true,
+	}
 
 	known := map[string]bool{}
 	for _, name := range EnvNames {
@@ -188,5 +195,31 @@ func TestTheEnvironmentCanKeepTheServerLocal(t *testing.T) {
 				t.Errorf("reach: got %q, want %q", got, ReachLan)
 			}
 		})
+	}
+}
+
+/* A seat left on the draw survives the environment.
+ *
+ * The two seat lists are positional: entry n is seat n, and a seat the mod
+ * draws for itself is an empty entry. Reading them the way the blacklist is
+ * read drops the empties, which moves every seat after a draw up one, and a
+ * compose stack that named seat 4 got it played as seat 1.
+ */
+func TestSeatListsKeepTheirHoles(t *testing.T) {
+	t.Setenv("SRCDS_BOT_TEAM_COMP", ",engineer, ,heavyweapons,")
+	t.Setenv("SRCDS_BOT_SEAT_LOADOUTS", ",ranger,,brass")
+	t.Setenv("SRCDS_BOT_CLASS_BLACKLIST", "sniper, ,spy")
+
+	s := ApplyEnv(Settings{})
+
+	if got := strings.Join(s.SrcdsBotTeamComp, "|"); got != "|engineer||heavyweapons" {
+		t.Errorf("team comp = %q", got)
+	}
+	if got := strings.Join(s.SrcdsBotSeatLoadouts, "|"); got != "|ranger||brass" {
+		t.Errorf("seat loadouts = %q", got)
+	}
+	// The blacklist is a set and has no seats, so it drops its empties.
+	if got := strings.Join(s.SrcdsBotClassBlacklist, "|"); got != "sniper|spy" {
+		t.Errorf("blacklist = %q", got)
 	}
 }

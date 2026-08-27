@@ -26,11 +26,13 @@ import (
 	"github.com/muesli/termenv"
 
 	"github.com/m-this/tf2-archipelago/launcher/internal/assets"
+	"github.com/m-this/tf2-archipelago/launcher/internal/botlive"
 	"github.com/m-this/tf2-archipelago/launcher/internal/installer"
 	"github.com/m-this/tf2-archipelago/launcher/internal/rcon"
 	apruntime "github.com/m-this/tf2-archipelago/launcher/internal/runtime"
 	"github.com/m-this/tf2-archipelago/launcher/internal/session"
 	"github.com/m-this/tf2-archipelago/launcher/internal/settings"
+	"github.com/m-this/tf2-archipelago/launcher/internal/srcdsconfig"
 	"github.com/m-this/tf2-archipelago/launcher/internal/winproc"
 )
 
@@ -61,12 +63,19 @@ func Run(s settings.Settings, logger *slog.Logger) error {
 // view is which half of the screen the player is looking at.
 type view int
 
-// The run first and the log second, the way the window has them: the log is
-// what you want when something is wrong, the run is what you came for.
+/* The run first, then what you change about it, then the log.
+ *
+ * The log is what you want when something is wrong and the run is what you came
+ * for, so the switcher goes between them: it is the one thing you reach for
+ * during a mission that is going fine. */
 const (
 	viewSession view = iota
+	viewBots
 	viewLog
 )
+
+// viewCount is how many there are, so tab rings round them.
+const viewCount = 3
 
 type model struct {
 	settings   settings.Settings
@@ -86,14 +95,19 @@ type model struct {
 	command string
 	typing  bool
 
-	status   string
-	mission  string
-	notice   string
-	steamURL string
-	form     *settingsForm
-	snapshot session.Snapshot
-	fetchErr error
-	selected int
+	status  string
+	mission string
+	notice  string
+	// itemServer is the last thing the game server said about Steam's item
+	// server, which is what hands out weapons. Kept on the model rather than
+	// left in the log, because a player who is playing full stock needs to be
+	// told why without reading a thousand lines.
+	itemServer string
+	steamURL   string
+	form       *settingsForm
+	snapshot   session.Snapshot
+	fetchErr   error
+	selected   int
 }
 
 func newModel(s settings.Settings) *model {
@@ -119,6 +133,9 @@ func (m *model) drain() {
 	for _, line := range pending {
 		if address := apruntime.FakeIPAddress(strings.TrimSpace(line)); address != "" {
 			m.steamURL = address
+		}
+		if note := apruntime.ItemServerLine(line); note != "" {
+			m.itemServer = note
 		}
 		if mission := apruntime.LoadedMission(line); mission != "" {
 			m.mission = mission
@@ -221,6 +238,7 @@ change the running server does not have: the window restarts it for that
 reason, and so does this.
 */
 func (m *model) applySettings(next settings.Settings) tea.Cmd {
+	before := m.settings
 	if next.SrcdsRconPw == "" {
 		if password, err := settings.NewRconPassword(); err == nil {
 			next.SrcdsRconPw = password
@@ -243,9 +261,34 @@ func (m *model) applySettings(next settings.Settings) tea.Cmd {
 	if !m.supervisor.Running() {
 		return func() tea.Msg { return noticeMsg("settings saved") }
 	}
+	/* A bot team is the one change a running mission takes: the mod re-reads
+	 * its lineup from a convar and its weapons from a file, so the wave carries
+	 * on. Everything else is read once at startup and needs the restart. */
+	if botlive.LiveOnly(before, next) {
+		return m.applyTeam(before)
+	}
 	return tea.Sequence(
 		func() tea.Msg { return noticeMsg("settings saved, restarting the server") },
 		m.stop(), m.start())
+}
+
+/*
+	applyTeam hands the team the settings now hold to the running server.
+
+The files first, because the mod reads the loadout file when it is told to
+reseat, and then the commands in the order botlive puts them in.
+*/
+func (m *model) applyTeam(before settings.Settings) tea.Cmd {
+	if err := srcdsconfig.Install(m.settings); err != nil {
+		return func() tea.Msg { return noticeMsg("cannot write the bot files: " + err.Error()) }
+	}
+	commands := botlive.Commands(before, m.settings)
+	sends := make([]tea.Cmd, 0, len(commands)+1)
+	sends = append(sends, func() tea.Msg { return noticeMsg("applying the bot team to the running server") })
+	for _, command := range commands {
+		sends = append(sends, m.send(command))
+	}
+	return tea.Sequence(sends...)
 }
 
 // join starts Team Fortress 2 and connects it, the way the window's Join

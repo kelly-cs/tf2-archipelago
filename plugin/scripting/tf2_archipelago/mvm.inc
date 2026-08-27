@@ -57,6 +57,24 @@ stock bool MvM_IsActive()
     return strncmp(map, "mvm_", 4, false) == 0;
 }
 
+/* Everybody holding the bomb line, human or defender bot.
+ *
+ * Separate from MvM_IsPlayer on purpose, and the two are not interchangeable.
+ * MvM_IsPlayer answers "is this somebody the run belongs to", which is what
+ * unlock enforcement and the ready gate want, and its !IsFakeClient is what
+ * leaves a defender bot's loadout alone. This one answers "is this somebody who
+ * fights for RED", which is what being paid depends on.
+ *
+ * Widening MvM_IsPlayer instead would have paid the bots and stripped their
+ * weapons in the same edit.
+ */
+stock bool MvM_IsDefender(int client)
+{
+    return client > 0 && client <= MaxClients
+        && IsClientInGame(client)
+        && GetClientTeam(client) == TeamRed;
+}
+
 // Humans on RED only: the robots are bots on BLU, and stripping one would take the wave apart.
 stock bool MvM_IsPlayer(int client)
 {
@@ -83,7 +101,35 @@ stock bool MvM_IsGiant(int client)
     {
         return false;
     }
-    return GetEntProp(client, Prop_Send, "m_bIsMiniBoss") != 0;
+    if (GetEntProp(client, Prop_Send, "m_bIsMiniBoss") == 0)
+    {
+        return false;
+    }
+    return !MvM_IsSentryBuster(client);
+}
+
+/* A sentry buster carries m_bIsMiniBoss and is not a giant.
+ *
+ * It usually dies by blowing itself up, so without this the mission's giant
+ * check is spent by a robot nobody killed. Worse quietly than loudly:
+ * g_GiantReported latches for the rest of the mission, so the real giant that
+ * dies later reports nothing and no line anywhere says it was missed.
+ *
+ * The model is the test the defender bot mod already uses, in its own
+ * source/redbots3/util.sp. Same string, and it needs no gamedata.
+ *
+ * A buster killed by the team is excluded too, rather than only one that
+ * detonates. It is one rule instead of two, and it matches what a player means
+ * by killing a giant.
+ */
+stock bool MvM_IsSentryBuster(int client)
+{
+    char model[PLATFORM_MAX_PATH];
+    if (!GetClientModel(client, model, sizeof(model)))
+    {
+        return false;
+    }
+    return StrEqual(model, "models/bots/demo/bot_sentry_buster.mdl");
 }
 
 // UNVERIFIED m_iszMvMPopfileName: scripts/population/mvm_decoy.pop, trimmed to mvm_decoy.
@@ -206,7 +252,10 @@ stock int MvM_GrantCredits(int amount)
     int paid = 0;
     for (int client = 1; client <= MaxClients; client++)
     {
-        if (!MvM_IsPlayer(client) || !IsPlayerAlive(client))
+        // Defenders, not players. Five of the six RED seats are usually bots,
+        // and a bundle that pays only the humans leaves the team that has to
+        // hold the bomb unable to buy anything with it.
+        if (!MvM_IsDefender(client) || !IsPlayerAlive(client))
         {
             continue;
         }
@@ -217,7 +266,7 @@ stock int MvM_GrantCredits(int amount)
     }
     if (paid > 0)
     {
-        AP_Announce("The run received %d credits for %d player(s).", amount, paid);
+        AP_Announce("The run received %d credits for %d defender(s).", amount, paid);
     }
     return paid;
 }
@@ -263,6 +312,14 @@ static bool MvM_DropCredits(int client, int amount)
  * restore is therefore the game's number plus everything we ever added. It is
  * cleared on a map change, where the game clears its own side too.
  */
+// Everything a bundle ever added to this client, which is what the game's own
+// record of the wave is missing. Read across the plugin boundary by the defender
+// bot mod, so a bot that respawns is not reset to a number with no bundles in it.
+stock int MvM_BundleCredits(int client)
+{
+    return (client >= 0 && client <= MAXPLAYERS) ? g_BundleCredits[client] : 0;
+}
+
 stock void MvM_ForgetBundles(int client)
 {
     g_BundleCredits[client] = 0;
@@ -314,7 +371,8 @@ stock void MvM_RestoreBundlesAll()
 {
     for (int client = 1; client <= MaxClients; client++)
     {
-        if (MvM_IsPlayer(client))
+        // Whoever was paid is whoever is owed, so this walks defenders too.
+        if (MvM_IsDefender(client))
         {
             RequestFrame(Frame_RestoreBundles, GetClientUserId(client));
         }

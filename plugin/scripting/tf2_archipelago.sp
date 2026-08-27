@@ -25,8 +25,9 @@
 #include "tf2_archipelago/bridge.inc"
 #include "tf2_archipelago/missions.inc"
 #include "tf2_archipelago/bots.inc"
+#include "tf2_archipelago/botswitch.inc"
 
-#define PLUGIN_VERSION "1.9.0"
+#define PLUGIN_VERSION "1.10.0"
 
 // Only used when the wave events turn out not to exist.
 #define WavePollInterval 1.0
@@ -66,6 +67,34 @@ bool g_TankReported;
 // hundreds of robot deaths, and once this is set the handler is one bool read.
 bool g_GiantReported;
 
+/* What the defender bot mod needs from this plugin, and nothing more.
+ *
+ * A Cash Bundle is written straight onto m_nCurrency, so the game's own record
+ * of the wave never sees it. The bot mod sets a bot's currency from that record
+ * whenever one joins, which silently throws every bundle the bot was paid away.
+ * It cannot add them back without being told the number, and this is the number.
+ *
+ * A native rather than a convar or a file: it is read at the moment a bot spawns
+ * and it has to be the current value, not one from whenever something last wrote
+ * it down.
+ */
+public APLRes AskPluginLoad2(Handle self, bool late, char[] error, int length)
+{
+    CreateNative("TF2AP_GetBundleCredits", Native_GetBundleCredits);
+    RegPluginLibrary("tf2_archipelago");
+    return APLRes_Success;
+}
+
+static any Native_GetBundleCredits(Handle plugin, int numParams)
+{
+    int client = GetNativeCell(1);
+    if (client < 1 || client > MaxClients)
+    {
+        return ThrowNativeError(SP_ERROR_NATIVE, "client %d is not a client", client);
+    }
+    return MvM_BundleCredits(client);
+}
+
 public void OnPluginStart()
 {
     Log_Init();
@@ -100,6 +129,8 @@ public void OnPluginStart()
         "Show the state of the Archipelago integration");
     RegAdminCmd("sm_ap_report", Command_Report, ADMFLAG_ROOT,
         "Report an objective by hand: sm_ap_report <wave_cleared|mission_cleared|death> [wave]");
+    RegAdminCmd("sm_ap_bundle", Command_Bundle, ADMFLAG_ROOT,
+        "Pay a Cash Bundle by hand, the way a grant from the room would: sm_ap_bundle [credits]");
     RegAdminCmd("sm_ap_resync", Command_Resync, ADMFLAG_GENERIC,
         "Ask the bridge for the unlock set again");
     RegAdminCmd("sm_ap_mission", Command_Mission, ADMFLAG_CHANGEMAP,
@@ -195,9 +226,18 @@ public Action Command_Say(int client, const char[] command, int argc)
         // would have to be told about: in a real room the multiworld answers
         // that it has never heard of it, which is what the line already says.
         AP_PrintToClient(client, "!ap unlock mission hands over the next mission ticket, in test mode only.");
+        AP_PrintToClient(client, "!ap bots changes what the bots on RED play, seat by seat.");
         AP_PrintToClient(client, "!apchat <text> speaks to the other players in the multiworld.");
         AP_PrintToClient(client, "!mission lists the run's missions.%s",
             CheckCommandAccess(client, "sm_ap_mission", ADMFLAG_CHANGEMAP) ? " !mission <number> switches to one." : "");
+        return Plugin_Handled;
+    }
+    if (StrEqual(message, "!ap bots", false) || StrEqual(message, "!apbots", false))
+    {
+        if (BotSwitchAllowed(client))
+        {
+            BotSwitch_Open(client);
+        }
         return Plugin_Handled;
     }
     if (StrEqual(message, "!ap status", false) || StrEqual(message, "!apstatus", false))
@@ -525,6 +565,21 @@ public Action Command_JoinClass(int client, const char[] command, int argc)
 
 // The map rotation belongs to the operator, so the switcher does too. Anyone
 // else asking is told no rather than left wondering why nothing happened.
+/* Who may retype the lineup.
+
+The same flag the mission switch asks for. Both decide what everybody on RED
+plays for the rest of the run, and a team somebody else keeps rearranging is the
+same nuisance as a mission somebody else keeps loading. */
+static bool BotSwitchAllowed(int client)
+{
+    if (CheckCommandAccess(client, "sm_ap_bots", ADMFLAG_CHANGEMAP))
+    {
+        return true;
+    }
+    AP_PrintToClient(client, "Only an admin changes the bot team.");
+    return false;
+}
+
 static bool MissionSwitchAllowed(int client)
 {
     if (CheckCommandAccess(client, "sm_ap_mission", ADMFLAG_CHANGEMAP))
@@ -649,6 +704,43 @@ static char[] Status_SlotList()
 }
 
 // Tests the wiring without playing a wave, and sends a check the game failed to fire an event for.
+/* A bundle without a room, for the same reason sm_ap_report exists
+ *
+ * Credits only ever reach a player through Bridge_PollGrants, which is an HTTP
+ * poll to the bridge. A test-bed has no bridge and no room, so nothing on it can
+ * ever be paid, and the whole of the bundle accounting is unreachable there:
+ * whether bots are paid, whether a refund puts the ledger back, whether a bot
+ * keeps its bundles across a reseat. None of it can be measured by playing.
+ *
+ * This is the same call the poll makes, so what it exercises is the real path
+ * and not a second one written for testing.
+ */
+public Action Command_Bundle(int client, int argc)
+{
+    int amount = 200;
+    if (argc >= 1)
+    {
+        char arg[16];
+        GetCmdArg(1, arg, sizeof(arg));
+        amount = StringToInt(arg);
+    }
+    if (amount <= 0)
+    {
+        ReplyToCommand(client, "[AP] Usage: sm_ap_bundle [credits], and credits must be above zero");
+        return Plugin_Handled;
+    }
+
+    if (!MvM_CanPayCredits())
+    {
+        ReplyToCommand(client, "[AP] Nothing payable now: this wants Mann vs Machine, between waves, with somebody alive on RED.");
+        return Plugin_Handled;
+    }
+
+    int paid = MvM_GrantCredits(amount);
+    ReplyToCommand(client, "[AP] %d credits paid to %d defender(s).", amount, paid);
+    return Plugin_Handled;
+}
+
 public Action Command_Report(int client, int argc)
 {
     if (argc < 1)

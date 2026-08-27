@@ -70,6 +70,41 @@ rarement. Les noms de classe sont ceux du mod, comme pour la liste noire.
 Une équipe nommée ici l'emporte sur la liste noire. Une liste plus courte que
 les places libres laisse le reste au mod.
 
+## Construire un équipement
+
+Les préréglages couvrent les builds courants. Pour faire le vôtre, ouvrez la
+page **Loadouts** des réglages, choisissez une classe, choisissez une arme par
+emplacement, tapez un nom et appuyez sur Save.
+
+L'équipement apparaît alors en bas de chaque menu d'armes de cette classe, sur
+la page Team et sur la page Classes. Un équipement appartient à une seule
+classe, parce qu'un Medic ne peut pas tenir un Gunslinger.
+
+Si vous en supprimez un, toute place qui le nomme encore joue en stock.
+L'équipe n'est pas perdue.
+
+## Changer l'équipe en pleine mission
+
+Une composition choisie pour la vague 1 est la mauvaise composition pour la
+vague 5. Jusqu'ici, le seul recours était de relancer la mission.
+
+Le lanceur a un onglet **Bot Switcher**, entre la liste des missions et le
+journal. Il montre ce que chaque place joue et ce qu'elle porte. Pour changer
+l'équipe, ouvrez la page Bots des réglages, réglez les places, puis appuyez sur
+Appliquer.
+
+Le mod remplace seulement les places dont la classe a changé, et laisse les
+autres tranquilles. La vague continue, et les bots gardent l'argent qu'ils ont
+gagné.
+
+Dans le jeu, `!ap bots` ouvre la même équipe en menu. Choisissez une place,
+puis choisissez une classe. Il faut le même droit d'admin que pour changer de
+mission.
+
+Un changement fait pendant une vague prend effet à la pause suivante. Un bot
+retiré pendant une vague laisse tomber ses constructions, et son remplaçant
+repart du spawn pendant que les robots avancent la bombe.
+
 Le jeu ne permet plus d'inspecter les améliorations d'un coéquipier. Avec
 `TF2AP_BOT_UPGRADES_CHAT=1`, le chat dit ce que chaque bot achète, une ligne
 par achat. C'est désactivé par défaut parce qu'un bot achète beaucoup.

@@ -25,6 +25,7 @@ import (
 	"github.com/m-this/tf2-archipelago/gamedata"
 	"github.com/m-this/tf2-archipelago/launcher/internal/installer"
 	"github.com/m-this/tf2-archipelago/launcher/internal/settings"
+	"github.com/m-this/tf2-archipelago/launcher/internal/srcdsconfig"
 	"github.com/m-this/tf2-archipelago/launcher/internal/winproc"
 )
 
@@ -44,6 +45,12 @@ func closeTestRoom(room *fakeroom.Room) {
 }
 
 func Run(ctx context.Context, s settings.Settings, logger *slog.Logger) error {
+	// Console mode has no interface to change a setting from, but it shares
+	// this entry point with anything that does. Rendering here keeps the one
+	// rule: a server that starts, starts from the settings it was given.
+	if err := srcdsconfig.Install(s); err != nil {
+		return err
+	}
 	bridgeCfg, err := bridgeConfig(s)
 	if err != nil {
 		return err
@@ -169,7 +176,29 @@ func srcdsArgs(s settings.Settings, exeName string) []string {
 	}
 	if exeName == "srcds.exe" {
 		// A crash dialog is a Windows idea, and it waits for a click too.
+		//
+		// -nowatchdog does not belong here. The watchdog is POSIX only: tier0
+		// arms it with alarm() and SIGALRM, and every one of the four
+		// Plat_*WatchdogTimer functions is an empty stub in the Windows build.
+		// Passing the flag would read like protection that was never there.
 		flags = append(flags, "-nocrashdialog")
+	} else {
+		// The engine watchdog kills the server when a frame takes too long.
+		// On Linux that fires under load the same box survives fine otherwise,
+		// and it is most of why a native Linux server is reported as crashing
+		// far more than Docker or Windows. A stress run that killed the
+		// watchdog build inside nine minutes ran clean without it.
+		//
+		// What is lost is the kill on a genuinely hung frame, so a real
+		// infinite loop now hangs instead of restarting. That is the better
+		// failure: it leaves a process to attach to, and the hangs this mod
+		// has actually produced were slow frames rather than hangs.
+		//
+		// There is no middle setting to reach for. tier0 parses this with a
+		// strstr over the command line, the timeout is whatever the engine
+		// passed capped at five minutes, and the one scale factor is 1 in a
+		// release build and 10 in a debug one. On or off is the whole choice.
+		flags = append(flags, "-nowatchdog")
 	}
 	if reach.SteamNetworking() {
 		// Asks Valve for the relayed address. Without it sv_use_steam_networking

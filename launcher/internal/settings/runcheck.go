@@ -17,7 +17,7 @@ func CheckRunSelection(s Settings) (runshape.Preflight, error) {
 		StartMission: s.MvmStartMission,
 	})
 	if err != nil {
-		return report, fmt.Errorf("Archipelago run selection: %w", err)
+		return report, fmt.Errorf("archipelago run selection: %w", err)
 	}
 	return report, nil
 }

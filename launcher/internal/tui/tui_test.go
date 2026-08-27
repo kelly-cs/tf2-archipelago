@@ -77,12 +77,17 @@ func TestTheLogShowsItsEnd(t *testing.T) {
 func TestTheKeysDoWhatTheFooterSays(t *testing.T) {
 	m := screen(t)
 
-	if _, _ = m.Update(key("tab")); m.view != viewLog {
-		t.Error("tab did not change the view")
+	// Round the three tabs and back, which is what the footer's one entry says
+	// tab does. shift+tab is the same ring the other way.
+	for _, want := range []view{viewBots, viewLog, viewSession} {
+		if _, _ = m.Update(key("tab")); m.view != want {
+			t.Errorf("tab reached view %d, want %d", m.view, want)
+		}
 	}
-	if _, _ = m.Update(key("tab")); m.view != viewSession {
-		t.Error("tab did not change it back")
+	if _, _ = m.Update(key("shift+tab")); m.view != viewLog {
+		t.Errorf("shift+tab reached view %d, want %d", m.view, viewLog)
 	}
+	m.view = viewSession
 	if _, _ = m.Update(key("i")); !m.typing {
 		t.Error("i did not reach the rcon line")
 	}
@@ -114,17 +119,17 @@ func TestTypingGoesToTheCommandLine(t *testing.T) {
 	}
 }
 
-// The settings are the window's six tabs, and what they change is saved to the
-// settings the launcher runs on.
+// The settings are the window's seven tabs, and what they change is saved to
+// the settings the launcher runs on.
 func TestTheSettingsScreenEditsTheRun(t *testing.T) {
 	m := screen(t)
 	m.Update(key(","))
 
-	if got := len(m.form.tabs); got != 6 {
-		t.Errorf("the settings have %d tabs, want 6", got)
+	if got := len(m.form.tabs); got != 7 {
+		t.Errorf("the settings have %d tabs, want 7", got)
 	}
 	view := m.form.view(100, 30)
-	for _, want := range []string{"Player options", "Bots", "Who can join (beta)", "Easiest tier"} {
+	for _, want := range []string{"Player options", "Bots", "Loadouts", "Who can join (beta)", "Easiest tier"} {
 		if !strings.Contains(view, want) {
 			t.Errorf("the settings do not show %q:\n%s", want, view)
 		}
@@ -227,8 +232,8 @@ func TestCommunityMissionsStayHiddenUntilTheirAssetsAreAvailable(t *testing.T) {
 func TestTheUndoableActionsAskTwice(t *testing.T) {
 	ran := 0
 	row := &confirmField{
-		actionField: actionField{label: "Repair", run: func() tea.Cmd { ran++; return nil }},
-		warning:     "this stops the server",
+		label: "Repair", run: func() tea.Cmd { ran++; return nil },
+		warning: "this stops the server",
 	}
 
 	row.Handle(key("enter"))
