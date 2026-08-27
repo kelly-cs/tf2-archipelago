@@ -432,7 +432,6 @@ static int WeaponBuffs_FireNativeFlare(int owner, int launcher, float damage,
         return -1;
     }
 
-    SDKHook(extra, SDKHook_Touch, WeaponBuffs_ExtraFlareTouch);
     SDKCall(g_WeaponBuffProjectileSetDamage, extra, damage);
     if (HasEntProp(extra, Prop_Send, "m_bCritical"))
     {
@@ -454,35 +453,56 @@ static int WeaponBuffs_FireNativeFlare(int owner, int launcher, float damage,
     return extra;
 }
 
-public Action WeaponBuffs_ExtraFlareTouch(int flare, int other)
+static void WeaponBuffs_ScheduleNativeFlare(int owner, int launcher, float damage,
+    bool critical, const float origin[3], const float angles[3], const float velocity[3],
+    float delay)
 {
-    int owner = WeaponBuffs_EntityOwner(flare);
-    if (other == owner)
+    DataPack pack = new DataPack();
+    pack.WriteCell(GetClientUserId(owner));
+    pack.WriteCell(EntIndexToEntRef(launcher));
+    pack.WriteFloat(damage);
+    pack.WriteCell(critical);
+    for (int axis = 0; axis < 3; axis++)
     {
-        if (g_WeaponBuffProjectileDebug.BoolValue)
-        {
-            WeaponBuffs_DebugLog("[AP projectile] flare entity=%d ignored touch with owner=%d",
-                flare, owner);
-        }
-        return Plugin_Handled;
+        pack.WriteFloat(origin[axis]);
+        pack.WriteFloat(angles[axis]);
+        pack.WriteFloat(velocity[axis]);
     }
-    if (other <= MaxClients || !IsValidEntity(other))
-    {
-        return Plugin_Continue;
-    }
+    CreateTimer(delay, WeaponBuffs_FireScheduledFlare, pack,
+        TIMER_DATA_HNDL_CLOSE | TIMER_FLAG_NO_MAPCHANGE);
+}
 
-    char classname[64];
-    GetEntityClassname(other, classname, sizeof(classname));
-    if (WeaponBuffs_IsProjectile(classname) && WeaponBuffs_EntityOwner(other) == owner)
+public Action WeaponBuffs_FireScheduledFlare(Handle timer, DataPack pack)
+{
+    pack.Reset();
+    int owner = GetClientOfUserId(pack.ReadCell());
+    int launcher = EntRefToEntIndex(pack.ReadCell());
+    float damage = pack.ReadFloat();
+    bool critical = pack.ReadCell() != 0;
+    float origin[3], angles[3], velocity[3];
+    for (int axis = 0; axis < 3; axis++)
+    {
+        origin[axis] = pack.ReadFloat();
+        angles[axis] = pack.ReadFloat();
+        velocity[axis] = pack.ReadFloat();
+    }
+    if (!MvM_IsPlayer(owner) || launcher <= MaxClients || !IsValidEntity(launcher))
+    {
+        return Plugin_Stop;
+    }
+    int extra = WeaponBuffs_FireNativeFlare(owner, launcher, damage, critical,
+        origin, angles, velocity);
+    if (extra <= MaxClients || !IsValidEntity(extra))
     {
         if (g_WeaponBuffProjectileDebug.BoolValue)
         {
-            WeaponBuffs_DebugLog("[AP projectile] flare entity=%d ignored sibling entity=%d class=%s",
-                flare, other, classname);
+            WeaponBuffs_DebugLog("[AP projectile] scheduled native flare backend failed (entity %d)",
+                extra);
         }
-        return Plugin_Handled;
+        return Plugin_Stop;
     }
-    return Plugin_Continue;
+    WeaponBuffs_LogProjectile("native-flare-extra", extra);
+    return Plugin_Stop;
 }
 
 static void WeaponBuffs_FlareMuzzleOrigin(int owner, const float shotAngles[3],
@@ -653,8 +673,13 @@ static void WeaponBuffs_FireExtraProjectiles(any reference)
         int extra;
         if (isFlare)
         {
-            extra = WeaponBuffs_FireNativeFlare(owner, launcher, damage, critical,
-                flareOrigin, angles, velocity);
+            // A handled Touch leaves coincident Source projectiles touching
+            // forever. Give each flare at least one physics step to clear the
+            // shared muzzle instead, preserving the engine's normal collision
+            // behavior for owner, enemies, siblings and world geometry.
+            WeaponBuffs_ScheduleNativeFlare(owner, launcher, damage, critical,
+                flareOrigin, angles, velocity, 0.02 * float(copy + 1));
+            continue;
         }
         else if (mimicType >= 0)
         {
