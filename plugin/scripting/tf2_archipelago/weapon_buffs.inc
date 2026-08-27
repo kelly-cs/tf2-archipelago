@@ -208,6 +208,10 @@ static int WeaponBuffs_CloneProjectile(int source, const char[] classname, int o
     {
         SetEntPropEnt(extra, Prop_Send, "m_hOriginalLauncher", launcher);
     }
+    // CTFProjectile_Flare::Spawn traces from the owner's eyes to its current
+    // origin and removes itself if that path crosses world geometry. Creating
+    // at 0,0,0 and moving afterward therefore fizzles every cloned flare.
+    TeleportEntity(extra, origin, angles, NULL_VECTOR);
     DispatchSpawn(extra);
     ActivateEntity(extra);
 
