@@ -1,7 +1,12 @@
 /** Every positive weapon/effect permutation received from the multiworld. */
 
 #define ProjectileCountEffect 5
+#define BleedEffect 8
 #define IgniteEffect 9
+#define MadMilkEffect 14
+#define GasolineEffect 15
+#define MarkForDeathEffect 16
+#define JarateEffect 60
 
 #define BuffMode_Add 1
 #define BuffMode_Percentage 2
@@ -27,6 +32,8 @@ bool g_WeaponBuffArrowTouched[2049];
 float g_WeaponBuffArrowOrigin[2049][3];
 int g_WeaponBuffStickyMimic[2049];
 int g_WeaponBuffLastButtons[MAXPLAYERS + 1];
+int g_WeaponBuffLastSubstanceWeapon[MAXPLAYERS + 1];
+float g_WeaponBuffLastSubstanceTime[MAXPLAYERS + 1];
 #define ProjectileDebugLineCount 24
 char g_WeaponBuffProjectileLines[ProjectileDebugLineCount][256];
 int g_WeaponBuffProjectileLineNext;
@@ -51,6 +58,15 @@ void WeaponBuffs_Init()
     g_WeaponBuffProjectileDebug = CreateConVar("tf2ap_projectile_debug", "0",
         "Log extra-projectile creation and lifetime", FCVAR_NONE, true, 0.0, true, 1.0);
     WeaponBuffs_InitProjectileCalls();
+    UserMsg jarated = GetUserMessageId("PlayerJarated");
+    if (jarated == INVALID_MESSAGE_ID || GetUserMessageType() != UM_BitBuf)
+    {
+        LogError("Jar substance buffs disabled: PlayerJarated is unavailable or not a bit-buffer message.");
+    }
+    else
+    {
+        HookUserMessage(jarated, WeaponBuffs_PlayerJarated);
+    }
     for (int client = 1; client <= MaxClients; client++)
     {
         if (IsClientInGame(client))
@@ -131,6 +147,8 @@ static void WeaponBuffs_InitProjectileCalls()
 void WeaponBuffs_HookClient(int client)
 {
     g_WeaponBuffLastButtons[client] = 0;
+    g_WeaponBuffLastSubstanceWeapon[client] = -1;
+    g_WeaponBuffLastSubstanceTime[client] = 0.0;
     SDKUnhook(client, SDKHook_OnTakeDamagePost, WeaponBuffs_OnTakeDamagePost);
     SDKHook(client, SDKHook_OnTakeDamagePost, WeaponBuffs_OnTakeDamagePost);
 }
@@ -139,6 +157,11 @@ static bool WeaponBuffs_IsProjectile(const char[] classname)
 {
     return StrContains(classname, "tf_projectile_", false) == 0
         && !StrEqual(classname, "tf_projectile_sentryrocket", false);
+}
+
+static bool WeaponBuffs_IsSubstanceProjectile(const char[] classname)
+{
+    return StrContains(classname, "tf_projectile_jar", false) == 0;
 }
 
 public void OnEntityCreated(int entity, const char[] classname)
@@ -163,10 +186,118 @@ public void OnEntityCreated(int entity, const char[] classname)
     }
     if (WeaponBuffs_IsProjectile(classname))
     {
+        if (WeaponBuffs_IsSubstanceProjectile(classname))
+        {
+            SDKHook(entity, SDKHook_SpawnPost, WeaponBuffs_SubstanceProjectileSpawned);
+        }
         if (!g_WeaponBuffFiringExtra)
         {
             SDKHook(entity, SDKHook_SpawnPost, WeaponBuffs_ProjectileSpawned);
         }
+    }
+}
+
+public void WeaponBuffs_SubstanceProjectileSpawned(int entity)
+{
+    SDKUnhook(entity, SDKHook_SpawnPost, WeaponBuffs_SubstanceProjectileSpawned);
+    if (entity <= MaxClients || !IsValidEntity(entity))
+    {
+        return;
+    }
+
+    // FireJar sets m_hLauncher after DispatchSpawn, but the thrower's active
+    // weapon is still the jar while SpawnPost runs. Resolve through either
+    // shape so even an immediately shattered jar has its reward pool recorded
+    // before PlayerJarated is emitted.
+    int owner = WeaponBuffs_EntityOwner(entity);
+    if (!MvM_IsPlayer(owner))
+    {
+        return;
+    }
+    int launcher = GetEntPropEnt(owner, Prop_Send, "m_hActiveWeapon");
+    int weapon = WeaponBuffs_ForEntity(launcher);
+    if (weapon < 0)
+    {
+        return;
+    }
+    g_WeaponBuffLastSubstanceWeapon[owner] = weapon;
+    g_WeaponBuffLastSubstanceTime[owner] = GetGameTime();
+}
+
+public Action WeaponBuffs_PlayerJarated(UserMsg msgId, BfRead message,
+    const int[] players, int playersNum, bool reliable, bool init)
+{
+    int attacker = message.ReadByte();
+    int victim = message.ReadByte();
+    if (attacker < 1 || attacker > MaxClients || victim < 1 || victim > MaxClients
+        || !IsClientInGame(attacker) || !IsClientInGame(victim)
+        || GetClientTeam(attacker) == GetClientTeam(victim)
+        || GetGameTime() - g_WeaponBuffLastSubstanceTime[attacker] > 60.0)
+    {
+        return Plugin_Continue;
+    }
+    int weapon = g_WeaponBuffLastSubstanceWeapon[attacker];
+    if (weapon < 0 || weapon >= WeaponCount)
+    {
+        return Plugin_Continue;
+    }
+
+    // Defer condition changes until Valve has finished broadcasting its own
+    // splash message and returned from JarExplode.
+    DataPack pack = new DataPack();
+    pack.WriteCell(GetClientUserId(attacker));
+    pack.WriteCell(GetClientUserId(victim));
+    pack.WriteCell(weapon);
+    RequestFrame(WeaponBuffs_ApplySubstances, pack);
+    return Plugin_Continue;
+}
+
+public void WeaponBuffs_ApplySubstances(any rawPack)
+{
+    DataPack pack = view_as<DataPack>(rawPack);
+    pack.Reset();
+    int attacker = GetClientOfUserId(pack.ReadCell());
+    int victim = GetClientOfUserId(pack.ReadCell());
+    int weapon = pack.ReadCell();
+    delete pack;
+    if (attacker < 1 || attacker > MaxClients || victim < 1 || victim > MaxClients
+        || !IsClientInGame(attacker) || !IsClientInGame(victim) || !IsPlayerAlive(victim)
+        || GetClientTeam(attacker) == GetClientTeam(victim)
+        || weapon < 0 || weapon >= WeaponCount)
+    {
+        return;
+    }
+
+    int bleed = g_WeaponEffectLevels[weapon][BleedEffect];
+    int milk = g_WeaponEffectLevels[weapon][MadMilkEffect];
+    int gas = g_WeaponEffectLevels[weapon][GasolineEffect];
+    int marked = g_WeaponEffectLevels[weapon][MarkForDeathEffect];
+    int jarate = g_WeaponEffectLevels[weapon][JarateEffect];
+    if (bleed > 0)
+    {
+        TF2_MakeBleed(victim, attacker, 3.0 * float(bleed));
+    }
+    if (milk > 0)
+    {
+        TF2_AddCondition(victim, TFCond_Milked, 10.0, attacker);
+    }
+    if (gas > 0)
+    {
+        TF2_AddCondition(victim, TFCond_Gas, 10.0, attacker);
+    }
+    if (marked > 0)
+    {
+        TF2_AddCondition(victim, TFCond_MarkedForDeath, 10.0, attacker);
+    }
+    if (jarate > 0)
+    {
+        TF2_AddCondition(victim, TFCond_Jarated, 10.0 + 2.0 * float(jarate), attacker);
+    }
+    if (g_WeaponBuffProjectileDebug.BoolValue
+        && (bleed > 0 || milk > 0 || gas > 0 || marked > 0 || jarate > 0))
+    {
+        WeaponBuffs_DebugLog("[AP substance] weapon=%s attacker=%d victim=%d bleed=%d milk=%d gas=%d marked=%d jarate=%d",
+            g_WeaponNames[weapon], attacker, victim, bleed, milk, gas, marked, jarate);
     }
 }
 

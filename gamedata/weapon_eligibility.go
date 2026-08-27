@@ -134,7 +134,7 @@ var (
 	watches          = names("Cloak and Dagger", "Dead Ringer", "Invis Watch")
 	spyAttackWeapons = names(
 		"Ambassador", "Big Earner", "Diamondback", "Enforcer", "Knife", "L'Étranger",
-		"Revolver", "Sapper", "Spy-Cicle", "Your Eternal Reward",
+		"Revolver", "Spy-Cicle", "Your Eternal Reward",
 	)
 )
 
@@ -182,6 +182,14 @@ var projectileCountExtras = names(
 	"Gas Passer", "Jarate", "Mad Milk", "Sandman", "Wrap Assassin",
 )
 
+var (
+	thrownSubstances     = names("Jarate", "Mad Milk")
+	substanceEffects     = names("bleed", "mad-milk", "gasoline", "mark-for-death", "jarate")
+	jarProjectileEffects = names(
+		"projectile-count", "projectile-speed", "projectile-range", "projectile-penetration",
+	)
+)
+
 var cliplessWeapons = names(
 	"Backburner", "Bazaar Bargain", "Brass Beast", "Classic", "Degreaser", "Dragon's Fury",
 	"Flame Thrower", "Hitman's Heatmaker", "Huo-Long Heater", "Huntsman", "Machina", "Minigun",
@@ -192,6 +200,13 @@ func weaponEffectEligible(weapon Weapon, effect WeaponEffect) bool {
 	name, key := weapon.Name, effect.Key
 	if passiveWeapons[name] {
 		return false
+	}
+	// Jars do not perform weapon attacks, so most item attributes are inert on
+	// them. Their intentionally small pool consists only of their thrown
+	// projectile, recharge meter, and splash substances implemented by the
+	// plugin's PlayerJarated hook.
+	if thrownSubstances[name] {
+		return jarProjectileEffects[key] || substanceEffects[key] || key == "meter-recharge"
 	}
 	// Projectile count is implemented for both bullets and entities. Thrown
 	// meters and the two projectile melees are intentional exceptions to the
@@ -218,7 +233,7 @@ func weaponEffectEligible(weapon Weapon, effect WeaponEffect) bool {
 		return sniperRifles[name]
 	case "banner-duration":
 		return banners[name]
-	case "healing", "uber-rate", "uber-on-hit", "uber-duration":
+	case "healing", "healing-received", "uber-rate", "uber-on-hit", "uber-duration":
 		return mediguns[name]
 	case "airblast-power", "airblast-rate", "charged-airblast", "airblast-cost":
 		return airblastWeapons[name]

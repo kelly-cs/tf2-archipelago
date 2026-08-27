@@ -110,8 +110,10 @@ func TestMechanicSpecificEffectsStayOnTheirWeapons(t *testing.T) {
 	}{
 		{[]string{"airblast-power", "airblast-rate", "charged-airblast", "airblast-cost"}, airblastWeapons},
 		{[]string{"building-health", "sentry-fire-rate", "disposable-sentry", "metal-regen", "max-metal", "construction-rate", "repair-rate"}, engineerWeapons},
-		{[]string{"healing", "uber-rate", "uber-on-hit", "uber-duration"}, mediguns},
+		{[]string{"healing", "healing-received", "uber-rate", "uber-on-hit", "uber-duration"}, mediguns},
 		{[]string{"banner-duration"}, banners},
+		{[]string{"cloak-duration", "cloak-regen"}, watches},
+		{[]string{"cloak-on-hit", "cloak-on-kill"}, spyAttackWeapons},
 	}
 	for _, test := range cases {
 		for _, weapon := range Weapons {
@@ -145,6 +147,22 @@ func TestThrownMetersAndProjectileMeleesKeepProjectileUpgrades(t *testing.T) {
 		for _, effect := range []string{"projectile-count", "projectile-speed"} {
 			if !buffNamed(t, name, effect).Eligible {
 				t.Errorf("%s lost useful %s", name, effect)
+			}
+		}
+	}
+}
+
+func TestJarateAndMadMilkOnlyDrawProjectileRechargeAndSubstanceBuffs(t *testing.T) {
+	for _, name := range []string{"Jarate", "Mad Milk"} {
+		for _, effect := range WeaponEffects {
+			want := jarProjectileEffects[effect.Key] || substanceEffects[effect.Key] || effect.Key == "meter-recharge"
+			if got := buffNamed(t, name, effect.Key).Eligible; got != want {
+				t.Errorf("%s/%s eligible = %t, want %t", name, effect.Key, got, want)
+			}
+		}
+		for _, effect := range []string{"bleed", "mad-milk", "gasoline", "mark-for-death", "jarate"} {
+			if !buffNamed(t, name, effect).Eligible {
+				t.Errorf("%s lost substance effect %s", name, effect)
 			}
 		}
 	}
