@@ -1,6 +1,7 @@
 /** Every positive weapon/effect permutation received from the multiworld. */
 
 #define ProjectileCountEffect 5
+#define IgniteEffect 9
 
 #define BuffMode_Add 1
 #define BuffMode_Percentage 2
@@ -21,6 +22,25 @@ void WeaponBuffs_Init()
 {
     g_WeaponBuffProjectileDebug = CreateConVar("tf2ap_projectile_debug", "0",
         "Log extra-projectile creation and lifetime", FCVAR_NONE, true, 0.0, true, 1.0);
+    for (int client = 1; client <= MaxClients; client++)
+    {
+        if (IsClientInGame(client))
+        {
+            WeaponBuffs_HookClient(client);
+        }
+    }
+}
+
+void WeaponBuffs_HookClient(int client)
+{
+    SDKUnhook(client, SDKHook_OnTakeDamagePost, WeaponBuffs_OnTakeDamagePost);
+    SDKHook(client, SDKHook_OnTakeDamagePost, WeaponBuffs_OnTakeDamagePost);
+}
+
+static bool WeaponBuffs_IsProjectile(const char[] classname)
+{
+    return StrContains(classname, "tf_projectile_", false) == 0
+        && !StrEqual(classname, "tf_projectile_sentryrocket", false);
 }
 
 public void OnEntityCreated(int entity, const char[] classname)
@@ -31,15 +51,15 @@ public void OnEntityCreated(int entity, const char[] classname)
     }
     g_WeaponBuffNativeExtra[entity] = g_WeaponBuffFiringExtra;
     g_WeaponBuffNativeExtraBorn[entity] = GetGameTime();
-    if (g_WeaponBuffFiringExtra && StrEqual(classname, "tf_projectile_rocket", false))
+    if (g_WeaponBuffFiringExtra && WeaponBuffs_IsProjectile(classname))
     {
         g_WeaponBuffLastExtra = entity;
     }
-    if (StrEqual(classname, "tf_projectile_rocket", false))
+    if (WeaponBuffs_IsProjectile(classname))
     {
         if (!g_WeaponBuffFiringExtra)
         {
-            SDKHook(entity, SDKHook_SpawnPost, WeaponBuffs_RocketSpawned);
+            SDKHook(entity, SDKHook_SpawnPost, WeaponBuffs_ProjectileSpawned);
         }
     }
 }
@@ -57,10 +77,10 @@ public void OnEntityDestroyed(int entity)
     }
 }
 
-public void WeaponBuffs_RocketSpawned(int entity)
+public void WeaponBuffs_ProjectileSpawned(int entity)
 {
-    SDKUnhook(entity, SDKHook_SpawnPost, WeaponBuffs_RocketSpawned);
-    RequestFrame(WeaponBuffs_FireExtraRockets, EntIndexToEntRef(entity));
+    SDKUnhook(entity, SDKHook_SpawnPost, WeaponBuffs_ProjectileSpawned);
+    RequestFrame(WeaponBuffs_FireExtraProjectiles, EntIndexToEntRef(entity));
 }
 
 static void WeaponBuffs_LogProjectile(const char[] label, int entity)
@@ -85,7 +105,137 @@ static void WeaponBuffs_LogProjectile(const char[] label, int entity)
         velocity[0], velocity[1], velocity[2]);
 }
 
-static void WeaponBuffs_FireExtraRockets(any reference)
+static int WeaponBuffs_MimicType(const char[] classname)
+{
+    if (StrEqual(classname, "tf_projectile_rocket", false)) return 0;
+    if (StrEqual(classname, "tf_projectile_pipe", false)) return 1;
+    if (StrEqual(classname, "tf_projectile_arrow", false)) return 2;
+    if (StrEqual(classname, "tf_projectile_pipe_remote", false)) return 3;
+    return -1;
+}
+
+static void WeaponBuffs_CopySendInt(int source, int extra, const char[] property)
+{
+    if (HasEntProp(source, Prop_Send, property) && HasEntProp(extra, Prop_Send, property))
+    {
+        SetEntProp(extra, Prop_Send, property, GetEntProp(source, Prop_Send, property));
+    }
+}
+
+static void WeaponBuffs_CopySendEntity(int source, int extra, const char[] property)
+{
+    if (HasEntProp(source, Prop_Send, property) && HasEntProp(extra, Prop_Send, property))
+    {
+        SetEntPropEnt(extra, Prop_Send, property, GetEntPropEnt(source, Prop_Send, property));
+    }
+}
+
+static void WeaponBuffs_CopyDataFloat(int source, int extra, const char[] property)
+{
+    if (HasEntProp(source, Prop_Data, property) && HasEntProp(extra, Prop_Data, property))
+    {
+        SetEntPropFloat(extra, Prop_Data, property, GetEntPropFloat(source, Prop_Data, property));
+    }
+}
+
+static int WeaponBuffs_CloneProjectile(int source, const char[] classname, int owner,
+    int launcher, const float origin[3], const float angles[3], const float velocity[3])
+{
+    g_WeaponBuffFiringExtra = true;
+    int extra = CreateEntityByName(classname);
+    g_WeaponBuffFiringExtra = false;
+    if (extra == -1)
+    {
+        LogError("Could not create %s for projectile-count.", classname);
+        return -1;
+    }
+
+    // Projectile type selects the correct model and behavior for arrows,
+    // healing bolts and the festive variants, and must be set before Spawn.
+    WeaponBuffs_CopySendInt(source, extra, "m_iProjectileType");
+    if (HasEntProp(extra, Prop_Send, "m_hOwnerEntity"))
+    {
+        SetEntPropEnt(extra, Prop_Send, "m_hOwnerEntity", owner);
+    }
+    SetEntProp(extra, Prop_Send, "m_iTeamNum", GetClientTeam(owner));
+    DispatchSpawn(extra);
+    ActivateEntity(extra);
+
+    WeaponBuffs_CopySendEntity(source, extra, "m_hLauncher");
+    WeaponBuffs_CopySendEntity(source, extra, "m_hOriginalLauncher");
+    WeaponBuffs_CopySendInt(source, extra, "m_bCritical");
+    WeaponBuffs_CopySendInt(source, extra, "m_bArrowAlight");
+    WeaponBuffs_CopySendInt(source, extra, "m_bChargedShot");
+    WeaponBuffs_CopySendInt(source, extra, "m_CollisionGroup");
+    WeaponBuffs_CopyDataFloat(source, extra, "m_flDamage");
+    WeaponBuffs_CopyDataFloat(source, extra, "m_flDamageRadius");
+    WeaponBuffs_CopyDataFloat(source, extra, "m_flDetonateTime");
+    WeaponBuffs_CopyDataFloat(source, extra, "m_flCreationTime");
+    WeaponBuffs_CopyDataFloat(source, extra, "m_flInitTime");
+    if (HasEntProp(extra, Prop_Send, "m_hLauncher"))
+    {
+        SetEntPropEnt(extra, Prop_Send, "m_hLauncher", launcher);
+    }
+    if (HasEntProp(extra, Prop_Send, "m_hOriginalLauncher"))
+    {
+        SetEntPropEnt(extra, Prop_Send, "m_hOriginalLauncher", launcher);
+    }
+    SetEntityMoveType(extra, GetEntityMoveType(source));
+    SetEntityGravity(extra, GetEntityGravity(source));
+    TeleportEntity(extra, origin, angles, velocity);
+    return extra;
+}
+
+static int WeaponBuffs_FireMimicProjectile(int mimicType, int owner,
+    int launcher, float speed, float damage, bool critical, const float origin[3],
+    const float angles[3], const float velocity[3])
+{
+    int mimic = CreateEntityByName("tf_point_weapon_mimic");
+    if (mimic == -1)
+    {
+        LogError("Could not create tf_point_weapon_mimic for projectile-count.");
+        return -1;
+    }
+    char rawType[4];
+    IntToString(mimicType, rawType, sizeof(rawType));
+    DispatchKeyValue(mimic, "WeaponType", rawType);
+    DispatchKeyValueFloat(mimic, "SpeedMin", speed);
+    DispatchKeyValueFloat(mimic, "SpeedMax", speed);
+    DispatchKeyValueFloat(mimic, "Damage", damage);
+    DispatchKeyValueFloat(mimic, "SplashRadius", 146.0);
+    DispatchKeyValue(mimic, "Crits", critical ? "1" : "0");
+    DispatchSpawn(mimic);
+    TeleportEntity(mimic, origin, angles, NULL_VECTOR);
+
+    g_WeaponBuffLastExtra = -1;
+    g_WeaponBuffFiringExtra = true;
+    AcceptEntityInput(mimic, "FireOnce");
+    g_WeaponBuffFiringExtra = false;
+    int extra = g_WeaponBuffLastExtra;
+    RemoveEntity(mimic);
+    if (extra <= MaxClients || !IsValidEntity(extra))
+    {
+        return -1;
+    }
+    SetEntPropEnt(extra, Prop_Send, "m_hOwnerEntity", owner);
+    if (HasEntProp(extra, Prop_Send, "m_hLauncher"))
+    {
+        SetEntPropEnt(extra, Prop_Send, "m_hLauncher", launcher);
+    }
+    if (HasEntProp(extra, Prop_Send, "m_hOriginalLauncher"))
+    {
+        SetEntPropEnt(extra, Prop_Send, "m_hOriginalLauncher", launcher);
+    }
+    SetEntProp(extra, Prop_Send, "m_iTeamNum", GetClientTeam(owner));
+    if (HasEntProp(extra, Prop_Send, "m_vInitialVelocity"))
+    {
+        SetEntPropVector(extra, Prop_Send, "m_vInitialVelocity", velocity);
+    }
+    TeleportEntity(extra, NULL_VECTOR, angles, velocity);
+    return extra;
+}
+
+static void WeaponBuffs_FireExtraProjectiles(any reference)
 {
     int source = EntRefToEntIndex(reference);
     if (source <= MaxClients || !IsValidEntity(source))
@@ -96,6 +246,15 @@ static void WeaponBuffs_FireExtraRockets(any reference)
         ? GetEntPropEnt(source, Prop_Send, "m_hOwnerEntity") : -1;
     int launcher = HasEntProp(source, Prop_Send, "m_hLauncher")
         ? GetEntPropEnt(source, Prop_Send, "m_hLauncher") : -1;
+    if ((launcher <= MaxClients || !IsValidEntity(launcher))
+        && HasEntProp(source, Prop_Send, "m_hOriginalLauncher"))
+    {
+        launcher = GetEntPropEnt(source, Prop_Send, "m_hOriginalLauncher");
+    }
+    if ((launcher <= MaxClients || !IsValidEntity(launcher)) && MvM_IsPlayer(owner))
+    {
+        launcher = GetEntPropEnt(owner, Prop_Send, "m_hActiveWeapon");
+    }
     if (!MvM_IsPlayer(owner) || launcher <= MaxClients || !IsValidEntity(launcher))
     {
         return;
@@ -122,6 +281,9 @@ static void WeaponBuffs_FireExtraRockets(any reference)
         ? GetEntPropFloat(source, Prop_Data, "m_flDamage") : 90.0;
     bool critical = HasEntProp(source, Prop_Send, "m_bCritical")
         && GetEntProp(source, Prop_Send, "m_bCritical") != 0;
+    char classname[64];
+    GetEntityClassname(source, classname, sizeof(classname));
+    int mimicType = WeaponBuffs_MimicType(classname);
 
     for (int copy = 0; copy < copies; copy++)
     {
@@ -135,52 +297,46 @@ static void WeaponBuffs_FireExtraRockets(any reference)
         velocity[1] = x * Sine(radians) + velocity[1] * Cosine(radians);
         GetVectorAngles(velocity, angles);
 
-        // tf_point_weapon_mimic calls TF2's real CTFProjectile_Rocket::Create.
-        // Unlike cloning an entity, that initializes its touch/collision state;
-        // unlike a private SDKCall, it needs no version-sensitive vtable offset.
-        int mimic = CreateEntityByName("tf_point_weapon_mimic");
-        if (mimic == -1)
-        {
-            LogError("Could not create tf_point_weapon_mimic for projectile-count.");
-            return;
-        }
-        DispatchKeyValue(mimic, "WeaponType", "0");
-        DispatchKeyValueFloat(mimic, "SpeedMin", speed);
-        DispatchKeyValueFloat(mimic, "SpeedMax", speed);
-        DispatchKeyValueFloat(mimic, "Damage", damage);
-        DispatchKeyValueFloat(mimic, "SplashRadius", 146.0);
-        DispatchKeyValue(mimic, "Crits", critical ? "1" : "0");
-        DispatchSpawn(mimic);
-        TeleportEntity(mimic, origin, angles, NULL_VECTOR);
-
-        g_WeaponBuffLastExtra = -1;
-        g_WeaponBuffFiringExtra = true;
-        AcceptEntityInput(mimic, "FireOnce");
-        g_WeaponBuffFiringExtra = false;
-        int extra = g_WeaponBuffLastExtra;
-        RemoveEntity(mimic);
+        int extra = mimicType >= 0
+            ? WeaponBuffs_FireMimicProjectile(mimicType, owner, launcher,
+                speed, damage, critical, origin, angles, velocity)
+            : WeaponBuffs_CloneProjectile(source, classname, owner, launcher,
+                origin, angles, velocity);
         if (extra <= MaxClients || !IsValidEntity(extra))
         {
             if (g_WeaponBuffProjectileDebug.BoolValue)
             {
-                LogMessage("[AP projectile] weapon mimic produced no rocket (entity %d)", extra);
+                LogMessage("[AP projectile] backend failed for %s (entity %d)", classname, extra);
             }
             continue;
         }
+        WeaponBuffs_LogProjectile(mimicType >= 0 ? "mimic-extra" : "clone-extra", extra);
+    }
+}
 
-        SetEntPropEnt(extra, Prop_Send, "m_hOwnerEntity", owner);
-        SetEntPropEnt(extra, Prop_Send, "m_hLauncher", launcher);
-        if (HasEntProp(extra, Prop_Send, "m_hOriginalLauncher"))
-        {
-            SetEntPropEnt(extra, Prop_Send, "m_hOriginalLauncher", launcher);
-        }
-        SetEntProp(extra, Prop_Send, "m_iTeamNum", GetClientTeam(owner));
-        if (HasEntProp(extra, Prop_Send, "m_vInitialVelocity"))
-        {
-            SetEntPropVector(extra, Prop_Send, "m_vInitialVelocity", velocity);
-        }
-        TeleportEntity(extra, NULL_VECTOR, angles, velocity);
-        WeaponBuffs_LogProjectile("mimic-extra", extra);
+public void WeaponBuffs_OnTakeDamagePost(int victim, int attacker, int inflictor,
+    float damage, int damagetype, int weapon, const float damageForce[3],
+    const float damagePosition[3], int damagecustom)
+{
+    if (victim < 1 || victim > MaxClients || attacker < 1 || attacker > MaxClients
+        || victim == attacker || !IsClientInGame(victim) || !IsClientInGame(attacker)
+        || GetClientTeam(victim) == GetClientTeam(attacker) || (damagetype & DMG_BURN) != 0)
+    {
+        return;
+    }
+    if ((weapon <= MaxClients || !IsValidEntity(weapon)) && inflictor > MaxClients
+        && IsValidEntity(inflictor) && HasEntProp(inflictor, Prop_Send, "m_hLauncher"))
+    {
+        weapon = GetEntPropEnt(inflictor, Prop_Send, "m_hLauncher");
+    }
+    if ((weapon <= MaxClients || !IsValidEntity(weapon)) && IsPlayerAlive(attacker))
+    {
+        weapon = GetEntPropEnt(attacker, Prop_Send, "m_hActiveWeapon");
+    }
+    int catalog = WeaponBuffs_ForEntity(weapon);
+    if (catalog >= 0 && g_WeaponEffectLevels[catalog][IgniteEffect] > 0)
+    {
+        TF2_IgnitePlayer(victim, attacker);
     }
 }
 
@@ -193,7 +349,7 @@ public Action Command_ProjectileDebug(int client, int args)
         g_WeaponBuffProjectileDebug.BoolValue = StrEqual(wanted, "on", false)
             || StrEqual(wanted, "1");
     }
-    ReplyToCommand(client, "[AP] Projectile debug %s; backend=tf_point_weapon_mimic.",
+    ReplyToCommand(client, "[AP] Projectile debug %s; backend=mimic plus family clone.",
         g_WeaponBuffProjectileDebug.BoolValue ? "ON" : "OFF");
     if (MvM_IsPlayer(client) && IsPlayerAlive(client))
     {

@@ -21,9 +21,12 @@ in the release notes, so this file is the only place to write it.
   healing received, blast-jump bonuses, minigun spin-up, airblast cost, Über
   duration, Spy reveal and speed on hit. Heal on kill and immunity to
   self-inflicted blast damage remain available from the first pass.
-- Projectile count adds pellets to hitscan weapons and additional rockets per
-  trigger pull. Extra rockets ignore direct contact with their shooter while
-  retaining normal explosion splash damage.
+- Projectile count adds pellets to hitscan weapons and additional rockets,
+  grenades, stickies, arrows, bolts, flares, syringes, energy projectiles and
+  thrown jars per trigger pull. Extra projectiles retain their original owner,
+  launcher and team.
+- Ignite-on-hit has a server-side fallback, so every catalog weapon can ignite
+  enemy players even when TF2 ignores the item attribute for that weapon type.
 - Buffs compose with upgrades bought at the MvM station and are reapplied at
   spawn, resupply and loadout changes.
 - Entering an upgrade station opens a numbered summary for the current
@@ -32,6 +35,8 @@ in the release notes, so this file is the only place to write it.
   with `sm_ap_buff_test <number|effect-key|all> [levels]`.
 - Root admins can target another player's active weapon with
   `sm_ap_buff_give <target> <number|effect-key|all> [levels]`.
+- Root admins can temporarily test every class and weapon slot with
+  `sm_ap_unlock_override on`, then restore the run's locks with `off`.
 
 ## v1.9.0
 
