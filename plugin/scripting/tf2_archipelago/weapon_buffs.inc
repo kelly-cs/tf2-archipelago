@@ -675,10 +675,20 @@ static void WeaponBuffs_FireExtraProjectiles(any reference)
         {
             // A handled Touch leaves coincident Source projectiles touching
             // forever. Give each flare at least one physics step to clear the
-            // shared muzzle instead, preserving the engine's normal collision
-            // behavior for owner, enemies, siblings and world geometry.
+            // shared muzzle, and start it ahead along its own fanout ray. The
+            // forward offset also clears the player's collision hull and the
+            // original flare; increasing it per copy keeps scheduled extras
+            // from occupying one another's path.
+            float extraOrigin[3], direction[3];
+            extraOrigin = flareOrigin;
+            NormalizeVector(velocity, direction);
+            float clearance = 64.0 + float(copy) * 12.0;
+            for (int axis = 0; axis < 3; axis++)
+            {
+                extraOrigin[axis] += direction[axis] * clearance;
+            }
             WeaponBuffs_ScheduleNativeFlare(owner, launcher, damage, critical,
-                flareOrigin, angles, velocity, 0.02 * float(copy + 1));
+                extraOrigin, angles, velocity, 0.02 * float(copy + 1));
             continue;
         }
         else if (mimicType >= 0)
