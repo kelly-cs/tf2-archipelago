@@ -66,20 +66,22 @@ leaves the rest to the mod.
 
 ## Changing the team mid-mission
 
-A lineup picked for wave 1 is the wrong lineup for wave 5, and until now the
-only move was to restart the mission.
+A lineup chosen for wave 1 is the wrong lineup for wave 5. Until now the only
+fix was to restart the mission.
 
 The launcher has a **Bot Switcher** tab, between the mission list and the log.
-It shows what each seat plays and carries. Change the team on the Bots page of
-the settings, then press Apply: the mod swaps the seats whose class moved and
-leaves the rest alone. Nobody loses the wave, and the bots keep the money they
-have earned.
+It shows what each seat plays and what it carries. To change the team, open the
+Bots page of the settings, set the seats, then press Apply.
 
-In the game, `!ap bots` opens the same team as a menu. Pick a seat, pick a
-class. It needs the same admin flag as switching the mission.
+The mod replaces only the seats whose class changed, and leaves the others
+alone. The wave continues, and the bots keep the money they earned.
 
-A change during a wave waits for the break. A bot pulled out mid-wave drops its
-buildings, and its replacement walks in from spawn with the bomb halfway home.
+In the game, `!ap bots` opens the same team as a menu. Pick a seat, then pick a
+class. It needs the same admin right as the mission switch.
+
+A change made during a wave takes effect at the next break. A bot removed
+during a wave drops its buildings, and its replacement starts again from spawn
+while the robots carry the bomb forward.
 
 The game no longer lets a player inspect a teammate's upgrades. With
 `TF2AP_BOT_UPGRADES_CHAT=1` the chat says what each bot buys, one line per

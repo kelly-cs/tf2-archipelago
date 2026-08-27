@@ -72,22 +72,25 @@ les places libres laisse le reste au mod.
 
 ## Changer l'équipe en pleine mission
 
-Une équipe choisie pour la vague 1 est la mauvaise équipe pour la vague 5, et
-jusqu'ici le seul recours était de relancer la mission.
+Une composition choisie pour la vague 1 est la mauvaise composition pour la
+vague 5. Jusqu'ici, le seul recours était de relancer la mission.
 
 Le lanceur a un onglet **Bot Switcher**, entre la liste des missions et le
-journal. Il montre ce que joue et ce que porte chaque place. Changez l'équipe
-sur la page Bots des réglages, puis appuyez sur Appliquer : le mod remplace les
-places dont la classe a bougé et laisse les autres tranquilles. Personne ne perd
-la vague, et les bots gardent l'argent qu'ils ont gagné.
+journal. Il montre ce que chaque place joue et ce qu'elle porte. Pour changer
+l'équipe, ouvrez la page Bots des réglages, réglez les places, puis appuyez sur
+Appliquer.
 
-Dans le jeu, `!ap bots` ouvre la même équipe sous forme de menu. Choisissez une
-place, choisissez une classe. Il faut le même droit d'admin que pour changer de
+Le mod remplace seulement les places dont la classe a changé, et laisse les
+autres tranquilles. La vague continue, et les bots gardent l'argent qu'ils ont
+gagné.
+
+Dans le jeu, `!ap bots` ouvre la même équipe en menu. Choisissez une place,
+puis choisissez une classe. Il faut le même droit d'admin que pour changer de
 mission.
 
-Un changement pendant une vague attend la pause. Un bot retiré en pleine vague
-laisse tomber ses constructions, et son remplaçant arrive du spawn avec la bombe
-à mi-chemin.
+Un changement fait pendant une vague prend effet à la pause suivante. Un bot
+retiré pendant une vague laisse tomber ses constructions, et son remplaçant
+repart du spawn pendant que les robots avancent la bombe.
 
 Le jeu ne permet plus d'inspecter les améliorations d'un coéquipier. Avec
 `TF2AP_BOT_UPGRADES_CHAT=1`, le chat dit ce que chaque bot achète, une ligne
