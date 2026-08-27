@@ -238,6 +238,10 @@ static int WeaponBuffs_CloneProjectile(int source, const char[] classname, int o
     // healing bolts and the festive variants, and must be set before Spawn.
     WeaponBuffs_CopySendInt(source, extra, "m_iProjectileType");
     bool isFlare = StrEqual(classname, "tf_projectile_flare", false);
+    if (isFlare && HasEntProp(extra, Prop_Send, "m_hOwnerEntity"))
+    {
+        SetEntPropEnt(extra, Prop_Send, "m_hOwnerEntity", -1);
+    }
     if (!isFlare && HasEntProp(extra, Prop_Send, "m_hOwnerEntity"))
     {
         SetEntPropEnt(extra, Prop_Send, "m_hOwnerEntity", owner);
@@ -258,7 +262,6 @@ static int WeaponBuffs_CloneProjectile(int source, const char[] classname, int o
     // at 0,0,0 and moving afterward therefore fizzles every cloned flare.
     TeleportEntity(extra, origin, angles, NULL_VECTOR);
     DispatchSpawn(extra);
-    ActivateEntity(extra);
     // Flare Spawn() performs a one-time line trace to its owner and fizzles
     // when that trace sees world geometry. A clone made one frame after the
     // shot can be beyond a corner even though the original spawned safely.
