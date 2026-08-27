@@ -196,7 +196,7 @@ public Action Command_UnlockOverride(int client, int args)
         {
             if (MvM_IsPlayer(target) && IsPlayerAlive(target))
             {
-                TF2_RegeneratePlayer(target);
+                Unlocks_RestoreFullLoadout(target);
             }
         }
     }
@@ -205,7 +205,44 @@ public Action Command_UnlockOverride(int client, int args)
         Unlocks_ApplyToAll();
     }
     ReplyToCommand(client, "[AP] Class/slot override %s.", enabled ? "enabled" : "disabled");
+    PrintToChatAll("[AP] Class and weapon-slot override %s for every player.",
+        enabled ? "enabled" : "disabled");
     return Plugin_Handled;
+}
+
+static void Unlocks_RestoreFullLoadout(int client)
+{
+    if (!MvM_IsPlayer(client) || !IsPlayerAlive(client))
+    {
+        return;
+    }
+    // A between-wave respawn reconstructs weapons removed with
+    // TF2_RemoveWeaponSlot more reliably than inventory regeneration alone.
+    if (GameRules_GetRoundState() == RoundState_BetweenRounds)
+    {
+        TF2_RespawnPlayer(client);
+    }
+    else
+    {
+        TF2_RegeneratePlayer(client);
+    }
+}
+
+static void Frame_UnlockOverrideLoadout(any userid)
+{
+    int client = GetClientOfUserId(userid);
+    if (g_UnlocksTestOverride && MvM_IsPlayer(client) && IsPlayerAlive(client))
+    {
+        TF2_RegeneratePlayer(client);
+    }
+}
+
+void Unlocks_RestoreOverrideNextFrame(int client)
+{
+    if (g_UnlocksTestOverride && client > 0)
+    {
+        RequestFrame(Frame_UnlockOverrideLoadout, GetClientUserId(client));
+    }
 }
 
 // Runs as soon as the bridge answers: a grant that waits for the next spawn looks like no grant.

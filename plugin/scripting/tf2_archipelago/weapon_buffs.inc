@@ -17,6 +17,8 @@ bool g_WeaponBuffFiringExtra;
 int g_WeaponBuffLastExtra;
 bool g_WeaponBuffNativeExtra[2049];
 float g_WeaponBuffNativeExtraBorn[2049];
+int g_WeaponBuffStickyMimic[2049];
+int g_WeaponBuffLastButtons[MAXPLAYERS + 1];
 #define ProjectileDebugLineCount 12
 char g_WeaponBuffProjectileLines[ProjectileDebugLineCount][256];
 int g_WeaponBuffProjectileLineNext;
@@ -51,6 +53,7 @@ void WeaponBuffs_Init()
 
 void WeaponBuffs_HookClient(int client)
 {
+    g_WeaponBuffLastButtons[client] = 0;
     SDKUnhook(client, SDKHook_OnTakeDamagePost, WeaponBuffs_OnTakeDamagePost);
     SDKHook(client, SDKHook_OnTakeDamagePost, WeaponBuffs_OnTakeDamagePost);
 }
@@ -92,6 +95,12 @@ public void OnEntityDestroyed(int entity)
 {
     if (entity > MaxClients && entity < sizeof(g_WeaponBuffNativeExtra))
     {
+        int mimic = EntRefToEntIndex(g_WeaponBuffStickyMimic[entity]);
+        g_WeaponBuffStickyMimic[entity] = 0;
+        if (mimic > MaxClients && IsValidEntity(mimic))
+        {
+            RequestFrame(WeaponBuffs_RemoveEntityFrame, EntIndexToEntRef(mimic));
+        }
         if (g_WeaponBuffNativeExtra[entity] && g_WeaponBuffProjectileDebug.BoolValue)
         {
             WeaponBuffs_DebugLog("[AP projectile] extra entity=%d removed after %.3f seconds",
@@ -99,6 +108,41 @@ public void OnEntityDestroyed(int entity)
         }
         g_WeaponBuffNativeExtra[entity] = false;
     }
+}
+
+static void WeaponBuffs_RemoveEntityFrame(any reference)
+{
+    int entity = EntRefToEntIndex(reference);
+    if (entity > MaxClients && IsValidEntity(entity))
+    {
+        RemoveEntity(entity);
+    }
+}
+
+public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float velocity[3],
+    float angles[3], int &weapon)
+{
+    bool pressed = (buttons & IN_ATTACK2) != 0
+        && (g_WeaponBuffLastButtons[client] & IN_ATTACK2) == 0;
+    g_WeaponBuffLastButtons[client] = buttons;
+    if (!pressed || !MvM_IsPlayer(client))
+    {
+        return Plugin_Continue;
+    }
+    for (int projectile = MaxClients + 1; projectile < sizeof(g_WeaponBuffStickyMimic); projectile++)
+    {
+        int mimic = EntRefToEntIndex(g_WeaponBuffStickyMimic[projectile]);
+        if (mimic <= MaxClients || !IsValidEntity(mimic))
+        {
+            continue;
+        }
+        int owner = IsValidEntity(projectile) ? WeaponBuffs_EntityOwner(projectile) : -1;
+        if (owner == client)
+        {
+            AcceptEntityInput(mimic, "DetonateStickies");
+        }
+    }
+    return Plugin_Continue;
 }
 
 public void WeaponBuffs_ProjectileSpawned(int entity)
@@ -270,10 +314,20 @@ static int WeaponBuffs_FireMimicProjectile(int mimicType, int owner,
     AcceptEntityInput(mimic, "FireOnce");
     g_WeaponBuffFiringExtra = false;
     int extra = g_WeaponBuffLastExtra;
-    RemoveEntity(mimic);
     if (extra <= MaxClients || !IsValidEntity(extra))
     {
+        RemoveEntity(mimic);
         return -1;
+    }
+    if (mimicType == 3)
+    {
+        // The mimic owns the private list required to detonate the sticky.
+        // Keep it until the projectile dies and forward secondary fire to it.
+        g_WeaponBuffStickyMimic[extra] = EntIndexToEntRef(mimic);
+    }
+    else
+    {
+        RemoveEntity(mimic);
     }
     SetEntPropEnt(extra, Prop_Send, "m_hOwnerEntity", owner);
     if (HasEntProp(extra, Prop_Send, "m_hLauncher"))

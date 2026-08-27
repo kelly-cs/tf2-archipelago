@@ -490,6 +490,7 @@ public void Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast
     if (MvM_IsPlayer(client))
     {
         Unlocks_EnforceClass(client);
+        Unlocks_RestoreOverrideNextFrame(client);
     }
 }
 
