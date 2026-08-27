@@ -51,6 +51,12 @@ public void OnEntityCreated(int entity, const char[] classname)
     }
     g_WeaponBuffNativeExtra[entity] = g_WeaponBuffFiringExtra;
     g_WeaponBuffNativeExtraBorn[entity] = GetGameTime();
+    if (WeaponBuffs_IsProjectile(classname) && g_WeaponBuffProjectileDebug != null
+        && g_WeaponBuffProjectileDebug.BoolValue)
+    {
+        LogMessage("[AP projectile] created entity=%d class=%s extra=%d",
+            entity, classname, g_WeaponBuffFiringExtra);
+    }
     if (g_WeaponBuffFiringExtra && WeaponBuffs_IsProjectile(classname))
     {
         g_WeaponBuffLastExtra = entity;
@@ -80,6 +86,12 @@ public void OnEntityDestroyed(int entity)
 public void WeaponBuffs_ProjectileSpawned(int entity)
 {
     SDKUnhook(entity, SDKHook_SpawnPost, WeaponBuffs_ProjectileSpawned);
+    if (g_WeaponBuffProjectileDebug.BoolValue && IsValidEntity(entity))
+    {
+        char classname[64];
+        GetEntityClassname(entity, classname, sizeof(classname));
+        LogMessage("[AP projectile] spawn-post entity=%d class=%s", entity, classname);
+    }
     RequestFrame(WeaponBuffs_FireExtraProjectiles, EntIndexToEntRef(entity));
 }
 
@@ -235,6 +247,54 @@ static int WeaponBuffs_FireMimicProjectile(int mimicType, int owner,
     return extra;
 }
 
+static int WeaponBuffs_EntityOwner(int entity)
+{
+    if (entity > 0 && entity <= MaxClients)
+    {
+        return entity;
+    }
+    if (entity > MaxClients && IsValidEntity(entity)
+        && HasEntProp(entity, Prop_Send, "m_hOwnerEntity"))
+    {
+        return GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity");
+    }
+    return -1;
+}
+
+// TF2 projectile families do not agree about m_hOwnerEntity: depending on the
+// weapon, it can be the player or the launcher. Normalize both shapes here.
+static void WeaponBuffs_ResolveProjectile(int source, int &owner, int &launcher)
+{
+    owner = WeaponBuffs_EntityOwner(source);
+    launcher = HasEntProp(source, Prop_Send, "m_hLauncher")
+        ? GetEntPropEnt(source, Prop_Send, "m_hLauncher") : -1;
+    if ((launcher <= MaxClients || !IsValidEntity(launcher))
+        && HasEntProp(source, Prop_Send, "m_hOriginalLauncher"))
+    {
+        launcher = GetEntPropEnt(source, Prop_Send, "m_hOriginalLauncher");
+    }
+
+    // Flares and several grenade-derived projectiles expose the weapon as the
+    // owner rather than through m_hLauncher.
+    if (WeaponBuffs_ForEntity(owner) >= 0)
+    {
+        launcher = owner;
+        owner = WeaponBuffs_EntityOwner(launcher);
+    }
+    if (!MvM_IsPlayer(owner) && launcher > MaxClients && IsValidEntity(launcher))
+    {
+        int launcherOwner = WeaponBuffs_EntityOwner(launcher);
+        if (MvM_IsPlayer(launcherOwner))
+        {
+            owner = launcherOwner;
+        }
+    }
+    if ((launcher <= MaxClients || !IsValidEntity(launcher)) && MvM_IsPlayer(owner))
+    {
+        launcher = GetEntPropEnt(owner, Prop_Send, "m_hActiveWeapon");
+    }
+}
+
 static void WeaponBuffs_FireExtraProjectiles(any reference)
 {
     int source = EntRefToEntIndex(reference);
@@ -242,31 +302,42 @@ static void WeaponBuffs_FireExtraProjectiles(any reference)
     {
         return;
     }
-    int owner = HasEntProp(source, Prop_Send, "m_hOwnerEntity")
-        ? GetEntPropEnt(source, Prop_Send, "m_hOwnerEntity") : -1;
-    int launcher = HasEntProp(source, Prop_Send, "m_hLauncher")
-        ? GetEntPropEnt(source, Prop_Send, "m_hLauncher") : -1;
-    if ((launcher <= MaxClients || !IsValidEntity(launcher))
-        && HasEntProp(source, Prop_Send, "m_hOriginalLauncher"))
-    {
-        launcher = GetEntPropEnt(source, Prop_Send, "m_hOriginalLauncher");
-    }
-    if ((launcher <= MaxClients || !IsValidEntity(launcher)) && MvM_IsPlayer(owner))
-    {
-        launcher = GetEntPropEnt(owner, Prop_Send, "m_hActiveWeapon");
-    }
+    int owner, launcher;
+    WeaponBuffs_ResolveProjectile(source, owner, launcher);
     if (!MvM_IsPlayer(owner) || launcher <= MaxClients || !IsValidEntity(launcher))
     {
+        if (g_WeaponBuffProjectileDebug.BoolValue)
+        {
+            char rejectedClass[64];
+            GetEntityClassname(source, rejectedClass, sizeof(rejectedClass));
+            LogMessage("[AP projectile] rejected entity=%d class=%s owner=%d launcher=%d (unresolved owner/launcher)",
+                source, rejectedClass, owner, launcher);
+        }
         return;
     }
     int weapon = WeaponBuffs_ForEntity(launcher);
     if (weapon < 0)
     {
+        if (g_WeaponBuffProjectileDebug.BoolValue)
+        {
+            char rejectedClass[64], launcherClass[64];
+            GetEntityClassname(source, rejectedClass, sizeof(rejectedClass));
+            GetEntityClassname(launcher, launcherClass, sizeof(launcherClass));
+            LogMessage("[AP projectile] rejected entity=%d class=%s owner=%d launcher=%d class=%s (launcher not catalogued)",
+                source, rejectedClass, owner, launcher, launcherClass);
+        }
         return;
     }
     int copies = g_WeaponEffectLevels[weapon][ProjectileCountEffect];
     if (copies <= 0)
     {
+        if (g_WeaponBuffProjectileDebug.BoolValue)
+        {
+            char rejectedClass[64];
+            GetEntityClassname(source, rejectedClass, sizeof(rejectedClass));
+            LogMessage("[AP projectile] ignored entity=%d class=%s owner=%d launcher=%d catalog=%d projectile-count=0",
+                source, rejectedClass, owner, launcher, weapon);
+        }
         return;
     }
 
