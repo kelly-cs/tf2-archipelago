@@ -44,8 +44,9 @@ type settingsForm struct {
 	focused int
 	offset  int
 
-	room     string // the room address as typed, parsed on save
-	teamName string // what the next Save keeps the bot team under
+	room     string       // the room address as typed, parsed on save
+	teamName string       // what the next Save keeps the bot team under
+	draft    loadoutDraft // the loadout the Loadouts page is building
 	warn     string
 	saved    func(settings.Settings) tea.Cmd
 	repair   func() ([]string, error)
@@ -81,6 +82,7 @@ func (f *settingsForm) build() {
 		{title: "Archipelago room", fields: f.roomFields()},
 		{title: "Game server", fields: f.serverFields()},
 		{title: "Bots", fields: f.botFields()},
+		{title: "Loadouts", fields: f.loadoutFields()},
 		{title: "Who can join (beta)", fields: f.reachFields()},
 	}
 }
@@ -476,24 +478,32 @@ func (f *settingsForm) seatLoadoutField(seat int) field {
 		}
 	}
 
-	options := make([]string, 0, len(class.Loadouts))
-	for _, loadout := range class.Loadouts {
+	choices := f.library().Choices(class)
+	options := make([]string, 0, len(choices))
+	for _, loadout := range choices {
 		options = append(options, loadout.Label())
 	}
-	index := slices.IndexFunc(class.Loadouts, func(l botloadout.Loadout) bool {
+	index := slices.IndexFunc(choices, func(l botloadout.Loadout) bool {
 		return l.Key == seats[seat].Loadout
 	})
 	return &choiceField{
 		label:   fmt.Sprintf("  Seat %d holds", seat+1),
-		help:    "The weapons this seat carries, which is what lets two engineers hold different things.",
+		help:    "The weapons this seat carries, which is what lets two engineers hold different things. Loadouts you built for this class are at the bottom.",
 		options: options,
 		index:   max(index, 0),
 		apply: func(i int) {
 			seats := f.seats()
-			seats[seat].Loadout = class.Loadouts[i].Key
+			seats[seat].Loadout = choices[i].Key
 			f.setSeats(seats)
 		},
 	}
+}
+
+// library is the loadouts this form can offer, built from what is edited now
+// rather than from what was saved: a loadout built on the Loadouts page is
+// pickable on the Bots page without leaving the settings.
+func (f *settingsForm) library() botloadout.Library {
+	return botloadout.Library{Built: f.edited.SrcdsBotCustomLoadouts}
 }
 
 // loadTeamField brings back a saved team.
@@ -598,23 +608,24 @@ func (c *classToggle) Handle(msg tea.KeyMsg) bool {
 }
 
 func (f *settingsForm) loadoutField(class botloadout.Class) field {
-	options := make([]string, 0, len(class.Loadouts))
-	for _, loadout := range class.Loadouts {
+	choices := f.library().Choices(class)
+	options := make([]string, 0, len(choices))
+	for _, loadout := range choices {
 		options = append(options, loadout.Label())
 	}
 	current := f.edited.SrcdsBotLoadouts[class.Key]
-	index := max(slices.IndexFunc(class.Loadouts, func(l botloadout.Loadout) bool { return l.Key == current }), 0)
+	index := max(slices.IndexFunc(choices, func(l botloadout.Loadout) bool { return l.Key == current }), 0)
 
 	return &choiceField{
 		label:   "  " + class.Name + " loadout",
-		help:    "What a bot of this class spawns with. Stock is the game's own.",
+		help:    "What a bot of this class spawns with. Stock is the game's own, and loadouts you built for this class are at the bottom.",
 		options: options,
 		index:   index,
 		apply: func(i int) {
 			if f.edited.SrcdsBotLoadouts == nil {
 				f.edited.SrcdsBotLoadouts = map[string]string{}
 			}
-			pick := class.Loadouts[i]
+			pick := choices[i]
 			if pick.Key == botloadout.StockKey {
 				delete(f.edited.SrcdsBotLoadouts, class.Key)
 				return

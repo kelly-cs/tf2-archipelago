@@ -22,7 +22,7 @@ type botTeamPicks struct {
 // botTeamFrom is the team those picks describe. A seat left on the draw is an
 // empty entry, because the mod counts a seat by its place in the list. It drops
 // the trailing draws, which name no seat.
-func botTeamFrom(picks botTeamPicks) settings.BotTeam {
+func botTeamFrom(picks botTeamPicks, library botloadout.Library) settings.BotTeam {
 	var out settings.BotTeam
 	named := -1
 	for seat, index := range picks.SeatClass {
@@ -39,27 +39,34 @@ func botTeamFrom(picks botTeamPicks) settings.BotTeam {
 		}
 		class := botloadout.Classes[index-1]
 		out.Comp = append(out.Comp, class.Key)
-		out.SeatLoadouts = append(out.SeatLoadouts, loadoutKeyAt(class, at(picks.SeatLoadout, seat)))
+		out.SeatLoadouts = append(out.SeatLoadouts, loadoutKeyAt(library, class, at(picks.SeatLoadout, seat)))
 	}
 	out.ClassLoadouts = make(map[string]string)
 	for index, class := range botloadout.Classes {
 		if index < len(picks.Ticked) && !picks.Ticked[index] {
 			out.Blacklist = append(out.Blacklist, class.Key)
 		}
-		if key := loadoutKeyAt(class, at(picks.ClassLoadout, index)); key != botloadout.StockKey {
+		if key := loadoutKeyAt(library, class, at(picks.ClassLoadout, index)); key != botloadout.StockKey {
 			out.ClassLoadouts[class.Key] = key
 		}
 	}
 	return out
 }
 
-// loadoutKeyAt is the preset at that place, and stock for anything else: a menu
-// with nothing chosen reports -1.
-func loadoutKeyAt(class botloadout.Class, index int) string {
-	if index < 0 || index >= len(class.Loadouts) {
+/*
+	loadoutKeyAt is the loadout at that place in the menu, and stock for anything
+
+else: a menu with nothing chosen reports -1.
+*
+* The list has to be the one the menu was filled from, or a built loadout at the
+* bottom is read back as the preset that sits at its index.
+*/
+func loadoutKeyAt(library botloadout.Library, class botloadout.Class, index int) string {
+	choices := library.Choices(class)
+	if index < 0 || index >= len(choices) {
 		return botloadout.StockKey
 	}
-	return class.Loadouts[index].Key
+	return choices[index].Key
 }
 
 func at(values []int, index int) int {

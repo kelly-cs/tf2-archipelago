@@ -70,6 +70,19 @@ rarement. Les noms de classe sont ceux du mod, comme pour la liste noire.
 Une équipe nommée ici l'emporte sur la liste noire. Une liste plus courte que
 les places libres laisse le reste au mod.
 
+## Construire un équipement
+
+Les préréglages couvrent les builds courants. Pour faire le vôtre, ouvrez la
+page **Loadouts** des réglages, choisissez une classe, choisissez une arme par
+emplacement, tapez un nom et appuyez sur Save.
+
+L'équipement apparaît alors en bas de chaque menu d'armes de cette classe, sur
+la page Team et sur la page Classes. Un équipement appartient à une seule
+classe, parce qu'un Medic ne peut pas tenir un Gunslinger.
+
+Si vous en supprimez un, toute place qui le nomme encore joue en stock.
+L'équipe n'est pas perdue.
+
 ## Changer l'équipe en pleine mission
 
 Une composition choisie pour la vague 1 est la mauvaise composition pour la
