@@ -113,7 +113,8 @@ rcon sm_ap_status
 | `sm_ap_mission` | List the missions of the run. With an argument, switch to one |
 | `sm_ap_resync` | Ask the bridge for the unlock set again |
 | `sm_ap_buffs` | Open the numbered menu of buffs applying to the current loadout |
-| `sm_ap_buff_test <1-64\|effect-key\|all> [levels]` | Add one effect, or every effect, to the active weapon for a local test; root admin only |
+| `sm_ap_buff_test <1-80\|effect-key\|all> [levels]` | Add one effect, or every effect, to the active weapon for a local test; root admin only |
+| `sm_ap_buff_give <target> <effect-key\|all> [levels]` | Add test effects to another player's active weapon; root admin only |
 | `sm_ap_projectile_debug [on\|off]` | Toggle detailed projectile creation logs and show the active weapon's projectile-count state; root admin only |
 
 In chat, omit the `sm_` prefix and use `!ap_buff_test projectile-count 3`.

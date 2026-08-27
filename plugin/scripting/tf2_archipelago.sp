@@ -72,6 +72,7 @@ bool g_GiantReported;
 
 public void OnPluginStart()
 {
+    LoadTranslations("common.phrases");
     Log_Init();
     MvM_Init();
     Unlocks_Init();
@@ -113,6 +114,8 @@ public void OnPluginStart()
         "Show the Archipelago buffs for your current loadout");
     RegAdminCmd("sm_ap_buff_test", Command_TestWeaponBuff, ADMFLAG_ROOT,
         "Test an active-weapon effect: sm_ap_buff_test <number|key|all> [levels]");
+    RegAdminCmd("sm_ap_buff_give", Command_GiveWeaponBuff, ADMFLAG_ROOT,
+        "Give a test effect to a player's active weapon: sm_ap_buff_give <target> <number|key|all> [levels]");
     RegAdminCmd("sm_ap_projectile_debug", Command_ProjectileDebug, ADMFLAG_ROOT,
         "Toggle projectile diagnostics: sm_ap_projectile_debug [on|off]");
 

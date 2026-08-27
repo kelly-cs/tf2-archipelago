@@ -420,6 +420,25 @@ public Action Command_WeaponBuffs(int client, int args)
     return Plugin_Handled;
 }
 
+static int WeaponBuffs_AddTestEffects(int weapon, const char[] wanted, int levels)
+{
+    int granted;
+    for (int effect = 0; effect < WeaponEffectCount; effect++)
+    {
+        bool selected = StrEqual(wanted, "all", false)
+            || StrEqual(wanted, g_WeaponEffectKeys[effect], false)
+            || StringToInt(wanted) == effect + 1;
+        if (!selected)
+        {
+            continue;
+        }
+        g_WeaponEffectLevels[weapon][effect] = g_WeaponEffectModes[effect] == BuffMode_Toggle
+            ? 1 : g_WeaponEffectLevels[weapon][effect] + levels;
+        granted++;
+    }
+    return granted;
+}
+
 // sm_ap_buff_test <effect number|effect key|all> [levels]
 public Action Command_TestWeaponBuff(int client, int args)
 {
@@ -450,20 +469,7 @@ public Action Command_TestWeaponBuff(int client, int args)
         levels = StringToInt(rawLevels);
         if (levels < 1) levels = 1;
     }
-    int granted;
-    for (int effect = 0; effect < WeaponEffectCount; effect++)
-    {
-        bool selected = StrEqual(wanted, "all", false)
-            || StrEqual(wanted, g_WeaponEffectKeys[effect], false)
-            || StringToInt(wanted) == effect + 1;
-        if (!selected)
-        {
-            continue;
-        }
-        g_WeaponEffectLevels[weapon][effect] = g_WeaponEffectModes[effect] == BuffMode_Toggle
-            ? 1 : g_WeaponEffectLevels[weapon][effect] + levels;
-        granted++;
-    }
+    int granted = WeaponBuffs_AddTestEffects(weapon, wanted, levels);
     if (granted == 0)
     {
         ReplyToCommand(client, "[AP] Unknown effect %s. Use 1-%d or an effect key.", wanted, WeaponEffectCount);
@@ -472,5 +478,68 @@ public Action Command_TestWeaponBuff(int client, int args)
     WeaponBuffs_ApplyEntity(entity, weapon);
     ReplyToCommand(client, "[AP] Applied %d test effect(s) to %s.", granted, g_WeaponNames[weapon]);
     WeaponBuffs_ShowMenu(client);
+    return Plugin_Handled;
+}
+
+// sm_ap_buff_give <target> <effect number|effect key|all> [levels]
+public Action Command_GiveWeaponBuff(int client, int args)
+{
+    if (args < 2)
+    {
+        ReplyToCommand(client,
+            "[AP] Usage: sm_ap_buff_give <target> <1-%d|effect-key|all> [levels]",
+            WeaponEffectCount);
+        return Plugin_Handled;
+    }
+
+    char pattern[MAX_TARGET_LENGTH];
+    GetCmdArg(1, pattern, sizeof(pattern));
+    int target = FindTarget(client, pattern, true);
+    if (target < 1)
+    {
+        return Plugin_Handled;
+    }
+    if (!MvM_IsPlayer(target) || !IsPlayerAlive(target))
+    {
+        ReplyToCommand(client, "[AP] %N must be alive on RED before receiving a test buff.", target);
+        return Plugin_Handled;
+    }
+
+    int entity = GetEntPropEnt(target, Prop_Send, "m_hActiveWeapon");
+    int weapon = WeaponBuffs_ForEntity(entity);
+    if (weapon < 0)
+    {
+        ReplyToCommand(client, "[AP] %N's active weapon is not in the catalog.", target);
+        return Plugin_Handled;
+    }
+
+    char wanted[64];
+    GetCmdArg(2, wanted, sizeof(wanted));
+    int levels = 1;
+    if (args >= 3)
+    {
+        char rawLevels[12];
+        GetCmdArg(3, rawLevels, sizeof(rawLevels));
+        levels = StringToInt(rawLevels);
+        if (levels < 1) levels = 1;
+    }
+
+    int granted = WeaponBuffs_AddTestEffects(weapon, wanted, levels);
+    if (granted == 0)
+    {
+        ReplyToCommand(client, "[AP] Unknown effect %s. Use 1-%d or an effect key.",
+            wanted, WeaponEffectCount);
+        return Plugin_Handled;
+    }
+
+    WeaponBuffs_ApplyEntity(entity, weapon);
+    ReplyToCommand(client, "[AP] Applied %d test effect(s) to %N's %s.",
+        granted, target, g_WeaponNames[weapon]);
+    if (client != target)
+    {
+        PrintToChat(target, "[AP] An admin applied %d test effect(s) to your %s.",
+            granted, g_WeaponNames[weapon]);
+    }
+    WeaponBuffs_ShowMenu(target);
     return Plugin_Handled;
 }

@@ -30,6 +30,8 @@ in the release notes, so this file is the only place to write it.
   loadout. `sm_ap_buffs` opens it again.
 - Root admins can test one effect or the entire catalog on their active weapon
   with `sm_ap_buff_test <number|effect-key|all> [levels]`.
+- Root admins can target another player's active weapon with
+  `sm_ap_buff_give <target> <number|effect-key|all> [levels]`.
 
 ## v1.9.0
 
