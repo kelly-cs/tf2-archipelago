@@ -659,6 +659,9 @@ public Action Command_ProjectileDebug(int client, int args)
     }
     ReplyToCommand(client, "[AP] Projectile debug %s; backend=mimic, native flare, plus family clone.",
         g_WeaponBuffProjectileDebug.BoolValue ? "ON" : "OFF");
+    ReplyToCommand(client, "[AP] Native flare calls: create=%d get-damage=%d set-damage=%d add-detonator=%d.",
+        g_WeaponBuffFlareCreate != null, g_WeaponBuffProjectileGetDamage != null,
+        g_WeaponBuffProjectileSetDamage != null, g_WeaponBuffFlareAdd != null);
     if (args == 0 && g_WeaponBuffProjectileLineHeld > 0)
     {
         int first = (g_WeaponBuffProjectileLineNext - g_WeaponBuffProjectileLineHeld
