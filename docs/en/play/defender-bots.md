@@ -64,6 +64,18 @@ entries are rarely reached. The names are the mod's, the same as the blacklist.
 A team named here beats the blacklist. A list shorter than the empty seats
 leaves the rest to the mod.
 
+## Building a loadout
+
+The presets cover the common builds. To make your own, open the **Loadouts**
+page of the settings, pick a class, pick a weapon per slot, type a name and
+press Save.
+
+The loadout then appears at the bottom of every weapon menu for that class, on
+the Team page and the Classes page. A loadout belongs to one class, because a
+Medic cannot hold a Gunslinger.
+
+Remove one and any seat still naming it plays stock. The team is not lost.
+
 ## Changing the team mid-mission
 
 A lineup chosen for wave 1 is the wrong lineup for wave 5. Until now the only

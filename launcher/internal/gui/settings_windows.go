@@ -99,7 +99,14 @@ func runSettingsDialog(
 			keep:       keepBotTeams,
 			saved:      maps.Clone(s.SrcdsBotTeamPresets),
 		}
-
+		botLoadout = newBotLoadoutEditor(s.SrcdsBotCustomLoadouts, keepBotLoadouts)
+	)
+	// The team's menus list what the Loadouts page holds, so it is wired after
+	// both exist.
+	botTeam.library = func() botloadout.Library {
+		return botloadout.Library{Built: botLoadout.built}
+	}
+	var (
 		reachLan   *walk.RadioButton
 		reachSteam *walk.RadioButton
 		reachPort  *walk.RadioButton
@@ -201,6 +208,9 @@ func runSettingsDialog(
 		// Saved teams are written when Save is pressed on the tab, so they are
 		// on disk already; this keeps them in the settings the dialog returns.
 		next.SrcdsBotTeamPresets = botTeam.saved
+		// Built loadouts are written when Save is pressed on the page, so they
+		// are on disk already; this keeps them in the settings returned.
+		next.SrcdsBotCustomLoadouts = botLoadout.built
 		return next, nil
 	}
 
@@ -549,7 +559,7 @@ func runSettingsDialog(
 		}
 		botsBuilt = true
 		started := time.Now()
-		if err := buildBotsTab(botsHost, s, label, &botsBox, &botsSize, &buysBox, &looksBox, botTeam); err != nil {
+		if err := buildBotsTab(botsHost, s, label, &botsBox, &botsSize, &buysBox, &looksBox, botTeam, botLoadout); err != nil {
 			say("the bots tab did not build: %v", err)
 			return
 		}
@@ -703,8 +713,8 @@ func teamRows(
 			},
 			declarative.ComboBox{
 				AssignTo:      &team.seatLoadBx[seat],
-				Model:         seatLoadoutChoices(seatClassKey(s.SrcdsBotTeamComp, seat)),
-				Value:         seatLoadoutValue(s, seat),
+				Model:         seatLoadoutChoices(team.lib(), seatClassKey(s.SrcdsBotTeamComp, seat)),
+				Value:         seatLoadoutValue(team.lib(), s, seat),
 				ToolTipText:   "The weapons this seat carries. Follows the class, so a seat on the draw has nothing to hold.",
 				StretchFactor: 1,
 			},
@@ -782,6 +792,20 @@ type botTeamEditor struct {
 	// for the team to be forgotten.
 	saved map[string]settings.BotTeam
 	keep  func(map[string]settings.BotTeam)
+
+	// library is asked rather than held, because the loadouts it offers are
+	// the ones the Loadouts page has right now: build one there and the menus
+	// here list it without leaving the dialog.
+	library func() botloadout.Library
+}
+
+// choices is what one class's loadout menu holds, and the list every index
+// read back out of that menu means.
+func (e *botTeamEditor) choices(class botloadout.Class) []botloadout.Loadout {
+	if e.library == nil {
+		return botloadout.Library{}.Choices(class)
+	}
+	return e.library().Choices(class)
 }
 
 // team is what the widgets currently describe. The widgets are read into
@@ -802,7 +826,16 @@ func (e *botTeamEditor) team() settings.BotTeam {
 		picks.Ticked[i] = e.classBox[i].Checked()
 		picks.ClassLoadout[i] = e.loadoutBx[i].CurrentIndex()
 	}
-	return botTeamFrom(picks)
+	return botTeamFrom(picks, e.lib())
+}
+
+// lib is the loadouts this editor can offer, and the built-in presets alone
+// when nothing wired one in.
+func (e *botTeamEditor) lib() botloadout.Library {
+	if e.library == nil {
+		return botloadout.Library{}
+	}
+	return e.library()
 }
 
 // show puts a team into the widgets.
@@ -820,7 +853,7 @@ func (e *botTeamEditor) show(team settings.BotTeam) {
 			}
 		}
 		selectInCombo(box, name)
-		_ = e.seatLoadBx[seat].SetModel(seatLoadoutChoices(classKeyOfLabel(name)))
+		_ = e.seatLoadBx[seat].SetModel(seatLoadoutChoices(e.lib(), classKeyOfLabel(name)))
 		selectInCombo(e.seatLoadBx[seat], loadout)
 	}
 	for i, class := range botloadout.Classes {
@@ -991,8 +1024,9 @@ func classCells(s settings.Settings, team *botTeamEditor) []declarative.Widget {
 	var cells []declarative.Widget
 	for i := range botloadout.Classes {
 		class := botloadout.Classes[i]
-		labels := make([]string, 0, len(class.Loadouts))
-		for _, loadout := range class.Loadouts {
+		choices := team.choices(class)
+		labels := make([]string, 0, len(choices))
+		for _, loadout := range choices {
 			labels = append(labels, loadout.Label())
 		}
 		cells = append(cells,
@@ -1006,7 +1040,7 @@ func classCells(s settings.Settings, team *botTeamEditor) []declarative.Widget {
 			declarative.ComboBox{
 				AssignTo:      &team.loadoutBx[i],
 				Model:         labels,
-				Value:         class.LoadoutByKey(s.SrcdsBotLoadouts[class.Key]).Label(),
+				Value:         team.lib().Loadout(class, s.SrcdsBotLoadouts[class.Key]).Label(),
 				ToolTipText:   "What a " + class.Name + " holds when the seat it fills does not say otherwise.",
 				MinSize:       declarative.Size{Width: 220},
 				StretchFactor: 1,
@@ -1078,13 +1112,14 @@ func presetRow(
  * choice is thrown away when the class changes, because a loadout for a class
  * this seat no longer plays is not a choice anybody made.
  */
-func seatLoadoutChoices(classKey string) []string {
+func seatLoadoutChoices(library botloadout.Library, classKey string) []string {
 	class, found := botloadout.ClassByKey(classKey)
 	if !found {
 		return []string{drawSeatLoadoutLabel}
 	}
-	labels := make([]string, 0, len(class.Loadouts))
-	for _, loadout := range class.Loadouts {
+	choices := library.Choices(class)
+	labels := make([]string, 0, len(choices))
+	for _, loadout := range choices {
 		labels = append(labels, loadout.Label())
 	}
 	return labels
@@ -1101,7 +1136,7 @@ func seatClassKey(comp []string, seat int) string {
 	return comp[seat]
 }
 
-func seatLoadoutValue(s settings.Settings, seat int) string {
+func seatLoadoutValue(library botloadout.Library, s settings.Settings, seat int) string {
 	class, found := botloadout.ClassByKey(seatClassKey(s.SrcdsBotTeamComp, seat))
 	if !found {
 		return drawSeatLoadoutLabel
@@ -1110,7 +1145,7 @@ func seatLoadoutValue(s settings.Settings, seat int) string {
 	if seat < len(s.SrcdsBotSeatLoadouts) {
 		key = s.SrcdsBotSeatLoadouts[seat]
 	}
-	return class.LoadoutByKey(key).Label()
+	return library.Loadout(class, key).Label()
 }
 
 // seatClassChanged refills that seat's weapons menu, because the old one
@@ -1121,7 +1156,7 @@ func seatClassChanged(seat int, team *botTeamEditor) walk.EventHandler {
 		if box == nil || loadout == nil {
 			return
 		}
-		_ = loadout.SetModel(seatLoadoutChoices(classKeyOfLabel(box.Text())))
+		_ = loadout.SetModel(seatLoadoutChoices(team.lib(), classKeyOfLabel(box.Text())))
 		// By index, not by text. Setting the text of a menu that has a model
 		// selects nothing, and nothing shows as an empty box: a seat whose
 		// class had just changed looked like it held no weapons at all.
@@ -1435,6 +1470,17 @@ func goalLabel(goals []runshape.Goal, key string) string {
  * The file is read back and only this key is replaced, so a launcher writing a
  * team does not overwrite whatever else has changed on disk since it opened.
  */
+// keepBotLoadouts writes the built loadouts to the config file, on their own,
+// for the reason keepBotTeams does the same for a team.
+func keepBotLoadouts(built map[string]botloadout.Built) {
+	current, err := settings.Load()
+	if err != nil {
+		return
+	}
+	current.SrcdsBotCustomLoadouts = built
+	_ = settings.Save(current)
+}
+
 func keepBotTeams(teams map[string]settings.BotTeam) {
 	current, err := settings.Load()
 	if err != nil {
@@ -1457,7 +1503,7 @@ func keepBotTeams(teams map[string]settings.BotTeam) {
 func buildBotsTab(
 	host *walk.Composite, s settings.Settings, label func(text, help string) declarative.Label,
 	botsBox **walk.CheckBox, botsSize **walk.NumberEdit, buysBox **walk.CheckBox,
-	looksBox *cosmeticBoxes, team *botTeamEditor,
+	looksBox *cosmeticBoxes, team *botTeamEditor, built *botLoadoutEditor,
 ) error {
 	if host == nil {
 		return fmt.Errorf("the bots tab has nowhere to go")
@@ -1470,6 +1516,7 @@ func buildBotsTab(
 		Pages: []declarative.TabPage{
 			botsScrollPage("Team", 3, teamRows(s, label, botsBox, botsSize, buysBox, team)),
 			botsScrollPage("Classes", 4, classRows(s, team)),
+			botsScrollPage("Loadouts", 3, loadoutRows(label, built)),
 			botsScrollPage("Looks", 2, cosmeticRows(s, looksBox)),
 		},
 	}.Create(declarative.NewBuilder(host))

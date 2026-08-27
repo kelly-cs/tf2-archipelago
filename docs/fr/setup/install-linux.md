@@ -3,7 +3,7 @@
 Un seul fichier. Pas de Docker, pas de clone, pas de compilateur. C'est le même
 programme que le lanceur Windows. Il dessine la même interface dans le terminal
 plutôt que dans une fenêtre. Vous avez le journal, les missions de la partie,
-le Bot Switcher, la ligne rcon et les six mêmes onglets de réglages. Rien à installer pour ça,
+le Bot Switcher, la ligne rcon et les sept mêmes onglets de réglages. Rien à installer pour ça,
 et ça marche à travers SSH.
 
 Téléchargez `tf2ap-linux-amd64` depuis la
@@ -32,7 +32,7 @@ Puis l'interface s'ouvre dessus.
 | `r` | Le redémarre |
 | `j` | Lance Team Fortress 2 et rejoint |
 | `c` | Copie la ligne de connexion, à envoyer à un ami |
-| `,` | Les réglages, dans les six onglets de la fenêtre |
+| `,` | Les réglages, dans les sept onglets de la fenêtre |
 | `tab` | Entre la partie, le Bot Switcher et le journal |
 | `i` | La ligne rcon. `esc` rend les touches |
 | `p` | Sur l'onglet de la partie, charge la mission sous le curseur |

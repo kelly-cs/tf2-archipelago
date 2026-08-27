@@ -117,17 +117,17 @@ func TestTypingGoesToTheCommandLine(t *testing.T) {
 	}
 }
 
-// The settings are the window's six tabs, and what they change is saved to the
-// settings the launcher runs on.
+// The settings are the window's seven tabs, and what they change is saved to
+// the settings the launcher runs on.
 func TestTheSettingsScreenEditsTheRun(t *testing.T) {
 	m := screen(t)
 	m.Update(key(","))
 
-	if got := len(m.form.tabs); got != 6 {
-		t.Errorf("the settings have %d tabs, want 6", got)
+	if got := len(m.form.tabs); got != 7 {
+		t.Errorf("the settings have %d tabs, want 7", got)
 	}
 	view := m.form.view(100, 30)
-	for _, want := range []string{"Player options", "Bots", "Who can join (beta)", "Easiest tier"} {
+	for _, want := range []string{"Player options", "Bots", "Loadouts", "Who can join (beta)", "Easiest tier"} {
 		if !strings.Contains(view, want) {
 			t.Errorf("the settings do not show %q:\n%s", want, view)
 		}

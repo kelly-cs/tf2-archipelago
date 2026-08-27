@@ -2,6 +2,7 @@ package botloadout
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/m-this/tf2-archipelago/gamedata"
@@ -134,4 +135,29 @@ func WeaponName(defIndex int) string {
 		return weapon.Name
 	}
 	return fmt.Sprintf("item %d", defIndex)
+}
+
+/*
+Choices is what a menu offers for one class: the presets this package ships,
+then the loadouts the player built for that class.
+
+Presets first and in their own order, because that order is what the menus have
+always shown and stock is the first of them. The built ones follow, sorted by
+name, so the list does not reorder itself when one is saved.
+*/
+func (l Library) Choices(class Class) []Loadout {
+	out := slices.Clone(class.Loadouts)
+
+	names := make([]string, 0, len(l.Built))
+	for name, built := range l.Built {
+		if built.Class == class.Key {
+			names = append(names, name)
+		}
+	}
+	slices.Sort(names)
+
+	for _, name := range names {
+		out = append(out, l.Loadout(class, CustomKey(name)))
+	}
+	return out
 }
