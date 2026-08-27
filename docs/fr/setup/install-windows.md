@@ -50,6 +50,9 @@ La fenêtre contient :
 - Un onglet **Session** : état de la connexion, checks, items, et les
   missions de la partie. **Play this mission** charge celle que vous
   choisissez.
+- Un onglet **Bot Switcher** : ce que chaque place de RED joue et ce qu'elle
+  porte. **Appliquer au serveur en cours** donne une nouvelle équipe sans
+  terminer la mission.
 - **Settings**, pour la room, les missions, les bots, qui peut rejoindre et la
   forme de la partie.
 

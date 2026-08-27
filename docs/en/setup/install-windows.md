@@ -47,6 +47,9 @@ The window has:
 - A **Log** tab and an **rcon** box, for when something looks wrong.
 - A **Session** tab: connection status, checks, items, and the missions of
   the run. **Play this mission** loads the one you pick.
+- A **Bot Switcher** tab: what each seat on RED plays and what it carries.
+  **Apply to the running server** hands a new team over without ending the
+  mission.
 - **Settings**, for the room, the missions, the bots, who can join and the
   shape of the run.
 
