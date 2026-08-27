@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/m-this/tf2-archipelago/launcher/internal/botloadout"
 	"github.com/m-this/tf2-archipelago/launcher/internal/settings"
 )
 
@@ -66,7 +67,28 @@ func TestTheLoadoutConvarAgreesWithTheFile(t *testing.T) {
 			"a seat preset and no class preset",
 			settings.Settings{
 				SrcdsBotTeamComp:     []string{"engineer"},
+				SrcdsBotSeatLoadouts: []string{"ranger"},
+			},
+			"sm_redbots_manager_use_custom_loadouts 1",
+		},
+		{
+			// A key no class has is stock, so there is nothing to write and
+			// nothing for the mod to read.
+			"a seat naming a loadout that does not exist",
+			settings.Settings{
+				SrcdsBotTeamComp:     []string{"engineer"},
 				SrcdsBotSeatLoadouts: []string{"gunslinger"},
+			},
+			"sm_redbots_manager_use_custom_loadouts 0",
+		},
+		{
+			"a seat naming a loadout the player built",
+			settings.Settings{
+				SrcdsBotTeamComp:     []string{"engineer"},
+				SrcdsBotSeatLoadouts: []string{botloadout.CustomKey("Nest")},
+				SrcdsBotCustomLoadouts: map[string]botloadout.Built{
+					"Nest": {Class: "engineer", Primary: 997, Second: botloadout.Stock, Melee: botloadout.Stock, PDA2: botloadout.Stock},
+				},
 			},
 			"sm_redbots_manager_use_custom_loadouts 1",
 		},
