@@ -92,7 +92,8 @@ A progression item is an item that the generator's logic can require in order
 to reach another location. The generator guarantees that the run is finishable
 in some order using only these.
 
-Weapon slots, class items and mission tickets are progression items here. An
+By default, weapon slots, class items and mission tickets are progression items
+and weapon buffs are useful items here. An
 advanced mission asks for three classes and two weapon slots before the
 generator will put anything important behind it. A hard mission at the end of
 the chain sits behind a lot of them.
@@ -106,10 +107,10 @@ fixed.
 A filler item is an item with no place in the logic. It is what pads the pool
 when there are more locations than progression items.
 
-`Cash Bundle` is the literal filler classification here. Weapon buffs are
-useful non-progression rewards and share the spare checks with cash; the player
-YAML controls the split. So most checks hold either one of those rewards or an
-item that belongs to another game in the multiworld.
+`Cash Bundle` is the literal filler classification here. Cash rewards are off
+by default, so weapon buffs fill every spare local check. The Rewards options
+can enable cash and can independently make tickets, classes, slots or buffs
+useful or required for progression.
 
 ## What this means at the keyboard
 

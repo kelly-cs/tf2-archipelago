@@ -142,7 +142,7 @@ func TestMissionsNameTheMapAndWhatIsUnlocked(t *testing.T) {
 	// missions, a run holds a handful of them.
 	drawn := []string{"mvm_ghost_town_666", "mvm_coaltown_intermediate"}
 	coaltown, _ := gamedata.MissionByPopFile("mvm_coaltown_intermediate")
-	missions, unknown := missionsFor(drawn, []string{"mvm_ghost_town_666"}, []int64{coaltown.ClearLocationID()})
+	missions, unknown := missionsFor(drawn, []string{"mvm_ghost_town_666"}, []int64{coaltown.ClearLocationID()}, false)
 
 	if len(unknown) != 0 {
 		t.Fatalf("the tables did not know %v", unknown)
@@ -175,12 +175,25 @@ func TestMissionsNameTheMapAndWhatIsUnlocked(t *testing.T) {
 }
 
 func TestMissionsSkipWhatTheTablesDoNotKnow(t *testing.T) {
-	missions, unknown := missionsFor([]string{"mvm_potato", "mvm_coaltown"}, nil, nil)
+	missions, unknown := missionsFor([]string{"mvm_potato", "mvm_coaltown"}, nil, nil, false)
 	if len(missions) != 1 || missions[0].PopFile != "mvm_coaltown" {
 		t.Fatalf("missions = %+v", missions)
 	}
 	if len(unknown) != 1 || unknown[0] != "mvm_potato" {
 		t.Fatalf("unknown = %v", unknown)
+	}
+}
+
+func TestUsefulTicketsLeaveEveryDrawnMissionUnlocked(t *testing.T) {
+	drawn := []string{"mvm_coaltown", "mvm_coaltown_intermediate"}
+	missions, unknown := missionsFor(drawn, nil, nil, true)
+	if len(unknown) != 0 || len(missions) != 2 {
+		t.Fatalf("missions = %+v, unknown = %v", missions, unknown)
+	}
+	for _, mission := range missions {
+		if !mission.Unlocked {
+			t.Errorf("useful ticket mode left %s locked", mission.PopFile)
+		}
 	}
 }
 

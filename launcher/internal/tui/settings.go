@@ -77,11 +77,38 @@ func newSettingsForm(s settings.Settings, deps settingsDeps) *settingsForm {
 func (f *settingsForm) build() {
 	f.tabs = []settingsTab{
 		{title: "Player options", fields: f.playerFields()},
+		{title: "Rewards", fields: f.rewardFields()},
 		{title: "Missions", fields: f.missionFields()},
 		{title: "Archipelago room", fields: f.roomFields()},
 		{title: "Game server", fields: f.serverFields()},
 		{title: "Bots", fields: f.botFields()},
 		{title: "Who can join (beta)", fields: f.reachFields()},
+	}
+}
+
+func (f *settingsForm) rewardFields() []field {
+	importance := func(label, help string, value *string) field {
+		return &choiceField{
+			label: label, help: help,
+			options: []string{"Useful", "Required for progression"},
+			index:   map[bool]int{true: 1}[*value == "progression"],
+			apply: func(i int) {
+				if i == 1 {
+					*value = "progression"
+				} else {
+					*value = "useful"
+				}
+			},
+		}
+	}
+	return []field{
+		importance("Mission tickets", "Required tickets gate mission deployment. Useful tickets leave every drawn mission available.", &f.edited.MvmMissionTicketImportance),
+		importance("Class unlocks", "Required classes satisfy mission-tier roster checks. Useful classes only expand the roster.", &f.edited.MvmClassUnlockImportance),
+		importance("Weapon slots", "Required slots satisfy mission-tier loadout checks. Useful slots only expand loadouts.", &f.edited.MvmWeaponSlotImportance),
+		importance("Weapon buffs", "Required buffs gate harder tiers by buff count. Useful buffs are optional power-ups.", &f.edited.MvmWeaponBuffImportance),
+		&toggleField{label: "Cash rewards", help: "Allow temporary MvM credits in spare checks. Off makes every spare reward a persistent weapon buff.", value: &f.edited.MvmCashRewards, on: "include cash", off: "include cash"},
+		&numberField{label: "Buff share", help: "Percent of spare checks that are buffs when cash rewards are enabled.", value: &f.edited.MvmWeaponBuffPct, low: 0, high: 100},
+		&numberField{label: "Buff stack chance", help: "Chance for another level of an already drawn numeric buff. Toggle buffs never repeat.", value: &f.edited.MvmWeaponBuffStackChance, low: 0, high: 100},
 	}
 }
 

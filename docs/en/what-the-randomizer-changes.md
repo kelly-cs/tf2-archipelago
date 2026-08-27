@@ -71,12 +71,14 @@ to a mechanic remain eligible on every weapon deliberately; they simply matter
 most on weapons that exercise that mechanic.
 
 A run samples weapon/effect permutations for the checks left after its required
-classes, slots and mission tickets. By default, buffs occupy 75% of this spare
+classes, slots and mission tickets. By default every spare check is a buff and
+cash rewards are disabled. If cash is enabled, buffs occupy 75% of this spare
 space and cash fills the rest. Each buff draw has a 25% chance to add another
 level to a numeric permutation already in the seed; toggle effects never
-repeat. `weapon_buff_percentage` and `weapon_buff_stack_chance` control those
-two percentages in the player YAML. Small runs therefore contain a subset of
-the catalog, and a run never creates more items than it has locations.
+repeat. The Rewards tab controls the cash split and lets tickets, classes,
+slots and buffs independently be useful or required for progression. Small
+runs therefore contain a subset of the catalog, and a run never creates more
+items than it has locations.
 
 Entering an upgrade station opens a numbered menu listing the buffs that apply
 to the weapons in the current loadout. `sm_ap_buffs` opens the same menu on

@@ -15,6 +15,7 @@ from Options import (
     OptionSet,
     PerGameCommonOptions,
     Range,
+    Toggle,
 )
 
 from . import data
@@ -133,10 +134,11 @@ class MissionsanityPercentage(Range):
 
 
 class WeaponBuffPercentage(Range):
-    """Percentage of non-progression checks that award a weapon buff.
+    """Percentage of spare checks that award a weapon buff when cash rewards
+    are enabled.
 
-    The remaining space contains cash filler. Set this to zero for a run with
-    no weapon buffs, or 100 for upgrades in every spare location.
+    The remaining space contains cash filler. With cash rewards disabled,
+    every spare check awards a weapon buff and this option is ignored.
     """
 
     display_name = "Weapon Buff Percentage"
@@ -159,6 +161,64 @@ class WeaponBuffStackChance(Range):
     default = 25
 
 
+class RewardImportance(Choice):
+    """Whether this reward can gate access or is an optional power-up."""
+
+    option_useful = 0
+    option_progression = 1
+
+
+class MissionTicketImportance(RewardImportance):
+    """Progression tickets are required to deploy to their missions.
+
+    Useful tickets do not gate deployment; all missions drawn by the seed are
+    available from the start.
+    """
+
+    display_name = "Mission Ticket Importance"
+    default = 1
+
+
+class ClassUnlockImportance(RewardImportance):
+    """Progression class unlocks satisfy each mission tier's class requirement.
+
+    Useful class unlocks still expand the roster but never block deployment.
+    """
+
+    display_name = "Class Unlock Importance"
+    default = 1
+
+
+class WeaponSlotImportance(RewardImportance):
+    """Progression weapon slots satisfy each mission tier's loadout requirement.
+
+    Useful slots still expand loadouts but never block deployment.
+    """
+
+    display_name = "Weapon Slot Importance"
+    default = 1
+
+
+class WeaponBuffImportance(RewardImportance):
+    """Useful buffs are optional upgrades. Progression buffs are also required
+    in increasing numbers for harder mission tiers.
+    """
+
+    display_name = "Weapon Buff Importance"
+    default = 0
+
+
+class CashRewards(Toggle):
+    """Put cash filler in some spare checks.
+
+    Disabled by default because cash is temporary and less satisfying than a
+    persistent weapon buff. When disabled, every spare check is a buff.
+    """
+
+    display_name = "Cash Rewards"
+    default = 0
+
+
 @dataclass
 class TF2MvMOptions(PerGameCommonOptions):
     mission_count: MissionCount
@@ -168,6 +228,11 @@ class TF2MvMOptions(PerGameCommonOptions):
     start_class: StartClass
     goal: Goal
     missionsanity_percentage: MissionsanityPercentage
+    mission_ticket_importance: MissionTicketImportance
+    class_unlock_importance: ClassUnlockImportance
+    weapon_slot_importance: WeaponSlotImportance
+    weapon_buff_importance: WeaponBuffImportance
+    cash_rewards: CashRewards
     weapon_buff_percentage: WeaponBuffPercentage
     weapon_buff_stack_chance: WeaponBuffStackChance
     death_link: DeathLink
@@ -178,7 +243,18 @@ option_groups = [
         "Run shape", [MissionCount, DifficultyPool, ExcludedMissions, StartMission, StartClass]
     ),
     OptionGroup("Goal", [Goal, MissionsanityPercentage]),
-    OptionGroup("Rewards", [WeaponBuffPercentage, WeaponBuffStackChance]),
+    OptionGroup(
+        "Rewards",
+        [
+            MissionTicketImportance,
+            ClassUnlockImportance,
+            WeaponSlotImportance,
+            WeaponBuffImportance,
+            CashRewards,
+            WeaponBuffPercentage,
+            WeaponBuffStackChance,
+        ],
+    ),
 ]
 
 # Checked rather than trusted: a tier added to the export and not here would silently drop missions.

@@ -28,9 +28,16 @@ Les options se trouvent sous `Team Fortress 2 Mann vs Machine` :
   tous. `expert` n'autorise qu'Expert et Haunted.
 - `goal` : `final_boss` ou `missionsanity`.
 - `missionsanity_percentage` : quelle part de la partie Missionsanity demande.
-- `weapon_buff_percentage` : quelle part des récompenses hors progression
-  devient une amélioration d'arme plutôt que de l'argent. La valeur par défaut
-  est 75.
+- `mission_ticket_importance`, `class_unlock_importance`,
+  `weapon_slot_importance` et `weapon_buff_importance` : choisissez
+  indépendamment `useful` ou `progression`. Par défaut, les tickets, classes
+  et emplacements sont requis pour la progression ; les améliorations sont
+  utiles.
+- `cash_rewards` : autorise l'argent dans les emplacements libres. Désactivé
+  par défaut, afin que chaque emplacement libre donne une amélioration.
+- `weapon_buff_percentage` : lorsque l'argent est activé, quelle part des
+  emplacements libres devient une amélioration plutôt que de l'argent. La
+  valeur par défaut est 75.
 - `weapon_buff_stack_chance` : la fréquence à laquelle un niveau numérique
   supplémentaire d'une amélioration déjà tirée apparaît. Les effets activés ou
   désactivés ne se répètent jamais. La valeur par défaut est 25.
