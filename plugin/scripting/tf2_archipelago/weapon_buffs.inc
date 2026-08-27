@@ -117,10 +117,20 @@ static void WeaponBuffs_LogProjectile(const char[] label, int entity)
         velocity[0], velocity[1], velocity[2]);
 }
 
-static int WeaponBuffs_MimicType(const char[] classname)
+static int WeaponBuffs_MimicType(int source, const char[] classname)
 {
     if (StrEqual(classname, "tf_projectile_rocket", false)) return 0;
-    if (StrEqual(classname, "tf_projectile_pipe", false)) return 1;
+    if (StrEqual(classname, "tf_projectile_pipe", false))
+    {
+        // Both names can represent the same CTFGrenadePipebombProjectile.
+        // m_iType=1/2 is a sticky; zero is a timed grenade.
+        if (HasEntProp(source, Prop_Send, "m_iType")
+            && GetEntProp(source, Prop_Send, "m_iType") != 0)
+        {
+            return 3;
+        }
+        return 1;
+    }
     if (StrEqual(classname, "tf_projectile_arrow", false)) return 2;
     if (StrEqual(classname, "tf_projectile_pipe_remote", false)) return 3;
     return -1;
@@ -191,6 +201,10 @@ static int WeaponBuffs_CloneProjectile(int source, const char[] classname, int o
     if (HasEntProp(extra, Prop_Send, "m_hOriginalLauncher"))
     {
         SetEntPropEnt(extra, Prop_Send, "m_hOriginalLauncher", launcher);
+    }
+    if (HasEntProp(extra, Prop_Send, "m_vInitialVelocity"))
+    {
+        SetEntPropVector(extra, Prop_Send, "m_vInitialVelocity", velocity);
     }
     SetEntityMoveType(extra, GetEntityMoveType(source));
     SetEntityGravity(extra, GetEntityGravity(source));
@@ -345,6 +359,16 @@ static void WeaponBuffs_FireExtraProjectiles(any reference)
     float origin[3], sourceVelocity[3];
     GetEntPropVector(source, Prop_Data, "m_vecAbsOrigin", origin);
     GetEntPropVector(source, Prop_Data, "m_vecAbsVelocity", sourceVelocity);
+    float absSpeedSquared = sourceVelocity[0] * sourceVelocity[0]
+        + sourceVelocity[1] * sourceVelocity[1]
+        + sourceVelocity[2] * sourceVelocity[2];
+    // Pipebombs, stickies and flares derive from the grenade projectile base.
+    // During this deferred callback their physics velocity can read as zero,
+    // while this networked launch vector still contains the real shot speed.
+    if (absSpeedSquared < 1.0 && HasEntProp(source, Prop_Send, "m_vInitialVelocity"))
+    {
+        GetEntPropVector(source, Prop_Send, "m_vInitialVelocity", sourceVelocity);
+    }
     float speed = SquareRoot(sourceVelocity[0] * sourceVelocity[0]
         + sourceVelocity[1] * sourceVelocity[1]
         + sourceVelocity[2] * sourceVelocity[2]);
@@ -354,7 +378,7 @@ static void WeaponBuffs_FireExtraProjectiles(any reference)
         && GetEntProp(source, Prop_Send, "m_bCritical") != 0;
     char classname[64];
     GetEntityClassname(source, classname, sizeof(classname));
-    int mimicType = WeaponBuffs_MimicType(classname);
+    int mimicType = WeaponBuffs_MimicType(source, classname);
 
     for (int copy = 0; copy < copies; copy++)
     {
