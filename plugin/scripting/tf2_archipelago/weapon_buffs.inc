@@ -15,6 +15,10 @@ float g_WeaponBuffAppliedValue[2049][WeaponEffectCount];
 ConVar g_WeaponBuffProjectileDebug;
 bool g_WeaponBuffFiringExtra;
 int g_WeaponBuffLastExtra;
+Handle g_WeaponBuffFlareCreate;
+Handle g_WeaponBuffProjectileGetDamage;
+Handle g_WeaponBuffProjectileSetDamage;
+Handle g_WeaponBuffFlareAdd;
 bool g_WeaponBuffNativeExtra[2049];
 float g_WeaponBuffNativeExtraBorn[2049];
 int g_WeaponBuffStickyMimic[2049];
@@ -42,12 +46,63 @@ void WeaponBuffs_Init()
 {
     g_WeaponBuffProjectileDebug = CreateConVar("tf2ap_projectile_debug", "0",
         "Log extra-projectile creation and lifetime", FCVAR_NONE, true, 0.0, true, 1.0);
+    WeaponBuffs_InitFlareCalls();
     for (int client = 1; client <= MaxClients; client++)
     {
         if (IsClientInGame(client))
         {
             WeaponBuffs_HookClient(client);
         }
+    }
+}
+
+static void WeaponBuffs_InitFlareCalls()
+{
+    GameData config = LoadGameConfigFile("tf2_archipelago");
+    if (config == null)
+    {
+        LogError("Projectile-count flare fanout disabled: tf2_archipelago gamedata is missing.");
+        return;
+    }
+
+    StartPrepSDKCall(SDKCall_Static);
+    if (PrepSDKCall_SetFromConf(config, SDKConf_Signature, "CTFProjectile_Flare::Create"))
+    {
+        PrepSDKCall_AddParameter(SDKType_CBaseEntity, SDKPass_Pointer);
+        PrepSDKCall_AddParameter(SDKType_Vector, SDKPass_Pointer);
+        PrepSDKCall_AddParameter(SDKType_QAngle, SDKPass_Pointer);
+        PrepSDKCall_AddParameter(SDKType_CBaseEntity, SDKPass_Pointer);
+        PrepSDKCall_AddParameter(SDKType_CBaseEntity, SDKPass_Pointer);
+        PrepSDKCall_SetReturnInfo(SDKType_CBaseEntity, SDKPass_Pointer);
+        g_WeaponBuffFlareCreate = EndPrepSDKCall();
+    }
+
+    StartPrepSDKCall(SDKCall_Entity);
+    if (PrepSDKCall_SetFromConf(config, SDKConf_Signature, "CTFBaseProjectile::GetDamage"))
+    {
+        PrepSDKCall_SetReturnInfo(SDKType_Float, SDKPass_Plain);
+        g_WeaponBuffProjectileGetDamage = EndPrepSDKCall();
+    }
+
+    StartPrepSDKCall(SDKCall_Entity);
+    if (PrepSDKCall_SetFromConf(config, SDKConf_Signature, "CTFBaseProjectile::SetDamage"))
+    {
+        PrepSDKCall_AddParameter(SDKType_Float, SDKPass_Plain);
+        g_WeaponBuffProjectileSetDamage = EndPrepSDKCall();
+    }
+
+    StartPrepSDKCall(SDKCall_Entity);
+    if (PrepSDKCall_SetFromConf(config, SDKConf_Signature, "CTFFlareGun::AddFlare"))
+    {
+        PrepSDKCall_AddParameter(SDKType_CBaseEntity, SDKPass_Pointer);
+        g_WeaponBuffFlareAdd = EndPrepSDKCall();
+    }
+    delete config;
+
+    if (g_WeaponBuffFlareCreate == null || g_WeaponBuffProjectileGetDamage == null
+        || g_WeaponBuffProjectileSetDamage == null)
+    {
+        LogError("Projectile-count flare fanout disabled: this TF2 build does not match the native flare gamedata.");
     }
 }
 
@@ -360,6 +415,44 @@ static int WeaponBuffs_FireMimicProjectile(int mimicType, int owner,
     return extra;
 }
 
+static int WeaponBuffs_FireNativeFlare(int owner, int launcher, float damage,
+    bool critical, const float origin[3], const float angles[3], const float velocity[3])
+{
+    if (g_WeaponBuffFlareCreate == null || g_WeaponBuffProjectileSetDamage == null)
+    {
+        return -1;
+    }
+
+    g_WeaponBuffLastExtra = -1;
+    g_WeaponBuffFiringExtra = true;
+    int extra = SDKCall(g_WeaponBuffFlareCreate, launcher, origin, angles, owner, owner);
+    g_WeaponBuffFiringExtra = false;
+    if (extra <= MaxClients || !IsValidEntity(extra))
+    {
+        return -1;
+    }
+
+    SDKCall(g_WeaponBuffProjectileSetDamage, extra, damage);
+    if (HasEntProp(extra, Prop_Send, "m_bCritical"))
+    {
+        SetEntProp(extra, Prop_Send, "m_bCritical", critical);
+    }
+    // The native factory computes the correct family speed. Replace only its
+    // direction with our symmetric fanout while retaining the original shot's
+    // attribute-adjusted speed and vertical component.
+    TeleportEntity(extra, NULL_VECTOR, angles, velocity);
+
+    // FireFlare normally does this after calling the factory. Without it the
+    // Detonator's secondary attack cannot see the extra flares.
+    int definition = HasEntProp(launcher, Prop_Send, "m_iItemDefinitionIndex")
+        ? GetEntProp(launcher, Prop_Send, "m_iItemDefinitionIndex") : -1;
+    if ((definition == 351 || definition == 1081) && g_WeaponBuffFlareAdd != null)
+    {
+        SDKCall(g_WeaponBuffFlareAdd, launcher, extra);
+    }
+    return extra;
+}
+
 static int WeaponBuffs_EntityOwner(int entity)
 {
     if (entity > 0 && entity <= MaxClients)
@@ -471,8 +564,16 @@ static void WeaponBuffs_FireExtraProjectiles(any reference)
     float speed = SquareRoot(sourceVelocity[0] * sourceVelocity[0]
         + sourceVelocity[1] * sourceVelocity[1]
         + sourceVelocity[2] * sourceVelocity[2]);
-    float damage = HasEntProp(source, Prop_Data, "m_flDamage")
-        ? GetEntPropFloat(source, Prop_Data, "m_flDamage") : 90.0;
+    float damage;
+    if (g_WeaponBuffProjectileGetDamage != null)
+    {
+        damage = view_as<float>(SDKCall(g_WeaponBuffProjectileGetDamage, source));
+    }
+    else
+    {
+        damage = HasEntProp(source, Prop_Data, "m_flDamage")
+            ? GetEntPropFloat(source, Prop_Data, "m_flDamage") : 90.0;
+    }
     bool critical = HasEntProp(source, Prop_Send, "m_bCritical")
         && GetEntProp(source, Prop_Send, "m_bCritical") != 0;
     char classname[64];
@@ -491,11 +592,23 @@ static void WeaponBuffs_FireExtraProjectiles(any reference)
         velocity[1] = x * Sine(radians) + velocity[1] * Cosine(radians);
         GetVectorAngles(velocity, angles);
 
-        int extra = mimicType >= 0
-            ? WeaponBuffs_FireMimicProjectile(mimicType, owner, launcher,
-                speed, damage, critical, origin, angles, velocity)
-            : WeaponBuffs_CloneProjectile(source, classname, owner, launcher,
+        bool isFlare = StrEqual(classname, "tf_projectile_flare", false);
+        int extra;
+        if (isFlare)
+        {
+            extra = WeaponBuffs_FireNativeFlare(owner, launcher, damage, critical,
                 origin, angles, velocity);
+        }
+        else if (mimicType >= 0)
+        {
+            extra = WeaponBuffs_FireMimicProjectile(mimicType, owner, launcher,
+                speed, damage, critical, origin, angles, velocity);
+        }
+        else
+        {
+            extra = WeaponBuffs_CloneProjectile(source, classname, owner, launcher,
+                origin, angles, velocity);
+        }
         if (extra <= MaxClients || !IsValidEntity(extra))
         {
             if (g_WeaponBuffProjectileDebug.BoolValue)
@@ -504,7 +617,8 @@ static void WeaponBuffs_FireExtraProjectiles(any reference)
             }
             continue;
         }
-        WeaponBuffs_LogProjectile(mimicType >= 0 ? "mimic-extra" : "clone-extra", extra);
+        WeaponBuffs_LogProjectile(isFlare ? "native-flare-extra"
+            : (mimicType >= 0 ? "mimic-extra" : "clone-extra"), extra);
     }
 }
 
@@ -543,7 +657,7 @@ public Action Command_ProjectileDebug(int client, int args)
         g_WeaponBuffProjectileDebug.BoolValue = StrEqual(wanted, "on", false)
             || StrEqual(wanted, "1");
     }
-    ReplyToCommand(client, "[AP] Projectile debug %s; backend=mimic plus family clone.",
+    ReplyToCommand(client, "[AP] Projectile debug %s; backend=mimic, native flare, plus family clone.",
         g_WeaponBuffProjectileDebug.BoolValue ? "ON" : "OFF");
     if (args == 0 && g_WeaponBuffProjectileLineHeld > 0)
     {

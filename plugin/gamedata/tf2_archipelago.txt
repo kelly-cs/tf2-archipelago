@@ -1,0 +1,29 @@
+"Games"
+{
+	"tf"
+	{
+		"Signatures"
+		{
+			"CTFProjectile_Flare::Create"
+			{
+				"library"	"server"
+				"windows64"	"\x48\x89\x6C\x24\x10\x48\x89\x74\x24\x18\x48\x89\x7C\x24\x20\x41\x56\x48\x81\xEC\xA0\x00\x00\x00\x48\x8B\xE9"
+			}
+			"CTFBaseProjectile::GetDamage"
+			{
+				"library"	"server"
+				"windows64"	"\xF3\x0F\x10\x81\x50\x06\x00\x00\xC3"
+			}
+			"CTFBaseProjectile::SetDamage"
+			{
+				"library"	"server"
+				"windows64"	"\xF3\x0F\x11\x89\x50\x06\x00\x00\xC3"
+			}
+			"CTFFlareGun::AddFlare"
+			{
+				"library"	"server"
+				"windows64"	"\x48\x89\x5C\x24\x08\x48\x89\x6C\x24\x10\x48\x89\x74\x24\x18\x57\x48\x83\xEC\x20\x48\x8B\xF9\x48\x85\xD2"
+			}
+		}
+	}
+}
