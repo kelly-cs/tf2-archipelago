@@ -17,6 +17,24 @@ bool g_WeaponBuffFiringExtra;
 int g_WeaponBuffLastExtra;
 bool g_WeaponBuffNativeExtra[2049];
 float g_WeaponBuffNativeExtraBorn[2049];
+#define ProjectileDebugLineCount 12
+char g_WeaponBuffProjectileLines[ProjectileDebugLineCount][256];
+int g_WeaponBuffProjectileLineNext;
+int g_WeaponBuffProjectileLineHeld;
+
+static void WeaponBuffs_DebugLog(const char[] format, any ...)
+{
+    char line[256];
+    VFormat(line, sizeof(line), format, 2);
+    LogMessage("%s", line);
+    strcopy(g_WeaponBuffProjectileLines[g_WeaponBuffProjectileLineNext],
+        sizeof(g_WeaponBuffProjectileLines[]), line);
+    g_WeaponBuffProjectileLineNext = (g_WeaponBuffProjectileLineNext + 1) % ProjectileDebugLineCount;
+    if (g_WeaponBuffProjectileLineHeld < ProjectileDebugLineCount)
+    {
+        g_WeaponBuffProjectileLineHeld++;
+    }
+}
 
 void WeaponBuffs_Init()
 {
@@ -54,7 +72,7 @@ public void OnEntityCreated(int entity, const char[] classname)
     if (WeaponBuffs_IsProjectile(classname) && g_WeaponBuffProjectileDebug != null
         && g_WeaponBuffProjectileDebug.BoolValue)
     {
-        LogMessage("[AP projectile] created entity=%d class=%s extra=%d",
+        WeaponBuffs_DebugLog("[AP projectile] created entity=%d class=%s extra=%d",
             entity, classname, g_WeaponBuffFiringExtra);
     }
     if (g_WeaponBuffFiringExtra && WeaponBuffs_IsProjectile(classname))
@@ -76,7 +94,7 @@ public void OnEntityDestroyed(int entity)
     {
         if (g_WeaponBuffNativeExtra[entity] && g_WeaponBuffProjectileDebug.BoolValue)
         {
-            LogMessage("[AP projectile] extra entity=%d removed after %.3f seconds",
+            WeaponBuffs_DebugLog("[AP projectile] extra entity=%d removed after %.3f seconds",
                 entity, GetGameTime() - g_WeaponBuffNativeExtraBorn[entity]);
         }
         g_WeaponBuffNativeExtra[entity] = false;
@@ -90,7 +108,7 @@ public void WeaponBuffs_ProjectileSpawned(int entity)
     {
         char classname[64];
         GetEntityClassname(entity, classname, sizeof(classname));
-        LogMessage("[AP projectile] spawn-post entity=%d class=%s", entity, classname);
+        WeaponBuffs_DebugLog("[AP projectile] spawn-post entity=%d class=%s", entity, classname);
     }
     RequestFrame(WeaponBuffs_FireExtraProjectiles, EntIndexToEntRef(entity));
 }
@@ -112,7 +130,7 @@ static void WeaponBuffs_LogProjectile(const char[] label, int entity)
     float origin[3], velocity[3];
     GetEntPropVector(entity, Prop_Data, "m_vecAbsOrigin", origin);
     GetEntPropVector(entity, Prop_Data, "m_vecAbsVelocity", velocity);
-    LogMessage("[AP projectile] %s entity=%d owner=%d launcher=%d team=%d collision=%d damage=%.1f origin=%.1f %.1f %.1f velocity=%.1f %.1f %.1f",
+    WeaponBuffs_DebugLog("[AP projectile] %s entity=%d owner=%d launcher=%d team=%d collision=%d damage=%.1f origin=%.1f %.1f %.1f velocity=%.1f %.1f %.1f",
         label, entity, owner, launcher, team, collision, damage, origin[0], origin[1], origin[2],
         velocity[0], velocity[1], velocity[2]);
 }
@@ -180,6 +198,16 @@ static int WeaponBuffs_CloneProjectile(int source, const char[] classname, int o
         SetEntPropEnt(extra, Prop_Send, "m_hOwnerEntity", owner);
     }
     SetEntProp(extra, Prop_Send, "m_iTeamNum", GetClientTeam(owner));
+    // Flare Spawn() reads both launcher handles to choose projectile speed,
+    // heat-seeking behavior and other weapon-specific behavior.
+    if (HasEntProp(extra, Prop_Send, "m_hLauncher"))
+    {
+        SetEntPropEnt(extra, Prop_Send, "m_hLauncher", launcher);
+    }
+    if (HasEntProp(extra, Prop_Send, "m_hOriginalLauncher"))
+    {
+        SetEntPropEnt(extra, Prop_Send, "m_hOriginalLauncher", launcher);
+    }
     DispatchSpawn(extra);
     ActivateEntity(extra);
 
@@ -324,7 +352,7 @@ static void WeaponBuffs_FireExtraProjectiles(any reference)
         {
             char rejectedClass[64];
             GetEntityClassname(source, rejectedClass, sizeof(rejectedClass));
-            LogMessage("[AP projectile] rejected entity=%d class=%s owner=%d launcher=%d (unresolved owner/launcher)",
+            WeaponBuffs_DebugLog("[AP projectile] rejected entity=%d class=%s owner=%d launcher=%d (unresolved owner/launcher)",
                 source, rejectedClass, owner, launcher);
         }
         return;
@@ -337,7 +365,7 @@ static void WeaponBuffs_FireExtraProjectiles(any reference)
             char rejectedClass[64], launcherClass[64];
             GetEntityClassname(source, rejectedClass, sizeof(rejectedClass));
             GetEntityClassname(launcher, launcherClass, sizeof(launcherClass));
-            LogMessage("[AP projectile] rejected entity=%d class=%s owner=%d launcher=%d class=%s (launcher not catalogued)",
+            WeaponBuffs_DebugLog("[AP projectile] rejected entity=%d class=%s owner=%d launcher=%d class=%s (launcher not catalogued)",
                 source, rejectedClass, owner, launcher, launcherClass);
         }
         return;
@@ -349,7 +377,7 @@ static void WeaponBuffs_FireExtraProjectiles(any reference)
         {
             char rejectedClass[64];
             GetEntityClassname(source, rejectedClass, sizeof(rejectedClass));
-            LogMessage("[AP projectile] ignored entity=%d class=%s owner=%d launcher=%d catalog=%d projectile-count=0",
+            WeaponBuffs_DebugLog("[AP projectile] ignored entity=%d class=%s owner=%d launcher=%d catalog=%d projectile-count=0",
                 source, rejectedClass, owner, launcher, weapon);
         }
         return;
@@ -401,7 +429,7 @@ static void WeaponBuffs_FireExtraProjectiles(any reference)
         {
             if (g_WeaponBuffProjectileDebug.BoolValue)
             {
-                LogMessage("[AP projectile] backend failed for %s (entity %d)", classname, extra);
+                WeaponBuffs_DebugLog("[AP projectile] backend failed for %s (entity %d)", classname, extra);
             }
             continue;
         }
@@ -446,6 +474,16 @@ public Action Command_ProjectileDebug(int client, int args)
     }
     ReplyToCommand(client, "[AP] Projectile debug %s; backend=mimic plus family clone.",
         g_WeaponBuffProjectileDebug.BoolValue ? "ON" : "OFF");
+    if (args == 0 && g_WeaponBuffProjectileLineHeld > 0)
+    {
+        int first = (g_WeaponBuffProjectileLineNext - g_WeaponBuffProjectileLineHeld
+            + ProjectileDebugLineCount) % ProjectileDebugLineCount;
+        for (int offset = 0; offset < g_WeaponBuffProjectileLineHeld; offset++)
+        {
+            int line = (first + offset) % ProjectileDebugLineCount;
+            ReplyToCommand(client, "%s", g_WeaponBuffProjectileLines[line]);
+        }
+    }
     if (MvM_IsPlayer(client) && IsPlayerAlive(client))
     {
         int entity = GetEntPropEnt(client, Prop_Send, "m_hActiveWeapon");
