@@ -432,6 +432,7 @@ static int WeaponBuffs_FireNativeFlare(int owner, int launcher, float damage,
         return -1;
     }
 
+    SDKHook(extra, SDKHook_Touch, WeaponBuffs_ExtraFlareTouch);
     SDKCall(g_WeaponBuffProjectileSetDamage, extra, damage);
     if (HasEntProp(extra, Prop_Send, "m_bCritical"))
     {
@@ -451,6 +452,37 @@ static int WeaponBuffs_FireNativeFlare(int owner, int launcher, float damage,
         SDKCall(g_WeaponBuffFlareAdd, launcher, extra);
     }
     return extra;
+}
+
+public Action WeaponBuffs_ExtraFlareTouch(int flare, int other)
+{
+    int owner = WeaponBuffs_EntityOwner(flare);
+    if (other == owner)
+    {
+        if (g_WeaponBuffProjectileDebug.BoolValue)
+        {
+            WeaponBuffs_DebugLog("[AP projectile] flare entity=%d ignored touch with owner=%d",
+                flare, owner);
+        }
+        return Plugin_Handled;
+    }
+    if (other <= MaxClients || !IsValidEntity(other))
+    {
+        return Plugin_Continue;
+    }
+
+    char classname[64];
+    GetEntityClassname(other, classname, sizeof(classname));
+    if (WeaponBuffs_IsProjectile(classname) && WeaponBuffs_EntityOwner(other) == owner)
+    {
+        if (g_WeaponBuffProjectileDebug.BoolValue)
+        {
+            WeaponBuffs_DebugLog("[AP projectile] flare entity=%d ignored sibling entity=%d class=%s",
+                flare, other, classname);
+        }
+        return Plugin_Handled;
+    }
+    return Plugin_Continue;
 }
 
 static void WeaponBuffs_FlareMuzzleOrigin(int owner, const float shotAngles[3],
