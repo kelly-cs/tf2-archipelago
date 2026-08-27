@@ -109,8 +109,14 @@ func TestEveryFieldHasAnEnvVar(t *testing.T) {
 
 	// Fields the config file holds and the environment does not. A saved team
 	// is something somebody named in front of the window; a compose stack
-	// names its team in SRCDS_BOT_TEAM_COMP and has nowhere to click.
-	windowOnly := map[string]bool{"SrcdsBotTeamPresets": true}
+	// names its team in SRCDS_BOT_TEAM_COMP and has nowhere to click. A built
+	// loadout is the same: four item indexes and a name, put together in a
+	// menu, and a seat names one with the custom: prefix in the team it is
+	// already setting.
+	windowOnly := map[string]bool{
+		"SrcdsBotTeamPresets":    true,
+		"SrcdsBotCustomLoadouts": true,
+	}
 
 	known := map[string]bool{}
 	for _, name := range EnvNames {

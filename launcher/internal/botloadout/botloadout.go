@@ -148,11 +148,17 @@ func Custom(picks map[string]string) bool {
  * the alternative is a launcher that cannot say what it means.
  */
 func Render(picks map[string]string, seats []Seat) string {
+	return Library{}.Render(picks, seats)
+}
+
+// Render is the same file, with the loadouts the player built available to the
+// seats and classes that name one.
+func (l Library) Render(picks map[string]string, seats []Seat) string {
 	var b strings.Builder
 	b.WriteString("// Managed by tf2ap. Edits here are replaced the next time the launcher starts.\n")
 	b.WriteString("\"loadout\"\n{\n")
 	for _, class := range Classes {
-		loadout := class.LoadoutByKey(picks[class.Key])
+		loadout := l.Loadout(class, picks[class.Key])
 		if loadout.Key == StockKey {
 			continue
 		}
@@ -160,7 +166,7 @@ func Render(picks map[string]string, seats []Seat) string {
 		writeSlots(&b, "\t\t", loadout)
 		b.WriteString("\t}\n")
 	}
-	writeSeats(&b, seats)
+	l.writeSeats(&b, seats)
 	b.WriteString("}\n")
 	return b.String()
 }
@@ -199,7 +205,7 @@ func CustomSeats(seats []Seat) bool {
 	return false
 }
 
-func writeSeats(b *strings.Builder, seats []Seat) {
+func (l Library) writeSeats(b *strings.Builder, seats []Seat) {
 	named := 0
 	for _, seat := range seats {
 		if seat.Class != "" {
@@ -220,7 +226,7 @@ func writeSeats(b *strings.Builder, seats []Seat) {
 		}
 		fmt.Fprintf(b, "\t\t\"%d\"\n\t\t{\n", index+1)
 		fmt.Fprintf(b, "\t\t\t\"class\"\t\"%s\"\n", class.Key)
-		writeSlots(b, "\t\t\t", class.LoadoutByKey(seat.Loadout))
+		writeSlots(b, "\t\t\t", l.Loadout(class, seat.Loadout))
 		b.WriteString("\t\t}\n")
 	}
 	b.WriteString("\t}\n")

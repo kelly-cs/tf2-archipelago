@@ -52,7 +52,14 @@ func Commands(before, after settings.Settings) []string {
 // loadoutFile is what the mod would read off disk for these settings, which is
 // the only thing sm_redbots_reseat exists to pick up.
 func loadoutFile(s settings.Settings) string {
-	return botloadout.Render(s.SrcdsBotLoadouts, botloadout.Seats(s.SrcdsBotTeamComp, s.SrcdsBotSeatLoadouts))
+	return LibraryOf(s).Render(s.SrcdsBotLoadouts, botloadout.Seats(s.SrcdsBotTeamComp, s.SrcdsBotSeatLoadouts))
+}
+
+// LibraryOf is the loadouts these settings can offer: the built-in presets and
+// whatever the player has built. One place builds it, so the file, the tab and
+// the convar cannot disagree about what a custom key means.
+func LibraryOf(s settings.Settings) botloadout.Library {
+	return botloadout.Library{Built: s.SrcdsBotCustomLoadouts}
 }
 
 // customLoadouts is whether the mod should read the loadout file at all, on the
@@ -60,7 +67,7 @@ func loadoutFile(s settings.Settings) string {
 // the convar has to agree or the mod looks for a file that is not there.
 func customLoadouts(s settings.Settings) int {
 	seats := botloadout.Seats(s.SrcdsBotTeamComp, s.SrcdsBotSeatLoadouts)
-	if botloadout.Custom(s.SrcdsBotLoadouts) || botloadout.CustomSeats(seats) {
+	if LibraryOf(s).Anything(s.SrcdsBotLoadouts, seats) {
 		return 1
 	}
 	return 0
