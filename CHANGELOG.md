@@ -9,6 +9,9 @@ in the release notes, so this file is the only place to write it.
 - Archipelago weapon buffs now stay active when players refund upgrades at an
   MvM station. They no longer appear as purchased, infinitely refundable MvM
   upgrade levels or stack again after repeated refunds.
+- Community maps download through Potato's HTTP host instead of the game
+  server's legacy file transfer, fixing Transmission reaching the end of its
+  download and starting over.
 
 ## v1.11.0
 
