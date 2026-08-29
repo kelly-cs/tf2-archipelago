@@ -166,8 +166,12 @@ install_server_cfg() {
 	sv_pausable 0
 	setpause 0
 
-	// A stock server refuses direct downloads larger than 16 MB. Potato maps
-	// such as Autumnull fit under Source's 64 MB direct-download cap.
+	// Send catalog maps over HTTP. SRCDS's legacy in-band transfer can reach
+	// the end of a large packed BSP without completing the client download,
+	// causing the same map request to repeat. Potato hosts every catalog BSP.
+	sv_downloadurl "https://testing.potato.tf/tf"
+	// Keep direct downloads enabled for server-local custom files that are not
+	// on the catalog host. Catalog maps fit under Source's 64 MB file-size cap.
 	sv_allowdownload 1
 	// Client uploads carry sprays and other player customization.
 	sv_allowupload 1

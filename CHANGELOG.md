@@ -6,6 +6,10 @@ in the release notes, so this file is the only place to write it.
 
 ## Unreleased
 
+- Community maps download through Potato's HTTP host instead of the game
+  server's legacy file transfer, fixing Transmission reaching the end of its
+  download and starting over.
+
 ## v1.11.0
 
 Change the bot team mid-run, build your own loadouts, scale robot health, and
