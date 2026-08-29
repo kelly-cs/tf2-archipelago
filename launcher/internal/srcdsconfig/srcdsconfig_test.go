@@ -48,6 +48,7 @@ func TestInstallServerCfg(t *testing.T) {
 	for name, want := range map[string]string{
 		"sv_allowdownload": "1",
 		"sv_allowupload":   "1",
+		"sv_downloadurl":   `"https://testing.potato.tf/tf"`,
 		"net_maxfilesize":  "64",
 	} {
 		if got := directive(body, name); got != want {
