@@ -5,7 +5,7 @@ compiles. A patch that no longer applies fails the build. That is the signal
 to rebase it on the new upstream, or to drop it because upstream fixed it.
 
 The defender mod is not here. Our changes to it live in the fork,
-`m-this/tf2-mvm-bots`, on its `tf2ap` branch. `DEFENDERBOTS_VERSION` names a
+`DEFENDERBOTS_REPO`, on its integration branch. `DEFENDERBOTS_VERSION` names a
 tag of that branch. To take a new upstream release, rebase `tf2ap` on the new
 upstream tag, tag the result, and bump `DEFENDERBOTS_VERSION`.
 
