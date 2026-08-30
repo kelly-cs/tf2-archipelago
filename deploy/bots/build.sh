@@ -177,6 +177,30 @@ fi
 
 # --- The extensions ---
 
+# TF2Items' last official binary predates the current GiveNamedItem vtable
+# offset.  Keep the binary pinned, then install our reviewed current gamedata
+# below instead of the stale copy in these archives.
+if [ ! -f "$work/prebuilt/tf2items-linux/addons/sourcemod/extensions/tf2items.ext.2.ep2v.so" ] \
+	|| [ ! -f "$work/prebuilt/tf2items-windows/addons/sourcemod/extensions/tf2items.ext.2.ep2v.dll" ]; then
+	rm -rf "$work/prebuilt/tf2items-linux" "$work/prebuilt/tf2items-windows"
+	mkdir -p "$work/prebuilt/tf2items-linux" "$work/prebuilt/tf2items-windows"
+	echo "fetching TF2Items $TF2ITEMS_VERSION"
+	curl -fsSL -o "$work/tf2items-linux.zip" \
+		"https://builds.limetech.org/files/tf2items-$TF2ITEMS_VERSION-linux.zip"
+	curl -fsSL -o "$work/tf2items-windows.zip" \
+		"https://builds.limetech.org/files/tf2items-$TF2ITEMS_VERSION-windows.zip"
+	unzip -oq "$work/tf2items-linux.zip" -d "$work/prebuilt/tf2items-linux"
+	unzip -oq "$work/tf2items-windows.zip" -d "$work/prebuilt/tf2items-windows"
+	rm -f "$work/tf2items-linux.zip" "$work/tf2items-windows.zip"
+fi
+
+cp "$work/prebuilt/tf2items-linux/addons/sourcemod/extensions/tf2items.ext.2.ep2v.so" \
+	"$work/prebuilt/tf2items-windows/addons/sourcemod/extensions/tf2items.ext.2.ep2v.dll" \
+	"$out/addons/sourcemod/extensions/"
+cp "$work/prebuilt/tf2items-linux/addons/sourcemod/extensions/tf2items.autoload" \
+	"$out/addons/sourcemod/extensions/"
+cp "$root/deploy/bots/tf2.items.txt" "$out/addons/sourcemod/gamedata/"
+
 if [ "${BOTS_BUILD_EXTENSIONS:-0}" = 1 ]; then
 	BOTS_WORK="$work" BOTS_OUT="$out" sh "$root/deploy/bots/build-extensions.sh"
 else

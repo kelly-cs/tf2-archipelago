@@ -1358,6 +1358,107 @@ public Action Command_WeaponBuffs(int client, int args)
     return Plugin_Handled;
 }
 
+// Give a genuine CEconItemView so decorated definitions exercise their schema
+// attributes as well as our definition lookup.  Mutating a stock entity's
+// m_iItemDefinitionIndex would only test the latter and can hide reskin bugs.
+public Action Command_GiveTestWeapon(int client, int args)
+{
+    if ((client == 0 && args != 2) || (client != 0 && args < 1) || args > 2)
+    {
+        ReplyToCommand(client, "[AP weapon] Usage: sm_ap_weapon_give [target] <definition>");
+        return Plugin_Handled;
+    }
+
+    int target = client;
+    char definitionArg[16];
+    if (args == 2)
+    {
+        char pattern[MAX_TARGET_LENGTH];
+        GetCmdArg(1, pattern, sizeof(pattern));
+        target = FindTarget(client, pattern, true, false);
+        GetCmdArg(2, definitionArg, sizeof(definitionArg));
+    }
+    else
+    {
+        GetCmdArg(1, definitionArg, sizeof(definitionArg));
+    }
+    if (target < 1 || target > MaxClients || !IsClientInGame(target))
+    {
+        return Plugin_Handled;
+    }
+    if (!IsPlayerAlive(target))
+    {
+        ReplyToCommand(client, "[AP weapon] %N must be alive.", target);
+        return Plugin_Handled;
+    }
+
+    int definition = StringToInt(definitionArg);
+    int weapon = WeaponBuffs_ForDefinition(definition);
+    if (GetFeatureStatus(FeatureType_Native, "TF2Items_GiveNamedItem") != FeatureStatus_Available)
+    {
+        ReplyToCommand(client, "[AP weapon] TF2Items is unavailable; check the SourceMod extension log.");
+        return Plugin_Handled;
+    }
+    if (GetFeatureStatus(FeatureType_Native, "TF2Econ_IsValidItemDefinition") != FeatureStatus_Available)
+    {
+        ReplyToCommand(client, "[AP weapon] TF Econ Data is unavailable; check the SourceMod plugin log.");
+        return Plugin_Handled;
+    }
+    if (definition <= 0 || weapon < 0 || !TF2Econ_IsValidItemDefinition(definition))
+    {
+        ReplyToCommand(client, "[AP weapon] Definition %d is not a supported weapon.", definition);
+        return Plugin_Handled;
+    }
+
+    TFClassType playerClass = TF2_GetPlayerClass(target);
+    int slot = TF2Econ_GetItemLoadoutSlot(definition, playerClass);
+    char classname[64];
+    if (slot < 0 || !TF2Econ_GetItemClassName(definition, classname, sizeof(classname)))
+    {
+        ReplyToCommand(client, "[AP weapon] Definition %d cannot be equipped by %N's current class.",
+            definition, target);
+        return Plugin_Handled;
+    }
+    TF2Econ_TranslateWeaponEntForClass(classname, sizeof(classname), playerClass);
+    int previous = GetPlayerWeaponSlot(target, slot);
+
+    int minLevel;
+    int maxLevel;
+    if (!TF2Econ_GetItemLevelRange(definition, minLevel, maxLevel))
+    {
+        minLevel = 1;
+    }
+    Handle item = TF2Items_CreateItem(OVERRIDE_ALL | FORCE_GENERATION);
+    TF2Items_SetClassname(item, classname);
+    TF2Items_SetItemIndex(item, definition);
+    TF2Items_SetQuality(item, TF2Econ_GetItemQuality(definition));
+    TF2Items_SetLevel(item, minLevel);
+    TF2Items_SetNumAttributes(item, 0);
+
+    int entity = TF2Items_GiveNamedItem(target, item);
+    delete item;
+    if (entity <= MaxClients || !IsValidEntity(entity))
+    {
+        ReplyToCommand(client, "[AP weapon] TF2 rejected definition %d for %N.", definition, target);
+        return Plugin_Handled;
+    }
+
+    if (previous > MaxClients && previous != entity && IsValidEntity(previous))
+    {
+        RemovePlayerItem(target, previous);
+        AcceptEntityInput(previous, "Kill");
+    }
+    EquipPlayerWeapon(target, entity);
+    if (g_WeaponBuffWaveActive)
+    {
+        WeaponBuffs_ApplyEntity(entity, weapon);
+    }
+    ReplyToCommand(client,
+        "[AP weapon] Gave %N definition=%d class=%s slot=%d catalog=%s. It is now active.",
+        target, definition, classname, slot, g_WeaponNames[weapon]);
+    return Plugin_Handled;
+}
+
 // Report the live definition lookup separately from attribute installation.
 // A reskin problem otherwise looks identical to TF2 rejecting an attribute:
 // both only show up to the player as a missing effect.

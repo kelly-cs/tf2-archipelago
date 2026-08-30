@@ -19,6 +19,8 @@
 #include <tf2_stocks>
 #include <ripext>
 #include <tf2attributes>
+#include <tf2items>
+#include <tf_econ_data>
 
 #include "tf2_archipelago/log.inc"
 #include "tf2_archipelago/mvm.inc"
@@ -151,6 +153,8 @@ public void OnPluginStart()
         "Toggle projectile diagnostics: sm_ap_projectile_debug [on|off]");
     RegAdminCmd("sm_ap_buff_debug", Command_WeaponBuffDebug, ADMFLAG_ROOT,
         "Inspect live weapon buff resolution: sm_ap_buff_debug [target]");
+    RegAdminCmd("sm_ap_weapon_give", Command_GiveTestWeapon, ADMFLAG_ROOT,
+        "Give an exact item definition: sm_ap_weapon_give [target] <definition>");
     RegAdminCmd("sm_ap_unlock_override", Command_UnlockOverride, ADMFLAG_ROOT,
         "Temporarily allow every class and weapon slot: sm_ap_unlock_override <on|off>");
 
