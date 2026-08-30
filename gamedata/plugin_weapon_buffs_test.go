@@ -74,3 +74,28 @@ func TestWeaponBuffsStayOutOfMvMShopping(t *testing.T) {
 		}
 	}
 }
+
+func TestActiveHealthRegenUsesTheActiveWeaponDuringAWave(t *testing.T) {
+	buffs := "../plugin/scripting/tf2_archipelago/weapon_buffs.inc"
+	init := sourceFunction(t, buffs, "void WeaponBuffs_Init()")
+	if !strings.Contains(init, "CreateTimer(1.0, WeaponBuffs_HealthRegenTick") {
+		t.Fatal("active health regeneration has no one-second timer")
+	}
+	tick := sourceFunction(t, buffs, "public Action WeaponBuffs_HealthRegenTick")
+	for _, required := range []string{
+		"!g_HaveUnlocks || !g_WeaponBuffWaveActive",
+		`GetEntPropEnt(client, Prop_Send, "m_hActiveWeapon")`,
+		"g_WeaponEffectLevels[weapon][ActiveHealthRegenEffect]",
+		"TF2Util_GetEntityMaxHealth(client)",
+		"health < maxHealth",
+		"TF2Util_TakeHealth(client",
+	} {
+		if !strings.Contains(tick, required) {
+			t.Fatalf("active health regeneration is missing %q", required)
+		}
+	}
+	apply := sourceFunction(t, buffs, "static void WeaponBuffs_ApplyEntity")
+	if !strings.Contains(apply, "effect == ActiveHealthRegenEffect") {
+		t.Fatal("broken native active-health-regen attribute is still applied")
+	}
+}

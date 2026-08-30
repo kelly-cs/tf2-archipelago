@@ -7,6 +7,7 @@
 #define GasolineEffect 15
 #define MarkForDeathEffect 16
 #define JarateEffect 60
+#define ActiveHealthRegenEffect 66
 
 #define BuffMode_Add 1
 #define BuffMode_Percentage 2
@@ -70,6 +71,7 @@ void WeaponBuffs_Init()
     {
         HookUserMessage(jarated, WeaponBuffs_PlayerJarated);
     }
+    CreateTimer(1.0, WeaponBuffs_HealthRegenTick, _, TIMER_REPEAT);
     for (int client = 1; client <= MaxClients; client++)
     {
         if (IsClientInGame(client))
@@ -77,6 +79,36 @@ void WeaponBuffs_Init()
             WeaponBuffs_HookClient(client);
         }
     }
+}
+
+public Action WeaponBuffs_HealthRegenTick(Handle timer)
+{
+    if (!g_HaveUnlocks || !g_WeaponBuffWaveActive)
+    {
+        return Plugin_Continue;
+    }
+    for (int client = 1; client <= MaxClients; client++)
+    {
+        if (!MvM_IsPlayer(client) || !IsPlayerAlive(client))
+        {
+            continue;
+        }
+        int entity = GetEntPropEnt(client, Prop_Send, "m_hActiveWeapon");
+        int weapon = WeaponBuffs_ForEntity(entity);
+        if (weapon < 0)
+        {
+            continue;
+        }
+        int levels = g_WeaponEffectLevels[weapon][ActiveHealthRegenEffect];
+        int health = GetClientHealth(client);
+        int maxHealth = TF2Util_GetEntityMaxHealth(client);
+        if (levels > 0 && health < maxHealth)
+        {
+            TF2Util_TakeHealth(client,
+                g_WeaponEffectIncrements[ActiveHealthRegenEffect] * float(levels));
+        }
+    }
+    return Plugin_Continue;
 }
 
 static void WeaponBuffs_InitProjectileCalls()
@@ -1150,7 +1182,11 @@ static void WeaponBuffs_ApplyEntity(int entity, int weapon)
     for (int effect = 0; effect < WeaponEffectCount; effect++)
     {
         int levels = g_WeaponEffectLevels[weapon][effect];
-        if (levels == 0)
+        // TF2's attribute repeatedly announces healing but can clamp it below
+        // a simultaneous max-health bonus. The timer above applies only our
+        // contribution through CBaseEntity::TakeHealth, whose maximum includes
+        // every active attribute and MvM upgrade.
+        if (levels == 0 || effect == ActiveHealthRegenEffect)
         {
             continue;
         }

@@ -19,6 +19,7 @@
 #include <tf2_stocks>
 #include <ripext>
 #include <tf2attributes>
+#include <tf2utils>
 
 #include "tf2_archipelago/log.inc"
 #include "tf2_archipelago/mvm.inc"
