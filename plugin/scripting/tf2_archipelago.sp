@@ -320,6 +320,7 @@ public Action Command_Say(int client, const char[] command, int argc)
 public void OnMapStart()
 {
     WeaponBuffs_EndWave();
+    WeaponBuffs_OnMapStart();
     g_CurrentWave = 0;
     g_MaxWaves = 0;
     g_PolledWave = 0;

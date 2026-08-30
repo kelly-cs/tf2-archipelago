@@ -19,6 +19,10 @@ int g_WeaponBuffAppliedLevels[2049][WeaponEffectCount];
 float g_WeaponBuffAppliedValue[2049][WeaponEffectCount];
 bool g_WeaponBuffBasePresent[2049][WeaponEffectCount];
 float g_WeaponBuffBaseValue[2049][WeaponEffectCount];
+// Admin test grants belong to one concrete weapon entity. Real Archipelago
+// levels above remain canonical and server-wide.
+int g_WeaponBuffTestRef[2049];
+int g_WeaponBuffTestLevels[2049][WeaponEffectCount];
 bool g_WeaponBuffWaveActive;
 ConVar g_WeaponBuffProjectileDebug;
 bool g_WeaponBuffFiringExtra;
@@ -36,6 +40,7 @@ float g_WeaponBuffArrowOrigin[2049][3];
 int g_WeaponBuffStickyMimic[2049];
 int g_WeaponBuffLastButtons[MAXPLAYERS + 1];
 int g_WeaponBuffLastSubstanceWeapon[MAXPLAYERS + 1];
+int g_WeaponBuffLastSubstanceEntity[MAXPLAYERS + 1];
 float g_WeaponBuffLastSubstanceTime[MAXPLAYERS + 1];
 #define ProjectileDebugLineCount 24
 char g_WeaponBuffProjectileLines[ProjectileDebugLineCount][256];
@@ -151,6 +156,7 @@ void WeaponBuffs_HookClient(int client)
 {
     g_WeaponBuffLastButtons[client] = 0;
     g_WeaponBuffLastSubstanceWeapon[client] = -1;
+    g_WeaponBuffLastSubstanceEntity[client] = INVALID_ENT_REFERENCE;
     g_WeaponBuffLastSubstanceTime[client] = 0.0;
     SDKUnhook(client, SDKHook_OnTakeDamagePost, WeaponBuffs_OnTakeDamagePost);
     SDKHook(client, SDKHook_OnTakeDamagePost, WeaponBuffs_OnTakeDamagePost);
@@ -224,6 +230,7 @@ public void WeaponBuffs_SubstanceProjectileSpawned(int entity)
         return;
     }
     g_WeaponBuffLastSubstanceWeapon[owner] = weapon;
+    g_WeaponBuffLastSubstanceEntity[owner] = EntIndexToEntRef(launcher);
     g_WeaponBuffLastSubstanceTime[owner] = GetGameTime();
 }
 
@@ -251,6 +258,7 @@ public Action WeaponBuffs_PlayerJarated(UserMsg msgId, BfRead message,
     pack.WriteCell(GetClientUserId(attacker));
     pack.WriteCell(GetClientUserId(victim));
     pack.WriteCell(weapon);
+    pack.WriteCell(g_WeaponBuffLastSubstanceEntity[attacker]);
     RequestFrame(WeaponBuffs_ApplySubstances, pack);
     return Plugin_Continue;
 }
@@ -262,6 +270,7 @@ public void WeaponBuffs_ApplySubstances(any rawPack)
     int attacker = GetClientOfUserId(pack.ReadCell());
     int victim = GetClientOfUserId(pack.ReadCell());
     int weapon = pack.ReadCell();
+    int launcher = EntRefToEntIndex(pack.ReadCell());
     delete pack;
     if (attacker < 1 || attacker > MaxClients || victim < 1 || victim > MaxClients
         || !IsClientInGame(attacker) || !IsClientInGame(victim) || !IsPlayerAlive(victim)
@@ -271,11 +280,11 @@ public void WeaponBuffs_ApplySubstances(any rawPack)
         return;
     }
 
-    int bleed = g_WeaponEffectLevels[weapon][BleedEffect];
-    int milk = g_WeaponEffectLevels[weapon][MadMilkEffect];
-    int gas = g_WeaponEffectLevels[weapon][GasolineEffect];
-    int marked = g_WeaponEffectLevels[weapon][MarkForDeathEffect];
-    int jarate = g_WeaponEffectLevels[weapon][JarateEffect];
+    int bleed = WeaponBuffs_EffectLevels(launcher, weapon, BleedEffect);
+    int milk = WeaponBuffs_EffectLevels(launcher, weapon, MadMilkEffect);
+    int gas = WeaponBuffs_EffectLevels(launcher, weapon, GasolineEffect);
+    int marked = WeaponBuffs_EffectLevels(launcher, weapon, MarkForDeathEffect);
+    int jarate = WeaponBuffs_EffectLevels(launcher, weapon, JarateEffect);
     if (bleed > 0)
     {
         TF2_MakeBleed(victim, attacker, 3.0 * float(bleed));
@@ -308,6 +317,11 @@ public void OnEntityDestroyed(int entity)
 {
     if (entity > MaxClients && entity < sizeof(g_WeaponBuffNativeExtra))
     {
+        g_WeaponBuffTestRef[entity] = INVALID_ENT_REFERENCE;
+        for (int effect = 0; effect < WeaponEffectCount; effect++)
+        {
+            g_WeaponBuffTestLevels[entity][effect] = 0;
+        }
         int mimic = EntRefToEntIndex(g_WeaponBuffStickyMimic[entity]);
         g_WeaponBuffStickyMimic[entity] = 0;
         if (mimic > MaxClients && IsValidEntity(mimic))
@@ -869,7 +883,7 @@ static void WeaponBuffs_FireExtraProjectiles(any reference)
         }
         return;
     }
-    int copies = g_WeaponEffectLevels[weapon][ProjectileCountEffect];
+    int copies = WeaponBuffs_EffectLevels(launcher, weapon, ProjectileCountEffect);
     if (copies <= 0)
     {
         if (g_WeaponBuffProjectileDebug.BoolValue)
@@ -1024,7 +1038,7 @@ public void WeaponBuffs_OnTakeDamagePost(int victim, int attacker, int inflictor
         weapon = GetEntPropEnt(attacker, Prop_Send, "m_hActiveWeapon");
     }
     int catalog = WeaponBuffs_ForEntity(weapon);
-    if (catalog >= 0 && g_WeaponEffectLevels[catalog][IgniteEffect] > 0)
+    if (catalog >= 0 && WeaponBuffs_EffectLevels(weapon, catalog, IgniteEffect) > 0)
     {
         TF2_IgnitePlayer(victim, attacker);
     }
@@ -1060,7 +1074,8 @@ public Action Command_ProjectileDebug(int client, int args)
         int weapon = WeaponBuffs_ForEntity(entity);
         char classname[64];
         GetEntityClassname(entity, classname, sizeof(classname));
-        int levels = weapon >= 0 ? g_WeaponEffectLevels[weapon][ProjectileCountEffect] : 0;
+        int levels = weapon >= 0
+            ? WeaponBuffs_EffectLevels(entity, weapon, ProjectileCountEffect) : 0;
         ReplyToCommand(client, "[AP] Active entity=%d class=%s catalog=%d projectile-count=%d.",
             entity, classname, weapon, levels);
     }
@@ -1082,6 +1097,18 @@ void WeaponBuffs_Clear()
         }
     }
     g_WeaponBuffWaveActive = wasWaveActive;
+}
+
+void WeaponBuffs_OnMapStart()
+{
+    for (int entity = MaxClients + 1; entity < sizeof(g_WeaponBuffTestRef); entity++)
+    {
+        g_WeaponBuffTestRef[entity] = INVALID_ENT_REFERENCE;
+        for (int effect = 0; effect < WeaponEffectCount; effect++)
+        {
+            g_WeaponBuffTestLevels[entity][effect] = 0;
+        }
+    }
 }
 
 bool WeaponBuffs_Grant(const char[] key)
@@ -1129,6 +1156,23 @@ static int WeaponBuffs_ForEntity(int entity)
     return WeaponBuffs_ForDefinition(GetEntProp(entity, Prop_Send, "m_iItemDefinitionIndex"));
 }
 
+static int WeaponBuffs_EffectLevels(int entity, int weapon, int effect)
+{
+    int global = g_WeaponEffectLevels[weapon][effect];
+    int local;
+    if (entity > MaxClients && entity < sizeof(g_WeaponBuffTestRef)
+        && IsValidEntity(entity)
+        && g_WeaponBuffTestRef[entity] == EntIndexToEntRef(entity))
+    {
+        local = g_WeaponBuffTestLevels[entity][effect];
+    }
+    if (g_WeaponEffectModes[effect] == BuffMode_Toggle)
+    {
+        return global > 0 || local > 0 ? 1 : 0;
+    }
+    return global + local;
+}
+
 // Upgrade-station values are composed first. A matching previous result means
 // only newly received levels are added; a different value means TF2 rebuilt
 // the attribute and the complete Archipelago contribution is added again.
@@ -1149,7 +1193,7 @@ static void WeaponBuffs_ApplyEntity(int entity, int weapon)
 
     for (int effect = 0; effect < WeaponEffectCount; effect++)
     {
-        int levels = g_WeaponEffectLevels[weapon][effect];
+        int levels = WeaponBuffs_EffectLevels(entity, weapon, effect);
         if (levels == 0)
         {
             continue;
@@ -1312,14 +1356,15 @@ bool WeaponBuffs_ShowMenu(int client)
     int listed;
     for (int slot = 0; slot <= 5; slot++)
     {
-        int weapon = WeaponBuffs_ForEntity(GetPlayerWeaponSlot(client, slot));
+        int entity = GetPlayerWeaponSlot(client, slot);
+        int weapon = WeaponBuffs_ForEntity(entity);
         if (weapon < 0)
         {
             continue;
         }
         for (int effect = 0; effect < WeaponEffectCount; effect++)
         {
-            int levels = g_WeaponEffectLevels[weapon][effect];
+            int levels = WeaponBuffs_EffectLevels(entity, weapon, effect);
             if (levels == 0)
             {
                 continue;
@@ -1358,8 +1403,17 @@ public Action Command_WeaponBuffs(int client, int args)
     return Plugin_Handled;
 }
 
-static int WeaponBuffs_AddTestEffects(int weapon, const char[] wanted, int levels)
+static int WeaponBuffs_AddTestEffects(int entity, const char[] wanted, int levels)
 {
+    int reference = EntIndexToEntRef(entity);
+    if (g_WeaponBuffTestRef[entity] != reference)
+    {
+        for (int effect = 0; effect < WeaponEffectCount; effect++)
+        {
+            g_WeaponBuffTestLevels[entity][effect] = 0;
+        }
+        g_WeaponBuffTestRef[entity] = reference;
+    }
     int granted;
     for (int effect = 0; effect < WeaponEffectCount; effect++)
     {
@@ -1370,8 +1424,8 @@ static int WeaponBuffs_AddTestEffects(int weapon, const char[] wanted, int level
         {
             continue;
         }
-        g_WeaponEffectLevels[weapon][effect] = g_WeaponEffectModes[effect] == BuffMode_Toggle
-            ? 1 : g_WeaponEffectLevels[weapon][effect] + levels;
+        g_WeaponBuffTestLevels[entity][effect] = g_WeaponEffectModes[effect] == BuffMode_Toggle
+            ? 1 : g_WeaponBuffTestLevels[entity][effect] + levels;
         granted++;
     }
     return granted;
@@ -1407,13 +1461,13 @@ public Action Command_TestWeaponBuff(int client, int args)
         levels = StringToInt(rawLevels);
         if (levels < 1) levels = 1;
     }
-    int granted = WeaponBuffs_AddTestEffects(weapon, wanted, levels);
+    int granted = WeaponBuffs_AddTestEffects(entity, wanted, levels);
     if (granted == 0)
     {
         ReplyToCommand(client, "[AP] Unknown effect %s. Use 1-%d or an effect key.", wanted, WeaponEffectCount);
         return Plugin_Handled;
     }
-    WeaponBuffs_ApplyEntity(entity, weapon);
+    WeaponBuffs_Apply(client);
     ReplyToCommand(client, "[AP] Applied %d test effect(s) to %s.", granted, g_WeaponNames[weapon]);
     WeaponBuffs_ShowMenu(client);
     return Plugin_Handled;
@@ -1462,7 +1516,7 @@ public Action Command_GiveWeaponBuff(int client, int args)
         if (levels < 1) levels = 1;
     }
 
-    int granted = WeaponBuffs_AddTestEffects(weapon, wanted, levels);
+    int granted = WeaponBuffs_AddTestEffects(entity, wanted, levels);
     if (granted == 0)
     {
         ReplyToCommand(client, "[AP] Unknown effect %s. Use 1-%d or an effect key.",
@@ -1470,7 +1524,7 @@ public Action Command_GiveWeaponBuff(int client, int args)
         return Plugin_Handled;
     }
 
-    WeaponBuffs_ApplyEntity(entity, weapon);
+    WeaponBuffs_Apply(target);
     ReplyToCommand(client, "[AP] Applied %d test effect(s) to %N's %s.",
         granted, target, g_WeaponNames[weapon]);
     if (client != target)

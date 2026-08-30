@@ -74,3 +74,49 @@ func TestWeaponBuffsStayOutOfMvMShopping(t *testing.T) {
 		}
 	}
 }
+
+func TestAdminWeaponBuffGrantIsEntityLocal(t *testing.T) {
+	buffs := "../plugin/scripting/tf2_archipelago/weapon_buffs.inc"
+	add := sourceFunction(t, buffs, "static int WeaponBuffs_AddTestEffects")
+	if !strings.Contains(add, "g_WeaponBuffTestLevels[entity][effect]") {
+		t.Fatal("admin test grant is not stored against the target weapon entity")
+	}
+	if strings.Contains(add, "g_WeaponEffectLevels[weapon][effect]") {
+		t.Fatal("admin test grant still changes the server-wide Archipelago levels")
+	}
+
+	levels := sourceFunction(t, buffs, "static int WeaponBuffs_EffectLevels")
+	for _, required := range []string{
+		"g_WeaponEffectLevels[weapon][effect]",
+		"g_WeaponBuffTestRef[entity] == EntIndexToEntRef(entity)",
+		"g_WeaponBuffTestLevels[entity][effect]",
+	} {
+		if !strings.Contains(levels, required) {
+			t.Fatalf("combined level lookup is missing %q", required)
+		}
+	}
+
+	grant := sourceFunction(t, buffs, "bool WeaponBuffs_Grant")
+	if !strings.Contains(grant, "g_WeaponEffectLevels[weapon][effect]") ||
+		strings.Contains(grant, "g_WeaponBuffTestLevels") {
+		t.Fatal("real Archipelago grants no longer use only the canonical global levels")
+	}
+	give := sourceFunction(t, buffs, "public Action Command_GiveWeaponBuff")
+	for _, required := range []string{
+		"WeaponBuffs_AddTestEffects(entity, wanted, levels)",
+		"WeaponBuffs_Apply(target)",
+	} {
+		if !strings.Contains(give, required) {
+			t.Fatalf("targeted grant is missing %q", required)
+		}
+	}
+	destroyed := sourceFunction(t, buffs, "public void OnEntityDestroyed")
+	if !strings.Contains(destroyed, "g_WeaponBuffTestRef[entity] = INVALID_ENT_REFERENCE") ||
+		!strings.Contains(destroyed, "g_WeaponBuffTestLevels[entity][effect] = 0") {
+		t.Fatal("entity replacement does not discard its targeted test grants")
+	}
+	mapStart := sourceFunction(t, "../plugin/scripting/tf2_archipelago.sp", "public void OnMapStart")
+	if !strings.Contains(mapStart, "WeaponBuffs_OnMapStart()") {
+		t.Fatal("map start does not clear targeted test grants")
+	}
+}
