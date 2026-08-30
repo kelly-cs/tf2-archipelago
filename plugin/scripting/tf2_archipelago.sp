@@ -19,6 +19,7 @@
 #include <tf2_stocks>
 #include <ripext>
 #include <tf2attributes>
+#include <tf2utils>
 
 #include "tf2_archipelago/log.inc"
 #include "tf2_archipelago/mvm.inc"
@@ -389,6 +390,7 @@ public void Event_MissionComplete(Event event, const char[] name, bool dontBroad
 // mission's check is in.
 public void Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 {
+    WeaponBuffs_PlayerDeath(event);
     if (g_GiantReported || !MvM_IsActive())
     {
         return;

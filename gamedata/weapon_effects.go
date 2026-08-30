@@ -85,4 +85,8 @@ var WeaponEffects = []WeaponEffect{
 	{78, "reveal-cloaked", "reveal cloaked victim on hit", 1.00, BuffToggle, "reveals cloaked victims on hit"},
 	{79, "reveal-disguised", "reveal disguised victim on hit", 1.00, BuffToggle, "reveals disguised victims on hit"},
 	{80, "speed-on-hit", "speed_boost_on_hit_enemy", 1.00, BuffToggle, "speed boost on hitting an enemy"},
+	// Plugin-owned effect: this is intentionally not a TF2 item-schema
+	// attribute. On a melee kill it lets the weapon's total heal-on-kill value
+	// carry health above the normal maximum, up to this additional cap.
+	{81, "melee-kill-overheal", "tf2ap melee kill overheal", 15.00, BuffAdd, "+15 health-on-kill overheal cap"},
 }

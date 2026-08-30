@@ -259,6 +259,8 @@ func weaponEffectEligible(weapon BuffWeapon, effect WeaponEffect) bool {
 		return meterWeapons[name]
 	case "gesture-speed":
 		return consumables[name]
+	case "melee-kill-overheal":
+		return meleeWeapons[name]
 	default:
 		return true
 	}

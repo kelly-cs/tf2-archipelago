@@ -7,6 +7,7 @@
 #define GasolineEffect 15
 #define MarkForDeathEffect 16
 #define JarateEffect 60
+#define MeleeKillOverhealEffect 80
 
 #define BuffMode_Add 1
 #define BuffMode_Percentage 2
@@ -37,6 +38,9 @@ int g_WeaponBuffStickyMimic[2049];
 int g_WeaponBuffLastButtons[MAXPLAYERS + 1];
 int g_WeaponBuffLastSubstanceWeapon[MAXPLAYERS + 1];
 float g_WeaponBuffLastSubstanceTime[MAXPLAYERS + 1];
+int g_WeaponBuffLastDamageAttacker[MAXPLAYERS + 1];
+int g_WeaponBuffLastDamageWeapon[MAXPLAYERS + 1];
+int g_WeaponBuffLastDamageAttackerHealth[MAXPLAYERS + 1];
 #define ProjectileDebugLineCount 24
 char g_WeaponBuffProjectileLines[ProjectileDebugLineCount][256];
 int g_WeaponBuffProjectileLineNext;
@@ -152,8 +156,108 @@ void WeaponBuffs_HookClient(int client)
     g_WeaponBuffLastButtons[client] = 0;
     g_WeaponBuffLastSubstanceWeapon[client] = -1;
     g_WeaponBuffLastSubstanceTime[client] = 0.0;
+    g_WeaponBuffLastDamageAttacker[client] = 0;
+    g_WeaponBuffLastDamageWeapon[client] = INVALID_ENT_REFERENCE;
+    g_WeaponBuffLastDamageAttackerHealth[client] = 0;
+    SDKUnhook(client, SDKHook_OnTakeDamage, WeaponBuffs_OnTakeDamage);
+    SDKHook(client, SDKHook_OnTakeDamage, WeaponBuffs_OnTakeDamage);
     SDKUnhook(client, SDKHook_OnTakeDamagePost, WeaponBuffs_OnTakeDamagePost);
     SDKHook(client, SDKHook_OnTakeDamagePost, WeaponBuffs_OnTakeDamagePost);
+}
+
+public Action WeaponBuffs_OnTakeDamage(int victim, int &attacker, int &inflictor,
+    float &damage, int &damagetype, int &weapon, float damageForce[3],
+    float damagePosition[3], int damagecustom)
+{
+    if (victim >= 1 && victim <= MaxClients && attacker >= 1 && attacker <= MaxClients
+        && victim != attacker && IsClientInGame(attacker)
+        && GetClientTeam(victim) != GetClientTeam(attacker))
+    {
+        if ((weapon <= MaxClients || !IsValidEntity(weapon)) && inflictor > MaxClients
+            && IsValidEntity(inflictor) && HasEntProp(inflictor, Prop_Send, "m_hLauncher"))
+        {
+            weapon = GetEntPropEnt(inflictor, Prop_Send, "m_hLauncher");
+        }
+        if ((weapon <= MaxClients || !IsValidEntity(weapon)) && IsPlayerAlive(attacker))
+        {
+            weapon = GetEntPropEnt(attacker, Prop_Send, "m_hActiveWeapon");
+        }
+        g_WeaponBuffLastDamageAttacker[victim] = GetClientUserId(attacker);
+        g_WeaponBuffLastDamageWeapon[victim] = EntIndexToEntRef(weapon);
+        g_WeaponBuffLastDamageAttackerHealth[victim] = GetClientHealth(attacker);
+    }
+    return Plugin_Continue;
+}
+
+// Valve applies the weapon's normal heal-on-kill first and clamps it at the
+// class maximum. The next frame carries only the otherwise-lost part into the
+// explicit Archipelago overheal allowance. This composes with both station and
+// run heal-on-kill values without replacing either one.
+void WeaponBuffs_PlayerDeath(Event event)
+{
+    int attacker = GetClientOfUserId(event.GetInt("attacker"));
+    int victim = GetClientOfUserId(event.GetInt("userid"));
+    if (!g_HaveUnlocks || !g_WeaponBuffWaveActive || !MvM_IsPlayer(attacker)
+        || attacker == victim || !IsPlayerAlive(attacker))
+    {
+        return;
+    }
+    if (victim < 1 || victim > MaxClients
+        || g_WeaponBuffLastDamageAttacker[victim] != GetClientUserId(attacker))
+    {
+        return;
+    }
+    int entity = EntRefToEntIndex(g_WeaponBuffLastDamageWeapon[victim]);
+    int weapon = WeaponBuffs_ForEntity(entity);
+    if (weapon < 0)
+    {
+        return;
+    }
+    int levels = g_WeaponEffectLevels[weapon][MeleeKillOverhealEffect];
+    Address healing = TF2Attrib_GetByName(entity, "heal on kill");
+    if (levels <= 0 || healing == Address_Null)
+    {
+        return;
+    }
+    float heal = TF2Attrib_GetValue(healing);
+    if (heal <= 0.0)
+    {
+        return;
+    }
+    int maxHealth = TF2Util_GetEntityMaxHealth(attacker);
+    int limit = maxHealth + RoundToFloor(
+        g_WeaponEffectIncrements[MeleeKillOverhealEffect] * float(levels));
+    int target = g_WeaponBuffLastDamageAttackerHealth[victim] + RoundToFloor(heal);
+    if (target > limit)
+    {
+        target = limit;
+    }
+    if (target <= maxHealth)
+    {
+        return;
+    }
+    DataPack state = new DataPack();
+    state.WriteCell(GetClientUserId(attacker));
+    state.WriteCell(target);
+    RequestFrame(WeaponBuffs_ApplyKillOverheal, state);
+}
+
+public void WeaponBuffs_ApplyKillOverheal(any data)
+{
+    DataPack state = view_as<DataPack>(data);
+    state.Reset();
+    int client = GetClientOfUserId(state.ReadCell());
+    int target = state.ReadCell();
+    delete state;
+    if (!MvM_IsPlayer(client) || !IsPlayerAlive(client))
+    {
+        return;
+    }
+    int health = GetClientHealth(client);
+    if (health < target)
+    {
+        SetEntityHealth(client, target);
+    }
 }
 
 static bool WeaponBuffs_IsProjectile(const char[] classname)
@@ -1150,7 +1254,7 @@ static void WeaponBuffs_ApplyEntity(int entity, int weapon)
     for (int effect = 0; effect < WeaponEffectCount; effect++)
     {
         int levels = g_WeaponEffectLevels[weapon][effect];
-        if (levels == 0)
+        if (levels == 0 || effect == MeleeKillOverhealEffect)
         {
             continue;
         }

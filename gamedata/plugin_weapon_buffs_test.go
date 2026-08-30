@@ -74,3 +74,28 @@ func TestWeaponBuffsStayOutOfMvMShopping(t *testing.T) {
 		}
 	}
 }
+
+func TestMeleeKillOverhealComposesAfterNativeHealing(t *testing.T) {
+	buffs := "../plugin/scripting/tf2_archipelago/weapon_buffs.inc"
+	death := sourceFunction(t, buffs, "void WeaponBuffs_PlayerDeath")
+	for _, wanted := range []string{
+		"TF2Attrib_GetByName(entity, \"heal on kill\")",
+		"MeleeKillOverhealEffect",
+		"g_WeaponBuffLastDamageAttackerHealth[victim]",
+		"RequestFrame(WeaponBuffs_ApplyKillOverheal",
+	} {
+		if !strings.Contains(death, wanted) {
+			t.Fatalf("melee kill overheal setup does not contain %q", wanted)
+		}
+	}
+	apply := sourceFunction(t, buffs, "public void WeaponBuffs_ApplyKillOverheal")
+	for _, wanted := range []string{"SetEntityHealth", "health < target"} {
+		if !strings.Contains(apply, wanted) {
+			t.Fatalf("melee kill overheal application does not contain %q", wanted)
+		}
+	}
+	plugin := sourceFunction(t, "../plugin/scripting/tf2_archipelago.sp", "public void Event_PlayerDeath")
+	if !strings.Contains(plugin, "WeaponBuffs_PlayerDeath(event)") {
+		t.Fatal("player death does not invoke melee kill overheal")
+	}
+}

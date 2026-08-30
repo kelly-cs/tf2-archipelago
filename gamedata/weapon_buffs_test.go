@@ -129,6 +129,17 @@ func TestMechanicSpecificEffectsStayOnTheirWeapons(t *testing.T) {
 	}
 }
 
+func TestMeleeKillOverhealIsMeleeOnly(t *testing.T) {
+	for _, weapon := range BuffWeapons {
+		if weapon.ApplyID != weapon.ID {
+			continue
+		}
+		if got, want := buffNamed(t, weapon.Name, "melee-kill-overheal").Eligible, meleeWeapons[weapon.Name]; got != want {
+			t.Errorf("%s/melee-kill-overheal eligible = %t, want %t", weapon.Name, got, want)
+		}
+	}
+}
+
 func TestPassiveAndConsumableItemsDoNotDrawDamageBuffs(t *testing.T) {
 	for _, name := range []string{"Razorback", "Sandvich", "Bonk! Atomic Punch", "Medi Gun", "Buff Banner"} {
 		if buffNamed(t, name, "damage").Eligible {

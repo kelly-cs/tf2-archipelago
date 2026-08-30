@@ -1507,6 +1507,15 @@
       "eligible": true
     },
     {
+      "id": 7443035737,
+      "name": "Weapon Buff: Air Strike — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30737,
+      "stackable": true
+    },
+    {
       "id": 7443015258,
       "name": "Weapon Buff: Ali Baba's Wee Booties — +10% damage",
       "kind": "weapon_buff",
@@ -2206,6 +2215,15 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30482
+    },
+    {
+      "id": 7443035738,
+      "name": "Weapon Buff: Ali Baba's Wee Booties — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30738,
+      "stackable": true
     },
     {
       "id": 7443015259,
@@ -2949,6 +2967,15 @@
       "eligible": true
     },
     {
+      "id": 7443035739,
+      "name": "Weapon Buff: Ambassador — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30739,
+      "stackable": true
+    },
+    {
       "id": 7443015260,
       "name": "Weapon Buff: Amputator — +10% damage",
       "kind": "weapon_buff",
@@ -3681,6 +3708,16 @@
       "eligible": true
     },
     {
+      "id": 7443035740,
+      "name": "Weapon Buff: Amputator — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30740,
+      "stackable": true,
+      "eligible": true
+    },
+    {
       "id": 7443015261,
       "name": "Weapon Buff: Ap-Sap — +10% damage",
       "kind": "weapon_buff",
@@ -4382,6 +4419,15 @@
       "weapon_buff_id": 30485
     },
     {
+      "id": 7443035741,
+      "name": "Weapon Buff: Ap-Sap — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30741,
+      "stackable": true
+    },
+    {
       "id": 7443005006,
       "name": "Weapon Buff: Apoco-Fists — +10% damage",
       "kind": "weapon_buff",
@@ -5081,6 +5127,15 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30486
+    },
+    {
+      "id": 7443035742,
+      "name": "Weapon Buff: Apoco-Fists — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30742,
+      "stackable": true
     },
     {
       "id": 7443015263,
@@ -5815,6 +5870,16 @@
       "eligible": true
     },
     {
+      "id": 7443035743,
+      "name": "Weapon Buff: Atomizer — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30743,
+      "stackable": true,
+      "eligible": true
+    },
+    {
       "id": 7443015264,
       "name": "Weapon Buff: AWPer Hand — +10% damage",
       "kind": "weapon_buff",
@@ -6514,6 +6579,15 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30488
+    },
+    {
+      "id": 7443035744,
+      "name": "Weapon Buff: AWPer Hand — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30744,
+      "stackable": true
     },
     {
       "id": 7443015265,
@@ -7250,6 +7324,16 @@
       "eligible": true
     },
     {
+      "id": 7443035745,
+      "name": "Weapon Buff: Axtinguisher — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30745,
+      "stackable": true,
+      "eligible": true
+    },
+    {
       "id": 7443015266,
       "name": "Weapon Buff: B.A.S.E. Jumper — +10% damage",
       "kind": "weapon_buff",
@@ -7949,6 +8033,15 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30490
+    },
+    {
+      "id": 7443035746,
+      "name": "Weapon Buff: B.A.S.E. Jumper — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30746,
+      "stackable": true
     },
     {
       "id": 7443015267,
@@ -8690,6 +8783,15 @@
       "eligible": true
     },
     {
+      "id": 7443035747,
+      "name": "Weapon Buff: Baby Face's Blaster — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30747,
+      "stackable": true
+    },
+    {
       "id": 7443015268,
       "name": "Weapon Buff: Back Scatter — +10% damage",
       "kind": "weapon_buff",
@@ -9429,6 +9531,15 @@
       "eligible": true
     },
     {
+      "id": 7443035748,
+      "name": "Weapon Buff: Back Scatter — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30748,
+      "stackable": true
+    },
+    {
       "id": 7443015269,
       "name": "Weapon Buff: Back Scratcher — +10% damage",
       "kind": "weapon_buff",
@@ -10158,6 +10269,16 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30493,
+      "eligible": true
+    },
+    {
+      "id": 7443035749,
+      "name": "Weapon Buff: Back Scratcher — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30749,
+      "stackable": true,
       "eligible": true
     },
     {
@@ -10906,6 +11027,15 @@
       "eligible": true
     },
     {
+      "id": 7443035750,
+      "name": "Weapon Buff: Backburner — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30750,
+      "stackable": true
+    },
+    {
       "id": 7443015271,
       "name": "Weapon Buff: Bat — +10% damage",
       "kind": "weapon_buff",
@@ -11638,6 +11768,16 @@
       "eligible": true
     },
     {
+      "id": 7443035751,
+      "name": "Weapon Buff: Bat — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30751,
+      "stackable": true,
+      "eligible": true
+    },
+    {
       "id": 7443015272,
       "name": "Weapon Buff: Bat Outta Hell — +10% damage",
       "kind": "weapon_buff",
@@ -12337,6 +12477,15 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30496
+    },
+    {
+      "id": 7443035752,
+      "name": "Weapon Buff: Bat Outta Hell — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30752,
+      "stackable": true
     },
     {
       "id": 7443015273,
@@ -13046,6 +13195,15 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30497
+    },
+    {
+      "id": 7443035753,
+      "name": "Weapon Buff: Battalion's Backup — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30753,
+      "stackable": true
     },
     {
       "id": 7443015274,
@@ -13786,6 +13944,15 @@
       "count": 0,
       "weapon_buff_id": 30498,
       "eligible": true
+    },
+    {
+      "id": 7443035754,
+      "name": "Weapon Buff: Bazaar Bargain — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30754,
+      "stackable": true
     },
     {
       "id": 7443015275,
@@ -14534,6 +14701,15 @@
       "eligible": true
     },
     {
+      "id": 7443035755,
+      "name": "Weapon Buff: Beggar's Bazooka — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30755,
+      "stackable": true
+    },
+    {
       "id": 7443015276,
       "name": "Weapon Buff: Big Earner — +10% damage",
       "kind": "weapon_buff",
@@ -15268,6 +15444,16 @@
       "eligible": true
     },
     {
+      "id": 7443035756,
+      "name": "Weapon Buff: Big Earner — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30756,
+      "stackable": true,
+      "eligible": true
+    },
+    {
       "id": 7443005021,
       "name": "Weapon Buff: Big Kill — +10% damage",
       "kind": "weapon_buff",
@@ -15967,6 +16153,15 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30501
+    },
+    {
+      "id": 7443035757,
+      "name": "Weapon Buff: Big Kill — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30757,
+      "stackable": true
     },
     {
       "id": 7443015278,
@@ -16715,6 +16910,15 @@
       "eligible": true
     },
     {
+      "id": 7443035758,
+      "name": "Weapon Buff: Black Box — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30758,
+      "stackable": true
+    },
+    {
       "id": 7443015279,
       "name": "Weapon Buff: Black Rose — +10% damage",
       "kind": "weapon_buff",
@@ -17414,6 +17618,15 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30503
+    },
+    {
+      "id": 7443035759,
+      "name": "Weapon Buff: Black Rose — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30759,
+      "stackable": true
     },
     {
       "id": 7443015280,
@@ -18158,6 +18371,15 @@
       "eligible": true
     },
     {
+      "id": 7443035760,
+      "name": "Weapon Buff: Blutsauger — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30760,
+      "stackable": true
+    },
+    {
       "id": 7443015281,
       "name": "Weapon Buff: Bonesaw — +10% damage",
       "kind": "weapon_buff",
@@ -18890,6 +19112,16 @@
       "eligible": true
     },
     {
+      "id": 7443035761,
+      "name": "Weapon Buff: Bonesaw — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30761,
+      "stackable": true,
+      "eligible": true
+    },
+    {
       "id": 7443015282,
       "name": "Weapon Buff: Bonk! Atomic Punch — +10% damage",
       "kind": "weapon_buff",
@@ -19597,6 +19829,15 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30506
+    },
+    {
+      "id": 7443035762,
+      "name": "Weapon Buff: Bonk! Atomic Punch — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30762,
+      "stackable": true
     },
     {
       "id": 7443015283,
@@ -20338,6 +20579,15 @@
       "eligible": true
     },
     {
+      "id": 7443035763,
+      "name": "Weapon Buff: Bootlegger — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30763,
+      "stackable": true
+    },
+    {
       "id": 7443015284,
       "name": "Weapon Buff: Boston Basher — +10% damage",
       "kind": "weapon_buff",
@@ -21070,6 +21320,16 @@
       "eligible": true
     },
     {
+      "id": 7443035764,
+      "name": "Weapon Buff: Boston Basher — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30764,
+      "stackable": true,
+      "eligible": true
+    },
+    {
       "id": 7443015285,
       "name": "Weapon Buff: Bottle — +10% damage",
       "kind": "weapon_buff",
@@ -21799,6 +22059,16 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30509,
+      "eligible": true
+    },
+    {
+      "id": 7443035765,
+      "name": "Weapon Buff: Bottle — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30765,
+      "stackable": true,
       "eligible": true
     },
     {
@@ -22541,6 +22811,15 @@
       "eligible": true
     },
     {
+      "id": 7443035766,
+      "name": "Weapon Buff: Brass Beast — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30766,
+      "stackable": true
+    },
+    {
       "id": 7443015287,
       "name": "Weapon Buff: Bread Bite — +10% damage",
       "kind": "weapon_buff",
@@ -23240,6 +23519,15 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30511
+    },
+    {
+      "id": 7443035767,
+      "name": "Weapon Buff: Bread Bite — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30767,
+      "stackable": true
     },
     {
       "id": 7443015288,
@@ -23951,6 +24239,15 @@
       "weapon_buff_id": 30512
     },
     {
+      "id": 7443035768,
+      "name": "Weapon Buff: Buff Banner — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30768,
+      "stackable": true
+    },
+    {
       "id": 7443015289,
       "name": "Weapon Buff: Buffalo Steak Sandvich — +10% damage",
       "kind": "weapon_buff",
@@ -24657,6 +24954,15 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30513
+    },
+    {
+      "id": 7443035769,
+      "name": "Weapon Buff: Buffalo Steak Sandvich — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30769,
+      "stackable": true
     },
     {
       "id": 7443015290,
@@ -25388,6 +25694,16 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30514,
+      "eligible": true
+    },
+    {
+      "id": 7443035770,
+      "name": "Weapon Buff: Bushwacka — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30770,
+      "stackable": true,
       "eligible": true
     },
     {
@@ -26123,6 +26439,16 @@
       "eligible": true
     },
     {
+      "id": 7443035771,
+      "name": "Weapon Buff: Candy Cane — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30771,
+      "stackable": true,
+      "eligible": true
+    },
+    {
       "id": 7443015292,
       "name": "Weapon Buff: Chargin' Targe — +10% damage",
       "kind": "weapon_buff",
@@ -26828,6 +27154,15 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30516
+    },
+    {
+      "id": 7443035772,
+      "name": "Weapon Buff: Chargin' Targe — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30772,
+      "stackable": true
     },
     {
       "id": 7443015293,
@@ -27559,6 +27894,16 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30517,
+      "eligible": true
+    },
+    {
+      "id": 7443035773,
+      "name": "Weapon Buff: Claidheamh Mòr — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30773,
+      "stackable": true,
       "eligible": true
     },
     {
@@ -28302,6 +28647,15 @@
       "eligible": true
     },
     {
+      "id": 7443035774,
+      "name": "Weapon Buff: Classic — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30774,
+      "stackable": true
+    },
+    {
       "id": 7443015295,
       "name": "Weapon Buff: Cleaner's Carbine — +10% damage",
       "kind": "weapon_buff",
@@ -29041,6 +29395,15 @@
       "eligible": true
     },
     {
+      "id": 7443035775,
+      "name": "Weapon Buff: Cleaner's Carbine — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30775,
+      "stackable": true
+    },
+    {
       "id": 7443015296,
       "name": "Weapon Buff: Cloak and Dagger — +10% damage",
       "kind": "weapon_buff",
@@ -29750,6 +30113,15 @@
       "weapon_buff_id": 30520
     },
     {
+      "id": 7443035776,
+      "name": "Weapon Buff: Cloak and Dagger — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30776,
+      "stackable": true
+    },
+    {
       "id": 7443015297,
       "name": "Weapon Buff: Concheror — +10% damage",
       "kind": "weapon_buff",
@@ -30457,6 +30829,15 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30521
+    },
+    {
+      "id": 7443035777,
+      "name": "Weapon Buff: Concheror — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30777,
+      "stackable": true
     },
     {
       "id": 7443005042,
@@ -31191,6 +31572,16 @@
       "eligible": true
     },
     {
+      "id": 7443035778,
+      "name": "Weapon Buff: Conniver's Kunai — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30778,
+      "stackable": true,
+      "eligible": true
+    },
+    {
       "id": 7443015299,
       "name": "Weapon Buff: Conscientious Objector — +10% damage",
       "kind": "weapon_buff",
@@ -31890,6 +32281,15 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30523
+    },
+    {
+      "id": 7443035779,
+      "name": "Weapon Buff: Conscientious Objector — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30779,
+      "stackable": true
     },
     {
       "id": 7443015300,
@@ -32604,6 +33004,15 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30524
+    },
+    {
+      "id": 7443035780,
+      "name": "Weapon Buff: Construction PDA — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30780,
+      "stackable": true
     },
     {
       "id": 7443015301,
@@ -33352,6 +33761,15 @@
       "eligible": true
     },
     {
+      "id": 7443035781,
+      "name": "Weapon Buff: Cow Mangler 5000 — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30781,
+      "stackable": true
+    },
+    {
       "id": 7443015302,
       "name": "Weapon Buff: Cozy Camper — +10% damage",
       "kind": "weapon_buff",
@@ -34051,6 +34469,15 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30526
+    },
+    {
+      "id": 7443035782,
+      "name": "Weapon Buff: Cozy Camper — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30782,
+      "stackable": true
     },
     {
       "id": 7443015303,
@@ -34762,6 +35189,15 @@
       "weapon_buff_id": 30527
     },
     {
+      "id": 7443035783,
+      "name": "Weapon Buff: Crit-a-Cola — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30783,
+      "stackable": true
+    },
+    {
       "id": 7443005048,
       "name": "Weapon Buff: Crossing Guard — +10% damage",
       "kind": "weapon_buff",
@@ -35461,6 +35897,15 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30528
+    },
+    {
+      "id": 7443035784,
+      "name": "Weapon Buff: Crossing Guard — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30784,
+      "stackable": true
     },
     {
       "id": 7443015305,
@@ -36205,6 +36650,15 @@
       "eligible": true
     },
     {
+      "id": 7443035785,
+      "name": "Weapon Buff: Crusader's Crossbow — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30785,
+      "stackable": true
+    },
+    {
       "id": 7443015306,
       "name": "Weapon Buff: Dalokohs Bar — +10% damage",
       "kind": "weapon_buff",
@@ -36914,6 +37368,15 @@
       "weapon_buff_id": 30530
     },
     {
+      "id": 7443035786,
+      "name": "Weapon Buff: Dalokohs Bar — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30786,
+      "stackable": true
+    },
+    {
       "id": 7443015307,
       "name": "Weapon Buff: Darwin's Danger Shield — +10% damage",
       "kind": "weapon_buff",
@@ -37613,6 +38076,15 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30531
+    },
+    {
+      "id": 7443035787,
+      "name": "Weapon Buff: Darwin's Danger Shield — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30787,
+      "stackable": true
     },
     {
       "id": 7443015308,
@@ -38324,6 +38796,15 @@
       "weapon_buff_id": 30532
     },
     {
+      "id": 7443035788,
+      "name": "Weapon Buff: Dead Ringer — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30788,
+      "stackable": true
+    },
+    {
       "id": 7443015309,
       "name": "Weapon Buff: Deflector — +10% damage",
       "kind": "weapon_buff",
@@ -39023,6 +39504,15 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30533
+    },
+    {
+      "id": 7443035789,
+      "name": "Weapon Buff: Deflector — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30789,
+      "stackable": true
     },
     {
       "id": 7443015310,
@@ -39770,6 +40260,15 @@
       "eligible": true
     },
     {
+      "id": 7443035790,
+      "name": "Weapon Buff: Degreaser — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30790,
+      "stackable": true
+    },
+    {
       "id": 7443015311,
       "name": "Weapon Buff: Destruction PDA — +10% damage",
       "kind": "weapon_buff",
@@ -40482,6 +40981,15 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30535
+    },
+    {
+      "id": 7443035791,
+      "name": "Weapon Buff: Destruction PDA — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30791,
+      "stackable": true
     },
     {
       "id": 7443005056,
@@ -41232,6 +41740,15 @@
       "eligible": true
     },
     {
+      "id": 7443035792,
+      "name": "Weapon Buff: Detonator — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30792,
+      "stackable": true
+    },
+    {
       "id": 7443015313,
       "name": "Weapon Buff: Diamondback — +10% damage",
       "kind": "weapon_buff",
@@ -41971,6 +42488,15 @@
       "count": 0,
       "weapon_buff_id": 30537,
       "eligible": true
+    },
+    {
+      "id": 7443035793,
+      "name": "Weapon Buff: Diamondback — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30793,
+      "stackable": true
     },
     {
       "id": 7443015314,
@@ -42719,6 +43245,15 @@
       "eligible": true
     },
     {
+      "id": 7443035794,
+      "name": "Weapon Buff: Direct Hit — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30794,
+      "stackable": true
+    },
+    {
       "id": 7443015315,
       "name": "Weapon Buff: Disciplinary Action — +10% damage",
       "kind": "weapon_buff",
@@ -43451,6 +43986,16 @@
       "eligible": true
     },
     {
+      "id": 7443035795,
+      "name": "Weapon Buff: Disciplinary Action — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30795,
+      "stackable": true,
+      "eligible": true
+    },
+    {
       "id": 7443015316,
       "name": "Weapon Buff: Disguise Kit — +10% damage",
       "kind": "weapon_buff",
@@ -44156,6 +44701,15 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30540
+    },
+    {
+      "id": 7443035796,
+      "name": "Weapon Buff: Disguise Kit — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30796,
+      "stackable": true
     },
     {
       "id": 7443015317,
@@ -44907,6 +45461,15 @@
       "eligible": true
     },
     {
+      "id": 7443035797,
+      "name": "Weapon Buff: Dragon's Fury — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30797,
+      "stackable": true
+    },
+    {
       "id": 7443015318,
       "name": "Weapon Buff: Enforcer — +10% damage",
       "kind": "weapon_buff",
@@ -45648,6 +46211,15 @@
       "eligible": true
     },
     {
+      "id": 7443035798,
+      "name": "Weapon Buff: Enforcer — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30798,
+      "stackable": true
+    },
+    {
       "id": 7443015319,
       "name": "Weapon Buff: Enthusiast's Timepiece — +10% damage",
       "kind": "weapon_buff",
@@ -46347,6 +46919,15 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30543
+    },
+    {
+      "id": 7443035799,
+      "name": "Weapon Buff: Enthusiast's Timepiece — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30799,
+      "stackable": true
     },
     {
       "id": 7443015320,
@@ -47081,6 +47662,16 @@
       "eligible": true
     },
     {
+      "id": 7443035800,
+      "name": "Weapon Buff: Equalizer — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30800,
+      "stackable": true,
+      "eligible": true
+    },
+    {
       "id": 7443015321,
       "name": "Weapon Buff: Escape Plan — +10% damage",
       "kind": "weapon_buff",
@@ -47810,6 +48401,16 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30545,
+      "eligible": true
+    },
+    {
+      "id": 7443035801,
+      "name": "Weapon Buff: Escape Plan — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30801,
+      "stackable": true,
       "eligible": true
     },
     {
@@ -48552,6 +49153,16 @@
       "eligible": true
     },
     {
+      "id": 7443035802,
+      "name": "Weapon Buff: Eureka Effect — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30802,
+      "stackable": true,
+      "eligible": true
+    },
+    {
       "id": 7443015323,
       "name": "Weapon Buff: Eviction Notice — +10% damage",
       "kind": "weapon_buff",
@@ -49284,6 +49895,16 @@
       "eligible": true
     },
     {
+      "id": 7443035803,
+      "name": "Weapon Buff: Eviction Notice — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30803,
+      "stackable": true,
+      "eligible": true
+    },
+    {
       "id": 7443015324,
       "name": "Weapon Buff: Eyelander — +10% damage",
       "kind": "weapon_buff",
@@ -50013,6 +50634,16 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30548,
+      "eligible": true
+    },
+    {
+      "id": 7443035804,
+      "name": "Weapon Buff: Eyelander — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30804,
+      "stackable": true,
       "eligible": true
     },
     {
@@ -50755,6 +51386,15 @@
       "eligible": true
     },
     {
+      "id": 7443035805,
+      "name": "Weapon Buff: Family Business — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30805,
+      "stackable": true
+    },
+    {
       "id": 7443015326,
       "name": "Weapon Buff: Fan O'War — +10% damage",
       "kind": "weapon_buff",
@@ -51484,6 +52124,16 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30550,
+      "eligible": true
+    },
+    {
+      "id": 7443035806,
+      "name": "Weapon Buff: Fan O'War — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30806,
+      "stackable": true,
       "eligible": true
     },
     {
@@ -52219,6 +52869,16 @@
       "eligible": true
     },
     {
+      "id": 7443035807,
+      "name": "Weapon Buff: Fire Axe — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30807,
+      "stackable": true,
+      "eligible": true
+    },
+    {
       "id": 7443015328,
       "name": "Weapon Buff: Fishcake — +10% damage",
       "kind": "weapon_buff",
@@ -52918,6 +53578,15 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30552
+    },
+    {
+      "id": 7443035808,
+      "name": "Weapon Buff: Fishcake — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30808,
+      "stackable": true
     },
     {
       "id": 7443015329,
@@ -53652,6 +54321,16 @@
       "eligible": true
     },
     {
+      "id": 7443035809,
+      "name": "Weapon Buff: Fists — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30809,
+      "stackable": true,
+      "eligible": true
+    },
+    {
       "id": 7443015330,
       "name": "Weapon Buff: Fists of Steel — +10% damage",
       "kind": "weapon_buff",
@@ -54381,6 +55060,16 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30554,
+      "eligible": true
+    },
+    {
+      "id": 7443035810,
+      "name": "Weapon Buff: Fists of Steel — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30810,
+      "stackable": true,
       "eligible": true
     },
     {
@@ -55129,6 +55818,15 @@
       "eligible": true
     },
     {
+      "id": 7443035811,
+      "name": "Weapon Buff: Flame Thrower — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30811,
+      "stackable": true
+    },
+    {
       "id": 7443015332,
       "name": "Weapon Buff: Flare Gun — +10% damage",
       "kind": "weapon_buff",
@@ -55871,6 +56569,15 @@
       "count": 0,
       "weapon_buff_id": 30556,
       "eligible": true
+    },
+    {
+      "id": 7443035812,
+      "name": "Weapon Buff: Flare Gun — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30812,
+      "stackable": true
     },
     {
       "id": 7443015333,
@@ -56616,6 +57323,15 @@
       "eligible": true
     },
     {
+      "id": 7443035813,
+      "name": "Weapon Buff: Flying Guillotine — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30813,
+      "stackable": true
+    },
+    {
       "id": 7443015334,
       "name": "Weapon Buff: Force-a-Nature — +10% damage",
       "kind": "weapon_buff",
@@ -57355,6 +58071,15 @@
       "eligible": true
     },
     {
+      "id": 7443035814,
+      "name": "Weapon Buff: Force-a-Nature — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30814,
+      "stackable": true
+    },
+    {
       "id": 7443015335,
       "name": "Weapon Buff: Fortified Compound — +10% damage",
       "kind": "weapon_buff",
@@ -58056,6 +58781,15 @@
       "weapon_buff_id": 30559
     },
     {
+      "id": 7443035815,
+      "name": "Weapon Buff: Fortified Compound — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30815,
+      "stackable": true
+    },
+    {
       "id": 7443015336,
       "name": "Weapon Buff: Freedom Staff — +10% damage",
       "kind": "weapon_buff",
@@ -58755,6 +59489,15 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30560
+    },
+    {
+      "id": 7443035816,
+      "name": "Weapon Buff: Freedom Staff — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30816,
+      "stackable": true
     },
     {
       "id": 7443015337,
@@ -59503,6 +60246,15 @@
       "eligible": true
     },
     {
+      "id": 7443035817,
+      "name": "Weapon Buff: Frontier Justice — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30817,
+      "stackable": true
+    },
+    {
       "id": 7443015338,
       "name": "Weapon Buff: Frying Pan — +10% damage",
       "kind": "weapon_buff",
@@ -60202,6 +60954,15 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30562
+    },
+    {
+      "id": 7443035818,
+      "name": "Weapon Buff: Frying Pan — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30818,
+      "stackable": true
     },
     {
       "id": 7443015339,
@@ -60915,6 +61676,15 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30563
+    },
+    {
+      "id": 7443035819,
+      "name": "Weapon Buff: Gas Passer — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30819,
+      "stackable": true
     },
     {
       "id": 7443005084,
@@ -61649,6 +62419,16 @@
       "eligible": true
     },
     {
+      "id": 7443035820,
+      "name": "Weapon Buff: Gloves of Running Urgently — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30820,
+      "stackable": true,
+      "eligible": true
+    },
+    {
       "id": 7443015341,
       "name": "Weapon Buff: Golden Frying Pan — +10% damage",
       "kind": "weapon_buff",
@@ -62350,6 +63130,15 @@
       "weapon_buff_id": 30565
     },
     {
+      "id": 7443035821,
+      "name": "Weapon Buff: Golden Frying Pan — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30821,
+      "stackable": true
+    },
+    {
       "id": 7443015342,
       "name": "Weapon Buff: Golden Wrench — +10% damage",
       "kind": "weapon_buff",
@@ -63049,6 +63838,15 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30566
+    },
+    {
+      "id": 7443035822,
+      "name": "Weapon Buff: Golden Wrench — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30822,
+      "stackable": true
     },
     {
       "id": 7443015343,
@@ -63797,6 +64595,15 @@
       "eligible": true
     },
     {
+      "id": 7443035823,
+      "name": "Weapon Buff: Grenade Launcher — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30823,
+      "stackable": true
+    },
+    {
       "id": 7443015344,
       "name": "Weapon Buff: Gunboats — +10% damage",
       "kind": "weapon_buff",
@@ -64496,6 +65303,15 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30568
+    },
+    {
+      "id": 7443035824,
+      "name": "Weapon Buff: Gunboats — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30824,
+      "stackable": true
     },
     {
       "id": 7443015345,
@@ -65237,6 +66053,16 @@
       "eligible": true
     },
     {
+      "id": 7443035825,
+      "name": "Weapon Buff: Gunslinger — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30825,
+      "stackable": true,
+      "eligible": true
+    },
+    {
       "id": 7443005090,
       "name": "Weapon Buff: Half-Zatoichi — +10% damage",
       "kind": "weapon_buff",
@@ -65969,6 +66795,16 @@
       "eligible": true
     },
     {
+      "id": 7443035826,
+      "name": "Weapon Buff: Half-Zatoichi — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30826,
+      "stackable": true,
+      "eligible": true
+    },
+    {
       "id": 7443015347,
       "name": "Weapon Buff: Ham Shank — +10% damage",
       "kind": "weapon_buff",
@@ -66668,6 +67504,15 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30571
+    },
+    {
+      "id": 7443035827,
+      "name": "Weapon Buff: Ham Shank — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30827,
+      "stackable": true
     },
     {
       "id": 7443015348,
@@ -67410,6 +68255,15 @@
       "eligible": true
     },
     {
+      "id": 7443035828,
+      "name": "Weapon Buff: Hitman's Heatmaker — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30828,
+      "stackable": true
+    },
+    {
       "id": 7443015349,
       "name": "Weapon Buff: Holiday Punch — +10% damage",
       "kind": "weapon_buff",
@@ -68142,6 +68996,16 @@
       "eligible": true
     },
     {
+      "id": 7443035829,
+      "name": "Weapon Buff: Holiday Punch — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30829,
+      "stackable": true,
+      "eligible": true
+    },
+    {
       "id": 7443015350,
       "name": "Weapon Buff: Holy Mackerel — +10% damage",
       "kind": "weapon_buff",
@@ -68841,6 +69705,15 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30574
+    },
+    {
+      "id": 7443035830,
+      "name": "Weapon Buff: Holy Mackerel — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30830,
+      "stackable": true
     },
     {
       "id": 7443015351,
@@ -69575,6 +70448,16 @@
       "eligible": true
     },
     {
+      "id": 7443035831,
+      "name": "Weapon Buff: Homewrecker — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30831,
+      "stackable": true,
+      "eligible": true
+    },
+    {
       "id": 7443005096,
       "name": "Weapon Buff: Horseless Headless Horsemann's Headtaker — +10% damage",
       "kind": "weapon_buff",
@@ -70274,6 +71157,15 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30576
+    },
+    {
+      "id": 7443035832,
+      "name": "Weapon Buff: Horseless Headless Horsemann's Headtaker — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30832,
+      "stackable": true
     },
     {
       "id": 7443015353,
@@ -71005,6 +71897,16 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30577,
+      "eligible": true
+    },
+    {
+      "id": 7443035833,
+      "name": "Weapon Buff: Hot Hand — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30833,
+      "stackable": true,
       "eligible": true
     },
     {
@@ -71748,6 +72650,15 @@
       "eligible": true
     },
     {
+      "id": 7443035834,
+      "name": "Weapon Buff: Huntsman — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30834,
+      "stackable": true
+    },
+    {
       "id": 7443015355,
       "name": "Weapon Buff: Huo-Long Heater — +10% damage",
       "kind": "weapon_buff",
@@ -72487,6 +73398,15 @@
       "eligible": true
     },
     {
+      "id": 7443035835,
+      "name": "Weapon Buff: Huo-Long Heater — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30835,
+      "stackable": true
+    },
+    {
       "id": 7443015356,
       "name": "Weapon Buff: Invis Watch — +10% damage",
       "kind": "weapon_buff",
@@ -73194,6 +74114,15 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30580
+    },
+    {
+      "id": 7443035836,
+      "name": "Weapon Buff: Invis Watch — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30836,
+      "stackable": true
     },
     {
       "id": 7443015357,
@@ -73942,6 +74871,15 @@
       "eligible": true
     },
     {
+      "id": 7443035837,
+      "name": "Weapon Buff: Iron Bomber — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30837,
+      "stackable": true
+    },
+    {
       "id": 7443015358,
       "name": "Weapon Buff: Iron Curtain — +10% damage",
       "kind": "weapon_buff",
@@ -74641,6 +75579,15 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30582
+    },
+    {
+      "id": 7443035838,
+      "name": "Weapon Buff: Iron Curtain — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30838,
+      "stackable": true
     },
     {
       "id": 7443015359,
@@ -75382,6 +76329,16 @@
       "eligible": true
     },
     {
+      "id": 7443035839,
+      "name": "Weapon Buff: Jag — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30839,
+      "stackable": true,
+      "eligible": true
+    },
+    {
       "id": 7443015360,
       "name": "Weapon Buff: Jarate — +10% damage",
       "kind": "weapon_buff",
@@ -76091,6 +77048,15 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30584
+    },
+    {
+      "id": 7443035840,
+      "name": "Weapon Buff: Jarate — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30840,
+      "stackable": true
     },
     {
       "id": 7443015361,
@@ -76822,6 +77788,16 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30585,
+      "eligible": true
+    },
+    {
+      "id": 7443035841,
+      "name": "Weapon Buff: Killing Gloves of Boxing — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30841,
+      "stackable": true,
       "eligible": true
     },
     {
@@ -77559,6 +78535,16 @@
       "eligible": true
     },
     {
+      "id": 7443035842,
+      "name": "Weapon Buff: Knife — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30842,
+      "stackable": true,
+      "eligible": true
+    },
+    {
       "id": 7443015363,
       "name": "Weapon Buff: Kritzkrieg — +10% damage",
       "kind": "weapon_buff",
@@ -78269,6 +79255,15 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30587
+    },
+    {
+      "id": 7443035843,
+      "name": "Weapon Buff: Kritzkrieg — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30843,
+      "stackable": true
     },
     {
       "id": 7443005108,
@@ -79000,6 +79995,16 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30588,
+      "eligible": true
+    },
+    {
+      "id": 7443035844,
+      "name": "Weapon Buff: Kukri — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30844,
+      "stackable": true,
       "eligible": true
     },
     {
@@ -79742,6 +80747,15 @@
       "count": 0,
       "weapon_buff_id": 30589,
       "eligible": true
+    },
+    {
+      "id": 7443035845,
+      "name": "Weapon Buff: L'Étranger — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30845,
+      "stackable": true
     },
     {
       "id": 7443015366,
@@ -80490,6 +81504,15 @@
       "eligible": true
     },
     {
+      "id": 7443035846,
+      "name": "Weapon Buff: Liberty Launcher — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30846,
+      "stackable": true
+    },
+    {
       "id": 7443015367,
       "name": "Weapon Buff: Loch-n-Load — +10% damage",
       "kind": "weapon_buff",
@@ -81236,6 +82259,15 @@
       "eligible": true
     },
     {
+      "id": 7443035847,
+      "name": "Weapon Buff: Loch-n-Load — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30847,
+      "stackable": true
+    },
+    {
       "id": 7443015368,
       "name": "Weapon Buff: Lollichop — +10% damage",
       "kind": "weapon_buff",
@@ -81935,6 +82967,15 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30592
+    },
+    {
+      "id": 7443035848,
+      "name": "Weapon Buff: Lollichop — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30848,
+      "stackable": true
     },
     {
       "id": 7443015369,
@@ -82683,6 +83724,15 @@
       "eligible": true
     },
     {
+      "id": 7443035849,
+      "name": "Weapon Buff: Loose Cannon — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30849,
+      "stackable": true
+    },
+    {
       "id": 7443015370,
       "name": "Weapon Buff: Lugermorph — +10% damage",
       "kind": "weapon_buff",
@@ -83382,6 +84432,15 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30594
+    },
+    {
+      "id": 7443035850,
+      "name": "Weapon Buff: Lugermorph — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30850,
+      "stackable": true
     },
     {
       "id": 7443015371,
@@ -84124,6 +85183,15 @@
       "eligible": true
     },
     {
+      "id": 7443035851,
+      "name": "Weapon Buff: Machina — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30851,
+      "stackable": true
+    },
+    {
       "id": 7443015372,
       "name": "Weapon Buff: Mad Milk — +10% damage",
       "kind": "weapon_buff",
@@ -84833,6 +85901,15 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30596
+    },
+    {
+      "id": 7443035852,
+      "name": "Weapon Buff: Mad Milk — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30852,
+      "stackable": true
     },
     {
       "id": 7443015373,
@@ -85579,6 +86656,15 @@
       "eligible": true
     },
     {
+      "id": 7443035853,
+      "name": "Weapon Buff: Manmelter — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30853,
+      "stackable": true
+    },
+    {
       "id": 7443015374,
       "name": "Weapon Buff: Mantreads — +10% damage",
       "kind": "weapon_buff",
@@ -86278,6 +87364,15 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30598
+    },
+    {
+      "id": 7443035854,
+      "name": "Weapon Buff: Mantreads — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30854,
+      "stackable": true
     },
     {
       "id": 7443015375,
@@ -87012,6 +88107,16 @@
       "eligible": true
     },
     {
+      "id": 7443035855,
+      "name": "Weapon Buff: Market Gardener — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30855,
+      "stackable": true,
+      "eligible": true
+    },
+    {
       "id": 7443005120,
       "name": "Weapon Buff: Maul — +10% damage",
       "kind": "weapon_buff",
@@ -87711,6 +88816,15 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30600
+    },
+    {
+      "id": 7443035856,
+      "name": "Weapon Buff: Maul — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30856,
+      "stackable": true
     },
     {
       "id": 7443015377,
@@ -88425,6 +89539,15 @@
       "weapon_buff_id": 30601
     },
     {
+      "id": 7443035857,
+      "name": "Weapon Buff: Medi Gun — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30857,
+      "stackable": true
+    },
+    {
       "id": 7443015378,
       "name": "Weapon Buff: Memory Maker — +10% damage",
       "kind": "weapon_buff",
@@ -89124,6 +90247,15 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30602
+    },
+    {
+      "id": 7443035858,
+      "name": "Weapon Buff: Memory Maker — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30858,
+      "stackable": true
     },
     {
       "id": 7443015379,
@@ -89865,6 +90997,15 @@
       "eligible": true
     },
     {
+      "id": 7443035859,
+      "name": "Weapon Buff: Minigun — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30859,
+      "stackable": true
+    },
+    {
       "id": 7443015380,
       "name": "Weapon Buff: Mutated Milk — +10% damage",
       "kind": "weapon_buff",
@@ -90564,6 +91705,15 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30604
+    },
+    {
+      "id": 7443035860,
+      "name": "Weapon Buff: Mutated Milk — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30860,
+      "stackable": true
     },
     {
       "id": 7443015381,
@@ -91305,6 +92455,15 @@
       "eligible": true
     },
     {
+      "id": 7443035861,
+      "name": "Weapon Buff: Natascha — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30861,
+      "stackable": true
+    },
+    {
       "id": 7443005126,
       "name": "Weapon Buff: Necro Smasher — +10% damage",
       "kind": "weapon_buff",
@@ -92004,6 +93163,15 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30606
+    },
+    {
+      "id": 7443035862,
+      "name": "Weapon Buff: Necro Smasher — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30862,
+      "stackable": true
     },
     {
       "id": 7443015383,
@@ -92738,6 +93906,16 @@
       "eligible": true
     },
     {
+      "id": 7443035863,
+      "name": "Weapon Buff: Neon Annihilator — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30863,
+      "stackable": true,
+      "eligible": true
+    },
+    {
       "id": 7443015384,
       "name": "Weapon Buff: Nessie's Nine Iron — +10% damage",
       "kind": "weapon_buff",
@@ -93439,6 +94617,15 @@
       "weapon_buff_id": 30608
     },
     {
+      "id": 7443035864,
+      "name": "Weapon Buff: Nessie's Nine Iron — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30864,
+      "stackable": true
+    },
+    {
       "id": 7443015385,
       "name": "Weapon Buff: Original — +10% damage",
       "kind": "weapon_buff",
@@ -94138,6 +95325,15 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30609
+    },
+    {
+      "id": 7443035865,
+      "name": "Weapon Buff: Original — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30865,
+      "stackable": true
     },
     {
       "id": 7443015386,
@@ -94879,6 +96075,15 @@
       "eligible": true
     },
     {
+      "id": 7443035866,
+      "name": "Weapon Buff: Overdose — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30866,
+      "stackable": true
+    },
+    {
       "id": 7443015387,
       "name": "Weapon Buff: Pain Train — +10% damage",
       "kind": "weapon_buff",
@@ -95608,6 +96813,16 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30611,
+      "eligible": true
+    },
+    {
+      "id": 7443035867,
+      "name": "Weapon Buff: Pain Train — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30867,
+      "stackable": true,
       "eligible": true
     },
     {
@@ -96357,6 +97572,15 @@
       "eligible": true
     },
     {
+      "id": 7443035868,
+      "name": "Weapon Buff: Panic Attack — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30868,
+      "stackable": true
+    },
+    {
       "id": 7443015389,
       "name": "Weapon Buff: PDA — +10% damage",
       "kind": "weapon_buff",
@@ -97069,6 +98293,15 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30613
+    },
+    {
+      "id": 7443035869,
+      "name": "Weapon Buff: PDA — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30869,
+      "stackable": true
     },
     {
       "id": 7443015390,
@@ -97800,6 +99033,16 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30614,
+      "eligible": true
+    },
+    {
+      "id": 7443035870,
+      "name": "Weapon Buff: Persian Persuader — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30870,
+      "stackable": true,
       "eligible": true
     },
     {
@@ -98542,6 +99785,15 @@
       "count": 0,
       "weapon_buff_id": 30615,
       "eligible": true
+    },
+    {
+      "id": 7443035871,
+      "name": "Weapon Buff: Phlogistinator — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30871,
+      "stackable": true
     },
     {
       "id": 7443015392,
@@ -99288,6 +100540,15 @@
       "count": 0,
       "weapon_buff_id": 30616,
       "eligible": true
+    },
+    {
+      "id": 7443035872,
+      "name": "Weapon Buff: Pistol — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30872,
+      "stackable": true
     },
     {
       "id": 7443015393,
@@ -100039,6 +101300,15 @@
       "eligible": true
     },
     {
+      "id": 7443035873,
+      "name": "Weapon Buff: Pomson 6000 — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30873,
+      "stackable": true
+    },
+    {
       "id": 7443005138,
       "name": "Weapon Buff: Postal Pummeler — +10% damage",
       "kind": "weapon_buff",
@@ -100738,6 +102008,15 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30618
+    },
+    {
+      "id": 7443035874,
+      "name": "Weapon Buff: Postal Pummeler — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30874,
+      "stackable": true
     },
     {
       "id": 7443015395,
@@ -101469,6 +102748,16 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30619,
+      "eligible": true
+    },
+    {
+      "id": 7443035875,
+      "name": "Weapon Buff: Powerjack — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30875,
+      "stackable": true,
       "eligible": true
     },
     {
@@ -102211,6 +103500,15 @@
       "eligible": true
     },
     {
+      "id": 7443035876,
+      "name": "Weapon Buff: Pretty Boy's Pocket Pistol — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30876,
+      "stackable": true
+    },
+    {
       "id": 7443015397,
       "name": "Weapon Buff: Quick-Fix — +10% damage",
       "kind": "weapon_buff",
@@ -102921,6 +104219,15 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30621
+    },
+    {
+      "id": 7443035877,
+      "name": "Weapon Buff: Quick-Fix — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30877,
+      "stackable": true
     },
     {
       "id": 7443015398,
@@ -103670,6 +104977,15 @@
       "eligible": true
     },
     {
+      "id": 7443035878,
+      "name": "Weapon Buff: Quickiebomb Launcher — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30878,
+      "stackable": true
+    },
+    {
       "id": 7443015399,
       "name": "Weapon Buff: Quäckenbirdt — +10% damage",
       "kind": "weapon_buff",
@@ -104369,6 +105685,15 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30623
+    },
+    {
+      "id": 7443035879,
+      "name": "Weapon Buff: Quäckenbirdt — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30879,
+      "stackable": true
     },
     {
       "id": 7443015400,
@@ -105072,6 +106397,15 @@
       "weapon_buff_id": 30624
     },
     {
+      "id": 7443035880,
+      "name": "Weapon Buff: Rainblower — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30880,
+      "stackable": true
+    },
+    {
       "id": 7443015401,
       "name": "Weapon Buff: Razorback — +10% damage",
       "kind": "weapon_buff",
@@ -105771,6 +107105,15 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30625
+    },
+    {
+      "id": 7443035881,
+      "name": "Weapon Buff: Razorback — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30881,
+      "stackable": true
     },
     {
       "id": 7443015402,
@@ -106480,6 +107823,15 @@
       "weapon_buff_id": 30626
     },
     {
+      "id": 7443035882,
+      "name": "Weapon Buff: Red-Tape Recorder — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30882,
+      "stackable": true
+    },
+    {
       "id": 7443015403,
       "name": "Weapon Buff: Reissued Enthusiast's Timepiece — +10% damage",
       "kind": "weapon_buff",
@@ -107179,6 +108531,15 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30627
+    },
+    {
+      "id": 7443035883,
+      "name": "Weapon Buff: Reissued Enthusiast's Timepiece — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30883,
+      "stackable": true
     },
     {
       "id": 7443015404,
@@ -107882,6 +109243,15 @@
       "weapon_buff_id": 30628
     },
     {
+      "id": 7443035884,
+      "name": "Weapon Buff: Reissued Iron Curtain — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30884,
+      "stackable": true
+    },
+    {
       "id": 7443015405,
       "name": "Weapon Buff: Reissued Lugermorph — +10% damage",
       "kind": "weapon_buff",
@@ -108581,6 +109951,15 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30629
+    },
+    {
+      "id": 7443035885,
+      "name": "Weapon Buff: Reissued Lugermorph — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30885,
+      "stackable": true
     },
     {
       "id": 7443015406,
@@ -109332,6 +110711,15 @@
       "eligible": true
     },
     {
+      "id": 7443035886,
+      "name": "Weapon Buff: Rescue Ranger — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30886,
+      "stackable": true
+    },
+    {
       "id": 7443015407,
       "name": "Weapon Buff: Reserve Shooter — +10% damage",
       "kind": "weapon_buff",
@@ -110069,6 +111457,15 @@
       "count": 0,
       "weapon_buff_id": 30631,
       "eligible": true
+    },
+    {
+      "id": 7443035887,
+      "name": "Weapon Buff: Reserve Shooter — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30887,
+      "stackable": true
     },
     {
       "id": 7443015408,
@@ -110810,6 +112207,15 @@
       "count": 0,
       "weapon_buff_id": 30632,
       "eligible": true
+    },
+    {
+      "id": 7443035888,
+      "name": "Weapon Buff: Revolver — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30888,
+      "stackable": true
     },
     {
       "id": 7443015409,
@@ -111554,6 +112960,15 @@
       "eligible": true
     },
     {
+      "id": 7443035889,
+      "name": "Weapon Buff: Righteous Bison — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30889,
+      "stackable": true
+    },
+    {
       "id": 7443005154,
       "name": "Weapon Buff: Robo-Sandvich — +10% damage",
       "kind": "weapon_buff",
@@ -112253,6 +113668,15 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30634
+    },
+    {
+      "id": 7443035890,
+      "name": "Weapon Buff: Robo-Sandvich — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30890,
+      "stackable": true
     },
     {
       "id": 7443015411,
@@ -113001,6 +114425,15 @@
       "eligible": true
     },
     {
+      "id": 7443035891,
+      "name": "Weapon Buff: Rocket Jumper — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30891,
+      "stackable": true
+    },
+    {
       "id": 7443015412,
       "name": "Weapon Buff: Rocket Launcher — +10% damage",
       "kind": "weapon_buff",
@@ -113747,6 +115180,15 @@
       "eligible": true
     },
     {
+      "id": 7443035892,
+      "name": "Weapon Buff: Rocket Launcher — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30892,
+      "stackable": true
+    },
+    {
       "id": 7443015413,
       "name": "Weapon Buff: Sandman — +10% damage",
       "kind": "weapon_buff",
@@ -114484,6 +115926,16 @@
       "eligible": true
     },
     {
+      "id": 7443035893,
+      "name": "Weapon Buff: Sandman — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30893,
+      "stackable": true,
+      "eligible": true
+    },
+    {
       "id": 7443015414,
       "name": "Weapon Buff: Sandvich — +10% damage",
       "kind": "weapon_buff",
@@ -115193,6 +116645,15 @@
       "weapon_buff_id": 30638
     },
     {
+      "id": 7443035894,
+      "name": "Weapon Buff: Sandvich — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30894,
+      "stackable": true
+    },
+    {
       "id": 7443015415,
       "name": "Weapon Buff: Sapper — +10% damage",
       "kind": "weapon_buff",
@@ -115898,6 +117359,15 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30639
+    },
+    {
+      "id": 7443035895,
+      "name": "Weapon Buff: Sapper — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30895,
+      "stackable": true
     },
     {
       "id": 7443015416,
@@ -116629,6 +118099,16 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30640,
+      "eligible": true
+    },
+    {
+      "id": 7443035896,
+      "name": "Weapon Buff: Saxxy — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30896,
+      "stackable": true,
       "eligible": true
     },
     {
@@ -117369,6 +118849,15 @@
       "count": 0,
       "weapon_buff_id": 30641,
       "eligible": true
+    },
+    {
+      "id": 7443035897,
+      "name": "Weapon Buff: Scattergun — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30897,
+      "stackable": true
     },
     {
       "id": 7443015418,
@@ -118119,6 +119608,15 @@
       "eligible": true
     },
     {
+      "id": 7443035898,
+      "name": "Weapon Buff: Scorch Shot — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30898,
+      "stackable": true
+    },
+    {
       "id": 7443015419,
       "name": "Weapon Buff: Scotsman's Skullcutter — +10% damage",
       "kind": "weapon_buff",
@@ -118851,6 +120349,16 @@
       "eligible": true
     },
     {
+      "id": 7443035899,
+      "name": "Weapon Buff: Scotsman's Skullcutter — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30899,
+      "stackable": true,
+      "eligible": true
+    },
+    {
       "id": 7443015420,
       "name": "Weapon Buff: Scottish Handshake — +10% damage",
       "kind": "weapon_buff",
@@ -119550,6 +121058,15 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30644
+    },
+    {
+      "id": 7443035900,
+      "name": "Weapon Buff: Scottish Handshake — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30900,
+      "stackable": true
     },
     {
       "id": 7443015421,
@@ -120299,6 +121816,15 @@
       "eligible": true
     },
     {
+      "id": 7443035901,
+      "name": "Weapon Buff: Scottish Resistance — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30901,
+      "stackable": true
+    },
+    {
       "id": 7443015422,
       "name": "Weapon Buff: Second Banana — +10% damage",
       "kind": "weapon_buff",
@@ -121008,6 +122534,15 @@
       "weapon_buff_id": 30646
     },
     {
+      "id": 7443035902,
+      "name": "Weapon Buff: Second Banana — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30902,
+      "stackable": true
+    },
+    {
       "id": 7443015423,
       "name": "Weapon Buff: Self-Aware Beauty Mark — +10% damage",
       "kind": "weapon_buff",
@@ -121707,6 +123242,15 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30647
+    },
+    {
+      "id": 7443035903,
+      "name": "Weapon Buff: Self-Aware Beauty Mark — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30903,
+      "stackable": true
     },
     {
       "id": 7443005168,
@@ -122441,6 +123985,16 @@
       "eligible": true
     },
     {
+      "id": 7443035904,
+      "name": "Weapon Buff: Shahanshah — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30904,
+      "stackable": true,
+      "eligible": true
+    },
+    {
       "id": 7443015425,
       "name": "Weapon Buff: Sharp Dresser — +10% damage",
       "kind": "weapon_buff",
@@ -123140,6 +124694,15 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30649
+    },
+    {
+      "id": 7443035905,
+      "name": "Weapon Buff: Sharp Dresser — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30905,
+      "stackable": true
     },
     {
       "id": 7443015426,
@@ -123873,6 +125436,16 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30650,
+      "eligible": true
+    },
+    {
+      "id": 7443035906,
+      "name": "Weapon Buff: Sharpened Volcano Fragment — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30906,
+      "stackable": true,
       "eligible": true
     },
     {
@@ -124625,6 +126198,15 @@
       "eligible": true
     },
     {
+      "id": 7443035907,
+      "name": "Weapon Buff: Short Circuit — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30907,
+      "stackable": true
+    },
+    {
       "id": 7443015428,
       "name": "Weapon Buff: Shortstop — +10% damage",
       "kind": "weapon_buff",
@@ -125362,6 +126944,15 @@
       "count": 0,
       "weapon_buff_id": 30652,
       "eligible": true
+    },
+    {
+      "id": 7443035908,
+      "name": "Weapon Buff: Shortstop — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30908,
+      "stackable": true
     },
     {
       "id": 7443015429,
@@ -126110,6 +127701,15 @@
       "eligible": true
     },
     {
+      "id": 7443035909,
+      "name": "Weapon Buff: Shotgun — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30909,
+      "stackable": true
+    },
+    {
       "id": 7443005174,
       "name": "Weapon Buff: Shovel — +10% damage",
       "kind": "weapon_buff",
@@ -126839,6 +128439,16 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30654,
+      "eligible": true
+    },
+    {
+      "id": 7443035910,
+      "name": "Weapon Buff: Shovel — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30910,
+      "stackable": true,
       "eligible": true
     },
     {
@@ -127581,6 +129191,15 @@
       "eligible": true
     },
     {
+      "id": 7443035911,
+      "name": "Weapon Buff: SMG — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30911,
+      "stackable": true
+    },
+    {
       "id": 7443015432,
       "name": "Weapon Buff: Snack Attack — +10% damage",
       "kind": "weapon_buff",
@@ -128280,6 +129899,15 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30656
+    },
+    {
+      "id": 7443035912,
+      "name": "Weapon Buff: Snack Attack — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30912,
+      "stackable": true
     },
     {
       "id": 7443015433,
@@ -129022,6 +130650,15 @@
       "eligible": true
     },
     {
+      "id": 7443035913,
+      "name": "Weapon Buff: Sniper Rifle — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30913,
+      "stackable": true
+    },
+    {
       "id": 7443015434,
       "name": "Weapon Buff: Soda Popper — +10% damage",
       "kind": "weapon_buff",
@@ -129761,6 +131398,15 @@
       "eligible": true
     },
     {
+      "id": 7443035914,
+      "name": "Weapon Buff: Soda Popper — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30914,
+      "stackable": true
+    },
+    {
       "id": 7443015435,
       "name": "Weapon Buff: Solemn Vow — +10% damage",
       "kind": "weapon_buff",
@@ -130490,6 +132136,16 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30659,
+      "eligible": true
+    },
+    {
+      "id": 7443035915,
+      "name": "Weapon Buff: Solemn Vow — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30915,
+      "stackable": true,
       "eligible": true
     },
     {
@@ -131232,6 +132888,16 @@
       "eligible": true
     },
     {
+      "id": 7443035916,
+      "name": "Weapon Buff: Southern Hospitality — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30916,
+      "stackable": true,
+      "eligible": true
+    },
+    {
       "id": 7443015437,
       "name": "Weapon Buff: Splendid Screen — +10% damage",
       "kind": "weapon_buff",
@@ -131937,6 +133603,15 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30661
+    },
+    {
+      "id": 7443035917,
+      "name": "Weapon Buff: Splendid Screen — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30917,
+      "stackable": true
     },
     {
       "id": 7443015438,
@@ -132670,6 +134345,16 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30662,
+      "eligible": true
+    },
+    {
+      "id": 7443035918,
+      "name": "Weapon Buff: Spy-Cicle — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30918,
+      "stackable": true,
       "eligible": true
     },
     {
@@ -133420,6 +135105,15 @@
       "eligible": true
     },
     {
+      "id": 7443035919,
+      "name": "Weapon Buff: Sticky Jumper — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30919,
+      "stackable": true
+    },
+    {
       "id": 7443015440,
       "name": "Weapon Buff: Stickybomb Launcher — +10% damage",
       "kind": "weapon_buff",
@@ -134167,6 +135861,15 @@
       "eligible": true
     },
     {
+      "id": 7443035920,
+      "name": "Weapon Buff: Stickybomb Launcher — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30920,
+      "stackable": true
+    },
+    {
       "id": 7443015441,
       "name": "Weapon Buff: Sun-on-a-Stick — +10% damage",
       "kind": "weapon_buff",
@@ -134896,6 +136599,16 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30665,
+      "eligible": true
+    },
+    {
+      "id": 7443035921,
+      "name": "Weapon Buff: Sun-on-a-Stick — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30921,
+      "stackable": true,
       "eligible": true
     },
     {
@@ -135637,6 +137350,15 @@
       "count": 0,
       "weapon_buff_id": 30666,
       "eligible": true
+    },
+    {
+      "id": 7443035922,
+      "name": "Weapon Buff: Sydney Sleeper — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30922,
+      "stackable": true
     },
     {
       "id": 7443015443,
@@ -136381,6 +138103,15 @@
       "eligible": true
     },
     {
+      "id": 7443035923,
+      "name": "Weapon Buff: Syringe Gun — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30923,
+      "stackable": true
+    },
+    {
       "id": 7443015444,
       "name": "Weapon Buff: Thermal Thruster — +10% damage",
       "kind": "weapon_buff",
@@ -137086,6 +138817,15 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30668
+    },
+    {
+      "id": 7443035924,
+      "name": "Weapon Buff: Thermal Thruster — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30924,
+      "stackable": true
     },
     {
       "id": 7443015445,
@@ -137817,6 +139557,16 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30669,
+      "eligible": true
+    },
+    {
+      "id": 7443035925,
+      "name": "Weapon Buff: Third Degree — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30925,
+      "stackable": true,
       "eligible": true
     },
     {
@@ -138552,6 +140302,16 @@
       "eligible": true
     },
     {
+      "id": 7443035926,
+      "name": "Weapon Buff: Three-Rune Blade — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30926,
+      "stackable": true,
+      "eligible": true
+    },
+    {
       "id": 7443015447,
       "name": "Weapon Buff: Tide Turner — +10% damage",
       "kind": "weapon_buff",
@@ -139257,6 +141017,15 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30671
+    },
+    {
+      "id": 7443035927,
+      "name": "Weapon Buff: Tide Turner — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30927,
+      "stackable": true
     },
     {
       "id": 7443015448,
@@ -139998,6 +141767,15 @@
       "eligible": true
     },
     {
+      "id": 7443035928,
+      "name": "Weapon Buff: Tomislav — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30928,
+      "stackable": true
+    },
+    {
       "id": 7443015449,
       "name": "Weapon Buff: Tribalman's Shiv — +10% damage",
       "kind": "weapon_buff",
@@ -140727,6 +142505,16 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30673,
+      "eligible": true
+    },
+    {
+      "id": 7443035929,
+      "name": "Weapon Buff: Tribalman's Shiv — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30929,
+      "stackable": true,
       "eligible": true
     },
     {
@@ -141465,6 +143253,16 @@
       "eligible": true
     },
     {
+      "id": 7443035930,
+      "name": "Weapon Buff: Ullapool Caber — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30930,
+      "stackable": true,
+      "eligible": true
+    },
+    {
       "id": 7443015451,
       "name": "Weapon Buff: Unarmed Combat — +10% damage",
       "kind": "weapon_buff",
@@ -142164,6 +143962,15 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30675
+    },
+    {
+      "id": 7443035931,
+      "name": "Weapon Buff: Unarmed Combat — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30931,
+      "stackable": true
     },
     {
       "id": 7443015452,
@@ -142876,6 +144683,15 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30676
+    },
+    {
+      "id": 7443035932,
+      "name": "Weapon Buff: Vaccinator — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30932,
+      "stackable": true
     },
     {
       "id": 7443015453,
@@ -143610,6 +145426,16 @@
       "eligible": true
     },
     {
+      "id": 7443035933,
+      "name": "Weapon Buff: Vita-Saw — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30933,
+      "stackable": true,
+      "eligible": true
+    },
+    {
       "id": 7443005198,
       "name": "Weapon Buff: Wanga Prick — +10% damage",
       "kind": "weapon_buff",
@@ -144309,6 +146135,15 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30678
+    },
+    {
+      "id": 7443035934,
+      "name": "Weapon Buff: Wanga Prick — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30934,
+      "stackable": true
     },
     {
       "id": 7443015455,
@@ -145040,6 +146875,16 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30679,
+      "eligible": true
+    },
+    {
+      "id": 7443035935,
+      "name": "Weapon Buff: Warrior's Spirit — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30935,
+      "stackable": true,
       "eligible": true
     },
     {
@@ -145789,6 +147634,15 @@
       "eligible": true
     },
     {
+      "id": 7443035936,
+      "name": "Weapon Buff: Widowmaker — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30936,
+      "stackable": true
+    },
+    {
       "id": 7443015457,
       "name": "Weapon Buff: Winger — +10% damage",
       "kind": "weapon_buff",
@@ -146528,6 +148382,15 @@
       "eligible": true
     },
     {
+      "id": 7443035937,
+      "name": "Weapon Buff: Winger — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30937,
+      "stackable": true
+    },
+    {
       "id": 7443015458,
       "name": "Weapon Buff: Wrangler — +10% damage",
       "kind": "weapon_buff",
@@ -147240,6 +149103,15 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30682
+    },
+    {
+      "id": 7443035938,
+      "name": "Weapon Buff: Wrangler — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30938,
+      "stackable": true
     },
     {
       "id": 7443015459,
@@ -147976,6 +149848,16 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30683,
+      "eligible": true
+    },
+    {
+      "id": 7443035939,
+      "name": "Weapon Buff: Wrap Assassin — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30939,
+      "stackable": true,
       "eligible": true
     },
     {
@@ -148718,6 +150600,16 @@
       "eligible": true
     },
     {
+      "id": 7443035940,
+      "name": "Weapon Buff: Wrench — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30940,
+      "stackable": true,
+      "eligible": true
+    },
+    {
       "id": 7443015461,
       "name": "Weapon Buff: Your Eternal Reward — +10% damage",
       "kind": "weapon_buff",
@@ -149449,6 +151341,16 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30685,
+      "eligible": true
+    },
+    {
+      "id": 7443035941,
+      "name": "Weapon Buff: Your Eternal Reward — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30941,
+      "stackable": true,
       "eligible": true
     },
     {
@@ -150184,6 +152086,16 @@
       "eligible": true
     },
     {
+      "id": 7443035942,
+      "name": "Weapon Buff: Übersaw — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30942,
+      "stackable": true,
+      "eligible": true
+    },
+    {
       "id": 7443015463,
       "name": "Weapon Buff: Batsaber — +10% damage",
       "kind": "weapon_buff",
@@ -150883,6 +152795,15 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30687
+    },
+    {
+      "id": 7443035943,
+      "name": "Weapon Buff: Batsaber — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30943,
+      "stackable": true
     },
     {
       "id": 7443015464,
@@ -151586,6 +153507,15 @@
       "weapon_buff_id": 30688
     },
     {
+      "id": 7443035944,
+      "name": "Weapon Buff: C.A.P.P.E.R — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30944,
+      "stackable": true
+    },
+    {
       "id": 7443015465,
       "name": "Weapon Buff: Giger Counter — +10% damage",
       "kind": "weapon_buff",
@@ -152285,6 +154215,15 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30689
+    },
+    {
+      "id": 7443035945,
+      "name": "Weapon Buff: Giger Counter — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30945,
+      "stackable": true
     },
     {
       "id": 7443005210,
@@ -152988,6 +154927,15 @@
       "weapon_buff_id": 30690
     },
     {
+      "id": 7443035946,
+      "name": "Weapon Buff: Nostromo Napalmer — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30946,
+      "stackable": true
+    },
+    {
       "id": 7443015467,
       "name": "Weapon Buff: Prinny Machete — +10% damage",
       "kind": "weapon_buff",
@@ -153689,6 +155637,15 @@
       "weapon_buff_id": 30691
     },
     {
+      "id": 7443035947,
+      "name": "Weapon Buff: Prinny Machete — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30947,
+      "stackable": true
+    },
+    {
       "id": 7443005212,
       "name": "Weapon Buff: Shooting Star — +10% damage",
       "kind": "weapon_buff",
@@ -154388,6 +156345,15 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 30692
+    },
+    {
+      "id": 7443035948,
+      "name": "Weapon Buff: Shooting Star — +15 health-on-kill overheal cap",
+      "kind": "weapon_buff",
+      "classification": "useful",
+      "count": 0,
+      "weapon_buff_id": 30948,
+      "stackable": true
     }
   ]
 }
