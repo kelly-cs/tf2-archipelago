@@ -20,6 +20,8 @@ float g_WeaponBuffAppliedValue[2049][WeaponEffectCount];
 bool g_WeaponBuffBasePresent[2049][WeaponEffectCount];
 float g_WeaponBuffBaseValue[2049][WeaponEffectCount];
 bool g_WeaponBuffWaveActive;
+int g_WeaponBuffLastRoundState = -1;
+float g_WeaponBuffReapplyUntil;
 ConVar g_WeaponBuffProjectileDebug;
 bool g_WeaponBuffFiringExtra;
 int g_WeaponBuffLastExtra;
@@ -70,6 +72,10 @@ void WeaponBuffs_Init()
     {
         HookUserMessage(jarated, WeaponBuffs_PlayerJarated);
     }
+    // Event_BeginWave is optional and fires before TF2 has necessarily
+    // finished rebuilding the live weapon. Reconcile the authoritative round
+    // state and briefly retry composition across that transition.
+    CreateTimer(0.1, WeaponBuffs_WaveStateTick, _, TIMER_REPEAT);
     for (int client = 1; client <= MaxClients; client++)
     {
         if (IsClientInGame(client))
@@ -77,6 +83,32 @@ void WeaponBuffs_Init()
             WeaponBuffs_HookClient(client);
         }
     }
+}
+
+public Action WeaponBuffs_WaveStateTick(Handle timer)
+{
+    int state = view_as<int>(GameRules_GetRoundState());
+    bool changed = state != g_WeaponBuffLastRoundState;
+    g_WeaponBuffLastRoundState = state;
+    bool running = state == view_as<int>(RoundState_RoundRunning);
+
+    if (changed && running && MvM_IsActive())
+    {
+        WeaponBuffs_BeginWave();
+    }
+    else if (changed && !running && g_WeaponBuffWaveActive)
+    {
+        WeaponBuffs_EndWave();
+    }
+
+    if (g_WeaponBuffWaveActive && GetGameTime() <= g_WeaponBuffReapplyUntil)
+    {
+        for (int client = 1; client <= MaxClients; client++)
+        {
+            WeaponBuffs_Apply(client);
+        }
+    }
+    return Plugin_Continue;
 }
 
 static void WeaponBuffs_InitProjectileCalls()
@@ -1255,6 +1287,7 @@ static void WeaponBuffs_Remove(int client)
 void WeaponBuffs_EndWave()
 {
     g_WeaponBuffWaveActive = false;
+    g_WeaponBuffReapplyUntil = 0.0;
     for (int client = 1; client <= MaxClients; client++)
     {
         WeaponBuffs_Remove(client);
@@ -1264,6 +1297,10 @@ void WeaponBuffs_EndWave()
 void WeaponBuffs_BeginWave()
 {
     g_WeaponBuffWaveActive = true;
+    // A refund and the shopping-to-wave transition can rebuild either the
+    // attributes or the entity over several frames. ApplyEntity is idempotent,
+    // so these retries repair each final form without stacking the AP value.
+    g_WeaponBuffReapplyUntil = GetGameTime() + 2.0;
     for (int client = 1; client <= MaxClients; client++)
     {
         WeaponBuffs_ApplyNextFrame(client);

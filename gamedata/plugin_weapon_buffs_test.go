@@ -69,6 +69,14 @@ func TestWeaponBuffsStayOutOfMvMShopping(t *testing.T) {
 	if !strings.Contains(beginBuffs, "WeaponBuffs_ApplyNextFrame(client)") {
 		t.Fatal("wave start applies Archipelago attributes before TF2 finishes its transition")
 	}
+	reconcile := sourceFunction(t, buffs, "public Action WeaponBuffs_WaveStateTick")
+	for _, required := range []string{
+		"RoundState_RoundRunning", "WeaponBuffs_BeginWave()", "WeaponBuffs_Apply(client)",
+	} {
+		if !strings.Contains(reconcile, required) {
+			t.Fatalf("round-state reconciliation has no %s", required)
+		}
+	}
 	for _, signature := range []string{
 		"public Action Command_TestWeaponBuff", "public Action Command_GiveWeaponBuff",
 	} {
