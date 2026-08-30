@@ -86,7 +86,7 @@ apply_patches() {
 
 # --- Sources for the plugins ---
 
-fetch m-this/tf2-mvm-bots "$DEFENDERBOTS_VERSION" defenderbots
+fetch "$DEFENDERBOTS_REPO" "$DEFENDERBOTS_VERSION" defenderbots
 fetch OfficerSpy/SM_Stock_OfficerSpy "$SM_STOCK_OFFICERSPY_REF" stocklib
 fetch FlaminSarge/tf2attributes "$TF2ATTRIBUTES_VERSION" tf2attributes
 fetch nosoop/SM-TFEconData "$TFECONDATA_VERSION" tf_econ_data
