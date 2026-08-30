@@ -149,6 +149,8 @@ public void OnPluginStart()
         "Give a test effect to a player's active weapon: sm_ap_buff_give <target> <number|key|all> [levels]");
     RegAdminCmd("sm_ap_projectile_debug", Command_ProjectileDebug, ADMFLAG_ROOT,
         "Toggle projectile diagnostics: sm_ap_projectile_debug [on|off]");
+    RegAdminCmd("sm_ap_buff_debug", Command_WeaponBuffDebug, ADMFLAG_ROOT,
+        "Inspect live weapon buff resolution: sm_ap_buff_debug [target]");
     RegAdminCmd("sm_ap_unlock_override", Command_UnlockOverride, ADMFLAG_ROOT,
         "Temporarily allow every class and weapon slot: sm_ap_unlock_override <on|off>");
 

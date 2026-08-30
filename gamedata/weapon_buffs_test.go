@@ -1,6 +1,7 @@
 package gamedata
 
 import (
+	"fmt"
 	"os"
 	"slices"
 	"strings"
@@ -103,6 +104,25 @@ func TestFunctionalReskinsShareOneRewardPool(t *testing.T) {
 	}
 }
 
+func TestKnownFunctionalReskinDefinitionsResolveToTheirOriginal(t *testing.T) {
+	cases := []struct {
+		canonical  string
+		definition int
+	}{
+		{"Ali Baba's Wee Booties", 608}, // Bootlegger
+		{"Boston Basher", 452},          // Three-Rune Blade
+		{"Minigun", 298},                // Iron Curtain
+		{"Minigun", 850},                // Deflector
+	}
+	for _, test := range cases {
+		weapon := weaponNamed(t, test.canonical)
+		if !slices.Contains(weapon.DefIndexes, test.definition) {
+			t.Errorf("%s definitions = %v, want reskin definition %d",
+				weapon.Name, weapon.DefIndexes, test.definition)
+		}
+	}
+}
+
 func TestMechanicSpecificEffectsStayOnTheirWeapons(t *testing.T) {
 	cases := []struct {
 		effects []string
@@ -199,6 +219,26 @@ func TestGeneratedPluginCatalogContainsEveryBuffKey(t *testing.T) {
 	for _, buff := range WeaponBuffs {
 		if !strings.Contains(text, `"`+buff.Key+`"`) {
 			t.Errorf("generated plugin catalog has no key %q", buff.Key)
+		}
+	}
+}
+
+func TestGeneratedPluginCatalogContainsEveryDefinitionResolution(t *testing.T) {
+	body, err := os.ReadFile("../plugin/scripting/tf2_archipelago/weapon_buffs_data.inc")
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(body)
+	for index, weapon := range BuffWeapons {
+		if weapon.ApplyID != weapon.ID {
+			continue
+		}
+		for _, definition := range weapon.DefIndexes {
+			entry := fmt.Sprintf("{ %d, %d }", definition, index)
+			if !strings.Contains(text, entry) {
+				t.Errorf("generated plugin catalog has no %s resolution for definition %d",
+					weapon.Name, definition)
+			}
 		}
 	}
 }

@@ -1358,6 +1358,109 @@ public Action Command_WeaponBuffs(int client, int args)
     return Plugin_Handled;
 }
 
+// Report the live definition lookup separately from attribute installation.
+// A reskin problem otherwise looks identical to TF2 rejecting an attribute:
+// both only show up to the player as a missing effect.
+public Action Command_WeaponBuffDebug(int client, int args)
+{
+    int target = client;
+    if (args >= 1)
+    {
+        char pattern[MAX_TARGET_LENGTH];
+        GetCmdArg(1, pattern, sizeof(pattern));
+        target = FindTarget(client, pattern, true);
+    }
+    if (target < 1 || target > MaxClients || !IsClientInGame(target))
+    {
+        if (args == 0)
+        {
+            ReplyToCommand(client, "[AP buff] Usage from the server console: sm_ap_buff_debug <target>");
+        }
+        return Plugin_Handled;
+    }
+
+    ReplyToCommand(client, "[AP buff] target=%N wave-active=%d unlocks=%d",
+        target, g_WeaponBuffWaveActive, g_HaveUnlocks);
+    for (int slot = 0; slot <= 5; slot++)
+    {
+        int entity = GetPlayerWeaponSlot(target, slot);
+        if (entity <= MaxClients || !IsValidEntity(entity))
+        {
+            continue;
+        }
+        char classname[64];
+        GetEntityClassname(entity, classname, sizeof(classname));
+        int definition = HasEntProp(entity, Prop_Send, "m_iItemDefinitionIndex")
+            ? GetEntProp(entity, Prop_Send, "m_iItemDefinitionIndex") : -1;
+        int weapon = WeaponBuffs_ForDefinition(definition);
+        if (weapon < 0)
+        {
+            ReplyToCommand(client,
+                "[AP buff] slot=%d entity=%d class=%s definition=%d catalog=UNMAPPED",
+                slot, entity, classname, definition);
+            continue;
+        }
+
+        int wanted;
+        int installed;
+        for (int effect = 0; effect < WeaponEffectCount; effect++)
+        {
+            int levels = g_WeaponEffectLevels[weapon][effect];
+            if (levels == 0)
+            {
+                continue;
+            }
+            wanted++;
+            Address attribute = TF2Attrib_GetByName(entity, g_WeaponEffectAttributes[effect]);
+            bool tracked = g_WeaponBuffAppliedRef[entity] == EntIndexToEntRef(entity)
+                && g_WeaponBuffApplied[entity][effect];
+            char state[24];
+            if (!g_WeaponBuffWaveActive)
+            {
+                strcopy(state, sizeof(state), "between-waves");
+            }
+            else if (!tracked)
+            {
+                strcopy(state, sizeof(state), "not-tracked");
+            }
+            else if (attribute == Address_Null)
+            {
+                strcopy(state, sizeof(state), "missing");
+            }
+            else if (FloatAbs(TF2Attrib_GetValue(attribute)
+                - g_WeaponBuffAppliedValue[entity][effect]) >= 0.0001)
+            {
+                strcopy(state, sizeof(state), "changed");
+            }
+            else
+            {
+                strcopy(state, sizeof(state), "ok");
+            }
+            if (attribute != Address_Null)
+            {
+                installed++;
+                ReplyToCommand(client,
+                    "[AP buff]   %s levels=%d value=%.4f state=%s tracked-levels=%d expected=%.4f",
+                    g_WeaponEffectKeys[effect], levels, TF2Attrib_GetValue(attribute), state,
+                    tracked ? g_WeaponBuffAppliedLevels[entity][effect] : 0,
+                    tracked ? g_WeaponBuffAppliedValue[entity][effect] : 0.0);
+            }
+            else
+            {
+                ReplyToCommand(client,
+                    "[AP buff]   %s levels=%d value=MISSING state=%s tracked-levels=%d expected=%.4f",
+                    g_WeaponEffectKeys[effect], levels, state,
+                    tracked ? g_WeaponBuffAppliedLevels[entity][effect] : 0,
+                    tracked ? g_WeaponBuffAppliedValue[entity][effect] : 0.0);
+            }
+        }
+        ReplyToCommand(client,
+            "[AP buff] slot=%d entity=%d class=%s definition=%d catalog=%d:%s effects=%d attributes-present=%d",
+            slot, entity, classname, definition, weapon, g_WeaponNames[weapon], wanted, installed);
+    }
+    return Plugin_Handled;
+}
+
 static int WeaponBuffs_AddTestEffects(int weapon, const char[] wanted, int levels)
 {
     int granted;

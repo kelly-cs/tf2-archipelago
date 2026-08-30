@@ -7,6 +7,7 @@ import "slices"
 // keeps a reward useful when a player swaps a stock weapon for its promotional
 // or cosmetic reskin.
 var weaponFamilies = [][]string{
+	{"Ali Baba's Wee Booties", "Bootlegger"},
 	{"Sapper", "Ap-Sap", "Snack Attack"},
 	{"Minigun", "Iron Curtain", "Reissued Iron Curtain", "Deflector"},
 	{"Pistol", "Lugermorph", "Reissued Lugermorph", "C.A.P.P.E.R"},
@@ -26,6 +27,7 @@ var weaponFamilies = [][]string{
 	{"Eyelander", "Nessie's Nine Iron", "Horseless Headless Horsemann's Headtaker"},
 	{"Bottle", "Scottish Handshake"},
 	{"Bat", "Holy Mackerel", "Unarmed Combat", "Batsaber"},
+	{"Boston Basher", "Three-Rune Blade"},
 	{"Knife", "Black Rose", "Sharp Dresser"},
 	{"Your Eternal Reward", "Wanga Prick"},
 	{"Wrench", "Golden Wrench"},
