@@ -74,3 +74,37 @@ func TestWeaponBuffsStayOutOfMvMShopping(t *testing.T) {
 		}
 	}
 }
+
+func TestWeaponBuffSubstancesUseTheSharedHitPath(t *testing.T) {
+	path := "../plugin/scripting/tf2_archipelago/weapon_buffs.inc"
+	apply := sourceFunction(t, path, "static void WeaponBuffs_ApplyHitEffects")
+	for _, effect := range []string{
+		"TF2_MakeBleed", "TF2_IgnitePlayer", "TFCond_Milked", "TFCond_Gas",
+		"TFCond_MarkedForDeath", "TFCond_Jarated",
+	} {
+		if !strings.Contains(apply, effect) {
+			t.Fatalf("shared hit path does not apply %s", effect)
+		}
+	}
+
+	jar := sourceFunction(t, path, "public void WeaponBuffs_ApplySubstances")
+	if !strings.Contains(jar, "WeaponBuffs_ApplyHitEffects(victim, attacker, weapon)") {
+		t.Fatal("jar splashes bypass the shared hit-effect path")
+	}
+
+	damage := sourceFunction(t, path, "public void WeaponBuffs_OnTakeDamagePost")
+	for _, guard := range []string{
+		"GetClientTeam(victim) == GetClientTeam(attacker)",
+		"damagecustom == TF_CUSTOM_BURNING",
+		"damagecustom == TF_CUSTOM_BLEEDING",
+		"WeaponBuffs_IsSubstanceProjectile(inflictorClass)",
+	} {
+		if !strings.Contains(damage, guard) {
+			t.Fatalf("direct-hit path lost guard %q", guard)
+		}
+	}
+	if !strings.Contains(damage, "WeaponBuffs_ForEntity(weapon)") ||
+		!strings.Contains(damage, "WeaponBuffs_ApplyHitEffects(victim, attacker, catalog)") {
+		t.Fatal("direct hits do not resolve the canonical weapon and apply its hit effects")
+	}
+}

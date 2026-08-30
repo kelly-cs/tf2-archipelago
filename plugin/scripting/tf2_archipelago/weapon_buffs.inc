@@ -271,7 +271,16 @@ public void WeaponBuffs_ApplySubstances(any rawPack)
         return;
     }
 
+    WeaponBuffs_ApplyHitEffects(victim, attacker, weapon);
+}
+
+// Item attributes implement these effects for only some of the weapons they
+// can be awarded to. Apply the reward from the resolved catalogue entry on a
+// confirmed enemy hit so bullets, projectiles and jars all use the same rules.
+static void WeaponBuffs_ApplyHitEffects(int victim, int attacker, int weapon)
+{
     int bleed = g_WeaponEffectLevels[weapon][BleedEffect];
+    int ignite = g_WeaponEffectLevels[weapon][IgniteEffect];
     int milk = g_WeaponEffectLevels[weapon][MadMilkEffect];
     int gas = g_WeaponEffectLevels[weapon][GasolineEffect];
     int marked = g_WeaponEffectLevels[weapon][MarkForDeathEffect];
@@ -279,6 +288,10 @@ public void WeaponBuffs_ApplySubstances(any rawPack)
     if (bleed > 0)
     {
         TF2_MakeBleed(victim, attacker, 3.0 * float(bleed));
+    }
+    if (ignite > 0)
+    {
+        TF2_IgnitePlayer(victim, attacker);
     }
     if (milk > 0)
     {
@@ -297,10 +310,10 @@ public void WeaponBuffs_ApplySubstances(any rawPack)
         TF2_AddCondition(victim, TFCond_Jarated, 10.0 + 2.0 * float(jarate), attacker);
     }
     if (g_WeaponBuffProjectileDebug.BoolValue
-        && (bleed > 0 || milk > 0 || gas > 0 || marked > 0 || jarate > 0))
+        && (bleed > 0 || ignite > 0 || milk > 0 || gas > 0 || marked > 0 || jarate > 0))
     {
-        WeaponBuffs_DebugLog("[AP substance] weapon=%s attacker=%d victim=%d bleed=%d milk=%d gas=%d marked=%d jarate=%d",
-            g_WeaponNames[weapon], attacker, victim, bleed, milk, gas, marked, jarate);
+        WeaponBuffs_DebugLog("[AP substance] weapon=%s attacker=%d victim=%d bleed=%d ignite=%d milk=%d gas=%d marked=%d jarate=%d",
+            g_WeaponNames[weapon], attacker, victim, bleed, ignite, milk, gas, marked, jarate);
     }
 }
 
@@ -1010,9 +1023,21 @@ public void WeaponBuffs_OnTakeDamagePost(int victim, int attacker, int inflictor
     }
     if (victim < 1 || victim > MaxClients || attacker < 1 || attacker > MaxClients
         || victim == attacker || !IsClientInGame(victim) || !IsClientInGame(attacker)
-        || GetClientTeam(victim) == GetClientTeam(attacker) || (damagetype & DMG_BURN) != 0)
+        || !IsPlayerAlive(victim) || GetClientTeam(victim) == GetClientTeam(attacker)
+        || damagecustom == TF_CUSTOM_BURNING || damagecustom == TF_CUSTOM_BLEEDING)
     {
         return;
+    }
+    // PlayerJarated carries every victim in a jar splash through the deferred
+    // path above. A jar that also reports impact damage must not apply twice.
+    if (inflictor > MaxClients && IsValidEntity(inflictor))
+    {
+        char inflictorClass[64];
+        GetEntityClassname(inflictor, inflictorClass, sizeof(inflictorClass));
+        if (WeaponBuffs_IsSubstanceProjectile(inflictorClass))
+        {
+            return;
+        }
     }
     if ((weapon <= MaxClients || !IsValidEntity(weapon)) && inflictor > MaxClients
         && IsValidEntity(inflictor) && HasEntProp(inflictor, Prop_Send, "m_hLauncher"))
@@ -1024,9 +1049,9 @@ public void WeaponBuffs_OnTakeDamagePost(int victim, int attacker, int inflictor
         weapon = GetEntPropEnt(attacker, Prop_Send, "m_hActiveWeapon");
     }
     int catalog = WeaponBuffs_ForEntity(weapon);
-    if (catalog >= 0 && g_WeaponEffectLevels[catalog][IgniteEffect] > 0)
+    if (catalog >= 0)
     {
-        TF2_IgnitePlayer(victim, attacker);
+        WeaponBuffs_ApplyHitEffects(victim, attacker, catalog);
     }
 }
 

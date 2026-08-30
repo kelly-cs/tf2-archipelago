@@ -168,6 +168,19 @@ func TestJarateAndMadMilkOnlyDrawProjectileRechargeAndSubstanceBuffs(t *testing.
 	}
 }
 
+func TestDirectHitWeaponsDrawSubstanceBuffs(t *testing.T) {
+	for _, name := range []string{"Minigun", "Pistol", "Scattergun"} {
+		for _, effect := range []string{"bleed", "ignite", "mad-milk", "gasoline", "mark-for-death"} {
+			if !buffNamed(t, name, effect).Eligible {
+				t.Errorf("%s lost direct-hit substance effect %s", name, effect)
+			}
+		}
+	}
+	if !buffNamed(t, "Sniper Rifle", "jarate").Eligible {
+		t.Error("Sniper Rifle lost direct-hit Jarate")
+	}
+}
+
 func TestCliplessWeaponsDoNotDrawClipOrReloadBuffs(t *testing.T) {
 	for _, name := range []string{"Flame Thrower", "Minigun", "Sniper Rifle", "Huntsman"} {
 		for _, effect := range []string{"clip-size", "reload-rate"} {
