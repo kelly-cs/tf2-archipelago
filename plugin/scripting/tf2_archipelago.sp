@@ -319,6 +319,7 @@ public Action Command_Say(int client, const char[] command, int argc)
 
 public void OnMapStart()
 {
+    WeaponBuffs_EndWave();
     g_CurrentWave = 0;
     g_MaxWaves = 0;
     g_PolledWave = 0;
@@ -361,6 +362,9 @@ public void Event_BeginWave(Event event, const char[] name, bool dontBroadcast)
         g_TankReported = false;
         g_GiantReported = false;
     }
+    // The station is closed now. Compose run buffs onto the MvM upgrades
+    // Valve finalized during the preceding shopping period.
+    WeaponBuffs_BeginWave();
 
     int fromGame = MvM_WaveFromGame();
     if (fromGame > 0 && fromGame != g_CurrentWave)
@@ -447,6 +451,7 @@ public void Event_WaveFailed(Event event, const char[] name, bool dontBroadcast)
 
 static void ReportWaveFailed(int wave)
 {
+    WeaponBuffs_EndWave();
     if (!MvM_IsActive())
     {
         return;
@@ -459,6 +464,7 @@ static void ReportWaveFailed(int wave)
 
 static void ReportWaveCleared(int wave)
 {
+    WeaponBuffs_EndWave();
     if (!MvM_IsActive())
     {
         return;
@@ -489,6 +495,7 @@ static void ReportWaveCleared(int wave)
 
 static void ReportMissionCleared()
 {
+    WeaponBuffs_EndWave();
     if (!MvM_IsActive())
     {
         return;
