@@ -244,9 +244,23 @@ public Action Command_Say(int client, const char[] command, int argc)
         // that it has never heard of it, which is what the line already says.
         AP_PrintToClient(client, "!ap unlock mission hands over the next mission ticket, in test mode only.");
         AP_PrintToClient(client, "!ap bots changes what the bots on RED play, seat by seat.");
+        AP_PrintToClient(client, "!ap buffs lists the Archipelago buffs on your loadout.");
         AP_PrintToClient(client, "!apchat <text> speaks to the other players in the multiworld.");
         AP_PrintToClient(client, "!mission lists the run's missions.%s",
             CheckCommandAccess(client, "sm_ap_mission", ADMFLAG_CHANGEMAP) ? " !mission <number> switches to one." : "");
+        return Plugin_Handled;
+    }
+    /* Ahead of the "!ap <anything>" passthrough below, which is what used to
+     * eat this: "!ap buffs" fell through to the multiworld as the chat command
+     * "!buffs", so the window never opened and nothing said why.
+     */
+    if (StrEqual(message, "!ap buffs", false) || StrEqual(message, "!ap buff", false)
+        || StrEqual(message, "!apbuffs", false))
+    {
+        if (!WeaponBuffs_ShowMenu(client))
+        {
+            AP_PrintToClient(client, "No buffs for this loadout yet.");
+        }
         return Plugin_Handled;
     }
     if (StrEqual(message, "!ap bots", false) || StrEqual(message, "!apbots", false))

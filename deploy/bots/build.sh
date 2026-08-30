@@ -93,6 +93,55 @@ fetch nosoop/SM-TFEconData "$TFECONDATA_VERSION" tf_econ_data
 fetch nosoop/SM-TFUtils "$TF2UTILS_VERSION" tf2utils
 fetch nosoop/stocksoup "$STOCKSOUP_REF" stocksoup-root/stocksoup
 
+# --- The generated SourcePawn, from the pinned Go module ---
+#
+# The mod's tables and its ported decisions are Go now, and the SourcePawn they
+# become is a build artifact. The version of that generator is a go.mod
+# requirement rather than a tag in versions.env: one place says which mod this
+# build runs, and `go get` moves it.
+#
+# The mod's checkout carries a committed copy of the generated files, because
+# its own build is a shell script and a compiler. Here we have Go, so the files
+# are regenerated and compared. A mismatch means the copy in the mod's tree is
+# not what its generator writes, which is the drift the copies exist to risk.
+generate_from_module() {
+	command -v go >/dev/null 2>&1 || {
+		echo "no go toolchain: skipping the generated SourcePawn check" >&2
+		return 0
+	}
+
+	gen=$(mktemp -d)
+	# go tool, not go run: the version comes from the tool directive in
+	# go.mod, so `go get -tool` moves the mod and nothing else has to be
+	# edited to agree with it.
+	( cd "$root" && go tool github.com/m-this/tf2-mvm-bots-go/cmd/gen \
+		-upstream "$src/defenderbots" -out "$gen" ) || {
+		echo "the mod's generator failed" >&2
+		rm -rf "$gen"
+		return 1
+	}
+
+	drift=0
+	for file in "$gen"/sourcepawn/*.sp; do
+		name=$(basename "$file")
+		for committed in "$src/defenderbots/source/redbots3/generated/$name" \
+			"$src/defenderbots/testbed/stats/generated/$name"; do
+			[ -f "$committed" ] || continue
+			cmp -s "$file" "$committed" || {
+				echo "drift: $committed is not what the generator writes" >&2
+				diff -u "$committed" "$file" | head -40 >&2
+				drift=1
+			}
+		done
+	done
+	rm -rf "$gen"
+	[ "$drift" = 0 ] || return 1
+
+	echo "the generated SourcePawn matches the pinned generator"
+}
+
+generate_from_module
+
 # The include roots the plugins compile against. Only the includes are needed,
 # so these are checkouts of source we never build.
 fetch TF2-DMB/CBaseNPC "$CBASENPC_VERSION" cbasenpc
