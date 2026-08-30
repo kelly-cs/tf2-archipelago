@@ -123,6 +123,35 @@ func TestKnownFunctionalReskinDefinitionsResolveToTheirOriginal(t *testing.T) {
 	}
 }
 
+func TestDecoratedDefinitionsFollowTheirSchemaPrefabs(t *testing.T) {
+	seen := make(map[int]string)
+	for name, definitions := range decoratedWeaponDefinitions {
+		weapon := weaponNamed(t, name)
+		for _, definition := range definitions {
+			if previous := seen[definition]; previous != "" {
+				t.Errorf("decorated definition %d belongs to both %s and %s", definition, previous, name)
+			}
+			seen[definition] = name
+			if !slices.Contains(weapon.DefIndexes, definition) {
+				t.Errorf("%s definitions omit decorated definition %d", name, definition)
+			}
+		}
+	}
+	if got, want := len(seen), 158; got != want {
+		t.Fatalf("decorated definition count = %d, want schema snapshot count %d", got, want)
+	}
+	for definition, want := range map[int]string{
+		15015: "Scattergun", // Tartan Torpedo; the old suffix inference said Minigun.
+		15098: "Minigun",    // Brain Candy.
+		15099: "Minigun",    // Mister Cuddles.
+		15158: "Grenade Launcher",
+	} {
+		if got := seen[definition]; got != want {
+			t.Errorf("decorated definition %d resolves to %q, want %q", definition, got, want)
+		}
+	}
+}
+
 func TestMechanicSpecificEffectsStayOnTheirWeapons(t *testing.T) {
 	cases := []struct {
 		effects []string

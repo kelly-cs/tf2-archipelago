@@ -1,5 +1,7 @@
 package gamedata
 
+import "slices"
+
 //go:generate go run ./cmd/pluginbuffs ../plugin/scripting/tf2_archipelago/weapon_buffs_data.inc
 
 // BuffMode describes how repeated copies compose with the weapon's existing
@@ -75,12 +77,36 @@ func buildBuffWeapons() []BuffWeapon {
 	weapons := make([]BuffWeapon, 0, len(legacyWeaponBuffs))
 	for _, old := range legacyWeaponBuffs {
 		weapons = append(weapons, BuffWeapon{
-			ID: old.ID, Key: old.Key, Name: old.Weapon, DefIndexes: old.DefIndexes,
+			ID: old.ID, Key: old.Key, Name: old.Weapon, DefIndexes: slices.Clone(old.DefIndexes),
 			ApplyID: old.ID,
 		})
 	}
+	replaceDecoratedWeaponDefinitions(weapons)
 	mergeWeaponFamilies(weapons)
 	return weapons
+}
+
+// The original catalog treated a 150xx decorated definition as though its
+// suffix were the stock definition. Valve assigns those numbers sequentially
+// across collections instead: 15015 is a Scattergun, not Minigun 15, while
+// Brain Candy Minigun is 15098. Replace that inferred data with the prefab
+// mapping audited from the item schema.
+func replaceDecoratedWeaponDefinitions(weapons []BuffWeapon) {
+	byName := make(map[string]int, len(weapons))
+	for index := range weapons {
+		byName[weapons[index].Name] = index
+		weapons[index].DefIndexes = slices.DeleteFunc(weapons[index].DefIndexes, func(definition int) bool {
+			return definition >= 15000 && definition < 16000
+		})
+	}
+	for name, definitions := range decoratedWeaponDefinitions {
+		index, ok := byName[name]
+		if !ok {
+			panic("decorated weapon has no catalog member: " + name)
+		}
+		weapons[index].DefIndexes = append(weapons[index].DefIndexes, definitions...)
+		slices.Sort(weapons[index].DefIndexes)
+	}
 }
 
 func buildWeaponBuffs() []WeaponBuff {
