@@ -74,3 +74,37 @@ func TestWeaponBuffsStayOutOfMvMShopping(t *testing.T) {
 		}
 	}
 }
+
+func TestCrossbowDiagnosticsPreserveNativeHealing(t *testing.T) {
+	buffs := "../plugin/scripting/tf2_archipelago/weapon_buffs.inc"
+	init := sourceFunction(t, buffs, "void WeaponBuffs_Init()")
+	if !strings.Contains(init, `HookEventEx("crossbow_heal", WeaponBuffs_CrossbowHeal)`) {
+		t.Fatal("crossbow diagnostics do not observe TF2's authoritative heal event")
+	}
+
+	created := sourceFunction(t, buffs, "public void OnEntityCreated")
+	for _, wanted := range []string{"tf_projectile_healing_bolt", "WeaponBuffs_ArrowStartTouch"} {
+		if !strings.Contains(created, wanted) {
+			t.Fatalf("crossbow projectiles are not hooked for %s diagnostics", wanted)
+		}
+	}
+
+	touch := sourceFunction(t, buffs, "public Action WeaponBuffs_ArrowStartTouch")
+	for _, wanted := range []string{"m_iProjectileType", "m_CollisionGroup", "projectile penetration", "g_WeaponBuffArrowExtra"} {
+		if !strings.Contains(touch, wanted) {
+			t.Fatalf("crossbow touch diagnostics omit %s", wanted)
+		}
+	}
+	for _, replacement := range []string{"SetEntityHealth", "TF2Util_TakeHealth"} {
+		if strings.Contains(touch, replacement) {
+			t.Fatalf("diagnostic hook replaces TF2's native healing through %s", replacement)
+		}
+	}
+
+	fanout := sourceFunction(t, buffs, "static int WeaponBuffs_FireNativeArrow")
+	for _, wanted := range []string{"g_WeaponBuffArrowCreate", "m_hLauncher", "WeaponBuffs_ArrowStartTouch"} {
+		if !strings.Contains(fanout, wanted) {
+			t.Fatalf("fan-out bolt omits native state needed for healing: %s", wanted)
+		}
+	}
+}

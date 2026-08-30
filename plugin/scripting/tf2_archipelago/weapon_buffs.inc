@@ -33,6 +33,13 @@ float g_WeaponBuffNativeExtraBorn[2049];
 bool g_WeaponBuffArrowExtra[2049];
 bool g_WeaponBuffArrowTouched[2049];
 float g_WeaponBuffArrowOrigin[2049][3];
+float g_WeaponBuffCrossbowTouchTime[MAXPLAYERS + 1][MAXPLAYERS + 1];
+int g_WeaponBuffCrossbowTouchRef[MAXPLAYERS + 1][MAXPLAYERS + 1];
+int g_WeaponBuffCrossbowTouchType[MAXPLAYERS + 1][MAXPLAYERS + 1];
+int g_WeaponBuffCrossbowTouchCollision[MAXPLAYERS + 1][MAXPLAYERS + 1];
+int g_WeaponBuffCrossbowTouchHealth[MAXPLAYERS + 1][MAXPLAYERS + 1];
+float g_WeaponBuffCrossbowTouchPenetration[MAXPLAYERS + 1][MAXPLAYERS + 1];
+bool g_WeaponBuffCrossbowTouchExtra[MAXPLAYERS + 1][MAXPLAYERS + 1];
 int g_WeaponBuffStickyMimic[2049];
 int g_WeaponBuffLastButtons[MAXPLAYERS + 1];
 int g_WeaponBuffLastSubstanceWeapon[MAXPLAYERS + 1];
@@ -61,6 +68,10 @@ void WeaponBuffs_Init()
     g_WeaponBuffProjectileDebug = CreateConVar("tf2ap_projectile_debug", "0",
         "Log extra-projectile creation and lifetime", FCVAR_NONE, true, 0.0, true, 1.0);
     WeaponBuffs_InitProjectileCalls();
+    if (!HookEventEx("crossbow_heal", WeaponBuffs_CrossbowHeal))
+    {
+        LogError("Crossbow diagnostics cannot observe healing: crossbow_heal is unavailable.");
+    }
     UserMsg jarated = GetUserMessageId("PlayerJarated");
     if (jarated == INVALID_MESSAGE_ID || GetUserMessageType() != UM_BitBuf)
     {
@@ -189,6 +200,10 @@ public void OnEntityCreated(int entity, const char[] classname)
     }
     if (WeaponBuffs_IsProjectile(classname))
     {
+        if (StrEqual(classname, "tf_projectile_healing_bolt", false))
+        {
+            SDKHook(entity, SDKHook_StartTouch, WeaponBuffs_ArrowStartTouch);
+        }
         if (WeaponBuffs_IsSubstanceProjectile(classname))
         {
             SDKHook(entity, SDKHook_SpawnPost, WeaponBuffs_SubstanceProjectileSpawned);
@@ -673,6 +688,10 @@ static int WeaponBuffs_FireNativeArrow(int source, int owner, int launcher, floa
     g_WeaponBuffArrowExtra[extra] = true;
     g_WeaponBuffArrowTouched[extra] = false;
     g_WeaponBuffArrowOrigin[extra] = origin;
+    // OnEntityCreated hooks healing bolts before the native factory returns.
+    // Reinstall this hook so every arrow family has exactly one diagnostic
+    // callback, rather than giving native healing bolts two callbacks.
+    SDKUnhook(extra, SDKHook_StartTouch, WeaponBuffs_ArrowStartTouch);
     SDKHook(extra, SDKHook_StartTouch, WeaponBuffs_ArrowStartTouch);
     CreateTimer(0.15, WeaponBuffs_ArrowFlightCheck, EntIndexToEntRef(extra),
         TIMER_FLAG_NO_MAPCHANGE);
@@ -681,23 +700,101 @@ static int WeaponBuffs_FireNativeArrow(int source, int owner, int launcher, floa
 
 public Action WeaponBuffs_ArrowStartTouch(int entity, int other)
 {
-    if (!g_WeaponBuffArrowExtra[entity] || g_WeaponBuffArrowTouched[entity])
+    if (entity <= MaxClients || !IsValidEntity(entity))
     {
         return Plugin_Continue;
     }
-    g_WeaponBuffArrowTouched[entity] = true;
-    SDKUnhook(entity, SDKHook_StartTouch, WeaponBuffs_ArrowStartTouch);
-    if (g_WeaponBuffProjectileDebug.BoolValue)
+
+    char classname[64];
+    GetEntityClassname(entity, classname, sizeof(classname));
+    bool healingBolt = StrEqual(classname, "tf_projectile_healing_bolt", false);
+    if (!healingBolt)
     {
-        char classname[64] = "worldspawn";
+        if (!g_WeaponBuffArrowExtra[entity] || g_WeaponBuffArrowTouched[entity])
+        {
+            return Plugin_Continue;
+        }
+        g_WeaponBuffArrowTouched[entity] = true;
+        SDKUnhook(entity, SDKHook_StartTouch, WeaponBuffs_ArrowStartTouch);
+        if (!g_WeaponBuffProjectileDebug.BoolValue)
+        {
+            return Plugin_Continue;
+        }
+        char touchedClass[64] = "worldspawn";
         if (other > 0 && IsValidEntity(other))
         {
-            GetEntityClassname(other, classname, sizeof(classname));
+            GetEntityClassname(other, touchedClass, sizeof(touchedClass));
         }
         WeaponBuffs_DebugLog("[AP projectile] arrow-extra entity=%d first-touch=%d class=%s age=%.3f",
-            entity, other, classname, GetGameTime() - g_WeaponBuffNativeExtraBorn[entity]);
+            entity, other, touchedClass, GetGameTime() - g_WeaponBuffNativeExtraBorn[entity]);
+        return Plugin_Continue;
+    }
+
+    g_WeaponBuffArrowTouched[entity] = true;
+    if (!g_WeaponBuffProjectileDebug.BoolValue || other < 1 || other > MaxClients
+        || !IsClientInGame(other))
+    {
+        return Plugin_Continue;
+    }
+
+    int owner, launcher;
+    WeaponBuffs_ResolveProjectile(entity, owner, launcher);
+    int projectileType = HasEntProp(entity, Prop_Send, "m_iProjectileType")
+        ? GetEntProp(entity, Prop_Send, "m_iProjectileType") : -1;
+    int collision = HasEntProp(entity, Prop_Send, "m_CollisionGroup")
+        ? GetEntProp(entity, Prop_Send, "m_CollisionGroup") : -1;
+    float penetration;
+    if (launcher > MaxClients && IsValidEntity(launcher))
+    {
+        Address attribute = TF2Attrib_GetByName(launcher, "projectile penetration");
+        if (attribute != Address_Null)
+        {
+            penetration = TF2Attrib_GetValue(attribute);
+        }
+    }
+    bool friendly = MvM_IsPlayer(owner) && GetClientTeam(owner) == GetClientTeam(other);
+    WeaponBuffs_DebugLog("[AP crossbow] touch entity=%d owner=%d target=%d friendly=%d extra=%d type=%d collision=%d penetration=%.1f health=%d/%d age=%.3f",
+        entity, owner, other, friendly, g_WeaponBuffArrowExtra[entity], projectileType,
+        collision, penetration, GetClientHealth(other), GetEntProp(other, Prop_Data, "m_iMaxHealth"),
+        GetGameTime() - g_WeaponBuffNativeExtraBorn[entity]);
+
+    if (friendly)
+    {
+        g_WeaponBuffCrossbowTouchTime[owner][other] = GetGameTime();
+        g_WeaponBuffCrossbowTouchRef[owner][other] = EntIndexToEntRef(entity);
+        g_WeaponBuffCrossbowTouchType[owner][other] = projectileType;
+        g_WeaponBuffCrossbowTouchCollision[owner][other] = collision;
+        g_WeaponBuffCrossbowTouchHealth[owner][other] = GetClientHealth(other);
+        g_WeaponBuffCrossbowTouchPenetration[owner][other] = penetration;
+        g_WeaponBuffCrossbowTouchExtra[owner][other] = g_WeaponBuffArrowExtra[entity];
     }
     return Plugin_Continue;
+}
+
+public void WeaponBuffs_CrossbowHeal(Event event, const char[] name, bool dontBroadcast)
+{
+    if (!g_WeaponBuffProjectileDebug.BoolValue)
+    {
+        return;
+    }
+    int healer = GetClientOfUserId(event.GetInt("healer"));
+    int target = GetClientOfUserId(event.GetInt("target"));
+    if (healer < 1 || healer > MaxClients || target < 1 || target > MaxClients)
+    {
+        WeaponBuffs_DebugLog("[AP crossbow] heal event unresolved healer-userid=%d target-userid=%d amount=%d",
+            event.GetInt("healer"), event.GetInt("target"), event.GetInt("amount"));
+        return;
+    }
+
+    float age = GetGameTime() - g_WeaponBuffCrossbowTouchTime[healer][target];
+    int entity = EntRefToEntIndex(g_WeaponBuffCrossbowTouchRef[healer][target]);
+    WeaponBuffs_DebugLog("[AP crossbow] healed healer=%d target=%d amount=%d contact-entity=%d contact-age=%.3f extra=%d type=%d collision=%d penetration=%.1f health-at-contact=%d",
+        healer, target, event.GetInt("amount"), entity, age,
+        g_WeaponBuffCrossbowTouchExtra[healer][target],
+        g_WeaponBuffCrossbowTouchType[healer][target],
+        g_WeaponBuffCrossbowTouchCollision[healer][target],
+        g_WeaponBuffCrossbowTouchPenetration[healer][target],
+        g_WeaponBuffCrossbowTouchHealth[healer][target]);
 }
 
 public Action WeaponBuffs_ArrowFlightCheck(Handle timer, any reference)
@@ -836,6 +933,43 @@ static void WeaponBuffs_ResolveProjectile(int source, int &owner, int &launcher)
     }
 }
 
+static void WeaponBuffs_LogCrossbowProjectile(const char[] label, int entity)
+{
+    if (!g_WeaponBuffProjectileDebug.BoolValue || entity <= MaxClients
+        || !IsValidEntity(entity))
+    {
+        return;
+    }
+    char classname[64];
+    GetEntityClassname(entity, classname, sizeof(classname));
+    if (!StrEqual(classname, "tf_projectile_healing_bolt", false))
+    {
+        return;
+    }
+    int owner, launcher;
+    WeaponBuffs_ResolveProjectile(entity, owner, launcher);
+    float penetration;
+    if (launcher > MaxClients && IsValidEntity(launcher))
+    {
+        Address attribute = TF2Attrib_GetByName(launcher, "projectile penetration");
+        if (attribute != Address_Null)
+        {
+            penetration = TF2Attrib_GetValue(attribute);
+        }
+    }
+    int projectileType = HasEntProp(entity, Prop_Send, "m_iProjectileType")
+        ? GetEntProp(entity, Prop_Send, "m_iProjectileType") : -1;
+    int collision = HasEntProp(entity, Prop_Send, "m_CollisionGroup")
+        ? GetEntProp(entity, Prop_Send, "m_CollisionGroup") : -1;
+    int solidFlags = HasEntProp(entity, Prop_Data, "m_usSolidFlags")
+        ? GetEntProp(entity, Prop_Data, "m_usSolidFlags") : -1;
+    int solidType = HasEntProp(entity, Prop_Data, "m_nSolidType")
+        ? GetEntProp(entity, Prop_Data, "m_nSolidType") : -1;
+    WeaponBuffs_DebugLog("[AP crossbow] %s entity=%d owner=%d launcher=%d extra=%d type=%d collision=%d solid=%d flags=%d penetration=%.1f",
+        label, entity, owner, launcher, g_WeaponBuffArrowExtra[entity], projectileType,
+        collision, solidType, solidFlags, penetration);
+}
+
 static void WeaponBuffs_FireExtraProjectiles(any reference)
 {
     int source = EntRefToEntIndex(reference);
@@ -869,6 +1003,9 @@ static void WeaponBuffs_FireExtraProjectiles(any reference)
         }
         return;
     }
+    char classname[64];
+    GetEntityClassname(source, classname, sizeof(classname));
+    WeaponBuffs_LogCrossbowProjectile("original-ready", source);
     int copies = g_WeaponEffectLevels[weapon][ProjectileCountEffect];
     if (copies <= 0)
     {
@@ -911,8 +1048,6 @@ static void WeaponBuffs_FireExtraProjectiles(any reference)
     }
     bool critical = HasEntProp(source, Prop_Send, "m_bCritical")
         && GetEntProp(source, Prop_Send, "m_bCritical") != 0;
-    char classname[64];
-    GetEntityClassname(source, classname, sizeof(classname));
     int mimicType = WeaponBuffs_MimicType(source, classname);
     bool isFlare = StrEqual(classname, "tf_projectile_flare", false);
     bool isArrow = WeaponBuffs_IsArrow(classname);
@@ -994,6 +1129,10 @@ static void WeaponBuffs_FireExtraProjectiles(any reference)
         WeaponBuffs_LogProjectile(isFlare ? "native-flare-extra"
             : (isArrow ? "native-arrow-extra"
                 : (mimicType >= 0 ? "mimic-extra" : "clone-extra")), extra);
+        if (isArrow)
+        {
+            WeaponBuffs_LogCrossbowProjectile("extra-ready", extra);
+        }
     }
 }
 
