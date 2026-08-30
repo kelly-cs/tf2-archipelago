@@ -65,6 +65,21 @@ func TestWeaponBuffsStayOutOfMvMShopping(t *testing.T) {
 	if !strings.Contains(begin, "WeaponBuffs_BeginWave()") {
 		t.Fatal("wave start does not apply Archipelago attributes")
 	}
+	beginBuffs := sourceFunction(t, buffs, "void WeaponBuffs_BeginWave()")
+	if !strings.Contains(beginBuffs, "WeaponBuffs_ApplyNextFrame(client)") {
+		t.Fatal("wave start applies Archipelago attributes before TF2 finishes its transition")
+	}
+	for _, signature := range []string{
+		"public Action Command_TestWeaponBuff", "public Action Command_GiveWeaponBuff",
+	} {
+		body := sourceFunction(t, buffs, signature)
+		if strings.Contains(body, "WeaponBuffs_ApplyEntity") {
+			t.Fatalf("%s bypasses the shopping-period guard", signature)
+		}
+		if !strings.Contains(body, "WeaponBuffs_Apply(") {
+			t.Fatalf("%s does not apply through the guarded client path", signature)
+		}
+	}
 	for _, signature := range []string{
 		"static void ReportWaveFailed", "static void ReportWaveCleared",
 		"static void ReportMissionCleared",

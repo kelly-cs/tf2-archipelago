@@ -1266,7 +1266,27 @@ void WeaponBuffs_BeginWave()
     g_WeaponBuffWaveActive = true;
     for (int client = 1; client <= MaxClients; client++)
     {
+        WeaponBuffs_ApplyNextFrame(client);
+    }
+}
+
+static void Frame_ApplyWeaponBuffs(any userid)
+{
+    int client = GetClientOfUserId(userid);
+    if (client > 0)
+    {
         WeaponBuffs_Apply(client);
+    }
+}
+
+// mvm_begin_wave is delivered from inside TF2's transition out of shopping.
+// Let that transition finish rebuilding runtime attributes before composing
+// the Archipelago contribution onto Valve's final values.
+void WeaponBuffs_ApplyNextFrame(int client)
+{
+    if (client > 0 && IsClientInGame(client))
+    {
+        RequestFrame(Frame_ApplyWeaponBuffs, GetClientUserId(client));
     }
 }
 
@@ -1413,8 +1433,12 @@ public Action Command_TestWeaponBuff(int client, int args)
         ReplyToCommand(client, "[AP] Unknown effect %s. Use 1-%d or an effect key.", wanted, WeaponEffectCount);
         return Plugin_Handled;
     }
-    WeaponBuffs_ApplyEntity(entity, weapon);
-    ReplyToCommand(client, "[AP] Applied %d test effect(s) to %s.", granted, g_WeaponNames[weapon]);
+    // Between waves this records the same canonical level as a room grant but
+    // deliberately leaves the runtime attribute off the weapon. The station
+    // must never see an AP-composed value as the base it purchases or refunds.
+    WeaponBuffs_Apply(client);
+    ReplyToCommand(client, "[AP] %s %d test effect(s) for %s.",
+        g_WeaponBuffWaveActive ? "Applied" : "Queued", granted, g_WeaponNames[weapon]);
     WeaponBuffs_ShowMenu(client);
     return Plugin_Handled;
 }
@@ -1470,9 +1494,9 @@ public Action Command_GiveWeaponBuff(int client, int args)
         return Plugin_Handled;
     }
 
-    WeaponBuffs_ApplyEntity(entity, weapon);
-    ReplyToCommand(client, "[AP] Applied %d test effect(s) to %N's %s.",
-        granted, target, g_WeaponNames[weapon]);
+    WeaponBuffs_Apply(target);
+    ReplyToCommand(client, "[AP] %s %d test effect(s) for %N's %s.",
+        g_WeaponBuffWaveActive ? "Applied" : "Queued", granted, target, g_WeaponNames[weapon]);
     if (client != target)
     {
         PrintToChat(target, "[AP] An admin applied %d test effect(s) to your %s.",
