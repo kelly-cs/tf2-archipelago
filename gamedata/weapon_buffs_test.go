@@ -168,6 +168,19 @@ func TestJarateAndMadMilkOnlyDrawProjectileRechargeAndSubstanceBuffs(t *testing.
 	}
 }
 
+func TestDirectHitWeaponsDrawSubstanceBuffs(t *testing.T) {
+	for _, name := range []string{"Minigun", "Pistol", "Scattergun"} {
+		for _, effect := range []string{"bleed", "ignite", "mad-milk", "gasoline", "mark-for-death"} {
+			if !buffNamed(t, name, effect).Eligible {
+				t.Errorf("%s lost direct-hit substance effect %s", name, effect)
+			}
+		}
+	}
+	if !buffNamed(t, "Sniper Rifle", "jarate").Eligible {
+		t.Error("Sniper Rifle lost direct-hit Jarate")
+	}
+}
+
 func TestCliplessWeaponsDoNotDrawClipOrReloadBuffs(t *testing.T) {
 	for _, name := range []string{"Flame Thrower", "Minigun", "Sniper Rifle", "Huntsman"} {
 		for _, effect := range []string{"clip-size", "reload-rate"} {
@@ -220,6 +233,71 @@ func TestPluginImplementsActiveHealthRegenInsteadOfBrokenSchemaHealing(t *testin
 		if !strings.Contains(text, required) {
 			t.Errorf("active health regeneration implementation has no %q", required)
 		}
+	}
+}
+
+func substanceSourceFunction(t *testing.T, signature string) string {
+	t.Helper()
+	body, err := os.ReadFile("../plugin/scripting/tf2_archipelago/weapon_buffs.inc")
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(body)
+	start := strings.Index(text, signature)
+	if start < 0 {
+		t.Fatalf("weapon buffs have no %s", signature)
+	}
+	open := strings.IndexByte(text[start:], '{')
+	if open < 0 {
+		t.Fatalf("weapon buffs have no body for %s", signature)
+	}
+	open += start
+	depth := 0
+	for index := open; index < len(text); index++ {
+		switch text[index] {
+		case '{':
+			depth++
+		case '}':
+			depth--
+			if depth == 0 {
+				return text[start : index+1]
+			}
+		}
+	}
+	t.Fatalf("weapon buffs have an unterminated body for %s", signature)
+	return ""
+}
+
+func TestWeaponBuffSubstancesUseTheSharedHitPath(t *testing.T) {
+	apply := substanceSourceFunction(t, "static void WeaponBuffs_ApplyHitEffects")
+	for _, effect := range []string{
+		"TF2_MakeBleed", "TF2_IgnitePlayer", "TFCond_Milked", "TFCond_Gas",
+		"TFCond_MarkedForDeath", "TFCond_Jarated",
+	} {
+		if !strings.Contains(apply, effect) {
+			t.Fatalf("shared hit path does not apply %s", effect)
+		}
+	}
+
+	jar := substanceSourceFunction(t, "public void WeaponBuffs_ApplySubstances")
+	if !strings.Contains(jar, "WeaponBuffs_ApplyHitEffects(victim, attacker, weapon)") {
+		t.Fatal("jar splashes bypass the shared hit-effect path")
+	}
+
+	damage := substanceSourceFunction(t, "public void WeaponBuffs_OnTakeDamagePost")
+	for _, guard := range []string{
+		"GetClientTeam(victim) == GetClientTeam(attacker)",
+		"damagecustom == TF_CUSTOM_BURNING",
+		"damagecustom == TF_CUSTOM_BLEEDING",
+		"WeaponBuffs_IsSubstanceProjectile(inflictorClass)",
+	} {
+		if !strings.Contains(damage, guard) {
+			t.Fatalf("direct-hit path lost guard %q", guard)
+		}
+	}
+	if !strings.Contains(damage, "WeaponBuffs_ForEntity(weapon)") ||
+		!strings.Contains(damage, "WeaponBuffs_ApplyHitEffects(victim, attacker, catalog)") {
+		t.Fatal("direct hits do not resolve the canonical weapon and apply its hit effects")
 	}
 }
 
