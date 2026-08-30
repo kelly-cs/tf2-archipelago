@@ -351,6 +351,7 @@ stock void MvM_OnCommandKeyValues(int client, const char[] name, int count)
     if (StrEqual(name, "MVM_Respec", false))
     {
         RequestFrame(Frame_RestoreBundles, GetClientUserId(client));
+        WeaponBuffs_ApplyNextFrame(client);
         return;
     }
     if (StrEqual(name, "MVM_Upgrade", false))
@@ -370,6 +371,7 @@ stock void MvM_OnCommandKeyValues(int client, const char[] name, int count)
         {
             RequestFrame(Frame_RestoreBundles, GetClientUserId(client));
         }
+        WeaponBuffs_ApplyNextFrame(client);
         return;
     }
     bool seen;

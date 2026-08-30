@@ -19,9 +19,6 @@ int g_WeaponBuffAppliedLevels[2049][WeaponEffectCount];
 float g_WeaponBuffAppliedValue[2049][WeaponEffectCount];
 bool g_WeaponBuffBasePresent[2049][WeaponEffectCount];
 float g_WeaponBuffBaseValue[2049][WeaponEffectCount];
-bool g_WeaponBuffWaveActive;
-int g_WeaponBuffLastRoundState = -1;
-float g_WeaponBuffReapplyUntil;
 ConVar g_WeaponBuffProjectileDebug;
 bool g_WeaponBuffFiringExtra;
 int g_WeaponBuffLastExtra;
@@ -72,10 +69,6 @@ void WeaponBuffs_Init()
     {
         HookUserMessage(jarated, WeaponBuffs_PlayerJarated);
     }
-    // Event_BeginWave is optional and fires before TF2 has necessarily
-    // finished rebuilding the live weapon. Reconcile the authoritative round
-    // state and briefly retry composition across that transition.
-    CreateTimer(0.1, WeaponBuffs_WaveStateTick, _, TIMER_REPEAT);
     for (int client = 1; client <= MaxClients; client++)
     {
         if (IsClientInGame(client))
@@ -83,32 +76,6 @@ void WeaponBuffs_Init()
             WeaponBuffs_HookClient(client);
         }
     }
-}
-
-public Action WeaponBuffs_WaveStateTick(Handle timer)
-{
-    int state = view_as<int>(GameRules_GetRoundState());
-    bool changed = state != g_WeaponBuffLastRoundState;
-    g_WeaponBuffLastRoundState = state;
-    bool running = state == view_as<int>(RoundState_RoundRunning);
-
-    if (changed && running && MvM_IsActive())
-    {
-        WeaponBuffs_BeginWave();
-    }
-    else if (changed && !running && g_WeaponBuffWaveActive)
-    {
-        WeaponBuffs_EndWave();
-    }
-
-    if (g_WeaponBuffWaveActive && GetGameTime() <= g_WeaponBuffReapplyUntil)
-    {
-        for (int client = 1; client <= MaxClients; client++)
-        {
-            WeaponBuffs_Apply(client);
-        }
-    }
-    return Plugin_Continue;
 }
 
 static void WeaponBuffs_InitProjectileCalls()
@@ -1101,11 +1068,12 @@ public Action Command_ProjectileDebug(int client, int args)
 
 void WeaponBuffs_Clear()
 {
-    // A bridge resync can replace the unlock set during a live wave. Remove
-    // the old contribution before clearing its levels, but preserve the wave
-    // boundary so Unlocks_ApplyAll can install the replacement immediately.
-    bool wasWaveActive = g_WeaponBuffWaveActive;
-    WeaponBuffs_EndWave();
+    // A bridge resync replaces the canonical levels. Remove the contribution
+    // represented by the old levels before the new unlock set is installed.
+    for (int client = 1; client <= MaxClients; client++)
+    {
+        WeaponBuffs_Remove(client);
+    }
     for (int weapon = 0; weapon < WeaponCount; weapon++)
     {
         for (int effect = 0; effect < WeaponEffectCount; effect++)
@@ -1113,7 +1081,6 @@ void WeaponBuffs_Clear()
             g_WeaponEffectLevels[weapon][effect] = 0;
         }
     }
-    g_WeaponBuffWaveActive = wasWaveActive;
 }
 
 bool WeaponBuffs_Grant(const char[] key)
@@ -1280,27 +1247,10 @@ static void WeaponBuffs_Remove(int client)
     }
 }
 
-// Valve owns weapon runtime attributes for the whole shopping period, not
-// merely while it handles an individual station command. Keep AP attributes
-// off every weapon between waves; purchases and refunds then never mistake an
-// AP-composed value for their own base value.
-void WeaponBuffs_EndWave()
-{
-    g_WeaponBuffWaveActive = false;
-    g_WeaponBuffReapplyUntil = 0.0;
-    for (int client = 1; client <= MaxClients; client++)
-    {
-        WeaponBuffs_Remove(client);
-    }
-}
-
 void WeaponBuffs_BeginWave()
 {
-    g_WeaponBuffWaveActive = true;
-    // A refund and the shopping-to-wave transition can rebuild either the
-    // attributes or the entity over several frames. ApplyEntity is idempotent,
-    // so these retries repair each final form without stacking the AP value.
-    g_WeaponBuffReapplyUntil = GetGameTime() + 2.0;
+    // TF2 can rebuild a weapon when the station closes. The run contribution
+    // is already active; this repairs a replacement entity if one was made.
     for (int client = 1; client <= MaxClients; client++)
     {
         WeaponBuffs_ApplyNextFrame(client);
@@ -1327,10 +1277,20 @@ void WeaponBuffs_ApplyNextFrame(int client)
     }
 }
 
+// SourceMod calls this from OnClientCommandKeyValues, before TF2 sees a station
+// purchase or refund. Remove only our contribution for the duration of that
+// command, so Valve updates its own clean base. The next-frame application is
+// also a fallback when another plugin blocks the command and no post forward
+// is delivered.
+void WeaponBuffs_BeginStationTransaction(int client)
+{
+    WeaponBuffs_Remove(client);
+    WeaponBuffs_ApplyNextFrame(client);
+}
+
 void WeaponBuffs_Apply(int client)
 {
-    if (!g_HaveUnlocks || !g_WeaponBuffWaveActive
-        || !MvM_IsPlayer(client) || !IsPlayerAlive(client))
+    if (!g_HaveUnlocks || !MvM_IsPlayer(client) || !IsPlayerAlive(client))
     {
         return;
     }
@@ -1470,12 +1430,9 @@ public Action Command_TestWeaponBuff(int client, int args)
         ReplyToCommand(client, "[AP] Unknown effect %s. Use 1-%d or an effect key.", wanted, WeaponEffectCount);
         return Plugin_Handled;
     }
-    // Between waves this records the same canonical level as a room grant but
-    // deliberately leaves the runtime attribute off the weapon. The station
-    // must never see an AP-composed value as the base it purchases or refunds.
     WeaponBuffs_Apply(client);
-    ReplyToCommand(client, "[AP] %s %d test effect(s) for %s.",
-        g_WeaponBuffWaveActive ? "Applied" : "Queued", granted, g_WeaponNames[weapon]);
+    ReplyToCommand(client, "[AP] Applied %d test effect(s) to %s.",
+        granted, g_WeaponNames[weapon]);
     WeaponBuffs_ShowMenu(client);
     return Plugin_Handled;
 }
@@ -1532,8 +1489,8 @@ public Action Command_GiveWeaponBuff(int client, int args)
     }
 
     WeaponBuffs_Apply(target);
-    ReplyToCommand(client, "[AP] %s %d test effect(s) for %N's %s.",
-        g_WeaponBuffWaveActive ? "Applied" : "Queued", granted, target, g_WeaponNames[weapon]);
+    ReplyToCommand(client, "[AP] Applied %d test effect(s) to %N's %s.",
+        granted, target, g_WeaponNames[weapon]);
     if (client != target)
     {
         PrintToChat(target, "[AP] An admin applied %d test effect(s) to your %s.",
