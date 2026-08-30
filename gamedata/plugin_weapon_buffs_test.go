@@ -67,6 +67,19 @@ func TestWeaponBuffsStayOutOfMvMShopping(t *testing.T) {
 	if strings.Contains(apply, "g_WeaponBuffWaveActive") {
 		t.Fatal("weapon buffs are incorrectly gated on an active wave")
 	}
+	applyEntity := sourceFunction(t, buffs, "static void WeaponBuffs_ApplyEntity")
+	if !strings.Contains(applyEntity, "effect == FireRateEffect") {
+		t.Fatal("fire rate is still written into the MvM station's runtime attribute list")
+	}
+	fireRate := sourceFunction(t, buffs, "public void WeaponBuffs_PostThinkPost")
+	for _, required := range []string{
+		"m_flNextPrimaryAttack", "g_WeaponEffectLevels[weapon][FireRateEffect]",
+		"TF2Attrib_GetByName", "combined / station",
+	} {
+		if !strings.Contains(fireRate, required) {
+			t.Fatalf("plugin-owned fire rate has no %s", required)
+		}
+	}
 
 	plugin := "../plugin/scripting/tf2_archipelago.sp"
 	begin := sourceFunction(t, plugin, "public void Event_BeginWave")

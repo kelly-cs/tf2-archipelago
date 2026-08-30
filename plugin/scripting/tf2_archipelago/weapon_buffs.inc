@@ -1,6 +1,7 @@
 /** Every positive weapon/effect permutation received from the multiworld. */
 
 #define ProjectileCountEffect 5
+#define FireRateEffect 1
 #define BleedEffect 8
 #define IgniteEffect 9
 #define MadMilkEffect 14
@@ -19,6 +20,8 @@ int g_WeaponBuffAppliedLevels[2049][WeaponEffectCount];
 float g_WeaponBuffAppliedValue[2049][WeaponEffectCount];
 bool g_WeaponBuffBasePresent[2049][WeaponEffectCount];
 float g_WeaponBuffBaseValue[2049][WeaponEffectCount];
+int g_WeaponBuffFireRateRef[2049];
+float g_WeaponBuffFireRateSeen[2049];
 ConVar g_WeaponBuffProjectileDebug;
 bool g_WeaponBuffFiringExtra;
 int g_WeaponBuffLastExtra;
@@ -153,6 +156,69 @@ void WeaponBuffs_HookClient(int client)
     g_WeaponBuffLastSubstanceTime[client] = 0.0;
     SDKUnhook(client, SDKHook_OnTakeDamagePost, WeaponBuffs_OnTakeDamagePost);
     SDKHook(client, SDKHook_OnTakeDamagePost, WeaponBuffs_OnTakeDamagePost);
+    SDKUnhook(client, SDKHook_PostThinkPost, WeaponBuffs_PostThinkPost);
+    SDKHook(client, SDKHook_PostThinkPost, WeaponBuffs_PostThinkPost);
+}
+
+// Fire rate cannot live in the weapon's runtime attribute list: MvM's station
+// uses that same list as its purchase/refund ledger. Keep the AP contribution
+// outside the item and shorten the cooldown TF2 calculated from its own item,
+// static and station attributes. This makes the two contributions additive
+// without exposing AP levels to the upgrade UI.
+public void WeaponBuffs_PostThinkPost(int client)
+{
+    if (!g_HaveUnlocks || !MvM_IsPlayer(client) || !IsPlayerAlive(client))
+    {
+        return;
+    }
+    int entity = GetEntPropEnt(client, Prop_Send, "m_hActiveWeapon");
+    int weapon = WeaponBuffs_ForEntity(entity);
+    if (weapon < 0 || entity >= sizeof(g_WeaponBuffFireRateRef))
+    {
+        return;
+    }
+    int levels = g_WeaponEffectLevels[weapon][FireRateEffect];
+    if (levels <= 0 || !HasEntProp(entity, Prop_Send, "m_flNextPrimaryAttack"))
+    {
+        return;
+    }
+
+    int reference = EntIndexToEntRef(entity);
+    if (g_WeaponBuffFireRateRef[entity] != reference)
+    {
+        g_WeaponBuffFireRateRef[entity] = reference;
+        g_WeaponBuffFireRateSeen[entity] = 0.0;
+    }
+    float next = GetEntPropFloat(entity, Prop_Send, "m_flNextPrimaryAttack");
+    float now = GetGameTime();
+    if (next <= now || FloatAbs(next - g_WeaponBuffFireRateSeen[entity]) < 0.0001)
+    {
+        return;
+    }
+
+    float station = 1.0;
+    Address attribute = TF2Attrib_GetByName(entity, g_WeaponEffectAttributes[FireRateEffect]);
+    if (attribute != Address_Null)
+    {
+        station = TF2Attrib_GetValue(attribute);
+    }
+    if (station <= 0.0)
+    {
+        station = 0.1;
+    }
+    float combined = station
+        + g_WeaponEffectIncrements[FireRateEffect] * float(levels);
+    // A corrupt or excessively stacked value must never produce a zero or
+    // negative interval; those can flood snapshots until the client channel
+    // overflows. Five times stock is already far beyond the station's normal
+    // range and is the hard safety ceiling.
+    if (combined < 0.2)
+    {
+        combined = 0.2;
+    }
+    float adjusted = now + (next - now) * combined / station;
+    SetEntPropFloat(entity, Prop_Send, "m_flNextPrimaryAttack", adjusted);
+    g_WeaponBuffFireRateSeen[entity] = adjusted;
 }
 
 static bool WeaponBuffs_IsProjectile(const char[] classname)
@@ -1149,7 +1215,9 @@ static void WeaponBuffs_ApplyEntity(int entity, int weapon)
     for (int effect = 0; effect < WeaponEffectCount; effect++)
     {
         int levels = g_WeaponEffectLevels[weapon][effect];
-        if (levels == 0)
+        // Fire rate is composed from PostThinkPost, outside the runtime
+        // attribute list the MvM station owns.
+        if (levels == 0 || effect == FireRateEffect)
         {
             continue;
         }
