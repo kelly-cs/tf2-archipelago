@@ -17,6 +17,9 @@ int g_WeaponBuffAppliedRef[2049];
 bool g_WeaponBuffApplied[2049][WeaponEffectCount];
 int g_WeaponBuffAppliedLevels[2049][WeaponEffectCount];
 float g_WeaponBuffAppliedValue[2049][WeaponEffectCount];
+bool g_WeaponBuffBasePresent[2049][WeaponEffectCount];
+float g_WeaponBuffBaseValue[2049][WeaponEffectCount];
+bool g_WeaponBuffWaveActive;
 ConVar g_WeaponBuffProjectileDebug;
 bool g_WeaponBuffFiringExtra;
 int g_WeaponBuffLastExtra;
@@ -1066,6 +1069,11 @@ public Action Command_ProjectileDebug(int client, int args)
 
 void WeaponBuffs_Clear()
 {
+    // A bridge resync can replace the unlock set during a live wave. Remove
+    // the old contribution before clearing its levels, but preserve the wave
+    // boundary so Unlocks_ApplyAll can install the replacement immediately.
+    bool wasWaveActive = g_WeaponBuffWaveActive;
+    WeaponBuffs_EndWave();
     for (int weapon = 0; weapon < WeaponCount; weapon++)
     {
         for (int effect = 0; effect < WeaponEffectCount; effect++)
@@ -1073,6 +1081,7 @@ void WeaponBuffs_Clear()
             g_WeaponEffectLevels[weapon][effect] = 0;
         }
     }
+    g_WeaponBuffWaveActive = wasWaveActive;
 }
 
 bool WeaponBuffs_Grant(const char[] key)
@@ -1132,6 +1141,8 @@ static void WeaponBuffs_ApplyEntity(int entity, int weapon)
         {
             g_WeaponBuffApplied[entity][effect] = false;
             g_WeaponBuffAppliedLevels[entity][effect] = 0;
+            g_WeaponBuffBasePresent[entity][effect] = false;
+            g_WeaponBuffBaseValue[entity][effect] = 0.0;
         }
         g_WeaponBuffAppliedRef[entity] = reference;
     }
@@ -1155,6 +1166,15 @@ static void WeaponBuffs_ApplyEntity(int entity, int weapon)
         if (unchanged && g_WeaponBuffAppliedLevels[entity][effect] == levels)
         {
             continue;
+        }
+
+        if (!unchanged)
+        {
+            // This is Valve's, the item definition's, or another plugin's
+            // value. Remember it so shopping receives exactly that list after
+            // the Archipelago contribution is removed.
+            g_WeaponBuffBasePresent[entity][effect] = attribute != Address_Null;
+            g_WeaponBuffBaseValue[entity][effect] = current;
         }
 
         float value;
@@ -1181,9 +1201,79 @@ static void WeaponBuffs_ApplyEntity(int entity, int weapon)
     }
 }
 
+static void WeaponBuffs_RemoveEntity(int entity)
+{
+    if (entity <= MaxClients || !IsValidEntity(entity)
+        || g_WeaponBuffAppliedRef[entity] != EntIndexToEntRef(entity))
+    {
+        return;
+    }
+    for (int effect = 0; effect < WeaponEffectCount; effect++)
+    {
+        if (!g_WeaponBuffApplied[entity][effect])
+        {
+            continue;
+        }
+        Address attribute = TF2Attrib_GetByName(entity, g_WeaponEffectAttributes[effect]);
+        bool unchanged = attribute != Address_Null
+            && FloatAbs(TF2Attrib_GetValue(attribute)
+                - g_WeaponBuffAppliedValue[entity][effect]) < 0.0001;
+        if (unchanged && g_WeaponBuffBasePresent[entity][effect])
+        {
+            TF2Attrib_SetByName(entity, g_WeaponEffectAttributes[effect],
+                g_WeaponBuffBaseValue[entity][effect]);
+        }
+        else if (unchanged)
+        {
+            TF2Attrib_RemoveByName(entity, g_WeaponEffectAttributes[effect]);
+        }
+        // If somebody changed the value after us, leave their work in place.
+        // The next application treats it as the new base and composes onto it.
+        g_WeaponBuffApplied[entity][effect] = false;
+        g_WeaponBuffAppliedLevels[entity][effect] = 0;
+    }
+}
+
+static void WeaponBuffs_Remove(int client)
+{
+    // A player can be dead when the wave-complete/failure event arrives. The
+    // weapon entities can still exist and must be clean before the station.
+    if (!MvM_IsPlayer(client))
+    {
+        return;
+    }
+    for (int slot = 0; slot <= 5; slot++)
+    {
+        WeaponBuffs_RemoveEntity(GetPlayerWeaponSlot(client, slot));
+    }
+}
+
+// Valve owns weapon runtime attributes for the whole shopping period, not
+// merely while it handles an individual station command. Keep AP attributes
+// off every weapon between waves; purchases and refunds then never mistake an
+// AP-composed value for their own base value.
+void WeaponBuffs_EndWave()
+{
+    g_WeaponBuffWaveActive = false;
+    for (int client = 1; client <= MaxClients; client++)
+    {
+        WeaponBuffs_Remove(client);
+    }
+}
+
+void WeaponBuffs_BeginWave()
+{
+    g_WeaponBuffWaveActive = true;
+    for (int client = 1; client <= MaxClients; client++)
+    {
+        WeaponBuffs_Apply(client);
+    }
+}
+
 void WeaponBuffs_Apply(int client)
 {
-    if (!g_HaveUnlocks || !MvM_IsPlayer(client) || !IsPlayerAlive(client))
+    if (!g_HaveUnlocks || !g_WeaponBuffWaveActive
+        || !MvM_IsPlayer(client) || !IsPlayerAlive(client))
     {
         return;
     }
@@ -1195,23 +1285,6 @@ void WeaponBuffs_Apply(int client)
         {
             WeaponBuffs_ApplyEntity(entity, weapon);
         }
-    }
-}
-
-static void Frame_ApplyWeaponBuffs(any userid)
-{
-    int client = GetClientOfUserId(userid);
-    if (client > 0)
-    {
-        WeaponBuffs_Apply(client);
-    }
-}
-
-void WeaponBuffs_ApplyNextFrame(int client)
-{
-    if (client > 0)
-    {
-        RequestFrame(Frame_ApplyWeaponBuffs, GetClientUserId(client));
     }
 }
 
