@@ -9,6 +9,8 @@ in the release notes, so this file is the only place to write it.
 - Community maps download through Potato's HTTP host instead of the game
   server's legacy file transfer, fixing Transmission reaching the end of its
   download and starting over.
+- Frostwynd's custom Pyromancer and Huntsman wave icons are registered for
+  client download instead of appearing as missing or checkerboard images.
 
 ## v1.11.0
 

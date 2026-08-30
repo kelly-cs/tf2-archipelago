@@ -8,7 +8,7 @@
     {"id": 106, "name": "mvm_bogland_rc12"},
     {"id": 107, "name": "mvm_cyberia_rc6a"},
     {"id": 108, "name": "mvm_downpour_rc3a"},
-    {"id": 109, "name": "mvm_frostwynd_rc1"},
+    {"id": 109, "name": "mvm_frostwynd_rc1", "client_assets": ["materials/hud/leaderboard_class_pyro_volcano.vmt", "materials/hud/leaderboard_class_pyro_volcano.vtf", "materials/hud/leaderboard_class_pyro_volcano_giant.vmt", "materials/hud/leaderboard_class_sniper_bow.vmt", "materials/hud/leaderboard_class_sniper_bow.vtf", "materials/hud/leaderboard_class_sniper_bow_bleed.vmt", "materials/hud/leaderboard_class_sniper_bow_bleed.vtf"]},
     {"id": 110, "name": "mvm_heatrock_rc6a"},
     {"id": 111, "name": "mvm_hideout_b3"},
     {"id": 112, "name": "mvm_lotus_b6"},

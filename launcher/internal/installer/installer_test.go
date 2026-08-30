@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/m-this/tf2-archipelago/gamedata"
 	"github.com/m-this/tf2-archipelago/launcher/internal/assets"
 )
 
@@ -76,11 +77,15 @@ func TestUnzipToRejectsAnEscapingEntry(t *testing.T) {
 func TestInstallCommunityZipStripsTFDownload(t *testing.T) {
 	root := t.TempDir()
 	archive := filepath.Join(root, "archive-assets.zip")
-	if err := os.WriteFile(archive, zipWith(t, map[string]string{
+	entries := map[string]string{
 		"tf/download/maps/mvm_example.bsp":                        "map",
 		"tf/download/scripts/population/mvm_example_adv_test.pop": "pop",
 		"outside.txt": "ignored",
-	}), 0o644); err != nil {
+	}
+	for _, asset := range gamedata.CommunityClientAssets() {
+		entries["tf/download/"+asset.Path] = asset.Path
+	}
+	if err := os.WriteFile(archive, zipWith(t, entries), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	modDir := filepath.Join(root, "server", "tf")
@@ -90,6 +95,14 @@ func TestInstallCommunityZipStripsTFDownload(t *testing.T) {
 	for _, name := range []string{"maps/mvm_example.bsp", "scripts/population/mvm_example_adv_test.pop"} {
 		if _, err := os.Stat(filepath.Join(modDir, filepath.FromSlash(name))); err != nil {
 			t.Errorf("missing %s: %v", name, err)
+		}
+	}
+	for _, asset := range gamedata.CommunityClientAssets() {
+		body, err := os.ReadFile(filepath.Join(modDir, filepath.FromSlash(asset.Path)))
+		if err != nil {
+			t.Errorf("missing client asset %s: %v", asset.Path, err)
+		} else if string(body) != asset.Path {
+			t.Errorf("client asset %s was not extracted intact", asset.Path)
 		}
 	}
 	if _, err := os.Stat(filepath.Join(modDir, "outside.txt")); !os.IsNotExist(err) {

@@ -3,6 +3,7 @@ package gamedata
 import (
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -10,7 +11,7 @@ import (
 func TestCommunityManifestLoadsMapsAndMissions(t *testing.T) {
 	content, err := loadCommunity([]byte(`{
 		"format_version": 1,
-		"maps": [{"id": 101, "name": "mvm_example_rc1"}],
+		"maps": [{"id": 101, "name": "mvm_example_rc1", "client_assets": ["materials/hud/leaderboard_class_example.vmt"]}],
 		"missions": [{
 			"id": 101,
 			"pop_file": "mvm_example_rc1_advanced",
@@ -37,6 +38,65 @@ func TestCommunityManifestLoadsMapsAndMissions(t *testing.T) {
 	}
 	if got := content.Packs[101]; got != "archive-assets.zip" {
 		t.Fatalf("pack = %q", got)
+	}
+	if got := content.ClientAssets; len(got) != 1 || got[0].Map != "mvm_example_rc1" || got[0].Path != "materials/hud/leaderboard_class_example.vmt" {
+		t.Fatalf("client assets = %+v", got)
+	}
+}
+
+func TestCommunityManifestRejectsUnsafeClientAssets(t *testing.T) {
+	for _, asset := range []string{
+		"../materials/hud/icon.vmt",
+		"materials\\hud\\icon.vmt",
+		"scripts/icon.vmt",
+		"materials/hud/icon.exe",
+	} {
+		if err := validateCommunityClientAsset(asset); err == nil {
+			t.Errorf("unsafe client asset %q validated", asset)
+		}
+	}
+}
+
+func TestCommunityManifestRejectsDuplicateClientAssets(t *testing.T) {
+	_, err := loadCommunity([]byte(`{
+		"format_version":1,
+		"maps":[{"id":100,"name":"mvm_example","client_assets":[
+			"materials/hud/icon.vmt", "materials/hud/icon.vmt"
+		]}]
+	}`))
+	if err == nil {
+		t.Fatal("duplicate client asset loaded")
+	}
+}
+
+func TestFrostwyndClientAssetManifestIsGeneratedForThePlugin(t *testing.T) {
+	want := []string{
+		"materials/hud/leaderboard_class_pyro_volcano.vmt",
+		"materials/hud/leaderboard_class_pyro_volcano.vtf",
+		"materials/hud/leaderboard_class_pyro_volcano_giant.vmt",
+		"materials/hud/leaderboard_class_sniper_bow.vmt",
+		"materials/hud/leaderboard_class_sniper_bow.vtf",
+		"materials/hud/leaderboard_class_sniper_bow_bleed.vmt",
+		"materials/hud/leaderboard_class_sniper_bow_bleed.vtf",
+	}
+	assets := CommunityClientAssets()
+	for _, path := range want {
+		if !slices.Contains(assets, CommunityClientAsset{Map: "mvm_frostwynd_rc1", Path: path}) {
+			t.Errorf("Frostwynd client manifest is missing %s", path)
+		}
+	}
+	if len(assets) != len(want) {
+		t.Fatalf("community client assets = %+v, want only the %d audited Frostwynd files", assets, len(want))
+	}
+
+	generated, err := os.ReadFile("../plugin/scripting/tf2_archipelago/community_assets_data.inc")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, path := range want {
+		if !strings.Contains(string(generated), `"`+path+`"`) {
+			t.Errorf("generated plugin manifest is missing %s", path)
+		}
 	}
 }
 

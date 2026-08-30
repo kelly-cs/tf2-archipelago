@@ -11,7 +11,7 @@ project knows, and for every Archipelago id. Read [ADR
 | `gamedata.go` | Game name, format version, difficulty tiers, item classifications |
 | `maps.go` | Valve maps plus the combined map indexes |
 | `missions.go` | Valve missions plus the combined mission indexes |
-| `community.go` / `community.json` | Stable IDs and metadata for supported community maps and missions |
+| `community.go` / `community.json` | Stable IDs, metadata, and audited loose client assets for supported community maps and missions |
 | `classes.go` | The 9 classes |
 | `slots.go` | Primary, Secondary, Melee |
 | `ids.go` | The base id and every derivation from it |

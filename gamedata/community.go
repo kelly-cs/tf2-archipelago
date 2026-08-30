@@ -1,5 +1,7 @@
 package gamedata
 
+//go:generate go run ./cmd/pluginassets ../plugin/scripting/tf2_archipelago/community_assets_data.inc
+
 import (
 	"archive/zip"
 	"bytes"
@@ -34,8 +36,9 @@ type communityFile struct {
 }
 
 type communityMap struct {
-	ID   MapID  `json:"id"`
-	Name string `json:"name"`
+	ID           MapID    `json:"id"`
+	Name         string   `json:"name"`
+	ClientAssets []string `json:"client_assets,omitempty"`
 }
 
 type communityMission struct {
@@ -56,6 +59,16 @@ type loadedCommunity struct {
 	Missions     []Mission
 	Requirements map[MissionID]string
 	Packs        map[MissionID]string
+	ClientAssets []CommunityClientAsset
+}
+
+// CommunityClientAsset is one loose file a joining client needs for a
+// cataloged community map. Population ClassIcon materials are not referenced
+// by the BSP, so SRCDS does not discover or send them without an explicit
+// SourceMod download-table entry.
+type CommunityClientAsset struct {
+	Map  string
+	Path string
 }
 
 func loadCommunity(body []byte) (loadedCommunity, error) {
@@ -81,11 +94,23 @@ func loadCommunity(body []byte) (loadedCommunity, error) {
 		Requirements: make(map[MissionID]string, len(file.Missions)),
 		Packs:        make(map[MissionID]string, len(file.Missions)),
 	}
+	seenAssets := make(map[string]bool)
 	for _, entry := range file.Maps {
 		if entry.ID < CommunityIDMin {
 			return loadedCommunity{}, fmt.Errorf("community map %q: id %d must be at least %d", entry.Name, entry.ID, CommunityIDMin)
 		}
-		content.Maps = append(content.Maps, Map(entry))
+		content.Maps = append(content.Maps, Map{ID: entry.ID, Name: entry.Name})
+		for _, asset := range entry.ClientAssets {
+			if err := validateCommunityClientAsset(asset); err != nil {
+				return loadedCommunity{}, fmt.Errorf("community map %q: %w", entry.Name, err)
+			}
+			key := entry.Name + "\x00" + asset
+			if seenAssets[key] {
+				return loadedCommunity{}, fmt.Errorf("community map %q: duplicate client asset %q", entry.Name, asset)
+			}
+			seenAssets[key] = true
+			content.ClientAssets = append(content.ClientAssets, CommunityClientAsset{Map: entry.Name, Path: asset})
+		}
 	}
 	for _, entry := range file.Missions {
 		if entry.ID < CommunityIDMin {
@@ -120,6 +145,20 @@ func loadCommunity(body []byte) (loadedCommunity, error) {
 	return content, nil
 }
 
+func validateCommunityClientAsset(path string) error {
+	if path == "" || strings.Contains(path, "\\") || filepath.ToSlash(filepath.Clean(path)) != path || strings.HasPrefix(path, "/") {
+		return fmt.Errorf("unsafe client asset path %q", path)
+	}
+	if !strings.HasPrefix(path, "materials/") {
+		return fmt.Errorf("client asset %q is outside materials/", path)
+	}
+	extension := strings.ToLower(filepath.Ext(path))
+	if extension != ".vmt" && extension != ".vtf" {
+		return fmt.Errorf("client asset %q is not a VMT or VTF", path)
+	}
+	return nil
+}
+
 // ValidateCommunityFiles checks that the immutable manifest and the TF2
 // content tree describe the same pack. It runs before export/build so a typo
 // cannot become an Archipelago seed whose locations are impossible to reach.
@@ -142,6 +181,9 @@ func ValidateCommunitySources(sources ...string) error {
 			}
 		}
 		required[filepath.ToSlash(filepath.Join("scripts", "population", m.PopFile+".pop"))] = "mission " + m.PopFile
+	}
+	for _, asset := range communityContent.ClientAssets {
+		required[asset.Path] = "client asset for " + asset.Map
 	}
 	for _, source := range sources {
 		info, err := os.Stat(source)
@@ -372,4 +414,10 @@ func MissionPack(id MissionID) string {
 // Launchers use this to show unavailable content without making it seedable.
 func MissionRequirement(id MissionID) string {
 	return communityContent.Requirements[id]
+}
+
+// CommunityClientAssets returns the loose files the plugin registers for
+// client download. The returned slice must be treated as read-only.
+func CommunityClientAssets() []CommunityClientAsset {
+	return communityContent.ClientAssets
 }

@@ -40,7 +40,10 @@ type the folder into **Asset pack folder** first and activate the same action.
 The ZIP may have Potato's normal `tf/download/...` root or a direct `tf/...`
 root. The launcher reads it in place and installs its contents beneath the
 dedicated server's `tf/` directory; it does not move, rewrite, or delete the
-source archive.
+source archive. Loose client files named in `gamedata/community.json` are also
+generated into the SourceMod plugin's download manifest. On each matching map,
+the plugin registers only those installed files; `sv_downloadurl` serves them
+from Potato's HTTP mirror and direct download remains the fallback.
 
 The recognized downloads are:
 
@@ -134,10 +137,11 @@ clients receive the active map through Source's direct downloader; the managed
 server configuration raises its stock 16 MB limit to the 64 MB engine cap.
 Population files and `.nav` files are server-side.
 
-Prefer a map whose client assets are packed into its BSP. If a content pack
-ships loose materials, models, particles, or sounds, it also needs its own
-download manifest/SourceMod downloader; merely putting loose client assets in
-this directory does not make TF2 send them.
+Prefer a map whose client assets are packed into its BSP. If a supported map
+ships loose ClassIcon materials, list each VMT and its referenced VTF in that
+map's `client_assets` array in `gamedata/community.json`, run `go generate
+./gamedata`, and validate the full archive with `make community-check`. Merely
+putting loose client assets in this directory does not make TF2 send them.
 
 ## Register the content
 

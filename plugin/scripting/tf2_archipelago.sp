@@ -21,6 +21,7 @@
 #include <tf2attributes>
 
 #include "tf2_archipelago/log.inc"
+#include "tf2_archipelago/community_assets.inc"
 #include "tf2_archipelago/mvm.inc"
 #include "tf2_archipelago/unlocks.inc"
 #include "tf2_archipelago/weapon_buffs_data.inc"
@@ -325,6 +326,7 @@ public void OnMapStart()
     g_MissionReported = false;
     g_TankReported = false;
     g_GiantReported = false;
+    CommunityAssets_OnMapStart();
     Bots_OnMapStart();
     MvM_OnMapStart();
 
