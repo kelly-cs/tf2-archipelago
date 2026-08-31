@@ -128,7 +128,7 @@ The two were one page and it had to be read twice to find either.
 */
 func (f *settingsForm) balanceFields() []field {
 	return []field{
-		&numberField{label: "Robot health (%)", help: "Direct health multiplier for every robot, from 10% to 1000%.", value: &f.edited.SrcdsBluHealthPct, low: 10, high: 1000},
+		&numberField{label: "Robot health (%)", help: "Direct health multiplier for every robot, from 10% to 1000%.", value: &f.edited.SrcdsBluHealthPct, low: settings.RobotHealthPercentMin, high: settings.RobotHealthPercentMax},
 	}
 }
 

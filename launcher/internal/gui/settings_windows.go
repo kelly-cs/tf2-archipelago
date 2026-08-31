@@ -504,7 +504,7 @@ func runSettingsDialog(
 								MaxSize:    declarative.Size{Width: sentenceWidth},
 							},
 							label("Robot health (%)", "Direct health multiplier for every robot, from 10% to 1000%."),
-							declarative.NumberEdit{AssignTo: &bluHealth, Value: float64(s.SrcdsBluHealthPct), MinValue: 10, MaxValue: 1000, Decimals: 0},
+							declarative.NumberEdit{AssignTo: &bluHealth, Value: float64(s.SrcdsBluHealthPct), MinValue: settings.RobotHealthPercentMin, MaxValue: settings.RobotHealthPercentMax, Decimals: 0},
 						},
 					},
 					{

@@ -154,9 +154,7 @@ type Settings struct {
 	MvmWeaponBuffPct           int    `json:"mvm_weapon_buff_percentage"`
 	MvmWeaponBuffStackChance   int    `json:"mvm_weapon_buff_stack_chance"`
 
-	/* The three levers that bend a mission for a short team, each the scale at
-	 * a direct multiplier for every robot. 1.0 is off, and all three are off
-	 * until a run says otherwise.
+	/* A direct multiplier for every robot. 100 percent is neutral.
 	 *
 	 * Percentages rather than the mod's floats, because a settings page with
 	 * 0.7 in a box asks the player to know what the 1.0 end means.
@@ -200,10 +198,16 @@ func Defaults() Settings {
 		MvmWeaponBuffImportance:    "useful",
 		MvmWeaponBuffPct:           75,
 		MvmWeaponBuffStackChance:   25,
-		SrcdsBluHealthPct:          100,
+		SrcdsBluHealthPct:          RobotHealthPercentNeutral,
 		MetricsPort:                24681,
 	}
 }
+
+const (
+	RobotHealthPercentMin     = 10
+	RobotHealthPercentNeutral = 100
+	RobotHealthPercentMax     = 1000
+)
 
 // BotTeam is one saved team: what each seat plays and holds, and which classes
 // the mod may draw the rest from. The same three things the Bots tab edits, so

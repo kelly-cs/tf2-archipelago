@@ -218,13 +218,13 @@ rather than somebody asking for zero-health robots.
 */
 func scaleOf(pct int) string {
 	if pct <= 0 {
-		return "1.0"
+		pct = settings.RobotHealthPercentNeutral
 	}
-	if pct < 10 {
-		pct = 10
+	if pct < settings.RobotHealthPercentMin {
+		pct = settings.RobotHealthPercentMin
 	}
-	if pct > 1000 {
-		pct = 1000
+	if pct > settings.RobotHealthPercentMax {
+		pct = settings.RobotHealthPercentMax
 	}
 	return fmt.Sprintf("%.2f", float64(pct)/100.0)
 }
