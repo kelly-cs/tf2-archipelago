@@ -14,6 +14,11 @@
 #define BuffMode_Percentage 2
 #define BuffMode_Toggle 3
 
+static bool WeaponBuffs_EffectDisabled(int effect)
+{
+    return effect == GasolineEffect;
+}
+
 int g_WeaponEffectLevels[WeaponCount][WeaponEffectCount];
 int g_WeaponBuffProviderRef[MAXPLAYERS + 1];
 ConVar g_WeaponBuffProjectileDebug;
@@ -341,7 +346,6 @@ static void WeaponBuffs_ApplyHitEffects(int victim, int attacker, int weapon)
     int bleed = g_WeaponEffectLevels[weapon][BleedEffect];
     int ignite = g_WeaponEffectLevels[weapon][IgniteEffect];
     int milk = g_WeaponEffectLevels[weapon][MadMilkEffect];
-    int gas = g_WeaponEffectLevels[weapon][GasolineEffect];
     int marked = g_WeaponEffectLevels[weapon][MarkForDeathEffect];
     int jarate = g_WeaponEffectLevels[weapon][JarateEffect];
     if (bleed > 0)
@@ -356,10 +360,6 @@ static void WeaponBuffs_ApplyHitEffects(int victim, int attacker, int weapon)
     {
         TF2_AddCondition(victim, TFCond_Milked, 10.0, attacker);
     }
-    if (gas > 0)
-    {
-        TF2_AddCondition(victim, TFCond_Gas, 10.0, attacker);
-    }
     if (marked > 0)
     {
         TF2_AddCondition(victim, TFCond_MarkedForDeath, 10.0, attacker);
@@ -369,10 +369,10 @@ static void WeaponBuffs_ApplyHitEffects(int victim, int attacker, int weapon)
         TF2_AddCondition(victim, TFCond_Jarated, 10.0 + 2.0 * float(jarate), attacker);
     }
     if (g_WeaponBuffProjectileDebug.BoolValue
-        && (bleed > 0 || ignite > 0 || milk > 0 || gas > 0 || marked > 0 || jarate > 0))
+        && (bleed > 0 || ignite > 0 || milk > 0 || marked > 0 || jarate > 0))
     {
-        WeaponBuffs_DebugLog("[AP substance] weapon=%s attacker=%d victim=%d bleed=%d ignite=%d milk=%d gas=%d marked=%d jarate=%d",
-            g_WeaponNames[weapon], attacker, victim, bleed, ignite, milk, gas, marked, jarate);
+        WeaponBuffs_DebugLog("[AP substance] weapon=%s attacker=%d victim=%d bleed=%d ignite=%d milk=%d marked=%d jarate=%d",
+            g_WeaponNames[weapon], attacker, victim, bleed, ignite, milk, marked, jarate);
     }
 }
 
@@ -1176,6 +1176,12 @@ bool WeaponBuffs_Grant(const char[] key)
         {
             int weapon = g_WeaponBuffWeapon[index];
             int effect = g_WeaponBuffEffect[index];
+            // Old seeds can already contain this stable item id. Acknowledge
+            // it so the bridge can advance, but make the reward inert.
+            if (WeaponBuffs_EffectDisabled(effect))
+            {
+                return true;
+            }
             if (g_WeaponEffectModes[effect] == BuffMode_Toggle)
             {
                 g_WeaponEffectLevels[weapon][effect] = 1;
@@ -1363,7 +1369,7 @@ void WeaponBuffs_Apply(int client)
         // Current TF2 emits the heal popup for this schema attribute but its
         // negative-damage heal changes no health. The timer above owns this
         // effect so it can heal to the player's real, modified maximum.
-        if (effect == ActiveHealthRegenEffect)
+        if (effect == ActiveHealthRegenEffect || WeaponBuffs_EffectDisabled(effect))
         {
             continue;
         }
@@ -1442,7 +1448,7 @@ bool WeaponBuffs_ShowMenu(int client)
         for (int effect = 0; effect < WeaponEffectCount; effect++)
         {
             int levels = g_WeaponEffectLevels[weapon][effect];
-            if (levels == 0)
+            if (levels == 0 || WeaponBuffs_EffectDisabled(effect))
             {
                 continue;
             }
@@ -1488,7 +1494,7 @@ static int WeaponBuffs_AddTestEffects(int weapon, const char[] wanted, int level
         bool selected = StrEqual(wanted, "all", false)
             || StrEqual(wanted, g_WeaponEffectKeys[effect], false)
             || StringToInt(wanted) == effect + 1;
-        if (!selected)
+        if (!selected || WeaponBuffs_EffectDisabled(effect))
         {
             continue;
         }

@@ -6,6 +6,8 @@ in the release notes, so this file is the only place to write it.
 
 ## Unreleased
 
+- Explode-on-ignite weapon buffs are no longer awarded. Existing runs that
+  already contain one safely ignore it instead of applying the effect.
 - Archipelago weapon buffs now stay active when players refund upgrades at an
   MvM station. They no longer appear as purchased, infinitely refundable MvM
   upgrade levels or stack again after repeated refunds.

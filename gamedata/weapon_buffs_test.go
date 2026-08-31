@@ -160,7 +160,7 @@ func TestJarateAndMadMilkOnlyDrawProjectileRechargeAndSubstanceBuffs(t *testing.
 				t.Errorf("%s/%s eligible = %t, want %t", name, effect.Key, got, want)
 			}
 		}
-		for _, effect := range []string{"bleed", "mad-milk", "gasoline", "mark-for-death", "jarate"} {
+		for _, effect := range []string{"bleed", "mad-milk", "mark-for-death", "jarate"} {
 			if !buffNamed(t, name, effect).Eligible {
 				t.Errorf("%s lost substance effect %s", name, effect)
 			}
@@ -170,7 +170,7 @@ func TestJarateAndMadMilkOnlyDrawProjectileRechargeAndSubstanceBuffs(t *testing.
 
 func TestDirectHitWeaponsDrawSubstanceBuffs(t *testing.T) {
 	for _, name := range []string{"Minigun", "Pistol", "Scattergun"} {
-		for _, effect := range []string{"bleed", "ignite", "mad-milk", "gasoline", "mark-for-death"} {
+		for _, effect := range []string{"bleed", "ignite", "mad-milk", "mark-for-death"} {
 			if !buffNamed(t, name, effect).Eligible {
 				t.Errorf("%s lost direct-hit substance effect %s", name, effect)
 			}
@@ -178,6 +178,31 @@ func TestDirectHitWeaponsDrawSubstanceBuffs(t *testing.T) {
 	}
 	if !buffNamed(t, "Sniper Rifle", "jarate").Eligible {
 		t.Error("Sniper Rifle lost direct-hit Jarate")
+	}
+}
+
+func TestGasolineBuffRemainsKnownButCannotBeAwarded(t *testing.T) {
+	found := false
+	for _, buff := range WeaponBuffs {
+		if WeaponEffects[buff.EffectID-1].Key != "gasoline" {
+			continue
+		}
+		found = true
+		if buff.Eligible {
+			t.Errorf("disabled gasoline buff %s is still eligible", buff.Key)
+		}
+	}
+	if !found {
+		t.Fatal("gasoline ids disappeared instead of remaining compatible")
+	}
+	grant := substanceSourceFunction(t, "bool WeaponBuffs_Grant")
+	if !strings.Contains(grant, "WeaponBuffs_EffectDisabled(effect)") ||
+		!strings.Contains(grant, "return true") {
+		t.Fatal("the plugin does not acknowledge old gasoline grants as inert")
+	}
+	apply := substanceSourceFunction(t, "void WeaponBuffs_Apply(int client)")
+	if !strings.Contains(apply, "WeaponBuffs_EffectDisabled(effect)") {
+		t.Fatal("the plugin can still install a disabled gasoline attribute")
 	}
 }
 
@@ -228,7 +253,7 @@ func TestPluginImplementsActiveHealthRegenInsteadOfBrokenSchemaHealing(t *testin
 		"g_WeaponEffectLevels[weapon][ActiveHealthRegenEffect]",
 		"GetEntProp(resource, Prop_Send, \"m_iMaxHealth\", 4, client)",
 		"SetEntityHealth(client, health + healed)",
-		"if (effect == ActiveHealthRegenEffect)",
+		"effect == ActiveHealthRegenEffect",
 	} {
 		if !strings.Contains(text, required) {
 			t.Errorf("active health regeneration implementation has no %q", required)
@@ -271,12 +296,15 @@ func substanceSourceFunction(t *testing.T, signature string) string {
 func TestWeaponBuffSubstancesUseTheSharedHitPath(t *testing.T) {
 	apply := substanceSourceFunction(t, "static void WeaponBuffs_ApplyHitEffects")
 	for _, effect := range []string{
-		"TF2_MakeBleed", "TF2_IgnitePlayer", "TFCond_Milked", "TFCond_Gas",
+		"TF2_MakeBleed", "TF2_IgnitePlayer", "TFCond_Milked",
 		"TFCond_MarkedForDeath", "TFCond_Jarated",
 	} {
 		if !strings.Contains(apply, effect) {
 			t.Fatalf("shared hit path does not apply %s", effect)
 		}
+	}
+	if strings.Contains(apply, "TFCond_Gas") {
+		t.Fatal("disabled gasoline effect still applies gas on hit")
 	}
 
 	jar := substanceSourceFunction(t, "public void WeaponBuffs_ApplySubstances")

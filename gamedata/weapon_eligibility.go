@@ -184,7 +184,7 @@ var projectileCountExtras = names(
 
 var (
 	thrownSubstances     = names("Jarate", "Mad Milk")
-	substanceEffects     = names("bleed", "mad-milk", "gasoline", "mark-for-death", "jarate")
+	substanceEffects     = names("bleed", "mad-milk", "mark-for-death", "jarate")
 	jarProjectileEffects = names(
 		"projectile-count", "projectile-speed", "projectile-range", "projectile-penetration",
 	)
@@ -198,6 +198,12 @@ var cliplessWeapons = names(
 
 func weaponEffectEligible(weapon BuffWeapon, effect WeaponEffect) bool {
 	name, key := weapon.Name, effect.Key
+	// Keep the historical effect and item ids readable, but do not place new
+	// explode-on-ignite rewards. Applying gas on every hit made the fixed
+	// effect substantially stronger than the rest of the buff pool.
+	if key == "gasoline" {
+		return false
+	}
 	if passiveWeapons[name] {
 		return false
 	}
