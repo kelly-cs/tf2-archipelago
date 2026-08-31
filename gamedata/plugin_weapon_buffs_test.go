@@ -106,3 +106,50 @@ func TestWeaponBuffsStayOutOfMvMShopping(t *testing.T) {
 		}
 	}
 }
+
+func TestWeaponBuffOwnershipPolicyDefaultsToPlayers(t *testing.T) {
+	buffs := "../plugin/scripting/tf2_archipelago/weapon_buffs.inc"
+	source, err := os.ReadFile(buffs)
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(source)
+	for _, required := range []string{
+		`CreateConVar("tf2ap_mirror_buffs_to_robots", "0"`,
+		"g_WeaponBuffMirrorRobots.AddChangeHook",
+	} {
+		if !strings.Contains(text, required) {
+			t.Fatalf("robot mirroring toggle has no %s", required)
+		}
+	}
+
+	policy := sourceFunction(t, buffs, "static bool WeaponBuffs_CanUseRunBuffs(int client)")
+	for _, required := range []string{
+		"MvM_IsPlayer(client)",
+		"g_WeaponBuffMirrorRobots.BoolValue",
+		"WeaponBuffs_IsEnemyRobot(client)",
+	} {
+		if !strings.Contains(policy, required) {
+			t.Fatalf("weapon-buff ownership policy has no %s", required)
+		}
+	}
+
+	for _, signature := range []string{
+		"void WeaponBuffs_Apply(int client)",
+		"public void WeaponBuffs_OnTakeDamagePost",
+		"static void WeaponBuffs_FireExtraProjectiles(any reference)",
+		"public void WeaponBuffs_SubstanceProjectileSpawned(int entity)",
+	} {
+		body := sourceFunction(t, buffs, signature)
+		if !strings.Contains(body, "WeaponBuffs_CanUseRunBuffs(") {
+			t.Fatalf("%s bypasses the run-buff ownership policy", signature)
+		}
+	}
+
+	changed := sourceFunction(t, buffs, "public void WeaponBuffs_MirrorRobotsChanged")
+	for _, required := range []string{"WeaponBuffs_Apply(client)", "WeaponBuffs_Remove(client)"} {
+		if !strings.Contains(changed, required) {
+			t.Fatalf("live robot mirror toggle has no %s", required)
+		}
+	}
+}

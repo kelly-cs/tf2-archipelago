@@ -22,6 +22,7 @@ static bool WeaponBuffs_EffectDisabled(int effect)
 int g_WeaponEffectLevels[WeaponCount][WeaponEffectCount];
 int g_WeaponBuffProviderRef[MAXPLAYERS + 1];
 ConVar g_WeaponBuffProjectileDebug;
+ConVar g_WeaponBuffMirrorRobots;
 bool g_WeaponBuffFiringExtra;
 int g_WeaponBuffLastExtra;
 Handle g_WeaponBuffFlareCreate;
@@ -61,6 +62,9 @@ void WeaponBuffs_Init()
 {
     g_WeaponBuffProjectileDebug = CreateConVar("tf2ap_projectile_debug", "0",
         "Log extra-projectile creation and lifetime", FCVAR_NONE, true, 0.0, true, 1.0);
+    g_WeaponBuffMirrorRobots = CreateConVar("tf2ap_mirror_buffs_to_robots", "0",
+        "Mirror Archipelago weapon buffs to enemy BLU robots", FCVAR_NONE, true, 0.0, true, 1.0);
+    g_WeaponBuffMirrorRobots.AddChangeHook(WeaponBuffs_MirrorRobotsChanged);
     CreateTimer(1.0, Timer_WeaponBuffHealthRegen, _, TIMER_REPEAT);
     WeaponBuffs_InitProjectileCalls();
     UserMsg jarated = GetUserMessageId("PlayerJarated");
@@ -92,7 +96,7 @@ public Action Timer_WeaponBuffHealthRegen(Handle timer)
 
     for (int client = 1; client <= MaxClients; client++)
     {
-        if (!MvM_IsPlayer(client) || !IsPlayerAlive(client))
+        if (!WeaponBuffs_CanUseRunBuffs(client) || !IsPlayerAlive(client))
         {
             continue;
         }
@@ -134,6 +138,46 @@ public Action Timer_WeaponBuffHealthRegen(Handle timer)
         }
     }
     return Plugin_Continue;
+}
+
+static bool WeaponBuffs_IsEnemyRobot(int client)
+{
+    return client > 0 && client <= MaxClients
+        && IsClientInGame(client)
+        && IsFakeClient(client)
+        && !IsClientSourceTV(client)
+        && GetClientTeam(client) == TeamBlue;
+}
+
+// The catalog is run-wide, so every gameplay path must pass through this
+// ownership policy before reading it. Otherwise a robot carrying a matching
+// weapon silently receives the human player's Archipelago effects.
+static bool WeaponBuffs_CanUseRunBuffs(int client)
+{
+    return MvM_IsPlayer(client)
+        || (g_WeaponBuffMirrorRobots != null
+            && g_WeaponBuffMirrorRobots.BoolValue
+            && WeaponBuffs_IsEnemyRobot(client));
+}
+
+public void WeaponBuffs_MirrorRobotsChanged(ConVar convar,
+    const char[] oldValue, const char[] newValue)
+{
+    for (int client = 1; client <= MaxClients; client++)
+    {
+        if (!WeaponBuffs_IsEnemyRobot(client))
+        {
+            continue;
+        }
+        if (convar.BoolValue && IsPlayerAlive(client))
+        {
+            WeaponBuffs_Apply(client);
+        }
+        else
+        {
+            WeaponBuffs_Remove(client);
+        }
+    }
 }
 
 static void WeaponBuffs_InitProjectileCalls()
@@ -277,7 +321,7 @@ public void WeaponBuffs_SubstanceProjectileSpawned(int entity)
     // shape so even an immediately shattered jar has its reward pool recorded
     // before PlayerJarated is emitted.
     int owner = WeaponBuffs_EntityOwner(entity);
-    if (!MvM_IsPlayer(owner))
+    if (!WeaponBuffs_CanUseRunBuffs(owner))
     {
         return;
     }
@@ -298,6 +342,7 @@ public Action WeaponBuffs_PlayerJarated(UserMsg msgId, BfRead message,
     int victim = message.ReadByte();
     if (attacker < 1 || attacker > MaxClients || victim < 1 || victim > MaxClients
         || !IsClientInGame(attacker) || !IsClientInGame(victim)
+        || !WeaponBuffs_CanUseRunBuffs(attacker)
         || GetClientTeam(attacker) == GetClientTeam(victim)
         || GetGameTime() - g_WeaponBuffLastSubstanceTime[attacker] > 60.0)
     {
@@ -329,6 +374,7 @@ public void WeaponBuffs_ApplySubstances(any rawPack)
     delete pack;
     if (attacker < 1 || attacker > MaxClients || victim < 1 || victim > MaxClients
         || !IsClientInGame(attacker) || !IsClientInGame(victim) || !IsPlayerAlive(victim)
+        || !WeaponBuffs_CanUseRunBuffs(attacker)
         || GetClientTeam(attacker) == GetClientTeam(victim)
         || weapon < 0 || weapon >= WeaponCount)
     {
@@ -412,7 +458,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float veloc
     bool pressed = (buttons & IN_ATTACK2) != 0
         && (g_WeaponBuffLastButtons[client] & IN_ATTACK2) == 0;
     g_WeaponBuffLastButtons[client] = buttons;
-    if (!pressed || !MvM_IsPlayer(client))
+    if (!pressed || !WeaponBuffs_CanUseRunBuffs(client))
     {
         return Plugin_Continue;
     }
@@ -823,7 +869,7 @@ public Action WeaponBuffs_FireScheduledFlare(Handle timer, DataPack pack)
         angles[axis] = pack.ReadFloat();
         velocity[axis] = pack.ReadFloat();
     }
-    if (!MvM_IsPlayer(owner) || launcher <= MaxClients || !IsValidEntity(launcher))
+    if (!WeaponBuffs_CanUseRunBuffs(owner) || launcher <= MaxClients || !IsValidEntity(launcher))
     {
         return Plugin_Stop;
     }
@@ -894,15 +940,16 @@ static void WeaponBuffs_ResolveProjectile(int source, int &owner, int &launcher)
         launcher = owner;
         owner = WeaponBuffs_EntityOwner(launcher);
     }
-    if (!MvM_IsPlayer(owner) && launcher > MaxClients && IsValidEntity(launcher))
+    if (!WeaponBuffs_CanUseRunBuffs(owner) && launcher > MaxClients && IsValidEntity(launcher))
     {
         int launcherOwner = WeaponBuffs_EntityOwner(launcher);
-        if (MvM_IsPlayer(launcherOwner))
+        if (WeaponBuffs_CanUseRunBuffs(launcherOwner))
         {
             owner = launcherOwner;
         }
     }
-    if ((launcher <= MaxClients || !IsValidEntity(launcher)) && MvM_IsPlayer(owner))
+    if ((launcher <= MaxClients || !IsValidEntity(launcher))
+        && WeaponBuffs_CanUseRunBuffs(owner))
     {
         launcher = GetEntPropEnt(owner, Prop_Send, "m_hActiveWeapon");
     }
@@ -917,7 +964,8 @@ static void WeaponBuffs_FireExtraProjectiles(any reference)
     }
     int owner, launcher;
     WeaponBuffs_ResolveProjectile(source, owner, launcher);
-    if (!MvM_IsPlayer(owner) || launcher <= MaxClients || !IsValidEntity(launcher))
+    if (!WeaponBuffs_CanUseRunBuffs(owner)
+        || launcher <= MaxClients || !IsValidEntity(launcher))
     {
         if (g_WeaponBuffProjectileDebug.BoolValue)
         {
@@ -1082,6 +1130,7 @@ public void WeaponBuffs_OnTakeDamagePost(int victim, int attacker, int inflictor
     }
     if (victim < 1 || victim > MaxClients || attacker < 1 || attacker > MaxClients
         || victim == attacker || !IsClientInGame(victim) || !IsClientInGame(attacker)
+        || !WeaponBuffs_CanUseRunBuffs(attacker)
         || !IsPlayerAlive(victim) || GetClientTeam(victim) == GetClientTeam(attacker)
         || damagecustom == TF_CUSTOM_BURNING || damagecustom == TF_CUSTOM_BLEEDING)
     {
@@ -1306,6 +1355,14 @@ static void WeaponBuffs_Remove(int client)
     {
         TF2Attrib_RemoveAll(provider);
     }
+    if (client > 0 && client <= MaxClients && IsClientInGame(client))
+    {
+        int entity = GetEntPropEnt(client, Prop_Send, "m_hActiveWeapon");
+        if (entity > MaxClients && IsValidEntity(entity))
+        {
+            TF2Attrib_ClearCache(entity);
+        }
+    }
 }
 
 void WeaponBuffs_Disconnect(int client)
@@ -1339,7 +1396,7 @@ void WeaponBuffs_ApplyNextFrame(int client)
 
 void WeaponBuffs_Apply(int client)
 {
-    if (!g_HaveUnlocks || !MvM_IsPlayer(client) || !IsPlayerAlive(client))
+    if (!g_HaveUnlocks || !WeaponBuffs_CanUseRunBuffs(client) || !IsPlayerAlive(client))
     {
         return;
     }
