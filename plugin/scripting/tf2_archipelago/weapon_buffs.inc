@@ -1131,7 +1131,7 @@ static int WeaponBuffs_ForEntity(int entity)
     return WeaponBuffs_ForDefinition(GetEntProp(entity, Prop_Send, "m_iItemDefinitionIndex"));
 }
 
-static int WeaponBuffs_Provider(int client)
+static int WeaponBuffs_Provider(int client, int weaponEntity)
 {
     int provider = EntRefToEntIndex(g_WeaponBuffProviderRef[client]);
     if (provider > MaxClients && IsValidEntity(provider)
@@ -1163,6 +1163,17 @@ static int WeaponBuffs_Provider(int client)
     SetEntProp(provider, Prop_Send, "m_iTeamNum", GetClientTeam(client));
     SetEntityRenderMode(provider, RENDER_NONE);
     DispatchSpawn(provider);
+    if (!HasEntProp(provider, Prop_Send, "m_ProviderType"))
+    {
+        LogError("The private Archipelago attribute provider has no m_ProviderType.");
+        RemoveEntity(provider);
+        return -1;
+    }
+    // CEconEntity initializes as PROVIDER_WEAPON. TF2 deliberately refuses
+    // to apply one weapon-type provider while a different weapon is the hook
+    // initiator, which made every AP weapon effect a no-op. This entity is an
+    // out-of-band modifier, so it must be PROVIDER_GENERIC (zero).
+    SetEntProp(provider, Prop_Send, "m_ProviderType", 0);
     g_WeaponBuffProviderRef[client] = EntIndexToEntRef(provider);
     SetEntPropEnt(provider, Prop_Send, "m_hOwnerEntity", client);
     // CEconEntity::ReapplyProvision follows m_hOwnerEntity and asks its
@@ -1175,6 +1186,24 @@ static int WeaponBuffs_Provider(int client)
     if (GetEntPropEnt(provider, Prop_Send, "m_hOwnerEntity") != client)
     {
         LogError("Could not attach the private Archipelago attribute provider to %N.", client);
+        RemoveEntity(provider);
+        g_WeaponBuffProviderRef[client] = INVALID_ENT_REFERENCE;
+        return -1;
+    }
+
+    // Prove the provider is in the active weapon's aggregate chain. The probe
+    // exists only inside this callback and is removed before real AP effects
+    // are installed; failure is explicit instead of another silent no-op.
+    TF2Attrib_ClearCache(weaponEntity);
+    float damageBefore = TF2Attrib_HookValueFloat(1.0, "mult_dmg", weaponEntity);
+    TF2Attrib_SetByName(provider, "damage bonus", 1.01);
+    TF2Attrib_ClearCache(weaponEntity);
+    float damageAfter = TF2Attrib_HookValueFloat(1.0, "mult_dmg", weaponEntity);
+    TF2Attrib_RemoveByName(provider, "damage bonus");
+    TF2Attrib_ClearCache(weaponEntity);
+    if (FloatAbs(damageAfter - damageBefore) < 0.001)
+    {
+        LogError("The private Archipelago provider attached to %N but did not provide attributes.", client);
         RemoveEntity(provider);
         g_WeaponBuffProviderRef[client] = INVALID_ENT_REFERENCE;
         return -1;
@@ -1228,7 +1257,7 @@ void WeaponBuffs_Apply(int client)
     }
     int entity = GetEntPropEnt(client, Prop_Send, "m_hActiveWeapon");
     int weapon = WeaponBuffs_ForEntity(entity);
-    int provider = WeaponBuffs_Provider(client);
+    int provider = WeaponBuffs_Provider(client, entity);
     if (provider <= MaxClients || !IsValidEntity(provider))
     {
         return;
@@ -1238,6 +1267,11 @@ void WeaponBuffs_Apply(int client)
     // purely Valve/static/MvM state, so refunds cannot consume AP levels and
     // repeated purchases cannot fold AP values back into the station ledger.
     TF2Attrib_RemoveAll(provider);
+    // The active weapon caches its final hook result, including attributes
+    // reached through its owner. Provider changes clear the provider/player
+    // caches but do not walk back into the weapon, so both sides of this
+    // rebuild explicitly invalidate the weapon cache.
+    TF2Attrib_ClearCache(entity);
     if (weapon < 0)
     {
         return;
@@ -1284,6 +1318,7 @@ void WeaponBuffs_Apply(int client)
                 g_WeaponEffectAttributes[effect], g_WeaponNames[weapon]);
         }
     }
+    TF2Attrib_ClearCache(entity);
 }
 
 public int Menu_WeaponBuffs(Menu menu, MenuAction action, int client, int selection)

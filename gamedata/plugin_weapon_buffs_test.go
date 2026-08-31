@@ -61,8 +61,12 @@ func TestWeaponBuffsStayOutOfMvMShopping(t *testing.T) {
 	provider := sourceFunction(t, buffs, "static int WeaponBuffs_Provider")
 	for _, required := range []string{
 		`CreateEntityByName("tf_wearable")`, "RENDER_NONE",
+		`SetEntProp(provider, Prop_Send, "m_ProviderType", 0)`,
 		`SetEntPropEnt(provider, Prop_Send, "m_hOwnerEntity", client)`,
-		`AcceptEntityInput(provider, "RunScriptCode")`, "g_WeaponBuffProviderRef",
+		`AcceptEntityInput(provider, "RunScriptCode")`,
+		`TF2Attrib_HookValueFloat(1.0, "mult_dmg", weaponEntity)`,
+		"TF2Attrib_ClearCache(weaponEntity)",
+		"g_WeaponBuffProviderRef",
 	} {
 		if !strings.Contains(provider, required) {
 			t.Fatalf("private attribute provider has no %s", required)
@@ -71,6 +75,7 @@ func TestWeaponBuffsStayOutOfMvMShopping(t *testing.T) {
 	apply := sourceFunction(t, buffs, "void WeaponBuffs_Apply(int client)")
 	for _, required := range []string{
 		"TF2Attrib_RemoveAll(provider)",
+		"TF2Attrib_ClearCache(entity)",
 		"TF2Attrib_HookValueFloat",
 		"TF2Attrib_SetByName(provider",
 	} {
