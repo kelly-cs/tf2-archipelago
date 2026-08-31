@@ -1,5 +1,5 @@
 diff --git a/source/redbots3/blu_assist.sp b/source/redbots3/blu_assist.sp
-index 051a1c3..e466e04 100644
+index 051a1c3..c9ddd39 100644
 --- a/source/redbots3/blu_assist.sp
 +++ b/source/redbots3/blu_assist.sp
 @@ -15,10 +15,9 @@ Speed is the one to watch. A slower robot is not simply a weaker one: it changes
@@ -16,7 +16,7 @@ index 051a1c3..e466e04 100644
  
  The convar is the switch, so the two arms of an A/B are the same build with one number different.
  There is no feature flag beside it: 1.0 already means off, and a second switch that also has to be
-@@ -28,62 +27,49 @@ of numbers says which arm produced it.
+@@ -28,62 +27,36 @@ of numbers says which arm produced it.
  See docs/testbed-metrics.md: none of this ships on until a run says it helped. */
  
  ConVar redbots_manager_blu_health_scale;
@@ -28,7 +28,6 @@ index 051a1c3..e466e04 100644
  //Counts the robots a bend has been applied to this map, for the sampled log line below
  static int m_iBluAssistSeen;
 +static int m_iBluAssistMaxHealth[MAXPLAYERS + 1];
-+static bool m_bBluAssistMaxHealthHooked[MAXPLAYERS + 1];
  
  void BluAssist_Init()
  {
@@ -66,13 +65,15 @@ index 051a1c3..e466e04 100644
 -
 -Returns 1.0 when the convar is 1.0, which is the whole of the switch being off */
 -static float BluAssistScale(ConVar convar)
-+void BluAssist_OnClientPutInServer(int client)
++static Action BluAssistGetMaxHealth(int entity, int &maxHealth)
  {
 -	float atOne = convar.FloatValue;
 -
 -	if (atOne >= 1.0)
 -		return 1.0;
--
++	if (m_iBluAssistMaxHealth[entity] <= 0)
++		return Plugin_Continue;
+ 
 -	float humans = float(BluAssist_HumansOnRed());
 -
 -	if (humans < 1.0)
@@ -80,30 +81,19 @@ index 051a1c3..e466e04 100644
 -
 -	if (humans >= BLU_ASSIST_FULL_TEAM)
 -		return 1.0;
-+	m_iBluAssistMaxHealth[client] = 0;
-+	m_bBluAssistMaxHealthHooked[client] = false;
-+}
- 
+-
 -	return atOne + (1.0 - atOne) * ((humans - 1.0) / (BLU_ASSIST_FULL_TEAM - 1.0));
-+void BluAssist_OnClientDisconnect(int client)
-+{
-+	m_iBluAssistMaxHealth[client] = 0;
-+	m_bBluAssistMaxHealthHooked[client] = false;
- }
- 
+-}
+-
 -float BluAssist_HealthScale()
-+static Action BluAssistGetMaxHealth(int entity, int &maxHealth)
- {
+-{
 -	return BluAssistScale(redbots_manager_blu_health_scale);
-+	if (m_iBluAssistMaxHealth[entity] <= 0)
-+		return Plugin_Continue;
-+
 +	maxHealth = m_iBluAssistMaxHealth[entity];
 +	return Plugin_Changed;
  }
  
  /* Add what the three levers are set to, for the line that says what was
-@@ -93,22 +79,24 @@ Nothing is added when all three are off, which is every run until somebody sets
+@@ -93,22 +66,24 @@ Nothing is added when all three are off, which is every run until somebody sets
  one, so the string reads exactly as it did before this existed */
  void BluAssist_Describe(char[] buffer, int maxlength)
  {
@@ -134,13 +124,14 @@ index 051a1c3..e466e04 100644
  
  Speed multiplies the template's own move speed bonus rather than replacing it, or a fast robot and
  a normal one would come out walking at the same speed.
-@@ -117,39 +105,80 @@ A giant scales the same way a common does. The alternative is a lever per robot
+@@ -117,39 +92,77 @@ A giant scales the same way a common does. The alternative is a lever per robot
  three more numbers to measure before anybody knows whether the first three matter */
  void BluAssist_OnRobotSpawn(int client)
  {
 -	if (BluAssist_HealthScale() >= 1.0)
 +	// The client entity survives a respawn. Stop the previous spawn's hook
 +	// value from becoming this spawn's input and multiplying repeatedly.
++	SDKUnhook(client, SDKHook_GetMaxHealth, BluAssistGetMaxHealth);
 +	m_iBluAssistMaxHealth[client] = 0;
 +
 +	if (FloatAbs(BluAssist_HealthScale() - 1.0) < 0.0001)
@@ -185,11 +176,7 @@ index 051a1c3..e466e04 100644
  
 -		BluAssistBendAttrib(client, "max health additive bonus", 0.0, float(wanted - maxHealth));
 +		m_iBluAssistMaxHealth[client] = wanted;
-+		if (!m_bBluAssistMaxHealthHooked[client])
-+		{
-+			SDKHook(client, SDKHook_GetMaxHealth, BluAssistGetMaxHealth);
-+			m_bBluAssistMaxHealthHooked[client] = true;
-+		}
++		SDKHook(client, SDKHook_GetMaxHealth, BluAssistGetMaxHealth);
  
  		SetEntProp(client, Prop_Data, "m_iMaxHealth", wanted);
  		SetEntityHealth(client, wanted);
@@ -224,7 +211,7 @@ index 051a1c3..e466e04 100644
  }
  
  /* Write down what a bend actually did to one robot in every BLU_ASSIST_SAMPLE
-@@ -162,27 +191,18 @@ Sampled rather than every robot: a wave brings them by the hundred and a line pe
+@@ -162,27 +175,18 @@ Sampled rather than every robot: a wave brings them by the hundred and a line pe
  nobody reads. */
  #define BLU_ASSIST_SAMPLE	25
  
@@ -261,22 +248,3 @@ index 051a1c3..e466e04 100644
 -	TF2Attrib_SetByName(client, name, current * scale + delta);
 -}
 -
-diff --git a/source/tf2_defenderbots.sp b/source/tf2_defenderbots.sp
-index c97ab40..7e2e0a0 100644
---- a/source/tf2_defenderbots.sp
-+++ b/source/tf2_defenderbots.sp
-@@ -622,6 +622,7 @@ public void OnMapStart()
- 
- public void OnClientDisconnect(int client)
- {
-+	BluAssist_OnClientDisconnect(client);
- 	if (client == g_iPlayerForcedPref)
- 		g_iPlayerForcedPref = -1;
- 	
-@@ -640,5 +641,6 @@ public void OnClientDisconnect(int client)
- 
- public void OnClientPutInServer(int client)
- {
-+	BluAssist_OnClientPutInServer(client);
- 	if (!IsFakeClient(client))
- 		MakeRoomForHumanPlayer(client);
