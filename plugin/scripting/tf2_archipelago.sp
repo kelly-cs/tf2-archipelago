@@ -526,15 +526,16 @@ public Action Timer_PollWave(Handle timer)
     return Plugin_Continue;
 }
 
-// Both events fire for robots too; MvM_IsPlayer is what leaves their loadout alone.
+// Slot enforcement is player-only. Buff application has its own ownership
+// policy, including the optional mirror-to-BLU-robots mode.
 public void Event_InventoryApplied(Event event, const char[] name, bool dontBroadcast)
 {
     int client = GetClientOfUserId(event.GetInt("userid"));
     if (MvM_IsPlayer(client))
     {
         Unlocks_EnforceSlots(client);
-        WeaponBuffs_Apply(client);
     }
+    WeaponBuffs_Apply(client);
 }
 
 public void Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast)
