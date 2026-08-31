@@ -7,6 +7,7 @@
 #define GasolineEffect 15
 #define MarkForDeathEffect 16
 #define JarateEffect 60
+#define ActiveHealthRegenEffect 66
 
 #define BuffMode_Add 1
 #define BuffMode_Percentage 2
@@ -57,6 +58,7 @@ void WeaponBuffs_Init()
 {
     g_WeaponBuffProjectileDebug = CreateConVar("tf2ap_projectile_debug", "0",
         "Log extra-projectile creation and lifetime", FCVAR_NONE, true, 0.0, true, 1.0);
+    CreateTimer(1.0, Timer_WeaponBuffHealthRegen, _, TIMER_REPEAT);
     WeaponBuffs_InitProjectileCalls();
     UserMsg jarated = GetUserMessageId("PlayerJarated");
     if (jarated == INVALID_MESSAGE_ID || GetUserMessageType() != UM_BitBuf)
@@ -74,6 +76,61 @@ void WeaponBuffs_Init()
             WeaponBuffs_HookClient(client);
         }
     }
+}
+
+public Action Timer_WeaponBuffHealthRegen(Handle timer)
+{
+    int resource = GetPlayerResourceEntity();
+    if (resource <= MaxClients || !IsValidEntity(resource)
+        || !HasEntProp(resource, Prop_Send, "m_iMaxHealth"))
+    {
+        return Plugin_Continue;
+    }
+
+    for (int client = 1; client <= MaxClients; client++)
+    {
+        if (!MvM_IsPlayer(client) || !IsPlayerAlive(client))
+        {
+            continue;
+        }
+        int active = GetEntPropEnt(client, Prop_Send, "m_hActiveWeapon");
+        int weapon = WeaponBuffs_ForEntity(active);
+        if (weapon < 0)
+        {
+            continue;
+        }
+        int levels = g_WeaponEffectLevels[weapon][ActiveHealthRegenEffect];
+        if (levels <= 0)
+        {
+            continue;
+        }
+
+        // CTFPlayerResource asks CTFPlayer::GetMaxHealth for this value. That
+        // includes class health and every active weapon, MvM and Archipelago
+        // max-health modifier; m_iMaxHealth on the entity itself does not.
+        int maximum = GetEntProp(resource, Prop_Send, "m_iMaxHealth", 4, client);
+        int health = GetClientHealth(client);
+        int amount = RoundToFloor(
+            g_WeaponEffectIncrements[ActiveHealthRegenEffect] * float(levels));
+        int missing = maximum - health;
+        int healed = amount < missing ? amount : missing;
+        if (healed <= 0)
+        {
+            continue;
+        }
+
+        SetEntityHealth(client, health + healed);
+        Event event = CreateEvent("player_healonhit");
+        if (event != null)
+        {
+            event.SetInt("amount", healed);
+            event.SetInt("entindex", client);
+            event.SetInt("weapon_def_index",
+                GetEntProp(active, Prop_Send, "m_iItemDefinitionIndex"));
+            event.Fire();
+        }
+    }
+    return Plugin_Continue;
 }
 
 static void WeaponBuffs_InitProjectileCalls()
@@ -1138,6 +1195,13 @@ static void WeaponBuffs_ApplyEntity(int entity, int weapon)
 
     for (int effect = 0; effect < WeaponEffectCount; effect++)
     {
+        // Current TF2 emits the heal popup for this schema attribute but its
+        // negative-damage heal changes no health. The timer above owns this
+        // effect so it can heal to the player's real, modified maximum.
+        if (effect == ActiveHealthRegenEffect)
+        {
+            continue;
+        }
         int levels = g_WeaponEffectLevels[weapon][effect];
         if (levels == 0)
         {
