@@ -10,6 +10,8 @@
 ConVar g_CvarBotUpgradesChat;
 ConVar g_CvarBotsWaitForPlayers;
 ConVar g_CvarBotsBackfill;
+ConVar g_CvarRobotHealthScale;
+ConVar g_CvarDefenderRobotHealthScale;
 
 // Whether the hold is on, so it is said once rather than twice a second.
 bool g_Holding;
@@ -71,11 +73,47 @@ void Bots_Init()
         "Hold the bots unready until every player on RED is ready.", _, true, 0.0, true, 1.0);
     g_CvarBotsBackfill = CreateConVar("tf2ap_bots_backfill", "1",
         "Put a bot back on RED when a player leaves between waves.", _, true, 0.0, true, 1.0);
+    // The launcher owns this value. DONTRECORD keeps AutoExecConfig from
+    // writing its default into tf2_archipelago.cfg after server.cfg supplied
+    // the selected value.
+    g_CvarRobotHealthScale = CreateConVar("tf2ap_robot_health_scale", "1.0",
+        "Direct robot health multiplier; relayed to the defender-bot mod.",
+        FCVAR_NOTIFY | FCVAR_DONTRECORD, true, 0.1, true, 10.0);
+    g_CvarRobotHealthScale.AddChangeHook(Bots_RobotHealthScaleChanged);
     g_UpgradeNames = new ArrayList(ByteCountToCells(64));
 
     // No TIMER_FLAG_NO_MAPCHANGE on either: they must outlive every map change.
     CreateTimer(BotReadyInterval, Timer_HoldBotsReady, _, TIMER_REPEAT);
     CreateTimer(BotFillInterval, Timer_FillTeam, _, TIMER_REPEAT);
+}
+
+void Bots_OnConfigsExecuted()
+{
+    Bots_ApplyRobotHealthScale();
+}
+
+public void Bots_RobotHealthScaleChanged(ConVar convar,
+    const char[] oldValue, const char[] newValue)
+{
+    Bots_ApplyRobotHealthScale();
+}
+
+static void Bots_ApplyRobotHealthScale()
+{
+    if (g_CvarDefenderRobotHealthScale == null)
+    {
+        g_CvarDefenderRobotHealthScale = FindConVar("sm_redbots_manager_blu_health_scale");
+    }
+    if (g_CvarDefenderRobotHealthScale == null)
+    {
+        AP_Error("The defender-bot robot health ConVar is unavailable; health scaling cannot run.");
+        return;
+    }
+
+    float wanted = g_CvarRobotHealthScale.FloatValue;
+    g_CvarDefenderRobotHealthScale.FloatValue = wanted;
+    AP_Debug("Robot health scale applied: tf2ap %.2f, defender bots %.2f.",
+        wanted, g_CvarDefenderRobotHealthScale.FloatValue);
 }
 
 void Bots_OnMapStart()

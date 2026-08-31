@@ -499,12 +499,12 @@ func runSettingsDialog(
 						Children: []declarative.Widget{
 							declarative.TextLabel{
 								Text: "Valve tunes every wave for six defenders. This takes the robots down for a team that is short of them, " +
-									"and fades back to the mission as written as the team fills.",
+									"and applies equally regardless of how many humans are playing.",
 								ColumnSpan: 2,
 								MaxSize:    declarative.Size{Width: sentenceWidth},
 							},
-							label("Robot health (%)", "What robot health is worth with one player on RED, as a percentage, rising back to 100 at six. 100 leaves the mission as Valve wrote it."),
-							declarative.NumberEdit{AssignTo: &bluHealth, Value: float64(s.SrcdsBluHealthPct), MinValue: 10, MaxValue: 100, Decimals: 0},
+							label("Robot health (%)", "Direct health multiplier for every robot, from 10% to 1000%."),
+							declarative.NumberEdit{AssignTo: &bluHealth, Value: float64(s.SrcdsBluHealthPct), MinValue: 10, MaxValue: 1000, Decimals: 0},
 						},
 					},
 					{

@@ -212,16 +212,19 @@ func botsMode(enabled bool) int {
 /*
 	scaleOf is the mod's float for a percentage the settings hold.
 
-The mod refuses anything under 0.1 and reads 1.0 as off, so a page nobody has
+The mod accepts 0.1 through 10.0 and reads 1.0 as neutral, so a page nobody has
 touched writes 1.0 and changes nothing. A zero is somebody who has not set it
-rather than somebody asking for harmless robots.
+rather than somebody asking for zero-health robots.
 */
 func scaleOf(pct int) string {
-	if pct <= 0 || pct > 100 {
+	if pct <= 0 {
 		return "1.0"
 	}
 	if pct < 10 {
 		pct = 10
+	}
+	if pct > 1000 {
+		pct = 1000
 	}
 	return fmt.Sprintf("%.2f", float64(pct)/100.0)
 }

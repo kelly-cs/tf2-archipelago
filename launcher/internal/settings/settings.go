@@ -155,7 +155,7 @@ type Settings struct {
 	MvmWeaponBuffStackChance   int    `json:"mvm_weapon_buff_stack_chance"`
 
 	/* The three levers that bend a mission for a short team, each the scale at
-	 * one human on RED rising to 1.0 at six. 1.0 is off, and all three are off
+	 * a direct multiplier for every robot. 1.0 is off, and all three are off
 	 * until a run says otherwise.
 	 *
 	 * Percentages rather than the mod's floats, because a settings page with

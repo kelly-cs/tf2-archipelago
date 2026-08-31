@@ -92,6 +92,7 @@ check by hand when the game fails to fire the expected event.
 | `tf2ap_start_mission` | empty | The popfile the server starts on |
 | `tf2ap_next_mission_delay` | `30` | Seconds from a mission clear to the next mission. `0` leaves it to the game |
 | `tf2ap_bot_upgrades_chat` | `0` | Say what the defender bots buy at the upgrade station |
+| `tf2ap_robot_health_scale` | `1.0` | Direct robot health multiplier, from `0.1` to `10.0`. Relayed after configs execute. |
 
 The plugin reports a lost wave only while a wave it saw start is running.
 The game fires `mvm_wave_failed` while a mission loads. A live server sent a
