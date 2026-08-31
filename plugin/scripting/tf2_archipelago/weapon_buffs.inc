@@ -15,7 +15,6 @@
 
 int g_WeaponEffectLevels[WeaponCount][WeaponEffectCount];
 int g_WeaponBuffProviderRef[MAXPLAYERS + 1];
-char g_WeaponBuffAttributeClass[WeaponEffectCount][64];
 ConVar g_WeaponBuffProjectileDebug;
 bool g_WeaponBuffFiringExtra;
 int g_WeaponBuffLastExtra;
@@ -57,7 +56,6 @@ void WeaponBuffs_Init()
     g_WeaponBuffProjectileDebug = CreateConVar("tf2ap_projectile_debug", "0",
         "Log extra-projectile creation and lifetime", FCVAR_NONE, true, 0.0, true, 1.0);
     WeaponBuffs_InitProjectileCalls();
-    WeaponBuffs_InitAttributeClasses();
     UserMsg jarated = GetUserMessageId("PlayerJarated");
     if (jarated == INVALID_MESSAGE_ID || GetUserMessageType() != UM_BitBuf)
     {
@@ -153,21 +151,6 @@ void WeaponBuffs_HookClient(int client)
     SDKHook(client, SDKHook_OnTakeDamagePost, WeaponBuffs_OnTakeDamagePost);
     SDKUnhook(client, SDKHook_WeaponSwitchPost, WeaponBuffs_WeaponSwitchPost);
     SDKHook(client, SDKHook_WeaponSwitchPost, WeaponBuffs_WeaponSwitchPost);
-}
-
-static void WeaponBuffs_InitAttributeClasses()
-{
-    for (int effect = 0; effect < WeaponEffectCount; effect++)
-    {
-        int definition = TF2Econ_TranslateAttributeNameToDefinitionIndex(
-            g_WeaponEffectAttributes[effect]);
-        if (definition < 0 || !TF2Econ_GetAttributeClassName(definition,
-            g_WeaponBuffAttributeClass[effect], sizeof(g_WeaponBuffAttributeClass[])))
-        {
-            LogError("Could not resolve the attribute class for Archipelago effect %s.",
-                g_WeaponEffectAttributes[effect]);
-        }
-    }
 }
 
 public void WeaponBuffs_WeaponSwitchPost(int client, int weapon)
@@ -1180,9 +1163,22 @@ static int WeaponBuffs_Provider(int client)
     SetEntProp(provider, Prop_Send, "m_iTeamNum", GetClientTeam(client));
     SetEntityRenderMode(provider, RENDER_NONE);
     DispatchSpawn(provider);
-    TF2Util_SetWearableAlwaysValid(provider, true);
     g_WeaponBuffProviderRef[client] = EntIndexToEntRef(provider);
-    TF2Util_EquipPlayerWearable(client, provider);
+    SetEntPropEnt(provider, Prop_Send, "m_hOwnerEntity", client);
+    // CEconEntity::ReapplyProvision follows m_hOwnerEntity and asks its
+    // attribute manager to ProvideTo that owner. This deliberately does not
+    // add the entity to CTFPlayer::m_hMyWearables: TF2Utils' wearable-equip
+    // virtual offset is stale on current Windows TF2, and no visible/equipped
+    // cosmetic is needed for an attribute provider.
+    SetVariantString("self.ReapplyProvision()");
+    AcceptEntityInput(provider, "RunScriptCode");
+    if (GetEntPropEnt(provider, Prop_Send, "m_hOwnerEntity") != client)
+    {
+        LogError("Could not attach the private Archipelago attribute provider to %N.", client);
+        RemoveEntity(provider);
+        g_WeaponBuffProviderRef[client] = INVALID_ENT_REFERENCE;
+        return -1;
+    }
     return provider;
 }
 
@@ -1249,7 +1245,7 @@ void WeaponBuffs_Apply(int client)
     for (int effect = 0; effect < WeaponEffectCount; effect++)
     {
         int levels = g_WeaponEffectLevels[weapon][effect];
-        if (levels <= 0 || g_WeaponBuffAttributeClass[effect][0] == '\0')
+        if (levels <= 0)
         {
             continue;
         }
@@ -1265,7 +1261,7 @@ void WeaponBuffs_Apply(int client)
         else
         {
             float base = TF2Attrib_HookValueFloat(1.0,
-                g_WeaponBuffAttributeClass[effect], entity);
+                g_WeaponEffectAttributeClasses[effect], entity);
             if (FloatAbs(base) < 0.0001)
             {
                 base = 1.0;

@@ -61,7 +61,8 @@ func TestWeaponBuffsStayOutOfMvMShopping(t *testing.T) {
 	provider := sourceFunction(t, buffs, "static int WeaponBuffs_Provider")
 	for _, required := range []string{
 		`CreateEntityByName("tf_wearable")`, "RENDER_NONE",
-		"TF2Util_EquipPlayerWearable", "g_WeaponBuffProviderRef",
+		`SetEntPropEnt(provider, Prop_Send, "m_hOwnerEntity", client)`,
+		`AcceptEntityInput(provider, "RunScriptCode")`, "g_WeaponBuffProviderRef",
 	} {
 		if !strings.Contains(provider, required) {
 			t.Fatalf("private attribute provider has no %s", required)
@@ -84,9 +85,8 @@ func TestWeaponBuffsStayOutOfMvMShopping(t *testing.T) {
 			t.Fatalf("Archipelago apply path still uses station-owned state: %s", forbidden)
 		}
 	}
-	classes := sourceFunction(t, buffs, "static void WeaponBuffs_InitAttributeClasses")
-	if !strings.Contains(classes, "TF2Econ_GetAttributeClassName") {
-		t.Fatal("percentage composition does not resolve engine attribute classes")
+	if strings.Contains(string(source), "TF2Econ_") || strings.Contains(string(source), "TF2Util_") {
+		t.Fatal("private provider still depends on update-sensitive TF Econ Data or TF2 Utils natives")
 	}
 
 	for _, signature := range []string{

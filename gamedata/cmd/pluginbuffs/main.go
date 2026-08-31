@@ -55,15 +55,18 @@ func generate() string {
 	}
 	writeStrings("g_WeaponNames", weaponNames)
 	attributes := make([]string, 0, len(gamedata.WeaponEffects))
+	attributeClasses := make([]string, 0, len(gamedata.WeaponEffects))
 	descriptions := make([]string, 0, len(gamedata.WeaponEffects))
 	effectKeys := make([]string, 0, len(gamedata.WeaponEffects))
 	for _, effect := range gamedata.WeaponEffects {
 		effectKeys = append(effectKeys, effect.Key)
 		attributes = append(attributes, effect.Attribute)
+		attributeClasses = append(attributeClasses, gamedata.WeaponEffectAttributeClasses[effect.ID-1])
 		descriptions = append(descriptions, effect.Description)
 	}
 	writeStrings("g_WeaponEffectKeys", effectKeys)
 	writeStrings("g_WeaponEffectAttributes", attributes)
+	writeStrings("g_WeaponEffectAttributeClasses", attributeClasses)
 	writeStrings("g_WeaponEffectDescriptions", descriptions)
 
 	out.WriteString("float g_WeaponEffectIncrements[] = {\n")
