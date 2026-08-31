@@ -19,6 +19,8 @@
 #include <tf2_stocks>
 #include <ripext>
 #include <tf2attributes>
+#include <tf_econ_data>
+#include <tf2utils>
 
 #include "tf2_archipelago/log.inc"
 #include "tf2_archipelago/mvm.inc"
@@ -553,6 +555,7 @@ public void Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast
 // was has to be recorded before it goes.
 public void OnClientDisconnect(int client)
 {
+    WeaponBuffs_Disconnect(client);
     Bots_OnClientLeaving(client);
 }
 

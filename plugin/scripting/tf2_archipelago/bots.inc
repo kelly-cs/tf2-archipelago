@@ -168,21 +168,6 @@ static bool SplitQuoted(const char[] line, char[] key, int keyMax, char[] value,
  * answer afterwards, which is whether a sale the station appeared to accept
  * ever reached the game at all.
  */
-public Action OnClientCommandKeyValues(int client, KeyValues kv)
-{
-    if (client <= 0 || client > MaxClients)
-    {
-        return Plugin_Continue;
-    }
-    char name[32];
-    kv.GetSectionName(name, sizeof(name));
-    if (StrEqual(name, "MVM_Upgrade", false) || StrEqual(name, "MVM_Respec", false))
-    {
-        WeaponBuffs_BeginStationTransaction(client);
-    }
-    return Plugin_Continue;
-}
-
 public void OnClientCommandKeyValues_Post(int client, KeyValues kv)
 {
     if (client <= 0 || client > MaxClients)

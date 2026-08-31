@@ -14,14 +14,8 @@
 #define BuffMode_Toggle 3
 
 int g_WeaponEffectLevels[WeaponCount][WeaponEffectCount];
-int g_WeaponBuffAppliedRef[2049];
-bool g_WeaponBuffApplied[2049][WeaponEffectCount];
-int g_WeaponBuffAppliedLevels[2049][WeaponEffectCount];
-float g_WeaponBuffAppliedValue[2049][WeaponEffectCount];
-bool g_WeaponBuffBasePresent[2049][WeaponEffectCount];
-float g_WeaponBuffBaseValue[2049][WeaponEffectCount];
-int g_WeaponBuffFireRateRef[2049];
-float g_WeaponBuffFireRateSeen[2049];
+int g_WeaponBuffProviderRef[MAXPLAYERS + 1];
+char g_WeaponBuffAttributeClass[WeaponEffectCount][64];
 ConVar g_WeaponBuffProjectileDebug;
 bool g_WeaponBuffFiringExtra;
 int g_WeaponBuffLastExtra;
@@ -63,6 +57,7 @@ void WeaponBuffs_Init()
     g_WeaponBuffProjectileDebug = CreateConVar("tf2ap_projectile_debug", "0",
         "Log extra-projectile creation and lifetime", FCVAR_NONE, true, 0.0, true, 1.0);
     WeaponBuffs_InitProjectileCalls();
+    WeaponBuffs_InitAttributeClasses();
     UserMsg jarated = GetUserMessageId("PlayerJarated");
     if (jarated == INVALID_MESSAGE_ID || GetUserMessageType() != UM_BitBuf)
     {
@@ -156,69 +151,28 @@ void WeaponBuffs_HookClient(int client)
     g_WeaponBuffLastSubstanceTime[client] = 0.0;
     SDKUnhook(client, SDKHook_OnTakeDamagePost, WeaponBuffs_OnTakeDamagePost);
     SDKHook(client, SDKHook_OnTakeDamagePost, WeaponBuffs_OnTakeDamagePost);
-    SDKUnhook(client, SDKHook_PostThinkPost, WeaponBuffs_PostThinkPost);
-    SDKHook(client, SDKHook_PostThinkPost, WeaponBuffs_PostThinkPost);
+    SDKUnhook(client, SDKHook_WeaponSwitchPost, WeaponBuffs_WeaponSwitchPost);
+    SDKHook(client, SDKHook_WeaponSwitchPost, WeaponBuffs_WeaponSwitchPost);
 }
 
-// Fire rate cannot live in the weapon's runtime attribute list: MvM's station
-// uses that same list as its purchase/refund ledger. Keep the AP contribution
-// outside the item and shorten the cooldown TF2 calculated from its own item,
-// static and station attributes. This makes the two contributions additive
-// without exposing AP levels to the upgrade UI.
-public void WeaponBuffs_PostThinkPost(int client)
+static void WeaponBuffs_InitAttributeClasses()
 {
-    if (!g_HaveUnlocks || !MvM_IsPlayer(client) || !IsPlayerAlive(client))
+    for (int effect = 0; effect < WeaponEffectCount; effect++)
     {
-        return;
+        int definition = TF2Econ_TranslateAttributeNameToDefinitionIndex(
+            g_WeaponEffectAttributes[effect]);
+        if (definition < 0 || !TF2Econ_GetAttributeClassName(definition,
+            g_WeaponBuffAttributeClass[effect], sizeof(g_WeaponBuffAttributeClass[])))
+        {
+            LogError("Could not resolve the attribute class for Archipelago effect %s.",
+                g_WeaponEffectAttributes[effect]);
+        }
     }
-    int entity = GetEntPropEnt(client, Prop_Send, "m_hActiveWeapon");
-    int weapon = WeaponBuffs_ForEntity(entity);
-    if (weapon < 0 || entity >= sizeof(g_WeaponBuffFireRateRef))
-    {
-        return;
-    }
-    int levels = g_WeaponEffectLevels[weapon][FireRateEffect];
-    if (levels <= 0 || !HasEntProp(entity, Prop_Send, "m_flNextPrimaryAttack"))
-    {
-        return;
-    }
+}
 
-    int reference = EntIndexToEntRef(entity);
-    if (g_WeaponBuffFireRateRef[entity] != reference)
-    {
-        g_WeaponBuffFireRateRef[entity] = reference;
-        g_WeaponBuffFireRateSeen[entity] = 0.0;
-    }
-    float next = GetEntPropFloat(entity, Prop_Send, "m_flNextPrimaryAttack");
-    float now = GetGameTime();
-    if (next <= now || FloatAbs(next - g_WeaponBuffFireRateSeen[entity]) < 0.0001)
-    {
-        return;
-    }
-
-    float station = 1.0;
-    Address attribute = TF2Attrib_GetByName(entity, g_WeaponEffectAttributes[FireRateEffect]);
-    if (attribute != Address_Null)
-    {
-        station = TF2Attrib_GetValue(attribute);
-    }
-    if (station <= 0.0)
-    {
-        station = 0.1;
-    }
-    float combined = station
-        + g_WeaponEffectIncrements[FireRateEffect] * float(levels);
-    // A corrupt or excessively stacked value must never produce a zero or
-    // negative interval; those can flood snapshots until the client channel
-    // overflows. Five times stock is already far beyond the station's normal
-    // range and is the hard safety ceiling.
-    if (combined < 0.2)
-    {
-        combined = 0.2;
-    }
-    float adjusted = now + (next - now) * combined / station;
-    SetEntPropFloat(entity, Prop_Send, "m_flNextPrimaryAttack", adjusted);
-    g_WeaponBuffFireRateSeen[entity] = adjusted;
+public void WeaponBuffs_WeaponSwitchPost(int client, int weapon)
+{
+    WeaponBuffs_Apply(client);
 }
 
 static bool WeaponBuffs_IsProjectile(const char[] classname)
@@ -1194,124 +1148,60 @@ static int WeaponBuffs_ForEntity(int entity)
     return WeaponBuffs_ForDefinition(GetEntProp(entity, Prop_Send, "m_iItemDefinitionIndex"));
 }
 
-// Upgrade-station values are composed first. A matching previous result means
-// only newly received levels are added; a different value means TF2 rebuilt
-// the attribute and the complete Archipelago contribution is added again.
-static void WeaponBuffs_ApplyEntity(int entity, int weapon)
+static int WeaponBuffs_Provider(int client)
 {
-    int reference = EntIndexToEntRef(entity);
-    if (g_WeaponBuffAppliedRef[entity] != reference)
+    int provider = EntRefToEntIndex(g_WeaponBuffProviderRef[client]);
+    if (provider > MaxClients && IsValidEntity(provider)
+        && HasEntProp(provider, Prop_Send, "m_hOwnerEntity")
+        && GetEntPropEnt(provider, Prop_Send, "m_hOwnerEntity") == client)
     {
-        for (int effect = 0; effect < WeaponEffectCount; effect++)
-        {
-            g_WeaponBuffApplied[entity][effect] = false;
-            g_WeaponBuffAppliedLevels[entity][effect] = 0;
-            g_WeaponBuffBasePresent[entity][effect] = false;
-            g_WeaponBuffBaseValue[entity][effect] = 0.0;
-        }
-        g_WeaponBuffAppliedRef[entity] = reference;
+        return provider;
     }
-
-    for (int effect = 0; effect < WeaponEffectCount; effect++)
+    if (provider > MaxClients && IsValidEntity(provider))
     {
-        int levels = g_WeaponEffectLevels[weapon][effect];
-        // Fire rate is composed from PostThinkPost, outside the runtime
-        // attribute list the MvM station owns.
-        if (levels == 0 || effect == FireRateEffect)
-        {
-            continue;
-        }
-        Address attribute = TF2Attrib_GetByName(entity, g_WeaponEffectAttributes[effect]);
-        float current = g_WeaponEffectModes[effect] == BuffMode_Add ? 0.0 : 1.0;
-        if (attribute != Address_Null)
-        {
-            current = TF2Attrib_GetValue(attribute);
-        }
-
-        bool unchanged = g_WeaponBuffApplied[entity][effect]
-            && FloatAbs(current - g_WeaponBuffAppliedValue[entity][effect]) < 0.0001;
-        if (unchanged && g_WeaponBuffAppliedLevels[entity][effect] == levels)
-        {
-            continue;
-        }
-
-        if (!unchanged)
-        {
-            // This is Valve's, the item definition's, or another plugin's
-            // value. Remember it so shopping receives exactly that list after
-            // the Archipelago contribution is removed.
-            g_WeaponBuffBasePresent[entity][effect] = attribute != Address_Null;
-            g_WeaponBuffBaseValue[entity][effect] = current;
-        }
-
-        float value;
-        if (g_WeaponEffectModes[effect] == BuffMode_Toggle)
-        {
-            value = 1.0;
-        }
-        else
-        {
-            int addedLevels = unchanged
-                ? levels - g_WeaponBuffAppliedLevels[entity][effect]
-                : levels;
-            value = current + g_WeaponEffectIncrements[effect] * float(addedLevels);
-        }
-        if (!TF2Attrib_SetByName(entity, g_WeaponEffectAttributes[effect], value))
-        {
-            LogError("Could not apply %s to %s.",
-                g_WeaponEffectAttributes[effect], g_WeaponNames[weapon]);
-            continue;
-        }
-        g_WeaponBuffApplied[entity][effect] = true;
-        g_WeaponBuffAppliedLevels[entity][effect] = levels;
-        g_WeaponBuffAppliedValue[entity][effect] = value;
+        RemoveEntity(provider);
     }
-}
+    g_WeaponBuffProviderRef[client] = INVALID_ENT_REFERENCE;
 
-static void WeaponBuffs_RemoveEntity(int entity)
-{
-    if (entity <= MaxClients || !IsValidEntity(entity)
-        || g_WeaponBuffAppliedRef[entity] != EntIndexToEntRef(entity))
+    provider = CreateEntityByName("tf_wearable");
+    if (provider <= MaxClients || !IsValidEntity(provider))
     {
-        return;
+        LogError("Could not create the private Archipelago attribute provider for %N.", client);
+        return -1;
     }
-    for (int effect = 0; effect < WeaponEffectCount; effect++)
-    {
-        if (!g_WeaponBuffApplied[entity][effect])
-        {
-            continue;
-        }
-        Address attribute = TF2Attrib_GetByName(entity, g_WeaponEffectAttributes[effect]);
-        bool unchanged = attribute != Address_Null
-            && FloatAbs(TF2Attrib_GetValue(attribute)
-                - g_WeaponBuffAppliedValue[entity][effect]) < 0.0001;
-        if (unchanged && g_WeaponBuffBasePresent[entity][effect])
-        {
-            TF2Attrib_SetByName(entity, g_WeaponEffectAttributes[effect],
-                g_WeaponBuffBaseValue[entity][effect]);
-        }
-        else if (unchanged)
-        {
-            TF2Attrib_RemoveByName(entity, g_WeaponEffectAttributes[effect]);
-        }
-        // If somebody changed the value after us, leave their work in place.
-        // The next application treats it as the new base and composes onto it.
-        g_WeaponBuffApplied[entity][effect] = false;
-        g_WeaponBuffAppliedLevels[entity][effect] = 0;
-    }
+    // A real all-class cosmetic gives the economy entity a valid item view;
+    // RENDER_NONE keeps this implementation detail out of the world. Runtime
+    // attributes live only on this cosmetic, never on the player's weapon or
+    // player ledgers that the MvM station owns.
+    SetEntProp(provider, Prop_Send, "m_iItemDefinitionIndex", 940);
+    SetEntProp(provider, Prop_Send, "m_bInitialized", 1);
+    SetEntProp(provider, Prop_Send, "m_iEntityQuality", 6);
+    SetEntProp(provider, Prop_Send, "m_iEntityLevel", 1);
+    SetEntProp(provider, Prop_Send, "m_iTeamNum", GetClientTeam(client));
+    SetEntityRenderMode(provider, RENDER_NONE);
+    DispatchSpawn(provider);
+    TF2Util_SetWearableAlwaysValid(provider, true);
+    g_WeaponBuffProviderRef[client] = EntIndexToEntRef(provider);
+    TF2Util_EquipPlayerWearable(client, provider);
+    return provider;
 }
 
 static void WeaponBuffs_Remove(int client)
 {
-    // A player can be dead when the wave-complete/failure event arrives. The
-    // weapon entities can still exist and must be clean before the station.
-    if (!MvM_IsPlayer(client))
+    int provider = EntRefToEntIndex(g_WeaponBuffProviderRef[client]);
+    if (provider > MaxClients && IsValidEntity(provider))
     {
-        return;
+        TF2Attrib_RemoveAll(provider);
     }
-    for (int slot = 0; slot <= 5; slot++)
+}
+
+void WeaponBuffs_Disconnect(int client)
+{
+    int provider = EntRefToEntIndex(g_WeaponBuffProviderRef[client]);
+    g_WeaponBuffProviderRef[client] = INVALID_ENT_REFERENCE;
+    if (provider > MaxClients && IsValidEntity(provider))
     {
-        WeaponBuffs_RemoveEntity(GetPlayerWeaponSlot(client, slot));
+        RemoveEntity(provider);
     }
 }
 
@@ -1324,8 +1214,8 @@ static void Frame_ApplyWeaponBuffs(any userid)
     }
 }
 
-// Let the station command finish rebuilding runtime attributes before
-// composing the Archipelago contribution onto Valve's final values.
+// Let the station command finish rebuilding Valve's own values before
+// recalculating the independent provider's additive percentage ratios.
 void WeaponBuffs_ApplyNextFrame(int client)
 {
     if (client > 0 && IsClientInGame(client))
@@ -1334,30 +1224,68 @@ void WeaponBuffs_ApplyNextFrame(int client)
     }
 }
 
-// SourceMod calls this from OnClientCommandKeyValues, before TF2 sees a station
-// purchase or refund. Remove only our contribution for the duration of that
-// command, so Valve updates its own clean base. The next-frame application is
-// also a fallback when another plugin blocks the command and no post forward
-// is delivered.
-void WeaponBuffs_BeginStationTransaction(int client)
-{
-    WeaponBuffs_Remove(client);
-    WeaponBuffs_ApplyNextFrame(client);
-}
-
 void WeaponBuffs_Apply(int client)
 {
     if (!g_HaveUnlocks || !MvM_IsPlayer(client) || !IsPlayerAlive(client))
     {
         return;
     }
-    for (int slot = 0; slot <= 5; slot++)
+    int entity = GetEntPropEnt(client, Prop_Send, "m_hActiveWeapon");
+    int weapon = WeaponBuffs_ForEntity(entity);
+    int provider = WeaponBuffs_Provider(client);
+    if (provider <= MaxClients || !IsValidEntity(provider))
     {
-        int entity = GetPlayerWeaponSlot(client, slot);
-        int weapon = WeaponBuffs_ForEntity(entity);
-        if (weapon >= 0)
+        return;
+    }
+
+    // Rebuild from an empty private list. The aggregate queried below is now
+    // purely Valve/static/MvM state, so refunds cannot consume AP levels and
+    // repeated purchases cannot fold AP values back into the station ledger.
+    TF2Attrib_RemoveAll(provider);
+    if (weapon < 0)
+    {
+        return;
+    }
+    for (int effect = 0; effect < WeaponEffectCount; effect++)
+    {
+        int levels = g_WeaponEffectLevels[weapon][effect];
+        if (levels <= 0 || g_WeaponBuffAttributeClass[effect][0] == '\0')
         {
-            WeaponBuffs_ApplyEntity(entity, weapon);
+            continue;
+        }
+        float value;
+        if (g_WeaponEffectModes[effect] == BuffMode_Toggle)
+        {
+            value = 1.0;
+        }
+        else if (g_WeaponEffectModes[effect] == BuffMode_Add)
+        {
+            value = g_WeaponEffectIncrements[effect] * float(levels);
+        }
+        else
+        {
+            float base = TF2Attrib_HookValueFloat(1.0,
+                g_WeaponBuffAttributeClass[effect], entity);
+            if (FloatAbs(base) < 0.0001)
+            {
+                base = 1.0;
+            }
+            float combined = base
+                + g_WeaponEffectIncrements[effect] * float(levels);
+            // Inverted percentages such as fire/reload speed must never reach
+            // zero: the engine can then generate attacks and snapshots faster
+            // than the client channel can carry them.
+            float minimum = effect == FireRateEffect ? 0.2 : 0.05;
+            if (combined < minimum)
+            {
+                combined = minimum;
+            }
+            value = combined / base;
+        }
+        if (!TF2Attrib_SetByName(provider, g_WeaponEffectAttributes[effect], value))
+        {
+            LogError("Could not apply private effect %s to %s.",
+                g_WeaponEffectAttributes[effect], g_WeaponNames[weapon]);
         }
     }
 }

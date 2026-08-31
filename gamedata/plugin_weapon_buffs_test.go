@@ -39,12 +39,6 @@ func sourceFunction(t *testing.T, path, signature string) string {
 }
 
 func TestWeaponBuffsStayOutOfMvMShopping(t *testing.T) {
-	bots := "../plugin/scripting/tf2_archipelago/bots.inc"
-	before := sourceFunction(t, bots, "public Action OnClientCommandKeyValues(int client")
-	if !strings.Contains(before, "WeaponBuffs_BeginStationTransaction(client)") {
-		t.Fatal("station command does not remove Archipelago attributes before TF2 handles it")
-	}
-
 	station := sourceFunction(t, "../plugin/scripting/tf2_archipelago/mvm.inc",
 		"stock void MvM_OnCommandKeyValues")
 	for _, command := range []string{"MVM_Upgrade", "MVM_Respec"} {
@@ -53,32 +47,46 @@ func TestWeaponBuffsStayOutOfMvMShopping(t *testing.T) {
 		}
 	}
 	if !strings.Contains(station, "WeaponBuffs_ApplyNextFrame(client)") {
-		t.Fatal("upgrade-station handler does not restore Archipelago attributes after TF2 handles it")
+		t.Fatal("upgrade-station handler does not recalculate the independent provider")
 	}
 
 	buffs := "../plugin/scripting/tf2_archipelago/weapon_buffs.inc"
-	transaction := sourceFunction(t, buffs, "void WeaponBuffs_BeginStationTransaction")
-	for _, required := range []string{"WeaponBuffs_Remove(client)", "WeaponBuffs_ApplyNextFrame(client)"} {
-		if !strings.Contains(transaction, required) {
-			t.Fatalf("station transaction has no %s", required)
+	source, err := os.ReadFile(buffs)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(source), "WeaponBuffs_BeginStationTransaction") {
+		t.Fatal("obsolete station transaction still couples Archipelago effects to shopping")
+	}
+	provider := sourceFunction(t, buffs, "static int WeaponBuffs_Provider")
+	for _, required := range []string{
+		`CreateEntityByName("tf_wearable")`, "RENDER_NONE",
+		"TF2Util_EquipPlayerWearable", "g_WeaponBuffProviderRef",
+	} {
+		if !strings.Contains(provider, required) {
+			t.Fatalf("private attribute provider has no %s", required)
 		}
 	}
 	apply := sourceFunction(t, buffs, "void WeaponBuffs_Apply(int client)")
-	if strings.Contains(apply, "g_WeaponBuffWaveActive") {
-		t.Fatal("weapon buffs are incorrectly gated on an active wave")
-	}
-	applyEntity := sourceFunction(t, buffs, "static void WeaponBuffs_ApplyEntity")
-	if !strings.Contains(applyEntity, "effect == FireRateEffect") {
-		t.Fatal("fire rate is still written into the MvM station's runtime attribute list")
-	}
-	fireRate := sourceFunction(t, buffs, "public void WeaponBuffs_PostThinkPost")
 	for _, required := range []string{
-		"m_flNextPrimaryAttack", "g_WeaponEffectLevels[weapon][FireRateEffect]",
-		"TF2Attrib_GetByName", "combined / station",
+		"TF2Attrib_RemoveAll(provider)",
+		"TF2Attrib_HookValueFloat",
+		"TF2Attrib_SetByName(provider",
 	} {
-		if !strings.Contains(fireRate, required) {
-			t.Fatalf("plugin-owned fire rate has no %s", required)
+		if !strings.Contains(apply, required) {
+			t.Fatalf("independent attribute composition has no %s", required)
 		}
+	}
+	for _, forbidden := range []string{
+		"TF2Attrib_SetByName(entity", "GetPlayerWeaponSlot", "g_WeaponBuffWaveActive",
+	} {
+		if strings.Contains(apply, forbidden) {
+			t.Fatalf("Archipelago apply path still uses station-owned state: %s", forbidden)
+		}
+	}
+	classes := sourceFunction(t, buffs, "static void WeaponBuffs_InitAttributeClasses")
+	if !strings.Contains(classes, "TF2Econ_GetAttributeClassName") {
+		t.Fatal("percentage composition does not resolve engine attribute classes")
 	}
 
 	for _, signature := range []string{
