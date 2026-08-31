@@ -81,11 +81,6 @@ func TestWeaponBuffsStayOutOfMvMShopping(t *testing.T) {
 		}
 	}
 
-	plugin := "../plugin/scripting/tf2_archipelago.sp"
-	begin := sourceFunction(t, plugin, "public void Event_BeginWave")
-	if !strings.Contains(begin, "WeaponBuffs_BeginWave()") {
-		t.Fatal("wave start does not apply Archipelago attributes")
-	}
 	for _, signature := range []string{
 		"public Action Command_TestWeaponBuff", "public Action Command_GiveWeaponBuff",
 	} {

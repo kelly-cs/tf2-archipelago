@@ -1315,16 +1315,6 @@ static void WeaponBuffs_Remove(int client)
     }
 }
 
-void WeaponBuffs_BeginWave()
-{
-    // TF2 can rebuild a weapon when the station closes. The run contribution
-    // is already active; this repairs a replacement entity if one was made.
-    for (int client = 1; client <= MaxClients; client++)
-    {
-        WeaponBuffs_ApplyNextFrame(client);
-    }
-}
-
 static void Frame_ApplyWeaponBuffs(any userid)
 {
     int client = GetClientOfUserId(userid);
@@ -1334,9 +1324,8 @@ static void Frame_ApplyWeaponBuffs(any userid)
     }
 }
 
-// mvm_begin_wave is delivered from inside TF2's transition out of shopping.
-// Let that transition finish rebuilding runtime attributes before composing
-// the Archipelago contribution onto Valve's final values.
+// Let the station command finish rebuilding runtime attributes before
+// composing the Archipelago contribution onto Valve's final values.
 void WeaponBuffs_ApplyNextFrame(int client)
 {
     if (client > 0 && IsClientInGame(client))

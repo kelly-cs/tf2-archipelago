@@ -361,10 +361,6 @@ public void Event_BeginWave(Event event, const char[] name, bool dontBroadcast)
         g_TankReported = false;
         g_GiantReported = false;
     }
-    // The station is closed now. Compose run buffs onto the MvM upgrades
-    // Valve finalized during the preceding shopping period.
-    WeaponBuffs_BeginWave();
-
     int fromGame = MvM_WaveFromGame();
     if (fromGame > 0 && fromGame != g_CurrentWave)
     {
