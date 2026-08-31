@@ -137,6 +137,25 @@ unlock weapon slots, restrict classes, and gate upgrades at the station.
 Hand out canteens, spawn allied bots with an unlocked template, and fire
 traps.
 
+### Weapon buff ownership
+
+Archipelago weapon buffs and purchases from the MvM upgrade station have
+separate owners. The station continues to own the attributes on each weapon;
+the plugin puts Archipelago attributes on one invisible, generic provider
+attached to the player. It never writes an Archipelago level into a weapon or
+player attribute list that the station can display, refund, or restore.
+
+When either side changes, the plugin rebuilds only its private provider. For a
+percentage effect it first reads the weapon's current Valve and MvM value, then
+adds the Archipelago levels on top. Clearing the active weapon's attribute
+cache makes the result immediate. A temporary damage attribute verifies that a
+new provider actually reaches the active weapon, so an attachment failure is
+logged instead of silently disabling every buff.
+
+This boundary was verified on a live server with Fists and a Minigun: normal
+firing-speed upgrades could be bought and refunded repeatedly without removing,
+duplicating, or exposing the Archipelago firing-speed buff in the MvM menu.
+
 ## What it must not do
 
 - **Know anything about Archipelago.** No item ids, no location ids, no slot,
