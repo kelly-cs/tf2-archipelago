@@ -43,8 +43,10 @@ sm_redbots_manager_team_composition "{{.BotTeamComp}}"
 sm_redbots_manager_use_custom_loadouts {{.BotCustomLoadouts}}
 // What the bots look like. Neither changes how they play: a hat each, and an
 // unusual effect on that hat.
-// How far robot health is taken down when RED is short of humans. The scale at
-// one player, rising to none at six. 100 is off.
+// Direct multiplier for every BLU robot's health; 1.0 is neutral.
+tf2ap_robot_health_scale {{.BluHealth}}
+// Kept for servers that install the defender bots without the AP plugin. The
+// plugin repeats the value after every config has executed.
 sm_redbots_manager_blu_health_scale {{.BluHealth}}
 
 sm_redbots_manager_bot_hats {{.BotHats}}

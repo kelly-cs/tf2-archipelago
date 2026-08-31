@@ -337,6 +337,7 @@ public void OnMapStart()
 
 public void OnConfigsExecuted()
 {
+    Bots_OnConfigsExecuted();
     if (!MvM_IsActive())
     {
         AP_Debug("This map is not Mann vs Machine. The plugin waits for the run's mission list.");
