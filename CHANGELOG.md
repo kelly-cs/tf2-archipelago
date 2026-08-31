@@ -6,6 +6,10 @@ in the release notes, so this file is the only place to write it.
 
 ## Unreleased
 
+- Archipelago weapon buffs now stay active when players refund upgrades at an
+  MvM station. They no longer appear as purchased, infinitely refundable MvM
+  upgrade levels or stack again after repeated refunds.
+
 ## v1.11.0
 
 Change the bot team mid-run, build your own loadouts, scale robot health, and
