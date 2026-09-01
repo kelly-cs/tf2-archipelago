@@ -22,9 +22,11 @@
 #     TF2Attributes rather than shipping its release also keeps us off a
 #     binary that has no license on it.
 #
-#     The defender mod itself is our fork, m-this/tf2-mvm-bots. Our changes to
-#     it are commits on its tf2ap branch rather than patches applied here: they
-#     grew past what a patch stack survives a rebase with.
+#     The defender mod itself is m-this/tf2-mvm-bots-go, which holds both the Go
+#     that authors the decisions and the SourcePawn tree they compile into,
+#     under plugin/. It used to be two repositories and two pins; the generator
+#     and the plugin move together now, so DEFENDERBOTS_VERSION is one tag that
+#     says what both are.
 #
 # Versions come from deploy/env/versions.env, source fixes from
 # deploy/patches/, whose README explains every patch.
@@ -86,7 +88,7 @@ apply_patches() {
 
 # --- Sources for the plugins ---
 
-fetch m-this/tf2-mvm-bots "$DEFENDERBOTS_VERSION" defenderbots
+fetch m-this/tf2-mvm-bots-go "$DEFENDERBOTS_VERSION" defenderbots
 fetch OfficerSpy/SM_Stock_OfficerSpy "$SM_STOCK_OFFICERSPY_REF" stocklib
 fetch FlaminSarge/tf2attributes "$TF2ATTRIBUTES_VERSION" tf2attributes
 fetch nosoop/SM-TFEconData "$TFECONDATA_VERSION" tf_econ_data
@@ -115,7 +117,7 @@ generate_from_module() {
 	# go.mod, so `go get -tool` moves the mod and nothing else has to be
 	# edited to agree with it.
 	( cd "$root" && go tool github.com/m-this/tf2-mvm-bots-go/cmd/gen \
-		-upstream "$src/defenderbots" -out "$gen" ) || {
+		-upstream "$src/defenderbots/plugin" -out "$gen" ) || {
 		echo "the mod's generator failed" >&2
 		rm -rf "$gen"
 		return 1
@@ -124,8 +126,8 @@ generate_from_module() {
 	drift=0
 	for file in "$gen"/sourcepawn/*.sp; do
 		name=$(basename "$file")
-		for committed in "$src/defenderbots/source/redbots3/generated/$name" \
-			"$src/defenderbots/testbed/stats/generated/$name"; do
+		for committed in "$src/defenderbots/plugin/source/redbots3/generated/$name" \
+			"$src/defenderbots/plugin/testbed/stats/generated/$name"; do
 			[ -f "$committed" ] || continue
 			cmp -s "$file" "$committed" || {
 				echo "drift: $committed is not what the generator writes" >&2
@@ -251,12 +253,12 @@ compile() {
 		{ cat "$work/$name.log"; exit 1; }
 }
 
-compile "$compile_src/defenderbots/source/tf2_defenderbots.sp"
+compile "$compile_src/defenderbots/plugin/source/tf2_defenderbots.sp"
 compile "$compile_src/tf2attributes/scripting/tf2attributes.sp"
 compile "$compile_src/tf_econ_data/scripting/tf_econ_data.sp"
 compile "$compile_src/tf2utils/scripting/tf2utils.sp"
 
-cp "$src/defenderbots/gamedata/tf2.defenderbots.txt" \
+cp "$src/defenderbots/plugin/gamedata/tf2.defenderbots.txt" \
 	"$src/tf2attributes/gamedata/tf2.attributes.txt" \
 	"$src/tf_econ_data/gamedata/tf2.econ_data.txt" \
 	"$src/tf2utils/gamedata/tf2.utils.nosoop.txt" \
@@ -266,7 +268,7 @@ cp "$src/defenderbots/gamedata/tf2.defenderbots.txt" \
 # the Valve maps, which is most of what this stack is for. The names are the
 # game's own TFBot names rather than the mod's list, so the team reads like a
 # Valve server.
-cp -r "$src/defenderbots/configs/defenderbots" "$out/addons/sourcemod/configs/"
+cp -r "$src/defenderbots/plugin/configs/defenderbots" "$out/addons/sourcemod/configs/"
 cp "$root/deploy/bots/bot_names.txt" "$out/addons/sourcemod/configs/defenderbots/bot_names.txt"
 
 echo "staged the defender bots into $out"
