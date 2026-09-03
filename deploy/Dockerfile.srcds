@@ -22,7 +22,11 @@ RUN ./build.sh
 # The MvM defender bots: the mod that fills RED so a wave tuned for six players
 # is winnable alone. Its own stage so a plugin edit does not refetch it, and so
 # the tree it stages can be copied whole.
-FROM debian:stable-slim AS bots
+#
+# On the Go image rather than plain Debian: the mod is a Go module dependency
+# and go.mod is the pin, so staging it needs a toolchain. Everything else the
+# script fetches is still a checkout or a release download.
+FROM golang:1.27 AS bots
 
 RUN apt-get update \
 	&& apt-get install --yes --no-install-recommends \
@@ -30,6 +34,7 @@ RUN apt-get update \
 	&& rm -rf /var/lib/apt/lists/*
 
 WORKDIR /repo
+COPY go.mod go.sum ./
 COPY deploy/env/versions.env deploy/env/versions.env
 COPY deploy/patches deploy/patches
 COPY deploy/bots deploy/bots

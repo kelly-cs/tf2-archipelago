@@ -24,11 +24,12 @@
 #
 #     The defender mod itself is m-this/tf2-mvm-bots-go, which holds both the Go
 #     that authors the decisions and the SourcePawn tree they compile into,
-#     under plugin/. It used to be two repositories and two pins; the generator
-#     and the plugin move together now, so DEFENDERBOTS_VERSION is one tag that
-#     says what both are.
+#     under plugin/. It is a Go module dependency and nothing else: the go.mod
+#     requirement is the pin, the module download is the source, and `go get`
+#     is how it moves. There is no tag for it in versions.env, because a second
+#     place to say which version this build runs is a second place to be wrong.
 #
-# Versions come from deploy/env/versions.env, source fixes from
+# Every other version comes from deploy/env/versions.env, source fixes from
 # deploy/patches/, whose README explains every patch.
 set -eu
 
@@ -88,30 +89,53 @@ apply_patches() {
 
 # --- Sources for the plugins ---
 
-fetch m-this/tf2-mvm-bots-go "$DEFENDERBOTS_VERSION" defenderbots
 fetch OfficerSpy/SM_Stock_OfficerSpy "$SM_STOCK_OFFICERSPY_REF" stocklib
 fetch FlaminSarge/tf2attributes "$TF2ATTRIBUTES_VERSION" tf2attributes
 fetch nosoop/SM-TFEconData "$TFECONDATA_VERSION" tf_econ_data
 fetch nosoop/SM-TFUtils "$TF2UTILS_VERSION" tf2utils
 fetch nosoop/stocksoup "$STOCKSOUP_REF" stocksoup-root/stocksoup
 
-# --- The generated SourcePawn, from the pinned Go module ---
+# --- The defender mod, from the pinned Go module ---
 #
-# The mod's tables and its ported decisions are Go now, and the SourcePawn they
-# become is a build artifact. The version of that generator is a go.mod
-# requirement rather than a tag in versions.env: one place says which mod this
-# build runs, and `go get` moves it.
+# One pin, and it is the go.mod requirement. The module is the mod: the Go that
+# authors the decisions, the generator that turns it into SourcePawn, and the
+# plugin tree that compiles. So there is nothing to clone here and no second
+# version to hold in step with the one the generator runs from.
 #
-# The mod's checkout carries a committed copy of the generated files, because
-# its own build is a shell script and a compiler. Here we have Go, so the files
-# are regenerated and compared. A mismatch means the copy in the mod's tree is
-# not what its generator writes, which is the drift the copies exist to risk.
-generate_from_module() {
-	command -v go >/dev/null 2>&1 || {
-		echo "no go toolchain: skipping the generated SourcePawn check" >&2
-		return 0
-	}
+# Copied out of the module cache rather than compiled in place. The cache is
+# read only and shared, and everything below treats $src as a tree it may stage
+# and patch.
+defenderbots_module=github.com/m-this/tf2-mvm-bots-go
 
+command -v go >/dev/null 2>&1 || {
+	echo "the defender mod is a Go module dependency, so this needs a Go toolchain" >&2
+	exit 1
+}
+
+( cd "$root" && go mod download "$defenderbots_module" )
+defenderbots_version=$(cd "$root" && go list -m -f '{{.Version}}' "$defenderbots_module")
+defenderbots_dir=$(cd "$root" && go list -m -f '{{.Dir}}' "$defenderbots_module")
+
+# The same stamp rule the checkouts use, and for the same reason: a tree left
+# from the previous version builds and says nothing.
+defenderbots_stamp="$src/defenderbots.ref"
+if [ ! -d "$src/defenderbots" ] || [ "$(cat "$defenderbots_stamp" 2>/dev/null)" != "$defenderbots_version" ]; then
+	echo "staging $defenderbots_module@$defenderbots_version"
+	rm -rf "$src/defenderbots"
+	cp -a "$defenderbots_dir" "$src/defenderbots"
+	# The module cache is 0444 all the way down, and a later run has to be
+	# able to replace this.
+	chmod -R u+w "$src/defenderbots"
+	printf '%s\n' "$defenderbots_version" >"$defenderbots_stamp"
+fi
+
+# --- The generated SourcePawn, checked against the pinned generator ---
+#
+# The mod's tree carries a committed copy of the generated files, because its
+# own build is a shell script and a compiler. Here we have Go, so the files are
+# regenerated and compared. A mismatch means the copy in the mod's tree is not
+# what its generator writes, which is the drift the copies exist to risk.
+generate_from_module() {
 	gen=$(mktemp -d)
 	# go tool, not go run: the version comes from the tool directive in
 	# go.mod, so `go get -tool` moves the mod and nothing else has to be

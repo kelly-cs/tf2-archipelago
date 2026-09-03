@@ -10,6 +10,14 @@ export
 GO_VERSION := $(shell sed -n 's/^go //p' go.mod)
 export GO_VERSION
 
+# go.mod owns the defender mod's version too. It is a module dependency rather
+# than a checkout, so the requirement is the pin and there is no line in
+# versions.env to keep in step with it. Read with sed rather than `go list -m`
+# so a Makefile parse costs nothing and works without a toolchain; the build
+# itself resolves it properly.
+DEFENDERBOTS_VERSION := $(shell sed -n 's|^[[:space:]]*github.com/m-this/tf2-mvm-bots-go \(v[^ ]*\).*|\1|p' go.mod)
+export DEFENDERBOTS_VERSION
+
 # The apworld owns the release version, because that is the one a release tag is
 # checked against (see version-check). Everything that has to state a version of
 # this project reads it from here.

@@ -151,4 +151,5 @@ The design comes from the Archipelago Discord thread.
   recovery the bots needed to play those maps.
 
 The bots are [OfficerSpy's MvM Defender TFBots](https://github.com/OfficerSpy/TF2-MvM-Defender-TFBots),
-carried in [a fork](https://github.com/m-this/tf2-mvm-bots).
+carried in [tf2-mvm-bots-go](https://github.com/m-this/tf2-mvm-bots-go), which
+authors their decisions in Go and generates the SourcePawn from it.
