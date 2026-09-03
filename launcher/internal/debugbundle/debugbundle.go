@@ -251,6 +251,20 @@ func newestCrashDumps(gameDir string, limit int) []string {
 	   executable rather than the game. k-kaneta's bundle carried two 0xc0000005
 	   and no dump anywhere near the install, which is apw-eei: every conclusion
 	   on that bead is still inference because this directory was never read. */
+	//
+	/* The environment is where this one lives, and forbidigo is about
+	   something else
+
+	   The rule forbids os.Getenv because this project's configuration is
+	   parsed once and passed as typed values. %LOCALAPPDATA% is not
+	   configuration: it is a path Windows owns, like %ProgramFiles%, which
+	   generate/paths_windows.go reads the same way and which the linter only
+	   passes over because it does not build Windows files.
+
+	   os.UserCacheDir is the typed form and is %LocalAppData% on Windows, but
+	   on Linux it is ~/.cache, so the test that proves a Windows dump gets
+	   collected would stop proving it on the runner that runs it. */
+	//nolint:forbidigo // %LOCALAPPDATA% is a Windows path, not this project's configuration; see above
 	if local := os.Getenv("LOCALAPPDATA"); local != "" {
 		dirs = append(dirs, filepath.Join(local, "CrashDumps"))
 	}
