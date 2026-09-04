@@ -22,6 +22,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/m-this/tf2-archipelago/gamedata"
 	"github.com/m-this/tf2-archipelago/launcher/internal/assets"
 	"github.com/m-this/tf2-archipelago/launcher/internal/winproc"
 )
@@ -129,6 +130,13 @@ func Ensure(ctx context.Context, installRoot string, communityArchives []string,
 func installCommunityArchives(archives []string, modDir string, logf func(string, ...any)) error {
 	if err := ValidateCommunityArchives(archives, logf); err != nil {
 		return err
+	}
+	removed, err := removeUnsupportedCommunityPopfiles(modDir)
+	if err != nil {
+		return err
+	}
+	if removed > 0 {
+		logf("removed %d unsupported community mission popfile(s)", removed)
 	}
 	stampDir := filepath.Join(modDir, ".tf2ap-community")
 	for _, path := range archives {
@@ -340,6 +348,12 @@ func installCommunityZip(path, modDir string) error {
 		if relative == "" {
 			continue
 		}
+		// Full Potato packs contain missions for server mods we do not ship.
+		// Keep their maps and shared assets, but do not let stock TF2 discover
+		// and select an incompatible mission as that map's default.
+		if unsupportedCommunityPopfile(relative) {
+			continue
+		}
 		target, err := safeJoin(modDir, relative)
 		if err != nil {
 			return err
@@ -358,6 +372,69 @@ func installCommunityZip(path, modDir string) error {
 		}
 	}
 	return nil
+}
+
+var (
+	supportedCommunityPopfiles, communityMapNames = communityPopfilePolicy()
+)
+
+func communityPopfilePolicy() (map[string]struct{}, []string) {
+	supported := make(map[string]struct{})
+	for _, mission := range gamedata.PlayableMissions() {
+		if gamedata.IsCommunityMission(mission.ID) {
+			supported[strings.ToLower(mission.PopFile)] = struct{}{}
+		}
+	}
+	maps := make([]string, 0)
+	for _, played := range gamedata.Maps {
+		if gamedata.IsCommunityMap(played.ID) {
+			maps = append(maps, strings.ToLower(played.Name))
+		}
+	}
+	return supported, maps
+}
+
+// unsupportedCommunityPopfile recognizes only mission files belonging to
+// community maps in our catalog. It deliberately leaves robot templates and
+// population files for unrelated user-installed maps alone.
+func unsupportedCommunityPopfile(relative string) bool {
+	clean := strings.ToLower(filepath.ToSlash(relative))
+	if filepath.ToSlash(filepath.Dir(clean)) != "scripts/population" || filepath.Ext(clean) != ".pop" {
+		return false
+	}
+	name := strings.TrimSuffix(filepath.Base(clean), ".pop")
+	for _, mapName := range communityMapNames {
+		if name != mapName && !strings.HasPrefix(name, mapName+"_") {
+			continue
+		}
+		_, supported := supportedCommunityPopfiles[name]
+		return !supported
+	}
+	return false
+}
+
+// removeUnsupportedCommunityPopfiles repairs installations made by older
+// launchers even when the ZIP stamp says the pack is already installed.
+func removeUnsupportedCommunityPopfiles(modDir string) (int, error) {
+	populationDir := filepath.Join(modDir, "scripts", "population")
+	entries, err := os.ReadDir(populationDir)
+	if errors.Is(err, fs.ErrNotExist) {
+		return 0, nil
+	}
+	if err != nil {
+		return 0, fmt.Errorf("cannot inspect installed community missions: %w", err)
+	}
+	removed := 0
+	for _, entry := range entries {
+		if entry.IsDir() || !unsupportedCommunityPopfile(filepath.Join("scripts", "population", entry.Name())) {
+			continue
+		}
+		if err := os.Remove(filepath.Join(populationDir, entry.Name())); err != nil {
+			return removed, fmt.Errorf("cannot remove unsupported community mission %s: %w", entry.Name(), err)
+		}
+		removed++
+	}
+	return removed, nil
 }
 
 // installMods puts everything that loads inside the game server into tf/:

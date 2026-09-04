@@ -74,7 +74,7 @@ func Write(s settings.Settings, versions map[string]string, stamp time.Time) (st
 	// The crash dumps, newest last. srcds runs under Breakpad and writes one
 	// per crash, and a crash that leaves no line in any log leaves one of
 	// these: it is the only file that names the function the server died in.
-	for _, dump := range newestCrashDumps(game, 3) {
+	for _, dump := range newestCrashDumps(game, systemCrashDumpDir(), 3) {
 		copyIn(archive, filepath.Join("crashes", filepath.Base(dump)), dump)
 	}
 
@@ -187,7 +187,7 @@ func crashDumpNote(s settings.Settings, sawCrash bool) string {
 		return ""
 	}
 	game := filepath.Join(s.InstallRoot, "tf-dedicated", "tf")
-	if len(newestCrashDumps(game, 1)) > 0 {
+	if len(newestCrashDumps(game, systemCrashDumpDir(), 1)) > 0 {
 		return "\n  A crash dump is in crashes/. That is the file worth reading first.\n"
 	}
 	return "\n  NO CRASH DUMP was found, though the logs hold a crash. srcds runs under\n" +
@@ -235,7 +235,7 @@ func redactedSettings(s settings.Settings) string {
  * Reading a directory that does not exist is the normal case here, not an
  * error: most installs have none of the optional ones.
  */
-func newestCrashDumps(gameDir string, limit int) []string {
+func newestCrashDumps(gameDir, systemDir string, limit int) []string {
 	root := filepath.Dir(filepath.Dir(gameDir))
 	dirs := []string{gameDir, filepath.Dir(gameDir), root}
 	for _, base := range []string{gameDir, filepath.Dir(gameDir), root} {
@@ -244,29 +244,10 @@ func newestCrashDumps(gameDir string, limit int) []string {
 		}
 	}
 
-	/* Windows Error Reporting writes somewhere else entirely
-
-	   An access violation that Breakpad does not catch is handled by Windows,
-	   and Windows puts the dump in %LOCALAPPDATA%\CrashDumps, named after the
-	   executable rather than the game. k-kaneta's bundle carried two 0xc0000005
-	   and no dump anywhere near the install, which is apw-eei: every conclusion
-	   on that bead is still inference because this directory was never read. */
-	//
-	/* The environment is where this one lives, and forbidigo is about
-	   something else
-
-	   The rule forbids os.Getenv because this project's configuration is
-	   parsed once and passed as typed values. %LOCALAPPDATA% is not
-	   configuration: it is a path Windows owns, like %ProgramFiles%, which
-	   generate/paths_windows.go reads the same way and which the linter only
-	   passes over because it does not build Windows files.
-
-	   os.UserCacheDir is the typed form and is %LocalAppData% on Windows, but
-	   on Linux it is ~/.cache, so the test that proves a Windows dump gets
-	   collected would stop proving it on the runner that runs it. */
-	//nolint:forbidigo // %LOCALAPPDATA% is a Windows path, not this project's configuration; see above
-	if local := os.Getenv("LOCALAPPDATA"); local != "" {
-		dirs = append(dirs, filepath.Join(local, "CrashDumps"))
+	/* Windows Error Reporting writes somewhere else entirely. The platform
+	   boundary resolves that directory once; discovery only receives a path. */
+	if systemDir != "" {
+		dirs = append(dirs, systemDir)
 	}
 
 	seen := map[string]bool{}

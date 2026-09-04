@@ -237,7 +237,6 @@ is why apw-eei is still inference.
 */
 func TestCrashDumpsComeFromWindowsErrorReportingToo(t *testing.T) {
 	local := t.TempDir()
-	t.Setenv("LOCALAPPDATA", local)
 
 	wer := filepath.Join(local, "CrashDumps")
 	if err := os.MkdirAll(wer, 0o755); err != nil {
@@ -253,7 +252,7 @@ func TestCrashDumpsComeFromWindowsErrorReportingToo(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	found := newestCrashDumps(game, 3)
+	found := newestCrashDumps(game, wer, 3)
 	if !slices.Contains(found, dump) {
 		t.Errorf("the dump Windows wrote was not collected: %v", found)
 	}
