@@ -173,6 +173,7 @@ generate_from_module
 fetch TF2-DMB/CBaseNPC "$CBASENPC_VERSION" cbasenpc
 fetch Vinillia/actions.ext "$ACTIONS_VERSION" actions
 
+apply_patches defenderbots
 apply_patches tf2attributes
 
 # --- The compiler ---
