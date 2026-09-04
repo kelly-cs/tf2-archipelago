@@ -374,9 +374,7 @@ func installCommunityZip(path, modDir string) error {
 	return nil
 }
 
-var (
-	supportedCommunityPopfiles, communityMapNames = communityPopfilePolicy()
-)
+var supportedCommunityPopfiles, communityMapNames = communityPopfilePolicy()
 
 func communityPopfilePolicy() (map[string]struct{}, []string) {
 	supported := make(map[string]struct{})
