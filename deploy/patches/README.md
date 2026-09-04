@@ -4,10 +4,13 @@
 compiles. A patch that no longer applies fails the build. That is the signal
 to rebase it on the new upstream, or to drop it because upstream fixed it.
 
-Most defender-mod changes live in the fork, `m-this/tf2-mvm-bots`, and
-`DEFENDERBOTS_VERSION` names a tag from it. Small test fixes may live here
-temporarily when a launcher build needs to carry them before the mod has a
-release; the build applies and compiles them exactly like dependency patches.
+The defender mod is not here. It is `m-this/tf2-mvm-bots-go`, a Go module this
+repository depends on, so its changes are made there and released as a tag.
+`go get github.com/m-this/tf2-mvm-bots-go@vX.Y.Z` is how this build takes a new
+one: the go.mod requirement is the only pin, and there is nothing in
+`versions.env` to move with it. Small test fixes may live here temporarily when
+a launcher build needs to carry them before the module has a release; the build
+applies and compiles them exactly like dependency patches.
 
 | Patch | Why |
 | --- | --- |

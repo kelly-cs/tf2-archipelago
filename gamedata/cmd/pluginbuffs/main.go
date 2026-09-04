@@ -28,32 +28,52 @@ func generate() string {
 	fmt.Fprintf(&out, "#define WeaponCount %d\n", len(gamedata.BuffWeapons))
 	fmt.Fprintf(&out, "#define WeaponEffectCount %d\n\n", len(gamedata.WeaponEffects))
 
+	writeBuffs(&out)
+	writeNamesAndEffectText(&out)
+	writeEffectNumbers(&out)
+	writeWeaponsByDefinition(&out)
+
+	return out.String()
+}
+
+// writeStrings emits one char[][] table, which is how SourcePawn holds a list
+// of names.
+func writeStrings(out *strings.Builder, name string, values []string) {
+	fmt.Fprintf(out, "char %s[][] = {\n", name)
+	for _, value := range values {
+		fmt.Fprintf(out, "    %s,\n", quoted(value))
+	}
+	out.WriteString("};\n\n")
+}
+
+// writeBuffs is the three parallel tables that say what each buff is: its key,
+// the weapon it applies to and the effect it grants. Zero based, because the
+// plugin indexes them and the Go ids start at one.
+func writeBuffs(out *strings.Builder) {
 	out.WriteString("char g_WeaponBuffKeys[][] = {\n")
 	for _, buff := range gamedata.WeaponBuffs {
-		fmt.Fprintf(&out, "    %s,\n", quoted(buff.Key))
+		fmt.Fprintf(out, "    %s,\n", quoted(buff.Key))
 	}
 	out.WriteString("};\n\nint g_WeaponBuffWeapon[] = {\n")
 	for _, buff := range gamedata.WeaponBuffs {
-		fmt.Fprintf(&out, "    %d,\n", buff.ApplyWeaponID-1)
+		fmt.Fprintf(out, "    %d,\n", buff.ApplyWeaponID-1)
 	}
 	out.WriteString("};\n\nint g_WeaponBuffEffect[] = {\n")
 	for _, buff := range gamedata.WeaponBuffs {
-		fmt.Fprintf(&out, "    %d,\n", buff.EffectID-1)
+		fmt.Fprintf(out, "    %d,\n", buff.EffectID-1)
 	}
 	out.WriteString("};\n\n")
+}
 
-	writeStrings := func(name string, values []string) {
-		fmt.Fprintf(&out, "char %s[][] = {\n", name)
-		for _, value := range values {
-			fmt.Fprintf(&out, "    %s,\n", quoted(value))
-		}
-		out.WriteString("};\n\n")
-	}
+// writeNamesAndEffectText is everything the player reads: the weapon names, and
+// the four parallel tables describing an effect.
+func writeNamesAndEffectText(out *strings.Builder) {
 	weaponNames := make([]string, 0, len(gamedata.BuffWeapons))
 	for _, weapon := range gamedata.BuffWeapons {
 		weaponNames = append(weaponNames, weapon.Name)
 	}
-	writeStrings("g_WeaponNames", weaponNames)
+	writeStrings(out, "g_WeaponNames", weaponNames)
+
 	attributes := make([]string, 0, len(gamedata.WeaponEffects))
 	attributeClasses := make([]string, 0, len(gamedata.WeaponEffects))
 	descriptions := make([]string, 0, len(gamedata.WeaponEffects))
@@ -64,29 +84,39 @@ func generate() string {
 		attributeClasses = append(attributeClasses, gamedata.WeaponEffectAttributeClasses[effect.ID-1])
 		descriptions = append(descriptions, effect.Description)
 	}
-	writeStrings("g_WeaponEffectKeys", effectKeys)
-	writeStrings("g_WeaponEffectAttributes", attributes)
-	writeStrings("g_WeaponEffectAttributeClasses", attributeClasses)
-	writeStrings("g_WeaponEffectDescriptions", descriptions)
+	writeStrings(out, "g_WeaponEffectKeys", effectKeys)
+	writeStrings(out, "g_WeaponEffectAttributes", attributes)
+	writeStrings(out, "g_WeaponEffectAttributeClasses", attributeClasses)
+	writeStrings(out, "g_WeaponEffectDescriptions", descriptions)
+}
 
+// writeEffectNumbers is how much one step of an effect is worth and how it
+// composes.
+func writeEffectNumbers(out *strings.Builder) {
 	out.WriteString("float g_WeaponEffectIncrements[] = {\n")
 	for _, effect := range gamedata.WeaponEffects {
-		fmt.Fprintf(&out, "    %.2f,\n", effect.Increment)
+		fmt.Fprintf(out, "    %.2f,\n", effect.Increment)
 	}
 	out.WriteString("};\n\nint g_WeaponEffectModes[] = {\n")
 	for _, effect := range gamedata.WeaponEffects {
-		fmt.Fprintf(&out, "    %d,\n", effect.Mode)
+		fmt.Fprintf(out, "    %d,\n", effect.Mode)
 	}
-	out.WriteString("};\n\n// Item definition index, then zero-based weapon index.\n")
+	out.WriteString("};\n\n")
+}
+
+// writeWeaponsByDefinition is the lookup the plugin does at runtime: an item
+// definition index in, a weapon index out. Only a weapon that applies to itself
+// is listed, because a reskin shares its original's buffs.
+func writeWeaponsByDefinition(out *strings.Builder) {
+	out.WriteString("// Item definition index, then zero-based weapon index.\n")
 	out.WriteString("int g_WeaponByDefinition[][2] = {\n")
 	for index, weapon := range gamedata.BuffWeapons {
 		if weapon.ApplyID != weapon.ID {
 			continue
 		}
 		for _, definition := range weapon.DefIndexes {
-			fmt.Fprintf(&out, "    { %d, %d },\n", definition, index)
+			fmt.Fprintf(out, "    { %d, %d },\n", definition, index)
 		}
 	}
 	out.WriteString("};\n")
-	return out.String()
 }
