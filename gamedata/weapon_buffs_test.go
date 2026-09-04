@@ -285,6 +285,17 @@ func TestWeaponEffectsUseDistinctSchemaAttributes(t *testing.T) {
 	}
 }
 
+func TestWeaponEffectAttributeClassesComplete(t *testing.T) {
+	if got, want := len(WeaponEffectAttributeClasses), len(WeaponEffects); got != want {
+		t.Fatalf("attribute classes: got %d, want %d", got, want)
+	}
+	for index, class := range WeaponEffectAttributeClasses {
+		if class == "" {
+			t.Errorf("%s has no engine attribute class", WeaponEffects[index].Key)
+		}
+	}
+}
+
 func TestLegacyPermutationKeepsItsIDAndEveryEffectExists(t *testing.T) {
 	for _, old := range legacyWeaponBuffs {
 		seenEffects := make(map[uint8]bool, len(WeaponEffects))

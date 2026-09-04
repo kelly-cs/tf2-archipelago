@@ -97,6 +97,67 @@ func TestInstallCommunityZipStripsTFDownload(t *testing.T) {
 	}
 }
 
+func TestCommunityInstallSkipsUnsupportedMissionsButKeepsSharedPopulationFiles(t *testing.T) {
+	root := t.TempDir()
+	archive := filepath.Join(root, "archive-assets.zip")
+	if err := os.WriteFile(archive, zipWith(t, map[string]string{
+		"tf/download/scripts/population/mvm_lotus_b6_adv_mud.pop":      "supported",
+		"tf/download/scripts/population/mvm_lotus_b6_adv_ledmotif.pop": "requires RafMod",
+		"tf/download/scripts/population/robot_giant.pop":               "shared template",
+		"tf/download/scripts/population/mvm_some_user_map.pop":         "unrelated",
+	}), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	modDir := filepath.Join(root, "server", "tf")
+	if err := installCommunityZip(archive, modDir); err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{
+		"mvm_lotus_b6_adv_mud.pop",
+		"robot_giant.pop",
+		"mvm_some_user_map.pop",
+	} {
+		if _, err := os.Stat(filepath.Join(modDir, "scripts", "population", name)); err != nil {
+			t.Errorf("missing %s: %v", name, err)
+		}
+	}
+	if _, err := os.Stat(filepath.Join(modDir, "scripts", "population", "mvm_lotus_b6_adv_ledmotif.pop")); !os.IsNotExist(err) {
+		t.Errorf("unsupported mission was installed: %v", err)
+	}
+}
+
+func TestCommunityInstallRemovesUnsupportedMissionsFromExistingTrees(t *testing.T) {
+	modDir := t.TempDir()
+	populationDir := filepath.Join(modDir, "scripts", "population")
+	if err := os.MkdirAll(populationDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{
+		"mvm_lotus_b6_adv_mud.pop",
+		"mvm_lotus_b6_adv_ledmotif.pop",
+		"robot_standard.pop",
+	} {
+		if err := os.WriteFile(filepath.Join(populationDir, name), []byte(name), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	removed, err := removeUnsupportedCommunityPopfiles(modDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if removed != 1 {
+		t.Fatalf("removed %d files, want 1", removed)
+	}
+	if _, err := os.Stat(filepath.Join(populationDir, "mvm_lotus_b6_adv_ledmotif.pop")); !os.IsNotExist(err) {
+		t.Errorf("unsupported installed mission remains: %v", err)
+	}
+	for _, name := range []string{"mvm_lotus_b6_adv_mud.pop", "robot_standard.pop"} {
+		if _, err := os.Stat(filepath.Join(populationDir, name)); err != nil {
+			t.Errorf("compatible file %s was removed: %v", name, err)
+		}
+	}
+}
+
 func TestDownloadCommunityArchivesDownloadsOnlyTheSelectedPack(t *testing.T) {
 	data := zipWith(t, map[string]string{
 		"tf/download/maps/mvm_example.bsp": "map",
