@@ -22,11 +22,14 @@
 #     TF2Attributes rather than shipping its release also keeps us off a
 #     binary that has no license on it.
 #
-#     The defender mod itself is our fork, m-this/tf2-mvm-bots. Our changes to
-#     it are commits on its tf2ap branch rather than patches applied here: they
-#     grew past what a patch stack survives a rebase with.
+#     The defender mod itself is m-this/tf2-mvm-bots-go, which holds both the Go
+#     that authors the decisions and the SourcePawn tree they compile into,
+#     under plugin/. It is a Go module dependency and nothing else: the go.mod
+#     requirement is the pin, the module download is the source, and `go get`
+#     is how it moves. There is no tag for it in versions.env, because a second
+#     place to say which version this build runs is a second place to be wrong.
 #
-# Versions come from deploy/env/versions.env, source fixes from
+# Every other version comes from deploy/env/versions.env, source fixes from
 # deploy/patches/, whose README explains every patch.
 set -eu
 
@@ -86,36 +89,59 @@ apply_patches() {
 
 # --- Sources for the plugins ---
 
-fetch m-this/tf2-mvm-bots "$DEFENDERBOTS_VERSION" defenderbots
 fetch OfficerSpy/SM_Stock_OfficerSpy "$SM_STOCK_OFFICERSPY_REF" stocklib
 fetch FlaminSarge/tf2attributes "$TF2ATTRIBUTES_VERSION" tf2attributes
 fetch nosoop/SM-TFEconData "$TFECONDATA_VERSION" tf_econ_data
 fetch nosoop/SM-TFUtils "$TF2UTILS_VERSION" tf2utils
 fetch nosoop/stocksoup "$STOCKSOUP_REF" stocksoup-root/stocksoup
 
-# --- The generated SourcePawn, from the pinned Go module ---
+# --- The defender mod, from the pinned Go module ---
 #
-# The mod's tables and its ported decisions are Go now, and the SourcePawn they
-# become is a build artifact. The version of that generator is a go.mod
-# requirement rather than a tag in versions.env: one place says which mod this
-# build runs, and `go get` moves it.
+# One pin, and it is the go.mod requirement. The module is the mod: the Go that
+# authors the decisions, the generator that turns it into SourcePawn, and the
+# plugin tree that compiles. So there is nothing to clone here and no second
+# version to hold in step with the one the generator runs from.
 #
-# The mod's checkout carries a committed copy of the generated files, because
-# its own build is a shell script and a compiler. Here we have Go, so the files
-# are regenerated and compared. A mismatch means the copy in the mod's tree is
-# not what its generator writes, which is the drift the copies exist to risk.
-generate_from_module() {
-	command -v go >/dev/null 2>&1 || {
-		echo "no go toolchain: skipping the generated SourcePawn check" >&2
-		return 0
-	}
+# Copied out of the module cache rather than compiled in place. The cache is
+# read only and shared, and everything below treats $src as a tree it may stage
+# and patch.
+defenderbots_module=github.com/m-this/tf2-mvm-bots-go
 
+command -v go >/dev/null 2>&1 || {
+	echo "the defender mod is a Go module dependency, so this needs a Go toolchain" >&2
+	exit 1
+}
+
+( cd "$root" && go mod download "$defenderbots_module" )
+defenderbots_version=$(cd "$root" && go list -m -f '{{.Version}}' "$defenderbots_module")
+defenderbots_dir=$(cd "$root" && go list -m -f '{{.Dir}}' "$defenderbots_module")
+
+# The same stamp rule the checkouts use, and for the same reason: a tree left
+# from the previous version builds and says nothing.
+defenderbots_stamp="$src/defenderbots.ref"
+if [ ! -d "$src/defenderbots" ] || [ "$(cat "$defenderbots_stamp" 2>/dev/null)" != "$defenderbots_version" ]; then
+	echo "staging $defenderbots_module@$defenderbots_version"
+	rm -rf "$src/defenderbots"
+	cp -a "$defenderbots_dir" "$src/defenderbots"
+	# The module cache is 0444 all the way down, and a later run has to be
+	# able to replace this.
+	chmod -R u+w "$src/defenderbots"
+	printf '%s\n' "$defenderbots_version" >"$defenderbots_stamp"
+fi
+
+# --- The generated SourcePawn, checked against the pinned generator ---
+#
+# The mod's tree carries a committed copy of the generated files, because its
+# own build is a shell script and a compiler. Here we have Go, so the files are
+# regenerated and compared. A mismatch means the copy in the mod's tree is not
+# what its generator writes, which is the drift the copies exist to risk.
+generate_from_module() {
 	gen=$(mktemp -d)
 	# go tool, not go run: the version comes from the tool directive in
 	# go.mod, so `go get -tool` moves the mod and nothing else has to be
 	# edited to agree with it.
 	( cd "$root" && go tool github.com/m-this/tf2-mvm-bots-go/cmd/gen \
-		-upstream "$src/defenderbots" -out "$gen" ) || {
+		-upstream "$src/defenderbots/plugin" -out "$gen" ) || {
 		echo "the mod's generator failed" >&2
 		rm -rf "$gen"
 		return 1
@@ -124,8 +150,8 @@ generate_from_module() {
 	drift=0
 	for file in "$gen"/sourcepawn/*.sp; do
 		name=$(basename "$file")
-		for committed in "$src/defenderbots/source/redbots3/generated/$name" \
-			"$src/defenderbots/testbed/stats/generated/$name"; do
+		for committed in "$src/defenderbots/plugin/source/redbots3/generated/$name" \
+			"$src/defenderbots/plugin/testbed/stats/generated/$name"; do
 			[ -f "$committed" ] || continue
 			cmp -s "$file" "$committed" || {
 				echo "drift: $committed is not what the generator writes" >&2
@@ -147,6 +173,7 @@ generate_from_module
 fetch TF2-DMB/CBaseNPC "$CBASENPC_VERSION" cbasenpc
 fetch Vinillia/actions.ext "$ACTIONS_VERSION" actions
 
+apply_patches defenderbots
 apply_patches tf2attributes
 
 # --- The compiler ---
@@ -251,12 +278,12 @@ compile() {
 		{ cat "$work/$name.log"; exit 1; }
 }
 
-compile "$compile_src/defenderbots/source/tf2_defenderbots.sp"
+compile "$compile_src/defenderbots/plugin/source/tf2_defenderbots.sp"
 compile "$compile_src/tf2attributes/scripting/tf2attributes.sp"
 compile "$compile_src/tf_econ_data/scripting/tf_econ_data.sp"
 compile "$compile_src/tf2utils/scripting/tf2utils.sp"
 
-cp "$src/defenderbots/gamedata/tf2.defenderbots.txt" \
+cp "$src/defenderbots/plugin/gamedata/tf2.defenderbots.txt" \
 	"$src/tf2attributes/gamedata/tf2.attributes.txt" \
 	"$src/tf_econ_data/gamedata/tf2.econ_data.txt" \
 	"$src/tf2utils/gamedata/tf2.utils.nosoop.txt" \
@@ -266,7 +293,7 @@ cp "$src/defenderbots/gamedata/tf2.defenderbots.txt" \
 # the Valve maps, which is most of what this stack is for. The names are the
 # game's own TFBot names rather than the mod's list, so the team reads like a
 # Valve server.
-cp -r "$src/defenderbots/configs/defenderbots" "$out/addons/sourcemod/configs/"
+cp -r "$src/defenderbots/plugin/configs/defenderbots" "$out/addons/sourcemod/configs/"
 cp "$root/deploy/bots/bot_names.txt" "$out/addons/sourcemod/configs/defenderbots/bot_names.txt"
 
 echo "staged the defender bots into $out"
