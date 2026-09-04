@@ -33,6 +33,10 @@ type fakeRoom struct {
 	// dropFirst hangs up right after the first handshake, the way a server restarting mid-run does.
 	dropFirst bool
 
+	// stallOutboundFirst keeps sending room traffic after the first handshake
+	// but never reads again, so the client's ping cannot receive a pong.
+	stallOutboundFirst bool
+
 	// checkedLocations is what the room claims this slot has already checked,
 	// the way another player's !collect checks a location that holds this
 	// slot's item.
@@ -99,6 +103,25 @@ func (f *fakeRoom) serve(ctx context.Context, conn *websocket.Conn) {
 			}
 			go f.pushBounces(ctx, conn)
 			if f.dropFirst && session == 1 {
+				return
+			}
+			if f.stallOutboundFirst && session == 1 {
+				f.pushRoomTraffic(ctx, conn)
+				return
+			}
+		}
+	}
+}
+
+func (f *fakeRoom) pushRoomTraffic(ctx context.Context, conn *websocket.Conn) {
+	ticker := time.NewTicker(5 * time.Millisecond)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			if err := writeAll(ctx, conn, map[string]any{"cmd": "RoomUpdate"}); err != nil {
 				return
 			}
 		}
@@ -367,6 +390,48 @@ func TestTheSessionReconnects(t *testing.T) {
 	waitFor(t, "a second session after the server hung up", func() bool {
 		return room.sessionCount() >= 2 && client.Health().Connected
 	})
+}
+
+func TestTheSessionReconnectsWhenOnlyTheOutboundPumpStops(t *testing.T) {
+	mission, _ := gamedata.MissionByPopFile("mvm_decoy")
+	room := &fakeRoom{
+		seed:               "seed-1",
+		slotData:           slotDataFor("final_boss", "mvm_decoy", "mvm_decoy"),
+		stallOutboundFirst: true,
+	}
+	store := newStore(t)
+	client := New(Options{
+		URL:      room.start(t),
+		SlotName: "tf2",
+		Store:    store,
+		Logger:   slog.New(slog.DiscardHandler),
+	})
+	client.pingEvery = 10 * time.Millisecond
+	client.pingTimeout = 20 * time.Millisecond
+
+	ctx, cancel := context.WithCancel(t.Context())
+	stopped := make(chan error, 1)
+	go func() { stopped <- client.Run(ctx) }()
+	t.Cleanup(func() {
+		cancel()
+		<-stopped
+	})
+	waitFor(t, "the first handshake", func() bool { return client.Health().Connected })
+	if _, err := store.AddCheck(mission.WaveLocationID(1)); err != nil {
+		t.Fatal(err)
+	}
+
+	waitFor(t, "a replacement session after the outbound pump stopped", func() bool {
+		return room.sessionCount() >= 2 && client.Health().Connected
+	})
+	message := awaitCommand(t, room, "LocationChecks")
+	var locations []int64
+	if err := json.Unmarshal(message["locations"], &locations); err != nil {
+		t.Fatal(err)
+	}
+	if len(locations) != 1 || locations[0] != mission.WaveLocationID(1) {
+		t.Fatalf("locations = %v", locations)
+	}
 }
 
 func TestMissionsanityCountsClearedMissions(t *testing.T) {

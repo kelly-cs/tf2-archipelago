@@ -68,6 +68,11 @@ type Client struct {
 	opts Options
 	uuid string
 
+	// Fields rather than constants at the call site so the half-open session
+	// regression does not have to wait forty seconds for a ping to fail.
+	pingEvery   time.Duration
+	pingTimeout time.Duration
+
 	// said and died bound what the game server can pour into the multiworld.
 	said *bucket
 	died *deaths
@@ -106,7 +111,10 @@ func New(opts Options) *Client {
 	if opts.Deaths == nil {
 		opts.Deaths = deathlink.New(1)
 	}
-	return &Client{opts: opts, uuid: randomUUID(), said: newBucket(time.Now), died: &deaths{now: time.Now}}
+	return &Client{
+		opts: opts, uuid: randomUUID(), said: newBucket(time.Now), died: &deaths{now: time.Now},
+		pingEvery: pingEvery, pingTimeout: writeTimeout,
+	}
 }
 
 // Health reports the session state. The plugin uses it to tell a player the
@@ -183,13 +191,31 @@ func (c *Client) session(ctx context.Context) error {
 	}()
 
 	ready := make(chan struct{})
-	pumped := make(chan error, 1)
-	go guard.Run("the Archipelago pump", c.opts.Logger, func() { pumped <- c.pump(ctx, conn, ready) })
+	type result struct {
+		direction string
+		err       error
+	}
+	finished := make(chan result, 2)
+	run := func(direction string, work func() error) {
+		finished <- result{
+			direction: direction,
+			err:       guard.Result("the Archipelago "+direction, c.opts.Logger, work),
+		}
+	}
+	go run("read loop", func() error { return c.readLoop(ctx, conn, ready) })
+	go run("outbound pump", func() error { return c.pump(ctx, conn, ready) })
 
-	err = c.readLoop(ctx, conn, ready)
+	first := <-finished
+	// Either direction ending invalidates the session. In particular, a missed
+	// pong can stop the outbound pump while room traffic keeps the read loop
+	// alive. Closing both is what makes Run reconnect and replay durable checks.
 	cancel()
-	<-pumped
-	return err
+	_ = conn.CloseNow()
+	<-finished
+	if first.err == nil {
+		return nil
+	}
+	return fmt.Errorf("archipelago %s: %w", first.direction, first.err)
 }
 
 // readLoop reads messages until the connection dies, starting with the RoomInfo/Connect handshake.
@@ -489,7 +515,7 @@ func (c *Client) pump(ctx context.Context, conn *websocket.Conn, ready chan stru
 		return nil
 	}
 
-	ping := time.NewTicker(pingEvery)
+	ping := time.NewTicker(c.pingEvery)
 	defer ping.Stop()
 	for {
 		changed := c.opts.Store.Watch()
@@ -501,7 +527,7 @@ func (c *Client) pump(ctx context.Context, conn *websocket.Conn, ready chan stru
 			return nil
 		case <-changed:
 		case <-ping.C:
-			pingCtx, cancel := context.WithTimeout(ctx, writeTimeout)
+			pingCtx, cancel := context.WithTimeout(ctx, c.pingTimeout)
 			err := conn.Ping(pingCtx)
 			cancel()
 			if err != nil {
