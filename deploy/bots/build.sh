@@ -116,18 +116,19 @@ command -v go >/dev/null 2>&1 || {
 defenderbots_version=$(cd "$root" && go list -m -f '{{.Version}}' "$defenderbots_module")
 defenderbots_dir=$(cd "$root" && go list -m -f '{{.Dir}}' "$defenderbots_module")
 
-# The same stamp rule the checkouts use, and for the same reason: a tree left
-# from the previous version builds and says nothing.
+# Refresh this tree on every build. Unlike the dependency checkouts above, it
+# is patched after its generated files are checked. A cached tree therefore
+# contains our patch even when its version stamp still matches, and comparing
+# that tree with the pristine generator reports false drift on the next run.
+# The module cache is already local, so restaging is only a filesystem copy.
 defenderbots_stamp="$src/defenderbots.ref"
-if [ ! -d "$src/defenderbots" ] || [ "$(cat "$defenderbots_stamp" 2>/dev/null)" != "$defenderbots_version" ]; then
-	echo "staging $defenderbots_module@$defenderbots_version"
-	rm -rf "$src/defenderbots"
-	cp -a "$defenderbots_dir" "$src/defenderbots"
-	# The module cache is 0444 all the way down, and a later run has to be
-	# able to replace this.
-	chmod -R u+w "$src/defenderbots"
-	printf '%s\n' "$defenderbots_version" >"$defenderbots_stamp"
-fi
+echo "staging $defenderbots_module@$defenderbots_version"
+rm -rf "$src/defenderbots"
+cp -a "$defenderbots_dir" "$src/defenderbots"
+# The module cache is 0444 all the way down, and the patch needs a writable
+# staging tree.
+chmod -R u+w "$src/defenderbots"
+printf '%s\n' "$defenderbots_version" >"$defenderbots_stamp"
 
 # --- The generated SourcePawn, checked against the pinned generator ---
 #
