@@ -2,6 +2,7 @@ package guard
 
 import (
 	"bytes"
+	"errors"
 	"log/slog"
 	"strings"
 	"sync"
@@ -38,5 +39,17 @@ func TestRunIsSilentWhenNothingPanics(t *testing.T) {
 	}
 	if out.Len() != 0 {
 		t.Errorf("it said %q", out.String())
+	}
+}
+
+func TestResultReturnsWorkErrorAndPanic(t *testing.T) {
+	want := errors.New("stopped")
+	if err := Result("the pump", slog.New(slog.DiscardHandler), func() error { return want }); !errors.Is(err, want) {
+		t.Fatalf("ordinary error = %v, want %v", err, want)
+	}
+
+	err := Result("the pump", slog.New(slog.DiscardHandler), func() error { panic("broken") })
+	if err == nil || !strings.Contains(err.Error(), "the pump panicked: broken") {
+		t.Fatalf("panic error = %v", err)
 	}
 }
