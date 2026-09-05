@@ -120,7 +120,7 @@ linters:
         - pattern: '^http\.(Get|Head|Post|PostForm)$'
           msg: these use DefaultClient; call your own client with a context
         - pattern: '^os\.Getenv$'
-          msg: config is parsed once in bridge/config and passed as typed values
+          msg: application configuration is parsed once in bridge/config and passed as typed values; a path the OS owns is read where it is used, with a nolint saying so
 
     sloglint:
       no-global: all

@@ -12,11 +12,11 @@ import (
 // lands in Program Files.
 func candidateDirs() []string {
 	var dirs []string
-	if local := os.Getenv("LOCALAPPDATA"); local != "" {
+	if local := os.Getenv("LOCALAPPDATA"); local != "" { //nolint:forbidigo // a path Windows owns, not configuration
 		dirs = append(dirs, filepath.Join(local, "Programs", "Archipelago"))
 	}
 	for _, env := range []string{"ProgramFiles", "ProgramFiles(x86)"} {
-		if root := os.Getenv(env); root != "" {
+		if root := os.Getenv(env); root != "" { //nolint:forbidigo // a path Windows owns, not configuration
 			dirs = append(dirs, filepath.Join(root, "Archipelago"))
 		}
 	}
