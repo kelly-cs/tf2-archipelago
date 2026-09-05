@@ -66,7 +66,7 @@ GOFUMPT := go run mvdan.cc/gofumpt@$(GOFUMPT_VERSION)
 GOLANGCI_LINT := go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
 GOVULNCHECK := go run golang.org/x/vuln/cmd/govulncheck@$(GOVULNCHECK_VERSION)
 RUFF := uv run --quiet --with ruff==$(RUFF_VERSION) ruff
-SHADOW := uv run --quiet --with pillow==$(PILLOW_VERSION) python docs/shadow.py
+SHADOW := go run ./launcher/cmd/shadow
 # Ours only. deploy/bots/build/ holds seven repositories this project fetches
 # and compiles, and one of them now carries Go of its own: formatting somebody
 # else's tree is not this project's business, and a fresh checkout of it must
@@ -249,7 +249,7 @@ import-weapons:
 
 # --- The apworld ---
 
-PYTHON_SRC := apworld/ deploy/player-yaml.py
+PYTHON_SRC := apworld/
 
 apworld-fmt:
 	$(RUFF) format $(PYTHON_SRC)

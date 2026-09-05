@@ -17,7 +17,7 @@ AP_VERSION="${ARCHIPELAGO_VERSION:?the image must set ARCHIPELAGO_VERSION}"
 output=/ap/output
 players=/ap/Players
 
-# The exported tables. player-yaml.py reads the game name out of them, and the
+# The exported tables. playeryaml reads the game name out of them, and the
 # popfile to mission name mapping that the apworld's options need.
 data=/ap/custom_worlds
 
@@ -25,7 +25,7 @@ data=/ap/custom_worlds
 # the one this run made rather than the oldest one left in the output.
 generate() {
 	mkdir -p "$players"
-	python /usr/local/bin/player-yaml.py "$data" "$AP_VERSION" > "$players/tf2.yaml"
+	/usr/local/bin/playeryaml "$data" "$AP_VERSION" > "$players/tf2.yaml"
 
 	fresh=$(mktemp -d)
 	python Generate.py --player_files_path "$players" --outputpath "$fresh" < /dev/null

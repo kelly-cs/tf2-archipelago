@@ -6,6 +6,16 @@
 # every connection, and setuptools 81 dropped pkg_resources, which ModuleUpdate
 # imports at startup. Both pins are load-bearing.
 
+# The player file writer is Go, built here so the runtime image carries one
+# static binary and no Go. Only the standard library is used, so the module's
+# dependencies are not downloaded.
+FROM golang:1.27 AS playeryaml
+WORKDIR /src
+COPY go.mod go.sum ./
+COPY deploy/cmd/playeryaml deploy/cmd/playeryaml
+RUN CGO_ENABLED=0 go build -trimpath -o /out/playeryaml ./deploy/cmd/playeryaml
+
+
 FROM python:3.13-slim AS build
 
 ARG ARCHIPELAGO_VERSION
@@ -26,8 +36,8 @@ RUN grep -vE '^(kivy|kivymd|Pymem)' requirements.txt > /tmp/requirements.txt \
 COPY apworld/tf2_mvm /ap/worlds/tf2_mvm
 
 # The game name and the missions come out of the export, which gamedata owns.
-# Both files are kept beside the packaged world so player-yaml.py reads the
-# same tables the apworld inside the zip does.
+# Both files are kept beside the packaged world so playeryaml reads the same
+# tables the apworld inside the zip does.
 RUN game=$(python -c "import json; print(json.load(open('/ap/worlds/tf2_mvm/data/meta.json'))['game'])") \
 	&& SKIP_REQUIREMENTS_UPDATE=1 python Launcher.py "Build APWorlds" -- "$game" \
 	&& mkdir -p /ap/custom_worlds \
@@ -60,7 +70,7 @@ COPY --from=build /usr/local/lib/python3.13/site-packages /usr/local/lib/python3
 COPY --from=build /usr/local/bin /usr/local/bin
 COPY --from=build --chown=archipelago:archipelago /ap /ap
 COPY --chown=archipelago:archipelago deploy/archipelago-entrypoint.sh /usr/local/bin/entrypoint.sh
-COPY --chown=archipelago:archipelago deploy/player-yaml.py /usr/local/bin/player-yaml.py
+COPY --from=playeryaml /out/playeryaml /usr/local/bin/playeryaml
 
 # A named volume takes its ownership from the directory it covers, so this must
 # exist and belong to the right user before VOLUME declares it.
