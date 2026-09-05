@@ -6,6 +6,10 @@ in the release notes, so this file is the only place to write it.
 
 ## Unreleased
 
+- The upgrade station no longer opens the buff window by itself. That window
+  took the number keys, which are your weapon slots, for twenty seconds. The
+  station now lists your loadout's buffs in chat instead, and `!ap buffs`
+  opens the window when you want it.
 - Traps. A `trap_percentage` option puts traps in the pool. The one that
   exists soaks the whole team in Jarate: ten seconds of 35% more damage taken
   and no crits. The item belongs to the multiworld like any other, so it is

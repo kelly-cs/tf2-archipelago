@@ -365,8 +365,7 @@ stock void MvM_OnCommandKeyValues(int client, const char[] name, int count)
 {
     if (StrEqual(name, "MvM_UpgradesBegin", false))
     {
-        // Nobody asked for this one, so an empty loadout gets no window.
-        WeaponBuffs_ShowMenu(client);
+        WeaponBuffs_AnnounceAtStation(client);
         return;
     }
     if (StrEqual(name, "MVM_Respec", false))

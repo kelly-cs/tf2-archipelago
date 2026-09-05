@@ -1548,18 +1548,15 @@ public int Menu_WeaponBuffs(Menu menu, MenuAction action, int client, int select
     return 0;
 }
 
-/* False when the loadout has nothing to list, and nothing was drawn. A menu
- * holds the number keys, which are the weapon slots in MvM, so an empty one
- * costs the player more than the space it takes.
+// One line per buff on the loadout, and how many lines a loadout can carry.
+#define BuffLineMax 160
+#define BuffLinesMax (6 * WeaponEffectCount)
+
+/* The listing, which the menu and the station announcement both draw from:
+ * one line per buffed effect on the weapons the player is holding now.
  */
-bool WeaponBuffs_ShowMenu(int client)
+static int WeaponBuffs_Lines(int client, char lines[BuffLinesMax][BuffLineMax])
 {
-    if (!MvM_IsPlayer(client))
-    {
-        return false;
-    }
-    Menu menu = new Menu(Menu_WeaponBuffs);
-    menu.SetTitle("Archipelago weapon buffs");
     int listed;
     for (int slot = 0; slot <= 5; slot++)
     {
@@ -1575,29 +1572,111 @@ bool WeaponBuffs_ShowMenu(int client)
             {
                 continue;
             }
-            char line[160];
             if (levels > 1)
             {
-                FormatEx(line, sizeof(line), "%s: %s x%d",
+                FormatEx(lines[listed], BuffLineMax, "%s: %s x%d",
                     g_WeaponNames[weapon], g_WeaponEffectDescriptions[effect], levels);
             }
             else
             {
-                FormatEx(line, sizeof(line), "%s: %s",
+                FormatEx(lines[listed], BuffLineMax, "%s: %s",
                     g_WeaponNames[weapon], g_WeaponEffectDescriptions[effect]);
             }
-            menu.AddItem(g_WeaponEffectKeys[effect], line);
             listed++;
         }
     }
+    return listed;
+}
+
+/* False when the loadout has nothing to list, and nothing was drawn. A menu
+ * holds the number keys, which are the weapon slots in MvM, so an empty one
+ * costs the player more than the space it takes.
+ */
+bool WeaponBuffs_ShowMenu(int client)
+{
+    if (!MvM_IsPlayer(client))
+    {
+        return false;
+    }
+    char lines[BuffLinesMax][BuffLineMax];
+    int listed = WeaponBuffs_Lines(client, lines);
     if (listed == 0)
     {
-        delete menu;
         return false;
+    }
+    Menu menu = new Menu(Menu_WeaponBuffs);
+    menu.SetTitle("Archipelago weapon buffs");
+    for (int line = 0; line < listed; line++)
+    {
+        menu.AddItem("", lines[line]);
     }
     menu.ExitButton = true;
     menu.Display(client, 20);
     return true;
+}
+
+// How long the station stays quiet after it has listed a player's buffs once.
+#define BuffAnnounceQuietSeconds 30.0
+
+static float g_BuffsAnnouncedAt[MAXPLAYERS + 1];
+
+/* The station says what the loadout carries, in chat, where it takes no keys.
+ *
+ * A menu holds the number keys and those are the weapon slots, so the window
+ * that used to open here cost the player twenty seconds of switching weapons
+ * by scroll. The list is the same one !ap buffs draws, and the window is still
+ * there for whoever asks for it. A loadout with buffs that lists nothing is the
+ * fault behind apw-z7o, so that case says which of the three checks failed.
+ */
+void WeaponBuffs_AnnounceAtStation(int client)
+{
+    if (!MvM_IsPlayer(client))
+    {
+        return;
+    }
+    if (GetGameTime() < g_BuffsAnnouncedAt[client] + BuffAnnounceQuietSeconds)
+    {
+        return;
+    }
+    char lines[BuffLinesMax][BuffLineMax];
+    int listed = WeaponBuffs_Lines(client, lines);
+    if (listed == 0)
+    {
+        WeaponBuffs_DebugEmptyListing(client);
+        return;
+    }
+    g_BuffsAnnouncedAt[client] = GetGameTime();
+    AP_PrintToClient(client, "Buffs on this loadout (!ap buffs for the list):");
+    for (int line = 0; line < listed; line++)
+    {
+        AP_PrintToClient(client, "  %s", lines[line]);
+    }
+}
+
+/* Names the three things an empty listing can mean, once per station visit,
+ * so the next report says which one it was rather than "it did not open".
+ */
+static void WeaponBuffs_DebugEmptyListing(int client)
+{
+    int granted;
+    for (int weapon = 0; weapon < WeaponCount; weapon++)
+    {
+        for (int effect = 0; effect < WeaponEffectCount; effect++)
+        {
+            granted += g_WeaponEffectLevels[weapon][effect];
+        }
+    }
+    char held[64];
+    for (int slot = 0; slot <= 5; slot++)
+    {
+        int entity = GetPlayerWeaponSlot(client, slot);
+        int definition = entity > MaxClients && IsValidEntity(entity)
+            && HasEntProp(entity, Prop_Send, "m_iItemDefinitionIndex")
+            ? GetEntProp(entity, Prop_Send, "m_iItemDefinitionIndex") : -1;
+        Format(held, sizeof(held), "%s%s%d", held, slot == 0 ? "" : " ", definition);
+    }
+    AP_Debug("%N opened the station with nothing to list: %d buff level(s) granted in total, holding %s.",
+        client, granted, held);
 }
 
 public Action Command_WeaponBuffs(int client, int args)
