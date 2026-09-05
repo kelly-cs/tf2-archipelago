@@ -269,7 +269,7 @@ apworld-build:
 # standard-library packager mirrors its archive layout and manifest stamping so
 # WSL users do not need Docker (or the optional zip command) to build the exe.
 apworld-package:
-	python3 deploy/package-zip.py apworld apworld/tf2_mvm $(DIST)/tf2_mvm.apworld \
+	go run ./launcher/cmd/packagezip apworld apworld/tf2_mvm $(DIST)/tf2_mvm.apworld \
 		--container-version 7
 
 # --- The plugin ---
@@ -333,13 +333,13 @@ launcher-assets-common: bots apworld-package
 # One platform's binaries per build: SourceMod loads the .so or the .dll by
 # platform and ignores the other, so each launcher carries only its own.
 launcher-assets: launcher-assets-common
-	python3 deploy/package-zip.py tree deploy/bots/build/package \
+	go run ./launcher/cmd/packagezip tree deploy/bots/build/package \
 		$(EMBED)/defender-bots-windows.zip --exclude-suffix .so
 	curl -fsSL -o $(EMBED)/sm-ripext-windows.zip \
 		"https://github.com/ErikMinekus/sm-ripext/releases/download/$(RIPEXT_VERSION)/sm-ripext-$(RIPEXT_VERSION)-windows.zip"
 
 launcher-assets-linux: launcher-assets-common
-	python3 deploy/package-zip.py tree deploy/bots/build/package \
+	go run ./launcher/cmd/packagezip tree deploy/bots/build/package \
 		$(EMBED)/defender-bots-linux.zip --exclude-suffix .dll
 	curl -fsSL -o $(EMBED)/sm-ripext-linux.zip \
 		"https://github.com/ErikMinekus/sm-ripext/releases/download/$(RIPEXT_VERSION)/sm-ripext-$(RIPEXT_VERSION)-linux.zip"
