@@ -140,7 +140,7 @@ ps: .env
 # The server reads SRCDS_RCONPW at boot, so a value changed since then needs 'make restart'.
 RCON := SRCDS_RCONPW="$$(sed -n 's/^SRCDS_RCONPW=//p' .env)" \
 	SRCDS_PORT="$$(sed -n 's/^SRCDS_PORT=//p' .env)" \
-	python3 deploy/rcon.py
+	go run ./launcher/cmd/rcon
 
 # Silenced so the password does not reach the terminal in the echoed recipe.
 rcon: .env
@@ -235,7 +235,7 @@ community-check:
 
 # --- The apworld ---
 
-PYTHON_SRC := apworld/ deploy/rcon.py deploy/player-yaml.py
+PYTHON_SRC := apworld/ deploy/player-yaml.py
 
 apworld-fmt:
 	$(RUFF) format $(PYTHON_SRC)
