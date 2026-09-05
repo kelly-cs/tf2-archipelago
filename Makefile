@@ -233,6 +233,20 @@ COMMUNITY_CONTENT ?= ./community-content/tf
 community-check:
 	go run ./gamedata/cmd/communitycheck $(COMMUNITY_CONTENT)
 
+# The weapon catalogue and the schema import read a TF2 install: any one will
+# do, and ~/tf2-native is the one the bot test-bed keeps. The pools come from
+# the bot mod this module pins, so the catalogue follows the version in go.mod.
+TF2_DIR ?= $(HOME)/tf2-native/tf-dedicated/tf
+BOTS_MOD = $$(go list -m -f '{{.Dir}}' github.com/m-this/tf2-mvm-bots-go)
+weapons:
+	go run ./gamedata/cmd/weapons \
+		-pools $(BOTS_MOD)/plugin/source/redbots3/generated/loadouts.sp \
+		-schema $(TF2_DIR)/scripts/items/items_game.txt \
+		-english $(TF2_DIR)/resource/tf_english.txt > gamedata/weapons_generated.go
+
+import-weapons:
+	go run ./gamedata/cmd/importweapons $(TF2_DIR)/scripts/items/items_game.txt $(TF2_DIR)/resource/tf_english.txt
+
 # --- The apworld ---
 
 PYTHON_SRC := apworld/ deploy/player-yaml.py
