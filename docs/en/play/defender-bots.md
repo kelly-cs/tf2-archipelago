@@ -84,10 +84,10 @@ short of them.
 Weapon buffs make the team stronger and sit on the **Rewards** page. They are on
 by default.
 
-Robot health makes the robots weaker and sits on the **Balancing** page. It is
-what the robots keep with one player
-on RED, and it rises back to 100 at six. A full team therefore always plays the
-mission as Valve wrote it. It starts at 100, which changes nothing.
+Robot health sits on the **Balancing** page. It is a direct multiplier for every
+robot, from 10% to 1000%, regardless of how many humans are on RED. It starts
+at 100%, which changes nothing; values above 100% make both common and giant
+robots tougher.
 
 At 50 it bends a mission. The bots killed 108 robots a wave, against 52 to 64 for
 the unchanged build. Three waves in eight cleared, where twenty four attempts on
@@ -167,16 +167,17 @@ CBaseNPC, Actions, TF2Attributes, TF Econ Data and TF2Utils. The server builds
 them from source. TF2Attributes takes one fix of ours from `deploy/patches/`,
 whose README says why.
 
-The mod itself comes from our fork, [m-this/tf2-mvm-bots][fork]. Its `main`
-branch is an upstream tag plus our changes, and `DEFENDERBOTS_VERSION` names a
-tag of it.
+The mod itself is [m-this/tf2-mvm-bots-go][fork], where the bots' decisions are
+written in Go and the SourcePawn the server runs is generated from it. This
+repository depends on it as a Go module, so the `go.mod` requirement is what
+says which version a build runs.
 
 The bots' behaviour is the mod's. Report a bot that walks into a wall to
 OfficerSpy's repository, not to this one. The class blacklist and the
-server-wide loadout file are ours, on the fork.
+server-wide loadout file are ours, in that repository.
 
 [mod]: https://github.com/OfficerSpy/TF2-MvM-Defender-TFBots
-[fork]: https://github.com/m-this/tf2-mvm-bots
+[fork]: https://github.com/m-this/tf2-mvm-bots-go
 
 ## On a server that is not this image
 

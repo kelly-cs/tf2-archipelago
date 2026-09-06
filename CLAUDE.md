@@ -20,6 +20,13 @@ make seed                       # generate a seed
 make up down logs rcon          # start the server on this machine
 ```
 
+Build on Linux. The plugin compiler spcomp is a Linux binary, and every
+launcher asset build compiles the plugin. So `make launcher` and `make check`
+do not run on Windows. Use WSL, which is what CI uses.
+
+`go build` still works anywhere for a compile check. The launcher it makes
+carries a placeholder plugin, so never ship one built that way.
+
 `.github/workflows/release.yml` copies the `CHANGELOG.md` section that matches
 the tag into the release notes. Players read it. Keep developer notes out.
 

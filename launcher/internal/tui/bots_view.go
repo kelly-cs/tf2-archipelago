@@ -2,7 +2,6 @@ package tui
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/m-this/tf2-archipelago/launcher/internal/botlive"
 )
@@ -44,8 +43,5 @@ func (m *model) bots() string {
 	rows = append(rows, styleMuted.Render(
 		styleKey.Render(",")+" change the team, on the Bots page of the settings. Saving hands it to the running server"))
 
-	for len(rows) < height {
-		rows = append(rows, "")
-	}
-	return strings.Join(rows[:height], "\n")
+	return m.window(rows, height)
 }

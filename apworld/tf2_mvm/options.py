@@ -30,7 +30,7 @@ class MissionCount(Range):
 
     display_name = "Mission Count"
     range_start = 1
-    range_end = sum(mission.playable for mission in data.MISSIONS)
+    range_end = len(data.MISSION_NAMES)
     default = 8
 
 
@@ -60,7 +60,32 @@ class ExcludedMissions(OptionSet):
     """
 
     display_name = "Excluded Missions"
-    valid_keys = frozenset(mission.name for mission in data.MISSIONS if mission.playable)
+    valid_keys = data.MISSION_NAMES
+
+
+class CommunityMissions(Toggle):
+    """Whether the run draws community missions at all.
+
+    Every community mission the server can play is in the pool by default, and
+    the Options Creator ticks them all. Off keeps the run to Valve's missions
+    without naming each community one in excluded_missions.
+    """
+
+    display_name = "Community Missions"
+    default = 1
+
+
+class ServerMods(OptionSet):
+    """Server-side mods the game server loads, by key.
+
+    Some community missions need a mod the stock server does not have. The
+    run draws those only when the mod is named here, so a seed never asks a
+    server for a mission it cannot run. sigsegv-mvm is SigMod, which upstream
+    ships for Linux servers only.
+    """
+
+    display_name = "Server Mods"
+    valid_keys = data.SERVER_MOD_KEYS
 
 
 # FreeText and not Choice: a Choice needs one class attribute per value, and
@@ -220,11 +245,61 @@ class CashRewards(Toggle):
     default = 0
 
 
+class ServerSettings(Toggle):
+    """Put the server-setting items in the pool.
+
+    One of them exists: the Grappling Hook, which turns on Mannpower's hook for
+    everybody on the server for the rest of the run. It is the largest change to
+    how a map plays that this world can hand out, and it is off by default
+    because a run that has it is a different game from one that does not.
+
+    Never required to beat anything: a wave stays winnable without it.
+    """
+
+    display_name = "Server Settings"
+    default = 0
+
+
+class MedalOnClear(Toggle):
+    """Lock an Australium Medal onto every mission clear.
+
+    The goal then reads the medals you hold rather than the clears the server
+    reported, which is what generation wants: a medal is your own item and no
+    !collect can hand you one.
+
+    The cost is one check per mission. A mission clear is one of the better
+    rewards this world puts into a multiworld, and locking it takes that many
+    of other people's items out of the pool. Off by default for that reason.
+    """
+
+    display_name = "Australium Medal on Clear"
+    default = 0
+
+
+class TrapPercentage(Range):
+    """How much of the run's spare space is traps, in percent.
+
+    A trap is an item with a negative effect: another player opens a chest and
+    your team gets Jarate. They come out of the same space as the weapon buffs
+    and the cash, so raising this lowers those rather than adding checks.
+
+    Off by default. A trap can cost the team a wave and never costs the run an
+    unlock it already holds.
+    """
+
+    display_name = "Trap Percentage"
+    range_start = 0
+    range_end = 100
+    default = 0
+
+
 @dataclass
 class TF2MvMOptions(PerGameCommonOptions):
     mission_count: MissionCount
     difficulty_pool: DifficultyPool
     excluded_missions: ExcludedMissions
+    community_missions: CommunityMissions
+    server_mods: ServerMods
     start_mission: StartMission
     start_class: StartClass
     goal: Goal
@@ -236,14 +311,26 @@ class TF2MvMOptions(PerGameCommonOptions):
     cash_rewards: CashRewards
     weapon_buff_percentage: WeaponBuffPercentage
     weapon_buff_stack_chance: WeaponBuffStackChance
+    trap_percentage: TrapPercentage
+    server_settings: ServerSettings
+    medal_on_clear: MedalOnClear
     death_link: DeathLink
 
 
 option_groups = [
     OptionGroup(
-        "Run shape", [MissionCount, DifficultyPool, ExcludedMissions, StartMission, StartClass]
+        "Run shape",
+        [
+            MissionCount,
+            DifficultyPool,
+            ExcludedMissions,
+            CommunityMissions,
+            ServerMods,
+            StartMission,
+            StartClass,
+        ],
     ),
-    OptionGroup("Goal", [Goal, MissionsanityPercentage]),
+    OptionGroup("Goal", [Goal, MissionsanityPercentage, MedalOnClear]),
     OptionGroup(
         "Rewards",
         [
@@ -254,6 +341,7 @@ option_groups = [
             CashRewards,
             WeaponBuffPercentage,
             WeaponBuffStackChance,
+            TrapPercentage,
         ],
     ),
 ]

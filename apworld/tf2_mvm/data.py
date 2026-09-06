@@ -56,7 +56,12 @@ class Mission:
     has_giant: bool
     community: bool
     playable: bool
+    requires: str
     locations: tuple[Location, ...]
+
+    def seedable_with(self, server_mods: set[str] | frozenset[str]) -> bool:
+        """Whether a server loading these mods can play the mission."""
+        return self.playable or (self.requires in SERVER_MOD_KEYS and self.requires in server_mods)
 
 
 @dataclass(frozen=True, slots=True)
@@ -87,6 +92,7 @@ def _read_missions() -> tuple[Mission, ...]:
             has_giant=entry["has_giant"],
             community=entry["community"],
             playable=entry["playable"],
+            requires=entry.get("requires", ""),
             locations=tuple(
                 Location(
                     id=location["id"],
@@ -128,6 +134,7 @@ BASE_ID: int = _meta["base_id"]
 # Easiest tier first: the order is the ladder difficulty_pool walks.
 DIFFICULTIES: tuple[str, ...] = tuple(tier["key"] for tier in _meta["difficulties"])
 MAP_NAMES: dict[int, str] = {entry["id"]: entry["name"] for entry in _meta["maps"]}
+SERVER_MOD_KEYS: frozenset[str] = frozenset(mod["key"] for mod in _meta["server_mods"])
 
 MISSIONS: tuple[Mission, ...] = _read_missions()
 ITEMS: tuple[Item, ...] = _read_items()
@@ -143,6 +150,14 @@ TICKET_NAMES: dict[int, str] = {
 }
 CLASS_NAMES: tuple[str, ...] = tuple(item.name for item in ITEMS if item.kind == "class")
 
+# A medal per mission, locked onto that mission's clear when the option is on.
+# Never in the pool, so a run without the option never sees one.
+MEDAL_NAMES: dict[int, str] = {
+    item.mission_id: item.name for item in ITEMS if item.kind == "trophy"
+}
+if not MEDAL_NAMES:
+    raise DataFormatError("the export has no trophy items")
+
 # "Scout" is what a player writes in a YAML; "Class: Scout" is what the item is
 # called. The link is the class id, not the shape of the name.
 _MERC_NAMES: dict[int, str] = {entry["id"]: entry["name"] for entry in _meta["classes"]}
@@ -152,7 +167,12 @@ CLASS_ITEM_BY_MERC: dict[str, str] = {
 if len(CLASS_ITEM_BY_MERC) != len(CLASS_NAMES):
     raise DataFormatError("a class item names a class the meta export does not have")
 
-MISSION_NAMES: frozenset[str] = frozenset(mission.name for mission in MISSIONS if mission.playable)
+# Every mission some server can play: the stock ones and those a cataloged
+# mod unlocks. A YAML may name any of them; the server_mods option decides
+# which are drawn.
+MISSION_NAMES: frozenset[str] = frozenset(
+    mission.name for mission in MISSIONS if mission.seedable_with(SERVER_MOD_KEYS)
+)
 FILLER_NAMES: tuple[str, ...] = tuple(
     item.name for item in ITEMS if item.classification == "filler"
 )
@@ -162,6 +182,17 @@ WEAPON_BUFF_NAMES: tuple[str, ...] = tuple(
 STACKABLE_WEAPON_BUFF_NAMES: frozenset[str] = frozenset(
     item.name for item in ITEMS if item.kind == "weapon_buff" and item.eligible and item.stackable
 )
+TRAP_NAMES: tuple[str, ...] = tuple(item.name for item in ITEMS if item.kind == "trap")
+if not TRAP_NAMES:
+    raise DataFormatError("the export has no trap items")
+
+# Levers on the whole server, handed over as items. Useful, never progression:
+# a wave has to stay winnable without one, so no access rule may need them.
+SERVER_SETTING_NAMES: tuple[str, ...] = tuple(
+    item.name for item in ITEMS if item.kind == "server_setting"
+)
+if not SERVER_SETTING_NAMES:
+    raise DataFormatError("the export has no server setting items")
 
 _weapon_slot_items = [item for item in ITEMS if item.kind == "weapon_slot"]
 if len(_weapon_slot_items) != 1:
@@ -175,4 +206,6 @@ ITEM_NAME_GROUPS: dict[str, set[str]] = {
     "Classes": set(CLASS_NAMES),
     "Mission Tickets": set(TICKET_NAMES.values()),
     "Weapon Buffs": set(WEAPON_BUFF_NAMES),
+    "Traps": set(TRAP_NAMES),
+    "Australium Medals": set(MEDAL_NAMES.values()),
 }

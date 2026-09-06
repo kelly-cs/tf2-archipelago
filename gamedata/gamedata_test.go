@@ -55,6 +55,18 @@ func currentIDs() map[string]int64 {
 			if ok {
 				ids[frozenKey(it.Kind.Key(), buff.Key, 0)] = it.ID
 			}
+		case ItemServerSetting:
+			if setting, ok := ServerSettingByID(it.ServerSetting); ok {
+				ids[frozenKey(it.Kind.Key(), setting.Key, 0)] = it.ID
+			}
+		case ItemTrap:
+			if trap, ok := TrapByID(it.Trap); ok {
+				ids[frozenKey(it.Kind.Key(), trap.Key, 0)] = it.ID
+			}
+		case ItemTrophy:
+			if mission, ok := MissionByID(it.Mission); ok {
+				ids[frozenKey(it.Kind.Key(), mission.PopFile, 0)] = it.ID
+			}
 		}
 	}
 	return ids
@@ -135,6 +147,12 @@ func TestFrozenKeysHoldOnlyStableIdentifiers(t *testing.T) {
 	}
 	for _, buff := range WeaponBuffs {
 		stable[buff.Key] = true
+	}
+	for _, trap := range Traps {
+		stable[trap.Key] = true
+	}
+	for _, setting := range ServerSettings {
+		stable[setting.Key] = true
 	}
 
 	for key := range currentIDs() {
@@ -323,6 +341,12 @@ func TestItemPoolCoversEveryGate(t *testing.T) {
 			// Filler, counted by the pool builder rather than here.
 		case ItemWeaponBuff:
 			// Useful rewards, sampled and sometimes stacked by the pool builder.
+		case ItemTrap:
+			// Negative filler, counted by the pool builder rather than here.
+		case ItemServerSetting:
+			// One copy each, and only in the pool when the option asks for them.
+		case ItemTrophy:
+			// Locked onto a mission clear by the world, never in the pool.
 		}
 		if it.Classification == Progression && it.Count == 0 {
 			t.Errorf("%q is progression with no copies in the pool", it.Name)

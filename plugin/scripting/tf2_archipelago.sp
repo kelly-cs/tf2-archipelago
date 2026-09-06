@@ -26,6 +26,7 @@
 #include "tf2_archipelago/weapon_buffs_data.inc"
 #include "tf2_archipelago/weapon_buffs.inc"
 #include "tf2_archipelago/deathlink.inc"
+#include "tf2_archipelago/traps.inc"
 #include "tf2_archipelago/bridge.inc"
 #include "tf2_archipelago/missions.inc"
 #include "tf2_archipelago/bots.inc"
@@ -137,6 +138,8 @@ public void OnPluginStart()
         "Report an objective by hand: sm_ap_report <wave_cleared|mission_cleared|death> [wave]");
     RegAdminCmd("sm_ap_bundle", Command_Bundle, ADMFLAG_ROOT,
         "Pay a Cash Bundle by hand, the way a grant from the room would: sm_ap_bundle [credits]");
+    RegAdminCmd("sm_ap_trap", Command_Trap, ADMFLAG_ROOT,
+        "Fire a trap by hand, the way a grant from the room would: sm_ap_trap <key>");
     RegAdminCmd("sm_ap_resync", Command_Resync, ADMFLAG_GENERIC,
         "Ask the bridge for the unlock set again");
     RegAdminCmd("sm_ap_mission", Command_Mission, ADMFLAG_CHANGEMAP,
@@ -337,6 +340,11 @@ public void OnMapStart()
 
 public void OnConfigsExecuted()
 {
+    // server.cfg has just run and put the host's values back, so the settings
+    // the run was granted go on after it rather than before.
+    Unlocks_ApplyServerSettings();
+
+    Bots_OnConfigsExecuted();
     if (!MvM_IsActive())
     {
         AP_Debug("This map is not Mann vs Machine. The plugin waits for the run's mission list.");
@@ -361,7 +369,6 @@ public void Event_BeginWave(Event event, const char[] name, bool dontBroadcast)
         g_TankReported = false;
         g_GiantReported = false;
     }
-
     int fromGame = MvM_WaveFromGame();
     if (fromGame > 0 && fromGame != g_CurrentWave)
     {
@@ -527,15 +534,16 @@ public Action Timer_PollWave(Handle timer)
     return Plugin_Continue;
 }
 
-// Both events fire for robots too; MvM_IsPlayer is what leaves their loadout alone.
+// Slot enforcement is player-only. Buff application has its own ownership
+// policy, including the optional mirror-to-BLU-robots mode.
 public void Event_InventoryApplied(Event event, const char[] name, bool dontBroadcast)
 {
     int client = GetClientOfUserId(event.GetInt("userid"));
     if (MvM_IsPlayer(client))
     {
         Unlocks_EnforceSlots(client);
-        WeaponBuffs_Apply(client);
     }
+    WeaponBuffs_Apply(client);
 }
 
 public void Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast)
@@ -554,6 +562,7 @@ public void Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast
 // was has to be recorded before it goes.
 public void OnClientDisconnect(int client)
 {
+    WeaponBuffs_Disconnect(client);
     Bots_OnClientLeaving(client);
 }
 
@@ -651,6 +660,10 @@ public Action Command_Status(int client, int argc)
         g_HaveMissionComplete ? "yes" : "no",
         g_HaveWaveFailed ? "yes" : "no");
     ReplyToCommand(client, "[AP] death link %s", g_DeathLinkOn ? "on" : "off");
+    // The two moments the effects wait for. A held Cash Bundle or a held trap
+    // is a question about these two, and nothing else answered it.
+    ReplyToCommand(client, "[AP] wave running %s, credits payable %s",
+        MvM_WaveInProgress() ? "yes" : "no", MvM_CanPayCredits() ? "yes" : "no");
     ReplyToCommand(client, "[AP] unlocks %s at sequence %d, %d objective(s) waiting to be sent",
         g_HaveUnlocks ? "held" : "NOT FETCHED", Bridge_Sequence(), Bridge_PendingCount());
     ReplyToCommand(client, "[AP] classes: %s", Status_ClassList());
@@ -770,6 +783,39 @@ public Action Command_Bundle(int client, int argc)
 
     int paid = MvM_GrantCredits(amount);
     ReplyToCommand(client, "[AP] %d credits paid to %d defender(s).", amount, paid);
+    return Plugin_Handled;
+}
+
+/* Fires a trap without waiting for one to arrive from the room.
+ *
+ * Calls Traps_Apply, the same path a grant takes, so what it exercises is the
+ * real effect. It skips the hold on purpose: the hold is what makes a trap
+ * wait for a wave, and a tester who wants to see the effect between waves has
+ * to be able to.
+ */
+public Action Command_Trap(int client, int argc)
+{
+    if (argc < 1)
+    {
+        ReplyToCommand(client, "[AP] Usage: sm_ap_trap <key>, for example sm_ap_trap team_jarate");
+        return Plugin_Handled;
+    }
+    char key[64];
+    GetCmdArg(1, key, sizeof(key));
+
+    if (!MvM_IsActive())
+    {
+        ReplyToCommand(client, "[AP] This map is not Mann vs Machine.");
+        return Plugin_Handled;
+    }
+    if (!MvM_WaveInProgress())
+    {
+        ReplyToCommand(client, "[AP] No wave is running. A real trap would wait; this one fires anyway.");
+    }
+    if (!Traps_Apply(key))
+    {
+        ReplyToCommand(client, "[AP] No trap is named %s.", key);
+    }
     return Plugin_Handled;
 }
 

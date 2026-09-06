@@ -7,10 +7,13 @@ Compose stack. Two services by default, and two more that run on demand.
 | `compose.yml` | `srcds` | TF2 dedicated server, SourceMod plus `ripext` plus our plugin. |
 | `compose.yml` | `bridge` | Go, from `bridge/`. |
 | `compose.yml` | `archipelago` | The Archipelago server, unmodified, with our apworld baked in. Profile `selfhost` only. |
+| `compose.yml` | `fastdl` | Caddy serving only downloadable TF2 asset directories. |
+| `compose.yml` | `tailscale-fastdl` | Official Tailscale Funnel sidecar. Profile `tailscale-fastdl` only. |
 | `compose.seed.yml` | `seed` | The same image, run once to generate a seed into `./seed`. |
 | `compose.release.yml` | — | An overlay, not a stack. Names a `ghcr.io` image for each service above. |
 
-The multiworld runs on archipelago.gg by default: `make seed` writes the file,
+The stack plays a room that already exists, and needs only its address and a
+slot. The multiworld runs on archipelago.gg by default: `make seed` writes the file,
 the operator uploads it there and opens a room, and the bridge dials that room.
 `COMPOSE_PROFILES=selfhost` in `.env` hosts it here instead.
 
@@ -27,7 +30,9 @@ files above, and `--no-interpolate` keeps every `${VAR}` for the operator's
 not there. Generation comes back as the `seed` profile, since a release ships
 one file rather than two.
 
-Each service and each environment variable lives in one file. Add one to
+Each service and each environment variable lives in one file. The Caddy and
+Tailscale configurations are inline so this release artifact needs no sibling
+configuration files. Add a service to
 `compose.yml` and it reaches the released file at the next tag;
 `compose.release.yml` only has to name its image.
 

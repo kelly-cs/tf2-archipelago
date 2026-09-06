@@ -27,6 +27,7 @@ import (
 	"github.com/m-this/tf2-archipelago/launcher/internal/installer"
 	"github.com/m-this/tf2-archipelago/launcher/internal/runshape"
 	"github.com/m-this/tf2-archipelago/launcher/internal/settings"
+	"github.com/m-this/tf2-archipelago/launcher/internal/tailscalefastdl"
 	"github.com/m-this/tf2-archipelago/launcher/internal/winproc"
 )
 
@@ -116,6 +117,7 @@ func (f *settingsForm) rewardFields() []field {
 		&toggleField{label: "Cash rewards", help: "Allow temporary MvM credits in spare checks. Off makes every spare reward a persistent weapon buff.", value: &f.edited.MvmCashRewards, on: "include cash", off: "include cash"},
 		&numberField{label: "Buff share", help: "Percent of spare checks that are buffs when cash rewards are enabled.", value: &f.edited.MvmWeaponBuffPct, low: 0, high: 100},
 		&numberField{label: "Buff stack chance", help: "Chance for another level of an already drawn numeric buff. Toggle buffs never repeat.", value: &f.edited.MvmWeaponBuffStackChance, low: 0, high: 100},
+		&numberField{label: "Traps", help: "Percent of spare checks that hold a trap rather than a reward. A trap is an item another player finds and this team pays for. Zero leaves them out.", value: &f.edited.MvmTrapPct, low: 0, high: 100},
 	}
 }
 
@@ -128,7 +130,7 @@ The two were one page and it had to be read twice to find either.
 */
 func (f *settingsForm) balanceFields() []field {
 	return []field{
-		&numberField{label: "Robot health (%)", help: "What robot health is worth at one player, as a percentage, rising to 100 at six. 100 leaves the mission as Valve wrote it.", value: &f.edited.SrcdsBluHealthPct, low: 10, high: 100},
+		&numberField{label: "Robot health (%)", help: "Direct health multiplier for every robot, from 10% to 1000%.", value: &f.edited.SrcdsBluHealthPct, low: settings.RobotHealthPercentMin, high: settings.RobotHealthPercentMax},
 	}
 }
 
@@ -144,7 +146,7 @@ func (f *settingsForm) playerFields() []field {
 		goalLabels = append(goalLabels, goal.Label())
 	}
 
-	return []field{
+	rows := []field{
 		&choiceField{
 			label:   "Easiest tier",
 			help:    "The easiest tier a mission may come from. Harder tiers are always in as well, so the pool shrinks as this rises.",
@@ -172,10 +174,24 @@ func (f *settingsForm) playerFields() []field {
 			value: &f.edited.MvmMissionsanityPct, low: 10, high: 100,
 		},
 		&toggleField{
+			label: "Australium Medal on clear",
+			help:  "Lock a medal of your own onto every mission clear, and read the goal off the medals you hold. It costs the multiworld one check a mission.",
+			value: &f.edited.MvmMedalOnClear, on: "lock the clears", off: "lock the clears",
+		},
+		&toggleField{
 			label: "Death Link",
 			help:  "A lost wave kills every other player in the multiworld who has Death Link on, and their deaths wipe your team.",
 			value: &f.edited.MvmDeathLink, on: "share deaths", off: "share deaths",
 		},
+	}
+
+	return append(rows, f.seedFields()...)
+}
+
+// seedFields are what a player does with the run rather than what it holds:
+// where the app lives, and the three things to press once the options are set.
+func (f *settingsForm) seedFields() []field {
+	return []field{
 		&textField{
 			label:       "Archipelago app",
 			help:        "Where the Archipelago app is installed. Blank means the launcher looks where the installer puts it.",
@@ -301,7 +317,7 @@ func (f *settingsForm) missionFields() []field {
 	for _, mission := range runshape.VisibleMissions(f.communityAvailable) {
 		if gamedata.IsPlayableMission(mission.ID) {
 			fields = append(fields, f.poolField(mission))
-		} else if gamedata.MissionRequirement(mission.ID) == "no_nav" {
+		} else {
 			fields = append(fields, unavailableMissionField(mission))
 		}
 	}
@@ -502,22 +518,29 @@ type poolToggle struct {
 }
 
 type unavailablePoolField struct {
-	label string
-	help  string
+	label  string
+	help   string
+	reason string
 }
 
 func unavailableMissionField(mission gamedata.Mission) field {
 	played, _ := gamedata.MapByID(mission.Map)
+	requirement := gamedata.MissionRequirement(mission.ID)
+	help := "The asset pack has this map's BSP but no bot navigation mesh. It cannot be enabled in a seed."
+	if gamedata.MissionServerMod(mission.ID) != "" {
+		help = "This mission needs a server mod this launcher does not install. It cannot be enabled in a seed here."
+	}
 	return &unavailablePoolField{
-		label: fmt.Sprintf("[Potato Archive] %s (%s)", mission.Name, played.Name),
-		help:  "The asset pack has this map's BSP but no bot navigation mesh. It cannot be enabled in a seed.",
+		label:  fmt.Sprintf("[Potato Archive] %s (%s)", mission.Name, played.Name),
+		help:   help,
+		reason: strings.ToLower(gamedata.RequirementLabel(requirement)),
 	}
 }
 
 func (f *unavailablePoolField) Label() string { return f.label }
 func (f *unavailablePoolField) Help() string  { return f.help }
 func (f *unavailablePoolField) Value() string {
-	return styleStopped.Render("missing bot .nav — unavailable")
+	return styleStopped.Render(f.reason + " — unavailable")
 }
 func (f *unavailablePoolField) Handle(tea.KeyMsg) bool { return false }
 
@@ -924,6 +947,37 @@ func (f *settingsForm) reachFields() []field {
 			value:       &f.edited.SrcdsToken,
 			placeholder: "0",
 		},
+		&toggleField{
+			label: "Tailscale FastDL",
+			help:  "Publish maps through Tailscale Funnel. Only the server needs Tailscale; players use its public HTTPS URL. This does not change the game address. Start stops with instructions if the saved Funnel cannot be restored.",
+			value: &f.edited.TailscaleFastDL,
+			on:    "use Funnel",
+			off:   "use launcher",
+		},
+		&actionField{
+			label: "Set up / check Funnel",
+			help:  "Optional first-time check. If Funnel needs tailnet approval, this opens the approval page. Once approved, Start keeps the route configured automatically.",
+			hint:  "enter",
+			run:   f.checkTailscaleFunnel,
+		},
+	}
+}
+
+func (f *settingsForm) checkTailscaleFunnel() tea.Cmd {
+	return func() tea.Msg {
+		ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)
+		defer cancel()
+		result, err := tailscalefastdl.Authorize(ctx)
+		if err != nil {
+			return noticeMsg("Tailscale Funnel: " + err.Error())
+		}
+		if result.ApprovalURL != "" {
+			if err := winproc.OpenURL(result.ApprovalURL); err != nil {
+				return noticeMsg("approve Funnel at " + result.ApprovalURL)
+			}
+			return noticeMsg("approve Funnel in the browser, then run Set up / check Funnel again")
+		}
+		return noticeMsg("Tailscale Funnel is ready for this tailnet")
 	}
 }
 

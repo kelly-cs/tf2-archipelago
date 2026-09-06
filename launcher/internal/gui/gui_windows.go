@@ -8,6 +8,7 @@ package gui
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -71,6 +72,7 @@ type window struct {
 	joinBt     *walk.PushButton
 	settingsBt *walk.PushButton
 	session    *sessionTab
+	unlocks    *unlocksTab
 	bots       *botsTab
 
 	supervisor *apruntime.Supervisor
@@ -109,7 +111,7 @@ func Run(s settings.Settings, logger *slog.Logger) error {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	w := &window{logger: logger, session: newSessionTab(), bots: newBotsTab()}
+	w := &window{logger: logger, session: newSessionTab(), unlocks: newUnlocksTab(), bots: newBotsTab()}
 	w.supervisor = apruntime.NewSupervisor(s, nil, w.append)
 	w.openLogFile(s.InstallRoot)
 	defer func() {
@@ -204,6 +206,7 @@ func (w *window) build() error {
 				StretchFactor: 1,
 				Pages: []declarative.TabPage{
 					w.session.page(w.switchMission),
+					w.unlocks.page(),
 					w.bots.page(func() { w.editSettingsOn("Bots") }),
 					{
 						Title:  "Log",
@@ -445,8 +448,32 @@ func (w *window) start() {
 		}
 		w.main.Synchronize(w.refresh)
 	}); err != nil {
-		w.say("%v", err)
+		w.showStartError(err)
 	}
+}
+
+// showStartError makes an enabled-but-unavailable Funnel impossible to miss.
+// The server is still stopped when this runs. First-time approval gets the
+// browser; sign-in and service failures leave the operator with the exact fix.
+func (w *window) showStartError(err error) {
+	w.say("%v", err)
+	var fastDL *apruntime.TailscaleFastDLStartError
+	if !errors.As(err, &fastDL) {
+		return
+	}
+	w.main.Synchronize(func() {
+		message := err.Error()
+		if fastDL.ApprovalURL != "" {
+			message += "\n\nThe Tailscale approval page will open after you dismiss this message."
+		}
+		walk.MsgBox(w.main, "Tailscale FastDL needs attention", message, walk.MsgBoxIconWarning)
+		if fastDL.ApprovalURL == "" {
+			return
+		}
+		if openErr := winproc.OpenURL(fastDL.ApprovalURL); openErr != nil {
+			walk.MsgBox(w.main, "Enable Tailscale Funnel", fastDL.ApprovalURL+"\n\n"+openErr.Error(), walk.MsgBoxIconWarning)
+		}
+	})
 }
 
 func (w *window) installLog(format string, args ...any) {
@@ -500,6 +527,7 @@ func (w *window) refresh() {
 	w.joinBt.SetEnabled(running)
 	w.command.SetEnabled(running)
 	w.session.setRunning(running)
+	w.unlocks.setRunning(running)
 	w.bots.show(s)
 	w.bots.setRunning(running)
 }
@@ -664,7 +692,10 @@ func (w *window) watchSession() {
 			continue
 		}
 		snapshot, err := session.Fetch(context.Background(), session.BridgeURL)
-		w.main.Synchronize(func() { w.session.update(snapshot, err) })
+		w.main.Synchronize(func() {
+			w.session.update(snapshot, err)
+			w.unlocks.update(snapshot, err)
+		})
 	}
 }
 

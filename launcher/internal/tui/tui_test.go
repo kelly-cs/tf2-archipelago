@@ -80,7 +80,7 @@ func TestTheKeysDoWhatTheFooterSays(t *testing.T) {
 
 	// Round the three tabs and back, which is what the footer's one entry says
 	// tab does. shift+tab is the same ring the other way.
-	for _, want := range []view{viewBots, viewLog, viewSession} {
+	for _, want := range []view{viewUnlocks, viewBots, viewLog, viewSession} {
 		if _, _ = m.Update(key("tab")); m.view != want {
 			t.Errorf("tab reached view %d, want %d", m.view, want)
 		}
@@ -136,9 +136,15 @@ func TestTheSettingsScreenEditsTheRun(t *testing.T) {
 		}
 	}
 
-	// Death Link is the fifth row of the first tab: move to it and turn it on.
+	// Walk down to Death Link and turn it on. Found by its label rather than
+	// counted, because a row added above it is not a broken screen.
+	rows := m.form.tabs[0].fields
+	at := slices.IndexFunc(rows, func(f field) bool { return f.Label() == "Death Link" })
+	if at < 0 {
+		t.Fatalf("the first tab has no Death Link row: %v", rows)
+	}
 	before := m.form.edited.MvmDeathLink
-	for range 4 {
+	for range at {
 		m.Update(key("down"))
 	}
 	m.Update(key(" "))

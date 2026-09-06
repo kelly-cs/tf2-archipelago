@@ -198,6 +198,8 @@ class TF2MvMWorld(World):
         for name in self.start_items:
             self.push_precollected(self.create_item(name))
 
+        self._lock_medals()
+
         pool = [
             self.create_item(data.TICKET_NAMES[mission.id])
             for mission in self.missions
@@ -212,17 +214,47 @@ class TF2MvMWorld(World):
             for _ in range(data.WEAPON_SLOT_COUNT - slots_held)
         ]
 
-        # Buffs and cash share the non-progression space. Numeric permutations
-        # may repeat as levels; toggle permutations remain unique.
-        open_slots = self._check_count(self.missions) - len(pool)
+        # A server setting is one copy and takes one check, like a trap: the
+        # run gains a lever and loses a reward, which is the trade for it.
+        if self.options.server_settings.value:
+            pool += [self.create_item(name) for name in data.SERVER_SETTING_NAMES]
+
+        # Traps, buffs and cash share the non-progression space. A trap takes a
+        # check from a reward rather than adding one.
+        open_slots = self._free_check_count() - len(pool)
+        trap_count = open_slots * self.options.trap_percentage.value // 100
+        pool += [self.create_item(self.random.choice(data.TRAP_NAMES)) for _ in range(trap_count)]
+        open_slots -= trap_count
+
+        # Numeric buff permutations may repeat as levels; toggles remain unique.
         buff_count = open_slots
         if self.options.cash_rewards.value:
             buff_count = math.ceil(open_slots * self.options.weapon_buff_percentage.value / 100)
         if self.options.weapon_buff_importance.current_key == "progression":
             buff_count = max(buff_count, max(BUFF_REQUIREMENTS.values()))
         pool += [self.create_item(name) for name in self._draw_weapon_buffs(buff_count)]
-        pool += [self.create_filler() for _ in range(self._check_count(self.missions) - len(pool))]
+        pool += [self.create_filler() for _ in range(self._free_check_count() - len(pool))]
         self.multiworld.itempool += pool
+
+    def _lock_medals(self) -> None:
+        """Put each mission's medal on its own clear, out of the multiworld."""
+        if not self.options.medal_on_clear.value:
+            return
+        for mission in self.missions:
+            location = self.get_location(f"{mission.name} Complete")
+            location.place_locked_item(self.create_item(data.MEDAL_NAMES[mission.id]))
+
+    def _free_check_count(self) -> int:
+        """Checks the pool may fill, which is every check less the locked ones.
+
+        A locked medal holds its clear, so filling that many more items than
+        there are free locations is a generation failure rather than a full
+        pool.
+        """
+        checks = self._check_count(self.missions)
+        if self.options.medal_on_clear.value:
+            checks -= len(self.missions)
+        return checks
 
     def _draw_weapon_buffs(self, count: int) -> list[str]:
         """Draw reward names, repeating numeric buffs but never toggles."""
@@ -267,6 +299,7 @@ class TF2MvMWorld(World):
             "goal_mission": self.goal_mission.pop_file,
             "missionsanity_target": self.missionsanity_target,
             "death_link": bool(self.options.death_link.value),
+            "server_mods": sorted(self.options.server_mods.value),
             "mission_ticket_importance": self.options.mission_ticket_importance.current_key,
         }
 
@@ -274,10 +307,15 @@ class TF2MvMWorld(World):
         floor = data.DIFFICULTIES.index(self.options.difficulty_pool.current_key)
         allowed = data.DIFFICULTIES[floor:]
         excluded = self.options.excluded_missions.value
+        mods = self.options.server_mods.value
+        community = bool(self.options.community_missions.value)
         return [
             mission
             for mission in data.MISSIONS
-            if mission.playable and mission.difficulty in allowed and mission.name not in excluded
+            if mission.seedable_with(mods)
+            and mission.difficulty in allowed
+            and mission.name not in excluded
+            and (community or not mission.community)
         ]
 
     @staticmethod
@@ -335,14 +373,20 @@ class TF2MvMWorld(World):
         return can_deploy
 
     def _final_boss_rule(self) -> Callable[[CollectionState], bool]:
-        goal = f"{self.goal_mission.name} Complete"
         player = self.player
+        if self.options.medal_on_clear.value:
+            medal = data.MEDAL_NAMES[self.goal_mission.id]
+            return lambda state: state.has(medal, player)
+        goal = f"{self.goal_mission.name} Complete"
         return lambda state: state.can_reach_location(goal, player)
 
     def _missionsanity_rule(self) -> Callable[[CollectionState], bool]:
-        clears = [f"{mission.name} Complete" for mission in self.missions]
         target = self.missionsanity_target
         player = self.player
+        if self.options.medal_on_clear.value:
+            medals = tuple(data.MEDAL_NAMES[mission.id] for mission in self.missions)
+            return lambda state: state.has_from_list_unique(medals, player, target)
+        clears = [f"{mission.name} Complete" for mission in self.missions]
         return lambda state: (
             sum(state.can_reach_location(clear, player) for clear in clears) >= target
         )

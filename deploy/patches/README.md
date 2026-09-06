@@ -4,10 +4,21 @@
 compiles. A patch that no longer applies fails the build. That is the signal
 to rebase it on the new upstream, or to drop it because upstream fixed it.
 
-The defender mod is not here. Our changes to it live in the fork,
-`m-this/tf2-mvm-bots`, on its `tf2ap` branch. `DEFENDERBOTS_VERSION` names a
-tag of that branch. To take a new upstream release, rebase `tf2ap` on the new
-upstream tag, tag the result, and bump `DEFENDERBOTS_VERSION`.
+Every tree patched here is a clone of somebody else's repository. That is the
+rule and not an accident: `git apply` resolves a patch's paths from the
+repository root rather than from the directory it is given, so a tree with no
+`.git` of its own is patched against this repository, where those paths do not
+exist, and the patch is skipped without a word. A checkout brings its own
+`.git`; a directory copied out of the module cache does not.
+
+Which is why the defender mod is not here, and cannot be. It is
+`m-this/tf2-mvm-bots-go`, a Go module this repository depends on, so its changes
+are made there and released as a tag. `go get
+github.com/m-this/tf2-mvm-bots-go@vX.Y.Z` is how this build takes a new one: the
+go.mod requirement is the only pin, and there is nothing in `versions.env` to
+move with it. A fix carried here instead was carried nowhere: the patch never
+applied, and when a cached build tree happened to hold its output anyway, the
+generated-code check failed on it.
 
 | Patch | Why |
 | --- | --- |

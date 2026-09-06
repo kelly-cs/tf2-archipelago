@@ -38,7 +38,7 @@ archive layout, custom-upgrade findings, build commands, and RafMod boundary.
 | `internal/generate` | Drives the Archipelago app's generator: installs the apworld, writes the player file, runs it |
 | `internal/debugbundle` | The zip a play-tester sends: logs, settings without passwords, player file |
 | `../fakeroom` | The multiworld of one that test mode serves, shared with the bridge |
-| `internal/rcon` | Source RCON client, the Go port of `deploy/rcon.py` |
+| `internal/rcon` | Source RCON client, shared by the command box and `cmd/rcon`, which `make rcon` runs |
 | `internal/runshape` | The run's choices, counted from `gamedata` |
 | `internal/ui` | Console prompts, and the console the window build attaches to |
 

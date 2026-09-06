@@ -23,10 +23,20 @@ The seed sets one of two goals:
 - **Missionsanity**: clear a part of the missions that the run drew, in any
   sequence.
 
+`medal_on_clear` changes what the goal reads. It is off by default. Turn it on
+and each mission clear holds an Australium Medal that is yours alone, and the
+goal counts the medals you hold. The cost is one check per mission: those
+clears no longer carry another player's item.
+
 ## Which items can be in another player's world?
 
 All of them: the mission tickets, the mercenary classes, the progressive weapon
-slot, weapon buffs and cash bundles.
+slot, weapon buffs, cash bundles and traps. The Australium Medals are the
+exception, and only a run with `medal_on_clear` has them.
+
+A trap has a negative effect. `trap_percentage` decides how many the run holds,
+and it is zero by default. The one that exists soaks the whole team in Jarate
+for ten seconds. A trap that arrives between waves waits for the next one.
 
 ## What does another world's item look like in Mann vs Machine?
 

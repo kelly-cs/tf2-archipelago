@@ -21,6 +21,20 @@ bool g_ClassUnlocked[view_as<int>(TFClass_Engineer) + 1];
 bool g_SlotUnlocked[Slot_Count];
 StringMap g_UnlockedMissions;
 
+/* The server settings the run has been handed, by key
+ *
+ * State like a class unlock: granting one twice is granting it once, so the bridge resends the
+ * whole set freely and this only has to be idempotent. Kept as the set rather than as the convar
+ * value so a map change can put every one of them back without asking the bridge again.
+ */
+static StringMap g_GrantedSettings;
+
+// Every setting this plugin knows, and the convar each one turns on. The wire
+// says what was granted; which lever that is belongs here.
+static const char g_SettingKeys[][] = { "grappling_hook" };
+static const char g_SettingConVars[][] = { "tf_grapplinghook_enable" };
+
+
 // Indexed by TFClassType, whose order is not the class menu's order. Checked against tf2.inc.
 char g_ClassKeys[view_as<int>(TFClass_Engineer) + 1][] = {
     "",
@@ -61,6 +75,50 @@ int g_SlotOrder[view_as<int>(TFClass_Engineer) + 1][Slot_Count] = {
 void Unlocks_Init()
 {
     g_UnlockedMissions = new StringMap();
+    g_GrantedSettings = new StringMap();
+}
+
+void Unlocks_GrantServerSetting(const char[] key)
+{
+    for (int i = 0; i < sizeof(g_SettingKeys); i++)
+    {
+        if (!StrEqual(g_SettingKeys[i], key, false))
+        {
+            continue;
+        }
+        g_GrantedSettings.SetValue(key, true);
+        Unlocks_ApplyServerSettings();
+        return;
+    }
+    LogError("The bridge granted the server setting %s. This plugin does not know it.", key);
+}
+
+/* Written every map start as well as on the grant
+ *
+ * A convar a plugin set is not a convar the next map keeps: server.cfg runs again and puts the
+ * host's value back. The set is what survives, so it is replayed rather than trusted to stick.
+ */
+void Unlocks_ApplyServerSettings()
+{
+    if (g_GrantedSettings == null)
+    {
+        return;
+    }
+    for (int i = 0; i < sizeof(g_SettingKeys); i++)
+    {
+        bool granted;
+        if (!g_GrantedSettings.GetValue(g_SettingKeys[i], granted) || !granted)
+        {
+            continue;
+        }
+        ConVar convar = FindConVar(g_SettingConVars[i]);
+        if (convar == null)
+        {
+            LogError("The run granted %s and this server has no %s.", g_SettingKeys[i], g_SettingConVars[i]);
+            continue;
+        }
+        convar.SetInt(1);
+    }
 }
 
 void Unlocks_Clear()
@@ -75,6 +133,7 @@ void Unlocks_Clear()
         g_SlotUnlocked[slot] = false;
     }
     g_UnlockedMissions.Clear();
+    g_GrantedSettings.Clear();
     WeaponBuffs_Clear();
 }
 
@@ -346,6 +405,64 @@ static bool Unlocks_SlotOpen(TFClassType class, int slot, int held)
     return false;
 }
 
+/* The loadout slot a wearable occupies, for the ones that take a weapon's
+ * place. A shield, a pair of boots, a backpack: none is a weapon, so the strip
+ * below walks past them, and the slot they sit in stays in use with the lock
+ * on it. k-kaneta's Demoman charged with a locked secondary, and with a locked
+ * primary kept his boots and held nothing. The class matters for the B.A.S.E.
+ * Jumper, which is a Soldier's secondary and a Demoman's primary. Anything not
+ * listed, hats included, answers -1 and is left alone.
+ */
+static int Unlocks_WearableSlot(TFClassType class, int defindex)
+{
+    switch (defindex)
+    {
+        case 131, 406, 1099, 1144:
+        {
+            return class == TFClass_DemoMan ? Slot_Secondary : -1;
+        }
+        case 405, 608:
+        {
+            return class == TFClass_DemoMan ? Slot_Primary : -1;
+        }
+        case 133, 444:
+        {
+            return class == TFClass_Soldier ? Slot_Secondary : -1;
+        }
+        case 1101:
+        {
+            if (class == TFClass_Soldier)
+            {
+                return Slot_Secondary;
+            }
+            return class == TFClass_DemoMan ? Slot_Primary : -1;
+        }
+        case 57, 231, 642:
+        {
+            return class == TFClass_Sniper ? Slot_Secondary : -1;
+        }
+    }
+    return -1;
+}
+
+static void Unlocks_StripWearables(int client, TFClassType class, int held)
+{
+    int entity = -1;
+    while ((entity = FindEntityByClassname(entity, "tf_wearable*")) != -1)
+    {
+        if (GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity") != client)
+        {
+            continue;
+        }
+        int slot = Unlocks_WearableSlot(class, GetEntProp(entity, Prop_Send, "m_iItemDefinitionIndex"));
+        if (slot < 0 || Unlocks_SlotOpen(class, slot, held))
+        {
+            continue;
+        }
+        TF2_RemoveWearable(client, entity);
+    }
+}
+
 // Every inventory application: spawn, resupply locker, and the upgrade station's loadout changes.
 void Unlocks_EnforceSlots(int client)
 {
@@ -370,6 +487,7 @@ void Unlocks_EnforceSlots(int client)
         }
         TF2_RemoveWeaponSlot(client, slot);
     }
+    Unlocks_StripWearables(client, class, held);
     if (removedActive)
     {
         SwitchToAnyWeapon(client, class, held);

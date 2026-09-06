@@ -25,6 +25,7 @@ import (
 	"github.com/m-this/tf2-archipelago/launcher/internal/runshape"
 	apruntime "github.com/m-this/tf2-archipelago/launcher/internal/runtime"
 	"github.com/m-this/tf2-archipelago/launcher/internal/settings"
+	"github.com/m-this/tf2-archipelago/launcher/internal/tailscalefastdl"
 	"github.com/m-this/tf2-archipelago/launcher/internal/winproc"
 )
 
@@ -42,6 +43,9 @@ const sentenceWidth = 980
 
 // tokenPageURL issues the Game Server Login Token the server logs in with.
 const tokenPageURL = "https://steamcommunity.com/dev/managegameservers"
+
+// tailscaleInstallURL is the beginner setup page linked beside FastDL.
+const tailscaleInstallURL = "https://tailscale.com/download/windows"
 
 // runSettingsDialog asks for the values worth changing between evenings, in
 // six tabs: what the run is, which missions it may draw, where the room is,
@@ -71,6 +75,7 @@ func runSettingsDialog(
 		missions         *walk.NumberEdit
 		goalBox          *walk.ComboBox
 		sanityPct        *walk.NumberEdit
+		medalOnClear     *walk.CheckBox
 		deathLink        *walk.CheckBox
 		ticketImportance *walk.ComboBox
 		classImportance  *walk.ComboBox
@@ -79,6 +84,7 @@ func runSettingsDialog(
 		cashRewards      *walk.CheckBox
 		buffPct          *walk.NumberEdit
 		buffStack        *walk.NumberEdit
+		trapPct          *walk.NumberEdit
 		bluHealth        *walk.NumberEdit
 
 		startBox      *walk.ComboBox
@@ -126,13 +132,16 @@ func runSettingsDialog(
 	// rather than at the next open of the dialog.
 	botLoadout.changed = botTeam.refreshLoadouts
 	var (
-		reachLan   *walk.RadioButton
-		reachSteam *walk.RadioButton
-		reachPort  *walk.RadioButton
-		reachHelp  *walk.TextLabel
-		tokenEdit  *walk.LineEdit
-		tokenWarn  *walk.Label
-		tokenLink  *walk.LinkLabel
+		reachLan        *walk.RadioButton
+		reachSteam      *walk.RadioButton
+		reachPort       *walk.RadioButton
+		reachHelp       *walk.TextLabel
+		tokenEdit       *walk.LineEdit
+		tokenWarn       *walk.Label
+		tokenLink       *walk.LinkLabel
+		tailscaleBox    *walk.CheckBox
+		tailscaleTest   *walk.PushButton
+		tailscaleStatus *walk.TextLabel
 	)
 
 	tiers := runshape.Tiers()
@@ -222,6 +231,7 @@ func runSettingsDialog(
 		next.MvmMissionCount = int(missions.Value())
 		next.MvmGoal = goals[max(goalBox.CurrentIndex(), 0)].Key
 		next.MvmMissionsanityPct = int(sanityPct.Value())
+		next.MvmMedalOnClear = medalOnClear.Checked()
 		next.MvmDeathLink = deathLink.Checked()
 		next.CommunityContentDir = strings.TrimSpace(contentEdit.Text())
 		next.CommunityPacks = []string{}
@@ -244,6 +254,7 @@ func runSettingsDialog(
 		next.MvmCashRewards = cashRewards.Checked()
 		next.MvmWeaponBuffPct = int(buffPct.Value())
 		next.MvmWeaponBuffStackChance = int(buffStack.Value())
+		next.MvmTrapPct = int(trapPct.Value())
 		next.SrcdsBluHealthPct = int(bluHealth.Value())
 		next.MvmExcludedMissions = pool.excludedMissions()
 		next.ArchipelagoDir = strings.TrimSpace(appEdit.Text())
@@ -285,6 +296,7 @@ func runSettingsDialog(
 		next.SrcdsAdminSteamIDs = strings.TrimSpace(adminEdit.Text())
 		next.SrcdsReach = checkedReach(reachSteam, reachPort)
 		next.SrcdsToken = strings.TrimSpace(tokenEdit.Text())
+		next.TailscaleFastDL = tailscaleBox.Checked()
 		// The Bots tab is built when somebody opens it, so on a visit that
 		// never did there is nothing to read: next keeps what the settings
 		// came in with, which is what those fields still say.
@@ -375,6 +387,37 @@ func runSettingsDialog(
 					ColumnSpan: 2,
 					MinSize:    declarative.Size{Width: 470},
 				},
+				label("Fast map downloads", "Tailscale Funnel publicly hosts maps and other downloadable files. It does not change how anybody connects to the game server."),
+				declarative.CheckBox{
+					AssignTo: &tailscaleBox,
+					Text:     "Publish downloads with Tailscale Funnel",
+					Checked:  s.TailscaleFastDL,
+				},
+				declarative.TextLabel{
+					Text: "Only this server PC needs Tailscale; players download from its public HTTPS address. " +
+						"Anyone who knows that address can read the allowed map assets. Start runs the file server on loopback and configures Funnel automatically. " +
+						"If Tailscale is unavailable, Start stops and tells you how to restore it instead of silently starting without FastDL.",
+					ColumnSpan: 2,
+					MinSize:    declarative.Size{Width: 470},
+				},
+				declarative.PushButton{
+					AssignTo: &tailscaleTest,
+					Text:     "Set up / check Tailscale Funnel",
+					OnClicked: func() {
+						checkTailscaleFunnel(owner, dialog, tailscaleTest, tailscaleStatus, say)
+					},
+				},
+				declarative.TextLabel{AssignTo: &tailscaleStatus, Text: "Optional first-time check. Once approved, Start keeps Funnel configured automatically.", TextColor: colorMuted, MaxSize: declarative.Size{Width: 470}},
+				declarative.LinkLabel{
+					ColumnSpan: 2,
+					MaxSize:    declarative.Size{Width: 470},
+					Text:       `<a href="` + tailscaleInstallURL + `">Install Tailscale on the server PC</a>, then sign in from its tray icon. Players do not install it.`,
+					OnLinkActivated: func(link *walk.LinkLabelLink) {
+						if err := winproc.OpenURL(link.URL()); err != nil {
+							walk.MsgBox(dialog, "Tailscale", err.Error(), walk.MsgBoxIconWarning)
+						}
+					},
+				},
 			},
 		},
 	}
@@ -421,6 +464,8 @@ func runSettingsDialog(
 								AssignTo: &sanityPct, Value: float64(s.MvmMissionsanityPct),
 								MinValue: 10, MaxValue: 100, Decimals: 0,
 							},
+							label("Australium Medal on clear", "Lock a medal of your own onto every mission clear, and read the goal off the medals you hold. It costs the multiworld one check a mission."),
+							declarative.CheckBox{AssignTo: &medalOnClear, Text: "lock the clears", Checked: s.MvmMedalOnClear},
 							label("Death Link", "A lost wave kills every other player in the multiworld who has Death Link on, and their deaths wipe your team."),
 							declarative.CheckBox{AssignTo: &deathLink, Text: "share deaths", Checked: s.MvmDeathLink},
 							label("Archipelago app", "Where the Archipelago app is installed. Leave it blank and the launcher looks where the installer puts it. Set it when the app is on another drive, or in a folder of your own."),
@@ -488,6 +533,8 @@ func runSettingsDialog(
 							declarative.NumberEdit{AssignTo: &buffPct, Value: float64(s.MvmWeaponBuffPct), MinValue: 0, MaxValue: 100, Decimals: 0},
 							label("Buff stack chance", "Chance that another buff reward adds a level to a numeric buff already in the seed. Toggle effects never repeat."),
 							declarative.NumberEdit{AssignTo: &buffStack, Value: float64(s.MvmWeaponBuffStackChance), MinValue: 0, MaxValue: 100, Decimals: 0},
+							label("Traps", "Percent of spare checks that hold a trap instead of a reward. A trap is an item another player finds and your team pays for, such as Jarate on everyone. Zero leaves them out of the seed."),
+							declarative.NumberEdit{AssignTo: &trapPct, Value: float64(s.MvmTrapPct), MinValue: 0, MaxValue: 100, Decimals: 0},
 						},
 					},
 					{
@@ -499,12 +546,12 @@ func runSettingsDialog(
 						Children: []declarative.Widget{
 							declarative.TextLabel{
 								Text: "Valve tunes every wave for six defenders. This takes the robots down for a team that is short of them, " +
-									"and fades back to the mission as written as the team fills.",
+									"and applies equally regardless of how many humans are playing.",
 								ColumnSpan: 2,
 								MaxSize:    declarative.Size{Width: sentenceWidth},
 							},
-							label("Robot health (%)", "What robot health is worth with one player on RED, as a percentage, rising back to 100 at six. 100 leaves the mission as Valve wrote it."),
-							declarative.NumberEdit{AssignTo: &bluHealth, Value: float64(s.SrcdsBluHealthPct), MinValue: 10, MaxValue: 100, Decimals: 0},
+							label("Robot health (%)", "Direct health multiplier for every robot, from 10% to 1000%."),
+							declarative.NumberEdit{AssignTo: &bluHealth, Value: float64(s.SrcdsBluHealthPct), MinValue: settings.RobotHealthPercentMin, MaxValue: settings.RobotHealthPercentMax, Decimals: 0},
 						},
 					},
 					{
@@ -762,7 +809,7 @@ func runSettingsDialog(
 	selectTab(tabs, openOn)
 
 	// Numbers read from the left, like every other field in the dialog.
-	leftAlign(missions, sanityPct, buffPct, buffStack, bluHealth, portEdit)
+	leftAlign(missions, sanityPct, buffPct, buffStack, trapPct, bluHealth, portEdit)
 
 	// The help under the buttons, and the complaint about a missing token. Both
 	// follow the selection, because a reach the player cannot use yet has to
@@ -821,6 +868,38 @@ func runSettingsDialog(
 		return s, false, nil
 	}
 	return edited, true, nil
+}
+
+func checkTailscaleFunnel(sync walk.Form, dialog *walk.Dialog, button *walk.PushButton, status *walk.TextLabel, say func(string, ...any)) {
+	button.SetEnabled(false)
+	status.SetTextColor(colorStarting)
+	_ = status.SetText("Checking Tailscale and Funnel permission...")
+
+	go apruntime.Guard("a settings task", func(text string) { say("%s", text) }, func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)
+		defer cancel()
+		result, err := tailscalefastdl.Authorize(ctx)
+		sync.Synchronize(func() {
+			if dialog.IsDisposed() {
+				return
+			}
+			button.SetEnabled(true)
+			switch {
+			case err != nil:
+				status.SetTextColor(colorStopped)
+				_ = status.SetText(err.Error())
+			case result.ApprovalURL != "":
+				status.SetTextColor(colorStarting)
+				_ = status.SetText("Approve Funnel in the browser, then click this check again.")
+				if err := winproc.OpenURL(result.ApprovalURL); err != nil {
+					walk.MsgBox(dialog, "Enable Tailscale Funnel", result.ApprovalURL+"\n\n"+err.Error(), walk.MsgBoxIconWarning)
+				}
+			case result.Ready:
+				status.SetTextColor(colorRunning)
+				_ = status.SetText("Ready. Funnel is enabled for this tailnet.")
+			}
+		})
+	})
 }
 
 /* Put a number field's text against its left edge.
@@ -1489,18 +1568,15 @@ func (m *poolModel) Value(row, col int) any {
 	case 4:
 		return int(mission.Waves)
 	default:
-		if gamedata.MissionRequirement(mission.ID) == "no_nav" {
-			return "Missing bot .nav"
-		}
-		if label := runshape.MissionLoadoutLabel(mission); label != "" {
+		if label := runshape.MissionLoadoutLabel(mission); label != "" && gamedata.MissionRequirement(mission.ID) == "" {
 			return label
 		}
-		return "Ready"
+		return gamedata.RequirementLabel(gamedata.MissionRequirement(mission.ID))
 	}
 }
 
 func (m *poolModel) StyleCell(style *walk.CellStyle) {
-	if gamedata.MissionRequirement(m.missions[style.Row()].ID) == "no_nav" {
+	if !gamedata.IsPlayableMission(m.missions[style.Row()].ID) {
 		style.TextColor = colorStopped
 	}
 }

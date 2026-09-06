@@ -10,6 +10,14 @@ export
 GO_VERSION := $(shell sed -n 's/^go //p' go.mod)
 export GO_VERSION
 
+# go.mod owns the defender mod's version too. It is a module dependency rather
+# than a checkout, so the requirement is the pin and there is no line in
+# versions.env to keep in step with it. Read with sed rather than `go list -m`
+# so a Makefile parse costs nothing and works without a toolchain; the build
+# itself resolves it properly.
+DEFENDERBOTS_VERSION := $(shell sed -n 's|^[[:space:]]*github.com/m-this/tf2-mvm-bots-go \(v[^ ]*\).*|\1|p' go.mod)
+export DEFENDERBOTS_VERSION
+
 # The apworld owns the release version, because that is the one a release tag is
 # checked against (see version-check). Everything that has to state a version of
 # this project reads it from here.
@@ -58,7 +66,7 @@ GOFUMPT := go run mvdan.cc/gofumpt@$(GOFUMPT_VERSION)
 GOLANGCI_LINT := go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
 GOVULNCHECK := go run golang.org/x/vuln/cmd/govulncheck@$(GOVULNCHECK_VERSION)
 RUFF := uv run --quiet --with ruff==$(RUFF_VERSION) ruff
-SHADOW := uv run --quiet --with pillow==$(PILLOW_VERSION) python docs/shadow.py
+SHADOW := go run ./launcher/cmd/shadow
 # Ours only. deploy/bots/build/ holds seven repositories this project fetches
 # and compiles, and one of them now carries Go of its own: formatting somebody
 # else's tree is not this project's business, and a fresh checkout of it must
@@ -132,7 +140,7 @@ ps: .env
 # The server reads SRCDS_RCONPW at boot, so a value changed since then needs 'make restart'.
 RCON := SRCDS_RCONPW="$$(sed -n 's/^SRCDS_RCONPW=//p' .env)" \
 	SRCDS_PORT="$$(sed -n 's/^SRCDS_PORT=//p' .env)" \
-	python3 deploy/rcon.py
+	go run ./launcher/cmd/rcon
 
 # Silenced so the password does not reach the terminal in the echoed recipe.
 rcon: .env
@@ -225,9 +233,23 @@ COMMUNITY_CONTENT ?= ./community-content/tf
 community-check:
 	go run ./gamedata/cmd/communitycheck $(COMMUNITY_CONTENT)
 
+# The weapon catalogue and the schema import read a TF2 install: any one will
+# do, and ~/tf2-native is the one the bot test-bed keeps. The pools come from
+# the bot mod this module pins, so the catalogue follows the version in go.mod.
+TF2_DIR ?= $(HOME)/tf2-native/tf-dedicated/tf
+BOTS_MOD = $$(go list -m -f '{{.Dir}}' github.com/m-this/tf2-mvm-bots-go)
+weapons:
+	go run ./gamedata/cmd/weapons \
+		-pools $(BOTS_MOD)/plugin/source/redbots3/generated/loadouts.sp \
+		-schema $(TF2_DIR)/scripts/items/items_game.txt \
+		-english $(TF2_DIR)/resource/tf_english.txt > gamedata/weapons_generated.go
+
+import-weapons:
+	go run ./gamedata/cmd/importweapons $(TF2_DIR)/scripts/items/items_game.txt $(TF2_DIR)/resource/tf_english.txt
+
 # --- The apworld ---
 
-PYTHON_SRC := apworld/ deploy/rcon.py deploy/player-yaml.py
+PYTHON_SRC := apworld/
 
 apworld-fmt:
 	$(RUFF) format $(PYTHON_SRC)
@@ -261,7 +283,7 @@ apworld-build:
 # standard-library packager mirrors its archive layout and manifest stamping so
 # WSL users do not need Docker (or the optional zip command) to build the exe.
 apworld-package:
-	python3 deploy/package-zip.py apworld apworld/tf2_mvm $(DIST)/tf2_mvm.apworld \
+	go run ./launcher/cmd/packagezip apworld apworld/tf2_mvm $(DIST)/tf2_mvm.apworld \
 		--container-version 7
 
 # --- The plugin ---
@@ -293,11 +315,10 @@ bots-from-source:
 # versions.env stays the single source of truth and a hand `go build` (which
 # leaves them empty) is caught by assets.RequireVersions at runtime.
 #
-# The .smx is built by `make plugin`, which only runs on Linux (spcomp is a
-# Linux binary). CI runs `make plugin` before `make launcher` on its Linux
-# runner, so the real .smx is in place. On a non-Linux host the launcher still
-# builds with whatever .smx the embed dir holds (a placeholder for dev), because
-# the plugin compile is a separate concern.
+# The .smx is built as part of every launcher asset build. spcomp is a Linux
+# binary, so release launchers are built on Linux or WSL just like CI. A direct
+# `go build` may still use the placeholder for compile-only development, but a
+# launcher produced by this target must never silently package an old plugin.
 EMBED := launcher/internal/assets/embedded
 LAUNCHER_LDFLAGS := -X github.com/m-this/tf2-archipelago/launcher/internal/assets.SourcemodBranch=$(SOURCEMOD_BRANCH) \
 	-X github.com/m-this/tf2-archipelago/launcher/internal/assets.SourcemodVersion=$(SOURCEMOD_VERSION) \
@@ -311,27 +332,22 @@ LAUNCHER_LDFLAGS := -X github.com/m-this/tf2-archipelago/launcher/internal/asset
 # The bots go in as a Windows-only zip: the staged tree carries both platforms'
 # extensions, and the 20 MB of Linux .so has no business inside a .exe.
 # The apworld and the plugin, which are the same bytes on either platform.
-launcher-assets-common: bots apworld-package
+launcher-assets-common: plugin bots apworld-package
 	mkdir -p $(EMBED)
 	cp $(DIST)/tf2_mvm.apworld $(EMBED)/tf2_mvm.apworld
 	cp plugin/gamedata/tf2_archipelago.txt $(EMBED)/tf2_archipelago.txt
-	@if [ -f plugin/build/tf2_archipelago.smx ]; then \
-		cp plugin/build/tf2_archipelago.smx $(EMBED)/tf2_archipelago.smx; \
-		echo "copied plugin/build/tf2_archipelago.smx into the embed dir"; \
-	else \
-		echo "no plugin/build/tf2_archipelago.smx (run 'make plugin' on Linux, or CI will) — building with the placeholder"; \
-	fi
+	cp plugin/build/tf2_archipelago.smx $(EMBED)/tf2_archipelago.smx
 
 # One platform's binaries per build: SourceMod loads the .so or the .dll by
 # platform and ignores the other, so each launcher carries only its own.
 launcher-assets: launcher-assets-common
-	python3 deploy/package-zip.py tree deploy/bots/build/package \
+	go run ./launcher/cmd/packagezip tree deploy/bots/build/package \
 		$(EMBED)/defender-bots-windows.zip --exclude-suffix .so
 	curl -fsSL -o $(EMBED)/sm-ripext-windows.zip \
 		"https://github.com/ErikMinekus/sm-ripext/releases/download/$(RIPEXT_VERSION)/sm-ripext-$(RIPEXT_VERSION)-windows.zip"
 
 launcher-assets-linux: launcher-assets-common
-	python3 deploy/package-zip.py tree deploy/bots/build/package \
+	go run ./launcher/cmd/packagezip tree deploy/bots/build/package \
 		$(EMBED)/defender-bots-linux.zip --exclude-suffix .dll
 	curl -fsSL -o $(EMBED)/sm-ripext-linux.zip \
 		"https://github.com/ErikMinekus/sm-ripext/releases/download/$(RIPEXT_VERSION)/sm-ripext-$(RIPEXT_VERSION)-linux.zip"
@@ -488,7 +504,7 @@ compose-release:
 		echo '#'; \
 		echo '# TF2AP_VERSION picks the release the images come from.'; \
 		echo '# https://github.com/m-this/tf2-archipelago'; \
-		$(COMPOSE_RELEASE) --profile selfhost --profile seed config --no-interpolate \
+		$(COMPOSE_RELEASE) --profile selfhost --profile seed --profile tailscale-fastdl config --no-interpolate \
 			| awk '$$0 == "    build:" { skip = 1; next } skip { if (match($$0, /^      /)) next; skip = 0 } { print }' \
 			| sed 's|$(CURDIR)/|./|g'; \
 	} > $(DIST)/compose.yaml

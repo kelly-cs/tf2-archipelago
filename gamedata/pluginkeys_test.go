@@ -19,6 +19,7 @@ const (
 	unlocksSource = "../plugin/scripting/tf2_archipelago/unlocks.inc"
 	bridgeSource  = "../plugin/scripting/tf2_archipelago/bridge.inc"
 	pluginSource  = "../plugin/scripting/tf2_archipelago.sp"
+	trapsSource   = "../plugin/scripting/tf2_archipelago/traps.inc"
 )
 
 // literals pulls the quoted strings out of one SourcePawn array or call.
@@ -151,6 +152,10 @@ func TestThePluginHandlesEveryGrantKind(t *testing.T) {
 	}
 	handled := string(body)
 	for _, kind := range ItemKinds {
+		// A trophy never leaves generation, so the plugin has no name for it.
+		if !kind.Granted() {
+			continue
+		}
 		if !strings.Contains(handled, `"`+kind.Key()+`"`) {
 			t.Errorf("the plugin does not handle a grant of kind %q", kind.Key())
 		}
@@ -166,6 +171,22 @@ func TestThePluginReportsEveryObjectiveKind(t *testing.T) {
 	for _, kind := range ObjectiveKinds {
 		if !strings.Contains(reported, `"`+kind.Key()+`"`) {
 			t.Errorf("the plugin never reports an objective of kind %q", kind.Key())
+		}
+	}
+}
+
+// The plugin announces a trap it cannot name as unknown, then counts it as
+// fired. The run continues and the trap never happens. Quiet, and it costs the
+// seed an item.
+func TestThePluginFiresEveryTrap(t *testing.T) {
+	body, err := os.ReadFile(trapsSource)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fired := string(body)
+	for _, trap := range Traps {
+		if !strings.Contains(fired, `"`+trap.Key+`"`) {
+			t.Errorf("the plugin does not fire the trap %q", trap.Key)
 		}
 	}
 }

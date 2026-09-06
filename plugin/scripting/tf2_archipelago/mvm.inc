@@ -220,6 +220,27 @@ stock bool MvM_CanPayCredits()
     return false;
 }
 
+// Whether the team fights a wave now. It is the mirror of MvM_CanPayCredits,
+// which wants the quiet moment between waves instead.
+//
+// Defenders rather than players: a wave with only bots alive is still a wave.
+// An effect that waits for a live human can wait forever.
+stock bool MvM_WaveInProgress()
+{
+    if (!MvM_IsActive() || GameRules_GetRoundState() != RoundState_RoundRunning)
+    {
+        return false;
+    }
+    for (int client = 1; client <= MaxClients; client++)
+    {
+        if (MvM_IsDefender(client) && IsPlayerAlive(client))
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
 /**
  * Pay a bundle into the run.
  *
@@ -344,8 +365,7 @@ stock void MvM_OnCommandKeyValues(int client, const char[] name, int count)
 {
     if (StrEqual(name, "MvM_UpgradesBegin", false))
     {
-        // Nobody asked for this one, so an empty loadout gets no window.
-        WeaponBuffs_ShowMenu(client);
+        WeaponBuffs_AnnounceAtStation(client);
         return;
     }
     if (StrEqual(name, "MVM_Respec", false))

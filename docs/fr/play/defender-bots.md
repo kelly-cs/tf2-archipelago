@@ -184,16 +184,17 @@ CBaseNPC, Actions, TF2Attributes, TF Econ Data et TF2Utils. Le serveur les
 compile depuis la source. TF2Attributes reçoit un correctif à nous depuis
 `deploy/patches/`, dont le README dit pourquoi.
 
-Le mod lui-même vient de notre fork, [m-this/tf2-mvm-bots][fork]. Sa branche
-`main` est un tag amont plus nos changements, et `DEFENDERBOTS_VERSION` nomme
-un tag de cette branche.
+Le mod lui-même est [m-this/tf2-mvm-bots-go][fork], où les décisions des bots
+sont écrites en Go et le SourcePawn que le serveur exécute en est généré. Ce
+dépôt en dépend comme d'un module Go, donc c'est la contrainte dans `go.mod`
+qui dit quelle version une compilation utilise.
 
 Le comportement des bots est celui du mod. Un bot qui rentre dans un mur se
 signale au dépôt d'OfficerSpy, pas à celui-ci. La liste noire de classes et le
-fichier d'équipement du serveur sont à nous, sur le fork.
+fichier d'équipement du serveur sont à nous, dans ce dépôt.
 
 [mod]: https://github.com/OfficerSpy/TF2-MvM-Defender-TFBots
-[fork]: https://github.com/m-this/tf2-mvm-bots
+[fork]: https://github.com/m-this/tf2-mvm-bots-go
 
 ## Sur un serveur qui n'est pas cette image
 

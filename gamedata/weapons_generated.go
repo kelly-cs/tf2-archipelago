@@ -2,23 +2,16 @@
 
 package gamedata
 
-// Weapon is one item the bot mod will hand a defender bot: the definition
-// index the mod writes into its loadout file, and what to call it in a menu.
-type Weapon struct {
-	DefIndex int
-	Name     string
-	Class    string
-	Slot     string
-}
-
 // Weapons is every non-stock item the mod can give a bot, drawn from the
-// WEAPONS_* pools in source/redbots3/loadouts.sp. Stock is not in here: the
-// mod spells it as the default index and every menu offers it separately.
+// WEAPONS_* pools the bot mod generates into loadouts.sp. Stock is not in
+// here: the mod spells it as the default index and every menu offers it
+// separately.
 //
 // The reskins are left out. The 15xxx and 30xxx blocks are Festive and
 // Botkiller repaints of guns already listed, and a Scout primary menu of
 // thirty entries where twenty are Scatterguns is not a menu.
 var Weapons = []Weapon{
+	{939, "Bat Outta Hell", "demoman", "melee"},
 	{474, "Conscientious Objector", "demoman", "melee"},
 	{1127, "Crossing Guard", "demoman", "melee"},
 	{880, "Freedom Staff", "demoman", "melee"},
@@ -33,7 +26,6 @@ var Weapons = []Weapon{
 	{154, "Pain Train", "demoman", "melee"},
 	{423, "Saxxy", "demoman", "melee"},
 	{609, "Scottish Handshake", "demoman", "melee"},
-	{939, "The Bat Outta Hell", "demoman", "melee"},
 	{327, "The Claidheamohmor", "demoman", "melee"},
 	{132, "The Eyelander", "demoman", "melee"},
 	{404, "The Persian Persuader", "demoman", "melee"},
@@ -70,6 +62,7 @@ var Weapons = []Weapon{
 	{140, "The Wrangler", "engineer", "secondary"},
 	{294, "TTG Max Pistol - Poker Night", "engineer", "secondary"},
 	{587, "Apoco-Fists", "heavyweapons", "melee"},
+	{939, "Bat Outta Hell", "heavyweapons", "melee"},
 	{1100, "Bread Bite", "heavyweapons", "melee"},
 	{474, "Conscientious Objector", "heavyweapons", "melee"},
 	{1127, "Crossing Guard", "heavyweapons", "melee"},
@@ -81,11 +74,10 @@ var Weapons = []Weapon{
 	{1184, "Gloves of Running Urgently", "heavyweapons", "melee"},
 	{1071, "Golden Frying Pan", "heavyweapons", "melee"},
 	{1013, "Ham Shank", "heavyweapons", "melee"},
+	{656, "Holiday Punch", "heavyweapons", "melee"},
 	{43, "Killing Gloves of Boxing", "heavyweapons", "melee"},
 	{1123, "Necro Smasher", "heavyweapons", "melee"},
 	{423, "Saxxy", "heavyweapons", "melee"},
-	{939, "The Bat Outta Hell", "heavyweapons", "melee"},
-	{656, "The Holiday Punch", "heavyweapons", "melee"},
 	{310, "Warrior's Spirit", "heavyweapons", "melee"},
 	{850, "Deflector", "heavyweapons", "primary"},
 	{298, "Iron Curtain", "heavyweapons", "primary"},
@@ -97,6 +89,7 @@ var Weapons = []Weapon{
 	{424, "Tomislav", "heavyweapons", "primary"},
 	{1153, "Panic Attack Shotgun", "heavyweapons", "secondary"},
 	{425, "The Family Business", "heavyweapons", "secondary"},
+	{939, "Bat Outta Hell", "medic", "melee"},
 	{474, "Conscientious Objector", "medic", "melee"},
 	{1127, "Crossing Guard", "medic", "melee"},
 	{880, "Freedom Staff", "medic", "melee"},
@@ -108,7 +101,6 @@ var Weapons = []Weapon{
 	{423, "Saxxy", "medic", "melee"},
 	{413, "Solemn Vow", "medic", "melee"},
 	{304, "The Amputator", "medic", "melee"},
-	{939, "The Bat Outta Hell", "medic", "melee"},
 	{37, "The Ubersaw", "medic", "melee"},
 	{173, "Vita-Saw", "medic", "melee"},
 	{36, "Blutsauger", "medic", "primary"},
@@ -117,6 +109,7 @@ var Weapons = []Weapon{
 	{411, "Quick-Fix", "medic", "secondary"},
 	{35, "The Kritzkrieg", "medic", "secondary"},
 	{998, "Vaccinator", "medic", "secondary"},
+	{939, "Bat Outta Hell", "pyro", "melee"},
 	{474, "Conscientious Objector", "pyro", "melee"},
 	{1127, "Crossing Guard", "pyro", "melee"},
 	{880, "Freedom Staff", "pyro", "melee"},
@@ -129,14 +122,13 @@ var Weapons = []Weapon{
 	{466, "Maul", "pyro", "melee"},
 	{954, "Memory Maker", "pyro", "melee"},
 	{1123, "Necro Smasher", "pyro", "melee"},
-	{834, "paintkit_proto_def_index", "pyro", "melee"},
 	{457, "Postal Pummeler", "pyro", "melee"},
+	{834, "Promo Neon Annihilator", "pyro", "melee"},
 	{423, "Saxxy", "pyro", "melee"},
 	{348, "Sharpened Volcano Fragment", "pyro", "melee"},
-	{813, "spunup_push_force_immunity", "pyro", "melee"},
 	{38, "The Axtinguisher", "pyro", "melee"},
 	{326, "The Back Scratcher", "pyro", "melee"},
-	{939, "The Bat Outta Hell", "pyro", "melee"},
+	{813, "The Neon Annihilator", "pyro", "melee"},
 	{214, "The Powerjack", "pyro", "melee"},
 	{593, "Third Degree", "pyro", "melee"},
 	{40, "Backburner", "pyro", "primary"},
@@ -153,6 +145,7 @@ var Weapons = []Weapon{
 	{740, "The Scorch Shot", "pyro", "secondary"},
 	{1179, "Thermal Thruster", "pyro", "secondary"},
 	{450, "Atomizer", "scout", "melee"},
+	{939, "Bat Outta Hell", "scout", "melee"},
 	{325, "Boston Basher", "scout", "melee"},
 	{317, "Candy Cane", "scout", "melee"},
 	{474, "Conscientious Objector", "scout", "melee"},
@@ -168,7 +161,6 @@ var Weapons = []Weapon{
 	{44, "Sandman", "scout", "melee"},
 	{423, "Saxxy", "scout", "melee"},
 	{349, "Sun-on-a-Stick", "scout", "melee"},
-	{939, "The Bat Outta Hell", "scout", "melee"},
 	{221, "The Holy Mackerel", "scout", "melee"},
 	{452, "Three-Rune Blade", "scout", "melee"},
 	{572, "Unarmed Combat", "scout", "melee"},
@@ -178,16 +170,17 @@ var Weapons = []Weapon{
 	{45, "The Force-a-Nature", "scout", "primary"},
 	{220, "The Shortstop", "scout", "primary"},
 	{448, "The Soda Popper", "scout", "primary"},
-	{833, "airblast_turn_projectile_to_ammo", "scout", "secondary"},
 	{46, "Bonk! Atomic Punch", "scout", "secondary"},
 	{163, "Crit-a-Cola", "scout", "secondary"},
 	{160, "Lugermorph", "scout", "secondary"},
 	{222, "Mad Milk", "scout", "secondary"},
-	{812, "mod_air_control_blast_jump", "scout", "secondary"},
 	{1121, "Mutated Milk", "scout", "secondary"},
 	{773, "Pretty Boy's Pocket Pistol", "scout", "secondary"},
+	{833, "Promo Flying Guillotine", "scout", "secondary"},
+	{812, "The Flying Guillotine", "scout", "secondary"},
 	{449, "The Winger", "scout", "secondary"},
 	{294, "TTG Max Pistol - Poker Night", "scout", "secondary"},
+	{939, "Bat Outta Hell", "sniper", "melee"},
 	{232, "Bushwacka", "sniper", "melee"},
 	{474, "Conscientious Objector", "sniper", "melee"},
 	{1127, "Crossing Guard", "sniper", "melee"},
@@ -198,7 +191,6 @@ var Weapons = []Weapon{
 	{954, "Memory Maker", "sniper", "melee"},
 	{1123, "Necro Smasher", "sniper", "melee"},
 	{423, "Saxxy", "sniper", "melee"},
-	{939, "The Bat Outta Hell", "sniper", "melee"},
 	{401, "The Shahanshah", "sniper", "melee"},
 	{171, "Tribalman's Shiv", "sniper", "melee"},
 	{851, "AWPer Hand", "sniper", "primary"},
@@ -215,6 +207,7 @@ var Weapons = []Weapon{
 	{58, "Jarate", "sniper", "secondary"},
 	{57, "Razorback", "sniper", "secondary"},
 	{1105, "Self-Aware Beauty Mark", "sniper", "secondary"},
+	{939, "Bat Outta Hell", "soldier", "melee"},
 	{474, "Conscientious Objector", "soldier", "melee"},
 	{1127, "Crossing Guard", "soldier", "melee"},
 	{128, "Equalizer", "soldier", "melee"},
@@ -229,7 +222,6 @@ var Weapons = []Weapon{
 	{1123, "Necro Smasher", "soldier", "melee"},
 	{154, "Pain Train", "soldier", "melee"},
 	{423, "Saxxy", "soldier", "melee"},
-	{939, "The Bat Outta Hell", "soldier", "melee"},
 	{447, "The Disciplinary Action", "soldier", "melee"},
 	{730, "Beggar's Bazooka", "soldier", "primary"},
 	{441, "Cow Mangler 5000", "soldier", "primary"},
@@ -270,29 +262,4 @@ var Weapons = []Weapon{
 	{460, "Enforcer", "spy", "secondary"},
 	{224, "L'Étranger", "spy", "secondary"},
 	{61, "The Ambassador", "spy", "secondary"},
-}
-
-// WeaponsFor is what one class can hold in one slot, in the order a menu
-// should show them. Empty for a pair the mod has no pool for, which is every
-// slot the Spy does not have and the Spy's own pda2 for everybody else.
-func WeaponsFor(class, slot string) []Weapon {
-	var out []Weapon
-	for _, weapon := range Weapons {
-		if weapon.Class == class && weapon.Slot == slot {
-			out = append(out, weapon)
-		}
-	}
-	return out
-}
-
-// WeaponByIndex is the item with that definition index, and whether the
-// catalogue carries it at all. A loadout naming an index this does not know is
-// still legal, because the mod validates nothing: it just cannot be named.
-func WeaponByIndex(defIndex int) (Weapon, bool) {
-	for _, weapon := range Weapons {
-		if weapon.DefIndex == defIndex {
-			return weapon, true
-		}
-	}
-	return Weapon{}, false
 }

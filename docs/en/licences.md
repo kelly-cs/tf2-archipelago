@@ -5,9 +5,9 @@ This repository is MIT. See [LICENSE](../../LICENSE).
 ## What ships under other terms
 
 The defender bots are GPL-3.0, and so is
-[our fork](https://github.com/m-this/tf2-mvm-bots) of them. Both `tf2ap.exe` and
-`tf2-defender-bots.zip` carry their compiled plugins, and the fork is where that
-source lives.
+[tf2-mvm-bots-go](https://github.com/m-this/tf2-mvm-bots-go), which carries them
+now. Both `tf2ap.exe` and `tf2-defender-bots.zip` carry their compiled plugins,
+and that repository is where the source lives.
 
 Every other project in the bot stack keeps its own terms.
 [The bots on your team](./play/defender-bots.md) names each one and what it is

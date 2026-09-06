@@ -340,6 +340,34 @@ func TestAnAcknowledgedEffectIsNotSentAgain(t *testing.T) {
 	}
 }
 
+// A trap is an effect, so it reaches the plugin by key and never joins the
+// unlock set. A trap in the unlock set would fire again on every map change.
+func TestATrapIsAnEffectAndNotAnUnlock(t *testing.T) {
+	store := openTemp(t)
+	trap := gamedata.Traps[0]
+
+	if err := store.ApplyItems(0, []int64{trap.ItemID()}); err != nil {
+		t.Fatal(err)
+	}
+	grants, _ := store.GrantsSince(0)
+	if len(grants) != 1 {
+		t.Fatalf("grants = %+v", grants)
+	}
+	if grants[0].Kind != gamedata.ItemTrap.Key() || grants[0].Key != trap.Key {
+		t.Fatalf("the plugin was told %q/%q, wanted trap/%s", grants[0].Kind, grants[0].Key, trap.Key)
+	}
+	if held := store.Unlocks().Of(gamedata.ItemTrap); len(held) != 0 {
+		t.Fatalf("the unlock set holds %v", held)
+	}
+
+	if err := store.Ack(1); err != nil {
+		t.Fatal(err)
+	}
+	if after, _ := store.GrantsSince(0); len(after) != 0 {
+		t.Fatalf("the trap was sent again after the acknowledgement: %+v", after)
+	}
+}
+
 func TestAnAcknowledgementSurvivesARestartAndOnlyMovesForward(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "bridge.json")
 	store, err := Open(path)
@@ -701,5 +729,90 @@ func TestPlayedSurvivesAReopen(t *testing.T) {
 	played := reopened.Played()
 	if len(played) != 1 || played[0] != mission.ClearLocationID() {
 		t.Fatalf("played %v after a reopen, want the clear", played)
+	}
+}
+
+/*
+Played arrived without a format bump, so a version 3 file can be from either
+side of that day. kelly-cs's run crossed it: every mission the team had cleared
+read as collected afterwards and the missionsanity goal counted none of them
+(gh-16). A version 3 file with no played key is from before, and everything it
+checked was played here.
+*/
+func TestAVersionThreeFileWithoutPlayedTakesItsChecksAsPlayed(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "bridge.json")
+	mission := firstMission(t)
+	before := fmt.Sprintf(
+		`{"format_version":3,"seed":"first","checks":[%d,%d],"items":[],"goal_sent":false}`,
+		mission.WaveLocationID(1), mission.ClearLocationID(),
+	)
+	if err := os.WriteFile(path, []byte(before), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	store, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := store.Played(); len(got) != 2 {
+		t.Fatalf("played = %v, want both checks the file held", got)
+	}
+
+	// A version 3 file that wrote the key is from after, and an empty list
+	// there means nothing was played, whatever the room had adopted.
+	after := fmt.Sprintf(
+		`{"format_version":3,"seed":"first","checks":[%d],"played":[],"items":[],"goal_sent":false}`,
+		mission.WaveLocationID(1),
+	)
+	other := filepath.Join(t.TempDir(), "bridge.json")
+	if err := os.WriteFile(other, []byte(after), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	store, err = Open(other)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := store.Played(); len(got) != 0 {
+		t.Errorf("played = %v, want none: the file said so", got)
+	}
+}
+
+/*
+TestAServerSettingGrantsAsStateAndSurvivesAResend.
+
+A lever on the whole server is state like a class, not an effect like credits.
+The grant stream may carry a copy twice, because that is how state is resent,
+and what must not double is the unlock set: the plugin reads the set, and
+applying the same key again is applying it once.
+*/
+func TestAServerSettingGrantsAsStateAndSurvivesAResend(t *testing.T) {
+	store := openTemp(t)
+
+	setting := gamedata.ServerSettings[0]
+	var itemID int64
+	for _, item := range gamedata.Items {
+		if item.Kind == gamedata.ItemServerSetting && item.ServerSetting == setting.ID {
+			itemID = item.ID
+		}
+	}
+	if itemID == 0 {
+		t.Fatal("no server setting item in the pool")
+	}
+
+	if err := store.ApplyItems(0, []int64{itemID, itemID}); err != nil {
+		t.Fatal(err)
+	}
+
+	grants, _ := store.GrantsSince(0)
+	if len(grants) == 0 {
+		t.Fatal("the setting granted nothing")
+	}
+	for i, grant := range grants {
+		if grant.Kind != gamedata.ItemServerSetting.Key() || grant.Key != setting.Key {
+			t.Errorf("grant %d is %q/%q, want %q/%q", i, grant.Kind, grant.Key,
+				gamedata.ItemServerSetting.Key(), setting.Key)
+		}
+	}
+	if held := store.Unlocks().Of(gamedata.ItemServerSetting); len(held) != 1 || held[0] != setting.Key {
+		t.Errorf("the unlock set holds %v", held)
 	}
 }

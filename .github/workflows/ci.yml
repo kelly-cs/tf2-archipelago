@@ -117,6 +117,13 @@ jobs:
         with:
           fetch-depth: 1
 
+      # The defender mod is a Go module dependency rather than a checkout, so
+      # staging it needs a toolchain. Version from go.mod, the same file that
+      # pins the mod.
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
       # Warnings are errors here. A SourcePawn warning is usually a symbol that
       # silently does nothing at runtime.
       - name: spcomp

@@ -110,7 +110,7 @@ func TestMechanicSpecificEffectsStayOnTheirWeapons(t *testing.T) {
 	}{
 		{[]string{"airblast-power", "airblast-rate", "charged-airblast", "airblast-cost"}, airblastWeapons},
 		{[]string{"building-health", "sentry-fire-rate", "disposable-sentry", "metal-regen", "max-metal", "construction-rate", "repair-rate"}, engineerWeapons},
-		{[]string{"healing", "healing-received", "uber-rate", "uber-on-hit", "uber-duration"}, mediguns},
+		{[]string{"healing", "healing-received", "uber-rate", "uber-duration"}, mediguns},
 		{[]string{"banner-duration"}, banners},
 		{[]string{"cloak-duration", "cloak-regen"}, watches},
 		{[]string{"cloak-on-hit", "cloak-on-kill"}, spyAttackWeapons},
@@ -160,10 +160,57 @@ func TestJarateAndMadMilkOnlyDrawProjectileRechargeAndSubstanceBuffs(t *testing.
 				t.Errorf("%s/%s eligible = %t, want %t", name, effect.Key, got, want)
 			}
 		}
-		for _, effect := range []string{"bleed", "mad-milk", "gasoline", "mark-for-death", "jarate"} {
+		for _, effect := range []string{"bleed", "mad-milk", "mark-for-death", "jarate"} {
 			if !buffNamed(t, name, effect).Eligible {
 				t.Errorf("%s lost substance effect %s", name, effect)
 			}
+		}
+	}
+}
+
+func TestDirectHitWeaponsDrawSubstanceBuffs(t *testing.T) {
+	for _, name := range []string{"Minigun", "Pistol", "Scattergun"} {
+		for _, effect := range []string{"bleed", "ignite", "mad-milk", "mark-for-death"} {
+			if !buffNamed(t, name, effect).Eligible {
+				t.Errorf("%s lost direct-hit substance effect %s", name, effect)
+			}
+		}
+	}
+	if !buffNamed(t, "Sniper Rifle", "jarate").Eligible {
+		t.Error("Sniper Rifle lost direct-hit Jarate")
+	}
+}
+
+// A jar that lands on somebody registers as a hit, so the on-hit attributes
+// fire from it. Cowser checked each in game, gh-32.
+func TestThrownJarsDrawTheOnHitBuffs(t *testing.T) {
+	for _, name := range []string{"Jarate", "Mad Milk"} {
+		for _, effect := range []string{"ignite", "heal-on-hit"} {
+			if !buffNamed(t, name, effect).Eligible {
+				t.Errorf("%s lost on-hit effect %s", name, effect)
+			}
+		}
+		// Neither jar kills, so nothing fires an on-kill attribute.
+		for _, effect := range []string{"heal-on-kill", "crits-on-kill", "speed-on-kill"} {
+			if buffNamed(t, name, effect).Eligible {
+				t.Errorf("%s draws %s and cannot get a kill", name, effect)
+			}
+		}
+	}
+}
+
+// The Gas Passer performs no attack and still gets kills, through the afterburn
+// its gas leaves behind. gh-32, note 7.
+func TestTheGasPasserDrawsTheOnKillBuffs(t *testing.T) {
+	for _, effect := range []string{"heal-on-kill", "crits-on-kill", "minicrits-on-kill", "speed-on-kill"} {
+		if !buffNamed(t, "Gas Passer", effect).Eligible {
+			t.Errorf("Gas Passer lost on-kill effect %s", effect)
+		}
+	}
+	// It still swings at nobody, so the attack effects stay off it.
+	for _, effect := range []string{"damage", "fire-rate", "reload-rate"} {
+		if buffNamed(t, "Gas Passer", effect).Eligible {
+			t.Errorf("Gas Passer draws %s and performs no attack", effect)
 		}
 	}
 }
@@ -199,6 +246,91 @@ func TestGeneratedPluginCatalogContainsEveryBuffKey(t *testing.T) {
 	for _, buff := range WeaponBuffs {
 		if !strings.Contains(text, `"`+buff.Key+`"`) {
 			t.Errorf("generated plugin catalog has no key %q", buff.Key)
+		}
+	}
+}
+
+func substanceSourceFunction(t *testing.T, signature string) string {
+	t.Helper()
+	body, err := os.ReadFile("../plugin/scripting/tf2_archipelago/weapon_buffs.inc")
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(body)
+	start := strings.Index(text, signature)
+	if start < 0 {
+		t.Fatalf("weapon buffs have no %s", signature)
+	}
+	open := strings.IndexByte(text[start:], '{')
+	if open < 0 {
+		t.Fatalf("weapon buffs have no body for %s", signature)
+	}
+	open += start
+	depth := 0
+	for index := open; index < len(text); index++ {
+		switch text[index] {
+		case '{':
+			depth++
+		case '}':
+			depth--
+			if depth == 0 {
+				return text[start : index+1]
+			}
+		}
+	}
+	t.Fatalf("weapon buffs have an unterminated body for %s", signature)
+	return ""
+}
+
+func TestWeaponBuffSubstancesUseTheSharedHitPath(t *testing.T) {
+	apply := substanceSourceFunction(t, "static void WeaponBuffs_ApplyHitEffects")
+	for _, effect := range []string{
+		"TF2_MakeBleed", "TF2_IgnitePlayer", "TFCond_Milked", "TFCond_Gas",
+		"TFCond_MarkedForDeath", "TFCond_Jarated",
+	} {
+		if !strings.Contains(apply, effect) {
+			t.Fatalf("shared hit path does not apply %s", effect)
+		}
+	}
+
+	jar := substanceSourceFunction(t, "public void WeaponBuffs_ApplySubstances")
+	if !strings.Contains(jar, "WeaponBuffs_ApplyHitEffects(victim, attacker, weapon)") {
+		t.Fatal("jar splashes bypass the shared hit-effect path")
+	}
+
+	damage := substanceSourceFunction(t, "public void WeaponBuffs_OnTakeDamagePost")
+	for _, guard := range []string{
+		"GetClientTeam(victim) == GetClientTeam(attacker)",
+		"damagecustom == TF_CUSTOM_BURNING",
+		"damagecustom == TF_CUSTOM_BLEEDING",
+		"WeaponBuffs_IsSubstanceProjectile(inflictorClass)",
+	} {
+		if !strings.Contains(damage, guard) {
+			t.Fatalf("direct-hit path lost guard %q", guard)
+		}
+	}
+	if !strings.Contains(damage, "WeaponBuffs_ForEntity(weapon)") ||
+		!strings.Contains(damage, "WeaponBuffs_ApplyHitEffects(victim, attacker, catalog)") {
+		t.Fatal("direct hits do not resolve the canonical weapon and apply its hit effects")
+	}
+}
+
+func TestPluginImplementsActiveHealthRegenInsteadOfBrokenSchemaHealing(t *testing.T) {
+	body, err := os.ReadFile("../plugin/scripting/tf2_archipelago/weapon_buffs.inc")
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(body)
+	for _, required := range []string{
+		"#define ActiveHealthRegenEffect 66",
+		"CreateTimer(1.0, Timer_WeaponBuffHealthRegen",
+		"g_WeaponEffectLevels[weapon][ActiveHealthRegenEffect]",
+		"GetEntProp(resource, Prop_Send, \"m_iMaxHealth\", 4, client)",
+		"SetEntityHealth(client, health + healed)",
+		"if (effect == ActiveHealthRegenEffect)",
+	} {
+		if !strings.Contains(text, required) {
+			t.Errorf("active health regeneration implementation has no %q", required)
 		}
 	}
 }
@@ -265,6 +397,17 @@ func TestWeaponEffectsUseDistinctSchemaAttributes(t *testing.T) {
 	}
 }
 
+func TestWeaponEffectAttributeClassesComplete(t *testing.T) {
+	if got, want := len(WeaponEffectAttributeClasses), len(WeaponEffects); got != want {
+		t.Fatalf("attribute classes: got %d, want %d", got, want)
+	}
+	for index, class := range WeaponEffectAttributeClasses {
+		if class == "" {
+			t.Errorf("%s has no engine attribute class", WeaponEffects[index].Key)
+		}
+	}
+}
+
 func TestLegacyPermutationKeepsItsIDAndEveryEffectExists(t *testing.T) {
 	for _, old := range legacyWeaponBuffs {
 		seenEffects := make(map[uint8]bool, len(WeaponEffects))
@@ -304,6 +447,79 @@ func TestItemExportMarksOnlyNumericBuffsStackable(t *testing.T) {
 		if item.Stackable != want {
 			t.Errorf("%s stackable = %t, want %t for mode %d",
 				buff.Key, item.Stackable, want, buff.Mode)
+		}
+	}
+}
+
+// Explode on ignite ended waves on its own once substances landed on direct
+// hits (gh-17). It is out of the pool everywhere and keeps its ID.
+func TestExplodeOnIgniteIsOfferedNowhere(t *testing.T) {
+	for _, buff := range WeaponBuffs {
+		if buff.EffectID == 16 && buff.Eligible {
+			t.Errorf("%s still offers explode on ignite", buff.Weapon)
+		}
+	}
+	if _, ok := WeaponBuffByID(buffNamed(t, "Minigun", "gasoline").ID); !ok {
+		t.Error("the effect lost its ID, which seeds hold")
+	}
+}
+
+// A rocket that penetrates does not explode where it was aimed (gh-21).
+func TestProjectilePenetrationStaysOffExplosives(t *testing.T) {
+	for name, want := range map[string]bool{
+		"Rocket Launcher": false, "Grenade Launcher": false, "Loose Cannon": false, "Scorch Shot": false,
+		"Huntsman": true, "Crusader's Crossbow": true, "Syringe Gun": true, "Flare Gun": true,
+	} {
+		if got := buffNamed(t, name, "projectile-penetration").Eligible; got != want {
+			t.Errorf("%s penetration eligible = %t, want %t", name, got, want)
+		}
+	}
+}
+
+// The game reads armor piercing on a backstab and nowhere else (gh-25).
+func TestArmorPiercingIsAKnifeBuff(t *testing.T) {
+	for name, want := range map[string]bool{
+		"Knife": true, "Your Eternal Reward": true, "Conniver's Kunai": true, "Big Earner": true, "Spy-Cicle": true,
+		"Revolver": false, "Minigun": false, "Rocket Launcher": false, "Kukri": false,
+	} {
+		if got := buffNamed(t, name, "armor-piercing").Eligible; got != want {
+			t.Errorf("%s armor piercing eligible = %t, want %t", name, got, want)
+		}
+	}
+}
+
+// Every pair the sheet cuts names a weapon and an effect the tables know, and
+// the cut only ever removes: a pair the rules already refuse is redundant here
+// and worth a line less.
+func TestSheetCutsNameRealWeaponsAndEffects(t *testing.T) {
+	effects := map[string]bool{}
+	for _, effect := range WeaponEffects {
+		effects[effect.Key] = true
+	}
+	for name, keys := range sheetCuts {
+		weaponNamed(t, name)
+		for key := range keys {
+			if !effects[key] {
+				t.Errorf("%s cuts %q, which is not an effect", name, key)
+			}
+			if buffNamed(t, name, key).Eligible {
+				t.Errorf("%s/%s is still eligible", name, key)
+			}
+		}
+	}
+	for name, want := range map[string]bool{"Rocket Launcher": false, "Scattergun": true} {
+		if got := buffNamed(t, name, "accuracy").Eligible; got != want {
+			t.Errorf("%s accuracy eligible = %t, want %t", name, got, want)
+		}
+	}
+}
+
+// Über on hit needs a hit, and a medigun heals: the sheet marks it N on all
+// four, so the effect is offered nowhere and keeps its ID.
+func TestUberOnHitIsOfferedNowhere(t *testing.T) {
+	for _, buff := range WeaponBuffs {
+		if buff.EffectID == 40 && buff.Eligible {
+			t.Errorf("%s still offers über on hit", buff.Weapon)
 		}
 	}
 }

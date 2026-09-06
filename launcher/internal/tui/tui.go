@@ -16,6 +16,7 @@ package tui
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"strings"
@@ -70,12 +71,13 @@ type view int
  * during a mission that is going fine. */
 const (
 	viewSession view = iota
+	viewUnlocks
 	viewBots
 	viewLog
 )
 
 // viewCount is how many there are, so tab rings round them.
-const viewCount = 3
+const viewCount = 4
 
 type model struct {
 	settings   settings.Settings
@@ -89,11 +91,17 @@ type model struct {
 	mu      sync.Mutex
 	pending []string
 
-	lines   []string
-	offset  int // how far up the log the player has scrolled, in lines
-	follow  bool
-	command string
-	typing  bool
+	lines  []string
+	offset int // how far up the log the player has scrolled, in lines
+	// listOffset is the first row shown on a view that lists more than fits.
+	// The log scrolls from the bottom and keeps its own offset above; a list
+	// is anchored at the top, so it counts rows from the start. One offset
+	// for every list, reset when the view changes, because a player who
+	// scrolled the unlocks and tabbed away wants the next page from the top.
+	listOffset int
+	follow     bool
+	command    string
+	typing     bool
 
 	status  string
 	mission string
@@ -176,6 +184,14 @@ func (m *model) start() tea.Cmd {
 	return func() tea.Msg {
 		if err := m.supervisor.Start(func(error) {}); err != nil {
 			m.take(apruntime.Line{At: time.Now(), Source: "launcher", Text: err.Error()})
+			var fastDL *apruntime.TailscaleFastDLStartError
+			if errors.As(err, &fastDL) && fastDL.ApprovalURL != "" {
+				if openErr := winproc.OpenURL(fastDL.ApprovalURL); openErr != nil {
+					m.take(apruntime.Line{At: time.Now(), Source: "launcher", Text: "approve Tailscale Funnel at " + fastDL.ApprovalURL})
+				} else {
+					m.take(apruntime.Line{At: time.Now(), Source: "launcher", Text: "the Tailscale approval page opened; approve Funnel, then press Start again"})
+				}
+			}
 		}
 		return nil
 	}

@@ -9,9 +9,36 @@
 set -eu
 
 STAGE=/opt/tf2-archipelago
+MODS=/opt/tf2-mods
 COMMUNITY=/opt/tf2-community-pack/tf
 GAME="${STEAMAPPDIR}/${STEAMAPP}"
 INTERVAL=30
+
+tailscale_fastdl_url() {
+	url_file=/run/tf2ap-fastdl/url
+	if [ ! -s "$url_file" ]; then
+		echo "[AP] TAILSCALE_FASTDL=1 but its verified Funnel URL is unavailable" >&2
+		return 1
+	fi
+	url="$(sed -n '1p' "$url_file")"
+	case "$url" in
+	https://*.ts.net/tf)
+		host="${url#https://}"
+		host="${host%/tf}"
+		;;
+	*)
+		echo "[AP] refusing the invalid Tailscale FastDL URL in $url_file" >&2
+		return 1
+		;;
+	esac
+	case "$host" in
+	"" | *[!A-Za-z0-9.-]*)
+		echo "[AP] refusing the invalid Tailscale FastDL hostname in $url_file" >&2
+		return 1
+		;;
+	esac
+	printf 'https://%s/tf\n' "$host"
+}
 
 # SourceMod wants STEAM_0:X:Y. What a player actually has to hand is the 17
 # digit id from their profile URL or steamid.io, so both are accepted and the
@@ -67,6 +94,21 @@ install_admin() {
 	echo "[AP] installed $(grep -c '^"' "$target") admin(s)"
 }
 
+# Server mods a community mission can require, by the keys community.json
+# uses, from SRCDS_MODS. Each one the image stages is a tree shaped like tf/
+# under $MODS/<key>. A key nothing was staged for is a line in the log, and
+# the seed generated with server_mods naming it will not find its missions.
+install_mods() {
+	[ -n "${SRCDS_MODS:-}" ] || return 0
+	for key in $(printf '%s' "${SRCDS_MODS}" | tr ',' ' '); do
+		if [ ! -d "$MODS/$key" ]; then
+			echo "[AP] SRCDS_MODS names $key, which this image does not carry"
+			continue
+		fi
+		cp -ru "$MODS/$key/." "$GAME/"
+	done
+}
+
 # The game ships a sample server.cfg that sets "rcon_password changeme", and
 # server.cfg runs on map load, after the command line. So the password the
 # operator set is replaced by a published default on the first map, on a port
@@ -83,6 +125,15 @@ install_server_cfg() {
 		bots_mode=0
 	else
 		bots_mode=2
+	fi
+
+	download_url="${SRCDS_DOWNLOADURL:-}"
+	if [ -z "$download_url" ] && [ -n "${FASTDL_HOST:-}" ]; then
+		download_url="http://${FASTDL_HOST}:${FASTDL_PORT:-27080}/tf"
+	fi
+	download_cfg=""
+	if [ -n "$download_url" ]; then
+		download_cfg="sv_downloadurl \"${download_url}\""
 	fi
 
 	staged=$(mktemp)
@@ -166,8 +217,15 @@ install_server_cfg() {
 	sv_pausable 0
 	setpause 0
 
+	// Maps and other content come from this address over HTTP, when the
+	// stack has one to give: the fastdl service at FASTDL_HOST, or the
+	// operator's own SRCDS_DOWNLOADURL. The game server's own transfer can
+	// reach the end of a large packed BSP without the client accepting it,
+	// which restarts the download forever.
+	${download_cfg}
 	// A stock server refuses direct downloads larger than 16 MB. Potato maps
-	// such as Autumnull fit under Source's 64 MB direct-download cap.
+	// such as Autumnull fit under Source's 64 MB direct-download cap. Kept on
+	// so a client that cannot reach sv_downloadurl still gets the map here.
 	sv_allowdownload 1
 	// Client uploads carry sprays and other player customization.
 	sv_allowupload 1
@@ -190,6 +248,9 @@ install_server_cfg() {
 	mv "$staged" "$target"
 	chmod 0644 "$target"
 	echo "[AP] wrote server.cfg, rcon password from the environment"
+	if [ "${TAILSCALE_FASTDL:-0}" = 1 ]; then
+		echo "[AP] public Tailscale Funnel FastDL ready at $download_url"
+	fi
 }
 
 install_plugin() {
@@ -208,6 +269,7 @@ install_plugin() {
 			if [ -d "$COMMUNITY" ]; then
 				cp -ru "$COMMUNITY/." "$GAME/"
 			fi
+			install_mods
 			install_server_cfg
 			install_admin
 			if [ "$installed" -eq 0 ]; then
@@ -264,6 +326,15 @@ case "${SRCDS_TOKEN:-0}" in
 	;;
 esac
 export SRCDS_LAN SRCDS_SDR_FAKEIP
+
+# With the profile enabled, Compose holds this container until the Tailscale
+# sidecar is healthy. Validate the handoff once more here so starting this
+# container by itself cannot silently lose an explicitly selected FastDL.
+if [ "${TAILSCALE_FASTDL:-0}" = 1 ]; then
+	SRCDS_DOWNLOADURL="$(tailscale_fastdl_url)"
+	export SRCDS_DOWNLOADURL
+	echo "[AP] using Tailscale Funnel FastDL at $SRCDS_DOWNLOADURL"
+fi
 
 install_plugin &
 

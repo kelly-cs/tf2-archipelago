@@ -22,7 +22,11 @@ RUN ./build.sh
 # The MvM defender bots: the mod that fills RED so a wave tuned for six players
 # is winnable alone. Its own stage so a plugin edit does not refetch it, and so
 # the tree it stages can be copied whole.
-FROM debian:stable-slim AS bots
+#
+# On the Go image rather than plain Debian: the mod is a Go module dependency
+# and go.mod is the pin, so staging it needs a toolchain. Everything else the
+# script fetches is still a checkout or a release download.
+FROM golang:1.27 AS bots
 
 RUN apt-get update \
 	&& apt-get install --yes --no-install-recommends \
@@ -30,6 +34,7 @@ RUN apt-get update \
 	&& rm -rf /var/lib/apt/lists/*
 
 WORKDIR /repo
+COPY go.mod go.sum ./
 COPY deploy/env/versions.env deploy/env/versions.env
 COPY deploy/patches deploy/patches
 COPY deploy/bots deploy/bots
@@ -39,6 +44,8 @@ RUN sh deploy/bots/build.sh
 FROM cm2network/tf2:sourcemod
 
 ARG RIPEXT_VERSION
+ARG SIGSEGV_MVM_VERSION
+ARG SIGSEGV_MVM_SHA256
 
 USER root
 
@@ -52,6 +59,12 @@ RUN apt-get update \
 	&& cp -r /tmp/ripext/addons /opt/tf2-archipelago/ \
 	&& rm -rf /opt/tf2-archipelago/addons/sourcemod/scripting \
 	&& rm -rf /tmp/ripext.zip /tmp/ripext \
+	&& mkdir -p /opt/tf2-mods/sigsegv-mvm \
+	&& curl -fsSL -o /tmp/sigsegv.zip \
+		"https://github.com/rafradek/sigsegv-mvm/releases/download/${SIGSEGV_MVM_VERSION}/package-linux.zip" \
+	&& echo "${SIGSEGV_MVM_SHA256}  /tmp/sigsegv.zip" | sha256sum -c - \
+	&& unzip -oq /tmp/sigsegv.zip -d /opt/tf2-mods/sigsegv-mvm \
+	&& rm -f /tmp/sigsegv.zip \
 	&& apt-get purge --yes unzip curl \
 	&& apt-get autoremove --yes \
 	&& rm -rf /var/lib/apt/lists/*
@@ -60,11 +73,16 @@ COPY --from=bots /repo/deploy/bots/build/package/addons \
 	/opt/tf2-archipelago/addons
 COPY --from=build /plugin/build/tf2_archipelago.smx \
 	/opt/tf2-archipelago/addons/sourcemod/plugins/tf2_archipelago.smx
+# The plugin refuses to load without its gamedata, and a server without the
+# plugin is stock Mann vs Machine with nothing saying so. The launcher embeds
+# this file; the image has to carry it the same way.
+COPY plugin/gamedata/tf2_archipelago.txt \
+	/opt/tf2-archipelago/addons/sourcemod/gamedata/tf2_archipelago.txt
 COPY deploy/srcds/tf2_archipelago.cfg \
 	/opt/tf2-archipelago/cfg/sourcemod/tf2_archipelago.cfg
 COPY deploy/srcds-entrypoint.sh /usr/local/bin/entrypoint.sh
 
-RUN chown -R steam:steam /opt/tf2-archipelago \
+RUN chown -R steam:steam /opt/tf2-archipelago /opt/tf2-mods \
 	&& chmod +x /usr/local/bin/entrypoint.sh
 
 USER steam

@@ -145,10 +145,10 @@ func (m *model) key(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "r":
 		return m, tea.Sequence(m.stop(), m.start())
 	case "tab":
-		m.view = (m.view + 1) % viewCount
+		m.view, m.listOffset = (m.view+1)%viewCount, 0
 		return m, nil
 	case "shift+tab":
-		m.view = (m.view - 1 + viewCount) % viewCount
+		m.view, m.listOffset = (m.view-1+viewCount)%viewCount, 0
 		return m, nil
 	case "i", ":":
 		m.typing = true
@@ -210,30 +210,44 @@ func (m *model) typingKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-// scroll moves the log, or the selection in the run's missions, depending on
-// which half is on screen.
+/*
+scroll moves whatever the view on screen scrolls.
+
+Three kinds, and they do not share an offset. The session moves a selection.
+The log is anchored at the bottom and counts back from it, so up means a larger
+offset. A list is anchored at the top and counts forward, so up means a smaller
+one. The unlocks list is the one that needed this: a run with many buffs filled
+the screen and the rest was cut with nothing to say so.
+*/
 func (m *model) scroll(msg tea.KeyMsg) {
 	step := 1
-	switch msg.String() {
-	case "pgup", "pgdown":
+	if msg.String() == "pgup" || msg.String() == "pgdown" {
 		step = max(m.bodyHeight()-1, 1)
 	}
 
 	switch msg.String() {
 	case "up", "k", "pgup":
-		if m.view == viewSession {
+		switch m.view {
+		case viewSession:
 			m.selected = max(m.selected-step, 0)
-			return
+		case viewUnlocks, viewBots:
+			m.listOffset = max(m.listOffset-step, 0)
+		case viewLog:
+			m.offset = min(m.offset+step, max(len(m.lines)-m.bodyHeight(), 0))
+			m.follow = m.offset == 0
 		}
-		m.offset = min(m.offset+step, max(len(m.lines)-m.bodyHeight(), 0))
-		m.follow = m.offset == 0
 	case "down", "j", "pgdown":
-		if m.view == viewSession {
+		switch m.view {
+		case viewSession:
 			m.selected = min(m.selected+step, max(len(m.snapshot.Missions)-1, 0))
-			return
+		case viewUnlocks, viewBots:
+			// The end is clamped where the rows are counted, in view.go:
+			// only the view knows how many there are.
+			m.listOffset += step
+		case viewLog:
+			m.offset = max(m.offset-step, 0)
+			m.follow = m.offset == 0
 		}
-		m.offset = max(m.offset-step, 0)
-		m.follow = m.offset == 0
 	}
 }
 

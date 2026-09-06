@@ -5,9 +5,9 @@ Ce dépôt est sous licence MIT. Voir [LICENSE](../../LICENSE).
 ## Ce que le projet livre sous d'autres licences
 
 Les bots défenseurs sont sous GPL-3.0, et
-[notre fork](https://github.com/m-this/tf2-mvm-bots) l'est aussi. `tf2ap.exe` et
-`tf2-defender-bots.zip` portent tous deux leurs extensions compilées, et le fork
-est l'endroit où vit ce code source.
+[tf2-mvm-bots-go](https://github.com/m-this/tf2-mvm-bots-go), qui les porte
+désormais, l'est aussi. `tf2ap.exe` et `tf2-defender-bots.zip` portent tous deux
+leurs extensions compilées, et c'est là que vit ce code source.
 
 Chaque autre projet de la pile de bots garde ses propres conditions.
 [Les bots de votre équipe](./play/defender-bots.md) nomme chacun d'eux et dit à

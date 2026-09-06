@@ -74,7 +74,7 @@ func Write(s settings.Settings, versions map[string]string, stamp time.Time) (st
 	// The crash dumps, newest last. srcds runs under Breakpad and writes one
 	// per crash, and a crash that leaves no line in any log leaves one of
 	// these: it is the only file that names the function the server died in.
-	for _, dump := range newestCrashDumps(game, 3) {
+	for _, dump := range newestCrashDumps(game, systemCrashDumpDir(), 3) {
 		copyIn(archive, filepath.Join("crashes", filepath.Base(dump)), dump)
 	}
 
@@ -187,7 +187,7 @@ func crashDumpNote(s settings.Settings, sawCrash bool) string {
 		return ""
 	}
 	game := filepath.Join(s.InstallRoot, "tf-dedicated", "tf")
-	if len(newestCrashDumps(game, 1)) > 0 {
+	if len(newestCrashDumps(game, systemCrashDumpDir(), 1)) > 0 {
 		return "\n  A crash dump is in crashes/. That is the file worth reading first.\n"
 	}
 	return "\n  NO CRASH DUMP was found, though the logs hold a crash. srcds runs under\n" +
@@ -235,7 +235,7 @@ func redactedSettings(s settings.Settings) string {
  * Reading a directory that does not exist is the normal case here, not an
  * error: most installs have none of the optional ones.
  */
-func newestCrashDumps(gameDir string, limit int) []string {
+func newestCrashDumps(gameDir, systemDir string, limit int) []string {
 	root := filepath.Dir(filepath.Dir(gameDir))
 	dirs := []string{gameDir, filepath.Dir(gameDir), root}
 	for _, base := range []string{gameDir, filepath.Dir(gameDir), root} {
@@ -244,26 +244,15 @@ func newestCrashDumps(gameDir string, limit int) []string {
 		}
 	}
 
-	/* Windows Error Reporting writes somewhere else entirely
-
-	   An access violation that Breakpad does not catch is handled by Windows,
-	   and Windows puts the dump in %LOCALAPPDATA%\CrashDumps, named after the
-	   executable rather than the game. k-kaneta's bundle carried two 0xc0000005
-	   and no dump anywhere near the install, which is apw-eei: every conclusion
-	   on that bead is still inference because this directory was never read. */
-	if local := os.Getenv("LOCALAPPDATA"); local != "" {
-		dirs = append(dirs, filepath.Join(local, "CrashDumps"))
-	}
-
 	seen := map[string]bool{}
 	var found []string
-	for _, dir := range dirs {
+	collect := func(dir string, wanted func(string) bool) {
 		entries, err := os.ReadDir(dir)
 		if err != nil {
-			continue
+			return
 		}
 		for _, entry := range entries {
-			if entry.IsDir() || !isCrashDump(entry.Name()) {
+			if entry.IsDir() || !wanted(entry.Name()) {
 				continue
 			}
 			path := filepath.Join(dir, entry.Name())
@@ -273,6 +262,18 @@ func newestCrashDumps(gameDir string, limit int) []string {
 			seen[path] = true
 			found = append(found, path)
 		}
+	}
+	for _, dir := range dirs {
+		collect(dir, isCrashDump)
+	}
+	/* Windows Error Reporting writes somewhere else entirely, and for every
+	   program on the machine. Two bundles carried GameBar, Refunct and THPS12
+	   dumps under crashes/ with the note saying to read them first, while the
+	   server's own crash had left nothing. Only the game server's dumps count
+	   there. Breakpad names the ones beside the binary by a GUID, so the game
+	   directories above keep every dump they hold. */
+	if systemDir != "" {
+		collect(systemDir, isGameServerDump)
 	}
 	sort.Slice(found, func(i, j int) bool {
 		return modTime(found[i]).Before(modTime(found[j]))
@@ -287,6 +288,21 @@ func newestCrashDumps(gameDir string, limit int) []string {
 func isCrashDump(name string) bool {
 	lower := strings.ToLower(name)
 	return strings.HasSuffix(lower, ".mdmp") || strings.HasSuffix(lower, ".dmp")
+}
+
+// isGameServerDump is a Windows Error Reporting dump of the game server or the
+// launcher, which WER names after the process: srcds.exe.1234.dmp.
+func isGameServerDump(name string) bool {
+	if !isCrashDump(name) {
+		return false
+	}
+	lower := strings.ToLower(name)
+	for _, process := range []string{"srcds", "hl2", "tf2ap"} {
+		if strings.HasPrefix(lower, process) {
+			return true
+		}
+	}
+	return false
 }
 
 func modTime(path string) time.Time {

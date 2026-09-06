@@ -25,7 +25,10 @@ Check the launcher yourself:
 - Every release includes `SHA256SUMS`. Run
   `Get-FileHash tf2ap.exe -Algorithm SHA256` and compare the two values.
 - Every release links its own VirusTotal report.
-- `make launcher` rebuilds it from the source in this repository.
+- `make launcher` rebuilds it from the source in this repository. That command
+  needs Linux or WSL: the plugin compiler is a Linux binary, and the build stops
+  without it. Windows does not build the launcher. Download the released exe
+  instead.
 - `gh attestation verify tf2ap.exe --repo m-this/tf2-archipelago` names the
   commit and the workflow that built the file you have.
 

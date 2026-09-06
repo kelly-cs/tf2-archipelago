@@ -130,6 +130,10 @@ var engineerWeapons = names(
 	"Shotgun", "Southern Hospitality", "Widowmaker", "Wrangler", "Wrench",
 )
 
+// spyKnives are the weapons a backstab comes from, which is the only hit the
+// game reads armor piercing on.
+var spyKnives = names("Big Earner", "Conniver's Kunai", "Knife", "Spy-Cicle", "Your Eternal Reward")
+
 var (
 	watches          = names("Cloak and Dagger", "Dead Ringer", "Invis Watch")
 	spyAttackWeapons = names(
@@ -183,10 +187,37 @@ var projectileCountExtras = names(
 )
 
 var (
-	thrownSubstances     = names("Jarate", "Mad Milk")
-	substanceEffects     = names("bleed", "mad-milk", "gasoline", "mark-for-death", "jarate")
+	thrownSubstances = names("Jarate", "Mad Milk")
+
+	/* What a thrown jar still counts as a hit for
+
+	A direct hit with a jar registers as one, so the on-hit attributes fire from
+	it: bleed, ignite, heal on hit and the two marks. Cowser checked each in
+	game, gh-32 note 9, and notes 10 and 22 point back at it for ignite and heal
+	on hit. Knockback is not here: he argues it should stay allowed in general
+	and says nothing about a jar throwing anybody. The on-kill effects are not
+	here either, because neither jar kills. */
+	substanceEffects = names(
+		"bleed", "mad-milk", "mark-for-death", "jarate", "ignite", "heal-on-hit",
+	)
+
 	jarProjectileEffects = names(
 		"projectile-count", "projectile-speed", "projectile-range", "projectile-penetration",
+	)
+)
+
+/*
+killCapableNonAttackers do not swing or fire and still get kills.
+
+The Gas Passer is the one: its gas ignites and the afterburn finishes people,
+so an on-kill attribute has something to fire on. Every other weapon that
+performs no attack is excluded from these by attackRequiredEffects, which is
+right for a Sandvich and wrong for this. gh-32, note 7.
+*/
+var (
+	killCapableNonAttackers = names("Gas Passer")
+	onKillEffects           = names(
+		"heal-on-kill", "crits-on-kill", "minicrits-on-kill", "speed-on-kill",
 	)
 )
 
@@ -198,32 +229,12 @@ var cliplessWeapons = names(
 
 func weaponEffectEligible(weapon BuffWeapon, effect WeaponEffect) bool {
 	name, key := weapon.Name, effect.Key
-	if passiveWeapons[name] {
+	if cutBySheet(name, key) {
 		return false
 	}
-	// Jars do not perform weapon attacks, so most item attributes are inert on
-	// them. Their intentionally small pool consists only of their thrown
-	// projectile, recharge meter, and splash substances implemented by the
-	// plugin's PlayerJarated hook.
-	if thrownSubstances[name] {
-		return jarProjectileEffects[key] || substanceEffects[key] || key == "meter-recharge"
+	if decided, eligible := eligibilityByShape(name, key); decided {
+		return eligible
 	}
-	// Projectile count is implemented for both bullets and entities. Thrown
-	// meters and the two projectile melees are intentional exceptions to the
-	// usual non-attacking/melee filters.
-	if key == "projectile-count" {
-		return projectileCountExtras[name] || (!nonAttackingWeapons[name] && !meleeWeapons[name] && (!flamethrowers[name] || name == "Dragon's Fury"))
-	}
-	if key == "projectile-speed" || key == "projectile-range" || key == "projectile-penetration" {
-		return projectileWeapons[name]
-	}
-	if nonAttackingWeapons[name] && attackRequiredEffects[key] {
-		return false
-	}
-	if meleeWeapons[name] && rangedOnlyEffects[key] {
-		return false
-	}
-
 	switch key {
 	case "clip-size", "reload-rate":
 		return !cliplessWeapons[name]
@@ -255,6 +266,8 @@ func weaponEffectEligible(weapon BuffWeapon, effect WeaponEffect) bool {
 		return watches[name]
 	case "cloak-on-hit", "cloak-on-kill":
 		return spyAttackWeapons[name]
+	case "armor-piercing":
+		return spyKnives[name]
 	case "meter-recharge":
 		return meterWeapons[name]
 	case "gesture-speed":
@@ -262,4 +275,40 @@ func weaponEffectEligible(weapon BuffWeapon, effect WeaponEffect) bool {
 	default:
 		return true
 	}
+}
+
+/*
+eligibilityByShape answers what the weapon's shape decides before its mechanic
+is looked at, and says whether it answered.
+
+Passives draw nothing. Explode on ignite is out of the pool on every weapon: on
+a minigun it ended a wave on its own, and the effect keeps its ID because seeds
+hold it. Jars do not perform weapon attacks, so most item attributes are inert
+on them; their pool is their thrown projectile, their recharge meter and the
+splash substances the plugin's PlayerJarated hook applies. Projectile count is
+implemented for bullets and entities alike, and the thrown meters and the two
+projectile melees are the deliberate exceptions to the non-attacking and melee
+filters. A rocket that penetrates does not explode where it was aimed, so
+penetration stays off explosives and on arrows, syringes and flares.
+*/
+func eligibilityByShape(name, key string) (decided, eligible bool) {
+	switch {
+	case passiveWeapons[name], key == "gasoline":
+		return true, false
+	case thrownSubstances[name]:
+		return true, jarProjectileEffects[key] || substanceEffects[key] || key == "meter-recharge"
+	case key == "projectile-count":
+		return true, projectileCountExtras[name] ||
+			(!nonAttackingWeapons[name] && !meleeWeapons[name] && (!flamethrowers[name] || name == "Dragon's Fury"))
+	case key == "projectile-speed", key == "projectile-range":
+		return true, projectileWeapons[name]
+	case key == "projectile-penetration":
+		return true, projectileWeapons[name] && !explosiveWeapons[name]
+	case killCapableNonAttackers[name] && onKillEffects[key]:
+		return true, true
+	case nonAttackingWeapons[name] && attackRequiredEffects[key],
+		meleeWeapons[name] && rangedOnlyEffects[key]:
+		return true, false
+	}
+	return false, false
 }

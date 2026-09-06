@@ -15,6 +15,8 @@ import (
 	"github.com/m-this/tf2-archipelago/launcher/internal/assets"
 	"github.com/m-this/tf2-archipelago/launcher/internal/botlive"
 	"github.com/m-this/tf2-archipelago/launcher/internal/botloadout"
+	"github.com/m-this/tf2-archipelago/launcher/internal/fastdl"
+	"github.com/m-this/tf2-archipelago/launcher/internal/lanaddr"
 	"github.com/m-this/tf2-archipelago/launcher/internal/settings"
 )
 
@@ -74,10 +76,27 @@ func RenderServerCfg(s settings.Settings) (string, error) {
 		"BotHats":         boolToInt(s.SrcdsBotHats),
 		"BotHatEffects":   boolToInt(s.SrcdsBotHatEffects),
 		"StartMission":    s.SrcdsStartMission,
+		"DownloadURL":     DownloadURL(s, lanaddr.Preferred()),
 	}); err != nil {
 		return "", fmt.Errorf("cannot render server.cfg: %w", err)
 	}
 	return buf.String(), nil
+}
+
+// DownloadURL is what sv_downloadurl holds: the operator's own host when they
+// named one, otherwise the launcher's file server on the address the friends
+// on the network reach this machine at. Empty leaves the game server's in-band
+// transfer, which is all a relayed client can reach anyway: over Steam the
+// players never see this machine's address, and with no route out there is no
+// address to give.
+func DownloadURL(s settings.Settings, lanHost string) string {
+	if s.SrcdsDownloadURL != "" {
+		return s.SrcdsDownloadURL
+	}
+	if s.FastDLPort <= 0 || lanHost == "" || s.EffectiveReach().SteamNetworking() {
+		return ""
+	}
+	return fastdl.URL(lanHost, s.FastDLPort)
 }
 
 // installAdmins writes admins_simple.ini from a comma/space/newline-separated
@@ -212,16 +231,19 @@ func botsMode(enabled bool) int {
 /*
 	scaleOf is the mod's float for a percentage the settings hold.
 
-The mod refuses anything under 0.1 and reads 1.0 as off, so a page nobody has
+The mod accepts 0.1 through 10.0 and reads 1.0 as neutral, so a page nobody has
 touched writes 1.0 and changes nothing. A zero is somebody who has not set it
-rather than somebody asking for harmless robots.
+rather than somebody asking for zero-health robots.
 */
 func scaleOf(pct int) string {
-	if pct <= 0 || pct > 100 {
-		return "1.0"
+	if pct <= 0 {
+		pct = settings.RobotHealthPercentNeutral
 	}
-	if pct < 10 {
-		pct = 10
+	if pct < settings.RobotHealthPercentMin {
+		pct = settings.RobotHealthPercentMin
+	}
+	if pct > settings.RobotHealthPercentMax {
+		pct = settings.RobotHealthPercentMax
 	}
 	return fmt.Sprintf("%.2f", float64(pct)/100.0)
 }

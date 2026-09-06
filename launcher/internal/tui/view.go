@@ -56,6 +56,8 @@ func (m *model) View() string {
 		out.WriteString(m.log())
 	case viewSession:
 		out.WriteString(m.session())
+	case viewUnlocks:
+		out.WriteString(m.unlocks())
 	}
 
 	out.WriteString("\n")
@@ -125,7 +127,7 @@ func (m *model) joinAddresses() []string {
 }
 
 func (m *model) tabs() string {
-	names := []string{"Session", "Bot Switcher", "Log"}
+	names := []string{"Session", "Unlocks", "Bot Switcher", "Log"}
 	rendered := make([]string, 0, len(names))
 	for i, name := range names {
 		if view(i) == m.view {
@@ -135,6 +137,48 @@ func (m *model) tabs() string {
 		rendered = append(rendered, styleTab.Render(name))
 	}
 	return strings.Join(rendered, "  ")
+}
+
+/*
+	window fits a list into the body, from wherever the player scrolled to
+
+A list here is anchored at the top and can be longer than the screen. The last
+line goes to a count of what is off it, because a list that stops at the bottom
+row reads as the whole list: Unlocks holds one row per item the multiworld has
+handed over, and a run passes a screenful of them early.
+
+The offset is clamped here and written back. This is the only place that has
+counted the rows, so the keystroke can add to the offset and nothing else.
+*/
+func (m *model) window(rows []string, height int) string {
+	if len(rows) <= height {
+		m.listOffset = 0
+		for len(rows) < height {
+			rows = append(rows, "")
+		}
+		return strings.Join(rows[:height], "\n")
+	}
+
+	visible := height - 1
+	m.listOffset = min(max(m.listOffset, 0), len(rows)-visible)
+
+	out := make([]string, 0, height)
+	out = append(out, rows[m.listOffset:m.listOffset+visible]...)
+	more := moreLine(m.listOffset, len(rows)-m.listOffset-visible)
+	out = append(out, styleMuted.Render(truncate(more, m.width)))
+	return strings.Join(out, "\n")
+}
+
+// moreLine names the rows on neither side of the screen, and the keys to them.
+func moreLine(above, below int) string {
+	counts := make([]string, 0, 2)
+	if above > 0 {
+		counts = append(counts, fmt.Sprintf("%d above", above))
+	}
+	if below > 0 {
+		counts = append(counts, fmt.Sprintf("%d below", below))
+	}
+	return strings.Join(counts, ", ") + "   up and down scroll, page up and page down by the screenful"
 }
 
 // log is the last screenful, or the screenful the player scrolled back to.
@@ -191,6 +235,35 @@ func (m *model) session() string {
 		rows = append(rows, "")
 	}
 	return strings.Join(rows[:height], "\n")
+}
+
+// unlocks is everything the multiworld has handed this run, named for a person:
+// the classes, the weapon slots, the missions and the weapon buffs with the
+// level a repeated buff reached.
+func (m *model) unlocks() string {
+	height := m.bodyHeight()
+	rows := make([]string, 0, height)
+
+	switch {
+	case !m.supervisor.Running():
+		rows = append(rows, styleMuted.Render("The server is not running."))
+	case m.fetchErr != nil:
+		rows = append(rows, styleMuted.Render("Bridge: "+m.fetchErr.Error()))
+	case len(m.snapshot.Unlocks) == 0:
+		rows = append(rows, styleMuted.Render("Nothing unlocked yet."))
+	default:
+		rows = append(rows, styleMuted.Render("In the game, !ap buffs shows the buffs on the loadout you hold."))
+		rows = append(rows, "")
+		for _, unlock := range m.snapshot.Unlocks {
+			level := ""
+			if unlock.Level > 1 {
+				level = fmt.Sprintf("  x%d", unlock.Level)
+			}
+			rows = append(rows, truncate(fmt.Sprintf("  %-12s %s%s", unlock.Kind, unlock.Name, level), m.width))
+		}
+	}
+
+	return m.window(rows, height)
 }
 
 func (m *model) runLine() string {
@@ -291,6 +364,10 @@ func (m *model) keys() string {
 	switch m.view {
 	case viewSession:
 		pairs = append(pairs, [2]string{"p", "play mission"})
+	case viewUnlocks:
+		// Read-only, and the list says so itself when it runs off the
+		// screen, so the keys row does not carry a scroll that is only
+		// sometimes there.
 	case viewBots:
 		pairs = append(pairs, [2]string{"a", "apply team"})
 	case viewLog:

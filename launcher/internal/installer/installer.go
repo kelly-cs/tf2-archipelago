@@ -19,9 +19,11 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
+	"github.com/m-this/tf2-archipelago/gamedata"
 	"github.com/m-this/tf2-archipelago/launcher/internal/assets"
 	"github.com/m-this/tf2-archipelago/launcher/internal/winproc"
 )
@@ -129,6 +131,13 @@ func Ensure(ctx context.Context, installRoot string, communityArchives []string,
 func installCommunityArchives(archives []string, modDir string, logf func(string, ...any)) error {
 	if err := ValidateCommunityArchives(archives, logf); err != nil {
 		return err
+	}
+	removed, err := removeUnsupportedCommunityPopfiles(modDir)
+	if err != nil {
+		return err
+	}
+	if removed > 0 {
+		logf("removed %d unsupported community mission popfile(s)", removed)
 	}
 	stampDir := filepath.Join(modDir, ".tf2ap-community")
 	for _, path := range archives {
@@ -340,6 +349,12 @@ func installCommunityZip(path, modDir string) error {
 		if relative == "" {
 			continue
 		}
+		// Full Potato packs contain missions for server mods we do not ship.
+		// Keep their maps and shared assets, but do not let stock TF2 discover
+		// and select an incompatible mission as that map's default.
+		if unsupportedCommunityPopfile(relative) {
+			continue
+		}
 		target, err := safeJoin(modDir, relative)
 		if err != nil {
 			return err
@@ -360,13 +375,74 @@ func installCommunityZip(path, modDir string) error {
 	return nil
 }
 
+var supportedCommunityPopfiles, communityMapNames = communityPopfilePolicy()
+
+func communityPopfilePolicy() (map[string]struct{}, []string) {
+	supported := make(map[string]struct{})
+	for _, mission := range gamedata.PlayableMissions() {
+		if gamedata.IsCommunityMission(mission.ID) {
+			supported[strings.ToLower(mission.PopFile)] = struct{}{}
+		}
+	}
+	maps := make([]string, 0)
+	for _, played := range gamedata.Maps {
+		if gamedata.IsCommunityMap(played.ID) {
+			maps = append(maps, strings.ToLower(played.Name))
+		}
+	}
+	return supported, maps
+}
+
+// unsupportedCommunityPopfile recognizes only mission files belonging to
+// community maps in our catalog. It deliberately leaves robot templates and
+// population files for unrelated user-installed maps alone.
+func unsupportedCommunityPopfile(relative string) bool {
+	clean := strings.ToLower(filepath.ToSlash(relative))
+	if filepath.ToSlash(filepath.Dir(clean)) != "scripts/population" || filepath.Ext(clean) != ".pop" {
+		return false
+	}
+	name := strings.TrimSuffix(filepath.Base(clean), ".pop")
+	for _, mapName := range communityMapNames {
+		if name != mapName && !strings.HasPrefix(name, mapName+"_") {
+			continue
+		}
+		_, supported := supportedCommunityPopfiles[name]
+		return !supported
+	}
+	return false
+}
+
+// removeUnsupportedCommunityPopfiles repairs installations made by older
+// launchers even when the ZIP stamp says the pack is already installed.
+func removeUnsupportedCommunityPopfiles(modDir string) (int, error) {
+	populationDir := filepath.Join(modDir, "scripts", "population")
+	entries, err := os.ReadDir(populationDir)
+	if errors.Is(err, fs.ErrNotExist) {
+		return 0, nil
+	}
+	if err != nil {
+		return 0, fmt.Errorf("cannot inspect installed community missions: %w", err)
+	}
+	removed := 0
+	for _, entry := range entries {
+		if entry.IsDir() || !unsupportedCommunityPopfile(filepath.Join("scripts", "population", entry.Name())) {
+			continue
+		}
+		if err := os.Remove(filepath.Join(populationDir, entry.Name())); err != nil {
+			return removed, fmt.Errorf("cannot remove unsupported community mission %s: %w", entry.Name(), err)
+		}
+		removed++
+	}
+	return removed, nil
+}
+
 // installMods puts everything that loads inside the game server into tf/:
 // Metamod, SourceMod, ripext, this project's plugin and the defender bots.
 // The first two are skipped when they are already there; the rest are written
 // every time, because they are ours and a stale copy is our bug to have.
 func installMods(ctx context.Context, modDir string, logf func(string, ...any)) error {
-	if !exists(filepath.Join(modDir, "addons", "metamod")) {
-		logf("installing Metamod:Source %s", assets.MetamodVersion)
+	if missing := firstMissing(modDir, metamodFiles(runtime.GOOS)); missing != "" {
+		logf("installing Metamod:Source %s: %s is missing", assets.MetamodVersion, missing)
 		if err := installMetamod(ctx, modDir); err != nil {
 			return err
 		}
@@ -375,8 +451,8 @@ func installMods(ctx context.Context, modDir string, logf func(string, ...any)) 
 		return err
 	}
 
-	if !exists(filepath.Join(modDir, "addons", "sourcemod")) {
-		logf("installing SourceMod %s", assets.SourcemodVersion)
+	if missing := firstMissing(modDir, sourcemodFiles(runtime.GOOS)); missing != "" {
+		logf("installing SourceMod %s: %s is missing", assets.SourcemodVersion, missing)
 		if err := installSourcemod(ctx, modDir, logf); err != nil {
 			return err
 		}
@@ -390,6 +466,41 @@ func installMods(ctx context.Context, modDir string, logf func(string, ...any)) 
 		return fmt.Errorf("cannot install the defender bots: %w", err)
 	}
 	return nil
+}
+
+/*
+The files the engine reads to load Metamod, and Metamod reads to load
+SourceMod, relative to the mod directory.
+
+A directory that exists is not a mod that loads. Cowser's server had an
+addons/ tree and started as stock Mann vs Machine, every tf2ap_ convar unknown,
+and the launcher looked at the directory, found it, and installed nothing. It
+looks for these now, and reinstalls when one is gone.
+*/
+func metamodFiles(goos string) []string {
+	if goos == "windows" {
+		return []string{"addons/metamod.vdf", "addons/metamod/bin/server.dll", "addons/metamod/bin/metamod.2.tf2.dll"}
+	}
+	return []string{"addons/metamod.vdf", "addons/metamod/bin/server.so", "addons/metamod/bin/metamod.2.tf2.so"}
+}
+
+func sourcemodFiles(goos string) []string {
+	if goos == "windows" {
+		return []string{"addons/sourcemod/bin/sourcemod_mm.dll", "addons/sourcemod/bin/sourcemod.2.tf2.dll", "addons/sourcemod/bin/sourcemod.logic.dll"}
+	}
+	return []string{"addons/sourcemod/bin/sourcemod_mm_i486.so", "addons/sourcemod/bin/sourcemod.2.tf2.so", "addons/sourcemod/bin/sourcemod.logic.so"}
+}
+
+// firstMissing is the first of the files that is not a regular file under
+// modDir, or empty when every one is there.
+func firstMissing(modDir string, files []string) string {
+	for _, relative := range files {
+		info, err := os.Stat(filepath.Join(modDir, filepath.FromSlash(relative)))
+		if err != nil || !info.Mode().IsRegular() {
+			return relative
+		}
+	}
+	return ""
 }
 
 // installSteamcmd downloads and unpacks Valve's SteamCMD bootstrap: a zip on

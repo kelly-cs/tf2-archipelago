@@ -23,6 +23,7 @@ import (
 	"github.com/m-this/tf2-archipelago/bridge/config"
 	"github.com/m-this/tf2-archipelago/fakeroom"
 	"github.com/m-this/tf2-archipelago/gamedata"
+	"github.com/m-this/tf2-archipelago/launcher/internal/fastdl"
 	"github.com/m-this/tf2-archipelago/launcher/internal/installer"
 	"github.com/m-this/tf2-archipelago/launcher/internal/settings"
 	"github.com/m-this/tf2-archipelago/launcher/internal/srcdsconfig"
@@ -45,6 +46,18 @@ func closeTestRoom(room *fakeroom.Room) {
 // blocks until the context is cancelled or one of them stops. The bridge gets
 // a head start so the plugin can reach /unlocks on first load.
 func Run(ctx context.Context, s settings.Settings, logger *slog.Logger) error {
+	prepared, err := prepareTailscaleFastDL(ctx, s, func(text string) {
+		logger.InfoContext(ctx, "download server", "detail", text)
+	})
+	if err != nil {
+		return err
+	}
+	s = prepared
+	if s.TailscaleFastDL {
+		defer stopTailscaleFastDL(ctx, s, func(cleanupCtx context.Context, text string) {
+			logger.InfoContext(cleanupCtx, "download server", "detail", text)
+		})
+	}
 	// Console mode has no interface to change a setting from, but it shares
 	// this entry point with anything that does. Rendering here keeps the one
 	// rule: a server that starts, starts from the settings it was given.
@@ -86,6 +99,9 @@ func Run(ctx context.Context, s settings.Settings, logger *slog.Logger) error {
 	go Guard("the game server", say, func() {
 		srcdsErr <- runSrcds(srcdsCtx, s, logger)
 	})
+	go Guard("the download server", say, func() {
+		serveFastDL(srcdsCtx, s, func(text string) { logger.InfoContext(ctx, "download server", "detail", text) })
+	})
 
 	select {
 	case <-ctx.Done():
@@ -98,6 +114,40 @@ func Run(ctx context.Context, s settings.Settings, logger *slog.Logger) error {
 	case err := <-srcdsErr:
 		logger.ErrorContext(ctx, "game server stopped", "error", err)
 		return fmt.Errorf("game server stopped: %w", err)
+	}
+}
+
+/*
+FastDLListen is where the content server binds, and empty is not serving.
+
+The port decides that on its own, and SrcdsDownloadURL does not come into it.
+The two answer different questions -- where a client is told to look, and
+whether this machine answers -- and an operator who fills in a public address
+so that friends outside the network can reach this server would otherwise turn
+off the server they were addressing.
+*/
+func FastDLListen(s settings.Settings) string {
+	if s.FastDLPort <= 0 {
+		return ""
+	}
+	if s.TailscaleFastDL {
+		return "127.0.0.1:" + strconv.Itoa(s.FastDLPort)
+	}
+
+	return ":" + strconv.Itoa(s.FastDLPort)
+}
+
+// serveFastDL runs the content file server for the life of ctx. A port that
+// is taken costs the players their HTTP download and nothing else: the game
+// server's own transfer is still on, so it is a line in the log, not a stop.
+func serveFastDL(ctx context.Context, s settings.Settings, say func(string)) {
+	listen := FastDLListen(s)
+	if listen == "" {
+		return
+	}
+	gameDir := filepath.Join(s.InstallRoot, "tf-dedicated", "tf")
+	if err := fastdl.Serve(ctx, gameDir, listen); err != nil {
+		say("the download server did not start, so maps come from the game server itself: " + err.Error())
 	}
 }
 

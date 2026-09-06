@@ -27,8 +27,12 @@ import (
 )
 
 const (
-	// readLimitBytes: RoomInfo carries a checksum per game, past the 32 KiB default.
-	readLimitBytes = 4 << 20
+	// readLimitBytes is a guard against a runaway reply, not a size the normal
+	// path reaches: the names are asked for one game at a time, and one
+	// game's tables are well under this. A public room's package for every
+	// game at once went past the old 4 MiB and dropped the session on every
+	// connect, forever.
+	readLimitBytes = 32 << 20
 
 	dialTimeout  = 30 * time.Second
 	writeTimeout = 10 * time.Second
@@ -68,6 +72,11 @@ type Client struct {
 	opts Options
 	uuid string
 
+	// Fields rather than constants at the call site so the half-open session
+	// regression does not have to wait forty seconds for a ping to fail.
+	pingEvery   time.Duration
+	pingTimeout time.Duration
+
 	// said and died bound what the game server can pour into the multiworld.
 	said *bucket
 	died *deaths
@@ -79,6 +88,10 @@ type Client struct {
 	connected bool
 	slot      SlotData
 	names     *nameBook
+	// fetched is every game whose names have arrived. A reconnect asks only
+	// for the ones missing, so a room that hands out one oversized package
+	// cannot cost the session on every connect.
+	fetched   map[string]bool
 	lastError string
 }
 
@@ -106,7 +119,10 @@ func New(opts Options) *Client {
 	if opts.Deaths == nil {
 		opts.Deaths = deathlink.New(1)
 	}
-	return &Client{opts: opts, uuid: randomUUID(), said: newBucket(time.Now), died: &deaths{now: time.Now}}
+	return &Client{
+		opts: opts, uuid: randomUUID(), said: newBucket(time.Now), died: &deaths{now: time.Now},
+		pingEvery: pingEvery, pingTimeout: writeTimeout,
+	}
 }
 
 // Health reports the session state. The plugin uses it to tell a player the
@@ -183,13 +199,31 @@ func (c *Client) session(ctx context.Context) error {
 	}()
 
 	ready := make(chan struct{})
-	pumped := make(chan error, 1)
-	go guard.Run("the Archipelago pump", c.opts.Logger, func() { pumped <- c.pump(ctx, conn, ready) })
+	type result struct {
+		direction string
+		err       error
+	}
+	finished := make(chan result, 2)
+	run := func(direction string, work func() error) {
+		finished <- result{
+			direction: direction,
+			err:       guard.Result("the Archipelago "+direction, c.opts.Logger, work),
+		}
+	}
+	go run("read loop", func() error { return c.readLoop(ctx, conn, ready) })
+	go run("outbound pump", func() error { return c.pump(ctx, conn, ready) })
 
-	err = c.readLoop(ctx, conn, ready)
+	first := <-finished
+	// Either direction ending invalidates the session. In particular, a missed
+	// pong can stop the outbound pump while room traffic keeps the read loop
+	// alive. Closing both is what makes Run reconnect and replay durable checks.
 	cancel()
-	<-pumped
-	return err
+	_ = conn.CloseNow()
+	<-finished
+	if first.err == nil {
+		return nil
+	}
+	return fmt.Errorf("archipelago %s: %w", first.direction, first.err)
 }
 
 // readLoop reads messages until the connection dies, starting with the RoomInfo/Connect handshake.
@@ -292,7 +326,11 @@ func (c *Client) onDataPackage(message json.RawMessage) error {
 	if c.names == nil {
 		c.names = newNameBook()
 	}
+	if c.fetched == nil {
+		c.fetched = map[string]bool{}
+	}
 	for game, names := range payload.Data.Games {
+		c.fetched[game] = true
 		items := make(map[int64]string, len(names.ItemNameToID))
 		for name, id := range names.ItemNameToID {
 			items[id] = name
@@ -348,6 +386,19 @@ func (c *Client) rememberNames(payload connected) []string {
 	return games
 }
 
+// namesMissing is the games in the room whose names have not arrived yet.
+func (c *Client) namesMissing(games []string) []string {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	var missing []string
+	for _, game := range games {
+		if !c.fetched[game] {
+			missing = append(missing, game)
+		}
+	}
+	return missing
+}
+
 // onConnected records the seed's shape. The pump wakes on ready and reports;
 // the only thing sent from here is the DeathLink tag, which cannot go on
 // Connect because the slot data that decides it is what Connected carries.
@@ -372,9 +423,12 @@ func (c *Client) onConnected(
 	 * failure to play: the chat falls back to printing ids, which is what it
 	 * did before it asked at all.
 	 */
-	if games := c.rememberNames(payload); len(games) > 0 {
-		if err := c.send(ctx, conn, getDataPackage{Cmd: "GetDataPackage", Games: games}); err != nil {
-			c.opts.Logger.WarnContext(ctx, "cannot ask for the item names, chat will show ids", "error", err)
+	for _, game := range c.namesMissing(c.rememberNames(payload)) {
+		/* One game per request. A room holds many games and one package for
+		   all of them is what went past the read limit and dropped the
+		   session on every connect; a game's own tables never come near it. */
+		if err := c.send(ctx, conn, getDataPackage{Cmd: "GetDataPackage", Games: []string{game}}); err != nil {
+			c.opts.Logger.WarnContext(ctx, "cannot ask for the item names, chat will show ids", "game", game, "error", err)
 		}
 	}
 	// The server holds the same check list for this slot, and the seed is
@@ -489,7 +543,7 @@ func (c *Client) pump(ctx context.Context, conn *websocket.Conn, ready chan stru
 		return nil
 	}
 
-	ping := time.NewTicker(pingEvery)
+	ping := time.NewTicker(c.pingEvery)
 	defer ping.Stop()
 	for {
 		changed := c.opts.Store.Watch()
@@ -501,7 +555,7 @@ func (c *Client) pump(ctx context.Context, conn *websocket.Conn, ready chan stru
 			return nil
 		case <-changed:
 		case <-ping.C:
-			pingCtx, cancel := context.WithTimeout(ctx, writeTimeout)
+			pingCtx, cancel := context.WithTimeout(ctx, c.pingTimeout)
 			err := conn.Ping(pingCtx)
 			cancel()
 			if err != nil {

@@ -35,6 +35,7 @@ func PlayerYAML(s Settings, archipelagoVersion string) string {
 	fmt.Fprintf(&b, "  difficulty_pool: %s\n", s.MvmDifficulty)
 	fmt.Fprintf(&b, "  goal: %s\n", s.MvmGoal)
 	fmt.Fprintf(&b, "  missionsanity_percentage: %d\n", s.MvmMissionsanityPct)
+	fmt.Fprintf(&b, "  medal_on_clear: %t\n", s.MvmMedalOnClear)
 	fmt.Fprintf(&b, "  death_link: %t\n", s.MvmDeathLink)
 	fmt.Fprintf(&b, "  mission_ticket_importance: %s\n", s.MvmMissionTicketImportance)
 	fmt.Fprintf(&b, "  class_unlock_importance: %s\n", s.MvmClassUnlockImportance)
@@ -43,18 +44,36 @@ func PlayerYAML(s Settings, archipelagoVersion string) string {
 	fmt.Fprintf(&b, "  cash_rewards: %t\n", s.MvmCashRewards)
 	fmt.Fprintf(&b, "  weapon_buff_percentage: %d\n", s.MvmWeaponBuffPct)
 	fmt.Fprintf(&b, "  weapon_buff_stack_chance: %d\n", s.MvmWeaponBuffStackChance)
+	fmt.Fprintf(&b, "  trap_percentage: %d\n", s.MvmTrapPct)
 	fmt.Fprintf(&b, "  start_mission: %s\n", yamlString(StartMissionName(s)))
 	fmt.Fprintf(&b, "  start_class: %s\n", yamlString(startClassName(s)))
-	names := ExcludedMissionNames(s)
-	if len(names) == 0 {
-		b.WriteString("  excluded_missions: []\n")
-	} else {
-		b.WriteString("  excluded_missions:\n")
-		for _, name := range names {
-			fmt.Fprintf(&b, "    - %s\n", yamlString(name))
+	writeYAMLList(&b, "excluded_missions", ExcludedMissionNames(s))
+	fmt.Fprintf(&b, "  community_missions: %t\n", s.MvmCommunityMissions)
+	writeYAMLList(&b, "server_mods", ServerModKeys(s))
+	return b.String()
+}
+
+func writeYAMLList(b *strings.Builder, key string, values []string) {
+	if len(values) == 0 {
+		fmt.Fprintf(b, "  %s: []\n", key)
+		return
+	}
+	fmt.Fprintf(b, "  %s:\n", key)
+	for _, value := range values {
+		fmt.Fprintf(b, "    - %s\n", yamlString(value))
+	}
+}
+
+// ServerModKeys is the settings' mod list in catalog order, dropping anything
+// the catalog does not know: the apworld refuses a key it has never heard of.
+func ServerModKeys(s Settings) []string {
+	keys := make([]string, 0, len(s.SrcdsMods))
+	for _, key := range gamedata.ServerModKeys() {
+		if slices.Contains(s.SrcdsMods, key) {
+			keys = append(keys, key)
 		}
 	}
-	return b.String()
+	return keys
 }
 
 // ExcludedMissionNames turns the popfiles the settings hold into the names the
@@ -62,7 +81,7 @@ func PlayerYAML(s Settings, archipelagoVersion string) string {
 // know.
 func ExcludedMissionNames(s Settings) []string {
 	names := make([]string, 0, len(s.MvmExcludedMissions))
-	for _, mission := range gamedata.PlayableMissions() {
+	for _, mission := range gamedata.MissionsPlayableWith(ServerModKeys(s)) {
 		if slices.Contains(s.MvmExcludedMissions, mission.PopFile) {
 			names = append(names, mission.Name)
 		}
@@ -81,7 +100,7 @@ func StartMissionName(s Settings) string {
 	if s.MvmStartMission == "" {
 		return randomOption
 	}
-	for _, mission := range gamedata.PlayableMissions() {
+	for _, mission := range gamedata.MissionsPlayableWith(ServerModKeys(s)) {
 		if mission.PopFile == s.MvmStartMission {
 			return mission.Name
 		}

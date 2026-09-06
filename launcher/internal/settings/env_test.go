@@ -99,10 +99,12 @@ func TestEveryFieldHasAnEnvVar(t *testing.T) {
 		"MvmDifficulty":              "MVM_DIFFICULTY",
 		"MvmGoal":                    "MVM_GOAL",
 		"MvmMissionsanityPct":        "MVM_MISSIONSANITY_PERCENTAGE",
+		"MvmMedalOnClear":            "MVM_MEDAL_ON_CLEAR",
 		"MvmDeathLink":               "MVM_DEATH_LINK",
 		"MvmExcludedMissions":        "MVM_EXCLUDED_MISSIONS",
 		"MvmStartMission":            "MVM_START_MISSION",
 		"MvmStartClass":              "MVM_START_CLASS",
+		"MvmCommunityMissions":       "MVM_COMMUNITY_MISSIONS",
 		"MvmMissionTicketImportance": "MVM_MISSION_TICKET_IMPORTANCE",
 		"MvmClassUnlockImportance":   "MVM_CLASS_UNLOCK_IMPORTANCE",
 		"MvmWeaponSlotImportance":    "MVM_WEAPON_SLOT_IMPORTANCE",
@@ -110,8 +112,13 @@ func TestEveryFieldHasAnEnvVar(t *testing.T) {
 		"MvmCashRewards":             "MVM_CASH_REWARDS",
 		"MvmWeaponBuffPct":           "MVM_WEAPON_BUFF_PERCENTAGE",
 		"MvmWeaponBuffStackChance":   "MVM_WEAPON_BUFF_STACK_CHANCE",
+		"MvmTrapPct":                 "MVM_TRAP_PERCENTAGE",
 		"MetricsPort":                "BRIDGE_METRICS_PORT",
 		"SrcdsBluHealthPct":          "SRCDS_BLU_HEALTH_PCT",
+		"SrcdsMods":                  "SRCDS_MODS",
+		"FastDLPort":                 "FASTDL_PORT",
+		"SrcdsDownloadURL":           "SRCDS_DOWNLOADURL",
+		"TailscaleFastDL":            "TAILSCALE_FASTDL",
 	}
 	// Fields kept only to read a config file written by an older build. They
 	// are never saved and never asked for, so there is nothing to set.

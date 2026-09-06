@@ -18,6 +18,9 @@ from . import TF2MvMTestBase
 
 PLAYABLE_MISSIONS = tuple(mission for mission in data.MISSIONS if mission.playable)
 PLAYABLE_MISSION_COUNT = len(PLAYABLE_MISSIONS)
+MODDED_MISSIONS = tuple(
+    mission for mission in data.MISSIONS if mission.requires in data.SERVER_MOD_KEYS
+)
 
 
 class TestDefaults(TF2MvMTestBase):
@@ -79,6 +82,29 @@ class TestCashRewards(TF2MvMTestBase):
         self.assertGreater(len(buffs), 0)
         self.assertGreater(len(cash), 0)
         self.assertEqual(math.ceil((len(buffs) + len(cash)) * 0.75), len(buffs))
+
+
+class TestNoTrapsByDefault(TF2MvMTestBase):
+    options: ClassVar[dict[str, Any]] = {}
+
+    def test_a_run_that_did_not_ask_gets_none(self) -> None:
+        self.assertFalse(any(item.name in data.TRAP_NAMES for item in self.multiworld.itempool))
+
+
+class TestTraps(TF2MvMTestBase):
+    options: ClassVar[dict[str, Any]] = {
+        "trap_percentage": 50,
+    }
+
+    def test_traps_take_half_the_spare_checks(self) -> None:
+        traps = [item for item in self.multiworld.itempool if item.name in data.TRAP_NAMES]
+        buffs = [item for item in self.multiworld.itempool if item.name in data.WEAPON_BUFF_NAMES]
+        self.assertGreater(len(traps), 0)
+        self.assertEqual((len(traps) + len(buffs)) // 2, len(traps))
+
+    def test_traps_are_classified_as_traps(self) -> None:
+        traps = [item for item in self.multiworld.itempool if item.name in data.TRAP_NAMES]
+        self.assertTrue(all(item.classification == ItemClassification.trap for item in traps))
 
 
 class TestUsefulUnlockModes(TF2MvMTestBase):
@@ -177,6 +203,46 @@ class TestExcludedMissions(TF2MvMTestBase):
         self.assertNotIn("Caliginous Caper", drawn)
         self.assertNotIn("Doe's Drill", drawn)
         self.assertEqual(PLAYABLE_MISSION_COUNT - 2, len(drawn))
+
+
+class TestCommunityMissionsCanBeKeptOut(TF2MvMTestBase):
+    options: ClassVar[dict[str, Any]] = {
+        "mission_count": len(data.MISSION_NAMES),
+        "difficulty_pool": "normal",
+        "community_missions": False,
+    }
+
+    def test_only_valve_missions_are_drawn(self) -> None:
+        for mission in self.world.missions:
+            self.assertFalse(mission.community, mission.name)
+        valve = [m for m in PLAYABLE_MISSIONS if not m.community]
+        self.assertEqual(len(valve), len(self.world.missions))
+
+
+class TestStockServerDrawsNoModdedMission(TF2MvMTestBase):
+    options: ClassVar[dict[str, Any]] = {
+        "mission_count": len(data.MISSION_NAMES),
+        "difficulty_pool": "normal",
+    }
+
+    def test_a_mission_that_needs_a_mod_stays_out(self) -> None:
+        drawn = {mission.name for mission in self.world.missions}
+        for mission in MODDED_MISSIONS:
+            self.assertNotIn(mission.name, drawn)
+        self.assertEqual(PLAYABLE_MISSION_COUNT, len(drawn))
+
+
+class TestModdedServerDrawsItsMissions(TF2MvMTestBase):
+    options: ClassVar[dict[str, Any]] = {
+        "mission_count": len(data.MISSION_NAMES),
+        "difficulty_pool": "normal",
+        "server_mods": set(data.SERVER_MOD_KEYS),
+    }
+
+    def test_every_seedable_mission_is_drawn(self) -> None:
+        drawn = {mission.name for mission in self.world.missions}
+        self.assertEqual(data.MISSION_NAMES, drawn)
+        self.assertEqual(sorted(data.SERVER_MOD_KEYS), self.world.fill_slot_data()["server_mods"])
 
 
 class TestMissionsanity(TF2MvMTestBase):
@@ -324,3 +390,74 @@ class TestFinalBoss(TF2MvMTestBase):
 
     def test_goal_needs_more_than_the_starting_inventory(self) -> None:
         self.assertFalse(self.multiworld.completion_condition[self.player](self.multiworld.state))
+
+
+class TestNoMedalsByDefault(TF2MvMTestBase):
+    options: ClassVar[dict[str, Any]] = {}
+
+    def test_a_run_that_did_not_ask_gets_none(self) -> None:
+        medals = set(data.MEDAL_NAMES.values())
+        self.assertFalse(any(item.name in medals for item in self.multiworld.itempool))
+        for mission in self.world.missions:
+            location = self.multiworld.get_location(f"{mission.name} Complete", self.player)
+            self.assertIsNone(location.item)
+
+
+class TestMedalOnClear(TF2MvMTestBase):
+    """One medal per mission, on that mission's own clear and nowhere else."""
+
+    options: ClassVar[dict[str, Any]] = {
+        "medal_on_clear": 1,
+        "mission_count": 6,
+    }
+
+    def test_every_clear_holds_its_own_medal(self) -> None:
+        for mission in self.world.missions:
+            location = self.multiworld.get_location(f"{mission.name} Complete", self.player)
+            self.assertIsNotNone(location.item)
+            self.assertEqual(data.MEDAL_NAMES[mission.id], location.item.name)
+            self.assertTrue(location.item.advancement)
+
+    def test_no_medal_reaches_the_multiworld(self) -> None:
+        medals = set(data.MEDAL_NAMES.values())
+        self.assertFalse(any(item.name in medals for item in self.multiworld.itempool))
+
+    def test_the_pool_shrinks_by_the_locked_clears(self) -> None:
+        # Every location the pool may fill holds exactly one item, so a pool
+        # that ignored the locked clears would overfill or come up short.
+        free = self.world._check_count(self.world.missions) - len(self.world.missions)
+        self.assertEqual(free, len(self.multiworld.itempool))
+
+
+class TestMedalGoalFinalBoss(TF2MvMTestBase):
+    options: ClassVar[dict[str, Any]] = {
+        "medal_on_clear": 1,
+        "goal": "final_boss",
+        "mission_count": 6,
+    }
+
+    def test_the_goal_reads_the_goal_mission_medal(self) -> None:
+        state = self.multiworld.get_all_state(False)
+        self.assertTrue(self.multiworld.completion_condition[self.player](state))
+
+        medal = data.MEDAL_NAMES[self.world.goal_mission.id]
+        state.remove(self.world.create_item(medal))
+        self.assertFalse(self.multiworld.completion_condition[self.player](state))
+
+
+class TestMedalGoalMissionsanity(TF2MvMTestBase):
+    options: ClassVar[dict[str, Any]] = {
+        "medal_on_clear": 1,
+        "goal": "missionsanity",
+        "missionsanity_percentage": 100,
+        "mission_count": 6,
+    }
+
+    def test_the_goal_counts_the_medals(self) -> None:
+        state = self.multiworld.get_all_state(False)
+        self.assertTrue(self.multiworld.completion_condition[self.player](state))
+
+        # One short of every mission is one short of the goal.
+        medal = data.MEDAL_NAMES[self.world.missions[0].id]
+        state.remove(self.world.create_item(medal))
+        self.assertFalse(self.multiworld.completion_condition[self.player](state))

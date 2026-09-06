@@ -54,6 +54,32 @@ type Settings struct {
 	SrcdsReach         Reach  `json:"srcds_reach"`
 	SrcdsAdminSteamIDs string `json:"srcds_admin_steamids,omitempty"`
 
+	// SrcdsMods are the server mods the game server loads, by the keys
+	// gamedata catalogs. A community mission that needs one is offered only
+	// when the mod is here, and the player file names the same mods so the
+	// seed and the server agree. The Windows launcher installs none of them
+	// yet: it only carries the choice through for a server that has one.
+	SrcdsMods []string `json:"srcds_mods"`
+	/*
+		FastDLPort is where the launcher serves the game's maps and other
+		content over HTTP, on this machine, so a joining client downloads
+		a community map from here rather than through the game server. 0
+		turns the server off.
+
+		SrcdsDownloadURL is the whole sv_downloadurl value, for an
+		operator who knows an address this machine cannot work out. The
+		two are separate on purpose: this one says where a client is told
+		to look, the port above says whether this machine answers. A
+		server reached over a forwarded port needs both, because the
+		address friends use is the router's and nothing here can see it.
+	*/
+	FastDLPort       int    `json:"fastdl_port"`
+	SrcdsDownloadURL string `json:"srcds_download_url,omitempty"`
+	// TailscaleFastDL asks Tailscale Funnel to publish only the downloadable
+	// content directories and gives its public HTTPS URL to SRCDS. It changes
+	// no game-server address or reach setting. Only the server runs Tailscale.
+	TailscaleFastDL bool `json:"tailscale_fastdl,omitempty"`
+
 	// SrcdsStartMission is the popfile the server loads first. The map comes
 	// with it: gamedata knows which map a mission runs on.
 	SrcdsStartMission string `json:"srcds_start_mission"`
@@ -131,10 +157,13 @@ type Settings struct {
 
 	// Run shape, for seed generation guidance (the launcher does not generate
 	// seeds itself, but it can write a starter YAML for the Archipelago app).
-	MvmMissionCount     int      `json:"mvm_mission_count"`
-	MvmDifficulty       string   `json:"mvm_difficulty"`
-	MvmGoal             string   `json:"mvm_goal"`
-	MvmMissionsanityPct int      `json:"mvm_missionsanity_percentage"`
+	MvmMissionCount     int    `json:"mvm_mission_count"`
+	MvmDifficulty       string `json:"mvm_difficulty"`
+	MvmGoal             string `json:"mvm_goal"`
+	MvmMissionsanityPct int    `json:"mvm_missionsanity_percentage"`
+	// MvmMedalOnClear locks a medal onto every mission clear and makes the
+	// goal read the medals held. It costs the multiworld one check a mission.
+	MvmMedalOnClear     bool     `json:"mvm_medal_on_clear"`
 	MvmDeathLink        bool     `json:"mvm_death_link"`
 	MvmExcludedMissions []string `json:"mvm_excluded_missions,omitempty"`
 
@@ -146,6 +175,7 @@ type Settings struct {
 	MvmStartMission string `json:"mvm_start_mission,omitempty"`
 	MvmStartClass   string `json:"mvm_start_class,omitempty"`
 
+	MvmCommunityMissions       bool   `json:"mvm_community_missions"`
 	MvmMissionTicketImportance string `json:"mvm_mission_ticket_importance"`
 	MvmClassUnlockImportance   string `json:"mvm_class_unlock_importance"`
 	MvmWeaponSlotImportance    string `json:"mvm_weapon_slot_importance"`
@@ -154,9 +184,12 @@ type Settings struct {
 	MvmWeaponBuffPct           int    `json:"mvm_weapon_buff_percentage"`
 	MvmWeaponBuffStackChance   int    `json:"mvm_weapon_buff_stack_chance"`
 
-	/* The three levers that bend a mission for a short team, each the scale at
-	 * one human on RED rising to 1.0 at six. 1.0 is off, and all three are off
-	 * until a run says otherwise.
+	// MvmTrapPct is how much of the run's spare space is traps. Zero is off and
+	// zero is the default, so it needs no entry in withDefaults. A config file
+	// that predates it reads back as a run that asked for no traps.
+	MvmTrapPct int `json:"mvm_trap_percentage"`
+
+	/* A direct multiplier for every robot. 100 percent is neutral.
 	 *
 	 * Percentages rather than the mod's floats, because a settings page with
 	 * 0.7 in a box asks the player to know what the 1.0 end means.
@@ -166,6 +199,10 @@ type Settings struct {
 	// Whether to enable the metrics listener and on what port.
 	MetricsPort int `json:"metrics_port"`
 }
+
+// FastDLPortDefault matches FASTDL_PORT in deploy/.env.example. Off the game
+// port, whose TCP side srcds already holds for rcon.
+const FastDLPortDefault = 27080
 
 // Defaults returns the factory settings, matching deploy/.env.example.
 func Defaults() Settings {
@@ -185,6 +222,7 @@ func Defaults() Settings {
 		// combination that cannot work: the server never logs in to Steam, so
 		// it answers the query and then refuses the join.
 		SrcdsReach:                 ReachLan,
+		FastDLPort:                 FastDLPortDefault,
 		SrcdsBots:                  true,
 		SrcdsBotTeamSize:           6,
 		SrcdsBotHats:               true,
@@ -194,16 +232,23 @@ func Defaults() Settings {
 		MvmGoal:                    "final_boss",
 		MvmMissionsanityPct:        80,
 		MvmExcludedMissions:        defaultExcludedMissions(),
+		MvmCommunityMissions:       true,
 		MvmMissionTicketImportance: "progression",
 		MvmClassUnlockImportance:   "progression",
 		MvmWeaponSlotImportance:    "progression",
 		MvmWeaponBuffImportance:    "useful",
 		MvmWeaponBuffPct:           75,
 		MvmWeaponBuffStackChance:   25,
-		SrcdsBluHealthPct:          100,
+		SrcdsBluHealthPct:          RobotHealthPercentNeutral,
 		MetricsPort:                24681,
 	}
 }
+
+const (
+	RobotHealthPercentMin     = 10
+	RobotHealthPercentNeutral = 100
+	RobotHealthPercentMax     = 1000
+)
 
 // BotTeam is one saved team: what each seat plays and holds, and which classes
 // the mod may draw the rest from. The same three things the Bots tab edits, so
@@ -446,8 +491,16 @@ func (s Settings) withDefaults() Settings {
 	if s.MvmWeaponBuffImportance == "" {
 		s.MvmWeaponBuffImportance = d.MvmWeaponBuffImportance
 	}
+	return withListenerDefaults(s, d)
+}
+
+// withListenerDefaults fills the two ports the launcher itself listens on.
+func withListenerDefaults(s, d Settings) Settings {
 	if s.MetricsPort == 0 {
 		s.MetricsPort = d.MetricsPort
+	}
+	if s.FastDLPort == 0 {
+		s.FastDLPort = d.FastDLPort
 	}
 	return s
 }
