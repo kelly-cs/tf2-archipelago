@@ -181,15 +181,17 @@ func TestSelfBlastBuffsPreserveTheNativeExplosionAndPush(t *testing.T) {
 	native := sourceFunction(t, buffs, "static void WeaponBuffs_SyncNativeSelfBlast")
 	for _, required := range []string{
 		"GetPlayerWeaponSlot(client, slot)",
-		"TF2Attrib_RemoveByName(entity, g_WeaponEffectAttributes[NoSelfBlastEffect])",
+		"TF2Attrib_RemoveByName(entity, SelfBlastDamageAttribute)",
 		"g_WeaponEffectLevels[weapon][NoSelfBlastEffect]",
-		"TF2Attrib_SetByName(entity",
-		"g_WeaponEffectAttributes[NoSelfBlastEffect], 2.0",
+		"TF2Attrib_SetByName(entity, SelfBlastDamageAttribute, 0.0)",
 		"TF2Attrib_ClearCache(entity)",
 	} {
 		if !strings.Contains(native, required) {
 			t.Fatalf("native no-self-blast path has no %q", required)
 		}
+	}
+	if strings.Contains(native, "g_WeaponEffectAttributes[NoSelfBlastEffect], 2.0") {
+		t.Fatal("native no-self-blast path still selects TF2's replacement Jumper explosion")
 	}
 
 	apply := sourceFunction(t, buffs, "void WeaponBuffs_Apply(int client)")

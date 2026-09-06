@@ -12,6 +12,7 @@
 #define JarateEffect 60
 #define ActiveHealthRegenEffect 66
 #define NoSelfBlastEffect 62
+#define SelfBlastDamageAttribute "blast dmg to self increased"
 #define RocketJumpProtectionEffect 72
 // What one level of rocket-jump protection takes off self-inflicted blast damage.
 #define RocketJumpProtectionPerLevel 0.25
@@ -1145,9 +1146,9 @@ static int WeaponBuffs_WeaponOfHit(int attacker, int inflictor, int weapon)
 
 // Scale self-inflicted blast damage for rocket-jump protection. Do not turn
 // no-self-blast into a zero-damage SDKHook event here: TF2 stops processing a
-// zero-damage event before it applies the explosion's push. That toggle is
-// installed on each launcher below so the game's Jumper path can own both the
-// zero health damage and the preserved blast movement.
+// zero-damage event before it applies the explosion's push. The launcher
+// multiplier installed below lets TF2's damage rules zero health damage after
+// the explosion and its force have already been established.
 public Action WeaponBuffs_OnTakeDamage(int victim, int &attacker, int &inflictor,
     float &damage, int &damagetype, int &weapon, float damageForce[3],
     float damagePosition[3], int damagecustom)
@@ -1394,12 +1395,12 @@ static int WeaponBuffs_Provider(int client, int weaponEntity)
     return provider;
 }
 
-// Attribute 181 has two native modes. One only recognizes the Sticky
-// Jumper's practice-sticky damage; two is the Rocket Jumper mode and ignores
-// every self-inflicted blast produced by this weapon. Applying that mode to
-// the launcher lets TF2 retain its explosion, blast-jump force and conditions
-// while reducing only the health damage to zero. Keep it on every loadout
-// weapon so a projectile still has the attribute after its owner switches.
+// Attribute 181 (no self blast dmg) changes rockets and grenades to the
+// Jumper explosion particle as well as suppressing damage. Attribute 207 is
+// the independent self-blast damage multiplier: zeroing it in TF2's native
+// damage rules retains the ordinary explosion, blast-jump force and
+// conditions. Keep it on every loadout weapon so a projectile still has the
+// attribute after its owner switches.
 static void WeaponBuffs_SyncNativeSelfBlast(int client, bool removeAll)
 {
     for (int slot = 0; slot <= 5; slot++)
@@ -1409,13 +1410,12 @@ static void WeaponBuffs_SyncNativeSelfBlast(int client, bool removeAll)
         {
             continue;
         }
-        TF2Attrib_RemoveByName(entity, g_WeaponEffectAttributes[NoSelfBlastEffect]);
+        TF2Attrib_RemoveByName(entity, SelfBlastDamageAttribute);
         int weapon = WeaponBuffs_ForEntity(entity);
         if (!removeAll && weapon >= 0
             && g_WeaponEffectLevels[weapon][NoSelfBlastEffect] > 0)
         {
-            if (!TF2Attrib_SetByName(entity,
-                g_WeaponEffectAttributes[NoSelfBlastEffect], 2.0))
+            if (!TF2Attrib_SetByName(entity, SelfBlastDamageAttribute, 0.0))
             {
                 LogError("Could not apply native no-self-blast effect to %s.",
                     g_WeaponNames[weapon]);
@@ -1524,8 +1524,8 @@ void WeaponBuffs_Apply(int client)
         {
             continue;
         }
-        // This one must live on the launcher so TF2 can use its native
-        // zero-health-damage path without suppressing blast-jump movement.
+        // This one uses a different launcher attribute below so TF2 retains
+        // both normal explosion visuals and blast-jump movement.
         if (effect == NoSelfBlastEffect)
         {
             continue;
