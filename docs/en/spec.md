@@ -220,7 +220,7 @@ The seed decides. A slot with `death_link` off never claims the tag, never
 hears a death, and drops what the plugin reports.
 
 `trap_percentage` is how much of the run's spare space holds traps rather
-than rewards. Zero, the default, puts none in the pool.
+than rewards. One percent by default; zero puts none in the pool.
 
 Built: **Jarate on the whole team**, ten seconds, bots included.
 

@@ -35,7 +35,7 @@ slot, weapon buffs, cash bundles and traps. The Australium Medals are the
 exception, and only a run with `medal_on_clear` has them.
 
 A trap has a negative effect. `trap_percentage` decides how many the run holds,
-and it is zero by default. The one that exists soaks the whole team in Jarate
+one percent by default and zero for none. The one that exists soaks the whole team in Jarate
 for ten seconds. A trap that arrives between waves waits for the next one.
 
 ## What does another world's item look like in Mann vs Machine?

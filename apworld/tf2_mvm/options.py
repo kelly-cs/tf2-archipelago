@@ -283,14 +283,15 @@ class TrapPercentage(Range):
     your team gets Jarate. They come out of the same space as the weapon buffs
     and the cash, so raising this lowers those rather than adding checks.
 
-    Off by default. A trap can cost the team a wave and never costs the run an
+    One percent by default, so a run meets a trap now and then; zero leaves
+    them out. A trap can cost the team a wave and never costs the run an
     unlock it already holds.
     """
 
     display_name = "Trap Percentage"
     range_start = 0
     range_end = 100
-    default = 0
+    default = 1
 
 
 @dataclass

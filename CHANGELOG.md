@@ -12,12 +12,13 @@ Cowser's sheet and kelly-cs's issues. Bots at 2.52.3.
 
 ### The run
 
-- **Traps.** A `trap_percentage` option puts traps in the pool, off by default.
-  The one that exists soaks the whole team in Jarate: ten seconds of 35% more
-  damage taken and no crits, bots included. It belongs to the multiworld like
-  any other item, so it is another player opening a chest that does it to you.
-  One that arrives between waves waits for the next one: Jarate on a team
-  standing at the upgrade station is no trap at all.
+- **Traps.** A `trap_percentage` option puts traps in the pool, one percent by
+  default and zero for none. The one that exists soaks the whole team in
+  Jarate: ten seconds of 35% more damage taken and no crits, bots included. It
+  belongs to the multiworld like any other item, so it is another player
+  opening a chest that does it to you. One that arrives between waves waits
+  for the next one: Jarate on a team standing at the upgrade station is no
+  trap at all.
 - **Australium Medals.** `medal_on_clear`, off by default, locks a medal onto
   every mission clear and takes those checks out of the pool. Both goals read
   them: Final Boss asks for the goal mission's own, missionsanity counts them.

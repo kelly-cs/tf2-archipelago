@@ -189,17 +189,17 @@ func TestOldConfigGetsRewardDefaults(t *testing.T) {
 		s.MvmWeaponBuffImportance != "useful" {
 		t.Errorf("reward importance defaults = %+v", s)
 	}
-	if s.MvmCashRewards || s.MvmWeaponBuffPct != 75 || s.MvmWeaponBuffStackChance != 25 {
-		t.Errorf("reward defaults: cash=%v, buffs=%d, stack=%d", s.MvmCashRewards, s.MvmWeaponBuffPct, s.MvmWeaponBuffStackChance)
+	if s.MvmCashRewards || s.MvmWeaponBuffPct != 75 || s.MvmWeaponBuffStackChance != 25 || s.MvmTrapPct != 1 {
+		t.Errorf("reward defaults: cash=%v, buffs=%d, stack=%d, traps=%d", s.MvmCashRewards, s.MvmWeaponBuffPct, s.MvmWeaponBuffStackChance, s.MvmTrapPct)
 	}
 }
 
 func TestExplicitZeroRewardPercentagesSurvive(t *testing.T) {
-	s, err := parse([]byte(`{"mvm_weapon_buff_percentage": 0, "mvm_weapon_buff_stack_chance": 0}`))
+	s, err := parse([]byte(`{"mvm_weapon_buff_percentage": 0, "mvm_weapon_buff_stack_chance": 0, "mvm_trap_percentage": 0}`))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if s.MvmWeaponBuffPct != 0 || s.MvmWeaponBuffStackChance != 0 {
-		t.Errorf("explicit zeros became buffs=%d, stack=%d", s.MvmWeaponBuffPct, s.MvmWeaponBuffStackChance)
+	if s.MvmWeaponBuffPct != 0 || s.MvmWeaponBuffStackChance != 0 || s.MvmTrapPct != 0 {
+		t.Errorf("explicit zeros became buffs=%d, stack=%d, traps=%d", s.MvmWeaponBuffPct, s.MvmWeaponBuffStackChance, s.MvmTrapPct)
 	}
 }

@@ -184,9 +184,9 @@ type Settings struct {
 	MvmWeaponBuffPct           int    `json:"mvm_weapon_buff_percentage"`
 	MvmWeaponBuffStackChance   int    `json:"mvm_weapon_buff_stack_chance"`
 
-	// MvmTrapPct is how much of the run's spare space is traps. Zero is off and
-	// zero is the default, so it needs no entry in withDefaults. A config file
-	// that predates it reads back as a run that asked for no traps.
+	// MvmTrapPct is how much of the run's spare space is traps. Zero is off,
+	// and a player who wrote zero keeps it: withAppearanceDefaults fills the
+	// default only when the file never mentions the key.
 	MvmTrapPct int `json:"mvm_trap_percentage"`
 
 	/* A direct multiplier for every robot. 100 percent is neutral.
@@ -239,6 +239,7 @@ func Defaults() Settings {
 		MvmWeaponBuffImportance:    "useful",
 		MvmWeaponBuffPct:           75,
 		MvmWeaponBuffStackChance:   25,
+		MvmTrapPct:                 1,
 		SrcdsBluHealthPct:          RobotHealthPercentNeutral,
 		MetricsPort:                24681,
 	}
@@ -349,6 +350,7 @@ func (s Settings) withAppearanceDefaults(data []byte) Settings {
 		Effects               *bool `json:"srcds_bot_hat_effects"`
 		WeaponBuffPct         *int  `json:"mvm_weapon_buff_percentage"`
 		WeaponBuffStackChance *int  `json:"mvm_weapon_buff_stack_chance"`
+		TrapPct               *int  `json:"mvm_trap_percentage"`
 	}
 	// A file that parsed once parses again; anything else has already been
 	// reported by the caller.
@@ -367,6 +369,9 @@ func (s Settings) withAppearanceDefaults(data []byte) Settings {
 	}
 	if said.WeaponBuffStackChance == nil {
 		s.MvmWeaponBuffStackChance = d.MvmWeaponBuffStackChance
+	}
+	if said.TrapPct == nil {
+		s.MvmTrapPct = d.MvmTrapPct
 	}
 	return s
 }

@@ -181,8 +181,8 @@ A trap is an item with a negative effect, and it belongs to the multiworld like
 every other item. Somebody in another world opens a chest, and your team pays
 for it.
 
-`trap_percentage` decides how much of the run's spare space holds one. It is
-zero by default, so a seed that did not ask gets none.
+`trap_percentage` decides how much of the run's spare space holds one. One
+percent by default, so a run meets one now and then; zero leaves them out.
 
 There is one trap so far. `Trap: Team Jarate` soaks everyone on RED, bots
 included: ten seconds of taking 35% more damage and dealing no crits.

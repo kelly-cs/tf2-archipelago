@@ -533,7 +533,7 @@ func runSettingsDialog(
 							declarative.NumberEdit{AssignTo: &buffPct, Value: float64(s.MvmWeaponBuffPct), MinValue: 0, MaxValue: 100, Decimals: 0},
 							label("Buff stack chance", "Chance that another buff reward adds a level to a numeric buff already in the seed. Toggle effects never repeat."),
 							declarative.NumberEdit{AssignTo: &buffStack, Value: float64(s.MvmWeaponBuffStackChance), MinValue: 0, MaxValue: 100, Decimals: 0},
-							label("Traps", "Percent of spare checks that hold a trap instead of a reward. A trap is an item another player finds and your team pays for, such as Jarate on everyone. Zero leaves them out of the seed."),
+							label("Traps (%)", "Percent of spare checks that hold a trap instead of a reward. A trap is an item another player finds and your team pays for, such as Jarate on everyone. Zero leaves them out of the seed."),
 							declarative.NumberEdit{AssignTo: &trapPct, Value: float64(s.MvmTrapPct), MinValue: 0, MaxValue: 100, Decimals: 0},
 						},
 					},
