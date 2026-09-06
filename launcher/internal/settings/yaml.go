@@ -47,6 +47,7 @@ func PlayerYAML(s Settings, archipelagoVersion string) string {
 	fmt.Fprintf(&b, "  start_mission: %s\n", yamlString(StartMissionName(s)))
 	fmt.Fprintf(&b, "  start_class: %s\n", yamlString(startClassName(s)))
 	writeYAMLList(&b, "excluded_missions", ExcludedMissionNames(s))
+	fmt.Fprintf(&b, "  community_missions: %t\n", s.MvmCommunityMissions)
 	writeYAMLList(&b, "server_mods", ServerModKeys(s))
 	return b.String()
 }

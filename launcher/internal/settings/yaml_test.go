@@ -155,6 +155,17 @@ func TestPlayerYAMLNamesTheExcludedMissions(t *testing.T) {
 // The player file names the mods the server loads, in catalog order, and
 // nothing the catalog does not know: the apworld refuses a key it has never
 // heard of, and a refused file is a seed nobody gets.
+func TestPlayerYAMLSaysWhetherCommunityMissionsPlay(t *testing.T) {
+	s := Defaults()
+	if !strings.Contains(PlayerYAML(s, ""), "  community_missions: true\n") {
+		t.Error("the default did not write community_missions on")
+	}
+	s.MvmCommunityMissions = false
+	if !strings.Contains(PlayerYAML(s, ""), "  community_missions: false\n") {
+		t.Error("turning it off did not reach the file")
+	}
+}
+
 func TestPlayerYAMLNamesTheServerMods(t *testing.T) {
 	s := Defaults()
 	s.SrcdsMods = []string{"rafmod", "sigsegv-mvm"}

@@ -168,6 +168,7 @@ type Settings struct {
 	MvmStartMission string `json:"mvm_start_mission,omitempty"`
 	MvmStartClass   string `json:"mvm_start_class,omitempty"`
 
+	MvmCommunityMissions       bool   `json:"mvm_community_missions"`
 	MvmMissionTicketImportance string `json:"mvm_mission_ticket_importance"`
 	MvmClassUnlockImportance   string `json:"mvm_class_unlock_importance"`
 	MvmWeaponSlotImportance    string `json:"mvm_weapon_slot_importance"`
@@ -224,6 +225,7 @@ func Defaults() Settings {
 		MvmGoal:                    "final_boss",
 		MvmMissionsanityPct:        80,
 		MvmExcludedMissions:        defaultExcludedMissions(),
+		MvmCommunityMissions:       true,
 		MvmMissionTicketImportance: "progression",
 		MvmClassUnlockImportance:   "progression",
 		MvmWeaponSlotImportance:    "progression",
