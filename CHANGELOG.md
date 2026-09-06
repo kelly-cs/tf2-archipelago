@@ -51,8 +51,8 @@ in the release notes, so this file is the only place to write it.
   primary no longer keeps the boots and holds nothing. Gunboats, Mantreads,
   the Razorback and the other slot-filling wearables follow the same rule.
 - The "no self-inflicted blast damage" and rocket-jump protection buffs work
-  on rocket launchers and the Loose Cannon. The game reads them on the player,
-  not the weapon, so the buff never reached them; the push is untouched.
+  on rocket, grenade and stickybomb launchers. Zero self-damage keeps the
+  ordinary explosion effect and blast-jump push.
 - Projectile penetration is no longer offered on explosives. Bleed lands one
   stack per enemy instead of one per hit. Armor piercing is a knife buff only,
   since the game reads it on backstabs and nowhere else. Melee fire rate buffs

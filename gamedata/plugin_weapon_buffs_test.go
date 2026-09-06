@@ -153,3 +153,56 @@ func TestWeaponBuffOwnershipPolicyDefaultsToPlayers(t *testing.T) {
 		}
 	}
 }
+
+func TestSelfBlastBuffsPreserveTheNativeExplosionAndPush(t *testing.T) {
+	buffs := "../plugin/scripting/tf2_archipelago/weapon_buffs.inc"
+	hook := sourceFunction(t, buffs, "void WeaponBuffs_HookClient(int client)")
+	if !strings.Contains(hook, "SDKHook_OnTakeDamage, WeaponBuffs_OnTakeDamage") {
+		t.Fatal("players are not hooked for modifiable damage")
+	}
+
+	damage := sourceFunction(t, buffs, "public Action WeaponBuffs_OnTakeDamage")
+	for _, required := range []string{
+		"victim != attacker",
+		"!(damagetype & DMG_BLAST)",
+		"WeaponBuffs_WeaponOfHit(attacker, inflictor, weapon)",
+		"WeaponBuffs_ForEntity(weapon)",
+		"g_WeaponEffectLevels[catalog][RocketJumpProtectionEffect]",
+		"damage *= kept",
+	} {
+		if !strings.Contains(damage, required) {
+			t.Fatalf("self-blast damage path has no %q", required)
+		}
+	}
+	if strings.Contains(damage, "NoSelfBlastEffect") || strings.Contains(damage, "damage = 0.0") {
+		t.Fatal("no-self-blast still zeroes the SDKHook event and suppresses native blast movement")
+	}
+
+	native := sourceFunction(t, buffs, "static void WeaponBuffs_SyncNativeSelfBlast")
+	for _, required := range []string{
+		"GetPlayerWeaponSlot(client, slot)",
+		"TF2Attrib_RemoveByName(entity, SelfBlastDamageAttribute)",
+		"g_WeaponEffectLevels[weapon][NoSelfBlastEffect]",
+		"TF2Attrib_SetByName(entity, SelfBlastDamageAttribute, 0.0)",
+		"TF2Attrib_ClearCache(entity)",
+	} {
+		if !strings.Contains(native, required) {
+			t.Fatalf("native no-self-blast path has no %q", required)
+		}
+	}
+	if strings.Contains(native, "g_WeaponEffectAttributes[NoSelfBlastEffect], 2.0") {
+		t.Fatal("native no-self-blast path still selects TF2's replacement Jumper explosion")
+	}
+
+	apply := sourceFunction(t, buffs, "void WeaponBuffs_Apply(int client)")
+	if !strings.Contains(apply, "WeaponBuffs_SyncNativeSelfBlast(client, false)") {
+		t.Fatal("buff application does not synchronize native no-self-blast attributes")
+	}
+	if !strings.Contains(apply, "effect == NoSelfBlastEffect") {
+		t.Fatal("generic provider still duplicates the native no-self-blast attribute")
+	}
+	remove := sourceFunction(t, buffs, "static void WeaponBuffs_Remove(int client)")
+	if !strings.Contains(remove, "WeaponBuffs_SyncNativeSelfBlast(client, true)") {
+		t.Fatal("buff removal leaves native no-self-blast attributes behind")
+	}
+}
