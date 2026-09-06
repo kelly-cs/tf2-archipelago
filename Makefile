@@ -301,11 +301,10 @@ bots-from-source:
 # versions.env stays the single source of truth and a hand `go build` (which
 # leaves them empty) is caught by assets.RequireVersions at runtime.
 #
-# The .smx is built by `make plugin`, which only runs on Linux (spcomp is a
-# Linux binary). CI runs `make plugin` before `make launcher` on its Linux
-# runner, so the real .smx is in place. On a non-Linux host the launcher still
-# builds with whatever .smx the embed dir holds (a placeholder for dev), because
-# the plugin compile is a separate concern.
+# The .smx is built as part of every launcher asset build. spcomp is a Linux
+# binary, so release launchers are built on Linux or WSL just like CI. A direct
+# `go build` may still use the placeholder for compile-only development, but a
+# launcher produced by this target must never silently package an old plugin.
 EMBED := launcher/internal/assets/embedded
 LAUNCHER_LDFLAGS := -X github.com/m-this/tf2-archipelago/launcher/internal/assets.SourcemodBranch=$(SOURCEMOD_BRANCH) \
 	-X github.com/m-this/tf2-archipelago/launcher/internal/assets.SourcemodVersion=$(SOURCEMOD_VERSION) \
@@ -319,16 +318,11 @@ LAUNCHER_LDFLAGS := -X github.com/m-this/tf2-archipelago/launcher/internal/asset
 # The bots go in as a Windows-only zip: the staged tree carries both platforms'
 # extensions, and the 20 MB of Linux .so has no business inside a .exe.
 # The apworld and the plugin, which are the same bytes on either platform.
-launcher-assets-common: bots apworld-package
+launcher-assets-common: plugin bots apworld-package
 	mkdir -p $(EMBED)
 	cp $(DIST)/tf2_mvm.apworld $(EMBED)/tf2_mvm.apworld
 	cp plugin/gamedata/tf2_archipelago.txt $(EMBED)/tf2_archipelago.txt
-	@if [ -f plugin/build/tf2_archipelago.smx ]; then \
-		cp plugin/build/tf2_archipelago.smx $(EMBED)/tf2_archipelago.smx; \
-		echo "copied plugin/build/tf2_archipelago.smx into the embed dir"; \
-	else \
-		echo "no plugin/build/tf2_archipelago.smx (run 'make plugin' on Linux, or CI will) — building with the placeholder"; \
-	fi
+	cp plugin/build/tf2_archipelago.smx $(EMBED)/tf2_archipelago.smx
 
 # One platform's binaries per build: SourceMod loads the .so or the .dll by
 # platform and ignores the other, so each launcher carries only its own.
