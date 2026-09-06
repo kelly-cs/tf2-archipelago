@@ -220,9 +220,13 @@ class TF2MvMWorld(World):
             pool += [self.create_item(name) for name in data.SERVER_SETTING_NAMES]
 
         # Traps, buffs and cash share the non-progression space. A trap takes a
-        # check from a reward rather than adding one.
+        # check from a reward rather than adding one. Rounded up, so any share
+        # above zero puts at least one trap in a run too small for a whole
+        # percent; zero stays zero.
         open_slots = self._free_check_count() - len(pool)
-        trap_count = open_slots * self.options.trap_percentage.value // 100
+        trap_count = min(
+            open_slots, math.ceil(open_slots * self.options.trap_percentage.value / 100)
+        )
         pool += [self.create_item(self.random.choice(data.TRAP_NAMES)) for _ in range(trap_count)]
         open_slots -= trap_count
 

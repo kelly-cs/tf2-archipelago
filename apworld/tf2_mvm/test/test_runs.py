@@ -84,10 +84,20 @@ class TestCashRewards(TF2MvMTestBase):
         self.assertEqual(math.ceil((len(buffs) + len(cash)) * 0.75), len(buffs))
 
 
-class TestNoTrapsByDefault(TF2MvMTestBase):
+class TestOneTrapInAHundredByDefault(TF2MvMTestBase):
     options: ClassVar[dict[str, Any]] = {}
 
-    def test_a_run_that_did_not_ask_gets_none(self) -> None:
+    def test_a_run_that_did_not_ask_still_meets_one(self) -> None:
+        traps = [item for item in self.multiworld.itempool if item.name in data.TRAP_NAMES]
+        buffs = [item for item in self.multiworld.itempool if item.name in data.WEAPON_BUFF_NAMES]
+        self.assertEqual(math.ceil((len(traps) + len(buffs)) / 100), len(traps))
+        self.assertGreater(len(traps), 0)
+
+
+class TestNoTrapsAtZero(TF2MvMTestBase):
+    options: ClassVar[dict[str, Any]] = {"trap_percentage": 0}
+
+    def test_zero_leaves_them_out(self) -> None:
         self.assertFalse(any(item.name in data.TRAP_NAMES for item in self.multiworld.itempool))
 
 
@@ -100,7 +110,7 @@ class TestTraps(TF2MvMTestBase):
         traps = [item for item in self.multiworld.itempool if item.name in data.TRAP_NAMES]
         buffs = [item for item in self.multiworld.itempool if item.name in data.WEAPON_BUFF_NAMES]
         self.assertGreater(len(traps), 0)
-        self.assertEqual((len(traps) + len(buffs)) // 2, len(traps))
+        self.assertEqual(math.ceil((len(traps) + len(buffs)) / 2), len(traps))
 
     def test_traps_are_classified_as_traps(self) -> None:
         traps = [item for item in self.multiworld.itempool if item.name in data.TRAP_NAMES]
