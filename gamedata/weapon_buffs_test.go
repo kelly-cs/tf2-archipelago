@@ -181,6 +181,40 @@ func TestDirectHitWeaponsDrawSubstanceBuffs(t *testing.T) {
 	}
 }
 
+// A jar that lands on somebody registers as a hit, so the on-hit attributes
+// fire from it. Cowser checked each in game, gh-32.
+func TestThrownJarsDrawTheOnHitBuffs(t *testing.T) {
+	for _, name := range []string{"Jarate", "Mad Milk"} {
+		for _, effect := range []string{"ignite", "heal-on-hit"} {
+			if !buffNamed(t, name, effect).Eligible {
+				t.Errorf("%s lost on-hit effect %s", name, effect)
+			}
+		}
+		// Neither jar kills, so nothing fires an on-kill attribute.
+		for _, effect := range []string{"heal-on-kill", "crits-on-kill", "speed-on-kill"} {
+			if buffNamed(t, name, effect).Eligible {
+				t.Errorf("%s draws %s and cannot get a kill", name, effect)
+			}
+		}
+	}
+}
+
+// The Gas Passer performs no attack and still gets kills, through the afterburn
+// its gas leaves behind. gh-32, note 7.
+func TestTheGasPasserDrawsTheOnKillBuffs(t *testing.T) {
+	for _, effect := range []string{"heal-on-kill", "crits-on-kill", "minicrits-on-kill", "speed-on-kill"} {
+		if !buffNamed(t, "Gas Passer", effect).Eligible {
+			t.Errorf("Gas Passer lost on-kill effect %s", effect)
+		}
+	}
+	// It still swings at nobody, so the attack effects stay off it.
+	for _, effect := range []string{"damage", "fire-rate", "reload-rate"} {
+		if buffNamed(t, "Gas Passer", effect).Eligible {
+			t.Errorf("Gas Passer draws %s and performs no attack", effect)
+		}
+	}
+}
+
 func TestCliplessWeaponsDoNotDrawClipOrReloadBuffs(t *testing.T) {
 	for _, name := range []string{"Flame Thrower", "Minigun", "Sniper Rifle", "Huntsman"} {
 		for _, effect := range []string{"clip-size", "reload-rate"} {

@@ -187,10 +187,37 @@ var projectileCountExtras = names(
 )
 
 var (
-	thrownSubstances     = names("Jarate", "Mad Milk")
-	substanceEffects     = names("bleed", "mad-milk", "mark-for-death", "jarate")
+	thrownSubstances = names("Jarate", "Mad Milk")
+
+	/* What a thrown jar still counts as a hit for
+
+	A direct hit with a jar registers as one, so the on-hit attributes fire from
+	it: bleed, ignite, heal on hit and the two marks. Cowser checked each in
+	game, gh-32 note 9, and notes 10 and 22 point back at it for ignite and heal
+	on hit. Knockback is not here: he argues it should stay allowed in general
+	and says nothing about a jar throwing anybody. The on-kill effects are not
+	here either, because neither jar kills. */
+	substanceEffects = names(
+		"bleed", "mad-milk", "mark-for-death", "jarate", "ignite", "heal-on-hit",
+	)
+
 	jarProjectileEffects = names(
 		"projectile-count", "projectile-speed", "projectile-range", "projectile-penetration",
+	)
+)
+
+/*
+killCapableNonAttackers do not swing or fire and still get kills.
+
+The Gas Passer is the one: its gas ignites and the afterburn finishes people,
+so an on-kill attribute has something to fire on. Every other weapon that
+performs no attack is excluded from these by attackRequiredEffects, which is
+right for a Sandvich and wrong for this. gh-32, note 7.
+*/
+var (
+	killCapableNonAttackers = names("Gas Passer")
+	onKillEffects           = names(
+		"heal-on-kill", "crits-on-kill", "minicrits-on-kill", "speed-on-kill",
 	)
 )
 
@@ -277,6 +304,8 @@ func eligibilityByShape(name, key string) (decided, eligible bool) {
 		return true, projectileWeapons[name]
 	case key == "projectile-penetration":
 		return true, projectileWeapons[name] && !explosiveWeapons[name]
+	case killCapableNonAttackers[name] && onKillEffects[key]:
+		return true, true
 	case nonAttackingWeapons[name] && attackRequiredEffects[key],
 		meleeWeapons[name] && rangedOnlyEffects[key]:
 		return true, false
