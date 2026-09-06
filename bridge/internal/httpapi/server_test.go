@@ -290,7 +290,10 @@ func TestGrantsWakeOnANewItem(t *testing.T) {
 }
 
 func TestGrantsKeepWaitingThroughAnUnrelatedChange(t *testing.T) {
-	store, handler := newTestServer(t, 300*time.Millisecond)
+	// Generous, because the two changes below each write the state file, and
+	// on a slow CI disk the pair once outlasted a 300ms poll: the poll then
+	// timed out empty and the test read that as the grant never arriving.
+	store, handler := newTestServer(t, 5*time.Second)
 	mission, _ := gamedata.MissionByPopFile("mvm_decoy")
 	done := make(chan *httptest.ResponseRecorder, 1)
 	go func() { done <- get(t, handler, "/grants?since=0") }()
@@ -311,7 +314,7 @@ func TestGrantsKeepWaitingThroughAnUnrelatedChange(t *testing.T) {
 		if len(response.Grants) != 1 {
 			t.Fatalf("grants = %+v", response.Grants)
 		}
-	case <-time.After(2 * time.Second):
+	case <-time.After(10 * time.Second):
 		t.Fatal("the long poll never answered")
 	}
 }
