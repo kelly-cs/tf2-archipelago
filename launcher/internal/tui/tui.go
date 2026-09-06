@@ -91,11 +91,17 @@ type model struct {
 	mu      sync.Mutex
 	pending []string
 
-	lines   []string
-	offset  int // how far up the log the player has scrolled, in lines
-	follow  bool
-	command string
-	typing  bool
+	lines  []string
+	offset int // how far up the log the player has scrolled, in lines
+	// listOffset is the first row shown on a view that lists more than fits.
+	// The log scrolls from the bottom and keeps its own offset above; a list
+	// is anchored at the top, so it counts rows from the start. One offset
+	// for every list, reset when the view changes, because a player who
+	// scrolled the unlocks and tabbed away wants the next page from the top.
+	listOffset int
+	follow     bool
+	command    string
+	typing     bool
 
 	status  string
 	mission string

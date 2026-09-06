@@ -138,6 +138,48 @@ func (m *model) tabs() string {
 	return strings.Join(rendered, "  ")
 }
 
+/*
+	window fits a list into the body, from wherever the player scrolled to
+
+A list here is anchored at the top and can be longer than the screen. The last
+line goes to a count of what is off it, because a list that stops at the bottom
+row reads as the whole list: Unlocks holds one row per item the multiworld has
+handed over, and a run passes a screenful of them early.
+
+The offset is clamped here and written back. This is the only place that has
+counted the rows, so the keystroke can add to the offset and nothing else.
+*/
+func (m *model) window(rows []string, height int) string {
+	if len(rows) <= height {
+		m.listOffset = 0
+		for len(rows) < height {
+			rows = append(rows, "")
+		}
+		return strings.Join(rows[:height], "\n")
+	}
+
+	visible := height - 1
+	m.listOffset = min(max(m.listOffset, 0), len(rows)-visible)
+
+	out := make([]string, 0, height)
+	out = append(out, rows[m.listOffset:m.listOffset+visible]...)
+	more := moreLine(m.listOffset, len(rows)-m.listOffset-visible)
+	out = append(out, styleMuted.Render(truncate(more, m.width)))
+	return strings.Join(out, "\n")
+}
+
+// moreLine names the rows on neither side of the screen, and the keys to them.
+func moreLine(above, below int) string {
+	counts := make([]string, 0, 2)
+	if above > 0 {
+		counts = append(counts, fmt.Sprintf("%d above", above))
+	}
+	if below > 0 {
+		counts = append(counts, fmt.Sprintf("%d below", below))
+	}
+	return strings.Join(counts, ", ") + "   up and down scroll, page up and page down by the screenful"
+}
+
 // log is the last screenful, or the screenful the player scrolled back to.
 func (m *model) log() string {
 	height := m.bodyHeight()
@@ -220,10 +262,7 @@ func (m *model) unlocks() string {
 		}
 	}
 
-	for len(rows) < height {
-		rows = append(rows, "")
-	}
-	return strings.Join(rows[:height], "\n")
+	return m.window(rows, height)
 }
 
 func (m *model) runLine() string {
@@ -325,7 +364,9 @@ func (m *model) keys() string {
 	case viewSession:
 		pairs = append(pairs, [2]string{"p", "play mission"})
 	case viewUnlocks:
-		// Read-only: the list is the whole of it.
+		// Read-only, and the list says so itself when it runs off the
+		// screen, so the keys row does not carry a scroll that is only
+		// sometimes there.
 	case viewBots:
 		pairs = append(pairs, [2]string{"a", "apply team"})
 	case viewLog:

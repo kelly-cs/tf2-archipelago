@@ -28,6 +28,8 @@ github.com/lxn/win v0.0.0-20210218163916-a377121e959e h1:H+t6A/QJMbhCSEH5rAuRxh+
 github.com/lxn/win v0.0.0-20210218163916-a377121e959e/go.mod h1:KxxjdtRkfNoYDCUP5ryK7XJJNTnpC8atvtmTheChOtk=
 github.com/m-this/tf2-mvm-bots-go v0.14.0 h1:Oz30cvbGiiqorUkmuheKYxnIRpuJ1Pdr6GZ891XcPRU=
 github.com/m-this/tf2-mvm-bots-go v0.14.0/go.mod h1:kraNER13OJVmebYw+zrzegbvbNnoSjiRFnDiHoVGFiI=
+github.com/m-this/tf2-mvm-bots-go v0.14.1 h1:WW5QgReh3buIfq8VKodFZ1Jff8kprc92mirRjeUgWHM=
+github.com/m-this/tf2-mvm-bots-go v0.14.1/go.mod h1:kraNER13OJVmebYw+zrzegbvbNnoSjiRFnDiHoVGFiI=
 github.com/mattn/go-isatty v0.0.24 h1:tGZZoVgT/KiqK1c8ocVLeDS8BSWMRd47J3Lbz7vsReI=
 github.com/mattn/go-isatty v0.0.24/go.mod h1:nMCL3Zebbrt45jsMDgnfIwz6ydEQApk5oEI3HqDio6A=
 github.com/mattn/go-localereader v0.0.1 h1:ygSAOl7ZXTx4RdPYinUpg6W99U8jWvWi9Ye2JC/oIi4=
