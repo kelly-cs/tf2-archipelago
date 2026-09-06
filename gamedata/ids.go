@@ -34,6 +34,7 @@ const (
 	itemBlockWeaponBuff int64 = 5_000
 	itemBlockTrap       int64 = 6_000
 	itemBlockSetting    int64 = 7_000
+	itemBlockTrophy     int64 = 8_000
 )
 
 // Location ids: base + mission*100 + wave, or + 99 for the mission clear.
@@ -109,6 +110,24 @@ func (c Class) ItemName() string {
 // ItemID is the id of the item that fires this trap.
 func (t Trap) ItemID() int64 {
 	return BaseID + itemSpaceOffset + itemBlockTrap + int64(t.ID)
+}
+
+// TrophyItemID is the id of the medal locked onto this mission's clear. Keyed
+// by mission, like the ticket, so a mission carries its own trophy.
+func (m Mission) TrophyItemID() int64 {
+	return BaseID + itemSpaceOffset + itemBlockTrophy + int64(m.ID)
+}
+
+/*
+TrophyItemName is what the multiworld calls that medal.
+
+Named per mission rather than one name in several copies, because the two goals
+ask different questions of it: Final Boss asks whether one named mission is
+done, and missionsanity counts. A single name answers the second and cannot
+answer the first.
+*/
+func (m Mission) TrophyItemName() string {
+	return "Australium Medal: " + m.Name
 }
 
 // ItemID is where this setting's item lives in the id space. Its own block, so

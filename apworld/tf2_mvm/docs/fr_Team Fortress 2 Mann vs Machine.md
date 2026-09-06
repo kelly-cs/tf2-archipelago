@@ -26,11 +26,18 @@ La seed fixe l'un de ces deux objectifs :
 - **Missionsanity** : réussissez une partie des missions tirées, dans
   n'importe quel ordre.
 
+`medal_on_clear` change ce que l'objectif lit. La seed le laisse à zéro par
+défaut. Activez-le : chaque mission réussie contient alors une médaille en
+australium qui n'appartient qu'à vous. L'objectif compte les médailles que
+vous détenez. Le prix est d'un check par mission, car ces réussites ne portent
+plus l'item d'un autre joueur.
+
 ## Quels items peuvent se trouver dans le monde d'un autre joueur ?
 
 Tous : les tickets de mission, les classes de mercenaires, l'emplacement
 d'équipement progressif, les améliorations d'armes, les liasses d'argent et
-les pièges.
+les pièges. Les médailles en australium font exception, et seule une partie
+avec `medal_on_clear` en contient.
 
 Un piège a un effet négatif. `trap_percentage` décide combien la partie en
 contient, et il vaut zéro par défaut. Le seul qui existe arrose toute l'équipe

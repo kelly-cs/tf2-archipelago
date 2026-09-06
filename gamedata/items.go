@@ -12,6 +12,7 @@ const (
 	ItemWeaponBuff
 	ItemTrap
 	ItemServerSetting
+	ItemTrophy
 )
 
 var itemKindKeys = [...]string{
@@ -22,13 +23,14 @@ var itemKindKeys = [...]string{
 	ItemWeaponBuff:    "weapon_buff",
 	ItemTrap:          "trap",
 	ItemServerSetting: "server_setting",
+	ItemTrophy:        "trophy",
 }
 
 // ItemKinds is every kind that exists, in id order. The bridge walks it to
 // build the unlock set, so a kind added here needs no second list anywhere.
 var ItemKinds = []ItemKind{
 	ItemMissionTicket, ItemClass, ItemWeaponSlot, ItemCredits, ItemWeaponBuff, ItemTrap,
-	ItemServerSetting,
+	ItemServerSetting, ItemTrophy,
 }
 
 // Key is the string on the wire between the bridge and the plugin.
@@ -44,6 +46,17 @@ func (k ItemKind) Key() string { return itemKindKeys[k] }
 // sent again until the plugin says it applied it. A trap is an effect for the
 // same reason: firing it twice soaks a team that only earned it once.
 func (k ItemKind) OneShot() bool { return k == ItemCredits || k == ItemTrap }
+
+/*
+Granted reports whether the plugin ever sees this kind.
+
+A trophy is not a grant. It is locked onto a mission clear so that generation
+can ask whether the mission is done, and nothing happens in the game when it
+lands: the bridge drops it and the plugin is never told. Every other kind is
+something a player receives, and one the plugin does not handle is an item the
+seed loses in silence, which is what the plugin-keys test is for.
+*/
+func (k ItemKind) Granted() bool { return k != ItemTrophy }
 
 // Item is one entry in the multiworld's item pool. Mission, Class and Credits
 // are the payload of the kind that uses them and zero elsewhere; Count is zero
@@ -164,6 +177,28 @@ func buildItems() []Item {
 			Classification: Useful,
 			Count:          1,
 			ServerSetting:  setting.ID,
+		})
+	}
+	return append(all, trophyItems()...)
+}
+
+/*
+trophyItems is a medal per mission, locked onto that mission's clear.
+
+Never in the pool: the world places one on each clear when the option is on and
+adds none otherwise, so a seed without the option never sees these ids.
+Progression because both goals read them.
+*/
+func trophyItems() []Item {
+	all := make([]Item, 0, len(Missions))
+	for _, m := range Missions {
+		all = append(all, Item{
+			ID:             m.TrophyItemID(),
+			Name:           m.TrophyItemName(),
+			Kind:           ItemTrophy,
+			Classification: Progression,
+			Count:          1,
+			Mission:        m.ID,
 		})
 	}
 	return all

@@ -208,6 +208,18 @@ fil.
   dépendre la partie des mondes des autres joueurs. C'est le principe
   même d'un multiworld, donc ce n'est pas un après-coup.
 
+`medal_on_clear` change ce que lisent les deux premiers objectifs. La seed le
+laisse à zéro par défaut. Activez-le : chaque mission réussie contient alors
+une médaille en australium qui vous appartient. L'objectif compte les
+médailles au lieu des réussites rapportées par le serveur. La génération pose
+une question sur vos items plutôt que sur un emplacement, et aucun `!collect`
+ne peut vous donner une médaille. Le prix est d'un check par mission, qui ne
+porte plus l'item d'un autre joueur.
+
+Ce n'est pas Australium Hunt. Les médailles restent verrouillées sur vos
+propres réussites, alors qu'Australium Hunt disperse des items de rebut dans
+les autres mondes.
+
 ## Pièges et DeathLink
 
 Une mort dans MvM est bon marché. Vous respawnez après un court délai, et

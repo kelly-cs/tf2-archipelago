@@ -63,6 +63,10 @@ func currentIDs() map[string]int64 {
 			if trap, ok := TrapByID(it.Trap); ok {
 				ids[frozenKey(it.Kind.Key(), trap.Key, 0)] = it.ID
 			}
+		case ItemTrophy:
+			if mission, ok := MissionByID(it.Mission); ok {
+				ids[frozenKey(it.Kind.Key(), mission.PopFile, 0)] = it.ID
+			}
 		}
 	}
 	return ids
@@ -341,6 +345,8 @@ func TestItemPoolCoversEveryGate(t *testing.T) {
 			// Negative filler, counted by the pool builder rather than here.
 		case ItemServerSetting:
 			// One copy each, and only in the pool when the option asks for them.
+		case ItemTrophy:
+			// Locked onto a mission clear by the world, never in the pool.
 		}
 		if it.Classification == Progression && it.Count == 0 {
 			t.Errorf("%q is progression with no copies in the pool", it.Name)

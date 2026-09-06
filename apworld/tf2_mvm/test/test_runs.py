@@ -390,3 +390,74 @@ class TestFinalBoss(TF2MvMTestBase):
 
     def test_goal_needs_more_than_the_starting_inventory(self) -> None:
         self.assertFalse(self.multiworld.completion_condition[self.player](self.multiworld.state))
+
+
+class TestNoMedalsByDefault(TF2MvMTestBase):
+    options: ClassVar[dict[str, Any]] = {}
+
+    def test_a_run_that_did_not_ask_gets_none(self) -> None:
+        medals = set(data.MEDAL_NAMES.values())
+        self.assertFalse(any(item.name in medals for item in self.multiworld.itempool))
+        for mission in self.world.missions:
+            location = self.multiworld.get_location(f"{mission.name} Complete", self.player)
+            self.assertIsNone(location.item)
+
+
+class TestMedalOnClear(TF2MvMTestBase):
+    """One medal per mission, on that mission's own clear and nowhere else."""
+
+    options: ClassVar[dict[str, Any]] = {
+        "medal_on_clear": 1,
+        "mission_count": 6,
+    }
+
+    def test_every_clear_holds_its_own_medal(self) -> None:
+        for mission in self.world.missions:
+            location = self.multiworld.get_location(f"{mission.name} Complete", self.player)
+            self.assertIsNotNone(location.item)
+            self.assertEqual(data.MEDAL_NAMES[mission.id], location.item.name)
+            self.assertTrue(location.item.advancement)
+
+    def test_no_medal_reaches_the_multiworld(self) -> None:
+        medals = set(data.MEDAL_NAMES.values())
+        self.assertFalse(any(item.name in medals for item in self.multiworld.itempool))
+
+    def test_the_pool_shrinks_by_the_locked_clears(self) -> None:
+        # Every location the pool may fill holds exactly one item, so a pool
+        # that ignored the locked clears would overfill or come up short.
+        free = self.world._check_count(self.world.missions) - len(self.world.missions)
+        self.assertEqual(free, len(self.multiworld.itempool))
+
+
+class TestMedalGoalFinalBoss(TF2MvMTestBase):
+    options: ClassVar[dict[str, Any]] = {
+        "medal_on_clear": 1,
+        "goal": "final_boss",
+        "mission_count": 6,
+    }
+
+    def test_the_goal_reads_the_goal_mission_medal(self) -> None:
+        state = self.multiworld.get_all_state(False)
+        self.assertTrue(self.multiworld.completion_condition[self.player](state))
+
+        medal = data.MEDAL_NAMES[self.world.goal_mission.id]
+        state.remove(self.world.create_item(medal))
+        self.assertFalse(self.multiworld.completion_condition[self.player](state))
+
+
+class TestMedalGoalMissionsanity(TF2MvMTestBase):
+    options: ClassVar[dict[str, Any]] = {
+        "medal_on_clear": 1,
+        "goal": "missionsanity",
+        "missionsanity_percentage": 100,
+        "mission_count": 6,
+    }
+
+    def test_the_goal_counts_the_medals(self) -> None:
+        state = self.multiworld.get_all_state(False)
+        self.assertTrue(self.multiworld.completion_condition[self.player](state))
+
+        # One short of every mission is one short of the goal.
+        medal = data.MEDAL_NAMES[self.world.missions[0].id]
+        state.remove(self.world.create_item(medal))
+        self.assertFalse(self.multiworld.completion_condition[self.player](state))

@@ -150,6 +150,14 @@ TICKET_NAMES: dict[int, str] = {
 }
 CLASS_NAMES: tuple[str, ...] = tuple(item.name for item in ITEMS if item.kind == "class")
 
+# A medal per mission, locked onto that mission's clear when the option is on.
+# Never in the pool, so a run without the option never sees one.
+MEDAL_NAMES: dict[int, str] = {
+    item.mission_id: item.name for item in ITEMS if item.kind == "trophy"
+}
+if not MEDAL_NAMES:
+    raise DataFormatError("the export has no trophy items")
+
 # "Scout" is what a player writes in a YAML; "Class: Scout" is what the item is
 # called. The link is the class id, not the shape of the name.
 _MERC_NAMES: dict[int, str] = {entry["id"]: entry["name"] for entry in _meta["classes"]}
@@ -199,4 +207,5 @@ ITEM_NAME_GROUPS: dict[str, set[str]] = {
     "Mission Tickets": set(TICKET_NAMES.values()),
     "Weapon Buffs": set(WEAPON_BUFF_NAMES),
     "Traps": set(TRAP_NAMES),
+    "Australium Medals": set(MEDAL_NAMES.values()),
 }

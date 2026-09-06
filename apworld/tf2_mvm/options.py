@@ -260,6 +260,22 @@ class ServerSettings(Toggle):
     default = 0
 
 
+class MedalOnClear(Toggle):
+    """Lock an Australium Medal onto every mission clear.
+
+    The goal then reads the medals you hold rather than the clears the server
+    reported, which is what generation wants: a medal is your own item and no
+    !collect can hand you one.
+
+    The cost is one check per mission. A mission clear is one of the better
+    rewards this world puts into a multiworld, and locking it takes that many
+    of other people's items out of the pool. Off by default for that reason.
+    """
+
+    display_name = "Australium Medal on Clear"
+    default = 0
+
+
 class TrapPercentage(Range):
     """How much of the run's spare space is traps, in percent.
 
@@ -297,6 +313,7 @@ class TF2MvMOptions(PerGameCommonOptions):
     weapon_buff_stack_chance: WeaponBuffStackChance
     trap_percentage: TrapPercentage
     server_settings: ServerSettings
+    medal_on_clear: MedalOnClear
     death_link: DeathLink
 
 
@@ -313,7 +330,7 @@ option_groups = [
             StartClass,
         ],
     ),
-    OptionGroup("Goal", [Goal, MissionsanityPercentage]),
+    OptionGroup("Goal", [Goal, MissionsanityPercentage, MedalOnClear]),
     OptionGroup(
         "Rewards",
         [
