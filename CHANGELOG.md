@@ -6,6 +6,11 @@ in the release notes, so this file is the only place to write it.
 
 ## Unreleased
 
+- The launcher says in its log when a newer release is out, with the link.
+  It still does not replace itself: download the new exe and run it.
+- The Docker server writes its player file with the same code as the
+  launcher, so both carry the reward importance options and the same
+  defaults. `MVM_COMMUNITY_MISSIONS` reaches the launcher's settings too.
 - The upgrade station no longer opens the buff window by itself. That window
   took the number keys, which are your weapon slots, for twenty seconds. The
   station now lists your loadout's buffs in chat instead, and `!ap buffs`

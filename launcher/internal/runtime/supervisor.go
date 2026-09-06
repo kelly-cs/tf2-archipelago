@@ -15,6 +15,8 @@ import (
 	"github.com/m-this/tf2-archipelago/bridge"
 	"github.com/m-this/tf2-archipelago/bridge/config"
 	"github.com/m-this/tf2-archipelago/fakeroom"
+	"github.com/m-this/tf2-archipelago/launcher/internal/assets"
+	"github.com/m-this/tf2-archipelago/launcher/internal/release"
 	"github.com/m-this/tf2-archipelago/launcher/internal/settings"
 	"github.com/m-this/tf2-archipelago/launcher/internal/srcdsconfig"
 )
@@ -47,6 +49,10 @@ type Supervisor struct {
 	done    chan struct{}
 	running bool
 	stopped bool // a Stop the operator asked for, so the exit is not an error
+
+	// releaseOnce asks GitHub about a newer launcher once per process, on the
+	// first start, and says so in the log when there is one.
+	releaseOnce sync.Once
 }
 
 // NewSupervisor returns a stopped supervisor. sink may be nil.
@@ -119,6 +125,7 @@ func (s *Supervisor) Start(onExit func(error)) error {
 		}
 	}
 	s.cancel, s.done, s.running, s.stopped = cancel, done, true, false
+	s.announceRelease()
 	current := s.settings
 	s.mu.Unlock()
 
@@ -134,12 +141,10 @@ func (s *Supervisor) Start(onExit func(error)) error {
 	/* Each of these outlives this call, so a panic on any of them takes the
 	   launcher down with the server it is supervising. guard turns that into a
 	   line in the log a debug bundle carries. */
-	bridgeErr := make(chan error, 1)
+	bridgeErr, srcdsErr := make(chan error, 1), make(chan error, 1)
 	go Guard("the bridge", s.emit, func() {
 		bridgeErr <- bridge.Run(ctx, cfg, s.bridgeLogger())
 	})
-
-	srcdsErr := make(chan error, 1)
 	go Guard("the game server", s.emit, func() {
 		srcdsErr <- runSrcdsWithSink(ctx, current, s.logger, s.sink)
 	})
@@ -293,6 +298,17 @@ func StartTestRoom(
 	}
 	cfg.ArchipelagoURL = address
 	return room, nil
+}
+
+// announceRelease says once, off the start path, when a newer launcher is out.
+func (s *Supervisor) announceRelease() {
+	s.releaseOnce.Do(func() {
+		go func() {
+			if line := (release.Check{Current: assets.LauncherVersion}).Notice(context.Background()); line != "" {
+				s.emit(line)
+			}
+		}()
+	})
 }
 
 func (s *Supervisor) emit(text string) {
