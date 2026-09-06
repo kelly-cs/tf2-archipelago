@@ -178,6 +178,14 @@ TRAP_NAMES: tuple[str, ...] = tuple(item.name for item in ITEMS if item.kind == 
 if not TRAP_NAMES:
     raise DataFormatError("the export has no trap items")
 
+# Levers on the whole server, handed over as items. Useful, never progression:
+# a wave has to stay winnable without one, so no access rule may need them.
+SERVER_SETTING_NAMES: tuple[str, ...] = tuple(
+    item.name for item in ITEMS if item.kind == "server_setting"
+)
+if not SERVER_SETTING_NAMES:
+    raise DataFormatError("the export has no server setting items")
+
 _weapon_slot_items = [item for item in ITEMS if item.kind == "weapon_slot"]
 if len(_weapon_slot_items) != 1:
     raise DataFormatError("expected exactly one progressive weapon slot item")

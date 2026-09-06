@@ -261,6 +261,7 @@
   "mission_ticket/mvm_transmission_rc7a_adv_signal_shutdown/0": 7443001159,
   "mission_ticket/mvm_transmission_rc7a_int_binary_broadcast/0": 7443001124,
   "mission_ticket/mvm_yiresa_rc5a_int_black_east/0": 7443001125,
+  "server_setting/grappling_hook/0": 7443007001,
   "tank_destroyed/mvm_area_52_rc3_adv_australian_christmas/0": 7442012790,
   "tank_destroyed/mvm_area_52_rc3_adv_complex_chaos/0": 7442012890,
   "tank_destroyed/mvm_area_52_rc3_adv_extraterrestrial_epidemic/0": 7442012990,

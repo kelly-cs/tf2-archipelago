@@ -212,6 +212,11 @@ class TF2MvMWorld(World):
             for _ in range(data.WEAPON_SLOT_COUNT - slots_held)
         ]
 
+        # A server setting is one copy and takes one check, like a trap: the
+        # run gains a lever and loses a reward, which is the trade for it.
+        if self.options.server_settings.value:
+            pool += [self.create_item(name) for name in data.SERVER_SETTING_NAMES]
+
         # Traps, buffs and cash share the non-progression space. A trap takes a
         # check from a reward rather than adding one.
         open_slots = self._check_count(self.missions) - len(pool)

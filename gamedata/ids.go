@@ -33,6 +33,7 @@ const (
 	itemBlockCredits    int64 = 4_000
 	itemBlockWeaponBuff int64 = 5_000
 	itemBlockTrap       int64 = 6_000
+	itemBlockSetting    int64 = 7_000
 )
 
 // Location ids: base + mission*100 + wave, or + 99 for the mission clear.
@@ -108,4 +109,10 @@ func (c Class) ItemName() string {
 // ItemID is the id of the item that fires this trap.
 func (t Trap) ItemID() int64 {
 	return BaseID + itemSpaceOffset + itemBlockTrap + int64(t.ID)
+}
+
+// ItemID is where this setting's item lives in the id space. Its own block, so
+// adding one renumbers nothing that has shipped.
+func (s ServerSetting) ItemID() int64 {
+	return BaseID + itemSpaceOffset + itemBlockSetting + int64(s.ID)
 }

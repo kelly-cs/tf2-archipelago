@@ -21,6 +21,20 @@ bool g_ClassUnlocked[view_as<int>(TFClass_Engineer) + 1];
 bool g_SlotUnlocked[Slot_Count];
 StringMap g_UnlockedMissions;
 
+/* The server settings the run has been handed, by key
+ *
+ * State like a class unlock: granting one twice is granting it once, so the bridge resends the
+ * whole set freely and this only has to be idempotent. Kept as the set rather than as the convar
+ * value so a map change can put every one of them back without asking the bridge again.
+ */
+static StringMap g_GrantedSettings;
+
+// Every setting this plugin knows, and the convar each one turns on. The wire
+// says what was granted; which lever that is belongs here.
+static const char g_SettingKeys[][] = { "grappling_hook" };
+static const char g_SettingConVars[][] = { "tf_grapplinghook_enable" };
+
+
 // Indexed by TFClassType, whose order is not the class menu's order. Checked against tf2.inc.
 char g_ClassKeys[view_as<int>(TFClass_Engineer) + 1][] = {
     "",
@@ -61,6 +75,50 @@ int g_SlotOrder[view_as<int>(TFClass_Engineer) + 1][Slot_Count] = {
 void Unlocks_Init()
 {
     g_UnlockedMissions = new StringMap();
+    g_GrantedSettings = new StringMap();
+}
+
+void Unlocks_GrantServerSetting(const char[] key)
+{
+    for (int i = 0; i < sizeof(g_SettingKeys); i++)
+    {
+        if (!StrEqual(g_SettingKeys[i], key, false))
+        {
+            continue;
+        }
+        g_GrantedSettings.SetValue(key, true);
+        Unlocks_ApplyServerSettings();
+        return;
+    }
+    LogError("The bridge granted the server setting %s. This plugin does not know it.", key);
+}
+
+/* Written every map start as well as on the grant
+ *
+ * A convar a plugin set is not a convar the next map keeps: server.cfg runs again and puts the
+ * host's value back. The set is what survives, so it is replayed rather than trusted to stick.
+ */
+void Unlocks_ApplyServerSettings()
+{
+    if (g_GrantedSettings == null)
+    {
+        return;
+    }
+    for (int i = 0; i < sizeof(g_SettingKeys); i++)
+    {
+        bool granted;
+        if (!g_GrantedSettings.GetValue(g_SettingKeys[i], granted) || !granted)
+        {
+            continue;
+        }
+        ConVar convar = FindConVar(g_SettingConVars[i]);
+        if (convar == null)
+        {
+            LogError("The run granted %s and this server has no %s.", g_SettingKeys[i], g_SettingConVars[i]);
+            continue;
+        }
+        convar.SetInt(1);
+    }
 }
 
 void Unlocks_Clear()
@@ -75,6 +133,7 @@ void Unlocks_Clear()
         g_SlotUnlocked[slot] = false;
     }
     g_UnlockedMissions.Clear();
+    g_GrantedSettings.Clear();
     WeaponBuffs_Clear();
 }
 

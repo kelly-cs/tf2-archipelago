@@ -154030,6 +154030,13 @@
       "kind": "trap",
       "classification": "trap",
       "count": 0
+    },
+    {
+      "id": 7443007001,
+      "name": "Grappling Hook",
+      "kind": "server_setting",
+      "classification": "useful",
+      "count": 1
     }
   ]
 }

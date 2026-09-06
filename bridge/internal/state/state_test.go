@@ -775,3 +775,44 @@ func TestAVersionThreeFileWithoutPlayedTakesItsChecksAsPlayed(t *testing.T) {
 		t.Errorf("played = %v, want none: the file said so", got)
 	}
 }
+
+/*
+TestAServerSettingGrantsAsStateAndSurvivesAResend.
+
+A lever on the whole server is state like a class, not an effect like credits.
+The grant stream may carry a copy twice, because that is how state is resent,
+and what must not double is the unlock set: the plugin reads the set, and
+applying the same key again is applying it once.
+*/
+func TestAServerSettingGrantsAsStateAndSurvivesAResend(t *testing.T) {
+	store := openTemp(t)
+
+	setting := gamedata.ServerSettings[0]
+	var itemID int64
+	for _, item := range gamedata.Items {
+		if item.Kind == gamedata.ItemServerSetting && item.ServerSetting == setting.ID {
+			itemID = item.ID
+		}
+	}
+	if itemID == 0 {
+		t.Fatal("no server setting item in the pool")
+	}
+
+	if err := store.ApplyItems(0, []int64{itemID, itemID}); err != nil {
+		t.Fatal(err)
+	}
+
+	grants, _ := store.GrantsSince(0)
+	if len(grants) == 0 {
+		t.Fatal("the setting granted nothing")
+	}
+	for i, grant := range grants {
+		if grant.Kind != gamedata.ItemServerSetting.Key() || grant.Key != setting.Key {
+			t.Errorf("grant %d is %q/%q, want %q/%q", i, grant.Kind, grant.Key,
+				gamedata.ItemServerSetting.Key(), setting.Key)
+		}
+	}
+	if held := store.Unlocks().Of(gamedata.ItemServerSetting); len(held) != 1 || held[0] != setting.Key {
+		t.Errorf("the unlock set holds %v", held)
+	}
+}

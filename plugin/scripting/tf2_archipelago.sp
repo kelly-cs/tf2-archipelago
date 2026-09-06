@@ -340,6 +340,10 @@ public void OnMapStart()
 
 public void OnConfigsExecuted()
 {
+    // server.cfg has just run and put the host's values back, so the settings
+    // the run was granted go on after it rather than before.
+    Unlocks_ApplyServerSettings();
+
     Bots_OnConfigsExecuted();
     if (!MvM_IsActive())
     {

@@ -6,6 +6,9 @@ in the release notes, so this file is the only place to write it.
 
 ## Unreleased
 
+- A new item, off by default: the Grappling Hook. Turn on `server_settings` in
+  your YAML and the multiworld can hand your team Mannpower's hook for the rest
+  of the run. Nothing ever requires it to beat a wave.
 - The launcher says in its log when a newer release is out, with the link.
   It still does not replace itself: download the new exe and run it.
 - The Docker server writes its player file with the same code as the

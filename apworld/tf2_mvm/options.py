@@ -245,6 +245,21 @@ class CashRewards(Toggle):
     default = 0
 
 
+class ServerSettings(Toggle):
+    """Put the server-setting items in the pool.
+
+    One of them exists: the Grappling Hook, which turns on Mannpower's hook for
+    everybody on the server for the rest of the run. It is the largest change to
+    how a map plays that this world can hand out, and it is off by default
+    because a run that has it is a different game from one that does not.
+
+    Never required to beat anything: a wave stays winnable without it.
+    """
+
+    display_name = "Server Settings"
+    default = 0
+
+
 class TrapPercentage(Range):
     """How much of the run's spare space is traps, in percent.
 
@@ -281,6 +296,7 @@ class TF2MvMOptions(PerGameCommonOptions):
     weapon_buff_percentage: WeaponBuffPercentage
     weapon_buff_stack_chance: WeaponBuffStackChance
     trap_percentage: TrapPercentage
+    server_settings: ServerSettings
     death_link: DeathLink
 
 

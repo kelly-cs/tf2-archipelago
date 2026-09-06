@@ -11,6 +11,7 @@ const (
 	ItemCredits
 	ItemWeaponBuff
 	ItemTrap
+	ItemServerSetting
 )
 
 var itemKindKeys = [...]string{
@@ -20,11 +21,15 @@ var itemKindKeys = [...]string{
 	ItemCredits:       "credits",
 	ItemWeaponBuff:    "weapon_buff",
 	ItemTrap:          "trap",
+	ItemServerSetting: "server_setting",
 }
 
 // ItemKinds is every kind that exists, in id order. The bridge walks it to
 // build the unlock set, so a kind added here needs no second list anywhere.
-var ItemKinds = []ItemKind{ItemMissionTicket, ItemClass, ItemWeaponSlot, ItemCredits, ItemWeaponBuff, ItemTrap}
+var ItemKinds = []ItemKind{
+	ItemMissionTicket, ItemClass, ItemWeaponSlot, ItemCredits, ItemWeaponBuff, ItemTrap,
+	ItemServerSetting,
+}
 
 // Key is the string on the wire between the bridge and the plugin.
 func (k ItemKind) Key() string { return itemKindKeys[k] }
@@ -54,6 +59,7 @@ type Item struct {
 	Credits        uint16
 	WeaponBuff     uint16
 	Trap           TrapID
+	ServerSetting  ServerSettingID
 }
 
 // ProgressiveWeaponSlotName is the one item that unlocks loadout slots: copy n
@@ -143,6 +149,21 @@ func buildItems() []Item {
 			Kind:           ItemTrap,
 			Classification: TrapClassification,
 			Trap:           trap.ID,
+		})
+	}
+	/* Useful and never progression
+
+	A wave has to stay winnable without one, so no access rule may ever need
+	a setting: a seed that puts the hook behind a check nobody can reach
+	would still be beatable. */
+	for _, setting := range ServerSettings {
+		all = append(all, Item{
+			ID:             setting.ItemID(),
+			Name:           setting.ItemName(),
+			Kind:           ItemServerSetting,
+			Classification: Useful,
+			Count:          1,
+			ServerSetting:  setting.ID,
 		})
 	}
 	return all

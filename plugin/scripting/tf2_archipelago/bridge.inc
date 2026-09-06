@@ -635,6 +635,10 @@ static char[] GrantLabel(const char[] kind)
     {
         strcopy(label, sizeof(label), "Weapon buff");
     }
+    else if (StrEqual(kind, "server_setting"))
+    {
+        strcopy(label, sizeof(label), "Server setting");
+    }
     else
     {
         strcopy(label, sizeof(label), "Item");
@@ -664,6 +668,11 @@ static bool Bridge_ApplyKind(const char[] kind, const char[] key)
     if (StrEqual(kind, "weapon_buff"))
     {
         return WeaponBuffs_Grant(key);
+    }
+    if (StrEqual(kind, "server_setting"))
+    {
+        Unlocks_GrantServerSetting(key);
+        return true;
     }
     return false;
 }

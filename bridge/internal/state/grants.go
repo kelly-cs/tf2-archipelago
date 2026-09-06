@@ -132,6 +132,13 @@ func grantFor(item gamedata.Item, slotsGranted int) (Grant, bool) {
 		}
 		return Grant{Kind: item.Kind.Key(), Key: trap.Key, Name: item.Name}, true
 
+	case gamedata.ItemServerSetting:
+		setting, ok := gamedata.ServerSettingByID(item.ServerSetting)
+		if !ok {
+			return Grant{}, false
+		}
+		return Grant{Kind: item.Kind.Key(), Key: setting.Key, Name: item.Name}, true
+
 	default:
 		return Grant{}, false
 	}
