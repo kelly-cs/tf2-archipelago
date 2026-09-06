@@ -152,6 +152,9 @@ func grantFor(item gamedata.Item, slotsGranted int) (Grant, bool) {
 func unlocksFrom(grants []Grant, resumeFrom int) Unlocks {
 	unlocks := Unlocks{ResumeFrom: resumeFrom, ByKind: make(map[string][]string, len(gamedata.ItemKinds))}
 	for _, kind := range gamedata.ItemKinds {
+		if !kind.Granted() {
+			continue
+		}
 		if !kind.OneShot() {
 			unlocks.ByKind[kind.Key()] = []string{}
 		}

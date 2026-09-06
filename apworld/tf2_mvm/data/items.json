@@ -154037,6 +154037,678 @@
       "kind": "server_setting",
       "classification": "useful",
       "count": 1
+    },
+    {
+      "id": 7443008001,
+      "name": "Australium Medal: Doe's Drill",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 1
+    },
+    {
+      "id": 7443008002,
+      "name": "Australium Medal: Doe's Doom",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 2
+    },
+    {
+      "id": 7443008003,
+      "name": "Australium Medal: Day of Wreckening",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 3
+    },
+    {
+      "id": 7443008004,
+      "name": "Australium Medal: Disk Deletion",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 4
+    },
+    {
+      "id": 7443008005,
+      "name": "Australium Medal: Data Demolition",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 5
+    },
+    {
+      "id": 7443008006,
+      "name": "Australium Medal: Disintegration",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 6
+    },
+    {
+      "id": 7443008007,
+      "name": "Australium Medal: Desperation",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 7
+    },
+    {
+      "id": 7443008008,
+      "name": "Australium Medal: Crash Course",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 8
+    },
+    {
+      "id": 7443008009,
+      "name": "Australium Medal: Cave-in",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 9
+    },
+    {
+      "id": 7443008010,
+      "name": "Australium Medal: Quarry",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 10
+    },
+    {
+      "id": 7443008011,
+      "name": "Australium Medal: Ctrl+Alt+Destruction",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 11
+    },
+    {
+      "id": 7443008012,
+      "name": "Australium Medal: CPU Slaughter",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 12
+    },
+    {
+      "id": 7443008013,
+      "name": "Australium Medal: Cataclysm",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 13
+    },
+    {
+      "id": 7443008014,
+      "name": "Australium Medal: Mann-euvers",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 14
+    },
+    {
+      "id": 7443008015,
+      "name": "Australium Medal: Mean Machines",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 15
+    },
+    {
+      "id": 7443008016,
+      "name": "Australium Medal: Mannhunt",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 16
+    },
+    {
+      "id": 7443008017,
+      "name": "Australium Medal: Machine Massacre",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 17
+    },
+    {
+      "id": 7443008018,
+      "name": "Australium Medal: Mech Mutilation",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 18
+    },
+    {
+      "id": 7443008019,
+      "name": "Australium Medal: Mannslaughter",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 19
+    },
+    {
+      "id": 7443008020,
+      "name": "Australium Medal: Benign Infiltration",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 20
+    },
+    {
+      "id": 7443008021,
+      "name": "Australium Medal: Broken Parts",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 21
+    },
+    {
+      "id": 7443008022,
+      "name": "Australium Medal: Bone Shaker",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 22
+    },
+    {
+      "id": 7443008023,
+      "name": "Australium Medal: Big Apple Barricade",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 23
+    },
+    {
+      "id": 7443008024,
+      "name": "Australium Medal: Empire Escalation",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 24
+    },
+    {
+      "id": 7443008025,
+      "name": "Australium Medal: Metro Malice",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 25
+    },
+    {
+      "id": 7443008026,
+      "name": "Australium Medal: Village Vanguard",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 26
+    },
+    {
+      "id": 7443008027,
+      "name": "Australium Medal: Hamlet Hostility",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 27
+    },
+    {
+      "id": 7443008028,
+      "name": "Australium Medal: Bavarian Botbash",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 28
+    },
+    {
+      "id": 7443008029,
+      "name": "Australium Medal: Caliginous Caper",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 29
+    },
+    {
+      "id": 7443008105,
+      "name": "Australium Medal: Anomalous Materials",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 105
+    },
+    {
+      "id": 7443008106,
+      "name": "Australium Medal: Urban Uprising",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 106
+    },
+    {
+      "id": 7443008107,
+      "name": "Australium Medal: Swamp Fever",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 107
+    },
+    {
+      "id": 7443008108,
+      "name": "Australium Medal: Thriller Terror",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 108
+    },
+    {
+      "id": 7443008109,
+      "name": "Australium Medal: Silver Snow",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 109
+    },
+    {
+      "id": 7443008110,
+      "name": "Australium Medal: Flash Flood Flurry",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 110
+    },
+    {
+      "id": 7443008111,
+      "name": "Australium Medal: Wicked Wizardry",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 111
+    },
+    {
+      "id": 7443008112,
+      "name": "Australium Medal: Heated Argument",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 112
+    },
+    {
+      "id": 7443008113,
+      "name": "Australium Medal: Covert Compromise",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 113
+    },
+    {
+      "id": 7443008114,
+      "name": "Australium Medal: Homestead Happenings",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 114
+    },
+    {
+      "id": 7443008115,
+      "name": "Australium Medal: Mud",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 115
+    },
+    {
+      "id": 7443008116,
+      "name": "Australium Medal: Void Voyage",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 116
+    },
+    {
+      "id": 7443008117,
+      "name": "Australium Medal: Offshore Onslaught",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 117
+    },
+    {
+      "id": 7443008118,
+      "name": "Australium Medal: Snowy Slaughter",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 118
+    },
+    {
+      "id": 7443008119,
+      "name": "Australium Medal: Pollution Dilution",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 119
+    },
+    {
+      "id": 7443008120,
+      "name": "Australium Medal: Recursive Reinforcements",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 120
+    },
+    {
+      "id": 7443008121,
+      "name": "Australium Medal: Armored Apparatus",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 121
+    },
+    {
+      "id": 7443008122,
+      "name": "Australium Medal: Alpine Assault",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 122
+    },
+    {
+      "id": 7443008123,
+      "name": "Australium Medal: Onsen Onslaught",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 123
+    },
+    {
+      "id": 7443008124,
+      "name": "Australium Medal: Binary Broadcast",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 124
+    },
+    {
+      "id": 7443008125,
+      "name": "Australium Medal: Black East",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 125
+    },
+    {
+      "id": 7443008126,
+      "name": "Australium Medal: Unholy Undead",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 126
+    },
+    {
+      "id": 7443008127,
+      "name": "Australium Medal: Australian Christmas",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 127
+    },
+    {
+      "id": 7443008128,
+      "name": "Australium Medal: Complex Chaos",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 128
+    },
+    {
+      "id": 7443008129,
+      "name": "Australium Medal: Extraterrestrial Epidemic",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 129
+    },
+    {
+      "id": 7443008130,
+      "name": "Australium Medal: Interstellar Intervention",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 130
+    },
+    {
+      "id": 7443008131,
+      "name": "Australium Medal: Tech Mechs",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 131
+    },
+    {
+      "id": 7443008132,
+      "name": "Australium Medal: Unusual Onslaught",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 132
+    },
+    {
+      "id": 7443008133,
+      "name": "Australium Medal: Gatebot Apocalypse",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 133
+    },
+    {
+      "id": 7443008134,
+      "name": "Australium Medal: Steelblock",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 134
+    },
+    {
+      "id": 7443008135,
+      "name": "Australium Medal: Storm Surge",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 135
+    },
+    {
+      "id": 7443008136,
+      "name": "Australium Medal: Alluvion",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 136
+    },
+    {
+      "id": 7443008137,
+      "name": "Australium Medal: Fiefdom Fiasco",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 137
+    },
+    {
+      "id": 7443008138,
+      "name": "Australium Medal: Advanced",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 138
+    },
+    {
+      "id": 7443008139,
+      "name": "Australium Medal: Perilous Paradise",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 139
+    },
+    {
+      "id": 7443008140,
+      "name": "Australium Medal: Autonomous Annihilation",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 140
+    },
+    {
+      "id": 7443008141,
+      "name": "Australium Medal: Interloper",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 141
+    },
+    {
+      "id": 7443008142,
+      "name": "Australium Medal: Intermediate",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 142
+    },
+    {
+      "id": 7443008143,
+      "name": "Australium Medal: Mechanical Damnation",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 143
+    },
+    {
+      "id": 7443008144,
+      "name": "Australium Medal: Oilpocalypse",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 144
+    },
+    {
+      "id": 7443008145,
+      "name": "Australium Medal: Rescindment",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 145
+    },
+    {
+      "id": 7443008146,
+      "name": "Australium Medal: Oil Overflow",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 146
+    },
+    {
+      "id": 7443008147,
+      "name": "Australium Medal: Terrorist Simulation",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 147
+    },
+    {
+      "id": 7443008148,
+      "name": "Australium Medal: Corroding Cadavers",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 148
+    },
+    {
+      "id": 7443008149,
+      "name": "Australium Medal: Frosted Furnace",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 149
+    },
+    {
+      "id": 7443008150,
+      "name": "Australium Medal: Grass Run",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 150
+    },
+    {
+      "id": 7443008151,
+      "name": "Australium Medal: Greenhouse Roughhousing",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 151
+    },
+    {
+      "id": 7443008152,
+      "name": "Australium Medal: Rocky Ravage",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 152
+    },
+    {
+      "id": 7443008153,
+      "name": "Australium Medal: Recruits Recognition",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 153
+    },
+    {
+      "id": 7443008154,
+      "name": "Australium Medal: Permafrost Panic",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 154
+    },
+    {
+      "id": 7443008155,
+      "name": "Australium Medal: Shattered Iceshard",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 155
+    },
+    {
+      "id": 7443008156,
+      "name": "Australium Medal: Raid Resort",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 156
+    },
+    {
+      "id": 7443008157,
+      "name": "Australium Medal: Program Seppuku",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 157
+    },
+    {
+      "id": 7443008158,
+      "name": "Australium Medal: Disruption",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 158
+    },
+    {
+      "id": 7443008159,
+      "name": "Australium Medal: Signal Shutdown",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 159
     }
   ]
 }

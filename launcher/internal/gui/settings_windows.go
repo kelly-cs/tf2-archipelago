@@ -75,6 +75,7 @@ func runSettingsDialog(
 		missions         *walk.NumberEdit
 		goalBox          *walk.ComboBox
 		sanityPct        *walk.NumberEdit
+		medalOnClear     *walk.CheckBox
 		deathLink        *walk.CheckBox
 		ticketImportance *walk.ComboBox
 		classImportance  *walk.ComboBox
@@ -230,6 +231,7 @@ func runSettingsDialog(
 		next.MvmMissionCount = int(missions.Value())
 		next.MvmGoal = goals[max(goalBox.CurrentIndex(), 0)].Key
 		next.MvmMissionsanityPct = int(sanityPct.Value())
+		next.MvmMedalOnClear = medalOnClear.Checked()
 		next.MvmDeathLink = deathLink.Checked()
 		next.CommunityContentDir = strings.TrimSpace(contentEdit.Text())
 		next.CommunityPacks = []string{}
@@ -462,6 +464,8 @@ func runSettingsDialog(
 								AssignTo: &sanityPct, Value: float64(s.MvmMissionsanityPct),
 								MinValue: 10, MaxValue: 100, Decimals: 0,
 							},
+							label("Australium Medal on clear", "Lock a medal of your own onto every mission clear, and read the goal off the medals you hold. It costs the multiworld one check a mission."),
+							declarative.CheckBox{AssignTo: &medalOnClear, Text: "lock the clears", Checked: s.MvmMedalOnClear},
 							label("Death Link", "A lost wave kills every other player in the multiworld who has Death Link on, and their deaths wipe your team."),
 							declarative.CheckBox{AssignTo: &deathLink, Text: "share deaths", Checked: s.MvmDeathLink},
 							label("Archipelago app", "Where the Archipelago app is installed. Leave it blank and the launcher looks where the installer puts it. Set it when the app is on another drive, or in a folder of your own."),

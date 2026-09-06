@@ -189,6 +189,17 @@ that. It is the most original idea in the thread.
   ties the run to other players' worlds. That is what a multiworld is for,
   so the design must treat this goal as central, not minor.
 
+`medal_on_clear` changes what either of the first two goals reads. It is off by
+default. Turn it on and each mission clear holds an Australium Medal of your
+own. The goal then counts the medals, not the clears the server reported.
+
+Generation asks about your items instead of about a location, which is the
+question it answers best. No `!collect` can hand you a medal. The cost is one
+check per mission, which no longer carries another player's item.
+
+This is not Australium Hunt. A medal stays locked onto your own clear and never
+travels. Australium Hunt scatters junk items across other worlds.
+
 ## Traps and DeathLink
 
 A death in MvM is cheap: you respawn after a short timer and the wave goes

@@ -152,6 +152,10 @@ func TestThePluginHandlesEveryGrantKind(t *testing.T) {
 	}
 	handled := string(body)
 	for _, kind := range ItemKinds {
+		// A trophy never leaves generation, so the plugin has no name for it.
+		if !kind.Granted() {
+			continue
+		}
 		if !strings.Contains(handled, `"`+kind.Key()+`"`) {
 			t.Errorf("the plugin does not handle a grant of kind %q", kind.Key())
 		}

@@ -146,7 +146,7 @@ func (f *settingsForm) playerFields() []field {
 		goalLabels = append(goalLabels, goal.Label())
 	}
 
-	return []field{
+	rows := []field{
 		&choiceField{
 			label:   "Easiest tier",
 			help:    "The easiest tier a mission may come from. Harder tiers are always in as well, so the pool shrinks as this rises.",
@@ -174,10 +174,24 @@ func (f *settingsForm) playerFields() []field {
 			value: &f.edited.MvmMissionsanityPct, low: 10, high: 100,
 		},
 		&toggleField{
+			label: "Australium Medal on clear",
+			help:  "Lock a medal of your own onto every mission clear, and read the goal off the medals you hold. It costs the multiworld one check a mission.",
+			value: &f.edited.MvmMedalOnClear, on: "lock the clears", off: "lock the clears",
+		},
+		&toggleField{
 			label: "Death Link",
 			help:  "A lost wave kills every other player in the multiworld who has Death Link on, and their deaths wipe your team.",
 			value: &f.edited.MvmDeathLink, on: "share deaths", off: "share deaths",
 		},
+	}
+
+	return append(rows, f.seedFields()...)
+}
+
+// seedFields are what a player does with the run rather than what it holds:
+// where the app lives, and the three things to press once the options are set.
+func (f *settingsForm) seedFields() []field {
+	return []field{
 		&textField{
 			label:       "Archipelago app",
 			help:        "Where the Archipelago app is installed. Blank means the launcher looks where the installer puts it.",

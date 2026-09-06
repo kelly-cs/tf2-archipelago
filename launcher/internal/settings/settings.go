@@ -157,10 +157,13 @@ type Settings struct {
 
 	// Run shape, for seed generation guidance (the launcher does not generate
 	// seeds itself, but it can write a starter YAML for the Archipelago app).
-	MvmMissionCount     int      `json:"mvm_mission_count"`
-	MvmDifficulty       string   `json:"mvm_difficulty"`
-	MvmGoal             string   `json:"mvm_goal"`
-	MvmMissionsanityPct int      `json:"mvm_missionsanity_percentage"`
+	MvmMissionCount     int    `json:"mvm_mission_count"`
+	MvmDifficulty       string `json:"mvm_difficulty"`
+	MvmGoal             string `json:"mvm_goal"`
+	MvmMissionsanityPct int    `json:"mvm_missionsanity_percentage"`
+	// MvmMedalOnClear locks a medal onto every mission clear and makes the
+	// goal read the medals held. It costs the multiworld one check a mission.
+	MvmMedalOnClear     bool     `json:"mvm_medal_on_clear"`
 	MvmDeathLink        bool     `json:"mvm_death_link"`
 	MvmExcludedMissions []string `json:"mvm_excluded_missions,omitempty"`
 

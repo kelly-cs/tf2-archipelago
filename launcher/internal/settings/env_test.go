@@ -99,6 +99,7 @@ func TestEveryFieldHasAnEnvVar(t *testing.T) {
 		"MvmDifficulty":              "MVM_DIFFICULTY",
 		"MvmGoal":                    "MVM_GOAL",
 		"MvmMissionsanityPct":        "MVM_MISSIONSANITY_PERCENTAGE",
+		"MvmMedalOnClear":            "MVM_MEDAL_ON_CLEAR",
 		"MvmDeathLink":               "MVM_DEATH_LINK",
 		"MvmExcludedMissions":        "MVM_EXCLUDED_MISSIONS",
 		"MvmStartMission":            "MVM_START_MISSION",
