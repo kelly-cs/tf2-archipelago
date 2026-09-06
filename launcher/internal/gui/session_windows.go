@@ -8,6 +8,7 @@ import (
 	"github.com/lxn/walk"
 	declarative "github.com/lxn/walk/declarative"
 
+	"github.com/m-this/tf2-archipelago/launcher/internal/runshape"
 	"github.com/m-this/tf2-archipelago/launcher/internal/session"
 )
 
@@ -56,8 +57,8 @@ func (t *sessionTab) page(onSwitch func(popFile string)) declarative.TabPage {
 					{Title: "Map", Width: 130},
 					{Title: "Source", Width: 110},
 					{Title: "Waves", Width: 50},
-					{Title: "Loadout", Width: 120},
 					{Title: "State", Width: 120},
+					{Title: "Notes", Width: 420},
 				},
 				StyleCell: func(style *walk.CellStyle) {
 					if style.Row() < 0 || style.Row() >= len(t.model.missions) {
@@ -231,12 +232,9 @@ func (m *missionsModel) Value(row, col int) any {
 	case 4:
 		return mission.Waves
 	case 5:
-		if mission.Loadout == "medieval" {
-			return "Medieval loadout"
-		}
-		return "Standard"
-	default:
 		return missionState(mission)
+	default:
+		return runshape.LoadoutNote(mission.Loadout)
 	}
 }
 

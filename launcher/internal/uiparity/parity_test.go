@@ -46,7 +46,7 @@ func TestBothInterfacesWriteTheSameSettings(t *testing.T) {
 	slices.Sort(tui)
 	tui = slices.Compact(tui)
 
-	//Nought fields against nought fields compares equal, and finds nothing
+	// Nought fields against nought fields compares equal, and finds nothing
 	if len(gui) < 10 || len(tui) < 10 {
 		t.Fatalf("the written fields stopped being found, so nothing was compared: window %d, terminal %d", len(gui), len(tui))
 	}

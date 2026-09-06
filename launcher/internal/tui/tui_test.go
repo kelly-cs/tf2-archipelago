@@ -218,7 +218,7 @@ func TestCommunityMissionsStayHiddenUntilTheirAssetsAreAvailable(t *testing.T) {
 	for _, row := range m.form.fields() {
 		if strings.Contains(row.Label(), "Wicked Wizardry") {
 			foundMedieval = true
-			if !strings.Contains(row.Label()+row.Help(), "Medieval loadout") {
+			if !strings.Contains(row.Label(), "[Medieval]") || !strings.Contains(row.Help(), "melee") {
 				t.Fatalf("Wicked Wizardry does not name its special loadout: %q / %q", row.Label(), row.Help())
 			}
 		}
@@ -249,8 +249,8 @@ func TestSessionMissionsNameTheSpecialLoadout(t *testing.T) {
 	}}
 
 	rows := m.missionRows(1)
-	if len(rows) != 1 || !strings.Contains(rows[0], "Medieval loadout") {
-		t.Fatalf("session mission row = %q, want Medieval loadout", rows)
+	if len(rows) != 1 || !strings.Contains(rows[0], "unlocked  Medieval") {
+		t.Fatalf("session mission row = %q, want the Medieval tag after the state", rows)
 	}
 }
 

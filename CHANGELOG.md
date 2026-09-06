@@ -6,6 +6,14 @@ in the release notes, so this file is the only place to write it.
 
 ## Unreleased
 
+### Community maps, by kelly-cs
+
+- Wicked Wizardry and Fiefdom Fiasco on Frostwynd are Medieval missions: the
+  map keeps only melee and medieval-era weapons, so most weapon slot unlocks do
+  nothing there. The launcher now says so where you pick missions for the pool,
+  where you choose the starting mission, and on the session list, so a run does
+  not walk into one by surprise.
+
 ## v1.11.0
 
 Change the bot team mid-run, build your own loadouts, scale robot health, and

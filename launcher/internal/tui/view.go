@@ -7,6 +7,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 
 	"github.com/m-this/tf2-archipelago/launcher/internal/assets"
+	"github.com/m-this/tf2-archipelago/launcher/internal/runshape"
 	apruntime "github.com/m-this/tf2-archipelago/launcher/internal/runtime"
 	"github.com/m-this/tf2-archipelago/launcher/internal/session"
 )
@@ -226,12 +227,8 @@ func (m *model) missionRows(height int) []string {
 		if i == m.selected {
 			marker = "> "
 		}
-		loadout := ""
-		if mission.Loadout == "medieval" {
-			loadout = "  Medieval loadout"
-		}
-		row := fmt.Sprintf("%s%2d  %-28s %-14s %2d waves%s  %s",
-			marker, i+1, mission.Name, mission.Map, mission.Waves, loadout, missionState(mission))
+		row := fmt.Sprintf("%s%2d  %-28s %-14s %2d waves  %-9s %s",
+			marker, i+1, mission.Name, mission.Map, mission.Waves, missionState(mission), runshape.LoadoutLabel(mission.Loadout))
 		rows = append(rows, style(mission).Render(truncate(row, m.width)))
 	}
 	return rows

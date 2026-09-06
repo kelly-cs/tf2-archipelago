@@ -31,7 +31,7 @@ func TestMedievalLoadoutAppearsInStartMissionChoices(t *testing.T) {
 	choices := StartMissionChoicesForPacks([]string{"archive-assets.zip"})
 	for _, choice := range choices {
 		if choice.PopFile == "mvm_frostwynd_rc1_int_wicked_wizardry" {
-			if !strings.Contains(choice.Label, "Medieval loadout") {
+			if !strings.Contains(choice.Label, "Medieval") {
 				t.Fatalf("Wicked Wizardry label = %q", choice.Label)
 			}
 			return
