@@ -488,10 +488,18 @@ func (f *settingsForm) poolField(mission gamedata.Mission) field {
 	}
 	inPool := !slices.Contains(f.edited.MvmExcludedMissions, mission.PopFile)
 	held := inPool
+	tag := ""
+	if label := runshape.MissionLoadoutLabel(mission); label != "" {
+		tag = " [" + label + "]"
+	}
+	help := fmt.Sprintf("%s, %d waves. Off means the seed never draws it.", mission.Difficulty.String(), mission.Waves)
+	if note := runshape.LoadoutNote(gamedata.MissionLoadout(mission.ID)); note != "" {
+		help = note + " " + help
+	}
 
 	return &poolToggle{
-		label:   fmt.Sprintf("[%s] %s (%s)", source, mission.Name, played.Name),
-		help:    fmt.Sprintf("%s, %d waves. Off means the seed never draws it.", mission.Difficulty.String(), mission.Waves),
+		label:   fmt.Sprintf("[%s] %s (%s)%s", source, mission.Name, played.Name, tag),
+		help:    help,
 		value:   &held,
 		on:      "in the pool",
 		off:     "left out",
