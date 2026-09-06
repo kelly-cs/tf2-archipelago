@@ -153,3 +153,27 @@ func TestWeaponBuffOwnershipPolicyDefaultsToPlayers(t *testing.T) {
 		}
 	}
 }
+
+func TestSelfBlastBuffsUseTheWeaponThatCausedAnyBlastDamage(t *testing.T) {
+	buffs := "../plugin/scripting/tf2_archipelago/weapon_buffs.inc"
+	hook := sourceFunction(t, buffs, "void WeaponBuffs_HookClient(int client)")
+	if !strings.Contains(hook, "SDKHook_OnTakeDamage, WeaponBuffs_OnTakeDamage") {
+		t.Fatal("players are not hooked for modifiable damage")
+	}
+
+	damage := sourceFunction(t, buffs, "public Action WeaponBuffs_OnTakeDamage")
+	for _, required := range []string{
+		"victim != attacker",
+		"!(damagetype & DMG_BLAST)",
+		"WeaponBuffs_WeaponOfHit(attacker, inflictor, weapon)",
+		"WeaponBuffs_ForEntity(weapon)",
+		"g_WeaponEffectLevels[catalog][NoSelfBlastEffect]",
+		"damage = 0.0",
+		"g_WeaponEffectLevels[catalog][RocketJumpProtectionEffect]",
+		"damage *= kept",
+	} {
+		if !strings.Contains(damage, required) {
+			t.Fatalf("self-blast damage path has no %q", required)
+		}
+	}
+}
