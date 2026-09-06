@@ -7,13 +7,14 @@
 # imports at startup. Both pins are load-bearing.
 
 # The player file writer is Go, built here so the runtime image carries one
-# static binary and no Go. Only the standard library is used, so the module's
-# dependencies are not downloaded.
+# static binary and no Go. It is the launcher's own renderer behind the MVM_*
+# environment, so the container and the exe write the same file.
 FROM golang:1.27 AS playeryaml
 WORKDIR /src
 COPY go.mod go.sum ./
-COPY deploy/cmd/playeryaml deploy/cmd/playeryaml
-RUN CGO_ENABLED=0 go build -trimpath -o /out/playeryaml ./deploy/cmd/playeryaml
+COPY gamedata gamedata
+COPY launcher launcher
+RUN CGO_ENABLED=0 go build -trimpath -o /out/playeryaml ./launcher/cmd/playeryaml
 
 
 FROM python:3.13-slim AS build
