@@ -6,89 +6,172 @@ in the release notes, so this file is the only place to write it.
 
 ## Unreleased
 
+Traps, a medal on every mission clear, a Grappling Hook the multiworld can hand
+you, maps that download over HTTP, and a long pass over the weapon buffs from
+Cowser's sheet and kelly-cs's issues. Bots at 2.52.3.
+
+### The run
+
+- **Traps.** A `trap_percentage` option puts traps in the pool, off by default.
+  The one that exists soaks the whole team in Jarate: ten seconds of 35% more
+  damage taken and no crits, bots included. It belongs to the multiworld like
+  any other item, so it is another player opening a chest that does it to you.
+  One that arrives between waves waits for the next one: Jarate on a team
+  standing at the upgrade station is no trap at all.
+- **Australium Medals.** `medal_on_clear`, off by default, locks a medal onto
+  every mission clear and takes those checks out of the pool. Both goals read
+  them: Final Boss asks for the goal mission's own, missionsanity counts them.
+- **The Grappling Hook.** Turn on `server_settings` in your YAML and the
+  multiworld can hand your team Mannpower's hook for the rest of the run. It is
+  useful, never progression: no wave needs it.
+- A `community_missions` option keeps every community mission out of a run in
+  one line, instead of naming each in `excluded_missions`.
+- Community missions can name a server mod they need. The Docker image carries
+  SigMod and loads it with `SRCDS_MODS=sigsegv-mvm`; the seed's `server_mods`
+  option draws those missions only for a server that has it. The Windows
+  launcher shows them locked: SigMod has no Windows build.
 - Wicked Wizardry and Fiefdom Fiasco on Frostwynd are Medieval missions: the
   map keeps only melee and medieval-era weapons, so most weapon slot unlocks do
-  nothing there. The launcher now says so where you pick missions for the pool,
-  where you choose the starting mission, and on the session list, so a run does
-  not walk into one by surprise.
-- A new item, off by default: the Grappling Hook. Turn on `server_settings` in
-  your YAML and the multiworld can hand your team Mannpower's hook for the rest
-  of the run. Nothing ever requires it to beat a wave.
-- The launcher says in its log when a newer release is out, with the link.
-  It still does not replace itself: download the new exe and run it.
-- The Docker server writes its player file with the same code as the
-  launcher, so both carry the reward importance options and the same
-  defaults. `MVM_COMMUNITY_MISSIONS` reaches the launcher's settings too.
-- The upgrade station no longer opens the buff window by itself. That window
-  took the number keys, which are your weapon slots, for twenty seconds. The
-  station now lists your loadout's buffs in chat instead, and `!ap buffs`
-  opens the window when you want it.
-- Traps. A `trap_percentage` option puts traps in the pool. The one that
-  exists soaks the whole team in Jarate: ten seconds of 35% more damage taken
-  and no crits. The item belongs to the multiworld like any other, so it is
-  another player opening a chest that does it to you. Traps are off by
-  default, and one that arrives between waves waits for the next one. Jarate
-  on a team standing at the upgrade station is no trap at all.
-- The Docker server plays the randomiser again. The image shipped without the
-  plugin's gamedata, so the plugin refused to load and the server came up as
-  plain Mann vs Machine with nothing saying so.
-- The bridge no longer drops the room every second in a multiworld with many
-  games. It asked for every game's item names at once and the reply was too
-  big to read, so nothing you checked ever reached the room.
-- A debug bundle only carries the game server's own crash dumps, not every
-  program's on the machine.
+  nothing there. The launcher says so where you pick missions for the pool,
+  where you choose the starting mission, and on the session list, so a run
+  does not walk into one by surprise. By kelly-cs.
+- A server that restarts goes back to the wave the team had reached. The bridge
+  writes the wave down as checks come in, and the plugin reloads the mission and
+  jumps forward, never back, when the server comes up again. A crash cost the
+  team every wave it had cleared.
 - A run that crossed the 1.10 upgrade had every mission it had cleared read as
-  "collected", and a missionsanity goal counted none of them. The old state
-  file could not say which checks were yours, and they all were.
-- Robot health scaling holds. The maximum the game reported was read off the
-  wrong cell after the number was written, and the bots' own reading of a
-  teammate's maximum health, their wave credit totals and the sapper's
-  buildable list were reading the same wrong cell.
-- Explode on ignite is gone from the buff pool: on a minigun it ended a wave
-  on its own. Über on hit goes with it: a medigun never hits.
-- Ninety-six buff and weapon pairs that did nothing are out of the pool, from
-  Cowser's sheet: accuracy on weapons with no spread, reload and clip buffs on
-  weapons with no clip, kill buffs on the two jumpers, and the like.
-- A `community_missions` option keeps every community mission out of a run
-  in one line, instead of naming each in `excluded_missions`.
-- A locked weapon slot now takes the wearable in it too: a Demoman with a
-  locked secondary no longer charges with a shield, and one with a locked
-  primary no longer keeps the boots and holds nothing. Gunboats, Mantreads,
-  the Razorback and the other slot-filling wearables follow the same rule.
-- The "no self-inflicted blast damage" and rocket-jump protection buffs work
-  on rocket, grenade and stickybomb launchers. Zero self-damage keeps the
-  ordinary explosion effect and blast-jump push.
-- Projectile penetration is no longer offered on explosives. Bleed lands one
-  stack per enemy instead of one per hit. Armor piercing is a knife buff only,
-  since the game reads it on backstabs and nowhere else. Melee fire rate buffs
-  stop at +50%, past which the swing outran its own animation and hit nothing.
-- Robot health scaling works. Setting it above 100% left the robots at the
-  health the mission gives them, and setting it below moved nothing either:
-  the server wrote the number somewhere the game recomputes a moment later.
-  The server log now says what each scaled robot ended up worth.
-- Community missions can now name a server mod they need. The Docker image
-  carries SigMod and loads it when `SRCDS_MODS=sigsegv-mvm`, and the seed's
-  new `server_mods` option draws those missions only for a server that has
-  it. The Windows launcher shows them locked: SigMod has no Windows build.
-
-- The server hands out maps over HTTP from the machine it runs on, so a friend
-  joining without a community map downloads it instead of watching Transmission
-  reach the end and start over. On the local network there is nothing to set up
-  and nothing to forward. A friend joining from outside needs the download port
-  forwarded and your public address in SRCDS_DOWNLOADURL; without it they fall
-  back to the old transfer, the way they do today.
-- Archipelago weapon buffs now stay active when players refund upgrades at an
-  MvM station. They no longer appear as purchased, infinitely refundable MvM
-  upgrade levels or stack again after repeated refunds.
-- A server whose Metamod or SourceMod went missing is repaired on the next
-  start instead of playing stock Mann vs Machine with every setting ignored,
-  and a debug bundle says so when it happened.
+  "collected", and a missionsanity goal counted none of them. The old state file
+  could not say which checks were yours, and they all were. kelly-cs's run.
+- The bridge no longer drops the room every second in a multiworld with many
+  games. It asked for every game's item names at once and the reply was too big
+  to read, so nothing you checked ever reached the room. EMann's bundle showed
+  it fifty-nine times.
 - Test mode draws its missions at random from the pool, the way a real seed
   does. It took the first ones in the settings list, which looked like a
   randomizer that does not randomize.
-- An Unlocks tab in the launcher, window and terminal, lists what the
-  multiworld has handed the run: classes, weapon slots, missions and weapon
-  buffs, with the level a repeated buff reached.
+
+### Weapon buffs
+
+- The run's buffs are yours and not the station's. Refunding an upgrade used to
+  take them, and they came back as purchased, infinitely refundable upgrade
+  levels that stacked again on each refund. They are held apart from MvM's
+  shopping now and survive refunds, wave transitions and loadout changes.
+- The upgrade station no longer opens the buff window by itself. That window
+  took the number keys, which are your weapon slots, for twenty seconds. The
+  station lists your loadout's buffs in chat, and `!ap buffs` opens the window
+  when you want it.
+- Explode on ignite is gone from the pool: on a minigun it ended a wave on its
+  own. Über on hit goes with it, since a medigun never hits.
+- Ninety-six buff and weapon pairs that did nothing are out of the pool, from
+  Cowser's sheet: accuracy on weapons with no spread, reload and clip buffs on
+  weapons with no clip, kill buffs on the two jumpers, fire rate on sniper
+  rifles, and the like. Existing seeds keep their ids.
+- Eight pairs came in from the same sheet. A thrown jar counts as a hit, so
+  Jarate and Mad Milk draw ignite and heal on hit. The Gas Passer never fires
+  and still gets kills through its afterburn, so it draws the on-kill buffs.
+- Projectile penetration is no longer offered on explosives: a rocket that
+  penetrates does not explode where it was aimed. Armor piercing is a knife buff
+  only, since the game reads it on backstabs and nowhere else.
+- Bleed lands one stack per enemy instead of one per hit, which made a syringe
+  gun a wave-ender. Melee fire rate stops at +50%: past it the swing outran its
+  own animation and hit nothing.
+- "No self-inflicted blast damage" and rocket-jump protection work on rocket,
+  grenade and stickybomb launchers, and zero self-damage keeps the explosion and
+  the blast-jump push. The game reads both on the player, not the weapon, so the
+  buff on the weapon never reached them.
+- Bleed, milk, Jarate and the marks land on a direct hit with the jar itself.
+- A locked weapon slot takes the wearable in it too. A Demoman with a locked
+  secondary charged with a shield, and one with a locked primary kept the boots
+  and held nothing. Gunboats, Mantreads, the Razorback and the other
+  slot-filling wearables follow the same rule.
+- Linux servers get the extra arrows and flares. The projectile-count fanout had
+  Windows gamedata only, so a Docker server logged both fanouts disabled and
+  every extra bolt was a plain clone. The heal on an extra Crusader's Crossbow
+  bolt is still open.
+
+### Balancing
+
+- Robot health scaling works, and holds. Setting it above 100% left the robots
+  at the mission's health and setting it below moved nothing: the number was
+  written somewhere the game recomputes a moment later. It is a straight
+  multiplier now, 10% to 1000%, applied after the game finishes building the
+  robot, read back, and the server log says what each robot ended up worth.
+
+### Getting a server up
+
+- The server hands out maps over HTTP from the machine it runs on, so a friend
+  joining without a community map downloads it instead of watching Transmission
+  reach the end and start over. On the local network there is nothing to set up.
+  A friend joining from outside needs the download port forwarded and your
+  public address in `SRCDS_DOWNLOADURL`, or a Tailscale Funnel: the launcher
+  publishes the download through it when you have one, on Windows and Linux and
+  with the Compose stack. Without either they fall back to the old transfer.
+- The launcher says in its log when a newer release is out, with the link. It
+  still does not replace itself: download the new exe and run it.
+- A server whose Metamod or SourceMod went missing is repaired on the next start
+  instead of playing stock Mann vs Machine with every setting ignored, and a
+  debug bundle says so when it happened.
+- The Docker server plays the randomiser again. The image shipped without the
+  plugin's gamedata, so the plugin refused to load and the server came up as
+  plain Mann vs Machine with nothing saying so.
+- The Docker server writes its player file with the same code as the launcher,
+  so both carry the reward importance options and the same defaults.
+  `MVM_COMMUNITY_MISSIONS` reaches the launcher's settings too.
+- The game server starts with `-debug`, so a crash leaves a stack in
+  `debug.log` even when Breakpad never started, and the bundle carries it. Two
+  bundles arrived with an access violation and nothing naming the function.
+- A debug bundle only carries the game server's own crash dumps, not every
+  program's on the machine. Two bundles carried GameBar and a Tony Hawk game.
+- The community mission installer skips the missions a pack cannot support.
+
+### The launcher
+
+- An **Unlocks** tab, window and terminal, lists what the multiworld has handed
+  the run: classes, weapon slots, missions and weapon buffs, with the level a
+  repeated buff reached.
+- Terminal tabs that list more than fits scroll, and the last line counts what
+  is off the screen. The Unlocks and Bot Switcher lists were cut at the body
+  height and said nothing about the rest.
+
+### The bots
+
+The mod moves from 2.39.0 to 2.52.3.
+
+- The medic answers a player who calls for him. A human pressed the call and
+  the bot medic carried on healing whichever bot it had picked; reported by
+  Cowser and by Peppy. Measured with a stand-in player calling on Decoy: the
+  caller held the beam up to a quarter of the time against 2% before, every
+  wave cleared either way.
+- The engineer's break is a plan, not a walk. Every engineer claims his four
+  spots before anybody moves, jumps to each rather than walking, and never
+  builds on another engineer's ground. On Decoy with two engineers the
+  teleporter entrance stands at 21 to 30 seconds of the break against 37 to 45,
+  and the exit at 26 to 38 against 50 to 58. The cost is on the record: the
+  wrench is what applies a level, and an engineer who jumps swings it less, so
+  the sentry sits at level three in 76% of samples rather than 85%.
+- A teleporter exit puts you down on a side with ground beside it. The exit
+  ring never looked down, so a player taking the teleporter could land where the
+  engineer never stood.
+- A bot's loadout slot is emptied only for an item the game can give. A Heavy
+  joined RED on Rottenburg with no weapon at all.
+- Halloween cosmetics are out of the bots' hat pool. The game refuses to attach
+  a holiday item out of season, and the refusal threw an error that cost the
+  bot the rest of its cosmetics.
+- A bot moved out of spawn is put where a standing player fits. The recovery
+  teleported onto anything and asked for a route in the same tick.
+- Five map spots stand on the ground. Four nest and dispenser spots on
+  Mannhattan and Mannworks sat in holes beside the mesh, and Rottenburg's fourth
+  sniper spot was written 213 units above it, so every side was refused.
+- A bot taking a seat no longer inherits the last bot's answers: the health,
+  ammo and revive searches around where the previous bot stood cleared with the
+  seat, so a new bot stops walking to a pack it cannot reach.
+- The server no longer crashes on a map change after a custom loadout file
+  was loaded. Two handles the mod had closed were read back after the change.
+- The final wave's send-off is a taunt. The last wave neither danced nor
+  kicked.
+
+Bigrock's rock-top nest and teleporter spots are still built at the foot of the
+rock: the engineer cannot climb, and the building goes where he stands. Open.
 
 ## v1.11.0
 

@@ -94,6 +94,23 @@ install_admin() {
 	echo "[AP] installed $(grep -c '^"' "$target") admin(s)"
 }
 
+# Copies a staged tree over the game's, file by file, and only the files whose
+# size differs or whose source is newer. cp -u decided on the timestamp alone,
+# and a copy cut short by a full disk is newer than its source, so it stayed
+# truncated and the server died loading it on every map. The size tells the two
+# apart. Nothing that matches is rewritten: cp truncates a file the running
+# server has mapped, and that is a SIGBUS thirty seconds later.
+sync_tree() {
+	src=$1
+	dst=$2
+	(cd "$src" && find . -type f) | while IFS= read -r file; do
+		if [ ! -e "$dst/$file" ] || [ "$(stat -c %s "$src/$file")" != "$(stat -c %s "$dst/$file")" ] || [ "$src/$file" -nt "$dst/$file" ]; then
+			mkdir -p "$(dirname "$dst/$file")"
+			cp -f "$src/$file" "$dst/$file"
+		fi
+	done
+}
+
 # Server mods a community mission can require, by the keys community.json
 # uses, from SRCDS_MODS. Each one the image stages is a tree shaped like tf/
 # under $MODS/<key>. A key nothing was staged for is a line in the log, and
@@ -105,7 +122,7 @@ install_mods() {
 			echo "[AP] SRCDS_MODS names $key, which this image does not carry"
 			continue
 		fi
-		cp -ru "$MODS/$key/." "$GAME/"
+		sync_tree "$MODS/$key" "$GAME"
 	done
 }
 
@@ -257,17 +274,15 @@ install_plugin() {
 	installed=0
 	while true; do
 		if [ -d "$GAME/addons/sourcemod/plugins" ]; then
-			# -u so an unchanged file is not rewritten every half minute.
-			cp -ru "$STAGE/addons/." "$GAME/addons/"
+			sync_tree "$STAGE/addons" "$GAME/addons"
 			# -n for the config: it belongs to whoever runs the server once it
 			# exists, and an operator who turns on tf2ap_debug should not find
 			# it turned off again thirty seconds later.
 			cp -rn "$STAGE/cfg/." "$GAME/cfg/" 2>/dev/null || true
-			# Community packs use TF2's own directory layout. -u makes the bind
-			# mount editable between restarts without rewriting a live map every
-			# thirty seconds when nothing changed.
+			# Community packs use TF2's own directory layout, and the bind mount
+			# stays editable between restarts.
 			if [ -d "$COMMUNITY" ]; then
-				cp -ru "$COMMUNITY/." "$GAME/"
+				sync_tree "$COMMUNITY" "$GAME"
 			fi
 			install_mods
 			install_server_cfg
