@@ -31,6 +31,11 @@ Cowser's sheet and kelly-cs's issues. Bots at 2.52.3.
   SigMod and loads it with `SRCDS_MODS=sigsegv-mvm`; the seed's `server_mods`
   option draws those missions only for a server that has it. The Windows
   launcher shows them locked: SigMod has no Windows build.
+- Wicked Wizardry and Fiefdom Fiasco on Frostwynd are Medieval missions: the
+  map keeps only melee and medieval-era weapons, so most weapon slot unlocks do
+  nothing there. The launcher says so where you pick missions for the pool,
+  where you choose the starting mission, and on the session list, so a run
+  does not walk into one by surprise. By kelly-cs.
 - A server that restarts goes back to the wave the team had reached. The bridge
   writes the wave down as checks come in, and the plugin reloads the mission and
   jumps forward, never back, when the server comes up again. A crash cost the

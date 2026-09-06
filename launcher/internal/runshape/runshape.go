@@ -137,13 +137,48 @@ func MissionChoicesForPacks(availablePacks []string) []MissionChoice {
 			continue
 		}
 		played, _ := gamedata.MapByID(mission.Map)
+		loadout := MissionLoadoutLabel(mission)
+		if loadout != "" {
+			loadout = ", " + loadout
+		}
 		choices = append(choices, MissionChoice{
 			PopFile: mission.PopFile,
-			Label: fmt.Sprintf("[%s] %s - %s (%s, %d waves)",
-				missionSource(mission), played.Name, mission.Name, mission.Difficulty.Key(), mission.Waves),
+			Label: fmt.Sprintf("[%s] %s - %s (%s, %d waves%s)",
+				missionSource(mission), played.Name, mission.Name, mission.Difficulty.Key(), mission.Waves, loadout),
 		})
 	}
 	return choices
+}
+
+// MissionLoadoutLabel is LoadoutLabel for a mission of the catalog.
+func MissionLoadoutLabel(mission gamedata.Mission) string {
+	return LoadoutLabel(gamedata.MissionLoadout(mission.ID))
+}
+
+// LoadoutLabel is the one word that tags a mission with a special loadout,
+// where a list has room for one word. Blank for the usual loadout.
+func LoadoutLabel(loadout string) string {
+	if loadout == "medieval" {
+		return "Medieval"
+	}
+	return ""
+}
+
+/*
+LoadoutNote says what the tag costs the player, for the place that has room
+for a sentence.
+
+A Medieval mission keeps only melee and the medieval-era weapons, so the slot
+unlocks a run has earned buy nothing there and a team that has not unlocked
+melee yet has nothing to fight with. The player has to know that before the
+seed draws the mission or the run switches to it, which is why the launcher
+says it in the pool, the start-mission list and the session list alike.
+*/
+func LoadoutNote(loadout string) string {
+	if loadout == "medieval" {
+		return "Medieval: melee and medieval-era weapons only, so most slot unlocks do nothing here."
+	}
+	return ""
 }
 
 func missionSource(mission gamedata.Mission) string {

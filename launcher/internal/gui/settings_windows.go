@@ -1568,6 +1568,9 @@ func (m *poolModel) Value(row, col int) any {
 	case 4:
 		return int(mission.Waves)
 	default:
+		if label := runshape.MissionLoadoutLabel(mission); label != "" && gamedata.MissionRequirement(mission.ID) == "" {
+			return label
+		}
 		return gamedata.RequirementLabel(gamedata.MissionRequirement(mission.ID))
 	}
 }
