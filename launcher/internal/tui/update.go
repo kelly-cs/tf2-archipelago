@@ -108,10 +108,7 @@ func (m *model) formKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	if !row.Handle(msg) {
 		return m, nil
 	}
-	if action, ok := row.(interface{ take() tea.Cmd }); ok {
-		return m, action.take()
-	}
-	return m, nil
+	return m, row.take()
 }
 
 // leave takes the focus off the row it is on, so a field holding a state that
@@ -121,13 +118,8 @@ func (f *settingsForm) leave() {
 	if f.focused >= len(fields) {
 		return
 	}
-	if row, ok := fields[f.focused].(interface{ disarm() }); ok {
-		row.disarm()
-	}
+	fields[f.focused].disarm()
 }
-
-// fields is the rows of the tab on screen.
-func (f *settingsForm) fields() []field { return f.tabs[f.tab].fields }
 
 func (m *model) key(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	if m.typing {

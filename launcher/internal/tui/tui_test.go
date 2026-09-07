@@ -9,6 +9,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 
 	"github.com/m-this/tf2-archipelago/gamedata"
+	"github.com/m-this/tf2-archipelago/launcher/internal/form"
 	"github.com/m-this/tf2-archipelago/launcher/internal/runshape"
 	apruntime "github.com/m-this/tf2-archipelago/launcher/internal/runtime"
 	"github.com/m-this/tf2-archipelago/launcher/internal/session"
@@ -126,8 +127,8 @@ func TestTheSettingsScreenEditsTheRun(t *testing.T) {
 	m := screen(t)
 	m.Update(key(","))
 
-	if got := len(m.form.tabs); got != 8 {
-		t.Errorf("the settings have %d tabs, want 8", got)
+	if got := len(m.form.tabs); got != 9 {
+		t.Errorf("the settings have %d pages, want 9", got)
 	}
 	view := m.form.view(100, 30)
 	for _, want := range []string{"Player options", "Rewards", "Balancing", "Bots", "Networking", "Easiest tier"} {
@@ -139,16 +140,16 @@ func TestTheSettingsScreenEditsTheRun(t *testing.T) {
 	// Walk down to Death Link and turn it on. Found by its label rather than
 	// counted, because a row added above it is not a broken screen.
 	rows := m.form.tabs[0].fields
-	at := slices.IndexFunc(rows, func(f field) bool { return f.Label() == "Death Link" })
+	at := slices.IndexFunc(rows, func(f *modelRow) bool { return f.Label() == "Death Link" })
 	if at < 0 {
 		t.Fatalf("the first tab has no Death Link row: %v", rows)
 	}
-	before := m.form.edited.MvmDeathLink
+	before := m.form.state.Settings.MvmDeathLink
 	for range at {
 		m.Update(key("down"))
 	}
 	m.Update(key(" "))
-	if m.form.edited.MvmDeathLink == before {
+	if m.form.state.Settings.MvmDeathLink == before {
 		t.Error("space did not change the row it was on")
 	}
 }
@@ -192,7 +193,7 @@ func TestTheMissionPoolTakesAllAndNone(t *testing.T) {
 
 	m.form.focused = find("None in the pool")
 	m.Update(key("enter"))
-	if got := len(m.form.edited.MvmExcludedMissions); got != len(gamedata.PlayableMissions()) {
+	if got := len(m.form.state.Settings.MvmExcludedMissions); got != len(gamedata.PlayableMissions()) {
 		t.Errorf("None left %d missions out, want all %d", got, len(gamedata.PlayableMissions()))
 	}
 	if view := m.form.view(100, 30); !strings.Contains(view, "left out") {
@@ -202,7 +203,7 @@ func TestTheMissionPoolTakesAllAndNone(t *testing.T) {
 	m.form.focused = find("All in the pool")
 	m.Update(key("enter"))
 	for _, mission := range runshape.VisibleMissions(m.form.communityAvailable) {
-		if gamedata.IsPlayableMission(mission.ID) && slices.Contains(m.form.edited.MvmExcludedMissions, mission.PopFile) {
+		if gamedata.IsPlayableMission(mission.ID) && slices.Contains(m.form.state.Settings.MvmExcludedMissions, mission.PopFile) {
 			t.Errorf("All left visible mission %s out", mission.PopFile)
 		}
 	}
@@ -263,9 +264,12 @@ func TestSessionMissionsNameTheSpecialLoadout(t *testing.T) {
 // Repair and Reset ask twice, because there is no taking either one back.
 func TestTheUndoableActionsAskTwice(t *testing.T) {
 	ran := 0
-	row := &confirmField{
-		label: "Repair", run: func() tea.Cmd { ran++; return nil },
-		warning: "this stops the server",
+	row := &modelRow{
+		f: form.Field{
+			Kind: form.Confirm, Label: "Repair", Hint: "enter",
+			Warning: "this stops the server",
+		},
+		run: func() tea.Cmd { ran++; return nil },
 	}
 
 	row.Handle(key("enter"))

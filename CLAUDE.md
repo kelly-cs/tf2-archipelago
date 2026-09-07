@@ -9,6 +9,65 @@ a SourceMod plugin, and a Windows launcher that does the server setup for you.
 - `bridge/` — Go. It connects the game server to the multiworld.
 - `plugin/` — the SourceMod side. `launcher/` — the Windows .exe that players run.
 
+## The settings are declared once
+
+`launcher/internal/form` holds one `Spec` per row: its label, its help, what
+values it takes, and how it is read off and written back. `Build` turns the
+specs and the state into a `Model` of plain data, and every interface draws
+that. No closures and no styling in a `Model`, so it encodes as JSON and the
+planned web mode is a renderer rather than a fourth hand-written list.
+
+    Build(state, env) -> Model -> the interface draws it
+                                      |
+                                      v
+                    Apply(state, env, Change) -> State -> Build again
+
+Adding a setting is a line in `form.Specs` and nothing else. Adding one to an
+interface is not a thing that happens.
+
+- `Specs` is a function, not a variable. The Missions page has a row per
+  mission and which missions exist depends on the asset packs on disk; the
+  Loadouts page has a row per slot and the Spy's slots are not everybody's.
+- `State` is the settings plus a `Draft`. The team name being typed and the
+  loadout being built are not settings: nothing in the config file holds them
+  and leaving the page throws them away. Both interfaces used to keep that
+  scratch themselves, which is why the loadout builder was the one part the two
+  did not agree about even in shape.
+- A row that is parsed rather than stored is `Deferred`. The room address is
+  the only one: reaching `archipelago.gg:12345` means passing through `a`, so
+  the row keeps what was typed and Save is where an address that never became
+  one is refused.
+- `TestEverySettingIsOnAPageOrSaysWhyNot` walks `settings.Settings` and refuses
+  a field no row writes. `notOnAPage` carries the exceptions with the reason
+  for each. An entry there is a decision, not a way to quieten the test.
+
+`uiparity` is gone. It compared the window's source with the terminal's using a
+regular expression, which could only ask whether the two wrote the same struct
+fields and never whether they told the player the same thing. They did not: nine
+rows had different help text and nobody had chosen one of the differences. Where
+they differed the window's wording was kept.
+
+The interfaces keep what is genuinely theirs. A choice is a `ComboBox` in the
+window and a pair of arrow keys in the terminal. The mission pool is
+twenty-six `Toggle` rows in the model, drawn as a checkable table with columns
+in the window and as rows in the terminal. Same rows, same IDs, same values
+written back.
+
+## Running the plugin without a server
+
+`make toolchain` builds SourcePawn's standalone compiler and VM, using the
+defender mod's own script out of the module cache so the pinned commit cannot
+drift between the two repositories. `gamedata/spdriver_test.go` then compiles
+one plugin function and runs it on inputs a test chooses.
+
+Prefer this to reading the source. The tests that look for substrings in
+`weapon_buffs.inc` cannot tell a rename from a rewrite: inverting the cooldown
+floor so every cooldown collapses to the minimum leaves every watched string in
+place and they pass.
+
+`make check` sets `TF2AP_REQUIRE_SPSHELL`, so a driver fails there rather than
+skipping. Without the toolchain a developer gets a skip naming what to run.
+
 ## Build
 
 Use the Makefile. `make help` lists every target.

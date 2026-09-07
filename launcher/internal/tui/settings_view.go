@@ -72,7 +72,7 @@ func (f *settingsForm) rows(width, height int) []string {
 	return rows
 }
 
-func (f *settingsForm) row(row field, focused bool, width int) string {
+func (f *settingsForm) row(row *modelRow, focused bool, width int) string {
 	marker, label := "  ", row.Label()
 	if focused {
 		marker = "> "

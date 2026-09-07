@@ -1,9 +1,12 @@
 /*
-The settings, in the eight tabs the window uses: players, rewards, missions,
-the room, the game server, bots, bot loadouts, and who can join.
+The settings screen: the pages internal/form declares, drawn for a keyboard.
 
-The window puts these in a modal dialog with a control per answer. Here they
-are a list per tab, one row each, and the keys do what the mouse does there.
+Nothing here says what a setting is called or what it is for. form does, once,
+and the window reads the same list. What is here is what a terminal does about
+a row: left and right change a choice, digits go into a number, a space toggles,
+and Enter presses. Those are the parts that should differ between a window and a
+terminal, and now they are the only parts that do.
+
 Nothing is saved until Save: cancelling leaves the file alone, the way closing
 a dialog does.
 */
@@ -11,7 +14,7 @@ package tui
 
 import (
 	"context"
-	"fmt"
+	"maps"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -23,6 +26,7 @@ import (
 	"github.com/m-this/tf2-archipelago/launcher/internal/assets"
 	"github.com/m-this/tf2-archipelago/launcher/internal/botloadout"
 	"github.com/m-this/tf2-archipelago/launcher/internal/debugbundle"
+	"github.com/m-this/tf2-archipelago/launcher/internal/form"
 	"github.com/m-this/tf2-archipelago/launcher/internal/generate"
 	"github.com/m-this/tf2-archipelago/launcher/internal/installer"
 	"github.com/m-this/tf2-archipelago/launcher/internal/runshape"
@@ -31,17 +35,14 @@ import (
 	"github.com/m-this/tf2-archipelago/launcher/internal/winproc"
 )
 
-// botSeats is how many seats the team composition names, which is the largest
-// team the mod will field.
-const botSeats = 6
-
-// settingsForm is the settings screen: the tabs, their rows, and the copy of
-// the settings the rows write into.
+// settingsForm is the settings screen: the state being edited, the pages form
+// resolved from it, and where the cursor is.
 type settingsForm struct {
-	edited settings.Settings
+	state form.State
+
 	// communityAvailable is derived from valid local ZIPs, never merely from
-	// checkbox state. Community mission rows stay absent until their assets
-	// can actually be used.
+	// checkbox state. Community mission rows stay unavailable until their
+	// assets can actually be used.
 	communityAvailable []string
 
 	tabs    []settingsTab
@@ -49,19 +50,16 @@ type settingsForm struct {
 	focused int
 	offset  int
 
-	room     string       // the room address as typed, parsed on save
-	teamName string       // what the next Save keeps the bot team under
-	draft    loadoutDraft // the loadout the Loadouts page is building
-	warn     string
-	saved    func(settings.Settings) tea.Cmd
-	repair   func() ([]string, error)
-	reset    func() (settings.Settings, error)
-	closed   bool
+	warn   string
+	saved  func(settings.Settings) tea.Cmd
+	repair func() ([]string, error)
+	reset  func() (settings.Settings, error)
+	closed bool
 }
 
 type settingsTab struct {
 	title  string
-	fields []field
+	fields []*modelRow
 }
 
 type settingsDeps struct {
@@ -71,262 +69,227 @@ type settingsDeps struct {
 }
 
 func newSettingsForm(s settings.Settings, deps settingsDeps) *settingsForm {
-	form := &settingsForm{edited: s, saved: deps.saved, repair: deps.repair, reset: deps.reset}
-	form.room = settings.Room{Host: s.APHost, Port: s.APPort, TLS: s.APTls}.String()
-	form.communityAvailable = availableCommunityPackNames(s.CommunityContentDir)
-	form.build()
-	return form
+	f := &settingsForm{
+		state:  form.NewState(s),
+		saved:  deps.saved,
+		repair: deps.repair,
+		reset:  deps.reset,
+	}
+	f.communityAvailable = availableCommunityPackNames(s.CommunityContentDir)
+	f.build()
+	return f
 }
 
-// build lays the tabs out from what is edited now. Reset settings and the
-// pool's All and None all change rows the fields captured when they were made,
-// so they call this rather than trying to patch what is on screen.
+/*
+	build lays the pages out from the state as it is now
+
+Every page, every time. It used to patch what was on screen for most changes and
+rebuild for a few, and the few were the ones somebody noticed: resetting the
+settings, and the pool's All and None. The list is longer than that. Ticking a
+community pack adds a row per mission of that pack, choosing a seat's class
+changes which loadouts that seat may carry, and changing the drafted loadout's
+class changes which slots it even has.
+
+So a change rebuilds. It is a few hundred rows of plain structs and it happens
+on a keystroke a human made, which is not a budget worth managing.
+*/
 func (f *settingsForm) build() {
-	f.tabs = []settingsTab{
-		{title: "Player options", fields: f.playerFields()},
-		{title: "Rewards", fields: f.rewardFields()},
-		{title: "Balancing", fields: f.balanceFields()},
-		{title: "Missions", fields: f.missionFields()},
-		{title: "Archipelago room", fields: f.roomFields()},
-		{title: "Game server", fields: f.serverFields()},
-		{title: "Bots", fields: append(f.botFields(), f.loadoutFields()...)},
-		{title: "Networking", fields: f.reachFields()},
+	model := form.Build(f.state, f.env())
+	tabs := make([]settingsTab, 0, len(model.Tabs))
+	for _, page := range model.Tabs {
+		rows := make([]*modelRow, 0, len(page.Fields))
+		for _, resolved := range page.Fields {
+			rows = append(rows, &modelRow{f: resolved, apply: f.applyChange, run: f.action(resolved.ID)})
+		}
+		tabs = append(tabs, settingsTab{title: page.Title, fields: rows})
 	}
+	f.tabs = tabs
+	f.tab = min(f.tab, max(len(f.tabs)-1, 0))
+	f.focused = min(f.focused, max(len(f.fields())-1, 0))
 }
 
-func (f *settingsForm) rewardFields() []field {
-	importance := func(label, help string, value *string) field {
-		return &choiceField{
-			label: label, help: help,
-			options: []string{"Useful", "Required for progression"},
-			index:   map[bool]int{true: 1}[*value == "progression"],
-			apply: func(i int) {
-				if i == 1 {
-					*value = "progression"
-				} else {
-					*value = "useful"
-				}
-			},
-		}
-	}
-	return []field{
-		importance("Mission tickets", "Required tickets gate mission deployment. Useful tickets leave every drawn mission available.", &f.edited.MvmMissionTicketImportance),
-		importance("Class unlocks", "Required classes satisfy mission-tier roster checks. Useful classes only expand the roster.", &f.edited.MvmClassUnlockImportance),
-		importance("Weapon slots", "Required slots satisfy mission-tier loadout checks. Useful slots only expand loadouts.", &f.edited.MvmWeaponSlotImportance),
-		importance("Weapon buffs", "Required buffs gate harder tiers by buff count. Useful buffs are optional power-ups.", &f.edited.MvmWeaponBuffImportance),
-		&toggleField{label: "Cash rewards", help: "Allow temporary MvM credits in spare checks. Off makes every spare reward a persistent weapon buff.", value: &f.edited.MvmCashRewards, on: "include cash", off: "include cash"},
-		&numberField{label: "Buff share", help: "Percent of spare checks that are buffs when cash rewards are enabled.", value: &f.edited.MvmWeaponBuffPct, low: 0, high: 100},
-		&numberField{label: "Buff stack chance", help: "Chance for another level of an already drawn numeric buff. Toggle buffs never repeat.", value: &f.edited.MvmWeaponBuffStackChance, low: 0, high: 100},
-		&numberField{label: "Traps (%)", help: "Percent of spare checks that hold a trap rather than a reward. A trap is an item another player finds and this team pays for. Zero leaves them out.", value: &f.edited.MvmTrapPct, low: 0, high: 100},
+// env is what the specs need that the state does not hold.
+func (f *settingsForm) env() form.Env {
+	return form.Env{
+		CommunityAvailable: f.communityAvailable,
+		AppDirDefault:      defaultAppDir(),
 	}
 }
 
 /*
-	balanceFields is what the robots are worth, which is a different question
+	applyChange is the one place the terminal writes a setting
 
-from what the run hands out.
+Every row goes through it, so what a row may hold is form's answer and never one
+the terminal keeps for itself. A refusal is shown rather than swallowed: the
+bounds are on the row, so a number outside them is a typo the player can see.
 
-The two were one page and it had to be read twice to find either.
+The rebuild after is not an optimisation anybody skipped: see build.
 */
-func (f *settingsForm) balanceFields() []field {
-	return []field{
-		&numberField{label: "Robot health (%)", help: "Direct health multiplier for every robot, from 10% to 1000%.", value: &f.edited.SrcdsBluHealthPct, low: settings.RobotHealthPercentMin, high: settings.RobotHealthPercentMax},
+func (f *settingsForm) applyChange(c form.Change) error {
+	next, err := form.Apply(f.state, f.env(), c)
+	if err != nil {
+		f.warn = err.Error()
+		return err
 	}
+	f.state = next
+	f.warn = ""
+	f.build()
+	return nil
 }
 
-func (f *settingsForm) playerFields() []field {
-	tiers := runshape.Tiers()
-	tierLabels := make([]string, 0, len(tiers))
-	for _, tier := range tiers {
-		tierLabels = append(tierLabels, tier.Label())
+// fields is the rows of the open page.
+func (f *settingsForm) fields() []*modelRow {
+	if f.tab >= len(f.tabs) {
+		return nil
 	}
-	goals := runshape.Goals()
-	goalLabels := make([]string, 0, len(goals))
-	for _, goal := range goals {
-		goalLabels = append(goalLabels, goal.Label())
-	}
-
-	rows := []field{
-		&choiceField{
-			label:   "Easiest tier",
-			help:    "The easiest tier a mission may come from. Harder tiers are always in as well, so the pool shrinks as this rises.",
-			options: tierLabels,
-			index:   max(slices.IndexFunc(tiers, func(t runshape.Tier) bool { return t.Key == f.edited.MvmDifficulty }), 0),
-			apply:   func(i int) { f.edited.MvmDifficulty = tiers[i].Key },
-		},
-		&numberField{
-			label: "Missions used",
-			help:  "How many missions this run uses, out of the pool above. Eight is about fifty waves.",
-			// The pool the tier leaves, the way the window caps it. Asking for
-			// more than it holds gives the whole pool anyway.
-			value: &f.edited.MvmMissionCount, low: 1, high: runshape.MissionsInPool(f.edited.MvmDifficulty),
-		},
-		&choiceField{
-			label:   "Goal",
-			help:    "What ends the run.",
-			options: goalLabels,
-			index:   max(slices.IndexFunc(goals, func(g runshape.Goal) bool { return g.Key == f.edited.MvmGoal }), 0),
-			apply:   func(i int) { f.edited.MvmGoal = goals[i].Key },
-		},
-		&numberField{
-			label: "Missionsanity share",
-			help:  "How much of the run's checks come from waves rather than whole missions, as a percentage. It rounds up, and the Final Boss goal ignores it.",
-			value: &f.edited.MvmMissionsanityPct, low: 10, high: 100,
-		},
-		&toggleField{
-			label: "Australium Medal on clear",
-			help:  "Lock a medal of your own onto every mission clear, and read the goal off the medals you hold. It costs the multiworld one check a mission.",
-			value: &f.edited.MvmMedalOnClear, on: "lock the clears", off: "lock the clears",
-		},
-		&toggleField{
-			label: "Death Link",
-			help:  "A lost wave kills every other player in the multiworld who has Death Link on, and their deaths wipe your team.",
-			value: &f.edited.MvmDeathLink, on: "share deaths", off: "share deaths",
-		},
-	}
-
-	return append(rows, f.seedFields()...)
+	return f.tabs[f.tab].fields
 }
 
-// seedFields are what a player does with the run rather than what it holds:
-// where the app lives, and the three things to press once the options are set.
-func (f *settingsForm) seedFields() []field {
-	return []field{
-		&textField{
-			label:       "Archipelago app",
-			help:        "Where the Archipelago app is installed. Blank means the launcher looks where the installer puts it.",
-			value:       &f.edited.ArchipelagoDir,
-			placeholder: defaultAppDir(),
-		},
-		&actionField{
-			label: "Generate seed",
-			help:  "Make the seed with the Archipelago app on this machine, then upload the archive at archipelago.gg/uploads to open a room.",
-			hint:  "enter",
-			run:   f.generateSeed,
-		},
-		&actionField{
-			label: "Open tf2.yaml",
-			help:  "Write the player file and show it. It is what the seed is generated from.",
-			hint:  "enter",
-			run:   f.openPlayerFile,
-		},
-		&actionField{
-			label: "Open the folder",
-			help:  "The install root: the game files, the player file, the log and the run's state.",
-			hint:  "enter",
-			run:   f.openInstallRoot,
-		},
-	}
+/*
+	action is what pressing a row does, by the ID form declared it under
+
+form says what a button is called and what it is for; the work is the terminal's
+because it ends in a tea.Cmd. A row form declares as an Action with no entry
+here would draw a button that swallows the Enter and does nothing, which nobody
+reports as a bug: they report the feature as missing. TestEveryButtonDoesSomething
+refuses one, and wiredActions below is the same list for the other direction.
+*/
+var wiredActions = []string{
+	"run.generate", "run.open_player_file", "run.open_folder",
+	"missions.download_packs", "missions.use_local_packs", "missions.check_selection",
+	"missions.pool_all", "missions.pool_none",
+	"server.debug_bundle", "server.repair", "server.reset",
+	"net.check_funnel",
+	"bots.save_team", "bots.remove_team",
+	"loadout.save",
 }
 
-func (f *settingsForm) communityMissionFields() []field {
-	return []field{
-		&textField{
-			label:       "Asset pack folder",
-			help:        "Folder containing archive-assets.zip and/or mlarchive-assets.zip. Start never downloads community files.",
-			value:       &f.edited.CommunityContentDir,
-			placeholder: filepath.Join("C:", "Users", "Admin", "tf2"),
-		},
-		&choiceField{
-			label:   "Potato Archive",
-			help:    "Select archive-assets.zip for the explicit download action and for installation when the local ZIP is valid.",
-			options: []string{"disabled", "selected"},
-			index:   boolIndex(slices.Contains(f.edited.CommunityPacks, settings.CommunityPackPotato)),
-			apply:   func(i int) { f.setCommunityPack(settings.CommunityPackPotato, i == 1) },
-		},
-		&choiceField{
-			label:   "Moonlight Archive",
-			help:    "Select mlarchive-assets.zip for the explicit download action and for installation when the local ZIP is valid.",
-			options: []string{"disabled", "selected"},
-			index:   boolIndex(slices.Contains(f.edited.CommunityPacks, settings.CommunityPackMoonlight)),
-			apply:   func(i int) { f.setCommunityPack(settings.CommunityPackMoonlight, i == 1) },
-		},
-		&actionField{
-			label: "Download Selected Community Assets",
-			help:  "Fetch only the checked full-with-maps community packs. This is the launcher's only community download action.",
-			hint:  "enter",
-			run:   f.downloadSelectedCommunityAssets,
-		},
-		&actionField{
-			label: "Use Local Community Assets",
-			help:  "Validate archive-assets.zip and mlarchive-assets.zip already present in the asset pack folder, then show their missions.",
-			hint:  "enter",
-			run:   f.useLocalCommunityAssets,
-		},
-		&actionField{
-			label: "Check Run Selection",
-			help:  "Confirm that the eligible mission pool has enough checks to hold every mission, class, and weapon-slot unlock.",
-			hint:  "enter",
-			run:   f.checkRunSelection,
-		},
+func (f *settingsForm) action(id string) func() tea.Cmd {
+	switch id {
+	case "run.generate":
+		return f.generateSeed
+	case "run.open_player_file":
+		return f.openPlayerFile
+	case "run.open_folder":
+		return f.openInstallRoot
+	case "missions.download_packs":
+		return f.downloadSelectedCommunityAssets
+	case "missions.use_local_packs":
+		return f.useLocalCommunityAssets
+	case "missions.check_selection":
+		return f.checkRunSelection
+	case "missions.pool_all":
+		return func() tea.Cmd { return f.setPool(true) }
+	case "missions.pool_none":
+		return func() tea.Cmd { return f.setPool(false) }
+	case "server.debug_bundle":
+		return f.debugBundle
+	case "server.repair":
+		return f.runRepair
+	case "server.reset":
+		return f.runReset
+	case "net.check_funnel":
+		return f.checkTailscaleFunnel
+	case "bots.save_team":
+		return f.saveTeam
+	case "bots.remove_team":
+		return f.removeTeam
+	case "loadout.save":
+		return f.saveLoadout
 	}
+	return nil
 }
 
-func (f *settingsForm) missionFields() []field {
-	choices := runshape.StartMissionChoicesForPacks(f.communityAvailable)
-	choiceLabels := make([]string, 0, len(choices))
-	for _, choice := range choices {
-		choiceLabels = append(choiceLabels, choice.Label)
-	}
-	classes := runshape.StartClassChoices()
+// --- The pool ---
 
-	fields := append(f.communityMissionFields(),
-		&choiceField{
-			label:   "Start mission",
-			help:    "Where the run begins. The seed starts there and the server boots there.",
-			options: choiceLabels,
-			index:   max(slices.IndexFunc(choices, func(c runshape.MissionChoice) bool { return c.PopFile == f.edited.MvmStartMission }), 0),
-			apply: func(i int) {
-				f.edited.MvmStartMission = choices[i].PopFile
-				if choices[i].PopFile != "" {
-					f.edited.SrcdsStartMission = choices[i].PopFile
-					f.edited.MvmExcludedMissions = slices.DeleteFunc(f.edited.MvmExcludedMissions, func(popFile string) bool {
-						return popFile == choices[i].PopFile
-					})
-					if mission, ok := gamedata.MissionByPopFile(choices[i].PopFile); ok {
-						f.enableCommunityPack(gamedata.MissionPack(mission.ID))
-					}
-				}
-			},
-		},
-		&choiceField{
-			label:   "Start class",
-			help:    "The mercenary the run starts with. The tier of the start mission decides how many it starts with.",
-			options: classes,
-			index:   max(slices.Index(classes, f.edited.MvmStartClass), 0),
-			apply:   func(i int) { f.edited.MvmStartClass = startClass(classes, i) },
-		},
-		// The window has the two buttons under its table. Without them the only
-		// way to a pool of three missions is 26 keystrokes down the list.
-		&actionField{
-			label: "All in the pool",
-			help:  "Put every mission back in the pool.",
-			hint:  "enter",
-			run:   func() tea.Cmd { return f.setPool(true) },
-		},
-		&actionField{
-			label: "None in the pool",
-			help:  "Leave every mission out, to tick back the few this run is for.",
-			hint:  "enter",
-			run:   func() tea.Cmd { return f.setPool(false) },
-		},
-	)
-
-	// One row per mission, because the pool is what the seed draws from and
-	// the window gives it a table with a tick in every row.
-	for _, mission := range runshape.VisibleMissions(f.communityAvailable) {
-		if gamedata.IsPlayableMission(mission.ID) {
-			fields = append(fields, f.poolField(mission))
-		} else {
-			fields = append(fields, unavailableMissionField(mission))
+func (f *settingsForm) setPool(inPool bool) tea.Cmd {
+	excluded := make([]string, 0)
+	if !inPool {
+		for _, mission := range gamedata.PlayableMissions() {
+			excluded = append(excluded, mission.PopFile)
+		}
+	} else {
+		// A community mission whose pack is not on disk stays out even of All:
+		// the seed would draw a mission the server cannot load.
+		visible := runshape.VisibleMissions(f.communityAvailable)
+		for _, mission := range gamedata.PlayableMissions() {
+			if gamedata.MissionPack(mission.ID) != "" && !slices.ContainsFunc(visible, func(candidate gamedata.Mission) bool {
+				return candidate.ID == mission.ID
+			}) {
+				excluded = append(excluded, mission.PopFile)
+			}
 		}
 	}
-	return fields
+	f.state.Settings.MvmExcludedMissions = excluded
+	f.build()
+
+	if inPool {
+		return func() tea.Msg { return noticeMsg("every mission is in the pool") }
+	}
+	return func() tea.Msg { return noticeMsg("every mission is left out: tick the ones this run may draw") }
 }
+
+// --- The bot team and the loadouts ---
+
+func (f *settingsForm) saveTeam() tea.Cmd {
+	name := strings.TrimSpace(f.state.Draft.TeamName)
+	if name == "" {
+		return func() tea.Msg { return noticeMsg("name the team first") }
+	}
+	presets := maps.Clone(f.state.Settings.SrcdsBotTeamPresets)
+	if presets == nil {
+		presets = map[string]settings.BotTeam{}
+	}
+	presets[name] = settings.BotTeamOf(f.state.Settings)
+	f.state.Settings.SrcdsBotTeamPresets = presets
+	f.state.Draft.TeamName = ""
+	f.build()
+	return func() tea.Msg { return noticeMsg("saved the team as " + name) }
+}
+
+func (f *settingsForm) removeTeam() tea.Cmd {
+	name := strings.TrimSpace(f.state.Draft.TeamName)
+	if name == "" {
+		return func() tea.Msg { return noticeMsg("name the team to remove first") }
+	}
+	if _, found := f.state.Settings.SrcdsBotTeamPresets[name]; !found {
+		return func() tea.Msg { return noticeMsg("no team saved as " + name) }
+	}
+	presets := make(map[string]settings.BotTeam, len(f.state.Settings.SrcdsBotTeamPresets)-1)
+	for existing, team := range f.state.Settings.SrcdsBotTeamPresets {
+		if existing != name {
+			presets[existing] = team
+		}
+	}
+	if len(presets) == 0 {
+		presets = nil
+	}
+	f.state.Settings.SrcdsBotTeamPresets = presets
+	f.state.Draft.TeamName = ""
+	f.build()
+	return func() tea.Msg { return noticeMsg("removed the team " + name) }
+}
+
+func (f *settingsForm) saveLoadout() tea.Cmd {
+	name := strings.TrimSpace(f.state.Draft.LoadoutName)
+	if name == "" {
+		return func() tea.Msg { return noticeMsg("name the loadout first") }
+	}
+	built := maps.Clone(f.state.Settings.SrcdsBotCustomLoadouts)
+	if built == nil {
+		built = map[string]botloadout.Built{}
+	}
+	built[name] = f.state.Draft.Loadout
+	f.state.Settings.SrcdsBotCustomLoadouts = built
+	f.build()
+	return func() tea.Msg { return noticeMsg("saved the loadout as " + name) }
+}
+
+// --- Community assets ---
 
 func (f *settingsForm) checkRunSelection() tea.Cmd {
 	return func() tea.Msg {
-		result, err := settings.CheckRunSelection(f.edited)
+		result, err := settings.CheckRunSelection(f.state.Settings)
 		if err != nil {
 			return noticeMsg(err.Error())
 		}
@@ -335,8 +298,8 @@ func (f *settingsForm) checkRunSelection() tea.Cmd {
 }
 
 func (f *settingsForm) downloadSelectedCommunityAssets() tea.Cmd {
-	folder := strings.TrimSpace(f.edited.CommunityContentDir)
-	selected := f.edited
+	folder := strings.TrimSpace(f.state.Settings.CommunityContentDir)
+	selected := f.state.Settings
 	selected.CommunityContentDir = folder
 	archives := settings.CommunityArchives(selected)
 	return func() tea.Msg {
@@ -357,7 +320,7 @@ func (f *settingsForm) downloadSelectedCommunityAssets() tea.Cmd {
 }
 
 func (f *settingsForm) useLocalCommunityAssets() tea.Cmd {
-	folder := strings.TrimSpace(f.edited.CommunityContentDir)
+	folder := strings.TrimSpace(f.state.Settings.CommunityContentDir)
 	return func() tea.Msg {
 		if folder == "" {
 			return noticeMsg("choose an asset pack folder first")
@@ -383,6 +346,8 @@ func availableCommunityPackNames(folder string) []string {
 	return packs
 }
 
+// communityAssetsMsg is what a download or a local scan found: which packs are
+// usable now, and whether to tick them.
 type communityAssetsMsg struct {
 	notice      string
 	available   []string
@@ -393,574 +358,25 @@ func (f *settingsForm) applyCommunityAssets(msg communityAssetsMsg) {
 	f.communityAvailable = slices.Clone(msg.available)
 	if msg.selectPacks {
 		for _, pack := range []string{settings.CommunityPackPotato, settings.CommunityPackMoonlight} {
-			f.edited.CommunityPacks = slices.DeleteFunc(f.edited.CommunityPacks, func(name string) bool { return name == pack })
+			f.state.Settings.CommunityPacks = slices.DeleteFunc(f.state.Settings.CommunityPacks,
+				func(name string) bool { return name == pack })
 			selected := slices.Contains(msg.available, pack)
 			if selected {
-				f.edited.CommunityPacks = append(f.edited.CommunityPacks, pack)
+				f.state.Settings.CommunityPacks = append(f.state.Settings.CommunityPacks, pack)
 			}
 			for _, mission := range gamedata.PlayableMissions() {
 				if gamedata.MissionPack(mission.ID) != pack {
 					continue
 				}
-				f.edited.MvmExcludedMissions = slices.DeleteFunc(f.edited.MvmExcludedMissions, func(popFile string) bool {
-					return popFile == mission.PopFile
-				})
+				f.state.Settings.MvmExcludedMissions = slices.DeleteFunc(f.state.Settings.MvmExcludedMissions,
+					func(popFile string) bool { return popFile == mission.PopFile })
 				if !selected {
-					f.edited.MvmExcludedMissions = append(f.edited.MvmExcludedMissions, mission.PopFile)
+					f.state.Settings.MvmExcludedMissions = append(f.state.Settings.MvmExcludedMissions, mission.PopFile)
 				}
 			}
 		}
 	}
 	f.build()
-}
-
-func boolIndex(value bool) int {
-	if value {
-		return 1
-	}
-	return 0
-}
-
-func (f *settingsForm) enableCommunityPack(pack string) {
-	if pack != "" && !slices.Contains(f.edited.CommunityPacks, pack) {
-		f.edited.CommunityPacks = append(f.edited.CommunityPacks, pack)
-	}
-}
-
-func (f *settingsForm) setCommunityPack(pack string, enabled bool) {
-	f.edited.CommunityPacks = slices.DeleteFunc(f.edited.CommunityPacks, func(name string) bool { return name == pack })
-	if enabled {
-		f.edited.CommunityPacks = append(f.edited.CommunityPacks, pack)
-	}
-	for _, mission := range gamedata.PlayableMissions() {
-		if gamedata.MissionPack(mission.ID) != pack {
-			continue
-		}
-		f.edited.MvmExcludedMissions = slices.DeleteFunc(f.edited.MvmExcludedMissions, func(popFile string) bool {
-			return popFile == mission.PopFile
-		})
-		if !enabled {
-			f.edited.MvmExcludedMissions = append(f.edited.MvmExcludedMissions, mission.PopFile)
-		}
-	}
-	// The mission rows capture their ticks, so rebuild them after changing a
-	// whole pack rather than leaving their labels one keypress behind.
-	f.build()
-}
-
-// setPool is All and None: the excluded list is every mission or none of them,
-// and the rows are made again, because each one captured its own tick.
-func (f *settingsForm) setPool(inPool bool) tea.Cmd {
-	excluded := make([]string, 0)
-	if !inPool {
-		for _, mission := range gamedata.PlayableMissions() {
-			excluded = append(excluded, mission.PopFile)
-		}
-	} else {
-		visible := runshape.VisibleMissions(f.communityAvailable)
-		for _, mission := range gamedata.PlayableMissions() {
-			if gamedata.MissionPack(mission.ID) != "" && !slices.ContainsFunc(visible, func(candidate gamedata.Mission) bool {
-				return candidate.ID == mission.ID
-			}) {
-				excluded = append(excluded, mission.PopFile)
-			}
-		}
-	}
-	f.edited.MvmExcludedMissions = excluded
-	f.build()
-
-	if inPool {
-		return func() tea.Msg { return noticeMsg("every mission is in the pool") }
-	}
-	return func() tea.Msg { return noticeMsg("every mission is left out: tick the ones this run may draw") }
-}
-
-// poolField is one mission's place in the pool. The setting is the missions
-// left out, so the row reads the other way round from what it writes.
-func (f *settingsForm) poolField(mission gamedata.Mission) field {
-	played, _ := gamedata.MapByID(mission.Map)
-	source := "Valve"
-	switch gamedata.MissionPack(mission.ID) {
-	case "archive-assets.zip":
-		source = "Potato Archive"
-	case "mlarchive-assets.zip":
-		source = "Moonlight Archive"
-	}
-	inPool := !slices.Contains(f.edited.MvmExcludedMissions, mission.PopFile)
-	held := inPool
-	tag := ""
-	if label := runshape.MissionLoadoutLabel(mission); label != "" {
-		tag = " [" + label + "]"
-	}
-	help := fmt.Sprintf("%s, %d waves. Off means the seed never draws it.", mission.Difficulty.String(), mission.Waves)
-	if note := runshape.LoadoutNote(gamedata.MissionLoadout(mission.ID)); note != "" {
-		help = note + " " + help
-	}
-
-	return &poolToggle{
-		label:   fmt.Sprintf("[%s] %s (%s)%s", source, mission.Name, played.Name, tag),
-		help:    help,
-		value:   &held,
-		on:      "in the pool",
-		off:     "left out",
-		popFile: mission.PopFile,
-		form:    f,
-		held:    &held,
-	}
-}
-
-// poolToggle keeps the excluded list in step with the tick.
-type poolToggle struct {
-	toggleField
-	popFile string
-	form    *settingsForm
-	held    *bool
-}
-
-type unavailablePoolField struct {
-	label  string
-	help   string
-	reason string
-}
-
-func unavailableMissionField(mission gamedata.Mission) field {
-	played, _ := gamedata.MapByID(mission.Map)
-	requirement := gamedata.MissionRequirement(mission.ID)
-	help := "The asset pack has this map's BSP but no bot navigation mesh. It cannot be enabled in a seed."
-	if gamedata.MissionServerMod(mission.ID) != "" {
-		help = "This mission needs a server mod this launcher does not install. It cannot be enabled in a seed here."
-	}
-	return &unavailablePoolField{
-		label:  fmt.Sprintf("[Potato Archive] %s (%s)", mission.Name, played.Name),
-		help:   help,
-		reason: strings.ToLower(gamedata.RequirementLabel(requirement)),
-	}
-}
-
-func (f *unavailablePoolField) Label() string { return f.label }
-func (f *unavailablePoolField) Help() string  { return f.help }
-func (f *unavailablePoolField) Value() string {
-	return styleStopped.Render(f.reason + " — unavailable")
-}
-func (f *unavailablePoolField) Handle(tea.KeyMsg) bool { return false }
-
-func (p *poolToggle) Handle(msg tea.KeyMsg) bool {
-	if !p.toggleField.Handle(msg) {
-		return false
-	}
-	excluded := p.form.edited.MvmExcludedMissions
-	excluded = slices.DeleteFunc(excluded, func(popFile string) bool { return popFile == p.popFile })
-	if !*p.held {
-		excluded = append(excluded, p.popFile)
-	}
-	p.form.edited.MvmExcludedMissions = excluded
-	return true
-}
-
-func (f *settingsForm) roomFields() []field {
-	return []field{
-		&toggleField{
-			label: "Test mode",
-			help:  "Play without Archipelago at all: the launcher serves a multiworld of one and simulates the other players.",
-			value: &f.edited.TestMode, on: "no room needed", off: "use a real room",
-		},
-		&textField{
-			label:       "Room address",
-			help:        "The line from your room page on archipelago.gg: host and port.",
-			value:       &f.room,
-			placeholder: "archipelago.gg:12345",
-		},
-		&textField{
-			label:       "Room password",
-			help:        "Only if the room asks for one.",
-			value:       &f.edited.APPassword,
-			placeholder: "none",
-			hidden:      true,
-		},
-		&textField{
-			label:       "Slot name",
-			help:        "The name this server plays under in the multiworld. It has to match the name in tf2.yaml.",
-			value:       &f.edited.APSlotName,
-			placeholder: "tf2",
-		},
-	}
-}
-
-func (f *settingsForm) serverFields() []field {
-	return []field{
-		&textField{
-			label:       "Server name",
-			help:        "What the server calls itself in the player list.",
-			value:       &f.edited.SrcdsHostname,
-			placeholder: "Mann vs Archipelago",
-		},
-		&textField{
-			label:       "Server password",
-			help:        "What your friends type before connect. Blank means anybody with the address can join.",
-			value:       &f.edited.SrcdsPw,
-			placeholder: "none",
-			hidden:      true,
-		},
-		&numberField{
-			label: "Game port",
-			help:  "UDP and TCP, 27015 by default. Who can reach it is on the last tab.",
-			value: &f.edited.SrcdsPort, low: 1024, high: 65535,
-		},
-		&textField{
-			label:       "Admins by Steam id",
-			help:        "Who may run the admin commands, separated by commas. The 17 digit id or SourceMod's STEAM_0:1:26975537.",
-			value:       &f.edited.SrcdsAdminSteamIDs,
-			placeholder: "none",
-		},
-		&actionField{
-			label: "Debug logs",
-			help:  "Put the logs, the settings without their passwords and the player file in one zip, for sending to whoever is helping you.",
-			hint:  "enter",
-			run:   f.debugBundle,
-		},
-		&confirmField{
-			label:   "Repair",
-			help:    "Throw SteamCMD and the mods away and fetch them again. Keeps the game files and the run.",
-			hint:    "enter",
-			run:     f.runRepair,
-			warning: "this stops the server, then removes SteamCMD, the mods and Steam's record of the download. No 14 GB again, no lost checks.",
-		},
-		&confirmField{
-			label:   "Reset settings",
-			help:    "Put every setting back to what a fresh install has. Keeps the game files and where they are.",
-			hint:    "enter",
-			run:     f.runReset,
-			warning: "this puts the room, the passwords, the missions, the bots and who can join back to their defaults.",
-		},
-	}
-}
-
-func (f *settingsForm) botFields() []field {
-	fields := []field{
-		&toggleField{
-			label: "Fill RED with bots",
-			help:  "Valve balances every wave for six players. Off leaves the seats empty until an admin runs sm_addbots.",
-			value: &f.edited.SrcdsBots, on: "bots on", off: "bots off",
-		},
-		&numberField{
-			label: "Fill RED to",
-			help:  "How many players the server fills RED to, humans included. Lower is harder.",
-			value: &f.edited.SrcdsBotTeamSize, low: 1, high: botSeats,
-		},
-		&toggleField{
-			label: "Say what they buy",
-			help:  "Write every bot purchase at the upgrade station to the chat. It is a lot of chat.",
-			value: &f.edited.BotUpgradesChat, on: "in the chat", off: "quiet",
-		},
-	}
-
-	// A team is worth naming once. The window has a menu and two buttons for
-	// this; here it is a list to load from and a name to save under.
-	fields = append(fields, f.loadTeamField(), f.saveTeamField(), f.removeTeamField(), &textField{
-		label:       "Team name",
-		help:        "The name Save this team as keeps it under.",
-		value:       &f.teamName,
-		placeholder: "two engineers, one medic",
-	})
-
-	// The seats, in the order they fill, each with what it plays and what it
-	// carries. Two engineers are only worth naming separately if they can hold
-	// different weapons.
-	for seat := range botSeats {
-		fields = append(fields, f.seatField(seat), f.seatLoadoutField(seat))
-	}
-
-	for _, class := range botloadout.Classes {
-		fields = append(fields, f.classField(class), f.loadoutField(class))
-	}
-
-	// Last, because none of it changes a wave.
-	return append(fields,
-		&toggleField{
-			label: "Cosmetic items",
-			help:  "A random cosmetic item on every bot, hat or not, drawn from the ones its class can wear. It changes nothing about how they play.",
-			value: &f.edited.SrcdsBotHats, on: "one each", off: "stock looks",
-		},
-		&toggleField{
-			label: "Unusual effects",
-			help:  "A random unusual effect on that cosmetic item. Six particle effects on screen for the whole wave.",
-			value: &f.edited.SrcdsBotHatEffects, on: "and an effect on it", off: "no effects",
-		},
-	)
-}
-
-func (f *settingsForm) seatField(seat int) field {
-	options := []string{"the mod decides"}
-	for _, class := range botloadout.Classes {
-		options = append(options, class.Name)
-	}
-	index := 0
-	if seat < len(f.edited.SrcdsBotTeamComp) {
-		if at := slices.IndexFunc(botloadout.Classes, func(c botloadout.Class) bool {
-			return c.Key == f.edited.SrcdsBotTeamComp[seat]
-		}); at >= 0 {
-			index = at + 1
-		}
-	}
-
-	return &choiceField{
-		label:   fmt.Sprintf("Seat %d", seat+1),
-		help:    "The classes the bots fill RED with, in this order. The first seats are the ones that always get filled.",
-		options: options,
-		index:   index,
-		apply:   func(i int) { f.setSeat(seat, i) },
-	}
-}
-
-// setSeat rewrites the team from the seats. The loadouts come from the same
-// array. Otherwise the two lists stop lining up when a middle seat goes back on
-// the draw.
-func (f *settingsForm) setSeat(seat, index int) {
-	seats := f.seats()
-	if index == 0 {
-		seats[seat] = botloadout.Seat{}
-	} else {
-		class := botloadout.Classes[index-1]
-		// The weapons follow the class: a loadout for a class this seat no
-		// longer plays is not a choice anybody made.
-		if seats[seat].Class != class.Key {
-			seats[seat] = botloadout.Seat{Class: class.Key}
-		}
-	}
-	f.setSeats(seats)
-}
-
-// seats is the team as an array of six, whatever the compacted lists hold.
-func (f *settingsForm) seats() []botloadout.Seat {
-	seats := make([]botloadout.Seat, botSeats)
-	copy(seats, botloadout.Seats(f.edited.SrcdsBotTeamComp, f.edited.SrcdsBotSeatLoadouts))
-	return seats
-}
-
-// setSeats writes the array back as the two lists the mod reads. A seat left to
-// the mod is an empty entry, because the mod counts seats by their place in the
-// list. It drops the trailing draws, which carry no seat number.
-func (f *settingsForm) setSeats(seats []botloadout.Seat) {
-	last := -1
-	for index, seat := range seats {
-		if seat.Class != "" {
-			last = index
-		}
-	}
-	f.edited.SrcdsBotTeamComp = nil
-	f.edited.SrcdsBotSeatLoadouts = nil
-	for _, seat := range seats[:last+1] {
-		f.edited.SrcdsBotTeamComp = append(f.edited.SrcdsBotTeamComp, seat.Class)
-		f.edited.SrcdsBotSeatLoadouts = append(f.edited.SrcdsBotSeatLoadouts, seat.Loadout)
-	}
-}
-
-// seatLoadoutField is what one seat carries. A seat with no class of its own
-// has nothing to choose: the mod draws the class and the class holds its own.
-func (f *settingsForm) seatLoadoutField(seat int) field {
-	seats := f.seats()
-	class, found := botloadout.ClassByKey(seats[seat].Class)
-	if !found {
-		return &choiceField{
-			label:   fmt.Sprintf("  Seat %d holds", seat+1),
-			help:    "Pick a class for this seat first. A seat on the draw holds whatever its class holds.",
-			options: []string{"follows the class"},
-			apply:   func(int) {},
-		}
-	}
-
-	choices := f.library().Choices(class)
-	options := make([]string, 0, len(choices))
-	for _, loadout := range choices {
-		options = append(options, loadout.Label())
-	}
-	index := slices.IndexFunc(choices, func(l botloadout.Loadout) bool {
-		return l.Key == seats[seat].Loadout
-	})
-	return &choiceField{
-		label:   fmt.Sprintf("  Seat %d holds", seat+1),
-		help:    "The weapons this seat carries, which is what lets two engineers hold different things. Loadouts you built for this class are at the bottom.",
-		options: options,
-		index:   max(index, 0),
-		apply: func(i int) {
-			seats := f.seats()
-			seats[seat].Loadout = choices[i].Key
-			f.setSeats(seats)
-		},
-	}
-}
-
-// library is the loadouts this form can offer, built from what is edited now
-// rather than from what was saved: a loadout built on the Loadouts page is
-// pickable on the Bots page without leaving the settings.
-func (f *settingsForm) library() botloadout.Library {
-	return botloadout.Library{Built: f.edited.SrcdsBotCustomLoadouts}
-}
-
-// loadTeamField brings back a saved team.
-func (f *settingsForm) loadTeamField() field {
-	names := settings.BotTeamNames(f.edited)
-	options := append([]string{"keep the team below"}, names...)
-
-	return &choiceField{
-		label:   "Load a team",
-		help:    "A team is the seats, their weapons and the classes the mod may draw from. Saved teams are listed here.",
-		options: options,
-		apply: func(i int) {
-			if i == 0 || i > len(names) {
-				return
-			}
-			f.edited = settings.WithBotTeam(f.edited, f.edited.SrcdsBotTeamPresets[names[i-1]])
-			f.build()
-		},
-	}
-}
-
-// removeTeamField throws a saved team away.
-//
-// By the name in the box, because that is the only thing here somebody has
-// typed on purpose: a list that deletes whatever it is scrolled past is a list
-// that deletes the wrong team.
-func (f *settingsForm) removeTeamField() field {
-	return &actionField{
-		label: "Remove the team named",
-		help:  "Type the name of a saved team in the box below, then press enter here to throw it away.",
-		hint:  "enter",
-		run: func() tea.Cmd {
-			name := strings.TrimSpace(f.teamName)
-			if name == "" {
-				return func() tea.Msg { return noticeMsg("name the team to remove first") }
-			}
-			if _, found := f.edited.SrcdsBotTeamPresets[name]; !found {
-				return func() tea.Msg { return noticeMsg("no team saved as " + name) }
-			}
-			delete(f.edited.SrcdsBotTeamPresets, name)
-			f.teamName = ""
-			f.build()
-			return func() tea.Msg { return noticeMsg("removed the team " + name) }
-		},
-	}
-}
-
-// saveTeamField keeps the team below under a name.
-func (f *settingsForm) saveTeamField() field {
-	return &actionField{
-		label: "Save this team as",
-		help:  "Type a name in the box below it, then press enter here to keep the seats, their weapons and the class ticks under it.",
-		hint:  "enter",
-		run: func() tea.Cmd {
-			name := strings.TrimSpace(f.teamName)
-			if name == "" {
-				return func() tea.Msg { return noticeMsg("name the team first") }
-			}
-			if f.edited.SrcdsBotTeamPresets == nil {
-				f.edited.SrcdsBotTeamPresets = map[string]settings.BotTeam{}
-			}
-			f.edited.SrcdsBotTeamPresets[name] = settings.BotTeamOf(f.edited)
-			f.teamName = ""
-			f.build()
-			return func() tea.Msg { return noticeMsg("saved the team as " + name) }
-		},
-	}
-}
-
-func (f *settingsForm) classField(class botloadout.Class) field {
-	allowed := !slices.Contains(f.edited.SrcdsBotClassBlacklist, class.Key)
-	held := allowed
-
-	return &classToggle{
-		label: class.Name,
-		help:  "Off means the bots never play it. A class named in a seat above beats this.",
-		value: &held, on: "they play it", off: "never",
-		key:  class.Key,
-		form: f,
-		held: &held,
-	}
-}
-
-type classToggle struct {
-	toggleField
-	key  string
-	form *settingsForm
-	held *bool
-}
-
-func (c *classToggle) Handle(msg tea.KeyMsg) bool {
-	if !c.toggleField.Handle(msg) {
-		return false
-	}
-	list := c.form.edited.SrcdsBotClassBlacklist
-	list = slices.DeleteFunc(list, func(key string) bool { return key == c.key })
-	if !*c.held {
-		list = append(list, c.key)
-	}
-	c.form.edited.SrcdsBotClassBlacklist = list
-	return true
-}
-
-func (f *settingsForm) loadoutField(class botloadout.Class) field {
-	choices := f.library().Choices(class)
-	options := make([]string, 0, len(choices))
-	for _, loadout := range choices {
-		options = append(options, loadout.Label())
-	}
-	current := f.edited.SrcdsBotLoadouts[class.Key]
-	index := max(slices.IndexFunc(choices, func(l botloadout.Loadout) bool { return l.Key == current }), 0)
-
-	return &choiceField{
-		label:   "  " + class.Name + " loadout",
-		help:    "What a bot of this class spawns with. Stock is the game's own, and loadouts you built for this class are at the bottom.",
-		options: options,
-		index:   index,
-		apply: func(i int) {
-			if f.edited.SrcdsBotLoadouts == nil {
-				f.edited.SrcdsBotLoadouts = map[string]string{}
-			}
-			pick := choices[i]
-			if pick.Key == botloadout.StockKey {
-				delete(f.edited.SrcdsBotLoadouts, class.Key)
-				return
-			}
-			f.edited.SrcdsBotLoadouts[class.Key] = pick.Key
-		},
-	}
-}
-
-func (f *settingsForm) reachFields() []field {
-	reaches := settings.Reaches()
-	labels := make([]string, 0, len(reaches))
-	for _, reach := range reaches {
-		labels = append(labels, reach.Label())
-	}
-
-	return []field{
-		&choiceField{
-			label:   "Who can reach it",
-			help:    "Where the server takes connections from. Without a login token it stays on the local network whatever this says.",
-			options: labels,
-			index:   max(slices.Index(reaches, f.edited.SrcdsReach), 0),
-			apply:   func(i int) { f.edited.SrcdsReach = reaches[i] },
-		},
-		&textField{
-			label:       "Login token",
-			help:        "A Game Server Login Token for app id 440, from steamcommunity.com/dev/managegameservers.",
-			value:       &f.edited.SrcdsToken,
-			placeholder: "0",
-		},
-		&toggleField{
-			label: "Tailscale FastDL",
-			help:  "Publish maps through Tailscale Funnel. Only the server needs Tailscale; players use its public HTTPS URL. This does not change the game address. Start stops with instructions if the saved Funnel cannot be restored.",
-			value: &f.edited.TailscaleFastDL,
-			on:    "use Funnel",
-			off:   "use launcher",
-		},
-		&actionField{
-			label: "Set up / check Funnel",
-			help:  "Optional first-time check. If Funnel needs tailnet approval, this opens the approval page. Once approved, Start keeps the route configured automatically.",
-			hint:  "enter",
-			run:   f.checkTailscaleFunnel,
-		},
-	}
 }
 
 func (f *settingsForm) checkTailscaleFunnel() tea.Cmd {
@@ -981,38 +397,46 @@ func (f *settingsForm) checkTailscaleFunnel() tea.Cmd {
 	}
 }
 
-// save parses what cannot be typed wrong twice, and hands the settings back.
+// --- Save, and the rest of the buttons ---
+
+/*
+	save parses what a row could not refuse while it was being typed
+
+The room address is the one. It is deferred, so the row keeps what was typed and
+this is where an address that never became one is refused. Test mode never dials
+a real room, so it does not need one.
+*/
 func (f *settingsForm) save() tea.Cmd {
-	room, err := settings.ParseRoom(f.room)
-	if err != nil && !f.edited.TestMode {
+	room, err := settings.ParseRoom(f.state.Draft.Room)
+	if err != nil && !f.state.Settings.TestMode {
 		f.warn = err.Error()
 		return nil
 	}
-	f.edited.APHost, f.edited.APPort, f.edited.APTls = room.Host, room.Port, room.TLS
+	f.state.Settings.APHost, f.state.Settings.APPort, f.state.Settings.APTls = room.Host, room.Port, room.TLS
 
-	if f.edited.SrcdsReach.NeedsToken() && !settings.HasToken(f.edited.SrcdsToken) {
+	if f.state.Settings.SrcdsReach.NeedsToken() && !settings.HasToken(f.state.Settings.SrcdsToken) {
 		f.warn = "that reach needs a login token, or the server stays on the local network"
 	}
-	if _, err := settings.CheckRunSelection(f.edited); err != nil {
+	if _, err := settings.CheckRunSelection(f.state.Settings); err != nil {
 		f.warn = err.Error()
 		return nil
 	}
 	f.closed = true
-	return f.saved(f.edited)
+	return f.saved(f.state.Settings)
 }
 
 func (f *settingsForm) generateSeed() tea.Cmd {
 	return func() tea.Msg {
-		if _, err := settings.CheckRunSelection(f.edited); err != nil {
+		if _, err := settings.CheckRunSelection(f.state.Settings); err != nil {
 			return noticeMsg(err.Error())
 		}
-		if _, err := generate.FindApp(f.edited.ArchipelagoDir); err != nil {
+		if _, err := generate.FindApp(f.state.Settings.ArchipelagoDir); err != nil {
 			return noticeMsg("the Archipelago app was not found in " +
-				strings.Join(generate.SearchPath(f.edited.ArchipelagoDir), ", "))
+				strings.Join(generate.SearchPath(f.state.Settings.ArchipelagoDir), ", "))
 		}
 		result, err := generate.Run(context.Background(), generate.Options{
-			Settings:           f.edited,
-			AppDir:             f.edited.ArchipelagoDir,
+			Settings:           f.state.Settings,
+			AppDir:             f.state.Settings.ArchipelagoDir,
 			Apworld:            assets.Apworld(),
 			ArchipelagoVersion: assets.ArchipelagoVersion,
 		})
@@ -1026,7 +450,7 @@ func (f *settingsForm) generateSeed() tea.Cmd {
 
 func (f *settingsForm) openPlayerFile() tea.Cmd {
 	return func() tea.Msg {
-		path, err := settings.WritePlayerFile(f.edited, assets.ArchipelagoVersion)
+		path, err := settings.WritePlayerFile(f.state.Settings, assets.ArchipelagoVersion)
 		if err != nil {
 			return noticeMsg(err.Error())
 		}
@@ -1037,10 +461,11 @@ func (f *settingsForm) openPlayerFile() tea.Cmd {
 
 func (f *settingsForm) openInstallRoot() tea.Cmd {
 	return func() tea.Msg {
-		if err := winproc.Open(f.edited.InstallRoot); err != nil {
-			return noticeMsg("cannot open " + f.edited.InstallRoot + ": " + err.Error())
+		root := f.state.Settings.InstallRoot
+		if err := winproc.Open(root); err != nil {
+			return noticeMsg("cannot open " + root + ": " + err.Error())
 		}
-		return noticeMsg("opened " + f.edited.InstallRoot)
+		return noticeMsg("opened " + root)
 	}
 }
 
@@ -1069,8 +494,7 @@ func (f *settingsForm) runReset() tea.Cmd {
 	if err != nil {
 		return func() tea.Msg { return noticeMsg("reset: " + err.Error()) }
 	}
-	f.edited = fresh
-	f.room = settings.Room{Host: fresh.APHost, Port: fresh.APPort, TLS: fresh.APTls}.String()
+	f.state = form.NewState(fresh)
 	f.warn = ""
 	f.build()
 	return func() tea.Msg { return noticeMsg("every setting is back to its default") }
@@ -1078,7 +502,7 @@ func (f *settingsForm) runReset() tea.Cmd {
 
 func (f *settingsForm) debugBundle() tea.Cmd {
 	return func() tea.Msg {
-		path, err := debugbundle.Write(f.edited, assets.Versions(), time.Now())
+		path, err := debugbundle.Write(f.state.Settings, assets.Versions(), time.Now())
 		if err != nil {
 			return noticeMsg(err.Error())
 		}
@@ -1096,17 +520,8 @@ func defaultAppDir() string {
 	return ""
 }
 
-// startClass is the class name the run starts with, where the first choice is
-// the seed's own pick rather than a class.
-func startClass(classes []string, index int) string {
-	if index <= 0 || index >= len(classes) {
-		return ""
-	}
-	return classes[index]
-}
-
-// showTab opens on the tab with that title, and stays where it is for a title
-// no tab carries.
+// showTab opens on the page with that title, and stays where it is for a title
+// no page carries.
 func (f *settingsForm) showTab(title string) {
 	if title == "" {
 		return
