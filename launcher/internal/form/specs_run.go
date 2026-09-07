@@ -49,7 +49,7 @@ func playerSpecs() []Spec {
 	}
 
 	const tab = "Player options"
-	return []Spec{
+	rows := []Spec{
 		choice("run.tier", tab, "Easiest tier",
 			"The easiest tier a mission may come from. Harder tiers are always in as well, so the pool shrinks as this rises. Expert leaves four, because Valve made only three expert missions and one haunted one.",
 			options(tierValues, tierLabels),
@@ -89,6 +89,32 @@ func playerSpecs() []Spec {
 			"share deaths",
 			func(s State) bool { return s.Settings.MvmDeathLink },
 			func(s State, v bool) State { s.Settings.MvmDeathLink = v; return s }),
+	}
+	return append(rows, runFolderSpecs(tab)...)
+}
+
+/*
+	runFolderSpecs are where things are, and the four buttons for them.
+
+Separate from the run's own options above because they answer a different
+question. Those say what the seed holds; these say where it lands and what to
+press once it does.
+*/
+func runFolderSpecs(tab string) []Spec {
+	return []Spec{
+		/* The 14 GB lives here, and until now nothing on any page said where
+		   that was or let anybody move it. A player on Discord went looking
+		   for the launcher's config in this folder, could not find it, and
+		   concluded nothing saved at all: the config is under the OS's own
+		   config directory and this is somewhere else entirely. Showing the
+		   folder is half of telling them that. */
+		folder("run.install_root", tab, "Install folder",
+			"Where the game files, SourceMod, steamcmd, the player file and the run's state live. "+
+				"Changing it does not move what is already there: the next Start installs into the new folder from scratch, "+
+				"and the old one stays where it is until you delete it. The launcher's own settings are not in here.",
+			"",
+			func(s State) string { return s.Settings.InstallRoot },
+			func(s State, v string) State { s.Settings.InstallRoot = trim(v); return s }),
 
 		folder("run.app_dir", tab, "Archipelago app",
 			"Where the Archipelago app is installed. Blank means the launcher looks where the installer puts it.",
@@ -100,8 +126,16 @@ func playerSpecs() []Spec {
 			"Make the seed with the Archipelago app installed on this machine: the launcher installs the world file into it, writes the player file, runs the generator and opens the folder with the archive. Upload that archive at archipelago.gg/uploads to open a room."),
 		press("run.open_player_file", tab, "Open tf2.yaml",
 			"Write the player file from what is on screen, then open it. Copy it into the Archipelago app's Players folder to generate the seed."),
-		press("run.open_folder", tab, "Open the folder",
-			"The install root: the game files, the player file, the log and the run's state."),
+		press("run.open_folder", tab, "Open the install folder",
+			"The folder above: the game files, the player file, the log and the run's state."),
+
+		/* Asked in as many words on Discord, by somebody who had gone looking
+		   in the install folder and found nothing. The settings are not there:
+		   they are one file under the OS's own config directory, and until now
+		   nothing in the launcher said so or would show it. */
+		press("run.open_settings_file", tab, "Show the settings file",
+			"Open the folder holding config.json, which is where the launcher keeps everything on these pages. "+
+				"It is not in the install folder above."),
 	}
 }
 

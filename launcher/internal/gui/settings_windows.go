@@ -250,9 +250,17 @@ func buildSettingsDialog(
 	// for; this is the work, and it is the window's because it ends in a
 	// message box or a file dialog.
 	screen.actions = map[string]func(){
-		"run.generate":            func() { generateSeed(dialog, settingsFrom(collect)) },
-		"run.open_player_file":    func() { openPlayerFile(dialog, settingsFrom(collect)) },
-		"run.open_folder":         func() { openFolder(dialog, s.InstallRoot) },
+		"run.generate":         func() { generateSeed(dialog, settingsFrom(collect)) },
+		"run.open_player_file": func() { openPlayerFile(dialog, settingsFrom(collect)) },
+		"run.open_folder": func() {
+			next, err := collect()
+			if err != nil {
+				refuse(dialog, tabs, say, "", err.Error())
+				return
+			}
+			openFolder(dialog, next.Settings.InstallRoot)
+		},
+		"run.open_settings_file":  func() { openSettingsFile(dialog) },
 		"missions.download_packs": func() { downloadSelectedCommunityAssets(dialog, settingsFrom(collect), say) },
 		"missions.use_local_packs": func() {
 			useLocalCommunityAssets(dialog, settingsFrom(collect), say)
@@ -718,4 +726,31 @@ func noteRefusal(tabs *walk.TabWidget, say func(string, ...any), page, reason st
 	showPage(tabs, page)
 	say("settings not saved: %s", reason)
 	return reason + "\n\nNothing in this window is lost. Fix what this names and press Save again."
+}
+
+/*
+	openSettingsFile shows where the launcher keeps its own settings.
+
+Not the install folder, which is the mistake it exists to correct. A player went
+looking for config.json in the install folder, found none, and read that as
+nothing having saved at all. The file is under the OS's config directory and
+nothing in the launcher would show it.
+
+The folder is opened rather than the file, because config.json has no
+application to open it with on a fresh Windows install, and the path is in the
+message either way so it can be copied.
+*/
+func openSettingsFile(owner walk.Form) {
+	path, err := settings.Path()
+	if err != nil {
+		walk.MsgBox(owner, "The settings file",
+			"Cannot work out where the settings live: "+err.Error(), walk.MsgBoxIconError)
+		return
+	}
+	if err := winproc.Open(filepath.Dir(path)); err != nil {
+		walk.MsgBox(owner, "The settings file",
+			"The settings are at\n\n"+path+"\n\nand that folder cannot be opened: "+err.Error(),
+			walk.MsgBoxIconWarning)
+		return
+	}
 }

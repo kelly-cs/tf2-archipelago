@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 
 	"github.com/m-this/tf2-archipelago/gamedata"
 	"github.com/m-this/tf2-archipelago/launcher/internal/botloadout"
@@ -388,6 +389,29 @@ func Render(s Settings) (string, error) {
 
 // Save writes the config file, creating the directory.
 /*
+	usable refuses settings the launcher could not act on.
+
+Only the answers that would break something before the player saw why. An
+install root is the one: it is a folder now that the settings screen offers it,
+and an empty one sends MkdirAll at the process's working directory while a
+relative one resolves against wherever the .exe happened to be started from.
+Both go wrong somewhere far from the box that caused it.
+
+Everything else a player can type wrong is already refused by the row that holds
+it, because form knows the bounds and the options.
+*/
+func usable(s Settings) error {
+	root := strings.TrimSpace(s.InstallRoot)
+	if root == "" {
+		return fmt.Errorf("the install folder is empty: it is where the game files go, so it has to be a folder")
+	}
+	if !filepath.IsAbs(root) {
+		return fmt.Errorf("the install folder %q is not a full path, so where it ends up depends on where the launcher was started from", root)
+	}
+	return nil
+}
+
+/*
 Persist is what saving the settings means, for every interface.
 
 The window and the terminal both do these three things in this order, and they
@@ -406,6 +430,9 @@ afterwards leaves a player looking at a log line for a window that is gone, and
 that is what apw-ep5 was reported as.
 */
 func Persist(s Settings) (Settings, error) {
+	if err := usable(s); err != nil {
+		return s, err
+	}
 	if s.SrcdsRconPw == "" {
 		password, err := NewRconPassword()
 		if err != nil {

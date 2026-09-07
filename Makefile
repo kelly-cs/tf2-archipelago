@@ -267,6 +267,12 @@ toolchain:
 # answer at Save.
 #
 # Skipped rather than failed when wine is missing: it is not on the CI image.
+# The test's own verdict decides, not the exit code. Wine's teardown is not
+# reliable under Xvfb: a run that printed PASS has come back with the loader
+# asserting `new->l_relocated' on the way out, and taking that as a failure
+# reports a green test as broken. A run that really fails prints FAIL and no
+# PASS, and one that hangs prints neither, so both are still caught.
+#
 # One wine process per test, which is not a preference. A second settings
 # dialog created in the same process hangs under wine: every test below passes
 # on its own and the run stops dead at the second one. Real Windows does not do
@@ -281,7 +287,8 @@ gui-test:
 	@cd $(DIST) && for t in $$(grep -ho '^func Test[A-Za-z0-9_]*' \
 		$(CURDIR)/launcher/internal/gui/*_test.go | sed 's/^func //' | sort -u); do \
 		printf '%s ' "$$t"; \
-		xvfb-run -a wine gui.test.exe -test.run "^$$t$$" -test.timeout 60s >$$t.log 2>&1 \
+		xvfb-run -a wine gui.test.exe -test.run "^$$t$$" -test.timeout 60s >$$t.log 2>&1; \
+		grep -qx PASS $$t.log \
 			&& echo ok \
 			|| { echo FAIL; grep -vE "wine32|apt-get|^X connection|^[0-9a-f]{4}:" $$t.log; exit 1; }; \
 	done

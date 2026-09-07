@@ -40,6 +40,11 @@ interface is not a thing that happens.
 - `TestEverySettingIsOnAPageOrSaysWhyNot` walks `settings.Settings` and refuses
   a field no row writes. `notOnAPage` carries the exceptions with the reason
   for each. An entry there is a decision, not a way to quieten the test.
+- `settings.Persist` is what saving means, for every interface: fill in the RCON
+  password, refuse settings nothing could act on, write the file. Call it while
+  the screen is still up. A write that fails has to be reported with the
+  player's answers still in front of them, and reporting it afterwards is what
+  `apw-ep5` was reported as.
 
 `uiparity` is gone. It compared the window's source with the terminal's using a
 regular expression, which could only ask whether the two wrote the same struct

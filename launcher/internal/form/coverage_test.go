@@ -28,7 +28,6 @@ notOnAPage is the decided exceptions, each with the reason. It is short and it
 is meant to stay short: an entry is a decision, not a way to quieten this.
 */
 var notOnAPage = map[string]string{
-	"InstallRoot":     "chosen by the installer screen before the settings exist, not edited here",
 	"SrcdsRconPw":     "generated per run and never shown; a player who types one has no use for it",
 	"SrcdsMaxPlayers": "derived from the bot team size and the reach, never asked",
 	"SrcdsMods":       "the launcher installs none of them yet, it only carries the choice through",

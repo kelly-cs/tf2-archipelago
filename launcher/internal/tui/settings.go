@@ -180,7 +180,7 @@ reports as a bug: they report the feature as missing. TestEveryButtonDoesSomethi
 refuses one, and wiredActions below is the same list for the other direction.
 */
 var wiredActions = []string{
-	"run.generate", "run.open_player_file", "run.open_folder",
+	"run.generate", "run.open_player_file", "run.open_folder", "run.open_settings_file",
 	"missions.download_packs", "missions.use_local_packs", "missions.check_selection",
 	"missions.pool_all", "missions.pool_none",
 	"server.debug_bundle", "server.repair", "server.reset",
@@ -197,6 +197,8 @@ func (f *settingsForm) action(id string) func() tea.Cmd {
 		return f.openPlayerFile
 	case "run.open_folder":
 		return f.openInstallRoot
+	case "run.open_settings_file":
+		return f.openSettingsFile
 	case "missions.download_packs":
 		return f.downloadSelectedCommunityAssets
 	case "missions.use_local_packs":
@@ -535,6 +537,31 @@ func (f *settingsForm) openPlayerFile() tea.Cmd {
 		}
 		_ = winproc.Open(path)
 		return noticeMsg("wrote " + path)
+	}
+}
+
+/*
+	openSettingsFile shows where the launcher keeps its own settings.
+
+Not the install folder, which is the mistake it exists to correct. A player went
+looking for config.json in the install folder, found none, and read that as
+nothing having saved at all. The file is under the OS's config directory and
+nothing in the launcher would show it.
+
+The folder is opened rather than the file: config.json has no application to
+open it with on a fresh Windows install, and a file browser sitting on it is
+what somebody asking "where is the config file" actually wants.
+*/
+func (f *settingsForm) openSettingsFile() tea.Cmd {
+	return func() tea.Msg {
+		path, err := settings.Path()
+		if err != nil {
+			return noticeMsg("cannot work out where the settings live: " + err.Error())
+		}
+		if err := winproc.Open(filepath.Dir(path)); err != nil {
+			return noticeMsg("the settings are at " + path + ", and it cannot be opened: " + err.Error())
+		}
+		return noticeMsg("the settings are at " + path)
 	}
 }
 

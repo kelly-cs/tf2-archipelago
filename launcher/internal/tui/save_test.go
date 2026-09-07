@@ -169,3 +169,56 @@ func TestAFreshInstallIsRefusedOnTheRoomPage(t *testing.T) {
 		t.Error("the problem box does not offer the way out for somebody with no room yet")
 	}
 }
+
+/*
+	The install folder is on a page, and a Save refuses one it cannot use.
+
+The other half of the same report. The player wanted their folder somewhere
+other than C:\Users\<name>\tf2-archipelago and could not find a setting for it,
+because there was not one: it was chosen by the installer screen and never
+offered again. It is a row now, so it can also be typed wrong, and the two ways
+that matter are refused where they can be seen rather than at the MkdirAll that
+would fail hours later.
+*/
+func TestTheInstallFolderIsARowAndAnUnusableOneIsRefused(t *testing.T) {
+	f := newSettingsForm(withRoom(), settingsDeps{
+		persist: settings.Persist,
+		saved:   func(settings.Settings) tea.Cmd { return nil },
+	})
+
+	row := find(t, f, "run.install_root")
+	if row.f.Value == "" {
+		t.Error("the install folder row shows nothing, so nobody can see where it is")
+	}
+	if !row.f.Browse {
+		t.Error("the install folder is a folder and offers no way to pick one")
+	}
+
+	set(t, f, "run.install_root", "")
+	if cmd := f.save(); cmd != nil {
+		t.Error("a save with no install folder handed work to the event loop")
+	}
+	if f.closed {
+		t.Error("the screen closed on a save with no install folder")
+	}
+	if !strings.Contains(f.problem, "install folder") {
+		t.Errorf("the problem box says %q", f.problem)
+	}
+}
+
+// The settings file is somewhere nobody would guess, so there is a button that
+// shows it. "Where is the config file?" is a quote from the report.
+func TestThereIsAWayToFindTheSettingsFile(t *testing.T) {
+	f := newSettingsForm(withRoom(), settingsDeps{
+		persist: settings.Persist,
+		saved:   func(settings.Settings) tea.Cmd { return nil },
+	})
+
+	row := find(t, f, "run.open_settings_file")
+	if f.action(row.f.ID) == nil {
+		t.Error("the button that shows the settings file does nothing")
+	}
+	if !strings.Contains(row.f.Help, "not in the install folder") {
+		t.Errorf("the help does not correct the mistake it exists for: %q", row.f.Help)
+	}
+}

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/m-this/tf2-archipelago/gamedata"
@@ -201,5 +202,65 @@ func TestExplicitZeroRewardPercentagesSurvive(t *testing.T) {
 	}
 	if s.MvmWeaponBuffPct != 0 || s.MvmWeaponBuffStackChance != 0 || s.MvmTrapPct != 0 {
 		t.Errorf("explicit zeros became buffs=%d, stack=%d, traps=%d", s.MvmWeaponBuffPct, s.MvmWeaponBuffStackChance, s.MvmTrapPct)
+	}
+}
+
+/*
+	An install folder the launcher could not act on is refused at Save.
+
+It is a setting a player can type into now, and the two ways to get it wrong
+both go wrong somewhere else: an empty one sends MkdirAll at the process's
+working directory, and a relative one lands wherever the .exe was started from.
+Neither failure names the box that caused it, which is the whole reason the
+settings screen refuses it instead.
+*/
+func TestPersistRefusesAnInstallFolderItCannotUse(t *testing.T) {
+	for _, bad := range []struct{ name, root string }{
+		{"empty", ""},
+		{"only spaces", "   "},
+		{"relative", "tf2-archipelago"},
+	} {
+		t.Run(bad.name, func(t *testing.T) {
+			s := Defaults()
+			s.InstallRoot = bad.root
+			if _, err := Persist(s); err == nil {
+				t.Errorf("Persist took an install folder of %q", bad.root)
+			}
+		})
+	}
+}
+
+// And it takes a real one, writing the file where Path says and filling in the
+// RCON password on the way. What comes back is what was written, not what went
+// in: a caller that kept its own copy would hold a password the server does not
+// have.
+func TestPersistWritesAndReturnsWhatItWrote(t *testing.T) {
+	// Both, because Path reads os.UserConfigDir and that is a different
+	// variable on Windows than everywhere else.
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	t.Setenv("AppData", t.TempDir())
+
+	s := Defaults()
+	s.InstallRoot = t.TempDir()
+	s.SrcdsRconPw = ""
+
+	written, err := Persist(s)
+	if err != nil {
+		t.Fatalf("Persist: %v", err)
+	}
+	if written.SrcdsRconPw == "" {
+		t.Error("Persist returned settings with no RCON password, so the launcher cannot drive its own server")
+	}
+
+	path, err := Path()
+	if err != nil {
+		t.Fatal(err)
+	}
+	body, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("Persist reported success and wrote no file: %v", err)
+	}
+	if !strings.Contains(string(body), written.SrcdsRconPw) {
+		t.Error("the file on disk does not hold the password Persist handed back")
 	}
 }
