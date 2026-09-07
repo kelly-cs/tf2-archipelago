@@ -150,6 +150,12 @@ The mod moves from 2.39.0 to 2.52.3.
   and the exit at 26 to 38 against 50 to 58. The cost is on the record: the
   wrench is what applies a level, and an engineer who jumps swings it less, so
   the sentry sits at level three in 76% of samples rather than 85%.
+- Two engineers who pick the same nest no longer land inside each other. The
+  sentry was the one building whose jump onto its spot skipped the check for
+  room to stand, so a pair holding one nest were put on the same coordinate and
+  neither could move until the stuck recovery threw one of them out. Reported by
+  Cowser on Mannworks, where five engineers share four nest spots and the pair
+  spent the whole break wedged with no sentry between them.
 - A teleporter exit puts you down on a side with ground beside it. The exit
   ring never looked down, so a player taking the teleporter could land where the
   engineer never stood.
