@@ -8,6 +8,7 @@ require (
 	github.com/coder/websocket v1.8.15
 	github.com/lxn/walk v0.0.0-20210112085537-c389da54e794
 	github.com/lxn/win v0.0.0-20210218163916-a377121e959e
+	github.com/m-this/tf2-mvm-bots-go v0.14.4-0.20260907151630-b9d8c6538749
 	github.com/muesli/termenv v0.16.0
 	golang.org/x/sys v0.47.0
 	golang.org/x/term v0.45.0
@@ -23,7 +24,6 @@ require (
 	github.com/clipperhouse/uax29/v2 v2.7.0 // indirect
 	github.com/erikgeiser/coninput v0.0.0-20211004153227-1c3628e74d0f // indirect
 	github.com/lucasb-eyer/go-colorful v1.4.1 // indirect
-	github.com/m-this/tf2-mvm-bots-go v0.14.4-0.20260907061541-e35c8182805f // indirect
 	github.com/mattn/go-isatty v0.0.24 // indirect
 	github.com/mattn/go-localereader v0.0.1 // indirect
 	github.com/mattn/go-runewidth v0.0.28 // indirect

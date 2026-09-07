@@ -58,3 +58,11 @@ __pycache__/
 # The agent instructions live here and AGENTS.md is a symlink to them, so
 # this one overrides the global ignore of CLAUDE.md.
 !CLAUDE.md
+
+# go.work points the build at a checkout of the defender mod next door, for
+# working on both at once. The pin in go.mod is what ships, so this is never
+# committed: a workspace that reached CI would build against whatever happened
+# to be on that machine.
+go.work
+go.work.sum
+toolchain/

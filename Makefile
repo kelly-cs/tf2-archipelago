@@ -82,7 +82,7 @@ GO_SRC := $$(find . -type f -name '*.go' -not -path './deploy/bots/build/*')
         docs-build docs-down dist compose-release version-check clean \
         go-version-check \
         launcher launcher-assets launcher-assets-common \
-        launcher-linux launcher-assets-linux captures embed-placeholders
+        launcher-linux launcher-assets-linux captures embed-placeholders toolchain
 
 help:
 	@echo "tf2-archipelago"
@@ -220,11 +220,38 @@ compile: embed-placeholders
 # This also guards the committed export: TestCommittedExportIsCurrent
 # regenerates it and fails if the tree is stale, which is why there is no
 # separate freshness target.
-test: embed-placeholders
-	CGO_ENABLED=1 go test -race -shuffle=on ./...
+test: embed-placeholders toolchain
+	CGO_ENABLED=1 $(SPENV) $(REQUIRE_SPSHELL) go test -race -shuffle=on ./...
 
 test-fast: embed-placeholders
-	go test ./...
+	$(SPENV) go test ./...
+
+# --- SourcePawn under its own VM ---
+#
+# The plugin is the one component nothing here could run, so it was checked by
+# reading its source for substrings. That catches a rename and misses a changed
+# sum. spcomp and SourcePawn's standalone VM compile and run one function of it
+# on inputs a test chooses, which catches the sum.
+#
+# The toolchain is the defender mod's: it pins the sourcepawn commit, patches
+# the clang-only tree GCC rejects and caches the build. Running its script from
+# the module cache rather than copying it means the pin cannot drift between
+# the two repositories, and SPWORK puts the output here because the module
+# cache is read-only.
+SPWORK ?= $(CURDIR)/toolchain
+SPROOT := $(SPWORK)/sourcepawn
+SPENV := SPCOMP=$(SPROOT)/objdir/spcomp/linux-x86_64/spcomp \
+	SPSHELL=$(SPROOT)/objdir/spshell/linux-x86_64/spshell \
+	SPINCLUDE=$(SPROOT)/include/core
+
+# Set only under the gate, so a developer with no clang gets a skip that names
+# what is missing and CI gets a failure. A differential test that silently does
+# not run is the same as not having one.
+test: REQUIRE_SPSHELL := TF2AP_REQUIRE_SPSHELL=1
+
+# Idempotent: a second run finds the two binaries and exits.
+toolchain:
+	SPWORK=$(SPWORK) sh $(BOTS_MOD)/tools/spshell.sh
 
 export:
 	go generate ./gamedata
