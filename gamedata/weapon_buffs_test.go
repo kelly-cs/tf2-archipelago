@@ -99,6 +99,50 @@ func TestAmmoOnHitEligibilityIncludesShieldsButNotManmelter(t *testing.T) {
 	}
 }
 
+func TestStompWeaponSpecialBuffsAreEligibleAndDescribed(t *testing.T) {
+	for _, weapon := range []string{"Mantreads", "Thermal Thruster"} {
+		buff := buffNamed(t, weapon, "damage")
+		if !buff.Eligible {
+			t.Errorf("%s/damage is not eligible", weapon)
+		}
+		if buff.Description != "+5× fall-damage multiplier" {
+			t.Errorf("%s/damage description = %q", weapon, buff.Description)
+		}
+	}
+	clip := buffNamed(t, "Thermal Thruster", "clip-size")
+	if !clip.Eligible {
+		t.Error("Thermal Thruster/clip-size is not eligible")
+	}
+	if clip.Description != "+1 launch charge" {
+		t.Errorf("Thermal Thruster/clip-size description = %q", clip.Description)
+	}
+}
+
+func TestPluginImplementsStompDamageAndThermalClipSize(t *testing.T) {
+	body, err := os.ReadFile("../plugin/scripting/tf2_archipelago/weapon_buffs.inc")
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(body)
+	for _, required := range []string{
+		`HookEvent("rocketpack_launch", WeaponBuffs_RocketPackLaunch)`,
+		"g_WeaponEffectLevels[weapon][ClipSizeEffect]",
+		"WeaponBuffs_RocketPackLaunchCost()",
+		"WeaponBuffs_ThermalThrusterEffectiveCost(weapon)",
+		"stockCharges + levels - 1",
+		`SetEntPropFloat(client, Prop_Send, "m_flItemChargeMeter"`,
+		"damagecustom == TF_CUSTOM_BOOTS_STOMP",
+		"g_WeaponEffectLevels[catalog][DamageEffect]",
+		"StompFallDamagePerLevel * float(levels)",
+		`strcopy(description, maxlength, "+1 launch charge")`,
+		`strcopy(description, maxlength, "+5x fall-damage multiplier")`,
+	} {
+		if !strings.Contains(text, required) {
+			t.Errorf("special stomp buff implementation has no %q", required)
+		}
+	}
+}
+
 func TestFunctionalReskinsShareOneRewardPool(t *testing.T) {
 	for _, family := range weaponFamilies {
 		canonical := weaponNamed(t, family[0])
@@ -377,10 +421,9 @@ func TestPluginImplementsAmmoOnHitForClippedAndMeleeWeapons(t *testing.T) {
 
 	thermal := substanceSourceFunction(t, "static void WeaponBuffs_AddThermalThrusterCharge")
 	for _, required := range []string{
-		`FindConVar("tf_rocketpack_cost")`,
 		`GetEntPropFloat(attacker, Prop_Send,`,
 		`"m_flItemChargeMeter", Slot_Secondary)`,
-		"launchCost * float(amount)",
+		"WeaponBuffs_ThermalThrusterEffectiveCost(weapon) * float(amount)",
 		`SetEntPropFloat(attacker, Prop_Send, "m_flItemChargeMeter"`,
 	} {
 		if !strings.Contains(thermal, required) {

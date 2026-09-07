@@ -60,6 +60,16 @@ func (b WeaponBuff) ItemName() string {
 	return "Weapon Buff: " + b.Weapon + " — " + b.Description
 }
 
+func weaponEffectDescription(weapon string, effect WeaponEffect) string {
+	if effect.Key == "damage" && stompWeapons[weapon] {
+		return "+5× fall-damage multiplier"
+	}
+	if effect.Key == "clip-size" && weapon == "Thermal Thruster" {
+		return "+1 launch charge"
+	}
+	return effect.Description
+}
+
 var weaponBuffsByID = indexWeaponBuffs()
 
 // BuffWeapons keeps the stable weapon roster separate from the effects so the
@@ -99,7 +109,7 @@ func buildWeaponBuffs() []WeaponBuff {
 				EffectID: effect.ID,
 				Weapon:   weapon.Name, DefIndexes: weapon.DefIndexes,
 				Attribute: effect.Attribute, Value: effect.Increment,
-				Description: effect.Description, Additive: effect.Mode == BuffAdd,
+				Description: weaponEffectDescription(weapon.Name, effect), Additive: effect.Mode == BuffAdd,
 				Mode:     effect.Mode,
 				Eligible: weapon.ID == weapon.ApplyID && weaponEffectEligible(canonical, effect),
 			})

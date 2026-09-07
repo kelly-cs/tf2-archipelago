@@ -1,5 +1,6 @@
 /** Every positive weapon/effect permutation received from the multiworld. */
 
+#define DamageEffect 0
 #define ProjectileCountEffect 5
 #define FireRateEffect 1
 #define ClipSizeEffect 3
@@ -36,6 +37,10 @@
 #define EnergyClipSizeAttribute "clip size bonus upgrade"
 #define EnergyClipSizeAttributeClass "mult_clipsize_upgrade"
 #define WeaponBuffProviderRetrySeconds 5.0
+#define ItemChargeMeterMaximum 100.0
+#define RocketPackReadyCharge 50.0
+#define StompBaseFallDamageMultiplier 3.0
+#define StompFallDamagePerLevel 5.0
 
 #define BuffMode_Add 1
 #define BuffMode_Percentage 2
@@ -100,6 +105,7 @@ void WeaponBuffs_Init()
         "Let the defender bots carry the run's weapon buffs, to measure a buff on a server with no player", FCVAR_NONE, true, 0.0, true, 1.0);
     g_WeaponBuffDefenderBots.AddChangeHook(WeaponBuffs_DefenderBotsChanged);
     HookEvent("player_death", WeaponBuffs_PlayerDeath);
+    HookEvent("rocketpack_launch", WeaponBuffs_RocketPackLaunch);
     WeaponBuffs_InitProjectileCalls();
     UserMsg jarated = GetUserMessageId("PlayerJarated");
     if (jarated == INVALID_MESSAGE_ID || GetUserMessageType() != UM_BitBuf)
@@ -745,28 +751,94 @@ static bool WeaponBuffs_SuppliesPrimaryAmmo(int entity)
         && StrEqual(g_WeaponNames[weapon], "Mantreads");
 }
 
-// The Thermal Thruster has an ammo-looking field, but its two usable launches
-// live in the player's secondary item meter. Restore one launch per level,
-// using TF2's live cost so a server-side cost change remains correct.
-static void WeaponBuffs_AddThermalThrusterCharge(int attacker, int amount)
+static float WeaponBuffs_RocketPackLaunchCost()
+{
+    ConVar cost = FindConVar("tf_rocketpack_cost");
+    return cost != null && cost.FloatValue > 0.0 ? cost.FloatValue : 50.0;
+}
+
+// The engine always requires 50 meter points before it permits a launch.
+// Treating the portion above that threshold as the spendable pool lets every
+// clip-size level add exactly one usable launch to the stock two.
+static float WeaponBuffs_ThermalThrusterEffectiveCost(int weapon)
+{
+    float stockCost = WeaponBuffs_RocketPackLaunchCost();
+    int stockCharges = RoundToFloor(
+        (ItemChargeMeterMaximum - RocketPackReadyCharge) / stockCost) + 1;
+    int levels = g_WeaponEffectLevels[weapon][ClipSizeEffect];
+    if (levels <= 0)
+    {
+        return stockCost;
+    }
+    return (ItemChargeMeterMaximum - RocketPackReadyCharge)
+        / float(stockCharges + levels - 1);
+}
+
+// The Thermal Thruster has an ammo-looking field, but its usable launches live
+// in the player's secondary item meter. Restore one effective launch per level,
+// including when clip-size has increased the number of launches in the meter.
+static void WeaponBuffs_AddThermalThrusterCharge(int attacker, int weapon, int amount)
 {
     if (!HasEntProp(attacker, Prop_Send, "m_flItemChargeMeter"))
     {
         return;
     }
-    float launchCost = 50.0;
-    ConVar cost = FindConVar("tf_rocketpack_cost");
-    if (cost != null && cost.FloatValue > 0.0)
-    {
-        launchCost = cost.FloatValue;
-    }
     float charge = GetEntPropFloat(attacker, Prop_Send,
-        "m_flItemChargeMeter", Slot_Secondary) + launchCost * float(amount);
-    if (charge > 100.0)
+        "m_flItemChargeMeter", Slot_Secondary)
+        + WeaponBuffs_ThermalThrusterEffectiveCost(weapon) * float(amount);
+    if (charge > ItemChargeMeterMaximum)
     {
-        charge = 100.0;
+        charge = ItemChargeMeterMaximum;
     }
     SetEntPropFloat(attacker, Prop_Send, "m_flItemChargeMeter",
+        charge, Slot_Secondary);
+}
+
+static bool WeaponBuffs_IsStompWeapon(int weapon)
+{
+    return weapon >= 0
+        && (StrEqual(g_WeaponNames[weapon], "Mantreads")
+            || StrEqual(g_WeaponNames[weapon], "Thermal Thruster"));
+}
+
+// TF2 always requires 50 meter points to begin a launch, even if the amount
+// consumed afterward is changed. Refund part of the stock cost after each
+// launch so 100 meter points contain exactly one additional usable launch per
+// AP clip-size level: 2 stock, then 3, 4, and so on.
+public void WeaponBuffs_RocketPackLaunch(Event event, const char[] name, bool dontBroadcast)
+{
+    int client = GetClientOfUserId(event.GetInt("userid"));
+    if (!WeaponBuffs_CanUseRunBuffs(client) || !IsPlayerAlive(client)
+        || !HasEntProp(client, Prop_Send, "m_flItemChargeMeter"))
+    {
+        return;
+    }
+    int entity = WeaponBuffs_EntityInLoadoutSlot(client, Slot_Secondary);
+    int weapon = WeaponBuffs_ForEntity(entity);
+    if (weapon < 0 || !StrEqual(g_WeaponNames[weapon], "Thermal Thruster"))
+    {
+        return;
+    }
+    int levels = g_WeaponEffectLevels[weapon][ClipSizeEffect];
+    if (levels <= 0)
+    {
+        return;
+    }
+
+    float launchCost = WeaponBuffs_RocketPackLaunchCost();
+    float refund = launchCost - WeaponBuffs_ThermalThrusterEffectiveCost(weapon);
+    if (refund <= 0.0)
+    {
+        return;
+    }
+
+    float charge = GetEntPropFloat(client, Prop_Send,
+        "m_flItemChargeMeter", Slot_Secondary) + refund;
+    if (charge > ItemChargeMeterMaximum)
+    {
+        charge = ItemChargeMeterMaximum;
+    }
+    SetEntPropFloat(client, Prop_Send, "m_flItemChargeMeter",
         charge, Slot_Secondary);
 }
 
@@ -785,7 +857,7 @@ static void WeaponBuffs_AddAmmoOnHit(int attacker, int entity, int weapon)
 
     if (StrEqual(g_WeaponNames[weapon], "Thermal Thruster"))
     {
-        WeaponBuffs_AddThermalThrusterCharge(attacker, amount);
+        WeaponBuffs_AddThermalThrusterCharge(attacker, weapon, amount);
         return;
     }
 
@@ -1592,6 +1664,24 @@ public Action WeaponBuffs_OnTakeDamage(int victim, int &attacker, int &inflictor
     float &damage, int &damagetype, int &weapon, float damageForce[3],
     float damagePosition[3], int damagecustom)
 {
+    if (damagecustom == TF_CUSTOM_BOOTS_STOMP
+        && victim >= 1 && victim <= MaxClients && attacker >= 1 && attacker <= MaxClients
+        && victim != attacker && IsClientInGame(victim) && IsClientInGame(attacker)
+        && GetClientTeam(victim) != GetClientTeam(attacker)
+        && WeaponBuffs_CanUseRunBuffs(attacker))
+    {
+        int stomp = WeaponBuffs_WeaponOfHit(attacker, inflictor, weapon, damagecustom);
+        int catalog = WeaponBuffs_ForEntity(stomp);
+        int levels = WeaponBuffs_IsStompWeapon(catalog)
+            ? g_WeaponEffectLevels[catalog][DamageEffect] : 0;
+        if (levels > 0)
+        {
+            damage *= (StompBaseFallDamageMultiplier
+                + StompFallDamagePerLevel * float(levels))
+                / StompBaseFallDamageMultiplier;
+            return Plugin_Changed;
+        }
+    }
     if (victim != attacker || victim < 1 || victim > MaxClients || !(damagetype & DMG_BLAST)
         || !IsClientInGame(victim) || !WeaponBuffs_CanUseRunBuffs(victim))
     {
@@ -2043,6 +2133,13 @@ void WeaponBuffs_Apply(int client)
         {
             continue;
         }
+        // Stomp damage and Thermal launch capacity are not ordinary weapon
+        // attributes. Their event/damage paths above implement these effects.
+        if ((WeaponBuffs_IsStompWeapon(weapon) && effect == DamageEffect)
+            || (StrEqual(g_WeaponNames[weapon], "Thermal Thruster") && effect == ClipSizeEffect))
+        {
+            continue;
+        }
         int levels = g_WeaponEffectLevels[weapon][effect];
         if (levels <= 0)
         {
@@ -2124,6 +2221,24 @@ public int Menu_WeaponBuffs(Menu menu, MenuAction action, int client, int select
 #define BuffLineMax 160
 #define BuffLinesMax (6 * WeaponEffectCount)
 
+static void WeaponBuffs_DescribeEffect(int weapon, int effect,
+    char[] description, int maxlength)
+{
+    if (effect == DamageEffect && WeaponBuffs_IsStompWeapon(weapon))
+    {
+        strcopy(description, maxlength, "+5x fall-damage multiplier");
+    }
+    else if (effect == ClipSizeEffect
+        && StrEqual(g_WeaponNames[weapon], "Thermal Thruster"))
+    {
+        strcopy(description, maxlength, "+1 launch charge");
+    }
+    else
+    {
+        strcopy(description, maxlength, g_WeaponEffectDescriptions[effect]);
+    }
+}
+
 /* The listing, which the menu and the station announcement both draw from:
  * one line per buffed effect on the weapons the player is holding now.
  */
@@ -2144,15 +2259,17 @@ static int WeaponBuffs_Lines(int client, char lines[BuffLinesMax][BuffLineMax])
             {
                 continue;
             }
+            char description[96];
+            WeaponBuffs_DescribeEffect(weapon, effect, description, sizeof(description));
             if (levels > 1)
             {
                 FormatEx(lines[listed], BuffLineMax, "%s: %s x%d",
-                    g_WeaponNames[weapon], g_WeaponEffectDescriptions[effect], levels);
+                    g_WeaponNames[weapon], description, levels);
             }
             else
             {
                 FormatEx(lines[listed], BuffLineMax, "%s: %s",
-                    g_WeaponNames[weapon], g_WeaponEffectDescriptions[effect]);
+                    g_WeaponNames[weapon], description);
             }
             listed++;
         }
