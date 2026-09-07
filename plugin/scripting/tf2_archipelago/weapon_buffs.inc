@@ -1,6 +1,9 @@
 /** Every positive weapon/effect permutation received from the multiworld. */
 
 #define DamageEffect 0
+#define HealOnKillEffect 6
+#define CritsOnKillEffect 7
+#define SpeedOnKillEffect 22
 #define ProjectileCountEffect 5
 #define FireRateEffect 1
 #define ClipSizeEffect 3
@@ -28,6 +31,8 @@
 #define GasCreditSeconds 25.0
 #define ActiveHealthRegenEffect 66
 #define AmmoOnHitEffect 69
+#define MiniCritsOnKillEffect 70
+#define BaseHealthOnKillEffect 80
 #define NoSelfBlastEffect 62
 #define SelfBlastDamageAttribute "blast dmg to self increased"
 #define RocketJumpProtectionEffect 72
@@ -41,6 +46,7 @@
 #define RocketPackReadyCharge 50.0
 #define StompBaseFallDamageMultiplier 3.0
 #define StompFallDamagePerLevel 5.0
+#define SpeedOnKillDuration 3.0
 
 #define BuffMode_Add 1
 #define BuffMode_Percentage 2
@@ -106,6 +112,7 @@ void WeaponBuffs_Init()
     g_WeaponBuffDefenderBots.AddChangeHook(WeaponBuffs_DefenderBotsChanged);
     HookEvent("player_death", WeaponBuffs_PlayerDeath);
     HookEvent("rocketpack_launch", WeaponBuffs_RocketPackLaunch);
+    HookEvent("player_death", WeaponBuffs_PlayerDeath);
     WeaponBuffs_InitProjectileCalls();
     UserMsg jarated = GetUserMessageId("PlayerJarated");
     if (jarated == INVALID_MESSAGE_ID || GetUserMessageType() != UM_BitBuf)
@@ -799,6 +806,135 @@ static bool WeaponBuffs_IsStompWeapon(int weapon)
     return weapon >= 0
         && (StrEqual(g_WeaponNames[weapon], "Mantreads")
             || StrEqual(g_WeaponNames[weapon], "Thermal Thruster"));
+}
+
+static bool WeaponBuffs_IsOnKillEffect(int effect)
+{
+    return effect == HealOnKillEffect || effect == CritsOnKillEffect
+        || effect == SpeedOnKillEffect || effect == MiniCritsOnKillEffect
+        || effect == BaseHealthOnKillEffect;
+}
+
+static int WeaponBuffs_ClassBaseHealth(int client)
+{
+    switch (TF2_GetPlayerClass(client))
+    {
+        case TFClass_Scout, TFClass_Engineer, TFClass_Sniper, TFClass_Spy:
+        {
+            return 125;
+        }
+        case TFClass_Soldier:
+        {
+            return 200;
+        }
+        case TFClass_Pyro, TFClass_DemoMan:
+        {
+            return 175;
+        }
+        case TFClass_Heavy:
+        {
+            return 300;
+        }
+        case TFClass_Medic:
+        {
+            return 150;
+        }
+    }
+    return 0;
+}
+
+// Stomp damage is credited to the player rather than to the equipped wearable,
+// so TF2 never consults on-kill attributes attached to Mantreads or the Thermal
+// Thruster. Reproduce their supported effects from the confirmed lethal stomp.
+static void WeaponBuffs_ApplyStompKillEffects(int attacker, int entity, int weapon)
+{
+    int levels = g_WeaponEffectLevels[weapon][BaseHealthOnKillEffect];
+    int baseHealth = WeaponBuffs_ClassBaseHealth(attacker);
+    if (levels > 0 && baseHealth > 0)
+    {
+        int resource = GetPlayerResourceEntity();
+        // m_iMaxHealth belongs to tf_player_manager, not the player entity.
+        // Class base is a safe fallback during the brief map transitions where
+        // the resource entity is unavailable.
+        int maximum = baseHealth;
+        if (resource > MaxClients && IsValidEntity(resource)
+            && HasEntProp(resource, Prop_Send, "m_iMaxHealth"))
+        {
+            maximum = GetEntProp(resource, Prop_Send, "m_iMaxHealth", 4, attacker);
+        }
+        int health = GetClientHealth(attacker);
+        int amount = RoundToCeil(float(baseHealth)
+            * g_WeaponEffectIncrements[BaseHealthOnKillEffect]
+            * float(levels) / 100.0);
+        int overhealCap = RoundToFloor(float(maximum) * 1.5);
+        int healed = amount < overhealCap - health ? amount : overhealCap - health;
+        if (healed > 0)
+        {
+            SetEntityHealth(attacker, health + healed);
+            Event event = CreateEvent("player_healonhit");
+            if (event != null)
+            {
+                event.SetInt("amount", healed);
+                event.SetInt("entindex", attacker);
+                event.SetInt("weapon_def_index",
+                    GetEntProp(entity, Prop_Send, "m_iItemDefinitionIndex"));
+                event.Fire();
+            }
+        }
+    }
+
+    levels = g_WeaponEffectLevels[weapon][CritsOnKillEffect];
+    if (levels > 0)
+    {
+        TF2_AddCondition(attacker, TFCond_CritOnKill,
+            g_WeaponEffectIncrements[CritsOnKillEffect] * float(levels), attacker);
+    }
+    levels = g_WeaponEffectLevels[weapon][MiniCritsOnKillEffect];
+    if (levels > 0)
+    {
+        TF2_AddCondition(attacker, TFCond_MiniCritOnKill,
+            g_WeaponEffectIncrements[MiniCritsOnKillEffect] * float(levels), attacker);
+    }
+    if (g_WeaponEffectLevels[weapon][SpeedOnKillEffect] > 0)
+    {
+        TF2_AddCondition(attacker, TFCond_SpeedBuffAlly, SpeedOnKillDuration, attacker);
+    }
+}
+
+public void WeaponBuffs_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
+{
+    char eventWeapon[64];
+    char logWeapon[64];
+    event.GetString("weapon", eventWeapon, sizeof(eventWeapon));
+    event.GetString("weapon_logclassname", logWeapon, sizeof(logWeapon));
+    bool mantreads = StrEqual(eventWeapon, "mantreads")
+        || StrEqual(logWeapon, "mantreads");
+    bool thermal = StrEqual(eventWeapon, "rocketpack_stomp")
+        || StrEqual(logWeapon, "rocketpack_stomp");
+    if (!mantreads && !thermal)
+    {
+        return;
+    }
+
+    int attacker = GetClientOfUserId(event.GetInt("attacker"));
+    int victim = GetClientOfUserId(event.GetInt("userid"));
+    if (attacker < 1 || attacker > MaxClients || victim < 1 || victim > MaxClients
+        || attacker == victim || !IsClientInGame(attacker) || !IsClientInGame(victim)
+        || GetClientTeam(attacker) == GetClientTeam(victim)
+        || !WeaponBuffs_CanUseRunBuffs(attacker))
+    {
+        return;
+    }
+
+    int entity = WeaponBuffs_EntityInLoadoutSlot(attacker, Slot_Secondary);
+    int weapon = WeaponBuffs_ForEntity(entity);
+    if (weapon < 0
+        || (mantreads && !StrEqual(g_WeaponNames[weapon], "Mantreads"))
+        || (thermal && !StrEqual(g_WeaponNames[weapon], "Thermal Thruster")))
+    {
+        return;
+    }
+    WeaponBuffs_ApplyStompKillEffects(attacker, entity, weapon);
 }
 
 // TF2 always requires 50 meter points to begin a launch, even if the amount
@@ -2135,7 +2271,8 @@ void WeaponBuffs_Apply(int client)
         }
         // Stomp damage and Thermal launch capacity are not ordinary weapon
         // attributes. Their event/damage paths above implement these effects.
-        if ((WeaponBuffs_IsStompWeapon(weapon) && effect == DamageEffect)
+        if ((WeaponBuffs_IsStompWeapon(weapon)
+                && (effect == DamageEffect || WeaponBuffs_IsOnKillEffect(effect)))
             || (StrEqual(g_WeaponNames[weapon], "Thermal Thruster") && effect == ClipSizeEffect))
         {
             continue;
