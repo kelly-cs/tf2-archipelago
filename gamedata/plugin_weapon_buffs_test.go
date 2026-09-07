@@ -83,6 +83,11 @@ func TestWeaponBuffsStayOutOfMvMShopping(t *testing.T) {
 			t.Fatalf("independent attribute composition has no %s", required)
 		}
 	}
+	weaponCheck := strings.Index(apply, "if (weapon < 0)")
+	providerCreate := strings.Index(apply, "WeaponBuffs_Provider(client, entity)")
+	if weaponCheck < 0 || providerCreate < 0 || weaponCheck > providerCreate {
+		t.Fatal("buff application creates a provider before validating the active weapon")
+	}
 	for _, forbidden := range []string{
 		"TF2Attrib_SetByName(entity", "GetPlayerWeaponSlot", "g_WeaponBuffWaveActive",
 	} {
@@ -96,6 +101,7 @@ func TestWeaponBuffsStayOutOfMvMShopping(t *testing.T) {
 
 	for _, signature := range []string{
 		"public Action Command_TestWeaponBuff", "public Action Command_GiveWeaponBuff",
+		"public Action Command_GiveSlotWeaponBuff",
 	} {
 		body := sourceFunction(t, buffs, signature)
 		if strings.Contains(body, "WeaponBuffs_ApplyEntity") {
@@ -104,6 +110,62 @@ func TestWeaponBuffsStayOutOfMvMShopping(t *testing.T) {
 		if !strings.Contains(body, "WeaponBuffs_Apply(") {
 			t.Fatalf("%s does not apply through the guarded client path", signature)
 		}
+	}
+}
+
+func TestAttributeProviderFailureIsRateLimited(t *testing.T) {
+	buffs := "../plugin/scripting/tf2_archipelago/weapon_buffs.inc"
+	source, err := os.ReadFile(buffs)
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(source)
+	for _, required := range []string{
+		"#define WeaponBuffProviderRetrySeconds 5.0",
+		"g_WeaponBuffProviderRetryAt[MAXPLAYERS + 1]",
+		"GetGameTime() < g_WeaponBuffProviderRetryAt[client]",
+		"GetGameTime() + WeaponBuffProviderRetrySeconds",
+	} {
+		if !strings.Contains(text, required) {
+			t.Errorf("provider retry guard has no %q", required)
+		}
+	}
+}
+
+func TestSlotBuffCommandFindsWeaponWearables(t *testing.T) {
+	buffs := "../plugin/scripting/tf2_archipelago/weapon_buffs.inc"
+	resolver := sourceFunction(t, buffs, "static int WeaponBuffs_EntityInLoadoutSlot")
+	for _, required := range []string{
+		"GetPlayerWeaponSlot(client, slot)",
+		`FindEntityByClassname(entity, "tf_wearable*")`,
+		"Unlocks_WearableSlot(class, definition) == slot",
+	} {
+		if !strings.Contains(resolver, required) {
+			t.Errorf("loadout slot resolver has no %q", required)
+		}
+	}
+
+	command := sourceFunction(t, buffs, "public Action Command_GiveSlotWeaponBuff")
+	for _, required := range []string{
+		"WeaponBuffs_ParseLoadoutSlot(rawSlot)",
+		"WeaponBuffs_EntityInLoadoutSlot(target, slot)",
+		"WeaponBuffs_AddTestEffects(weapon, wanted, levels)",
+	} {
+		if !strings.Contains(command, required) {
+			t.Errorf("slot buff command has no %q", required)
+		}
+	}
+}
+
+func TestJoiningClientSnapshotIsNotChurnedByBotRemoval(t *testing.T) {
+	plugin := "../plugin/scripting/tf2_archipelago.sp"
+	putInServer := sourceFunction(t, plugin, "public void OnClientPutInServer")
+	if strings.Contains(putInServer, "Bots_MakeRoom()") {
+		t.Fatal("initial client sign-on still removes a bot during the entity snapshot")
+	}
+	joinRed := sourceFunction(t, plugin, "public Action Command_JoinRed")
+	if !strings.Contains(joinRed, "Bots_MakeRoom()") {
+		t.Fatal("join-team path no longer frees a bot seat for the loaded player")
 	}
 }
 
@@ -236,7 +298,7 @@ func TestSelfBlastBuffsPreserveTheNativeExplosionAndPush(t *testing.T) {
 	for _, required := range []string{
 		"victim != attacker",
 		"!(damagetype & DMG_BLAST)",
-		"WeaponBuffs_WeaponOfHit(attacker, inflictor, weapon)",
+		"WeaponBuffs_WeaponOfHit(attacker, inflictor, weapon, damagecustom)",
 		"WeaponBuffs_ForEntity(weapon)",
 		"g_WeaponEffectLevels[catalog][RocketJumpProtectionEffect]",
 		"damage *= kept",

@@ -100,8 +100,8 @@ Cowser's sheet and kelly-cs's issues. Bots at 2.52.3.
 - The on-kill buffs credit the weapon that killed, not the one in hand. A robot
   that burned down after the Pyro put the Gas Passer away paid the flamethrower's
   buffs, or nothing.
-- `sm_ap_buff_give` takes a slot, so a buff can be put on a holstered weapon or
-  a watch, and `tf2ap_buffs_for_defender_bots` lets the bots carry the run's
+- `sm_ap_buff_slot` puts a test buff on a holstered weapon, a shield or a
+  watch, and `tf2ap_buffs_for_defender_bots` lets the bots carry the run's
   buffs so a buff can be measured on a server with no player.
 
 ### Balancing
