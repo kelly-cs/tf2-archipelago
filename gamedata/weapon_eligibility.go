@@ -126,6 +126,20 @@ var (
 	)
 )
 
+// projectileDestructionWeapons are the guns whose primary fire can reasonably
+// intercept an enemy rocket or grenade. TF2 implements attack_projectiles only
+// in CTFMinigun, so the plugin supplies the same forward sweep for the other
+// hitscan bullet and non-explosive energy weapons in this explicit list.
+var projectileDestructionWeapons = names(
+	"Ambassador", "Baby Face's Blaster", "Back Scatter", "Bazaar Bargain", "Brass Beast",
+	"Classic", "Cleaner's Carbine", "Diamondback", "Enforcer", "Family Business",
+	"Force-a-Nature", "Frontier Justice", "Hitman's Heatmaker", "Huo-Long Heater",
+	"L'Étranger", "Machina", "Minigun", "Natascha", "Panic Attack", "Pistol",
+	"Pomson 6000", "Pretty Boy's Pocket Pistol", "Reserve Shooter", "Revolver",
+	"Righteous Bison", "Scattergun", "Short Circuit", "Shortstop", "Shotgun", "SMG",
+	"Sniper Rifle", "Soda Popper", "Sydney Sleeper", "Tomislav", "Widowmaker", "Winger",
+)
+
 var engineerWeapons = names(
 	"Construction PDA", "Destruction PDA", "Eureka Effect", "Frontier Justice", "Gunslinger",
 	"Jag", "Panic Attack", "PDA", "Pistol", "Pomson 6000", "Rescue Ranger", "Short Circuit",
@@ -313,6 +327,8 @@ func eligibilityByShape(name, key string) (decided, eligible bool) {
 		return true, projectileWeapons[name]
 	case key == "projectile-penetration":
 		return true, projectileWeapons[name] && !explosiveWeapons[name]
+	case key == "destroy-projectiles":
+		return true, projectileDestructionWeapons[name]
 	case demomanShields[name] && key == "ammo-on-hit":
 		return true, true
 	case killCapableNonAttackers[name] && onKillEffects[key]:
