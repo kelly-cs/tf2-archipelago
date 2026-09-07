@@ -220,7 +220,12 @@ compile: embed-placeholders
 # This also guards the committed export: TestCommittedExportIsCurrent
 # regenerates it and fails if the tree is stale, which is why there is no
 # separate freshness target.
-test: embed-placeholders toolchain
+# Not toolchain: CI runs this target on its own, and building SourcePawn from
+# source there would add several minutes to every run for tests that CI has no
+# way to require. `check` builds the toolchain before it gets here and sets
+# TF2AP_REQUIRE_SPSHELL, so the gate runs the drivers and refuses to skip them.
+# Run `make check` or `make toolchain` once to have them locally.
+test: embed-placeholders
 	CGO_ENABLED=1 $(SPENV) $(REQUIRE_SPSHELL) go test -race -shuffle=on ./...
 
 test-fast: embed-placeholders
@@ -243,11 +248,6 @@ SPROOT := $(SPWORK)/sourcepawn
 SPENV := SPCOMP=$(SPROOT)/objdir/spcomp/linux-x86_64/spcomp \
 	SPSHELL=$(SPROOT)/objdir/spshell/linux-x86_64/spshell \
 	SPINCLUDE=$(SPROOT)/include/core
-
-# Set only under the gate, so a developer with no clang gets a skip that names
-# what is missing and CI gets a failure. A differential test that silently does
-# not run is the same as not having one.
-test: REQUIRE_SPSHELL := TF2AP_REQUIRE_SPSHELL=1
 
 # Idempotent: a second run finds the two binaries and exits.
 toolchain:
@@ -613,7 +613,14 @@ version-check:
 # Everything CI runs, cheapest failure first. Green here means green there.
 # go-version-check first: a builder on the wrong Go makes lint fail in a way
 # that reads as a linter bug rather than a stale pin.
-check: go-version-check bots-pin-check fmt-check lint fix-check compile test gui-test vuln apworld-lint plugin apworld-test docs-build compose-release integration
+# Set on the gate, not on `test`, and the difference matters: CI runs `make
+# test` on its own, so setting it there turned a skip into a failure on a
+# machine that has no toolchain and no way to build one in reasonable time. The
+# target-specific variable reaches test through the prerequisite, which is the
+# whole point: the gate refuses to skip a differential test, and a developer
+# who has not run `make toolchain` gets a skip that names what is missing.
+check: REQUIRE_SPSHELL := TF2AP_REQUIRE_SPSHELL=1
+check: go-version-check bots-pin-check fmt-check lint fix-check compile toolchain test gui-test vuln apworld-lint plugin apworld-test docs-build compose-release integration
 
 # The go directive owns the version. Two pins cannot read it, so this says when
 # they have drifted rather than leaving it to whoever hits the failure.
