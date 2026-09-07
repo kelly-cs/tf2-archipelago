@@ -1,6 +1,7 @@
 /** Every positive weapon/effect permutation received from the multiworld. */
 
 #define ProjectileCountEffect 5
+#define DestroyProjectilesEffect 19
 #define FireRateEffect 1
 // The multiplier a melee weapon's fire rate never goes below: +50% and no more.
 #define MeleeFireRateFloor 0.5
@@ -16,6 +17,11 @@
 #define RocketJumpProtectionEffect 72
 // What one level of rocket-jump protection takes off self-inflicted blast damage.
 #define RocketJumpProtectionPerLevel 0.25
+#define ProjectileDestructionRange 2000.0
+#define ProjectileDestructionRadius 256.0
+#define ProjectileDestructionBaseCooldown 2.0
+#define ProjectileDestructionCooldownStep 0.25
+#define ProjectileDestructionMinimumCooldown 0.5
 
 #define BuffMode_Add 1
 #define BuffMode_Percentage 2
@@ -40,6 +46,13 @@ bool g_WeaponBuffArrowTouched[2049];
 float g_WeaponBuffArrowOrigin[2049][3];
 int g_WeaponBuffStickyMimic[2049];
 int g_WeaponBuffLastButtons[MAXPLAYERS + 1];
+int g_WeaponBuffShotWeaponRef[MAXPLAYERS + 1];
+int g_WeaponBuffShotClip[MAXPLAYERS + 1];
+int g_WeaponBuffShotAmmo[MAXPLAYERS + 1];
+float g_WeaponBuffShotEnergy[MAXPLAYERS + 1];
+float g_WeaponBuffShotNextAttack[MAXPLAYERS + 1];
+int g_WeaponBuffProjectileDestructionHits[2049];
+float g_WeaponBuffProjectileDestructionReadyAt[MAXPLAYERS + 1];
 int g_WeaponBuffLastSubstanceWeapon[MAXPLAYERS + 1];
 float g_WeaponBuffLastSubstanceTime[MAXPLAYERS + 1];
 #define ProjectileDebugLineCount 24
@@ -261,6 +274,8 @@ static void WeaponBuffs_InitProjectileCalls()
 void WeaponBuffs_HookClient(int client)
 {
     g_WeaponBuffLastButtons[client] = 0;
+    g_WeaponBuffShotWeaponRef[client] = 0;
+    g_WeaponBuffProjectileDestructionReadyAt[client] = 0.0;
     g_WeaponBuffLastSubstanceWeapon[client] = -1;
     g_WeaponBuffLastSubstanceTime[client] = 0.0;
     SDKUnhook(client, SDKHook_OnTakeDamage, WeaponBuffs_OnTakeDamage);
@@ -269,6 +284,8 @@ void WeaponBuffs_HookClient(int client)
     SDKHook(client, SDKHook_OnTakeDamagePost, WeaponBuffs_OnTakeDamagePost);
     SDKUnhook(client, SDKHook_WeaponSwitchPost, WeaponBuffs_WeaponSwitchPost);
     SDKHook(client, SDKHook_WeaponSwitchPost, WeaponBuffs_WeaponSwitchPost);
+    SDKUnhook(client, SDKHook_PostThinkPost, WeaponBuffs_PostThinkPost);
+    SDKHook(client, SDKHook_PostThinkPost, WeaponBuffs_PostThinkPost);
 }
 
 public void WeaponBuffs_WeaponSwitchPost(int client, int weapon)
@@ -297,6 +314,7 @@ public void OnEntityCreated(int entity, const char[] classname)
     g_WeaponBuffNativeExtraBorn[entity] = GetGameTime();
     g_WeaponBuffArrowExtra[entity] = false;
     g_WeaponBuffArrowTouched[entity] = false;
+    g_WeaponBuffProjectileDestructionHits[entity] = 0;
     if (WeaponBuffs_IsProjectile(classname) && g_WeaponBuffProjectileDebug != null
         && g_WeaponBuffProjectileDebug.BoolValue)
     {
@@ -459,7 +477,313 @@ public void OnEntityDestroyed(int entity)
         g_WeaponBuffNativeExtra[entity] = false;
         g_WeaponBuffArrowExtra[entity] = false;
         g_WeaponBuffArrowTouched[entity] = false;
+        g_WeaponBuffProjectileDestructionHits[entity] = 0;
     }
+}
+
+static bool WeaponBuffs_CanDestroyProjectiles(int weapon)
+{
+    static const char names[][] = {
+        "Ambassador", "Baby Face's Blaster", "Back Scatter", "Bazaar Bargain", "Brass Beast",
+        "Classic", "Cleaner's Carbine", "Diamondback", "Enforcer", "Family Business",
+        "Force-a-Nature", "Frontier Justice", "Hitman's Heatmaker", "Huo-Long Heater",
+        "L'Étranger", "Machina", "Minigun", "Natascha", "Panic Attack", "Pistol",
+        "Pomson 6000", "Pretty Boy's Pocket Pistol", "Reserve Shooter", "Revolver",
+        "Righteous Bison", "Scattergun", "Short Circuit", "Shortstop", "Shotgun", "SMG",
+        "Sniper Rifle", "Soda Popper", "Sydney Sleeper", "Tomislav", "Widowmaker", "Winger"
+    };
+    if (weapon < 0)
+    {
+        return false;
+    }
+    for (int index = 0; index < sizeof(names); index++)
+    {
+        if (StrEqual(g_WeaponNames[weapon], names[index]))
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+static bool WeaponBuffs_UsesNativeProjectileDestruction(int weapon)
+{
+    return weapon >= 0 && (StrEqual(g_WeaponNames[weapon], "Brass Beast")
+        || StrEqual(g_WeaponNames[weapon], "Huo-Long Heater")
+        || StrEqual(g_WeaponNames[weapon], "Minigun")
+        || StrEqual(g_WeaponNames[weapon], "Natascha")
+        || StrEqual(g_WeaponNames[weapon], "Tomislav"));
+}
+
+static bool WeaponBuffs_IsDestroyableProjectile(int entity)
+{
+    if (entity <= MaxClients || !IsValidEntity(entity))
+    {
+        return false;
+    }
+    char classname[64];
+    GetEntityClassname(entity, classname, sizeof(classname));
+    // The upgrade's weapon-side eligibility is deliberately narrow, but its
+    // target should be every ordinary TF2 projectile: robot arrows, baseballs,
+    // flares and energy shots are just as threatening as rockets and pipes.
+    return StrContains(classname, "tf_projectile_", false) == 0;
+}
+
+static float WeaponBuffs_DistanceToShot(const float point[3], const float start[3],
+    const float finish[3])
+{
+    float line[3], offset[3];
+    SubtractVectors(finish, start, line);
+    SubtractVectors(point, start, offset);
+    float lengthSquared = GetVectorDotProduct(line, line);
+    float fraction = lengthSquared > 0.0
+        ? GetVectorDotProduct(offset, line) / lengthSquared : 0.0;
+    if (fraction < 0.0) fraction = 0.0;
+    if (fraction > 1.0) fraction = 1.0;
+    float nearest[3];
+    nearest[0] = start[0] + line[0] * fraction;
+    nearest[1] = start[1] + line[1] * fraction;
+    nearest[2] = start[2] + line[2] * fraction;
+    return GetVectorDistance(point, nearest);
+}
+
+public bool WeaponBuffs_ProjectileVisibilityFilter(int entity, int contentsMask, any client)
+{
+    if (entity == client)
+    {
+        return false;
+    }
+    // The invisible attribute provider and the player's equipped entities sit
+    // at their owner. They must not make a trace from that player's eye start
+    // solid, but normal map props and other entities still block visibility.
+    if (entity > MaxClients && IsValidEntity(entity)
+        && HasEntProp(entity, Prop_Send, "m_hOwnerEntity")
+        && GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity") == client)
+    {
+        return false;
+    }
+    return true;
+}
+
+static bool WeaponBuffs_ProjectileVisible(int client, const float start[3], const float point[3])
+{
+    // A projectile commonly flies close to a floor or wall. Tracing into its
+    // exact origin can finish inside that brush and call a clear shot blocked.
+    // Stop sixteen units in front of it, along the shooter's line of sight.
+    float direction[3], finish[3];
+    SubtractVectors(start, point, direction);
+    NormalizeVector(direction, direction);
+    ScaleVector(direction, 48.0);
+    AddVectors(point, direction, finish);
+    Handle trace = TR_TraceRayFilterEx(start, finish, MASK_SOLID, RayType_EndPoint,
+        WeaponBuffs_ProjectileVisibilityFilter, client);
+    float fraction = TR_GetFraction(trace);
+    bool visible = !TR_DidHit(trace) || fraction >= 0.99;
+    int blocker = visible ? -1 : TR_GetEntityIndex(trace);
+    delete trace;
+    if (!visible && g_WeaponBuffProjectileDebug.BoolValue)
+    {
+        WeaponBuffs_DebugLog("[AP destroy] candidate blocked at trace fraction %.3f by entity %d",
+            fraction, blocker);
+    }
+    return visible;
+}
+
+static float WeaponBuffs_ProjectileDestructionCooldown(int levels)
+{
+    float cooldown = ProjectileDestructionBaseCooldown
+        - float(levels - 1) * ProjectileDestructionCooldownStep;
+    return cooldown > ProjectileDestructionMinimumCooldown
+        ? cooldown : ProjectileDestructionMinimumCooldown;
+}
+
+// CTFBaseRocket::Destroy(false, true) sends this same message before removing
+// a rocket. Clients with a breakable model render the projectile tumbling
+// apart; projectile types without model gibs still get sparks and the impact
+// sound below.
+static void WeaponBuffs_ShowProjectileDud(int projectile, float point[3])
+{
+    int model = HasEntProp(projectile, Prop_Send, "m_nModelIndex")
+        ? GetEntProp(projectile, Prop_Send, "m_nModelIndex") : 0;
+    if (model <= 0)
+    {
+        return;
+    }
+    float angles[3];
+    GetEntPropVector(projectile, Prop_Data, "m_angAbsRotation", angles);
+    Handle message = StartMessageAll("BreakModelRocketDud", USERMSG_RELIABLE);
+    if (message == null)
+    {
+        return;
+    }
+    BfWriteShort(message, model);
+    BfWriteVecCoord(message, point);
+    BfWriteAngles(message, angles);
+    EndMessage();
+}
+
+// Valve's minigun scans a short cylinder in front of the player on every shot.
+// Reproduce that geometry for the bullet and energy guns whose weapon classes
+// never read attack_projectiles themselves.
+static void WeaponBuffs_AttackEnemyProjectiles(int client, int levels)
+{
+    float now = GetGameTime();
+    if (now < g_WeaponBuffProjectileDestructionReadyAt[client])
+    {
+        if (g_WeaponBuffProjectileDebug.BoolValue)
+        {
+            WeaponBuffs_DebugLog("[AP destroy] shot by %N ignored for %.3f second cooldown",
+                client, g_WeaponBuffProjectileDestructionReadyAt[client] - now);
+        }
+        return;
+    }
+    float start[3], aim[3], direction[3], finish[3];
+    GetClientEyePosition(client, start);
+    GetClientEyeAngles(client, aim);
+    GetAngleVectors(aim, direction, NULL_VECTOR, NULL_VECTOR);
+    ScaleVector(direction, ProjectileDestructionRange);
+    AddVectors(start, direction, finish);
+
+    int candidates;
+    int inRange;
+    int blocked;
+    int intercepted;
+    float nearest = -1.0;
+    int chosen = -1;
+    float chosenDistance = -1.0;
+    float chosenPoint[3];
+    for (int projectile = MaxClients + 1; projectile < sizeof(g_WeaponBuffProjectileDestructionHits); projectile++)
+    {
+        if (!WeaponBuffs_IsDestroyableProjectile(projectile)
+            || (GetEntityFlags(projectile) & FL_ONGROUND) != 0
+            || (HasEntProp(projectile, Prop_Send, "m_iTeamNum")
+                && GetEntProp(projectile, Prop_Send, "m_iTeamNum") == GetClientTeam(client)))
+        {
+            continue;
+        }
+        float point[3];
+        GetEntPropVector(projectile, Prop_Data, "m_vecAbsOrigin", point);
+        float distance = WeaponBuffs_DistanceToShot(point, start, finish);
+        candidates++;
+        if (nearest < 0.0 || distance < nearest)
+        {
+            nearest = distance;
+        }
+        if (distance > ProjectileDestructionRadius)
+        {
+            continue;
+        }
+        inRange++;
+        if (!WeaponBuffs_ProjectileVisible(client, start, point))
+        {
+            blocked++;
+            continue;
+        }
+        if (chosen < 0 || distance < chosenDistance)
+        {
+            chosen = projectile;
+            chosenDistance = distance;
+            chosenPoint[0] = point[0];
+            chosenPoint[1] = point[1];
+            chosenPoint[2] = point[2];
+        }
+    }
+    if (chosen >= 0)
+    {
+        // Slow and burst-fire guns cannot practically land Valve's two minigun
+        // hits on one projectile. One confirmed shot therefore intercepts one
+        // projectile, then the upgrade level controls when another can occur.
+        g_WeaponBuffProjectileDestructionHits[chosen]++;
+        float sparkDirection[3];
+        SubtractVectors(start, chosenPoint, sparkDirection);
+        NormalizeVector(sparkDirection, sparkDirection);
+        WeaponBuffs_ShowProjectileDud(chosen, chosenPoint);
+        TE_SetupSparks(chosenPoint, sparkDirection, 2, 1);
+        TE_SendToAll();
+        EmitGameSoundToAll("Halloween.HeadlessBossAxeHitWorld", chosen);
+        PrintCenterText(client, "PROJECTILE DESTROYED");
+        if (g_WeaponBuffProjectileDebug.BoolValue)
+        {
+            char classname[64];
+            GetEntityClassname(chosen, classname, sizeof(classname));
+            WeaponBuffs_DebugLog("[AP destroy] %N intercepted entity=%d class=%s distance=%.1f level=%d cooldown=%.2f",
+                client, chosen, classname, chosenDistance, levels,
+                WeaponBuffs_ProjectileDestructionCooldown(levels));
+        }
+        intercepted = 1;
+        g_WeaponBuffProjectileDestructionReadyAt[client] = now
+            + WeaponBuffs_ProjectileDestructionCooldown(levels);
+        RemoveEntity(chosen);
+    }
+    if (g_WeaponBuffProjectileDebug.BoolValue)
+    {
+        WeaponBuffs_DebugLog("[AP destroy] %N swept range=%.0f radius=%.0f candidates=%d in-range=%d blocked=%d intercepted=%d nearest=%.1f",
+            client, ProjectileDestructionRange, ProjectileDestructionRadius,
+            candidates, inRange, blocked, intercepted, nearest);
+    }
+}
+
+static int WeaponBuffs_PrimaryAmmo(int client, int entity)
+{
+    if (!HasEntProp(entity, Prop_Send, "m_iPrimaryAmmoType"))
+    {
+        return -1;
+    }
+    int ammoType = GetEntProp(entity, Prop_Send, "m_iPrimaryAmmoType");
+    return ammoType >= 0 ? GetEntProp(client, Prop_Send, "m_iAmmo", 4, ammoType) : -1;
+}
+
+public void WeaponBuffs_PostThinkPost(int client)
+{
+    if (!IsPlayerAlive(client) || !WeaponBuffs_CanUseRunBuffs(client))
+    {
+        g_WeaponBuffShotWeaponRef[client] = 0;
+        return;
+    }
+    int entity = GetEntPropEnt(client, Prop_Send, "m_hActiveWeapon");
+    int catalog = WeaponBuffs_ForEntity(entity);
+    if (catalog < 0)
+    {
+        g_WeaponBuffShotWeaponRef[client] = 0;
+        return;
+    }
+
+    int reference = EntIndexToEntRef(entity);
+    int clip = HasEntProp(entity, Prop_Send, "m_iClip1")
+        ? GetEntProp(entity, Prop_Send, "m_iClip1") : -1;
+    int ammo = WeaponBuffs_PrimaryAmmo(client, entity);
+    float energy = HasEntProp(entity, Prop_Send, "m_flEnergy")
+        ? GetEntPropFloat(entity, Prop_Send, "m_flEnergy") : -1.0;
+    float nextAttack = HasEntProp(entity, Prop_Send, "m_flNextPrimaryAttack")
+        ? GetEntPropFloat(entity, Prop_Send, "m_flNextPrimaryAttack") : 0.0;
+
+    if (g_WeaponBuffShotWeaponRef[client] == reference)
+    {
+        bool spentAmmo = (clip >= 0 && clip < g_WeaponBuffShotClip[client])
+            || (ammo >= 0 && ammo < g_WeaponBuffShotAmmo[client])
+            || (energy >= 0.0 && energy + 0.001 < g_WeaponBuffShotEnergy[client]);
+        bool hadAmmo = clip >= 0 ? g_WeaponBuffShotClip[client] > 0
+            : (energy >= 0.0 ? g_WeaponBuffShotEnergy[client] > 0.0
+            : g_WeaponBuffShotAmmo[client] > 0);
+        bool fired = spentAmmo || (hadAmmo
+            && nextAttack > g_WeaponBuffShotNextAttack[client] + 0.001);
+        int levels = g_WeaponEffectLevels[catalog][DestroyProjectilesEffect];
+        if (fired && levels > 0 && WeaponBuffs_CanDestroyProjectiles(catalog)
+            && !WeaponBuffs_UsesNativeProjectileDestruction(catalog))
+        {
+            if (g_WeaponBuffProjectileDebug.BoolValue)
+            {
+                WeaponBuffs_DebugLog("[AP destroy] confirmed shot by %N weapon=%s level=%d clip=%d ammo=%d energy=%.1f next=%.3f",
+                    client, g_WeaponNames[catalog], levels, clip, ammo, energy, nextAttack);
+            }
+            WeaponBuffs_AttackEnemyProjectiles(client, levels);
+        }
+    }
+    g_WeaponBuffShotWeaponRef[client] = reference;
+    g_WeaponBuffShotClip[client] = clip;
+    g_WeaponBuffShotAmmo[client] = ammo;
+    g_WeaponBuffShotEnergy[client] = energy;
+    g_WeaponBuffShotNextAttack[client] = nextAttack;
 }
 
 static void WeaponBuffs_RemoveEntityFrame(any reference)
@@ -1557,6 +1881,13 @@ void WeaponBuffs_Apply(int client)
         // negative-damage heal changes no health. The timer above owns this
         // effect so it can heal to the player's real, modified maximum.
         if (effect == ActiveHealthRegenEffect)
+        {
+            continue;
+        }
+        // Only CTFMinigun reads attack_projectiles. The confirmed-shot sweep
+        // above implements it for every other eligible bullet/energy gun.
+        if (effect == DestroyProjectilesEffect
+            && !WeaponBuffs_UsesNativeProjectileDestruction(weapon))
         {
             continue;
         }

@@ -476,6 +476,32 @@ func TestProjectilePenetrationStaysOffExplosives(t *testing.T) {
 	}
 }
 
+func TestProjectileDestructionOnlyDrawsOnBulletAndEnergyGuns(t *testing.T) {
+	for _, weapon := range BuffWeapons {
+		buff := buffNamed(t, weapon.Name, "destroy-projectiles")
+		want := weapon.ID == weapon.ApplyID && projectileDestructionWeapons[weapon.Name]
+		if buff.Eligible != want {
+			t.Errorf("%s destroy-projectiles eligibility = %v, want %v", weapon.Name, buff.Eligible, want)
+		}
+	}
+
+	for _, name := range []string{
+		"Rocket Launcher", "Grenade Launcher", "Stickybomb Launcher", "Flare Gun",
+		"Jarate", "Mad Milk", "Huntsman", "Syringe Gun", "Knife", "Mantreads",
+		"Thermal Thruster", "Wrangler",
+	} {
+		if buffNamed(t, name, "destroy-projectiles").Eligible {
+			t.Errorf("%s draws projectile destruction", name)
+		}
+	}
+
+	for _, name := range []string{"Scattergun", "Shotgun", "Sniper Rifle", "Pistol", "Pomson 6000", "Righteous Bison", "Short Circuit", "Minigun"} {
+		if !buffNamed(t, name, "destroy-projectiles").Eligible {
+			t.Errorf("%s does not draw projectile destruction", name)
+		}
+	}
+}
+
 // The game reads armor piercing on a backstab and nowhere else (gh-25).
 func TestArmorPiercingIsAKnifeBuff(t *testing.T) {
 	for name, want := range map[string]bool{

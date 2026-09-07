@@ -107,6 +107,105 @@ func TestWeaponBuffsStayOutOfMvMShopping(t *testing.T) {
 	}
 }
 
+func TestNonMinigunProjectileDestructionUsesConfirmedShots(t *testing.T) {
+	buffs := "../plugin/scripting/tf2_archipelago/weapon_buffs.inc"
+	postThink := sourceFunction(t, buffs, "public void WeaponBuffs_PostThinkPost")
+	for _, required := range []string{
+		"clip < g_WeaponBuffShotClip[client]",
+		"ammo < g_WeaponBuffShotAmmo[client]",
+		"energy + 0.001 < g_WeaponBuffShotEnergy[client]",
+		"nextAttack > g_WeaponBuffShotNextAttack[client] + 0.001",
+		"WeaponBuffs_AttackEnemyProjectiles(client, levels)",
+		"!WeaponBuffs_UsesNativeProjectileDestruction(catalog)",
+	} {
+		if !strings.Contains(postThink, required) {
+			t.Errorf("confirmed-shot detector has no %q", required)
+		}
+	}
+
+	sweep := sourceFunction(t, buffs, "static void WeaponBuffs_AttackEnemyProjectiles")
+	for _, required := range []string{
+		"ProjectileDestructionRange",
+		"ProjectileDestructionRadius",
+		"WeaponBuffs_ProjectileDestructionCooldown(levels)",
+		"WeaponBuffs_IsDestroyableProjectile(projectile)",
+		"WeaponBuffs_ProjectileVisible(client, start, point)",
+		"chosen = projectile",
+		"RemoveEntity(chosen)",
+		"WeaponBuffs_ShowProjectileDud(chosen, chosenPoint)",
+		`EmitGameSoundToAll("Halloween.HeadlessBossAxeHitWorld", chosen)`,
+		"TE_SetupSparks(chosenPoint, sparkDirection, 2, 1)",
+		`PrintCenterText(client, "PROJECTILE DESTROYED")`,
+		`WeaponBuffs_DebugLog("[AP destroy]`,
+	} {
+		if !strings.Contains(sweep, required) {
+			t.Errorf("projectile sweep has no %q", required)
+		}
+	}
+	visible := sourceFunction(t, buffs, "static bool WeaponBuffs_ProjectileVisible")
+	for _, required := range []string{
+		"ScaleVector(direction, 48.0)",
+		"fraction >= 0.99",
+		"TR_TraceRayFilterEx",
+		"WeaponBuffs_ProjectileVisibilityFilter, client",
+		`WeaponBuffs_DebugLog("[AP destroy] candidate blocked at trace fraction`,
+	} {
+		if !strings.Contains(visible, required) {
+			t.Errorf("projectile visibility test has no %q", required)
+		}
+	}
+	filter := sourceFunction(t, buffs, "public bool WeaponBuffs_ProjectileVisibilityFilter")
+	for _, required := range []string{
+		"entity == client",
+		`HasEntProp(entity, Prop_Send, "m_hOwnerEntity")`,
+		`GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity") == client`,
+	} {
+		if !strings.Contains(filter, required) {
+			t.Errorf("projectile visibility filter has no %q", required)
+		}
+	}
+	target := sourceFunction(t, buffs, "static bool WeaponBuffs_IsDestroyableProjectile")
+	if !strings.Contains(target, `StrContains(classname, "tf_projectile_", false) == 0`) {
+		t.Fatal("projectile destruction does not accept every TF2 projectile class")
+	}
+
+	text, err := os.ReadFile(buffs)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, required := range []string{
+		"#define ProjectileDestructionRange 2000.0",
+		"#define ProjectileDestructionRadius 256.0",
+		"#define ProjectileDestructionBaseCooldown 2.0",
+		"#define ProjectileDestructionCooldownStep 0.25",
+		"#define ProjectileDestructionMinimumCooldown 0.5",
+	} {
+		if !strings.Contains(string(text), required) {
+			t.Errorf("projectile destruction configuration has no %q", required)
+		}
+	}
+
+	cooldown := sourceFunction(t, buffs, "static float WeaponBuffs_ProjectileDestructionCooldown")
+	for _, required := range []string{
+		"float(levels - 1) * ProjectileDestructionCooldownStep",
+		"ProjectileDestructionMinimumCooldown",
+	} {
+		if !strings.Contains(cooldown, required) {
+			t.Errorf("projectile destruction cooldown has no %q", required)
+		}
+	}
+	dud := sourceFunction(t, buffs, "static void WeaponBuffs_ShowProjectileDud")
+	for _, required := range []string{
+		`StartMessageAll("BreakModelRocketDud", USERMSG_RELIABLE)`,
+		"BfWriteShort(message, model)",
+		"BfWriteVecCoord(message, point)",
+		"BfWriteAngles(message, angles)",
+	} {
+		if !strings.Contains(dud, required) {
+			t.Errorf("projectile dud effect has no %q", required)
+		}
+	}
+}
 func TestWeaponBuffOwnershipPolicyDefaultsToPlayers(t *testing.T) {
 	buffs := "../plugin/scripting/tf2_archipelago/weapon_buffs.inc"
 	source, err := os.ReadFile(buffs)
