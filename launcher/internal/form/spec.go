@@ -23,6 +23,29 @@ type Spec struct {
 	Tab  string
 	Kind Kind
 
+	/*
+		Group is the section of the page this row belongs to, for an interface
+		with room to give each section a page of its own.
+
+		The window makes them the sub-tabs the Bots page has always had: six
+		seats, nine classes and two cosmetic ticks are one long list on a
+		terminal and a wall in a window. The terminal ignores it and draws the
+		rows in order, which is the same order either way. Empty means the row
+		sits directly on its page, which is most of them.
+	*/
+	Group string
+
+	/*
+		Bar marks an Action about the whole window rather than about the page it
+		was declared on, so an interface with a button bar puts it there.
+
+		Debug logs, Repair and Reset settings are the three. None of them edits a
+		setting and none belongs to the Game server page in particular; they were
+		along the bottom of the window until the rows moved here, and a player
+		looking for the debug bundle looked at the bottom of the window.
+	*/
+	Bar bool
+
 	Label string
 	Help  string
 
@@ -104,13 +127,27 @@ var Tabs = []string{
 	"Networking",
 }
 
+/*
+	Nested says which page a page is a section of, for an interface with room to
+
+nest one inside another.
+
+Loadouts is a page of the Bots page: a loadout is built there and then handed to
+a seat or a class, and the two were one tab with sub-tabs until the rows moved
+here. The terminal has no room to nest and draws every page side by side, which
+is what it has always done, so it ignores this.
+*/
+var Nested = map[string]string{
+	"Loadouts": "Bots",
+}
+
 // Intros are the paragraphs above the rows, for the pages whose rows do not
 // explain themselves on their own.
 var Intros = map[string]string{
 	"Balancing": "Valve tunes every wave for six defenders. This takes the robots down for a team that is short of them, and applies equally regardless of how many humans are playing.",
 	"Player options": "These are the options the Archipelago website calls player options. They go in tf2.yaml, which the seed is generated from. " +
 		"The Missions page picks which missions the run may draw.",
-	"Loadouts": "A loadout is a class and the weapons it carries. Build one here, name it, then hand it to a seat or a class on the Bots page.",
+	"Loadouts": "A loadout is a class and the weapons it carries. Build one here, name it, then hand it to a seat on the Team page or to a class on the Classes page.",
 }
 
 // text declares a line of text.
@@ -257,4 +294,20 @@ func options(values, labels []string) []Option {
 		out = append(out, Option{Value: value, Label: label})
 	}
 	return out
+}
+
+// inGroup stamps a section on a run of rows. Declared beside the rows rather
+// than on each helper, because a group is a property of where a row sits and
+// not of what it holds.
+func inGroup(group string, specs ...Spec) []Spec {
+	for i := range specs {
+		specs[i].Group = group
+	}
+	return specs
+}
+
+// onBar marks a row as belonging to the window's button bar.
+func onBar(spec Spec) Spec {
+	spec.Bar = true
+	return spec
 }

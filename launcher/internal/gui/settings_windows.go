@@ -48,6 +48,10 @@ const labelWidth = 190
 // sentenceWidth caps the paragraphs above a page's rows.
 const sentenceWidth = 980
 
+// numberWidth is a number's box: wide enough for five digits and the spinner,
+// and no wider, so the answer sits beside its label.
+const numberWidth = 90
+
 /*
 	settingsDialog is the window built but not yet shown.
 
@@ -156,10 +160,27 @@ func buildSettingsDialog(
 		return pool.apply(next, env())
 	}
 
+	/* One tab per top-level page, with the pages the model nests inside the one
+	   they name. Loadouts is the only one: it is a page of Bots, and building a
+	   loadout to hand to a seat two tabs away is a trip nobody makes. */
 	pages := make([]declarative.TabPage, 0, len(model.Tabs))
 	for _, page := range model.Tabs {
-		pages = append(pages, screen.page(page, &poolView, pool))
+		if page.Under != "" {
+			continue
+		}
+		pages = append(pages, screen.page(page, nestedUnder(model, page.Title), &poolView, pool))
 	}
+
+	// The rows that belong to the window rather than to a page. See form.Spec.
+	bar := make([]declarative.Widget, 0, 4)
+	for _, page := range model.Tabs {
+		for _, field := range page.Fields {
+			if field.Bar {
+				bar = append(bar, screen.control(field, 0))
+			}
+		}
+	}
+	bar = append(bar, declarative.HSpacer{})
 
 	built := &settingsDialog{screen: screen, pool: pool, model: model, collect: collect, persist: persist, saved: s}
 
@@ -177,8 +198,7 @@ func buildSettingsDialog(
 			declarative.Composite{
 				Layout:  declarative.HBox{},
 				MaxSize: declarative.Size{Height: 34},
-				Children: []declarative.Widget{
-					declarative.HSpacer{},
+				Children: append(bar,
 					declarative.PushButton{AssignTo: &accept, Text: "Save", OnClicked: func() {
 						next, err := collect()
 						if err != nil {
@@ -241,7 +261,7 @@ func buildSettingsDialog(
 						reportRoom(owner, written, roomErr, strings.TrimSpace(next.Draft.Room), say)
 					}},
 					declarative.PushButton{AssignTo: &cancel, Text: "Cancel", OnClicked: func() { dialog.Cancel() }},
-				},
+				),
 			},
 		},
 	}.Create(owner)
@@ -690,15 +710,54 @@ func browseForFolder(edit *walk.LineEdit) {
 // showPage opens the tab with that title, and leaves the window on the first
 // page for a title no page carries.
 func showPage(tabs *walk.TabWidget, title string) {
-	if title == "" {
+	if title == "" || tabs == nil {
 		return
 	}
 	for i := range tabs.Pages().Len() {
-		if tabs.Pages().At(i).Title() == title {
+		page := tabs.Pages().At(i)
+		if page.Title() == title {
 			_ = tabs.SetCurrentIndex(i)
 			return
 		}
+		// A page of a page: Bots holds Team, Classes, Looks and Loadouts, and
+		// a refusal about one of those has to open both tabs, not the outer one.
+		if inner := innerTabs(page); inner != nil {
+			for j := range inner.Pages().Len() {
+				if inner.Pages().At(j).Title() != title {
+					continue
+				}
+				_ = tabs.SetCurrentIndex(i)
+				_ = inner.SetCurrentIndex(j)
+				return
+			}
+		}
 	}
+}
+
+// innerTabs is the tab widget a sectioned page holds, or nil for a page of
+// plain rows.
+func innerTabs(page *walk.TabPage) *walk.TabWidget {
+	children := page.Children()
+	if children == nil {
+		return nil
+	}
+	for i := range children.Len() {
+		if inner, ok := children.At(i).(*walk.TabWidget); ok {
+			return inner
+		}
+	}
+	return nil
+}
+
+// nestedUnder is the pages the model puts inside this one, in model order.
+func nestedUnder(model form.Model, title string) []form.Tab {
+	var under []form.Tab
+	for _, page := range model.Tabs {
+		if page.Under == title {
+			under = append(under, page)
+		}
+	}
+	return under
 }
 
 /*

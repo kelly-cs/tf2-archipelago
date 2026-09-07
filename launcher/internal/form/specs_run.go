@@ -439,16 +439,20 @@ func serverSpecs() []Spec {
 			func(s State) string { return s.Settings.SrcdsAdminSteamIDs },
 			func(s State, v string) State { s.Settings.SrcdsAdminSteamIDs = trim(v); return s }),
 
-		press("server.debug_bundle", tab, "Debug logs",
-			"Put the logs, the settings without their passwords and the player file in one zip, for sending to whoever is helping you."),
+		/* The three that are about the launcher rather than about this page.
+		   The window puts them along the bottom, where they were before the
+		   rows moved into form and where a player looking for the debug bundle
+		   still looks. */
+		onBar(press("server.debug_bundle", tab, "Debug logs",
+			"Put the logs, the settings without their passwords and the player file in one zip, for sending to whoever is helping you.")),
 
-		confirm("server.repair", tab, "Repair",
+		onBar(confirm("server.repair", tab, "Repair",
 			"Throw SteamCMD and the mods away and fetch them again. Keeps the game files and the run.",
-			"this stops the server, then removes SteamCMD, the mods and Steam's record of the download. No 14 GB again, no lost checks."),
+			"this stops the server, then removes SteamCMD, the mods and Steam's record of the download. No 14 GB again, no lost checks.")),
 
-		confirm("server.reset", tab, "Reset settings",
+		onBar(confirm("server.reset", tab, "Reset settings",
 			"Put every setting back to what a fresh install has. Keeps the game files and where they are.",
-			"this puts the room, the passwords, the missions, the bots and who can join back to their defaults."),
+			"this puts the room, the passwords, the missions, the bots and who can join back to their defaults.")),
 	}
 }
 

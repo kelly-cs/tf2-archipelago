@@ -68,8 +68,8 @@ func build(t *testing.T) *settingsDialog {
 	return built
 }
 
-// The window has a tab per page form declares, in the same order, with the same
-// titles. A page missing here is a page a player cannot reach.
+// The window has a top-level tab per page form declares that is not nested, in
+// the same order. A page missing here is a page a player cannot reach.
 func TestTheWindowHasAPageForEveryPageFormDeclares(t *testing.T) {
 	built := build(t)
 
@@ -80,11 +80,94 @@ func TestTheWindowHasAPageForEveryPageFormDeclares(t *testing.T) {
 
 	var want []string
 	for _, tab := range built.model.Tabs {
-		want = append(want, tab.Title)
+		if tab.Under == "" {
+			want = append(want, tab.Title)
+		}
 	}
 
 	if !slices.Equal(got, want) {
 		t.Errorf("the window shows\n  %v\nand form declares\n  %v", got, want)
+	}
+}
+
+/*
+	A sectioned page draws a tab for every section its rows name, and the pages
+
+form nests under it as well.
+
+The Bots page is six seats, nine classes, two cosmetic ticks and the loadout
+builder. It was four sub-tabs until the rows moved into form and came back as
+one list of thirty-nine, which is the regression this asks about.
+*/
+func TestASectionedPageHasATabForEverySection(t *testing.T) {
+	built := build(t)
+
+	for _, tab := range built.model.Tabs {
+		if tab.Under != "" {
+			continue
+		}
+		var want []string
+		for _, field := range tab.Fields {
+			if field.Bar || field.Group == "" {
+				continue
+			}
+			if len(want) == 0 || want[len(want)-1] != field.Group {
+				want = append(want, field.Group)
+			}
+		}
+		for _, nested := range built.model.Tabs {
+			if nested.Under == tab.Title {
+				want = append(want, nested.Title)
+			}
+		}
+		if len(want) == 0 {
+			continue
+		}
+
+		inner := innerTabs(pageNamed(t, built, tab.Title))
+		if inner == nil {
+			t.Errorf("%s: form names the sections %v and the window drew one flat page", tab.Title, want)
+			continue
+		}
+		var got []string
+		for i := range inner.Pages().Len() {
+			got = append(got, inner.Pages().At(i).Title())
+		}
+		if !slices.Equal(got, want) {
+			t.Errorf("%s shows\n  %v\nand form names\n  %v", tab.Title, got, want)
+		}
+	}
+}
+
+/*
+	The three rows that are about the launcher are along the bottom of the
+
+window, not one to a line on the Game server page.
+
+Debug logs, Repair and Reset settings were there until the rows moved into form.
+A player who has been asked for a debug bundle looks at the bottom of the window
+for it, which is the only reason this is worth asserting.
+*/
+func TestBarRowsAreOnTheBottomBarAndNotOnAPage(t *testing.T) {
+	built := build(t)
+
+	var bar int
+	for _, tab := range built.model.Tabs {
+		for _, field := range tab.Fields {
+			if !field.Bar {
+				continue
+			}
+			bar++
+			if barButton(built, field.Label) == nil {
+				t.Errorf("%q is a bar row and the window drew no button for it", field.Label)
+			}
+			if controlFor(t, pageNamed(t, built, tab.Title), field) != nil {
+				t.Errorf("%q is on the %s page as well as on the bar", field.Label, tab.Title)
+			}
+		}
+	}
+	if bar == 0 {
+		t.Fatal("form declares no bar rows, so this checked nothing")
 	}
 }
 
@@ -100,12 +183,14 @@ func TestEveryRowBecomesAControl(t *testing.T) {
 	built := build(t)
 
 	for _, tab := range built.model.Tabs {
-		page := pageNamed(t, built, tab.Title)
 		for _, field := range tab.Fields {
 			if strings.HasPrefix(field.ID, poolPrefix) {
 				continue // drawn in the table, checked below
 			}
-			widget := controlFor(t, page, field)
+			if field.Bar {
+				continue // drawn on the bottom bar, checked there
+			}
+			widget := controlFor(t, pageOf(t, built, tab, field), field)
 			if widget == nil {
 				t.Errorf("%s: form declares %q and the window has no control for it", tab.Title, field.Label)
 				continue
@@ -189,14 +274,16 @@ func TestTheWindowDrawsEveryDeclaredRow(t *testing.T) {
 
 	var declared, drawn int
 	for _, tab := range built.model.Tabs {
-		page := pageNamed(t, built, tab.Title)
 		for _, field := range tab.Fields {
 			declared++
-			if strings.HasPrefix(field.ID, poolPrefix) {
+			switch {
+			case strings.HasPrefix(field.ID, poolPrefix):
 				drawn++ // in the table
-				continue
-			}
-			if controlFor(t, page, field) != nil {
+			case field.Bar:
+				if barButton(built, field.Label) != nil {
+					drawn++
+				}
+			case controlFor(t, pageOf(t, built, tab, field), field) != nil:
 				drawn++
 			}
 		}
@@ -316,12 +403,11 @@ func TestNumberRowsCarryTheBoundsFormResolved(t *testing.T) {
 
 	var checked int
 	for _, tab := range built.model.Tabs {
-		page := pageNamed(t, built, tab.Title)
 		for _, field := range tab.Fields {
 			if field.Kind != form.Number {
 				continue
 			}
-			edit, ok := controlFor(t, page, field).(*walk.NumberEdit)
+			edit, ok := controlFor(t, pageOf(t, built, tab, field), field).(*walk.NumberEdit)
 			if !ok {
 				t.Errorf("%q is a number and the window drew something else", field.Label)
 				continue
@@ -348,15 +434,50 @@ func TestNumberRowsCarryTheBoundsFormResolved(t *testing.T) {
 
 // --- walking the widget tree ---
 
+/*
+	pageNamed is the tab with that title, at either level.
+
+The Bots page is a tab widget of its own, so Team, Classes, Looks and Loadouts
+are pages inside a page. A row lives on the innermost one that names it, which
+is what the rest of these tests walk.
+*/
 func pageNamed(t *testing.T, built *settingsDialog, title string) *walk.TabPage {
 	t.Helper()
-	for i := range built.tabs.Pages().Len() {
-		if page := built.tabs.Pages().At(i); page.Title() == title {
-			return page
-		}
+	if page := findPage(built.tabs, title); page != nil {
+		return page
 	}
 	t.Fatalf("the window has no page %q", title)
 	return nil
+}
+
+func findPage(tabs *walk.TabWidget, title string) *walk.TabPage {
+	for i := range tabs.Pages().Len() {
+		page := tabs.Pages().At(i)
+		if page.Title() == title {
+			return page
+		}
+		if inner := innerTabs(page); inner != nil {
+			if found := findPage(inner, title); found != nil {
+				return found
+			}
+		}
+	}
+	return nil
+}
+
+/*
+	pageOf is the page a row is drawn on.
+
+A row that names a section is on the section's page, and one that does not is on
+its tab's own. A Bar row is on no page at all: the window draws it along the
+bottom, so the caller is told to look there instead.
+*/
+func pageOf(t *testing.T, built *settingsDialog, tab form.Tab, field form.Field) *walk.TabPage {
+	t.Helper()
+	if field.Group != "" {
+		return pageNamed(t, built, field.Group)
+	}
+	return pageNamed(t, built, tab.Title)
 }
 
 /*
@@ -380,9 +501,17 @@ func controlFor(t *testing.T, page *walk.TabPage, field form.Field) walk.Widget 
 		if !ok || label.Text() != field.Label {
 			continue
 		}
-		if i+1 < len(children) {
-			return children[i+1]
+		if i+1 >= len(children) {
+			return nil
 		}
+		/* A row that needs the slack held off its control puts the two in a
+		   Composite: a folder and its Browse button, a number and the spacer
+		   that keeps it the width of a number. The control is what follows,
+		   because descendants lists a container before what is inside it. */
+		if _, wrapped := children[i+1].(*walk.Composite); wrapped && i+2 < len(children) {
+			return children[i+2]
+		}
+		return children[i+1]
 	}
 	return nil
 }
@@ -399,6 +528,15 @@ func descendants(parent walk.Container) []walk.Widget {
 	for i := range children.Len() {
 		widget := children.At(i)
 		out = append(out, widget)
+		// A TabWidget is not a Container in walk: its pages hang off Pages()
+		// rather than off Children(), so the rows inside one are invisible to
+		// a walk that only follows containers.
+		if inner, ok := widget.(*walk.TabWidget); ok {
+			for j := range inner.Pages().Len() {
+				out = append(out, descendants(inner.Pages().At(j))...)
+			}
+			continue
+		}
 		if container, ok := widget.(walk.Container); ok {
 			out = append(out, descendants(container)...)
 		}
@@ -421,11 +559,7 @@ func rightKind(field form.Field, widget walk.Widget) bool {
 		_, ok := widget.(*walk.PushButton)
 		return ok
 	default:
-		// A folder row wraps its edit and its Browse button in a Composite.
-		if _, ok := widget.(*walk.LineEdit); ok {
-			return true
-		}
-		_, ok := widget.(*walk.Composite)
+		_, ok := widget.(*walk.LineEdit)
 		return ok
 	}
 }
@@ -506,4 +640,14 @@ func TestARefusalOpensThePageItIsAbout(t *testing.T) {
 	if got := built.tabs.Pages().At(at).Title(); got != "Archipelago room" {
 		t.Errorf("the refusal left the window on %q", got)
 	}
+}
+
+// barButton is the button with that label along the bottom of the window.
+func barButton(built *settingsDialog, label string) *walk.PushButton {
+	for _, widget := range descendants(built.dialog) {
+		if button, ok := widget.(*walk.PushButton); ok && button.Text() == label {
+			return button
+		}
+	}
+	return nil
 }

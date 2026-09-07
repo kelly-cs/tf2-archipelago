@@ -85,6 +85,12 @@ type Field struct {
 	Label string `json:"label"`
 	Help  string `json:"help"`
 
+	// Group is the section of the page this row is in, and Bar marks an action
+	// about the whole window rather than about this page. Both are placement an
+	// interface may use or ignore; see Spec.
+	Group string `json:"group,omitempty"`
+	Bar   bool   `json:"bar,omitempty"`
+
 	// Value is empty for Action and Confirm, which have nothing to hold.
 	Value string `json:"value,omitempty"`
 
@@ -133,8 +139,11 @@ type Field struct {
 // rows do not explain themselves: Balancing needs to say that Valve tunes every
 // wave for six defenders before "Robot health" means anything.
 type Tab struct {
-	Title  string  `json:"title"`
-	Intro  string  `json:"intro,omitempty"`
+	Title string `json:"title"`
+	Intro string `json:"intro,omitempty"`
+
+	// Under is the page this one is a section of, empty for a top-level page.
+	Under  string  `json:"under,omitempty"`
 	Fields []Field `json:"fields"`
 }
 

@@ -32,7 +32,7 @@ the terminal did not agree about even in shape.
 func botSpecs(s State) []Spec {
 	const tab = "Bots"
 
-	specs := []Spec{
+	specs := inGroup("Team",
 		toggle("bots.fill", tab, "Fill RED with bots",
 			"Valve balances every wave for six players. Off leaves the seats empty until an admin runs sm_addbots.",
 			"bots on",
@@ -70,23 +70,23 @@ func botSpecs(s State) []Spec {
 			"Keeps the seats and their loadouts under the name in the box. Saving over a name replaces it."),
 		press("bots.remove_team", tab, "Remove this team",
 			"Forget the saved team named above. The seats on screen are left alone."),
-	}
+	)
 
 	// The seats, in the order they fill, each with what it plays and what it
 	// carries. Two engineers are only worth naming separately if they can hold
 	// different weapons.
 	for seat := range Seats {
-		specs = append(specs, seatClassSpec(seat), seatLoadoutSpec(seat))
+		specs = append(specs, inGroup("Team", seatClassSpec(seat), seatLoadoutSpec(seat))...)
 	}
 
 	// What a class falls back on when the mod draws it rather than a seat
 	// naming it, and whether it may be drawn at all.
 	for _, class := range botloadout.Classes {
-		specs = append(specs, classAllowedSpec(class), classLoadoutSpec(class))
+		specs = append(specs, inGroup("Classes", classAllowedSpec(class), classLoadoutSpec(class))...)
 	}
 
 	// Last, because none of it changes a wave.
-	specs = append(specs,
+	specs = append(specs, inGroup("Looks",
 		toggle("bots.hats", tab, "Cosmetic items",
 			"A random cosmetic item on every bot, hat or not, drawn from the ones its class can wear. It changes nothing about how they play.",
 			"one each",
@@ -98,7 +98,7 @@ func botSpecs(s State) []Spec {
 			"and an effect on it",
 			func(s State) bool { return s.Settings.SrcdsBotHatEffects },
 			func(s State, v bool) State { s.Settings.SrcdsBotHatEffects = v; return s }),
-	)
+	)...)
 
 	return append(specs, loadoutSpecs(s)...)
 }

@@ -31,7 +31,12 @@ func Build(s State, env Env) Model {
 		if len(fields) == 0 {
 			continue
 		}
-		model.Tabs = append(model.Tabs, Tab{Title: title, Intro: Intros[title], Fields: fields})
+		model.Tabs = append(model.Tabs, Tab{
+			Title:  title,
+			Intro:  Intros[title],
+			Under:  Nested[title],
+			Fields: fields,
+		})
 	}
 	return model
 }
@@ -56,6 +61,8 @@ func (spec Spec) field(s State, env Env) Field {
 		Kind:        spec.Kind,
 		Label:       spec.Label,
 		Help:        spec.Help,
+		Group:       spec.Group,
+		Bar:         spec.Bar,
 		Placeholder: spec.Placeholder,
 		Hint:        spec.Hint,
 		HintOff:     spec.HintOff,
