@@ -87,8 +87,12 @@ Cowser's sheet and kelly-cs's issues. Bots at 2.52.3.
   slot-filling wearables follow the same rule.
 - Linux servers get the extra arrows and flares. The projectile-count fanout had
   Windows gamedata only, so a Docker server logged both fanouts disabled and
-  every extra bolt was a plain clone. The heal on an extra Crusader's Crossbow
-  bolt is still open.
+  every extra bolt was a plain clone.
+- Extra Crusader's Crossbow bolts heal. The fanout built them as plain arrows,
+  which hurt a robot and do nothing for a teammate. They now come off the game's
+  own arrow factory with their launcher set, so a bolt that reaches a teammate
+  heals him, penetration carries over, and the weapon still fires one sound
+  however many bolts leave it. By kelly-cs.
 
 ### Balancing
 
