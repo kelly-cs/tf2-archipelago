@@ -83,6 +83,22 @@ func TestOnlyCuratedPermutationsAreEligibleRewards(t *testing.T) {
 	}
 }
 
+func TestAmmoOnHitEligibilityIncludesShieldsButNotManmelter(t *testing.T) {
+	for _, shield := range []string{"Chargin' Targe", "Splendid Screen", "Tide Turner"} {
+		if !buffNamed(t, shield, "ammo-on-hit").Eligible {
+			t.Errorf("%s/ammo-on-hit is not eligible", shield)
+		}
+	}
+	if buffNamed(t, "Manmelter", "ammo-on-hit").Eligible {
+		t.Error("Manmelter/ammo-on-hit is eligible")
+	}
+	for _, weapon := range []string{"Mantreads", "Thermal Thruster"} {
+		if !buffNamed(t, weapon, "ammo-on-hit").Eligible {
+			t.Errorf("%s/ammo-on-hit is not eligible", weapon)
+		}
+	}
+}
+
 func TestFunctionalReskinsShareOneRewardPool(t *testing.T) {
 	for _, family := range weaponFamilies {
 		canonical := weaponNamed(t, family[0])
@@ -346,6 +362,9 @@ func TestPluginImplementsAmmoOnHitForClippedAndMeleeWeapons(t *testing.T) {
 		"GetPlayerWeaponSlot(attacker, TFWeaponSlot_Primary)",
 		"GetEntProp(ammoWeapon, Prop_Send, \"m_iPrimaryAmmoType\")",
 		"GivePlayerAmmo(attacker, amount, ammoType, true)",
+		"WeaponBuffs_SuppliesPrimaryAmmo(entity)",
+		"tf_wearable_demoshield",
+		"Mantreads",
 		"if (effect == AmmoOnHitEffect)",
 		"FindEntityByClassname(tank, \"tank_boss\")",
 		"SDKHook(tank, SDKHook_OnTakeDamagePost, WeaponBuffs_OnTankTakeDamagePost)",
@@ -353,6 +372,65 @@ func TestPluginImplementsAmmoOnHitForClippedAndMeleeWeapons(t *testing.T) {
 	} {
 		if !strings.Contains(text, required) {
 			t.Errorf("ammo-on-hit implementation has no %q", required)
+		}
+	}
+
+	thermal := substanceSourceFunction(t, "static void WeaponBuffs_AddThermalThrusterCharge")
+	for _, required := range []string{
+		`FindConVar("tf_rocketpack_cost")`,
+		`GetEntPropFloat(attacker, Prop_Send,`,
+		`"m_flItemChargeMeter", Slot_Secondary)`,
+		"launchCost * float(amount)",
+		`SetEntPropFloat(attacker, Prop_Send, "m_flItemChargeMeter"`,
+	} {
+		if !strings.Contains(thermal, required) {
+			t.Errorf("Thermal Thruster charge restoration has no %q", required)
+		}
+	}
+
+	resolver := substanceSourceFunction(t, "static int WeaponBuffs_WeaponOfHit")
+	for _, required := range []string{
+		"damagecustom == TF_CUSTOM_BOOTS_STOMP",
+		"WeaponBuffs_EntityInLoadoutSlot(attacker, Slot_Secondary)",
+		"Mantreads",
+		"Thermal Thruster",
+	} {
+		if !strings.Contains(resolver, required) {
+			t.Errorf("stomp hit resolver has no %q", required)
+		}
+	}
+
+	energy := substanceSourceFunction(t, "static float WeaponBuffs_EnergyShotCost")
+	for _, required := range []string{
+		"tf_weapon_particle_cannon",
+		"tf_weapon_raygun",
+		"tf_weapon_drg_pomson",
+		"return 5.0",
+	} {
+		if !strings.Contains(energy, required) {
+			t.Errorf("energy-weapon shot cost has no %q", required)
+		}
+	}
+	for _, required := range []string{
+		"WeaponBuffs_EnergyShotCost(ammoWeapon)",
+		"energyPerShot * float(amount)",
+		"WeaponBuffs_EnergyMaxCharge(ammoWeapon, energyPerShot)",
+		"EnergyClipSizeAttributeClass",
+		"SetEntPropFloat(ammoWeapon, Prop_Send, \"m_flEnergy\", energy)",
+	} {
+		if !strings.Contains(text, required) {
+			t.Errorf("energy ammo-on-hit implementation has no %q", required)
+		}
+	}
+
+	apply := substanceSourceFunction(t, "void WeaponBuffs_Apply(int client)")
+	for _, required := range []string{
+		"effect == ClipSizeEffect",
+		"EnergyClipSizeAttributeClass",
+		"TF2Attrib_SetByName(provider, EnergyClipSizeAttribute, value)",
+	} {
+		if !strings.Contains(apply, required) {
+			t.Errorf("energy clip-size implementation has no %q", required)
 		}
 	}
 

@@ -150,6 +150,8 @@ public void OnPluginStart()
         "Test an active-weapon effect: sm_ap_buff_test <number|key|all> [levels]");
     RegAdminCmd("sm_ap_buff_give", Command_GiveWeaponBuff, ADMFLAG_ROOT,
         "Give a test effect to a player's active weapon: sm_ap_buff_give <target> <number|key|all> [levels]");
+    RegAdminCmd("sm_ap_buff_slot", Command_GiveSlotWeaponBuff, ADMFLAG_ROOT,
+        "Give a test effect by loadout slot: sm_ap_buff_slot <target> <1|2|3> <number|key|all> [levels]");
     RegAdminCmd("sm_ap_projectile_debug", Command_ProjectileDebug, ADMFLAG_ROOT,
         "Toggle projectile diagnostics: sm_ap_projectile_debug [on|off]");
     RegAdminCmd("sm_ap_unlock_override", Command_UnlockOverride, ADMFLAG_ROOT,
@@ -198,7 +200,11 @@ public void OnClientPutInServer(int client)
     {
         return;
     }
-    Bots_MakeRoom();
+    // Do not remove a fully equipped defender bot while this client is still
+    // receiving its initial entity snapshot. That burst can overflow Source's
+    // fixed 4 KB unreliable stream and trap a relayed client in a reconnect
+    // loop. Command_JoinRed frees the seat when the loaded client actually
+    // asks to join RED; Bots_Fill already reserves seats for connected humans.
     CreateTimer(WelcomeDelay, Timer_Welcome, GetClientUserId(client));
 }
 

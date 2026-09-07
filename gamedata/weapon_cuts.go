@@ -46,7 +46,7 @@ var sheetCuts = map[string]map[string]bool{
 	"Loch-n-Load":          names("accuracy"),
 	"Loose Cannon":         names("accuracy"),
 	"Machina":              names("accuracy", "fire-rate"),
-	"Manmelter":            names("accuracy", "clip-size"),
+	"Manmelter":            names("accuracy", "ammo-on-hit", "clip-size"),
 	"Medi Gun":             names("uber-on-hit"),
 	"Overdose":             names("secondary-ammo"),
 	"Panic Attack":         names("reload-rate"),
