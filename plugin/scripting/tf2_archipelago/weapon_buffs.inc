@@ -11,6 +11,20 @@
 #define GasolineEffect 15
 #define MarkForDeathEffect 16
 #define JarateEffect 60
+#define HealOnKillEffect 6
+#define CritsOnKillEffect 7
+#define HealOnHitEffect 21
+#define SpeedOnKillEffect 22
+#define MinicritsOnKillEffect 70
+#define SpeedOnHitEffect 79
+// Measured on a server: speed_boost_on_kill lasts one second, and critboost
+// on kill lasts a second longer than the attribute says.
+#define SpeedOnKillSeconds 1.0
+#define SpeedOnHitSeconds 1.0
+#define CritsOnKillExtraSeconds 1.0
+#define GasPasserDefinition 1180
+// Gas coats for ten seconds and the burn it starts lasts ten more.
+#define GasCreditSeconds 25.0
 #define ActiveHealthRegenEffect 66
 #define NoSelfBlastEffect 62
 #define SelfBlastDamageAttribute "blast dmg to self increased"
@@ -31,6 +45,7 @@ int g_WeaponEffectLevels[WeaponCount][WeaponEffectCount];
 int g_WeaponBuffProviderRef[MAXPLAYERS + 1];
 ConVar g_WeaponBuffProjectileDebug;
 ConVar g_WeaponBuffMirrorRobots;
+ConVar g_WeaponBuffDefenderBots;
 bool g_WeaponBuffFiringExtra;
 int g_WeaponBuffLastExtra;
 Handle g_WeaponBuffFlareCreate;
@@ -55,6 +70,10 @@ int g_WeaponBuffProjectileDestructionHits[2049];
 float g_WeaponBuffProjectileDestructionReadyAt[MAXPLAYERS + 1];
 int g_WeaponBuffLastSubstanceWeapon[MAXPLAYERS + 1];
 float g_WeaponBuffLastSubstanceTime[MAXPLAYERS + 1];
+float g_WeaponBuffLastGasThrow[MAXPLAYERS + 1];
+int g_WeaponBuffGasFrom[MAXPLAYERS + 1];
+float g_WeaponBuffGasTime[MAXPLAYERS + 1];
+bool g_WeaponBuffGassed[MAXPLAYERS + 1];
 #define ProjectileDebugLineCount 24
 char g_WeaponBuffProjectileLines[ProjectileDebugLineCount][256];
 int g_WeaponBuffProjectileLineNext;
@@ -79,9 +98,14 @@ void WeaponBuffs_Init()
     g_WeaponBuffProjectileDebug = CreateConVar("tf2ap_projectile_debug", "0",
         "Log extra-projectile creation and lifetime", FCVAR_NONE, true, 0.0, true, 1.0);
     CreateTimer(1.0, Timer_WeaponBuffHealthRegen, _, TIMER_REPEAT);
+    CreateTimer(0.5, Timer_WeaponBuffGasWatch, _, TIMER_REPEAT);
     g_WeaponBuffMirrorRobots = CreateConVar("tf2ap_mirror_buffs_to_robots", "0",
         "Mirror Archipelago weapon buffs to enemy BLU robots", FCVAR_NONE, true, 0.0, true, 1.0);
     g_WeaponBuffMirrorRobots.AddChangeHook(WeaponBuffs_MirrorRobotsChanged);
+    g_WeaponBuffDefenderBots = CreateConVar("tf2ap_buffs_for_defender_bots", "0",
+        "Let the defender bots carry the run's weapon buffs, to measure a buff on a server with no player", FCVAR_NONE, true, 0.0, true, 1.0);
+    g_WeaponBuffDefenderBots.AddChangeHook(WeaponBuffs_DefenderBotsChanged);
+    HookEvent("player_death", WeaponBuffs_PlayerDeath);
     WeaponBuffs_InitProjectileCalls();
     UserMsg jarated = GetUserMessageId("PlayerJarated");
     if (jarated == INVALID_MESSAGE_ID || GetUserMessageType() != UM_BitBuf)
@@ -128,32 +152,45 @@ public Action Timer_WeaponBuffHealthRegen(Handle timer)
             continue;
         }
 
-        // CTFPlayerResource asks CTFPlayer::GetMaxHealth for this value. That
-        // includes class health and every active weapon, MvM and Archipelago
-        // max-health modifier; m_iMaxHealth on the entity itself does not.
-        int maximum = GetEntProp(resource, Prop_Send, "m_iMaxHealth", 4, client);
-        int health = GetClientHealth(client);
-        int amount = RoundToFloor(
-            g_WeaponEffectIncrements[ActiveHealthRegenEffect] * float(levels));
-        int missing = maximum - health;
-        int healed = amount < missing ? amount : missing;
-        if (healed <= 0)
-        {
-            continue;
-        }
-
-        SetEntityHealth(client, health + healed);
-        Event event = CreateEvent("player_healonhit");
-        if (event != null)
-        {
-            event.SetInt("amount", healed);
-            event.SetInt("entindex", client);
-            event.SetInt("weapon_def_index",
-                GetEntProp(active, Prop_Send, "m_iItemDefinitionIndex"));
-            event.Fire();
-        }
+        WeaponBuffs_HealClient(client, RoundToFloor(
+            g_WeaponEffectIncrements[ActiveHealthRegenEffect] * float(levels)));
     }
     return Plugin_Continue;
+}
+
+// Heals up to the player's real maximum and shows the heal popup, the way the
+// game's own heal on hit does. Returns what landed.
+static int WeaponBuffs_HealClient(int client, int amount)
+{
+    int resource = GetPlayerResourceEntity();
+    if (resource <= MaxClients || !IsValidEntity(resource)
+        || !HasEntProp(resource, Prop_Send, "m_iMaxHealth"))
+    {
+        return 0;
+    }
+    // CTFPlayerResource asks CTFPlayer::GetMaxHealth for this value. That
+    // includes class health and every active weapon, MvM and Archipelago
+    // max-health modifier; m_iMaxHealth on the entity itself does not.
+    int maximum = GetEntProp(resource, Prop_Send, "m_iMaxHealth", 4, client);
+    int health = GetClientHealth(client);
+    int missing = maximum - health;
+    int healed = amount < missing ? amount : missing;
+    if (healed <= 0)
+    {
+        return 0;
+    }
+    SetEntityHealth(client, health + healed);
+    Event event = CreateEvent("player_healonhit");
+    if (event != null)
+    {
+        int active = GetEntPropEnt(client, Prop_Send, "m_hActiveWeapon");
+        event.SetInt("amount", healed);
+        event.SetInt("entindex", client);
+        event.SetInt("weapon_def_index", active > MaxClients && IsValidEntity(active)
+            ? GetEntProp(active, Prop_Send, "m_iItemDefinitionIndex") : -1);
+        event.Fire();
+    }
+    return healed;
 }
 
 static bool WeaponBuffs_IsEnemyRobot(int client)
@@ -165,6 +202,13 @@ static bool WeaponBuffs_IsEnemyRobot(int client)
         && GetClientTeam(client) == TeamBlue;
 }
 
+static bool WeaponBuffs_IsDefenderBot(int client)
+{
+    return MvM_IsDefender(client)
+        && IsFakeClient(client)
+        && !IsClientSourceTV(client);
+}
+
 // The catalog is run-wide, so every gameplay path must pass through this
 // ownership policy before reading it. Otherwise a robot carrying a matching
 // weapon silently receives the human player's Archipelago effects.
@@ -173,7 +217,10 @@ static bool WeaponBuffs_CanUseRunBuffs(int client)
     return MvM_IsPlayer(client)
         || (g_WeaponBuffMirrorRobots != null
             && g_WeaponBuffMirrorRobots.BoolValue
-            && WeaponBuffs_IsEnemyRobot(client));
+            && WeaponBuffs_IsEnemyRobot(client))
+        || (g_WeaponBuffDefenderBots != null
+            && g_WeaponBuffDefenderBots.BoolValue
+            && WeaponBuffs_IsDefenderBot(client));
 }
 
 public void WeaponBuffs_MirrorRobotsChanged(ConVar convar,
@@ -182,6 +229,26 @@ public void WeaponBuffs_MirrorRobotsChanged(ConVar convar,
     for (int client = 1; client <= MaxClients; client++)
     {
         if (!WeaponBuffs_IsEnemyRobot(client))
+        {
+            continue;
+        }
+        if (convar.BoolValue && IsPlayerAlive(client))
+        {
+            WeaponBuffs_Apply(client);
+        }
+        else
+        {
+            WeaponBuffs_Remove(client);
+        }
+    }
+}
+
+public void WeaponBuffs_DefenderBotsChanged(ConVar convar,
+    const char[] oldValue, const char[] newValue)
+{
+    for (int client = 1; client <= MaxClients; client++)
+    {
+        if (!WeaponBuffs_IsDefenderBot(client))
         {
             continue;
         }
@@ -363,6 +430,58 @@ public void WeaponBuffs_SubstanceProjectileSpawned(int entity)
     }
     g_WeaponBuffLastSubstanceWeapon[owner] = weapon;
     g_WeaponBuffLastSubstanceTime[owner] = GetGameTime();
+    char classname[64];
+    GetEntityClassname(entity, classname, sizeof(classname));
+    if (StrEqual(classname, "tf_projectile_jar_gas", false))
+    {
+        g_WeaponBuffLastGasThrow[owner] = GetGameTime();
+    }
+}
+
+// The game sends no PlayerJarated for gas and credits a gassed robot's burn
+// death to whatever lit it, so the Gas Passer's kills are read off the
+// condition: an enemy that turns gassed was gassed by whoever threw gas last.
+public Action Timer_WeaponBuffGasWatch(Handle timer)
+{
+    float now = GetGameTime();
+    for (int client = 1; client <= MaxClients; client++)
+    {
+        if (!IsClientInGame(client) || !IsPlayerAlive(client))
+        {
+            g_WeaponBuffGassed[client] = false;
+            continue;
+        }
+        bool gassed = TF2_IsPlayerInCondition(client, TFCond_Gas);
+        if (gassed && !g_WeaponBuffGassed[client])
+        {
+            int thrower = WeaponBuffs_RecentGasThrower(client, now);
+            if (thrower > 0)
+            {
+                g_WeaponBuffGasFrom[client] = thrower;
+                g_WeaponBuffGasTime[client] = now;
+            }
+        }
+        g_WeaponBuffGassed[client] = gassed;
+    }
+    return Plugin_Continue;
+}
+
+static int WeaponBuffs_RecentGasThrower(int victim, float now)
+{
+    int thrower;
+    float latest = now - 5.0;
+    for (int client = 1; client <= MaxClients; client++)
+    {
+        if (client == victim || g_WeaponBuffLastGasThrow[client] <= latest
+            || !IsClientInGame(client) || !WeaponBuffs_CanUseRunBuffs(client)
+            || GetClientTeam(client) == GetClientTeam(victim))
+        {
+            continue;
+        }
+        thrower = client;
+        latest = g_WeaponBuffLastGasThrow[client];
+    }
+    return thrower;
 }
 
 public Action WeaponBuffs_PlayerJarated(UserMsg msgId, BfRead message,
@@ -412,6 +531,123 @@ public void WeaponBuffs_ApplySubstances(any rawPack)
     }
 
     WeaponBuffs_ApplyHitEffects(victim, attacker, weapon);
+    WeaponBuffs_ApplyJarHitRewards(attacker, weapon);
+}
+
+// The game reads heal on hit and speed on hit off a weapon attack, and a jar
+// splash is not one: with the attributes on, a soaked robot gave the thrower
+// nothing. What every other weapon gets from the attribute, a jar gets here,
+// once per soaked enemy.
+static void WeaponBuffs_ApplyJarHitRewards(int attacker, int weapon)
+{
+    if (!IsPlayerAlive(attacker))
+    {
+        return;
+    }
+    int heal = g_WeaponEffectLevels[weapon][HealOnHitEffect];
+    int speed = g_WeaponEffectLevels[weapon][SpeedOnHitEffect];
+    int healed;
+    if (heal > 0)
+    {
+        healed = WeaponBuffs_HealClient(attacker,
+            RoundToFloor(g_WeaponEffectIncrements[HealOnHitEffect] * float(heal)));
+    }
+    if (speed > 0)
+    {
+        TF2_AddCondition(attacker, TFCond_SpeedBuffAlly, SpeedOnHitSeconds, attacker);
+    }
+    if (g_WeaponBuffProjectileDebug.BoolValue && (heal > 0 || speed > 0))
+    {
+        WeaponBuffs_DebugLog("[AP jar hit] weapon=%s attacker=%d healed=%d speed=%d",
+            g_WeaponNames[weapon], attacker, healed, speed);
+    }
+}
+
+// The on-kill attributes are read off the weapon that killed, through its
+// owner, and the owner's provider carries the active weapon's buffs. A robot
+// that burns down after the Pyro put the Gas Passer away was credited to the
+// flamethrower. When the weapon that killed is not the one held, its own
+// on-kill buffs are paid here; when it is, the game already paid them.
+public void WeaponBuffs_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
+{
+    int attacker = GetClientOfUserId(event.GetInt("attacker"));
+    int victim = GetClientOfUserId(event.GetInt("userid"));
+    if (attacker < 1 || victim < 1 || attacker == victim
+        || !IsClientInGame(attacker) || !IsClientInGame(victim)
+        || !IsPlayerAlive(attacker) || !WeaponBuffs_CanUseRunBuffs(attacker)
+        || GetClientTeam(attacker) == GetClientTeam(victim))
+    {
+        return;
+    }
+    int definition = event.GetInt("weapon_def_index");
+    int weapon = WeaponBuffs_ForDefinition(definition);
+    int active = WeaponBuffs_ForEntity(GetEntPropEnt(attacker, Prop_Send, "m_hActiveWeapon"));
+    int custom = event.GetInt("customkill");
+    if (g_WeaponBuffProjectileDebug.BoolValue && weapon >= 0)
+    {
+        WeaponBuffs_DebugLog("[AP kill] weapon=%s definition=%d active=%d attacker=%d victim=%d custom=%d",
+            g_WeaponNames[weapon], definition, active, attacker, victim, custom);
+    }
+    if (weapon >= 0 && active != weapon)
+    {
+        WeaponBuffs_ApplyKillRewards(attacker, weapon);
+    }
+    if (custom == TF_CUSTOM_BURNING)
+    {
+        WeaponBuffs_CreditGasBurn(attacker, victim, weapon);
+    }
+}
+
+// A burn death of an enemy this attacker gassed is the Gas Passer's kill too,
+// whichever weapon lit the gas. Its own on-kill buffs are paid here unless
+// the game already credited the Gas Passer itself.
+static void WeaponBuffs_CreditGasBurn(int attacker, int victim, int killedWith)
+{
+    int gasPasser = WeaponBuffs_ForDefinition(GasPasserDefinition);
+    if (gasPasser < 0 || killedWith == gasPasser || g_WeaponBuffGasFrom[victim] != attacker
+        || GetGameTime() - g_WeaponBuffGasTime[victim] > GasCreditSeconds)
+    {
+        return;
+    }
+    g_WeaponBuffGasFrom[victim] = 0;
+    if (g_WeaponBuffProjectileDebug.BoolValue)
+    {
+        WeaponBuffs_DebugLog("[AP kill] gas burn attacker=%d victim=%d", attacker, victim);
+    }
+    WeaponBuffs_ApplyKillRewards(attacker, gasPasser);
+}
+
+static void WeaponBuffs_ApplyKillRewards(int attacker, int weapon)
+{
+    int heal = g_WeaponEffectLevels[weapon][HealOnKillEffect];
+    int crits = g_WeaponEffectLevels[weapon][CritsOnKillEffect];
+    int minicrits = g_WeaponEffectLevels[weapon][MinicritsOnKillEffect];
+    int speed = g_WeaponEffectLevels[weapon][SpeedOnKillEffect];
+    int healed;
+    if (heal > 0)
+    {
+        healed = WeaponBuffs_HealClient(attacker,
+            RoundToFloor(g_WeaponEffectIncrements[HealOnKillEffect] * float(heal)));
+    }
+    if (crits > 0)
+    {
+        TF2_AddCondition(attacker, TFCond_CritOnKill,
+            g_WeaponEffectIncrements[CritsOnKillEffect] * float(crits) + CritsOnKillExtraSeconds, attacker);
+    }
+    if (minicrits > 0)
+    {
+        TF2_AddCondition(attacker, TFCond_MiniCritOnKill,
+            g_WeaponEffectIncrements[MinicritsOnKillEffect] * float(minicrits), attacker);
+    }
+    if (speed > 0)
+    {
+        TF2_AddCondition(attacker, TFCond_SpeedBuffAlly, SpeedOnKillSeconds, attacker);
+    }
+    if (g_WeaponBuffProjectileDebug.BoolValue && (heal > 0 || crits > 0 || minicrits > 0 || speed > 0))
+    {
+        WeaponBuffs_DebugLog("[AP kill] weapon=%s attacker=%d healed=%d crits=%d minicrits=%d speed=%d",
+            g_WeaponNames[weapon], attacker, healed, crits, minicrits, speed);
+    }
 }
 
 // Item attributes implement these effects for only some of the weapons they
@@ -2161,29 +2397,34 @@ public Action Command_GiveWeaponBuff(int client, int args)
     if (args < 2)
     {
         ReplyToCommand(client,
-            "[AP] Usage: sm_ap_buff_give <target> <1-%d|effect-key|all> [levels]",
+            "[AP] Usage: sm_ap_buff_give <target> <1-%d|effect-key|all> [levels] [slot]",
             WeaponEffectCount);
         return Plugin_Handled;
     }
 
     char pattern[MAX_TARGET_LENGTH];
     GetCmdArg(1, pattern, sizeof(pattern));
-    int target = FindTarget(client, pattern, true);
+    int target = FindTarget(client, pattern);
     if (target < 1)
     {
         return Plugin_Handled;
     }
-    if (!MvM_IsPlayer(target) || !IsPlayerAlive(target))
+    if (!WeaponBuffs_CanUseRunBuffs(target) || !IsPlayerAlive(target))
     {
         ReplyToCommand(client, "[AP] %N must be alive on RED before receiving a test buff.", target);
         return Plugin_Handled;
     }
 
     int entity = GetEntPropEnt(target, Prop_Send, "m_hActiveWeapon");
+    if (args >= 4)
+    {
+        entity = GetPlayerWeaponSlot(target, GetCmdArgInt(4));
+    }
     int weapon = WeaponBuffs_ForEntity(entity);
     if (weapon < 0)
     {
-        ReplyToCommand(client, "[AP] %N's active weapon is not in the catalog.", target);
+        ReplyToCommand(client, "[AP] %N's %s weapon is not in the catalog.", target,
+            args >= 4 ? "chosen" : "active");
         return Plugin_Handled;
     }
 
