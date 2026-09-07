@@ -27,6 +27,10 @@ do not run on Windows. Use WSL, which is what CI uses.
 `go build` still works anywhere for a compile check. The launcher it makes
 carries a placeholder plugin, so never ship one built that way.
 
+Move the defender mod with `go get github.com/m-this/tf2-mvm-bots-go@<sha>`, by
+commit and never by tag. The go.mod requirement is what the debug bundle prints,
+and a tag names no commit; `bots-pin-check` refuses one.
+
 `.github/workflows/release.yml` copies the `CHANGELOG.md` section that matches
 the tag into the release notes. Players read it. Keep developer notes out.
 

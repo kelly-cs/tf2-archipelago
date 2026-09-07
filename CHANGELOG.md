@@ -87,8 +87,22 @@ Cowser's sheet and kelly-cs's issues. Bots at 2.52.3.
   slot-filling wearables follow the same rule.
 - Linux servers get the extra arrows and flares. The projectile-count fanout had
   Windows gamedata only, so a Docker server logged both fanouts disabled and
-  every extra bolt was a plain clone. The heal on an extra Crusader's Crossbow
-  bolt is still open.
+  every extra bolt was a plain clone.
+- Extra Crusader's Crossbow bolts heal. The fanout built them as plain arrows,
+  which hurt a robot and do nothing for a teammate. They now come off the game's
+  own arrow factory with their launcher set, so a bolt that reaches a teammate
+  heals him, penetration carries over, and the weapon still fires one sound
+  however many bolts leave it. By kelly-cs.
+- Heal on hit and speed boost on hit work on Jarate and Mad Milk. The game
+  reads both off a weapon attack, and a jar splash is not one, so a soaked
+  robot gave the thrower nothing. The plugin pays them now, once per soaked
+  enemy.
+- The on-kill buffs credit the weapon that killed, not the one in hand. A robot
+  that burned down after the Pyro put the Gas Passer away paid the flamethrower's
+  buffs, or nothing.
+- `sm_ap_buff_slot` puts a test buff on a holstered weapon, a shield or a
+  watch, and `tf2ap_buffs_for_defender_bots` lets the bots carry the run's
+  buffs so a buff can be measured on a server with no player.
 
 ### Balancing
 
@@ -150,6 +164,12 @@ The mod moves from 2.39.0 to 2.52.3.
   and the exit at 26 to 38 against 50 to 58. The cost is on the record: the
   wrench is what applies a level, and an engineer who jumps swings it less, so
   the sentry sits at level three in 76% of samples rather than 85%.
+- Two engineers who pick the same nest no longer land inside each other. The
+  sentry was the one building whose jump onto its spot skipped the check for
+  room to stand, so a pair holding one nest were put on the same coordinate and
+  neither could move until the stuck recovery threw one of them out. Reported by
+  Cowser on Mannworks, where five engineers share four nest spots and the pair
+  spent the whole break wedged with no sentry between them.
 - A teleporter exit puts you down on a side with ground beside it. The exit
   ring never looked down, so a player taking the teleporter could land where the
   engineer never stood.
