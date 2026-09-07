@@ -135,7 +135,6 @@ func TestNonMinigunProjectileDestructionUsesConfirmedShots(t *testing.T) {
 		"WeaponBuffs_ShowProjectileDud(chosen, chosenPoint)",
 		`EmitGameSoundToAll("Halloween.HeadlessBossAxeHitWorld", chosen)`,
 		"TE_SetupSparks(chosenPoint, sparkDirection, 2, 1)",
-		`PrintCenterText(client, "PROJECTILE DESTROYED")`,
 		`WeaponBuffs_DebugLog("[AP destroy]`,
 	} {
 		if !strings.Contains(sweep, required) {

@@ -701,7 +701,6 @@ static void WeaponBuffs_AttackEnemyProjectiles(int client, int levels)
         TE_SetupSparks(chosenPoint, sparkDirection, 2, 1);
         TE_SendToAll();
         EmitGameSoundToAll("Halloween.HeadlessBossAxeHitWorld", chosen);
-        PrintCenterText(client, "PROJECTILE DESTROYED");
         if (g_WeaponBuffProjectileDebug.BoolValue)
         {
             char classname[64];
