@@ -3333,7 +3333,8 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 20244,
-      "stackable": true
+      "stackable": true,
+      "eligible": true
     },
     {
       "id": 7443025500,
@@ -17947,12 +17948,13 @@
     },
     {
       "id": 7443025264,
-      "name": "Weapon Buff: Blutsauger — +5% ÜberCharge on hit",
+      "name": "Weapon Buff: Blutsauger — +1% ÜberCharge on hit",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 20264,
-      "stackable": true
+      "stackable": true,
+      "eligible": true
     },
     {
       "id": 7443025520,
@@ -18693,7 +18695,8 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 20265,
-      "stackable": true
+      "stackable": true,
+      "eligible": true
     },
     {
       "id": 7443025521,
@@ -36190,7 +36193,8 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 20289,
-      "stackable": true
+      "stackable": true,
+      "eligible": true
     },
     {
       "id": 7443025545,
@@ -56450,8 +56454,7 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 10845,
-      "stackable": true,
-      "eligible": true
+      "stackable": true
     },
     {
       "id": 7443016101,
@@ -56460,8 +56463,7 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 11101,
-      "stackable": true,
-      "eligible": true
+      "stackable": true
     },
     {
       "id": 7443016357,
@@ -56646,8 +56648,7 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 16221,
-      "stackable": true,
-      "eligible": true
+      "stackable": true
     },
     {
       "id": 7443021477,
@@ -56847,8 +56848,7 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 21853,
-      "stackable": true,
-      "eligible": true
+      "stackable": true
     },
     {
       "id": 7443027109,
@@ -56949,8 +56949,7 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 24669,
-      "stackable": true,
-      "eligible": true
+      "stackable": true
     },
     {
       "id": 7443029925,
@@ -61417,8 +61416,7 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 27747,
-      "stackable": true,
-      "eligible": true
+      "stackable": true
     },
     {
       "id": 7443033003,
@@ -95458,12 +95456,13 @@
     },
     {
       "id": 7443025370,
-      "name": "Weapon Buff: Overdose — +5% ÜberCharge on hit",
+      "name": "Weapon Buff: Overdose — +1% ÜberCharge on hit",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 20370,
-      "stackable": true
+      "stackable": true,
+      "eligible": true
     },
     {
       "id": 7443025626,
@@ -131410,7 +131409,8 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 20419,
-      "stackable": true
+      "stackable": true,
+      "eligible": true
     },
     {
       "id": 7443025675,
@@ -137329,12 +137329,13 @@
     },
     {
       "id": 7443025427,
-      "name": "Weapon Buff: Syringe Gun — +5% ÜberCharge on hit",
+      "name": "Weapon Buff: Syringe Gun — +1% ÜberCharge on hit",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 20427,
-      "stackable": true
+      "stackable": true,
+      "eligible": true
     },
     {
       "id": 7443025683,
@@ -144649,7 +144650,8 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 20437,
-      "stackable": true
+      "stackable": true,
+      "eligible": true
     },
     {
       "id": 7443025693,
@@ -151288,7 +151290,8 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 20446,
-      "stackable": true
+      "stackable": true,
+      "eligible": true
     },
     {
       "id": 7443025702,

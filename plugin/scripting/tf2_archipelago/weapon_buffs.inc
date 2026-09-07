@@ -27,6 +27,12 @@
 #define GasPasserDefinition 1180
 // Gas coats for ten seconds and the burn it starts lasts ten more.
 #define GasCreditSeconds 25.0
+#define MoveSpeedEffect 24
+#define JumpHeightEffect 25
+#define UberOnHitEffect 39
+// What a syringe lands instead of the saw's five percent. A syringe gun puts
+// out hits far faster than a swing, so the same buff charges a fifth as much.
+#define SyringeUberOnHitFraction 0.01
 #define ActiveHealthRegenEffect 66
 #define AmmoOnHitEffect 69
 #define BaseHealthOnKillEffect 80
@@ -144,6 +150,61 @@ void WeaponBuffs_Init()
     }
 }
 
+/*
+The buffs that follow the player rather than the weapon in his hands.
+
+MvM's own movement, jump and regeneration upgrades are bought on the class and
+never stop working, and a player asked for these to read the same way (gh-32).
+The provider is attached to the player, so the attribute reaches him whatever
+he is holding; what has to change is which weapons are counted. Levels add up
+across the loadout, so a Scout who rolled the same buff on his Scattergun and
+his Bat carries both.
+*/
+static bool WeaponBuffs_IsPassiveEffect(int effect)
+{
+    return effect == MoveSpeedEffect || effect == JumpHeightEffect
+        || effect == ActiveHealthRegenEffect;
+}
+
+/*
+What one level of an effect is worth on this weapon.
+
+Nearly every effect is worth the same everywhere and the generated increment is
+the answer. ÜberCharge on hit is the exception a player asked for (gh-32): the
+saw keeps five percent a swing and a syringe gun, which lands hits far faster,
+charges one. The apworld describes the pair the same way.
+*/
+static float WeaponBuffs_EffectIncrement(int weapon, int effect)
+{
+    if (effect == UberOnHitEffect && WeaponBuffs_IsSyringeGun(weapon))
+    {
+        return SyringeUberOnHitFraction;
+    }
+    return g_WeaponEffectIncrements[effect];
+}
+
+static bool WeaponBuffs_IsSyringeGun(int weapon)
+{
+    return weapon >= 0
+        && (StrEqual(g_WeaponNames[weapon], "Blutsauger")
+            || StrEqual(g_WeaponNames[weapon], "Overdose")
+            || StrEqual(g_WeaponNames[weapon], "Syringe Gun"));
+}
+
+static int WeaponBuffs_LoadoutLevels(int client, int effect)
+{
+    int levels;
+    for (int slot = Slot_Primary; slot < Slot_Count; slot++)
+    {
+        int weapon = WeaponBuffs_ForEntity(WeaponBuffs_EntityInLoadoutSlot(client, slot));
+        if (weapon >= 0)
+        {
+            levels += g_WeaponEffectLevels[weapon][effect];
+        }
+    }
+    return levels;
+}
+
 public Action Timer_WeaponBuffHealthRegen(Handle timer)
 {
     int resource = GetPlayerResourceEntity();
@@ -159,13 +220,7 @@ public Action Timer_WeaponBuffHealthRegen(Handle timer)
         {
             continue;
         }
-        int active = GetEntPropEnt(client, Prop_Send, "m_hActiveWeapon");
-        int weapon = WeaponBuffs_ForEntity(active);
-        if (weapon < 0)
-        {
-            continue;
-        }
-        int levels = g_WeaponEffectLevels[weapon][ActiveHealthRegenEffect];
+        int levels = WeaponBuffs_LoadoutLevels(client, ActiveHealthRegenEffect);
         if (levels <= 0)
         {
             continue;
@@ -2536,10 +2591,12 @@ void WeaponBuffs_Apply(int client)
     TF2Attrib_ClearCache(entity);
     for (int effect = 0; effect < WeaponEffectCount; effect++)
     {
-        // Current TF2 emits the heal popup for this schema attribute but its
-        // negative-damage heal changes no health. The timer above owns this
-        // effect so it can heal to the player's real, modified maximum.
-        if (effect == ActiveHealthRegenEffect)
+        // These follow the player, not the weapon in his hands, so the pass
+        // after this loop reads them off every slot of the loadout instead.
+        // Health regeneration is the timer's besides, so it can heal to the
+        // player's real, modified maximum rather than the schema attribute's
+        // negative-damage heal, which emits a popup and changes no health.
+        if (WeaponBuffs_IsPassiveEffect(effect))
         {
             continue;
         }
@@ -2584,7 +2641,7 @@ void WeaponBuffs_Apply(int client)
         }
         else if (g_WeaponEffectModes[effect] == BuffMode_Add)
         {
-            value = g_WeaponEffectIncrements[effect] * float(levels);
+            value = WeaponBuffs_EffectIncrement(weapon, effect) * float(levels);
         }
         else
         {
@@ -2635,7 +2692,46 @@ void WeaponBuffs_Apply(int client)
                 g_WeaponEffectAttributes[effect], g_WeaponNames[weapon]);
         }
     }
+    WeaponBuffs_ApplyPassives(client, provider);
     TF2Attrib_ClearCache(entity);
+}
+
+/*
+The passive buffs, from every slot of the loadout rather than the held weapon.
+
+These are player attributes: the base to scale from is the player's own hooked
+value, not a weapon's, because no weapon contributes to it. Health regeneration
+is not here at all, since the timer pays it directly.
+*/
+static void WeaponBuffs_ApplyPassives(int client, int provider)
+{
+    static const int passives[2] = { MoveSpeedEffect, JumpHeightEffect };
+    for (int index = 0; index < sizeof(passives); index++)
+    {
+        int effect = passives[index];
+        int levels = WeaponBuffs_LoadoutLevels(client, effect);
+        if (levels <= 0)
+        {
+            continue;
+        }
+        float base = TF2Attrib_HookValueFloat(1.0,
+            g_WeaponEffectAttributeClasses[effect], client);
+        if (FloatAbs(base) < 0.0001)
+        {
+            base = 1.0;
+        }
+        float combined = base + g_WeaponEffectIncrements[effect] * float(levels);
+        if (combined < 0.05)
+        {
+            combined = 0.05;
+        }
+        if (!TF2Attrib_SetByName(provider, g_WeaponEffectAttributes[effect],
+            combined / base))
+        {
+            LogError("Could not apply passive effect %s to %N.",
+                g_WeaponEffectAttributes[effect], client);
+        }
+    }
 }
 
 public int Menu_WeaponBuffs(Menu menu, MenuAction action, int client, int selection)

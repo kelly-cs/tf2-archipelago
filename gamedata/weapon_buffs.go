@@ -67,6 +67,11 @@ func weaponEffectDescription(weapon string, effect WeaponEffect) string {
 	if effect.Key == "clip-size" && weapon == "Thermal Thruster" {
 		return "+1 launch charge"
 	}
+	// A syringe gun lands hits far faster than a saw swings, so it charges at a
+	// fifth of the rate. The plugin scales the same pair of values.
+	if effect.Key == "uber-on-hit" && medicSyringeGuns[weapon] {
+		return "+1% ÜberCharge on hit"
+	}
 	return effect.Description
 }
 

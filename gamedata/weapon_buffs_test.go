@@ -439,10 +439,10 @@ func TestPluginImplementsActiveHealthRegenInsteadOfBrokenSchemaHealing(t *testin
 	for _, required := range []string{
 		"#define ActiveHealthRegenEffect 66",
 		"CreateTimer(1.0, Timer_WeaponBuffHealthRegen",
-		"g_WeaponEffectLevels[weapon][ActiveHealthRegenEffect]",
+		"WeaponBuffs_LoadoutLevels(client, ActiveHealthRegenEffect)",
 		"GetEntProp(resource, Prop_Send, \"m_iMaxHealth\", 4, client)",
 		"SetEntityHealth(client, health + healed)",
-		"if (effect == ActiveHealthRegenEffect)",
+		"if (WeaponBuffs_IsPassiveEffect(effect))",
 	} {
 		if !strings.Contains(text, required) {
 			t.Errorf("active health regeneration implementation has no %q", required)
@@ -762,12 +762,118 @@ func TestSheetCutsNameRealWeaponsAndEffects(t *testing.T) {
 	}
 }
 
-// Über on hit needs a hit, and a medigun heals: the sheet marks it N on all
-// four, so the effect is offered nowhere and keeps its ID.
-func TestUberOnHitIsOfferedNowhere(t *testing.T) {
+// Über on hit needs a hit and an ÜberCharge to put it in. A medigun heals and
+// never hits, so the sheet marks it N on all four; the Medic's syringe guns and
+// saws do both, at the two rates a player asked for (gh-32).
+func TestUberOnHitFollowsTheMedicsAttackWeapons(t *testing.T) {
+	want := map[string]string{
+		"Syringe Gun":         "+1% ÜberCharge on hit",
+		"Blutsauger":          "+1% ÜberCharge on hit",
+		"Overdose":            "+1% ÜberCharge on hit",
+		"Übersaw":             "+5% ÜberCharge on hit",
+		"Bonesaw":             "+5% ÜberCharge on hit",
+		"Vita-Saw":            "+5% ÜberCharge on hit",
+		"Amputator":           "+5% ÜberCharge on hit",
+		"Solemn Vow":          "+5% ÜberCharge on hit",
+		"Crusader's Crossbow": "+5% ÜberCharge on hit",
+	}
 	for _, buff := range WeaponBuffs {
-		if buff.EffectID == 40 && buff.Eligible {
-			t.Errorf("%s still offers über on hit", buff.Weapon)
+		if buff.EffectID != 40 {
+			continue
+		}
+		description, wanted := want[buff.Weapon]
+		if buff.Eligible != wanted {
+			t.Errorf("%s über on hit eligible = %t, want %t", buff.Weapon, buff.Eligible, wanted)
+		}
+		if wanted && buff.Description != description {
+			t.Errorf("%s über on hit reads %q, want %q", buff.Weapon, buff.Description, description)
+		}
+	}
+	// A medigun is the one Medic weapon it stays off.
+	for _, name := range []string{"Medi Gun", "Kritzkrieg", "Quick-Fix", "Vaccinator"} {
+		if buffNamed(t, name, "uber-on-hit").Eligible {
+			t.Errorf("%s offers über on hit and never lands one", name)
+		}
+	}
+}
+
+// The plugin pays the syringe guns' one percent itself, because one increment
+// per effect is all the generated table carries.
+func TestPluginSplitsTheUberOnHitRate(t *testing.T) {
+	increment := substanceSourceFunction(t, "static float WeaponBuffs_EffectIncrement")
+	for _, required := range []string{
+		"effect == UberOnHitEffect",
+		"WeaponBuffs_IsSyringeGun(weapon)",
+		"return SyringeUberOnHitFraction",
+		"return g_WeaponEffectIncrements[effect]",
+	} {
+		if !strings.Contains(increment, required) {
+			t.Errorf("per-weapon increment has no %q", required)
+		}
+	}
+	syringe := substanceSourceFunction(t, "static bool WeaponBuffs_IsSyringeGun")
+	for _, required := range []string{"Blutsauger", "Overdose", "Syringe Gun"} {
+		if !strings.Contains(syringe, required) {
+			t.Errorf("syringe gun test has no %q", required)
+		}
+	}
+	body, err := os.ReadFile("../plugin/scripting/tf2_archipelago/weapon_buffs.inc")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, required := range []string{
+		"#define UberOnHitEffect 39",
+		"#define SyringeUberOnHitFraction 0.01",
+		"WeaponBuffs_EffectIncrement(weapon, effect) * float(levels)",
+	} {
+		if !strings.Contains(string(body), required) {
+			t.Errorf("über on hit rate split has no %q", required)
+		}
+	}
+}
+
+// Movement, jump height and health regeneration read off the whole loadout,
+// the way MvM's own class upgrades do, rather than off the weapon in hand.
+func TestPassiveBuffsReadTheWholeLoadout(t *testing.T) {
+	body, err := os.ReadFile("../plugin/scripting/tf2_archipelago/weapon_buffs.inc")
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(body)
+	for _, required := range []string{
+		"#define MoveSpeedEffect 24",
+		"#define JumpHeightEffect 25",
+		"WeaponBuffs_ApplyPassives(client, provider)",
+		"if (WeaponBuffs_IsPassiveEffect(effect))",
+	} {
+		if !strings.Contains(text, required) {
+			t.Errorf("passive buff wiring has no %q", required)
+		}
+	}
+	passive := substanceSourceFunction(t, "static bool WeaponBuffs_IsPassiveEffect")
+	for _, required := range []string{"MoveSpeedEffect", "JumpHeightEffect", "ActiveHealthRegenEffect"} {
+		if !strings.Contains(passive, required) {
+			t.Errorf("passive effect set has no %q", required)
+		}
+	}
+	levels := substanceSourceFunction(t, "static int WeaponBuffs_LoadoutLevels")
+	for _, required := range []string{
+		"slot = Slot_Primary; slot < Slot_Count",
+		"WeaponBuffs_EntityInLoadoutSlot(client, slot)",
+		"levels += g_WeaponEffectLevels[weapon][effect]",
+	} {
+		if !strings.Contains(levels, required) {
+			t.Errorf("loadout level sum has no %q", required)
+		}
+	}
+	apply := substanceSourceFunction(t, "static void WeaponBuffs_ApplyPassives")
+	for _, required := range []string{
+		"WeaponBuffs_LoadoutLevels(client, effect)",
+		"g_WeaponEffectAttributeClasses[effect], client",
+		"TF2Attrib_SetByName(provider, g_WeaponEffectAttributes[effect]",
+	} {
+		if !strings.Contains(apply, required) {
+			t.Errorf("passive application has no %q", required)
 		}
 	}
 }

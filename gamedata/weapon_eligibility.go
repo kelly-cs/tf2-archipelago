@@ -164,6 +164,30 @@ var meterWeapons = names(
 	"Sandvich", "Second Banana", "Wrap Assassin",
 )
 
+// itemMeterWeapons fill CTFWeaponBase's item meter rather than the effect bar
+// every other recharging weapon uses. Their rate is mult_item_meter_charge_rate
+// and effectbar_recharge_rate reaches neither, which is what a player saw as
+// recharge speed doing nothing on the Gas Passer (gh-32 note 69). Read off the
+// two weapons' own item_meter_charge_rate in the game's item schema.
+var itemMeterWeapons = names("Gas Passer", "Thermal Thruster")
+
+// magazineEffects need a magazine or a reserve to act on. A weapon that
+// recharges holds neither, so every one of these is inert on it.
+var magazineEffects = names(
+	"clip-size", "reload-rate", "max-ammo", "secondary-ammo", "ammo-regen",
+)
+
+// The Medic weapons that land a hit, which is what an ÜberCharge-on-hit buff
+// needs. A medigun never hits, and the shared all-class melees would put the
+// buff in eight other classes' pools where nothing carries an ÜberCharge.
+var (
+	medicSyringeGuns   = names("Blutsauger", "Overdose", "Syringe Gun")
+	medicAttackWeapons = names(
+		"Amputator", "Blutsauger", "Bonesaw", "Crusader's Crossbow", "Overdose",
+		"Solemn Vow", "Syringe Gun", "Vita-Saw", "Übersaw",
+	)
+)
+
 var consumables = names(
 	"Bonk! Atomic Punch", "Buffalo Steak Sandvich", "Crit-a-Cola", "Dalokohs Bar", "Gas Passer",
 	"Jarate", "Mad Milk", "Sandvich", "Second Banana",
@@ -260,8 +284,10 @@ func weaponEffectEligible(weapon BuffWeapon, effect WeaponEffect) bool {
 		return sniperRifles[name]
 	case "banner-duration":
 		return banners[name]
-	case "healing", "healing-received", "uber-rate", "uber-on-hit", "uber-duration":
+	case "healing", "healing-received", "uber-rate", "uber-duration":
 		return mediguns[name]
+	case "uber-on-hit":
+		return medicAttackWeapons[name]
 	case "airblast-power", "airblast-rate", "charged-airblast", "airblast-cost":
 		return airblastWeapons[name]
 	case "building-health", "sentry-fire-rate", "disposable-sentry", "metal-regen", "max-metal", "construction-rate", "repair-rate":
@@ -285,7 +311,7 @@ func weaponEffectEligible(weapon BuffWeapon, effect WeaponEffect) bool {
 	case "armor-piercing":
 		return spyKnives[name]
 	case "meter-recharge":
-		return meterWeapons[name]
+		return meterWeapons[name] && !itemMeterWeapons[name]
 	case "gesture-speed":
 		return consumables[name]
 	default:
@@ -329,6 +355,10 @@ func eligibilityByShape(name, key string) (decided, eligible bool) {
 		return true, projectileWeapons[name] && !explosiveWeapons[name]
 	case key == "destroy-projectiles":
 		return true, projectileDestructionWeapons[name]
+	// A recharging weapon holds charges, not rounds. The Thermal Thruster is
+	// the exception above, where clip size buys a launch instead.
+	case meterWeapons[name] && magazineEffects[key]:
+		return true, false
 	case demomanShields[name] && key == "ammo-on-hit":
 		return true, true
 	case killCapableNonAttackers[name] && onKillEffects[key]:

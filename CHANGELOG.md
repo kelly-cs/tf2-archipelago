@@ -62,7 +62,11 @@ Cowser's sheet and kelly-cs's issues. Bots at 2.52.3.
   station lists your loadout's buffs in chat, and `!ap buffs` opens the window
   when you want it.
 - Explode on ignite is gone from the pool: on a minigun it ended a wave on its
-  own. Über on hit goes with it, since a medigun never hits.
+  own.
+- Über on hit is a Medic buff. It used to be offered on mediguns only, which
+  never land a hit, so it did nothing wherever it fell. It is on his syringe
+  guns, his saws and the Crusader's Crossbow now: 1% a syringe, because they
+  land far faster, and 5% everywhere else.
 - Ninety-six buff and weapon pairs that did nothing are out of the pool, from
   Cowser's sheet: accuracy on weapons with no spread, reload and clip buffs on
   weapons with no clip, kill buffs on the two jumpers, fire rate on sniper
@@ -103,6 +107,15 @@ Cowser's sheet and kelly-cs's issues. Bots at 2.52.3.
 - `sm_ap_buff_slot` puts a test buff on a holstered weapon, a shield or a
   watch, and `tf2ap_buffs_for_defender_bots` lets the bots carry the run's
   buffs so a buff can be measured on a server with no player.
+- Movement speed, jump height and health regeneration are passive. They used to
+  work only while the weapon that carried them was out, which is not how MvM's
+  own class upgrades read; a Scout who rolls movement speed on his bat is faster
+  with the scattergun in his hands too, and two weapons carrying the same buff
+  add up.
+- Recharge speed is off the Gas Passer. It fills the item meter and the buff
+  scales the effect bar, which is a different meter, so it never reached it.
+- The Flying Guillotine no longer draws clip size, reserve ammo or reload speed.
+  It recharges, so it holds no rounds for any of them to act on.
 
 ### Balancing
 
