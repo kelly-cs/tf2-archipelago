@@ -57,16 +57,52 @@ written back.
 
 `make toolchain` builds SourcePawn's standalone compiler and VM, using the
 defender mod's own script out of the module cache so the pinned commit cannot
-drift between the two repositories. `gamedata/spdriver_test.go` then compiles
-one plugin function and runs it on inputs a test chooses.
+drift between the two repositories. `gamedata/spdriver_test.go` then compiles a
+plugin function and runs it on inputs a test chooses.
 
-Prefer this to reading the source. The tests that look for substrings in
+`plugin/scripting/tf2_archipelago/weapon_buffs_math.inc` is what makes that
+possible. It holds the decisions that need nothing but their arguments and the
+generated tables, it includes nothing itself, and both the plugin and the driver
+include it. A function belongs there when it needs no native: no entity
+property, no SDKCall, no TF2 lookup, not even `RoundToFloor` or `StrEqual`,
+which the standalone VM does not bind, and no constant out of a SourceMod
+include either.
+
+Prefer running a function to reading it. The tests that look for substrings in
 `weapon_buffs.inc` cannot tell a rename from a rewrite: inverting the cooldown
 floor so every cooldown collapses to the minimum leaves every watched string in
-place and they pass.
+place and they pass. What is still read is what needs the engine, and moving one
+of those over means first making it need nothing, which is a change to the
+plugin rather than to its tests.
 
 `make check` sets `TF2AP_REQUIRE_SPSHELL`, so a driver fails there rather than
 skipping. Without the toolchain a developer gets a skip naming what to run.
+
+## The settings window under Wine
+
+`make gui-test` cross-compiles `internal/gui`'s tests and runs them under Wine
+and Xvfb, which is enough to create the window, its tabs and its controls. It
+asks the three things nothing else can: that every row `form` declares became a
+control, that the control matches the kind, and that reading the widgets back
+gives the state they were built from. The last is the one that matters, because
+a control wired to the wrong ID draws perfectly and loses the answer at Save.
+
+It is not a substitute for opening the real thing on Windows. Nothing is
+clicked, and Wine is not Windows.
+
+Two things it taught us, both kept:
+
+- `EM_SETCUEBANNER` needs comctl32 version 6, which comes from the application
+  manifest. `tf2ap.exe` has one and a test binary does not, and walk's
+  declarative `CueBanner` treats the failure as fatal, so the whole window
+  refused to open over placeholder text. The placeholder is applied after the
+  window is made now and a failure is logged, not raised.
+- A second dialog created in the same process hangs under Wine. So `gui-test`
+  runs one test per Wine process. That is a Wine workaround, not a shape the
+  launcher has: it makes one dialog and shows it.
+
+`gui-test` skips itself when `wine` or `xvfb-run` is missing, because neither is
+on the CI image.
 
 ## Build
 

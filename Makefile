@@ -82,7 +82,7 @@ GO_SRC := $$(find . -type f -name '*.go' -not -path './deploy/bots/build/*')
         docs-build docs-down dist compose-release version-check clean \
         go-version-check \
         launcher launcher-assets launcher-assets-common \
-        launcher-linux launcher-assets-linux captures embed-placeholders toolchain
+        launcher-linux launcher-assets-linux captures embed-placeholders toolchain gui-test
 
 help:
 	@echo "tf2-archipelago"
@@ -252,6 +252,39 @@ test: REQUIRE_SPSHELL := TF2AP_REQUIRE_SPSHELL=1
 # Idempotent: a second run finds the two binaries and exits.
 toolchain:
 	SPWORK=$(SPWORK) sh $(BOTS_MOD)/tools/spshell.sh
+
+# --- The settings window ---
+#
+# walk is a Win32 binding, so internal/gui only builds on Windows and its tests
+# only run there. Wine is close enough to create the window, its tabs and its
+# controls, which is what the tests ask about: that every row internal/form
+# declares became a control, and that reading the controls back gives the state
+# they were built from.
+#
+# It is not a substitute for opening the real thing on Windows. Nothing is
+# clicked and nothing is drawn to a screen anybody looks at. What it catches is
+# a row wired to the wrong ID, which looks perfect and loses the player's
+# answer at Save.
+#
+# Skipped rather than failed when wine is missing: it is not on the CI image.
+# One wine process per test, which is not a preference. A second settings
+# dialog created in the same process hangs under wine: every test below passes
+# on its own and the run stops dead at the second one. Real Windows does not do
+# this, and neither does anything the launcher does, since it makes one dialog
+# and shows it. So the loop is a wine workaround and it is spelled out here
+# rather than left as a mystery in a CI log.
+gui-test:
+	@command -v wine >/dev/null 2>&1 || { echo "no wine, skipping the window tests"; exit 0; }
+	@command -v xvfb-run >/dev/null 2>&1 || { echo "no xvfb-run, skipping the window tests"; exit 0; }
+	@mkdir -p $(DIST)
+	GOOS=windows GOARCH=amd64 go test -c -o $(DIST)/gui.test.exe ./launcher/internal/gui/
+	@cd $(DIST) && for t in $$(grep -ho '^func Test[A-Za-z0-9_]*' \
+		$(CURDIR)/launcher/internal/gui/*_test.go | sed 's/^func //' | sort -u); do \
+		printf '%s ' "$$t"; \
+		xvfb-run -a wine gui.test.exe -test.run "^$$t$$" -test.timeout 60s >$$t.log 2>&1 \
+			&& echo ok \
+			|| { echo FAIL; grep -vE "wine32|apt-get|^X connection|^[0-9a-f]{4}:" $$t.log; exit 1; }; \
+	done
 
 export:
 	go generate ./gamedata
@@ -573,7 +606,7 @@ version-check:
 # Everything CI runs, cheapest failure first. Green here means green there.
 # go-version-check first: a builder on the wrong Go makes lint fail in a way
 # that reads as a linter bug rather than a stale pin.
-check: go-version-check bots-pin-check fmt-check lint fix-check compile test vuln apworld-lint plugin apworld-test docs-build compose-release integration
+check: go-version-check bots-pin-check fmt-check lint fix-check compile test gui-test vuln apworld-lint plugin apworld-test docs-build compose-release integration
 
 # The go directive owns the version. Two pins cannot read it, so this says when
 # they have drifted rather than leaving it to whoever hits the failure.

@@ -48,33 +48,83 @@ const labelWidth = 190
 const sentenceWidth = 980
 
 /*
+	settingsDialog is the window built but not yet shown.
+
+Building and running are separate so that a test can build the real dialog,
+walk the widgets walk actually made and read them back, without a modal loop
+nobody can answer. The test runs under Wine, which is enough to create the
+window and its controls: settingsdialog_windows_test.go is the whole point of
+this split.
+*/
+type settingsDialog struct {
+	dialog *walk.Dialog
+	tabs   *walk.TabWidget
+	screen *windowScreen
+	pool   *poolModel
+	model  form.Model
+
+	// collect reads every widget back into a state, which is what Save does
+	// and what a test asserts on. persist is the write it then attempts, and
+	// refuse is what it does when either says no.
+	collect func() (form.State, error)
+	persist func(settings.Settings) (settings.Settings, error)
+
+	// note is a refusal short of the message box, which nothing can click.
+	note func(page, reason string) string
+
+	// saved is what Save accepted, and ok says whether it was pressed.
+	saved settings.Settings
+	ok    bool
+}
+
+/*
 	runSettingsDialog shows the settings and returns what was saved.
 
 The dialog is modal and the state is edited in a copy, so cancelling is not an
 undo but a discard: nothing was written.
-
-Actions are dispatched by the ID form declared them under. A row form declares
-as an Action with nothing wired to it here would draw a button that does
-nothing, so the dialog says so in the log rather than shipping a dead button
-that nobody reports as a bug: they report the feature as missing. The window
-cannot be tested on the machine that builds it, so this is a check at run time
-where the terminal has one at test time.
 */
 func runSettingsDialog(
 	owner walk.Form, s settings.Settings,
+	persist func(settings.Settings) (settings.Settings, error),
 	repair func() ([]string, error), reset func() error,
 	say func(format string, args ...any), openOn string,
 ) (settings.Settings, bool, error) {
+	built, err := buildSettingsDialog(owner, s, persist, repair, reset, say)
+	if err != nil {
+		return s, false, err
+	}
+	// A button that names what it is about to change opens the page it changes,
+	// by title rather than by index: the pages a beta flag adds move the numbers.
+	showPage(built.tabs, openOn)
+
+	if built.dialog.Run() != walk.DlgCmdOK {
+		return s, false, nil
+	}
+	return built.saved, built.ok, nil
+}
+
+/*
+	buildSettingsDialog makes the window and everything in it.
+
+Actions are dispatched by the ID form declared them under. A row form declares
+as an Action with nothing wired to it here would draw a button that does
+nothing, which nobody reports as a bug: they report the feature as missing. The
+test refuses one, and the log says so as well for a build nobody tested.
+*/
+func buildSettingsDialog(
+	owner walk.Form, s settings.Settings,
+	persist func(settings.Settings) (settings.Settings, error),
+	repair func() ([]string, error), reset func() error,
+	say func(format string, args ...any),
+) (*settingsDialog, error) {
 	var (
 		dialog    *walk.Dialog
 		accept    *walk.PushButton
 		cancel    *walk.PushButton
 		tabs      *walk.TabWidget
 		poolView  *walk.TableView
-		warn      *walk.Label
 		state     = form.NewState(s)
 		available = communityPackNames(s.CommunityContentDir)
-		edited    = s
 		screen    = &windowScreen{}
 		builtAt   = time.Now()
 	)
@@ -110,6 +160,8 @@ func runSettingsDialog(
 		pages = append(pages, screen.page(page, &poolView, pool))
 	}
 
+	built := &settingsDialog{screen: screen, pool: pool, model: model, collect: collect, persist: persist, saved: s}
+
 	err := declarative.Dialog{
 		AssignTo:     &dialog,
 		Title:        "Settings",
@@ -121,7 +173,6 @@ func runSettingsDialog(
 		Layout:  declarative.VBox{},
 		Children: []declarative.Widget{
 			declarative.TabWidget{AssignTo: &tabs, Pages: pages},
-			declarative.Label{AssignTo: &warn, Text: ""},
 			declarative.Composite{
 				Layout:  declarative.HBox{},
 				MaxSize: declarative.Size{Height: 34},
@@ -130,7 +181,7 @@ func runSettingsDialog(
 					declarative.PushButton{AssignTo: &accept, Text: "Save", OnClicked: func() {
 						next, err := collect()
 						if err != nil {
-							warn.SetText(err.Error())
+							refuse(dialog, tabs, say, "", err.Error())
 							return
 						}
 						/* The address is checked here rather than as it is
@@ -140,19 +191,47 @@ func runSettingsDialog(
 						   room, so it does not need one. */
 						room, err := settings.ParseRoom(next.Draft.Room)
 						if err != nil && !next.Settings.TestMode {
-							warn.SetText(err.Error())
+							refuse(dialog, tabs, say, "Archipelago room",
+								"Room address: "+err.Error()+
+									".\n\nPut the host and port from your room page on archipelago.gg, "+
+									"or turn Test mode on to play without a room.")
 							return
 						}
 						next.Settings.APHost, next.Settings.APPort, next.Settings.APTls = room.Host, room.Port, room.TLS
 
-						/* A reach that leaves the network with no token is a
-						   server every client is refused from, and nothing on
-						   screen would say why. Refuse the save instead. */
-						if complaint := tokenComplaint(next.Settings.SrcdsReach, next.Settings.SrcdsToken); complaint != "" {
-							warn.SetText(complaint)
+						/*
+							The file is written here, before the dialog closes.
+
+							It used to close first and hand the settings back to
+							the caller, which wrote them and put a line in the
+							main window's log when it could not. By then this
+							dialog was gone and so was everything typed into it,
+							and the player was looking at a log pane they had no
+							reason to be reading. One on Discord read that as the
+							Save button doing nothing at all, went hunting for a
+							config.json in the install root, and found none:
+							there is none there to find, it goes under the OS's
+							own config directory.
+
+							So the write happens while the window is still up,
+							and a failure is a message box naming the path.
+						*/
+						written, err := persist(next.Settings)
+						if err != nil {
+							refuse(dialog, tabs, say, "", err.Error())
 							return
 						}
-						edited = next.Settings
+
+						/* A reach with no token is a server every client is
+						   refused from, and nothing on screen would say why. It
+						   is not a reason to refuse the save, though: the
+						   settings are good and the server simply stays on the
+						   local network, so it is said and the window closes. */
+						if complaint := tokenComplaint(written.SrcdsReach, written.SrcdsToken); complaint != "" {
+							say("settings: %s", complaint)
+						}
+						say("settings saved")
+						built.saved, built.ok = written, true
 						dialog.Accept()
 					}},
 					declarative.PushButton{AssignTo: &cancel, Text: "Cancel", OnClicked: func() { dialog.Cancel() }},
@@ -161,8 +240,11 @@ func runSettingsDialog(
 		},
 	}.Create(owner)
 	if err != nil {
-		return s, false, err
+		return nil, err
 	}
+	built.dialog, built.tabs = dialog, tabs
+	built.note = func(page, reason string) string { return noteRefusal(tabs, say, page, reason) }
+	screen.applyCues(say)
 
 	// What pressing a button does. form said what each is called and what it is
 	// for; this is the work, and it is the window's because it ends in a
@@ -205,14 +287,7 @@ func runSettingsDialog(
 
 	say("the settings window took %s to build", time.Since(builtAt).Round(time.Millisecond))
 
-	// A button that names what it is about to change opens the page it changes,
-	// by title rather than by index: the pages a beta flag adds move the numbers.
-	showPage(tabs, openOn)
-
-	if dialog.Run() != walk.DlgCmdOK {
-		return s, false, nil
-	}
-	return edited, true, nil
+	return built, nil
 }
 
 // settingsFrom is a collect that hands back only the settings, for an action
@@ -610,4 +685,37 @@ func showPage(tabs *walk.TabWidget, title string) {
 			return
 		}
 	}
+}
+
+/*
+	refuse stops the Save, opens the page at fault, and says why.
+
+A debug bundle from a player is why this exists. They were setting a login token
+on one page, pressed Save, and nothing happened: the Save was refusing on the
+room address two pages away, next to a field they were not looking at. Their log
+had no line about saving at all, because a refused Save wrote none, so nothing
+in the bundle said what had gone wrong either.
+
+A message box cannot be missed, the page behind it is the one holding the
+problem, and the log carries the reason for whoever reads the next bundle. page
+is empty for a failure that belongs to no page, such as a file that would not
+write.
+*/
+func refuse(dialog *walk.Dialog, tabs *walk.TabWidget, say func(string, ...any), page, reason string) {
+	walk.MsgBox(dialog, "The settings were not saved", noteRefusal(tabs, say, page, reason),
+		walk.MsgBoxIconError)
+}
+
+/*
+	noteRefusal is everything about a refusal except putting the box up.
+
+Split off because a modal message box is the one thing a test cannot drive:
+walk.MsgBox does not return until somebody clicks it, and under Wine nobody
+does. So the page switch, the log line and the wording are here where they can
+be checked, and refuse above is the two lines that cannot be.
+*/
+func noteRefusal(tabs *walk.TabWidget, say func(string, ...any), page, reason string) string {
+	showPage(tabs, page)
+	say("settings not saved: %s", reason)
+	return reason + "\n\nNothing in this window is lost. Fix what this names and press Save again."
 }

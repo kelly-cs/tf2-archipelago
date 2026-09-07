@@ -33,6 +33,44 @@ type windowScreen struct {
 	// after the dialog exists, because most of them need it to put a message
 	// box on.
 	actions map[string]func()
+
+	// cues are the placeholder texts, applied after the window is made rather
+	// than while it is being built. See applyCues.
+	cues []cue
+}
+
+// cue is one placeholder waiting for its edit to exist. The edit is a pointer
+// to the pointer walk fills in during Create, because at the time the row is
+// declared there is no widget to hold yet.
+type cue struct {
+	edit **walk.LineEdit
+	text string
+}
+
+/*
+	applyCues puts the placeholder text on, and does not mind if it cannot.
+
+EM_SETCUEBANNER needs comctl32 version 6, which an executable gets from its
+application manifest. tf2ap.exe has one; a test binary built with `go test -c`
+does not, and neither does anything running where that manifest was lost. walk's
+declarative CueBanner field treats the failure as fatal, so the whole settings
+window refused to open under Wine over greyed-out placeholder text.
+
+That trade is the wrong way round. The placeholder says what a blank field
+means and the window is how the game gets configured, so the error is reported
+and the window opens. It is the one error here that is swallowed, and this is
+the reason.
+*/
+func (w *windowScreen) applyCues(say func(string, ...any)) {
+	for _, c := range w.cues {
+		if *c.edit == nil {
+			continue
+		}
+		if err := (*c.edit).SetCueBanner(c.text); err != nil {
+			say("the settings window has no placeholder text: %v", err)
+			return
+		}
+	}
 }
 
 // poolPrefix marks the rows the window draws as a table rather than as rows.
@@ -165,8 +203,11 @@ func (w *windowScreen) control(field form.Field) declarative.Widget {
 	default:
 		var edit *walk.LineEdit
 		w.read(field, func() string { return edit.Text() })
+		if field.Placeholder != "" {
+			w.cues = append(w.cues, cue{edit: &edit, text: field.Placeholder})
+		}
 		line := declarative.LineEdit{
-			AssignTo: &edit, Text: field.Value, CueBanner: field.Placeholder,
+			AssignTo: &edit, Text: field.Value,
 			Enabled: !field.Disabled, StretchFactor: 1, ToolTipText: field.Help,
 		}
 		if !field.Browse {
