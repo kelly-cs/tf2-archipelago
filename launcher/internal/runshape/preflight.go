@@ -10,18 +10,20 @@ import (
 // Selection is the part of the launcher settings that determines whether an
 // Archipelago run has enough locations to hold its unlock items.
 type Selection struct {
+	Pool
 	Difficulty   string
 	MissionCount int
-	Excluded     []string
 	StartMission string
 }
 
 // Preflight is the useful accounting behind a successful selection check.
-// Eligible is the whole pool the generator may widen into, not necessarily
-// how many missions the finished seed draws.
+// Eligible is the whole pool the generator may widen into. Requested is what
+// the settings ask for and Drawn is what the run gets, which are two different
+// numbers whenever the pool is smaller than the ask.
 type Preflight struct {
 	Eligible        int
 	Requested       int
+	Drawn           int
 	AvailableChecks int
 	RequiredUnlocks int
 }
@@ -32,7 +34,15 @@ func (p Preflight) Summary() string {
 		"Selection is valid: %d eligible mission(s) provide %d checks for %d unlocks.",
 		p.Eligible, p.AvailableChecks, p.RequiredUnlocks,
 	)
-	if p.Requested < p.Eligible {
+	switch {
+	// The generator takes the smaller of the two and says so only in its own
+	// log, which is not a place the player who typed the number ever looks.
+	case p.Requested > p.Drawn:
+		message += fmt.Sprintf(
+			" The run asks for %d mission(s) and the pool holds %d, so it uses %d. Turn more missions on, load the mods they need, or lower the difficulty floor.",
+			p.Requested, p.Eligible, p.Drawn,
+		)
+	case p.Requested < p.Eligible:
 		message += fmt.Sprintf(
 			" The generator requests %d and can add eligible missions automatically if its draw needs more checks.",
 			p.Requested,
@@ -70,8 +80,8 @@ func CheckSelection(selection Selection) (Preflight, error) {
 	}
 
 	var eligible []gamedata.Mission
-	for _, mission := range gamedata.PlayableMissions() {
-		if mission.Difficulty < floor || slices.Contains(selection.Excluded, mission.PopFile) {
+	for _, mission := range selection.Missions() {
+		if mission.Difficulty < floor {
 			continue
 		}
 		eligible = append(eligible, mission)
@@ -107,7 +117,8 @@ func CheckSelection(selection Selection) (Preflight, error) {
 		len(gamedata.WeaponSlots) - requirement.slots
 	report := Preflight{
 		Eligible:        len(eligible),
-		Requested:       min(selection.MissionCount, len(eligible)),
+		Requested:       selection.MissionCount,
+		Drawn:           min(selection.MissionCount, len(eligible)),
 		AvailableChecks: checks,
 		RequiredUnlocks: unlocks,
 	}

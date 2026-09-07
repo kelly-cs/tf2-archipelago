@@ -107,6 +107,16 @@ class TF2MvMWorld(World):
             )
         asked = self._asked_start_mission(available)
         wanted = min(self.options.mission_count.value, len(available))
+        if wanted < self.options.mission_count.value:
+            logging.warning(
+                "%s: asked for %d missions and the pool holds %d, so the run uses %d. "
+                "Turn more missions on, name the mods they need in server_mods, "
+                "or lower difficulty_pool.",
+                self.player_name,
+                self.options.mission_count.value,
+                len(available),
+                wanted,
+            )
         drawn = self._draw(available, wanted, asked)
         spare = [mission for mission in available if mission not in drawn]
 

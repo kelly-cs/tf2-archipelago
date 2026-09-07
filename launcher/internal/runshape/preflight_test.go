@@ -7,6 +7,13 @@ import (
 	"github.com/m-this/tf2-archipelago/gamedata"
 )
 
+// everything is the widest pool the checks below start from: community
+// missions on and every cataloged mod loaded, so what a test excludes is the
+// only thing keeping a mission out.
+func everything(excluded ...string) Pool {
+	return Pool{Mods: gamedata.ServerModKeys(), Community: true, Excluded: excluded}
+}
+
 func excludingAllBut(popFiles ...string) []string {
 	keep := make(map[string]bool, len(popFiles))
 	for _, popFile := range popFiles {
@@ -23,9 +30,9 @@ func excludingAllBut(popFiles ...string) []string {
 
 func TestCheckSelectionRejectsAnEmptyPool(t *testing.T) {
 	_, err := CheckSelection(Selection{
+		Pool:         everything(excludingAllBut()...),
 		Difficulty:   "normal",
 		MissionCount: 1,
-		Excluded:     excludingAllBut(),
 	})
 	if err == nil || !strings.Contains(err.Error(), "no missions remain") {
 		t.Fatalf("empty pool error = %v", err)
@@ -38,9 +45,9 @@ func TestCheckSelectionRejectsAPoolWithTooFewLocations(t *testing.T) {
 	// slots, so a run containing only it cannot place all nine unlocks.
 	popFile := "mvm_condemned_b3_int_thriller_terror"
 	report, err := CheckSelection(Selection{
+		Pool:         everything(excludingAllBut(popFile)...),
 		Difficulty:   "intermediate",
 		MissionCount: 1,
-		Excluded:     excludingAllBut(popFile),
 	})
 	if err == nil || !strings.Contains(err.Error(), "needs room for 9 unlocks") {
 		t.Fatalf("short pool error = %v", err)
@@ -52,12 +59,12 @@ func TestCheckSelectionRejectsAPoolWithTooFewLocations(t *testing.T) {
 
 func TestCheckSelectionAllowsTheGeneratorToWidenTheRun(t *testing.T) {
 	report, err := CheckSelection(Selection{
-		Difficulty:   "intermediate",
-		MissionCount: 1,
-		Excluded: excludingAllBut(
+		Pool: everything(excludingAllBut(
 			"mvm_condemned_b3_int_thriller_terror",
 			"mvm_kelly_rc1b_adv_homestead_happenings",
-		),
+		)...),
+		Difficulty:   "intermediate",
+		MissionCount: 1,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -69,6 +76,7 @@ func TestCheckSelectionAllowsTheGeneratorToWidenTheRun(t *testing.T) {
 
 func TestCheckSelectionRejectsAnUnavailableNamedStart(t *testing.T) {
 	_, err := CheckSelection(Selection{
+		Pool:         everything(),
 		Difficulty:   "advanced",
 		MissionCount: 2,
 		StartMission: "mvm_decoy",
@@ -80,9 +88,9 @@ func TestCheckSelectionRejectsAnUnavailableNamedStart(t *testing.T) {
 
 func TestHauntedOnlyMatchesTheCurrentApworldCapacityMath(t *testing.T) {
 	report, err := CheckSelection(Selection{
+		Pool:         everything(excludingAllBut("mvm_ghost_town_666")...),
 		Difficulty:   "haunted",
 		MissionCount: 1,
-		Excluded:     excludingAllBut("mvm_ghost_town_666"),
 	})
 	if err != nil {
 		t.Fatal(err)

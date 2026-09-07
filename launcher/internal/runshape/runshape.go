@@ -13,6 +13,46 @@ import (
 	"github.com/m-this/tf2-archipelago/gamedata"
 )
 
+/*
+	Pool is every mission the generator may draw, before a difficulty floor
+
+narrows it further.
+
+It is _available_missions in apworld/tf2_mvm/__init__.py, in Go: a community
+mission is drawable only when community missions are on, and one that names a
+server mod only when the server loads that mod. Counting any other pool is what
+apw-2kw was reported as. The launcher counted gamedata.PlayableMissions(), which
+is neither: it offered a player 82 missions and the run they generated drew 29,
+because the 53 community missions the ceiling counted were all in the exclusion
+list a fresh settings file starts with.
+
+The zero value is the smallest honest pool: Valve missions, no mods, nothing
+excluded. settings.MissionPool builds the real one.
+*/
+type Pool struct {
+	Mods      []string
+	Community bool
+	Excluded  []string
+}
+
+// Missions is the pool, in table order.
+func (p Pool) Missions() []gamedata.Mission {
+	out := make([]gamedata.Mission, 0, len(gamedata.Missions))
+	for _, mission := range gamedata.Missions {
+		if !gamedata.IsMissionPlayableWith(mission.ID, p.Mods) {
+			continue
+		}
+		if !p.Community && gamedata.IsCommunityMission(mission.ID) {
+			continue
+		}
+		if slices.Contains(p.Excluded, mission.PopFile) {
+			continue
+		}
+		out = append(out, mission)
+	}
+	return out
+}
+
 // Tier is one choice of difficulty floor: the easiest tier a run may draw, and
 // how many missions that leaves in the pool. A choice includes every harder
 // tier, so the pool shrinks as the floor rises.
@@ -27,14 +67,15 @@ type Tier struct {
 // Haunted is left out as a useful launcher preset. It holds only Caliginous
 // Caper, so it has no mission-ticket progression and commits the run to one
 // unusually long 666-robot mission. Hand-authored YAML may still use it.
-func Tiers() []Tier {
+func Tiers(pool Pool) []Tier {
+	missions := pool.Missions()
 	tiers := make([]Tier, 0, len(gamedata.Difficulties))
 	for _, difficulty := range gamedata.Difficulties {
 		if difficulty == gamedata.DifficultyHaunted {
 			continue
 		}
 		tier := Tier{Key: difficulty.Key()}
-		for _, mission := range gamedata.PlayableMissions() {
+		for _, mission := range missions {
 			if mission.Difficulty >= difficulty {
 				tier.Missions++
 				tier.Waves += int(mission.Waves)
@@ -47,13 +88,13 @@ func Tiers() []Tier {
 
 // MissionsInPool reports how many missions a difficulty key leaves to draw. An
 // unknown key gives the whole pool, which is what the generator does.
-func MissionsInPool(key string) int {
-	for _, tier := range Tiers() {
+func MissionsInPool(pool Pool, key string) int {
+	for _, tier := range Tiers(pool) {
 		if tier.Key == key {
 			return tier.Missions
 		}
 	}
-	return len(gamedata.PlayableMissions())
+	return len(pool.Missions())
 }
 
 // Label describes a tier in one line, for a menu.

@@ -384,10 +384,10 @@ func configureRun(p *ui.Prompt, s settings.Settings) settings.Settings {
 
 	fmt.Println("The easiest tier a mission may come from. Harder tiers are")
 	fmt.Println("always in as well, so the pool shrinks as the floor rises.")
-	tiers := runshape.Tiers()
+	tiers := runshape.Tiers(settings.MissionPool(s))
 	s.MvmDifficulty = p.Select("Difficulty floor", tierOptions(tiers), s.MvmDifficulty)
 
-	pool := runshape.MissionsInPool(s.MvmDifficulty)
+	pool := runshape.MissionsInPool(settings.MissionPool(s), s.MvmDifficulty)
 	s.MvmMissionCount = p.IntRange("Missions the run uses, out of that pool",
 		s.MvmMissionCount, 1, pool)
 	fmt.Printf("  about %d waves.\n", wavesFor(tiers, s.MvmDifficulty, s.MvmMissionCount))

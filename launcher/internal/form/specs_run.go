@@ -21,8 +21,8 @@ The IDs are stable. An interface stores nothing under one, but the web mode will
 send them over a socket and a Change names its row, so renaming one is a
 protocol change rather than a rename.
 */
-func runSpecs(env Env) []Spec {
-	specs := playerSpecs()
+func runSpecs(s State, env Env) []Spec {
+	specs := playerSpecs(s)
 	specs = append(specs, rewardSpecs()...)
 	specs = append(specs, balancingSpecs()...)
 	specs = append(specs, missionSpecs(env)...)
@@ -32,8 +32,12 @@ func runSpecs(env Env) []Spec {
 	return specs
 }
 
-func playerSpecs() []Spec {
-	tiers := runshape.Tiers()
+func playerSpecs(s State) []Spec {
+	/* The tiers describe the pool as the settings stand when the page is
+	   built, which is the same pool the ceiling below caps against. Turning a
+	   mission on is a Missions-page change and the labels catch up when the
+	   page is built again. */
+	tiers := runshape.Tiers(settings.MissionPool(s.Settings))
 	tierValues := make([]string, 0, len(tiers))
 	tierLabels := make([]string, 0, len(tiers))
 	for _, tier := range tiers {
@@ -62,7 +66,7 @@ func playerSpecs() []Spec {
 		boundedNumber("run.mission_count", tab, "Missions used",
 			"How many missions this run uses, out of the pool above. Eight is about fifty waves, which is one evening for a team that knows the mode.",
 			func(s State, _ Env) (int, int) {
-				return 1, max(runshape.MissionsInPool(s.Settings.MvmDifficulty), 1)
+				return 1, max(runshape.MissionsInPool(settings.MissionPool(s.Settings), s.Settings.MvmDifficulty), 1)
 			},
 			func(s State) int { return s.Settings.MvmMissionCount },
 			func(s State, v int) State { s.Settings.MvmMissionCount = v; return s }),

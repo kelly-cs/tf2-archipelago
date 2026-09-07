@@ -15,7 +15,7 @@ pages. Both are declared rather than derived, so moving a row does not silently
 move a page.
 */
 func Specs(s State, env Env) []Spec {
-	specs := runSpecs(env)
+	specs := runSpecs(s, env)
 	return append(specs, botSpecs(s)...)
 }
 
