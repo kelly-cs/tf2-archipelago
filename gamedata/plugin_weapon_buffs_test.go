@@ -237,24 +237,16 @@ func TestNonMinigunProjectileDestructionUsesConfirmedShots(t *testing.T) {
 	for _, required := range []string{
 		"#define ProjectileDestructionRange 2000.0",
 		"#define ProjectileDestructionRadius 256.0",
-		"#define ProjectileDestructionBaseCooldown 2.0",
-		"#define ProjectileDestructionCooldownStep 0.25",
-		"#define ProjectileDestructionMinimumCooldown 0.5",
 	} {
 		if !strings.Contains(string(text), required) {
 			t.Errorf("projectile destruction configuration has no %q", required)
 		}
 	}
 
-	cooldown := sourceFunction(t, buffs, "static float WeaponBuffs_ProjectileDestructionCooldown")
-	for _, required := range []string{
-		"float(levels - 1) * ProjectileDestructionCooldownStep",
-		"ProjectileDestructionMinimumCooldown",
-	} {
-		if !strings.Contains(cooldown, required) {
-			t.Errorf("projectile destruction cooldown has no %q", required)
-		}
-	}
+	/* The cooldown itself is not asked about here any more. It moved to
+	   weapon_buffs_math.inc and TestProjectileDestructionCooldownIsTheDeclaredCurve
+	   runs it, which catches the floor being inverted. Reading the source for
+	   "float(levels - 1) * ProjectileDestructionCooldownStep" did not. */
 	dud := sourceFunction(t, buffs, "static void WeaponBuffs_ShowProjectileDud")
 	for _, required := range []string{
 		`StartMessageAll("BreakModelRocketDud", USERMSG_RELIABLE)`,

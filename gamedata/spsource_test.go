@@ -9,21 +9,19 @@ import (
 	"testing"
 )
 
-// Lifting pieces of the plugin out by name, so a driver can be built from the
-// source that ships rather than from numbers copied next to it.
+/*
+Reading the plugin's own numbers, so a driver never carries a copy of one.
 
-// defineFrom returns the whole `#define <name> <value>` line. The line, not the
-// value: the driver compiles it as written, so a define that changes shape is
-// still the plugin's own text.
-func defineFrom(t *testing.T, path, name string) string {
-	t.Helper()
-	pattern := regexp.MustCompile(`(?m)^#define\s+` + regexp.QuoteMeta(name) + `\s+(.+?)\s*$`)
-	match := pattern.FindStringSubmatch(read(t, path))
-	if match == nil {
-		t.Fatalf("%s has no #define %s", path, name)
-	}
-	return match[0]
-}
+There used to be more here: a function that cut a whole function body out by
+counting braces, so a driver could paste it. weapon_buffs_math.inc replaced
+that. The driver includes the file the plugin includes, so the only thing still
+lifted out of the source is a constant's value, which a test needs in Go to work
+out what the answer should be.
+
+Nothing here asserts. Reading a #define and checking the behaviour it produces
+is a different thing from reading a #define and checking it is still spelled the
+same way, and it is the first one these serve.
+*/
 
 // defineValue is the right-hand side of a define, for a test that needs the
 // number rather than the line.
@@ -57,47 +55,6 @@ func floatDefine(t *testing.T, path, name string) float32 {
 	return float32(f)
 }
 
-/*
-	sourceFunctionWithSignature is the whole function, signature included
-
-sourceFunction beside it returns the body for a test that reads. This one
-returns text that compiles, because the driver has to declare the function
-before it can call it.
-
-The brace counting is the same, and it is honest for this file: SourcePawn has
-no raw strings, and a brace inside a string literal or a comment inside one of
-these functions would break it. If that ever happens it breaks loudly, at
-compile time, in the driver.
-*/
-func sourceFunctionWithSignature(t *testing.T, path, signature string) string {
-	t.Helper()
-	text := read(t, path)
-	start := strings.Index(text, signature)
-	if start < 0 {
-		t.Fatalf("%s has no %s", path, signature)
-	}
-	open := strings.IndexByte(text[start:], '{')
-	if open < 0 {
-		t.Fatalf("%s has no body for %s", path, signature)
-	}
-	open += start
-
-	depth := 0
-	for i := open; i < len(text); i++ {
-		switch text[i] {
-		case '{':
-			depth++
-		case '}':
-			depth--
-			if depth == 0 {
-				return text[start : i+1]
-			}
-		}
-	}
-	t.Fatalf("%s: %s is not closed", path, signature)
-	return ""
-}
-
 // bitsToFloat reads a cell back as the float the driver printed. printnum takes
 // an int, so a float is printed as view_as<int> and reinterpreted here: the
 // exact bits, never a rounded decimal that would hide a difference in the last
@@ -116,4 +73,31 @@ func read(t *testing.T, path string) string {
 		t.Fatal(err)
 	}
 	return string(body)
+}
+
+// weaponDefinitions are the item definition indexes the generated table holds,
+// read out of the table itself so a weapon added to gamedata is asked about
+// here without anybody editing this file.
+func weaponDefinitions(t *testing.T) []int {
+	t.Helper()
+	text := read(t, dataSource)
+	start := strings.Index(text, "int g_WeaponByDefinition[][2] = {")
+	if start < 0 {
+		t.Fatalf("%s has no g_WeaponByDefinition", dataSource)
+	}
+	end := strings.Index(text[start:], "\n};")
+	if end < 0 {
+		t.Fatalf("%s: g_WeaponByDefinition is not closed", dataSource)
+	}
+
+	rows := regexp.MustCompile(`\{\s*(-?\d+),\s*(-?\d+)\s*\}`).FindAllStringSubmatch(text[start:start+end], -1)
+	out := make([]int, 0, len(rows))
+	for _, row := range rows {
+		definition, err := strconv.Atoi(row[1])
+		if err != nil {
+			t.Fatalf("g_WeaponByDefinition holds %q", row[1])
+		}
+		out = append(out, definition)
+	}
+	return out
 }

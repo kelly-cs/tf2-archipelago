@@ -13,11 +13,7 @@
 #define GasolineEffect 15
 #define MarkForDeathEffect 16
 #define JarateEffect 60
-#define HealOnKillEffect 6
-#define CritsOnKillEffect 7
 #define HealOnHitEffect 21
-#define SpeedOnKillEffect 22
-#define MinicritsOnKillEffect 70
 #define SpeedOnHitEffect 79
 // Measured on a server: speed_boost_on_kill lasts one second, and critboost
 // on kill lasts a second longer than the attribute says.
@@ -27,15 +23,11 @@
 #define GasPasserDefinition 1180
 // Gas coats for ten seconds and the burn it starts lasts ten more.
 #define GasCreditSeconds 25.0
-#define MoveSpeedEffect 24
-#define JumpHeightEffect 25
 #define UberOnHitEffect 39
 // What a syringe lands instead of the saw's five percent. A syringe gun puts
 // out hits far faster than a swing, so the same buff charges a fifth as much.
 #define SyringeUberOnHitFraction 0.01
-#define ActiveHealthRegenEffect 66
 #define AmmoOnHitEffect 69
-#define BaseHealthOnKillEffect 80
 #define NoSelfBlastEffect 62
 #define SelfBlastDamageAttribute "blast dmg to self increased"
 #define RocketJumpProtectionEffect 72
@@ -43,9 +35,6 @@
 #define RocketJumpProtectionPerLevel 0.25
 #define ProjectileDestructionRange 2000.0
 #define ProjectileDestructionRadius 256.0
-#define ProjectileDestructionBaseCooldown 2.0
-#define ProjectileDestructionCooldownStep 0.25
-#define ProjectileDestructionMinimumCooldown 0.5
 #define EnergyWeaponMaxCharge 20.0
 #define EnergyClipSizeAttribute "clip size bonus upgrade"
 #define EnergyClipSizeAttributeClass "mult_clipsize_upgrade"
@@ -160,11 +149,6 @@ he is holding; what has to change is which weapons are counted. Levels add up
 across the loadout, so a Scout who rolled the same buff on his Scattergun and
 his Bat carries both.
 */
-static bool WeaponBuffs_IsPassiveEffect(int effect)
-{
-    return effect == MoveSpeedEffect || effect == JumpHeightEffect
-        || effect == ActiveHealthRegenEffect;
-}
 
 /*
 What one level of an effect is worth on this weapon.
@@ -804,6 +788,16 @@ static void WeaponBuffs_ApplyHitEffects(int victim, int attacker, int weapon)
 
 // Energy weapons do not use a player ammo reserve. Return the amount of meter
 // that one normal shot consumes so one ammo-on-hit level still means one shot.
+// Direct flamethrower contact and afterburn both use TF_CUSTOM_BURNING. Valve
+// identifies direct contact with the weapon as the inflictor; an afterburn tick
+// uses the attacking player instead. Keep the former as a hit and reject the
+// latter, along with all periodic bleed damage.
+static bool WeaponBuffs_IsDamageOverTime(int attacker, int inflictor, int damagecustom)
+{
+    return damagecustom == TF_CUSTOM_BLEEDING
+        || (damagecustom == TF_CUSTOM_BURNING && inflictor == attacker);
+}
+
 static float WeaponBuffs_EnergyShotCost(int entity)
 {
     char classname[64];
@@ -895,13 +889,6 @@ static bool WeaponBuffs_IsStompWeapon(int weapon)
     return weapon >= 0
         && (StrEqual(g_WeaponNames[weapon], "Mantreads")
             || StrEqual(g_WeaponNames[weapon], "Thermal Thruster"));
-}
-
-static bool WeaponBuffs_IsOnKillEffect(int effect)
-{
-    return effect == HealOnKillEffect || effect == CritsOnKillEffect
-        || effect == SpeedOnKillEffect || effect == MinicritsOnKillEffect
-        || effect == BaseHealthOnKillEffect;
 }
 
 static int WeaponBuffs_ClassBaseHealth(int client)
@@ -1195,14 +1182,6 @@ static bool WeaponBuffs_ProjectileVisible(int client, const float start[3], cons
             fraction, blocker);
     }
     return visible;
-}
-
-static float WeaponBuffs_ProjectileDestructionCooldown(int levels)
-{
-    float cooldown = ProjectileDestructionBaseCooldown
-        - float(levels - 1) * ProjectileDestructionCooldownStep;
-    return cooldown > ProjectileDestructionMinimumCooldown
-        ? cooldown : ProjectileDestructionMinimumCooldown;
 }
 
 // CTFBaseRocket::Destroy(false, true) sends this same message before removing
@@ -2124,16 +2103,6 @@ static int WeaponBuffs_WeaponOfHit(int attacker, int inflictor, int weapon, int 
     return weapon;
 }
 
-// Direct flamethrower contact and afterburn both use TF_CUSTOM_BURNING. Valve
-// identifies direct contact with the weapon as the inflictor; an afterburn tick
-// uses the attacking player instead. Keep the former as a hit and reject the
-// latter, along with all periodic bleed damage.
-static bool WeaponBuffs_IsDamageOverTime(int attacker, int inflictor, int damagecustom)
-{
-    return damagecustom == TF_CUSTOM_BLEEDING
-        || (damagecustom == TF_CUSTOM_BURNING && inflictor == attacker);
-}
-
 // Scale self-inflicted blast damage for rocket-jump protection. Do not turn
 // no-self-blast into a zero-damage SDKHook event here: TF2 stops processing a
 // zero-damage event before it applies the explosion's push. The launcher
@@ -2324,18 +2293,6 @@ bool WeaponBuffs_Grant(const char[] key)
     }
     LogError("The bridge granted weapon buff %s. This plugin does not know it.", key);
     return false;
-}
-
-static int WeaponBuffs_ForDefinition(int definition)
-{
-    for (int index = 0; index < sizeof(g_WeaponByDefinition); index++)
-    {
-        if (g_WeaponByDefinition[index][0] == definition)
-        {
-            return g_WeaponByDefinition[index][1];
-        }
-    }
-    return -1;
 }
 
 static int WeaponBuffs_ForEntity(int entity)

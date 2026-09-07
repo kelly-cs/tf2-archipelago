@@ -437,7 +437,9 @@ func TestPluginImplementsActiveHealthRegenInsteadOfBrokenSchemaHealing(t *testin
 	}
 	text := string(body)
 	for _, required := range []string{
-		"#define ActiveHealthRegenEffect 66",
+		// ActiveHealthRegenEffect's number moved to weapon_buffs_math.inc with
+		// the predicate that reads it, and the predicate is run rather than
+		// read: TestOnlyTheNamedEffectsArePassive.
 		"CreateTimer(1.0, Timer_WeaponBuffHealthRegen",
 		"WeaponBuffs_LoadoutLevels(client, ActiveHealthRegenEffect)",
 		"GetEntProp(resource, Prop_Send, \"m_iMaxHealth\", 4, client)",
@@ -832,8 +834,17 @@ func TestPluginSplitsTheUberOnHitRate(t *testing.T) {
 	}
 }
 
-// Movement, jump height and health regeneration read off the whole loadout,
-// the way MvM's own class upgrades do, rather than off the weapon in hand.
+/*
+Movement, jump height and health regeneration read off the whole loadout, the
+way MvM's own class upgrades do, rather than off the weapon in hand.
+
+Which effects are passive is no longer asked here. That set moved to
+weapon_buffs_math.inc and TestOnlyTheNamedEffectsArePassive runs the predicate
+over every effect the generated table holds, which is a better answer than
+looking for three names in a function body. What is left is the wiring around
+it, and the wiring reads entity properties and calls TF2Attrib, so reading the
+source is still the best that can be done for it.
+*/
 func TestPassiveBuffsReadTheWholeLoadout(t *testing.T) {
 	body, err := os.ReadFile("../plugin/scripting/tf2_archipelago/weapon_buffs.inc")
 	if err != nil {
@@ -841,19 +852,11 @@ func TestPassiveBuffsReadTheWholeLoadout(t *testing.T) {
 	}
 	text := string(body)
 	for _, required := range []string{
-		"#define MoveSpeedEffect 24",
-		"#define JumpHeightEffect 25",
 		"WeaponBuffs_ApplyPassives(client, provider)",
 		"if (WeaponBuffs_IsPassiveEffect(effect))",
 	} {
 		if !strings.Contains(text, required) {
 			t.Errorf("passive buff wiring has no %q", required)
-		}
-	}
-	passive := substanceSourceFunction(t, "static bool WeaponBuffs_IsPassiveEffect")
-	for _, required := range []string{"MoveSpeedEffect", "JumpHeightEffect", "ActiveHealthRegenEffect"} {
-		if !strings.Contains(passive, required) {
-			t.Errorf("passive effect set has no %q", required)
 		}
 	}
 	levels := substanceSourceFunction(t, "static int WeaponBuffs_LoadoutLevels")
