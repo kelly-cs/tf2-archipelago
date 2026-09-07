@@ -65,6 +65,12 @@ func (m *model) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 func (m *model) formKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	form := m.form
 
+	// A problem box is over the rows: any key puts them back and nothing else
+	// happens, so a keystroke meant for the box cannot also toggle a row.
+	if form.dismiss() {
+		return m, nil
+	}
+
 	switch msg.String() {
 	case "esc":
 		m.form = nil

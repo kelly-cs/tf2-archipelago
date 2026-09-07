@@ -50,11 +50,29 @@ type settingsForm struct {
 	focused int
 	offset  int
 
-	warn   string
-	saved  func(settings.Settings) tea.Cmd
-	repair func() ([]string, error)
-	reset  func() (settings.Settings, error)
-	closed bool
+	warn string
+
+	/*
+		problem is what Save could not do, shown over the rows until it is
+		dismissed.
+
+		warn under the footer is for something the player can see and fix on the
+		row it is about: a number out of range, a room address half typed. A
+		save that could not write the file is neither. It is the one thing the
+		screen was opened to do, it has just failed, and the reason is a path
+		and an operating system error that will scroll past unread at the bottom
+		of a screen. So it stops the screen instead.
+	*/
+	problem string
+
+	// persist writes the settings and returns what it actually wrote, which is
+	// not quite what it was given: an empty RCON password is filled in. Separate
+	// from saved, because the screen has to still be open when it fails.
+	persist func(settings.Settings) (settings.Settings, error)
+	saved   func(settings.Settings) tea.Cmd
+	repair  func() ([]string, error)
+	reset   func() (settings.Settings, error)
+	closed  bool
 }
 
 type settingsTab struct {
@@ -63,6 +81,12 @@ type settingsTab struct {
 }
 
 type settingsDeps struct {
+	// persist writes the settings to disk and returns what it wrote, or what
+	// stopped it. The screen stays open on an error, so nothing typed is lost.
+	persist func(settings.Settings) (settings.Settings, error)
+
+	// saved is everything after a successful write: the supervisor, the player
+	// file, and the restart if one is needed.
 	saved  func(settings.Settings) tea.Cmd
 	repair func() ([]string, error)
 	reset  func() (settings.Settings, error)
@@ -70,10 +94,11 @@ type settingsDeps struct {
 
 func newSettingsForm(s settings.Settings, deps settingsDeps) *settingsForm {
 	f := &settingsForm{
-		state:  form.NewState(s),
-		saved:  deps.saved,
-		repair: deps.repair,
-		reset:  deps.reset,
+		state:   form.NewState(s),
+		persist: deps.persist,
+		saved:   deps.saved,
+		repair:  deps.repair,
+		reset:   deps.reset,
 	}
 	f.communityAvailable = availableCommunityPackNames(s.CommunityContentDir)
 	f.build()
@@ -400,29 +425,83 @@ func (f *settingsForm) checkTailscaleFunnel() tea.Cmd {
 // --- Save, and the rest of the buttons ---
 
 /*
-	save parses what a row could not refuse while it was being typed
+	save parses what a row could not refuse while it was being typed, then writes.
 
-The room address is the one. It is deferred, so the row keeps what was typed and
-this is where an address that never became one is refused. Test mode never dials
-a real room, so it does not need one.
+The room address is the one that could not be refused. It is deferred, so the row
+keeps what was typed and this is where an address that never became one is
+refused. Test mode never dials a real room, so it does not need one.
+
+The write happens here rather than after the screen closes, and that is the
+point of it. It used to close first and hand the settings to the caller, so a
+file that could not be written became a line at the bottom of the screen behind
+a settings page that was no longer there, and every answer the player had typed
+was gone with it. A player on Discord read that as the Save button doing nothing
+at all, went looking for a config.json in the install root, and found none:
+there is none there to find, it goes under the OS's config directory.
+
+So a failed write keeps the screen open, keeps the answers, and says what it
+tried to write and why it could not.
 */
 func (f *settingsForm) save() tea.Cmd {
 	room, err := settings.ParseRoom(f.state.Draft.Room)
 	if err != nil && !f.state.Settings.TestMode {
-		f.warn = err.Error()
-		return nil
+		return f.refuse("Archipelago room", "Room address: "+err.Error()+
+			". Put the host and port from your room page on archipelago.gg, or turn Test mode on to play without a room.")
 	}
 	f.state.Settings.APHost, f.state.Settings.APPort, f.state.Settings.APTls = room.Host, room.Port, room.TLS
 
+	if _, err := settings.CheckRunSelection(f.state.Settings); err != nil {
+		return f.refuse("Missions", err.Error())
+	}
+
+	written, err := f.persist(f.state.Settings)
+	if err != nil {
+		return f.refuse("", err.Error())
+	}
+	f.state.Settings = written
+
+	/* A reach with no token is a server every client is refused from, and
+	   nothing on screen would say why. It is not a reason to refuse the save,
+	   though: the settings are good and the server simply stays on the local
+	   network, so it is said and the screen closes. */
 	if f.state.Settings.SrcdsReach.NeedsToken() && !settings.HasToken(f.state.Settings.SrcdsToken) {
 		f.warn = "that reach needs a login token, or the server stays on the local network"
 	}
-	if _, err := settings.CheckRunSelection(f.state.Settings); err != nil {
-		f.warn = err.Error()
-		return nil
-	}
 	f.closed = true
-	return f.saved(f.state.Settings)
+	return f.saved(written)
+}
+
+/*
+	refuse stops the save, opens the page at fault, and says why.
+
+Every way a Save can fail comes through here, and that is the change. They used
+to be three different things: a room that would not parse set a line under the
+footer, a pool too small for the seed set the same line, and a file that would
+not write closed the screen and logged somewhere else entirely.
+
+The page matters as much as the reason, which a debug bundle from a player made
+plain. They were setting a login token, pressed Save, and nothing happened. The
+Save was refusing on the room address, two pages away, with a message beside a
+field they were not looking at. Their log has no line about saving at all,
+because a refused save wrote none. So this opens the page holding the problem
+before it says what the problem is, and page may be empty for a failure that
+belongs to no page, like a file that would not write.
+*/
+func (f *settingsForm) refuse(page, reason string) tea.Cmd {
+	f.showTab(page)
+	f.problem = reason
+	f.warn = ""
+	return nil
+}
+
+// dismiss takes the problem box off, and says whether there was one. Any key
+// does it: the box has one thing to say and nothing to choose.
+func (f *settingsForm) dismiss() bool {
+	if f.problem == "" {
+		return false
+	}
+	f.problem = ""
+	return true
 }
 
 func (f *settingsForm) generateSeed() tea.Cmd {

@@ -729,21 +729,15 @@ func (w *window) editSettings() { w.editSettingsOn("") }
 // what it is about to change.
 func (w *window) editSettingsOn(tab string) {
 	s := w.supervisor.Settings()
-	next, ok, err := runSettingsDialog(w.main, s, w.repair, w.resetSettings, w.say, tab)
+	next, ok, err := runSettingsDialog(w.main, s, settings.Persist, w.repair, w.resetSettings, w.say, tab)
 	if err != nil {
 		w.say("settings: %v", err)
 		return
 	}
+	// Cancelled, or Save refused and the player closed the window anyway. Either
+	// way the file on disk is what it was: the dialog writes it, so reaching
+	// here without ok means nothing was written.
 	if !ok {
-		return
-	}
-	if next.SrcdsRconPw == "" {
-		if password, err := settings.NewRconPassword(); err == nil {
-			next.SrcdsRconPw = password
-		}
-	}
-	if err := settings.Save(next); err != nil {
-		w.say("cannot save the settings: %v", err)
 		return
 	}
 	w.supervisor.SetSettings(next)

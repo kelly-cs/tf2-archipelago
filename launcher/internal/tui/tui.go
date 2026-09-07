@@ -209,9 +209,10 @@ func (m *model) stop() tea.Cmd {
 // lands on the page that holds it.
 func (m *model) openSettings(tab string) {
 	m.form = newSettingsForm(m.settings, settingsDeps{
-		saved:  m.applySettings,
-		repair: m.repair,
-		reset:  m.resetSettings,
+		persist: settings.Persist,
+		saved:   m.applySettings,
+		repair:  m.repair,
+		reset:   m.resetSettings,
 	})
 	m.form.showTab(tab)
 }
@@ -256,19 +257,11 @@ The server reads its half at startup, so a change while it is running is a
 change the running server does not have: the window restarts it for that
 reason, and so does this.
 */
+// applySettings is everything after the write: the supervisor, the player file,
+// and the restart if one is needed. It cannot fail in a way that loses an
+// answer, because the answers are already on disk by the time it runs.
 func (m *model) applySettings(next settings.Settings) tea.Cmd {
 	before := m.settings
-	if next.SrcdsRconPw == "" {
-		if password, err := settings.NewRconPassword(); err == nil {
-			next.SrcdsRconPw = password
-		}
-	}
-	if _, err := settings.CheckRunSelection(next); err != nil {
-		return func() tea.Msg { return noticeMsg(err.Error()) }
-	}
-	if err := settings.Save(next); err != nil {
-		return func() tea.Msg { return noticeMsg("cannot save the settings: " + err.Error()) }
-	}
 	m.settings = next
 	m.supervisor.SetSettings(next)
 	// The player file is what the seed is generated from, so it follows the run

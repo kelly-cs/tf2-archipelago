@@ -23,12 +23,85 @@ func (f *settingsForm) view(width, height int) string {
 	out.WriteString(f.tabLine())
 	out.WriteString("\n\n")
 
-	rows := f.rows(width, f.bodyHeight(height))
-	out.WriteString(strings.Join(rows, "\n"))
+	body := f.bodyHeight(height)
+	if f.problem != "" {
+		out.WriteString(f.problemBox(width, body))
+	} else {
+		out.WriteString(strings.Join(f.rows(width, body), "\n"))
+	}
 	out.WriteString("\n")
 
 	out.WriteString(f.footer(width))
 	return out.String()
+}
+
+/*
+	problemBox is the terminal's message box.
+
+The window puts one up when Save cannot write the file, and the terminal used to
+put the same words under the footer, where they scroll past and read as one more
+note. They are not a note. The screen was opened to save a file, the file did
+not save, and every answer on screen is still unwritten.
+
+So it takes the body: the rows are hidden behind it, the reason is in the middle
+of it, and any key puts them back. There is nothing to choose, so there are no
+buttons to choose between.
+*/
+func (f *settingsForm) problemBox(width, height int) string {
+	inner := max(min(width-8, 76), 20)
+	lines := []string{
+		styleWarn.Render("The settings were not saved."),
+		"",
+	}
+	lines = append(lines, wrap(f.problem, inner)...)
+	lines = append(lines,
+		"",
+		styleMuted.Render("Nothing on this screen is lost. Fix what it names and press ctrl+s again."),
+		"",
+		styleMuted.Render("any key to go back"),
+	)
+
+	box := lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(lipgloss.Color("11")).
+		Padding(0, 1).
+		Width(inner).
+		Render(strings.Join(lines, "\n"))
+
+	// Centred in the body it replaced, so the screen does not jump.
+	rendered := strings.Split(box, "\n")
+	above := max((height-len(rendered))/2, 0)
+	out := make([]string, 0, height)
+	for range above {
+		out = append(out, "")
+	}
+	out = append(out, rendered...)
+	for len(out) < height {
+		out = append(out, "")
+	}
+	return strings.Join(out[:max(height, len(rendered))], "\n")
+}
+
+// wrap breaks text on spaces at a width, because an operating system error
+// naming a path is longer than any screen and truncating it hides the path.
+func wrap(text string, width int) []string {
+	var lines []string
+	line := ""
+	for word := range strings.FieldsSeq(text) {
+		switch {
+		case line == "":
+			line = word
+		case lipgloss.Width(line)+1+lipgloss.Width(word) <= width:
+			line += " " + word
+		default:
+			lines = append(lines, line)
+			line = word
+		}
+	}
+	if line != "" {
+		lines = append(lines, line)
+	}
+	return lines
 }
 
 // bodyHeight is what the rows have after the tab line, the help and the keys.

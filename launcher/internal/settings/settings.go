@@ -387,6 +387,41 @@ func Render(s Settings) (string, error) {
 }
 
 // Save writes the config file, creating the directory.
+/*
+Persist is what saving the settings means, for every interface.
+
+The window and the terminal both do these three things in this order, and they
+each used to do them separately: fill in an RCON password, refuse a run the seed
+could not hold, then write the file. The first was the one that drifted, because
+both dropped the error from NewRconPassword on the floor.
+
+It returns what it wrote rather than what it was given. The password is filled
+in here, so the caller's copy is not what ended up on disk, and handing back the
+argument would leave the launcher talking to a server with a password it does
+not know.
+
+Call this before closing whatever screen the player is on. A write that fails
+has to be reported while their answers are still in front of them: doing it
+afterwards leaves a player looking at a log line for a window that is gone, and
+that is what apw-ep5 was reported as.
+*/
+func Persist(s Settings) (Settings, error) {
+	if s.SrcdsRconPw == "" {
+		password, err := NewRconPassword()
+		if err != nil {
+			return s, fmt.Errorf("cannot make an RCON password: %w", err)
+		}
+		s.SrcdsRconPw = password
+	}
+	if _, err := CheckRunSelection(s); err != nil {
+		return s, err
+	}
+	if err := Save(s); err != nil {
+		return s, err
+	}
+	return s, nil
+}
+
 func Save(s Settings) error {
 	path, err := Path()
 	if err != nil {
