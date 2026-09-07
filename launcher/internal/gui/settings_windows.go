@@ -35,6 +35,7 @@ import (
 	"github.com/m-this/tf2-archipelago/launcher/internal/form"
 	"github.com/m-this/tf2-archipelago/launcher/internal/generate"
 	"github.com/m-this/tf2-archipelago/launcher/internal/installer"
+	"github.com/m-this/tf2-archipelago/launcher/internal/roomcheck"
 	apruntime "github.com/m-this/tf2-archipelago/launcher/internal/runtime"
 	"github.com/m-this/tf2-archipelago/launcher/internal/settings"
 	"github.com/m-this/tf2-archipelago/launcher/internal/tailscalefastdl"
@@ -184,20 +185,20 @@ func buildSettingsDialog(
 							refuse(dialog, tabs, say, "", err.Error())
 							return
 						}
-						/* The address is checked here rather than as it is
-						   typed. A disabled button with no explanation is a
-						   dead end, and a paste with the mouse sends no
-						   keystroke to check on. Test mode never dials a real
-						   room, so it does not need one. */
-						room, err := settings.ParseRoom(next.Draft.Room)
-						if err != nil && !next.Settings.TestMode {
-							refuse(dialog, tabs, say, "Archipelago room",
-								"Room address: "+err.Error()+
-									".\n\nPut the host and port from your room page on archipelago.gg, "+
-									"or turn Test mode on to play without a room.")
-							return
+						/* A room that will not parse no longer refuses the
+						   save. It used to, and that is how a player lost a
+						   login token they were setting two pages away: one
+						   field they could not see blocked every other answer
+						   in the window. An address that is not one is left out
+						   and said afterwards, with the room that was set and
+						   did not answer, because both leave the player in the
+						   same place. */
+						room, roomErr := settings.ParseRoom(next.Draft.Room)
+						if roomErr == nil {
+							next.Settings.APHost, next.Settings.APPort, next.Settings.APTls = room.Host, room.Port, room.TLS
+						} else if strings.TrimSpace(next.Draft.Room) == "" {
+							next.Settings.APHost, next.Settings.APPort = "", 0
 						}
-						next.Settings.APHost, next.Settings.APPort, next.Settings.APTls = room.Host, room.Port, room.TLS
 
 						/*
 							The file is written here, before the dialog closes.
@@ -233,6 +234,11 @@ func buildSettingsDialog(
 						say("settings saved")
 						built.saved, built.ok = written, true
 						dialog.Accept()
+
+						// After the write and after the window is gone: the
+						// settings are safe either way and this only ever has
+						// advice, never a refusal.
+						reportRoom(owner, written, roomErr, strings.TrimSpace(next.Draft.Room), say)
 					}},
 					declarative.PushButton{AssignTo: &cancel, Text: "Cancel", OnClicked: func() { dialog.Cancel() }},
 				},
@@ -752,5 +758,44 @@ func openSettingsFile(owner walk.Form) {
 			"The settings are at\n\n"+path+"\n\nand that folder cannot be opened: "+err.Error(),
 			walk.MsgBoxIconWarning)
 		return
+	}
+}
+
+/*
+	reportRoom says whether the room is there, once the settings are written.
+
+Saving is when a player finds out their address works, and it used to be much
+later: Start refused with "AP_PORT is not set", or the bridge retried a dead
+room in a log nobody was reading. One player spent seventeen minutes on that.
+
+It runs after the window is gone and cannot undo the save, which is the point.
+A room that does not answer is advice: the settings are worth keeping either
+way, and a player who has not made the room yet has done nothing wrong. Only the
+cases with something to say put a box up, so a working room is a log line and
+nothing else.
+*/
+func reportRoom(owner walk.Form, s settings.Settings, roomErr error, typed string, say func(string, ...any)) {
+	if roomErr != nil && typed != "" {
+		say("settings: the room address was not saved: %v", roomErr)
+		walk.MsgBox(owner, "The Archipelago room",
+			"The room address was not saved: "+roomErr.Error()+".\n\n"+roomcheck.NotConfigured.Advice(),
+			walk.MsgBoxIconWarning)
+		return
+	}
+
+	result, err := roomcheck.Check(context.Background(), s)
+	switch result {
+	case roomcheck.Live:
+		say("settings: the Archipelago room answered")
+	case roomcheck.Skipped:
+		say("settings: test mode, so no room is needed")
+	case roomcheck.NotConfigured:
+		say("settings: no Archipelago room is set")
+		walk.MsgBox(owner, "No Archipelago room", result.Advice(), walk.MsgBoxIconInformation)
+	default:
+		say("settings: the room did not answer: %v", err)
+		walk.MsgBox(owner, "The Archipelago room",
+			"The room did not answer: "+err.Error()+".\n\n"+result.Advice(),
+			walk.MsgBoxIconWarning)
 	}
 }

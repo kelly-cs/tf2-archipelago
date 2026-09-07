@@ -45,6 +45,11 @@ interface is not a thing that happens.
   the screen is still up. A write that fails has to be reported with the
   player's answers still in front of them, and reporting it afterwards is what
   `apw-ep5` was reported as.
+- A missing or unparseable room does not refuse a Save. It used to, and that was
+  the mechanism of `apw-ep5`: the reporter was setting a login token two pages
+  from a field they could not see. `internal/roomcheck` asks the room once the
+  settings are written, and points at archipelago.gg or Test mode when there is
+  nothing there. Advice, never a refusal.
 
 `uiparity` is gone. It compared the window's source with the terminal's using a
 regular expression, which could only ask whether the two wrote the same struct

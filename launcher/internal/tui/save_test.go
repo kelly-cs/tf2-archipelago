@@ -123,7 +123,7 @@ func TestASavedScreenHandsOnWhatWasWritten(t *testing.T) {
 settings.Defaults leaves APPort at 0 and Save refuses that, which is not a
 detail: it is the bug a player reported. They set a login token, pressed Save,
 and nothing happened, because the room two pages away had never been filled in.
-TestAFreshInstallIsRefusedOnTheRoomPage below is that case on purpose; every
+TestAFreshInstallSavesAndIsToldWhereToGetARoom below is that case on purpose; every
 other test here wants to get past it.
 */
 func withRoom() settings.Settings {
@@ -133,18 +133,25 @@ func withRoom() settings.Settings {
 }
 
 /*
-	A fresh install refuses the Save, on the page holding the reason.
+	A fresh install saves, and is told where to get a room.
 
-From a player's debug bundle. Their config.json held the defaults for the room,
-APPort 0, so every Save they pressed was refused on an address they had not
-typed yet. They were on another page setting a token at the time, the message
-sat beside a field they could not see, and their log had no line about saving at
-all. Three separate reasons to read it as the button doing nothing.
+This reverses what it used to do, on purpose. An unparseable room refused the
+whole Save, which is how a player lost a login token they were setting two pages
+away: one field they could not see blocked every other answer on the screen.
+Their config.json held the defaults for the room, ap_port 0, so every Save they
+pressed was refused on an address they had not typed yet.
+
+A room they have not made is not a mistake. The settings are written, and the
+room is what they are told about afterwards.
 */
-func TestAFreshInstallIsRefusedOnTheRoomPage(t *testing.T) {
+func TestAFreshInstallSavesAndIsToldWhereToGetARoom(t *testing.T) {
+	var written bool
 	f := newSettingsForm(settings.Defaults(), settingsDeps{
 		persist: func(s settings.Settings) (settings.Settings, error) {
-			t.Error("a save with no room address reached the file")
+			written = true
+			if s.APPort != 0 {
+				t.Errorf("a run with no room saved port %d", s.APPort)
+			}
 			return s, nil
 		},
 		saved: func(settings.Settings) tea.Cmd { return nil },
@@ -152,21 +159,29 @@ func TestAFreshInstallIsRefusedOnTheRoomPage(t *testing.T) {
 
 	// On another page, the way the reporter was.
 	f.showTab("Game server")
+	cmd := f.save()
 
-	if cmd := f.save(); cmd != nil {
-		t.Error("a refused save handed work to the event loop")
+	if !written {
+		t.Fatal("a save with no room address wrote nothing")
 	}
-	if f.closed {
-		t.Error("the screen closed on a save that wrote nothing")
+	if !f.closed {
+		t.Error("the screen stayed open on a save that worked")
 	}
-	if got := f.tabs[f.tab].title; got != "Archipelago room" {
-		t.Errorf("the refusal left the player on %q, not the page holding the reason", got)
+	if f.problem != "" {
+		t.Errorf("a save that worked put up a problem box: %q", f.problem)
 	}
-	if !strings.Contains(f.problem, "Room address") {
-		t.Errorf("the problem box says %q", f.problem)
+	if cmd == nil {
+		t.Fatal("the save said nothing about the missing room")
 	}
-	if !strings.Contains(f.problem, "Test mode") {
-		t.Error("the problem box does not offer the way out for somebody with no room yet")
+
+	notice, ok := cmd().(noticeMsg)
+	if !ok {
+		t.Fatalf("the save reported a %T", cmd())
+	}
+	for _, want := range []string{"saved", "archipelago.gg", "Test mode"} {
+		if !strings.Contains(string(notice), want) {
+			t.Errorf("the notice does not mention %q: %q", want, notice)
+		}
 	}
 }
 

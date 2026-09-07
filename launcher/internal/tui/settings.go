@@ -29,6 +29,7 @@ import (
 	"github.com/m-this/tf2-archipelago/launcher/internal/form"
 	"github.com/m-this/tf2-archipelago/launcher/internal/generate"
 	"github.com/m-this/tf2-archipelago/launcher/internal/installer"
+	"github.com/m-this/tf2-archipelago/launcher/internal/roomcheck"
 	"github.com/m-this/tf2-archipelago/launcher/internal/runshape"
 	"github.com/m-this/tf2-archipelago/launcher/internal/settings"
 	"github.com/m-this/tf2-archipelago/launcher/internal/tailscalefastdl"
@@ -445,12 +446,18 @@ So a failed write keeps the screen open, keeps the answers, and says what it
 tried to write and why it could not.
 */
 func (f *settingsForm) save() tea.Cmd {
-	room, err := settings.ParseRoom(f.state.Draft.Room)
-	if err != nil && !f.state.Settings.TestMode {
-		return f.refuse("Archipelago room", "Room address: "+err.Error()+
-			". Put the host and port from your room page on archipelago.gg, or turn Test mode on to play without a room.")
+	/* A room that will not parse no longer refuses the save. It used to, and
+	   that is how a player lost a login token they were setting two pages
+	   away: one field they could not see blocked every other answer on the
+	   screen. An address that is not one is left out and said afterwards, along
+	   with the room that was configured and did not answer, because the two
+	   leave the player in the same place. */
+	room, roomErr := settings.ParseRoom(f.state.Draft.Room)
+	if roomErr == nil {
+		f.state.Settings.APHost, f.state.Settings.APPort, f.state.Settings.APTls = room.Host, room.Port, room.TLS
+	} else if strings.TrimSpace(f.state.Draft.Room) == "" {
+		f.state.Settings.APHost, f.state.Settings.APPort = "", 0
 	}
-	f.state.Settings.APHost, f.state.Settings.APPort, f.state.Settings.APTls = room.Host, room.Port, room.TLS
 
 	if _, err := settings.CheckRunSelection(f.state.Settings); err != nil {
 		return f.refuse("Missions", err.Error())
@@ -470,7 +477,41 @@ func (f *settingsForm) save() tea.Cmd {
 		f.warn = "that reach needs a login token, or the server stays on the local network"
 	}
 	f.closed = true
-	return f.saved(written)
+	return tea.Batch(f.saved(written), f.checkRoom(written, roomErr))
+}
+
+/*
+	checkRoom asks the room whether it is there, once the settings are safely on
+	disk.
+
+Saving is when a player finds out their address works, and it used to be much
+later: Start refused with "AP_PORT is not set", or the bridge retried a dead
+room in a log nobody was reading.
+
+It runs after the write and cannot undo it. A room that does not answer is a
+notice, not a refusal, because the settings are worth keeping either way and a
+player who has not made the room yet has done nothing wrong.
+*/
+func (f *settingsForm) checkRoom(s settings.Settings, roomErr error) tea.Cmd {
+	return func() tea.Msg {
+		if roomErr != nil && strings.TrimSpace(f.state.Draft.Room) != "" {
+			return noticeMsg("the room address was not saved: " + roomErr.Error() + ". " +
+				roomcheck.NotConfigured.Advice())
+		}
+		result, err := roomcheck.Check(context.Background(), s)
+		switch result {
+		case roomcheck.Live:
+			return noticeMsg("settings saved, and the Archipelago room answered")
+		case roomcheck.Skipped:
+			return noticeMsg("settings saved. Test mode: no room is needed")
+		case roomcheck.NotConfigured:
+			return noticeMsg("settings saved. " + result.Advice())
+		case roomcheck.Unreachable:
+			return noticeMsg("settings saved, but the room did not answer: " +
+				err.Error() + ". " + result.Advice())
+		}
+		return noticeMsg("settings saved")
+	}
 }
 
 /*
