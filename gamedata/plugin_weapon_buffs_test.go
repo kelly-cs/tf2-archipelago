@@ -206,3 +206,43 @@ func TestSelfBlastBuffsPreserveTheNativeExplosionAndPush(t *testing.T) {
 		t.Fatal("buff removal leaves native no-self-blast attributes behind")
 	}
 }
+
+func TestExtraHealingBoltsUseNativeHealingAndPreservePenetration(t *testing.T) {
+	buffs := "../plugin/scripting/tf2_archipelago/weapon_buffs.inc"
+	native := sourceFunction(t, buffs, "static int WeaponBuffs_FireNativeArrow")
+	for _, required := range []string{
+		"g_WeaponBuffArrowCreate", "m_iProjectileType",
+		"SDKCall(g_WeaponBuffArrowCreate", "g_WeaponBuffProjectileSetLauncher",
+		"SDKCall(g_WeaponBuffProjectileSetLauncher, extra, launcher)",
+		`GetEntPropFloat(source, Prop_Data, "m_flDamage")`,
+		"WeaponBuffs_CopyArrowPenetration(source, extra)",
+	} {
+		if !strings.Contains(native, required) {
+			t.Fatalf("native arrow fanout has no %s", required)
+		}
+	}
+
+	for _, forbidden := range []string{"g_WeaponBuffArrowFire", "SDKCall(g_WeaponBuffArrowFire"} {
+		if strings.Contains(native, forbidden) {
+			t.Fatalf("extra arrows still patch private penetration state with %s", forbidden)
+		}
+	}
+
+	for _, path := range []string{
+		"../plugin/gamedata/tf2_archipelago.txt",
+		"../launcher/internal/assets/embedded/tf2_archipelago.txt",
+	} {
+		data, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		text := string(data)
+		if !strings.Contains(text,
+			"@_ZN19CTFProjectile_Arrow6CreateERK6VectorRK6QAngleff16ProjectileType_tP11CBaseEntityS8_") {
+			t.Fatalf("%s has no Linux native arrow factory", path)
+		}
+		if !strings.Contains(text, `"CBaseProjectile::SetLauncher"`) {
+			t.Fatalf("%s has no native SetLauncher offset", path)
+		}
+	}
+}
