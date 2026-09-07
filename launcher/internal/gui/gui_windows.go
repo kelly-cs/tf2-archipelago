@@ -90,10 +90,13 @@ type window struct {
 	// until it does and after every stop: it is a new one every start.
 	steamAddress string
 
-	// sourcemodRestarted is the one automatic restart SourceMod's updater
-	// gets. It never clears: a second request in the same run means the
-	// first restart did not settle it.
-	sourcemodRestarted bool
+	// sourcemod is the one automatic restart SourceMod's updater gets, and
+	// whether the settings window is holding it.
+	sourcemod sourcemodUpdate
+
+	// settingsOpen is whether the settings window is up. A restart that lands
+	// while it is gets blamed on whatever the player was about to save.
+	settingsOpen bool
 
 	// mission is the one the plugin last loaded, empty until it says. The
 	// settings only name where the run starts, and it moves on from there.
@@ -304,22 +307,50 @@ func (w *window) noteMission(mission string) {
 // restart, which is a line in a log nobody reads and a server left running on
 // the gamedata it started with.
 //
-// Once per run of the launcher. The updater only speaks when it found
-// something new, so a second time means the restart did not take, and
-// restarting again would be a loop with a 14 GB game server in it.
+// Once per run of the launcher, and never while the player is in the settings:
+// see sourcemodUpdate for why the window gets to hold it.
 func (w *window) restartForSourcemod() {
 	w.mu.Lock()
-	if w.sourcemodRestarted {
+	restart, hold := w.sourcemod.ask(w.settingsOpen)
+	w.mu.Unlock()
+
+	// Nothing to bring round, and the request is spent either way: the next
+	// start reads the gamedata the updater just wrote.
+	if !w.supervisor.Running() {
+		w.mu.Lock()
+		w.sourcemod.drop()
 		w.mu.Unlock()
 		return
 	}
-	w.sourcemodRestarted = true
-	w.mu.Unlock()
+	switch {
+	case hold:
+		w.say("SourceMod updated its gamedata. Restarting the server once the settings window is closed.")
+	case restart:
+		w.say(sourcemodRestartLine)
+		w.restartServer()
+	}
+}
 
-	if !w.supervisor.Running() {
+// takeSourcemodRestart runs the restart the settings window held back. The
+// save that closed the window drops it first when it is restarting anyway.
+func (w *window) takeSourcemodRestart() {
+	w.mu.Lock()
+	held := w.sourcemod.take()
+	w.mu.Unlock()
+	if !held || !w.supervisor.Running() {
 		return
 	}
-	w.say("SourceMod updated its gamedata. Restarting the server to load it.")
+	w.say(sourcemodRestartLine)
+	w.restartServer()
+}
+
+// sourcemodRestartLine is what the log says when the launcher takes SourceMod's
+// request, which is the line that tells apw-ylq's two candidates apart.
+const sourcemodRestartLine = "SourceMod updated its gamedata. Restarting the server to load it."
+
+// restartServer brings the pair round off the UI thread: an install can sit in
+// front of the start, and the message loop cannot wait for one.
+func (w *window) restartServer() {
 	go apruntime.Guard("a window task", w.sayLine, func() {
 		w.supervisor.Stop()
 		w.start()
@@ -393,12 +424,7 @@ func (w *window) onStartStop() {
 	go w.start()
 }
 
-func (w *window) onRestart() {
-	go apruntime.Guard("a window task", w.sayLine, func() {
-		w.supervisor.Stop()
-		w.start()
-	})
-}
+func (w *window) onRestart() { w.restartServer() }
 
 // start installs whatever is missing, writes the server configs, then brings
 // the pair up. It runs off the UI thread: the first install downloads 14 GB.
@@ -729,7 +755,15 @@ func (w *window) editSettings() { w.editSettingsOn("") }
 // what it is about to change.
 func (w *window) editSettingsOn(tab string) {
 	s := w.supervisor.Settings()
+	w.noteSettingsOpen(true)
 	next, ok, err := runSettingsDialog(w.main, s, settings.Persist, w.repair, w.resetSettings, w.say, tab)
+	w.noteSettingsOpen(false)
+
+	/* Whatever the player did with the window, a SourceMod restart it held back
+	 * is owed now that it is gone. The branch below that restarts anyway drops
+	 * it first, so nothing here restarts twice. */
+	defer w.takeSourcemodRestart()
+
 	if err != nil {
 		w.say("settings: %v", err)
 		return
@@ -765,11 +799,19 @@ func (w *window) editSettingsOn(tab string) {
 	// command line, both of which it reads once at startup. Saving one while
 	// the server runs used to change nothing until the player pressed Restart
 	// themselves, and the log line saying so was easy to miss.
+	w.mu.Lock()
+	w.sourcemod.drop()
+	w.mu.Unlock()
 	w.say("settings saved. Restarting the server to apply them.")
-	go apruntime.Guard("a window task", w.sayLine, func() {
-		w.supervisor.Stop()
-		w.start()
-	})
+	w.restartServer()
+}
+
+// noteSettingsOpen records whether the settings window is up, for the log
+// reader's goroutine to read before it restarts anything.
+func (w *window) noteSettingsOpen(open bool) {
+	w.mu.Lock()
+	w.settingsOpen = open
+	w.mu.Unlock()
 }
 
 // repair is what the dialog's Repair button calls. Everything the launcher
