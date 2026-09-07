@@ -149,7 +149,7 @@ public void OnPluginStart()
     RegAdminCmd("sm_ap_buff_test", Command_TestWeaponBuff, ADMFLAG_ROOT,
         "Test an active-weapon effect: sm_ap_buff_test <number|key|all> [levels]");
     RegAdminCmd("sm_ap_buff_give", Command_GiveWeaponBuff, ADMFLAG_ROOT,
-        "Give a test effect to a player's active weapon: sm_ap_buff_give <target> <number|key|all> [levels]");
+        "Give a test effect to a player's active weapon, or the one in a slot: sm_ap_buff_give <target> <number|key|all> [levels] [slot]");
     RegAdminCmd("sm_ap_projectile_debug", Command_ProjectileDebug, ADMFLAG_ROOT,
         "Toggle projectile diagnostics: sm_ap_projectile_debug [on|off]");
     RegAdminCmd("sm_ap_unlock_override", Command_UnlockOverride, ADMFLAG_ROOT,

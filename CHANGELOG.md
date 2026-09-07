@@ -93,6 +93,16 @@ Cowser's sheet and kelly-cs's issues. Bots at 2.52.3.
   own arrow factory with their launcher set, so a bolt that reaches a teammate
   heals him, penetration carries over, and the weapon still fires one sound
   however many bolts leave it. By kelly-cs.
+- Heal on hit and speed boost on hit work on Jarate and Mad Milk. The game
+  reads both off a weapon attack, and a jar splash is not one, so a soaked
+  robot gave the thrower nothing. The plugin pays them now, once per soaked
+  enemy.
+- The on-kill buffs credit the weapon that killed, not the one in hand. A robot
+  that burned down after the Pyro put the Gas Passer away paid the flamethrower's
+  buffs, or nothing.
+- `sm_ap_buff_give` takes a slot, so a buff can be put on a holstered weapon or
+  a watch, and `tf2ap_buffs_for_defender_bots` lets the bots carry the run's
+  buffs so a buff can be measured on a server with no player.
 
 ### Balancing
 
