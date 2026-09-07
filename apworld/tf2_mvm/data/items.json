@@ -85399,12 +85399,13 @@
     },
     {
       "id": 7443015374,
-      "name": "Weapon Buff: Mantreads — +10% damage",
+      "name": "Weapon Buff: Mantreads — +5× fall-damage multiplier",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 10374,
-      "stackable": true
+      "stackable": true,
+      "eligible": true
     },
     {
       "id": 7443015630,
@@ -136057,12 +136058,13 @@
     },
     {
       "id": 7443015444,
-      "name": "Weapon Buff: Thermal Thruster — +10% damage",
+      "name": "Weapon Buff: Thermal Thruster — +5× fall-damage multiplier",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 10444,
-      "stackable": true
+      "stackable": true,
+      "eligible": true
     },
     {
       "id": 7443015700,
@@ -136084,12 +136086,13 @@
     },
     {
       "id": 7443016212,
-      "name": "Weapon Buff: Thermal Thruster — +25% clip size",
+      "name": "Weapon Buff: Thermal Thruster — +1 launch charge",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 11212,
-      "stackable": true
+      "stackable": true,
+      "eligible": true
     },
     {
       "id": 7443016468,

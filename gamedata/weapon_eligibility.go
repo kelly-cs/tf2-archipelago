@@ -295,7 +295,8 @@ penetration stays off explosives and on arrows, syringes and flares.
 */
 func eligibilityByShape(name, key string) (decided, eligible bool) {
 	switch {
-	case stompWeapons[name] && key == "ammo-on-hit":
+	case stompWeapons[name] && (key == "ammo-on-hit" || key == "damage"),
+		name == "Thermal Thruster" && key == "clip-size":
 		return true, true
 	case passiveWeapons[name], key == "gasoline":
 		return true, false
