@@ -85,6 +85,7 @@ var WeaponEffects = []WeaponEffect{
 	{78, "reveal-cloaked", "reveal cloaked victim on hit", 1.00, BuffToggle, "reveals cloaked victims on hit"},
 	{79, "reveal-disguised", "reveal disguised victim on hit", 1.00, BuffToggle, "reveals disguised victims on hit"},
 	{80, "speed-on-hit", "speed_boost_on_hit_enemy", 1.00, BuffToggle, "speed boost on hitting an enemy"},
+	{81, "base-health-on-kill", "restore health on kill", 50.00, BuffAdd, "+50% base health on kill"},
 }
 
 // WeaponEffectAttributeClasses are the engine hook names paired with
@@ -171,4 +172,5 @@ var WeaponEffectAttributeClasses = []string{
 	"reveal_cloaked_victim_on_hit",
 	"reveal_disguised_victim_on_hit",
 	"speed_boost_on_hit_enemy",
+	"restore_health_on_kill",
 }

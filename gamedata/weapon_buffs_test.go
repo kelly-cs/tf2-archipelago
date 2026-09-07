@@ -108,6 +108,22 @@ func TestStompWeaponSpecialBuffsAreEligibleAndDescribed(t *testing.T) {
 		if buff.Description != "+5× fall-damage multiplier" {
 			t.Errorf("%s/damage description = %q", weapon, buff.Description)
 		}
+		for _, effect := range []string{"base-health-on-kill", "crits-on-kill", "minicrits-on-kill", "speed-on-kill"} {
+			if !buffNamed(t, weapon, effect).Eligible {
+				t.Errorf("%s/%s is not eligible", weapon, effect)
+			}
+		}
+		if buffNamed(t, weapon, "heal-on-kill").Eligible {
+			t.Errorf("%s still draws the ordinary heal-on-kill effect", weapon)
+		}
+	}
+	for _, weapon := range BuffWeapons {
+		if stompWeapons[weapon.Name] {
+			continue
+		}
+		if buffNamed(t, weapon.Name, "base-health-on-kill").Eligible {
+			t.Errorf("non-stomp weapon %s draws base-health-on-kill", weapon.Name)
+		}
 	}
 	clip := buffNamed(t, "Thermal Thruster", "clip-size")
 	if !clip.Eligible {
@@ -115,6 +131,46 @@ func TestStompWeaponSpecialBuffsAreEligibleAndDescribed(t *testing.T) {
 	}
 	if clip.Description != "+1 launch charge" {
 		t.Errorf("Thermal Thruster/clip-size description = %q", clip.Description)
+	}
+}
+
+func TestPluginAttributesStompKillEffectsToTheWearable(t *testing.T) {
+	body, err := os.ReadFile("../plugin/scripting/tf2_archipelago/weapon_buffs.inc")
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(body)
+	death := substanceSourceFunction(t, "public void WeaponBuffs_PlayerDeath")
+	for _, required := range []string{
+		`event.GetString("weapon", eventWeapon`,
+		`event.GetString("weapon_logclassname", logWeapon`,
+		`StrEqual(eventWeapon, "mantreads")`,
+		`StrEqual(logWeapon, "rocketpack_stomp")`,
+		"WeaponBuffs_EntityInLoadoutSlot(attacker, Slot_Secondary)",
+		`StrEqual(g_WeaponNames[weapon], "Mantreads")`,
+		`StrEqual(g_WeaponNames[weapon], "Thermal Thruster")`,
+		"WeaponBuffs_ApplyStompKillEffects(attacker, entity, weapon)",
+	} {
+		if !strings.Contains(death, required) {
+			t.Errorf("stomp death attribution has no %q", required)
+		}
+	}
+	for _, required := range []string{
+		`HookEvent("player_death", WeaponBuffs_PlayerDeath)`,
+		"g_WeaponEffectLevels[weapon][BaseHealthOnKillEffect]",
+		"WeaponBuffs_ClassBaseHealth(attacker)",
+		"g_WeaponEffectIncrements[BaseHealthOnKillEffect]",
+		"float(maximum) * 1.5",
+		"int maximum = baseHealth",
+		"SetEntityHealth(attacker, health + healed)",
+		"TFCond_CritOnKill",
+		"TFCond_MiniCritOnKill",
+		"TFCond_SpeedBuffAlly",
+		"effect == DamageEffect || WeaponBuffs_IsOnKillEffect(effect)",
+	} {
+		if !strings.Contains(text, required) {
+			t.Errorf("stomp kill-effect implementation has no %q", required)
+		}
 	}
 }
 
@@ -501,18 +557,19 @@ func TestPluginImplementsAmmoOnHitForClippedAndMeleeWeapons(t *testing.T) {
 
 func TestEveryRequestedSillyEffectKeepsItsStackingMode(t *testing.T) {
 	wanted := map[string]BuffMode{
-		"projectile-count": BuffPercentage,
-		"projectile-speed": BuffPercentage,
-		"bleed":            BuffAdd,
-		"afterburn-damage": BuffPercentage,
-		"airborne-crits":   BuffToggle,
-		"ignite":           BuffToggle,
-		"gasoline":         BuffToggle,
-		"mad-milk":         BuffToggle,
-		"no-self-blast":    BuffToggle,
-		"heal-on-kill":     BuffAdd,
-		"slow-on-hit":      BuffToggle,
-		"gesture-speed":    BuffPercentage,
+		"projectile-count":    BuffPercentage,
+		"projectile-speed":    BuffPercentage,
+		"bleed":               BuffAdd,
+		"afterburn-damage":    BuffPercentage,
+		"airborne-crits":      BuffToggle,
+		"ignite":              BuffToggle,
+		"gasoline":            BuffToggle,
+		"mad-milk":            BuffToggle,
+		"no-self-blast":       BuffToggle,
+		"heal-on-kill":        BuffAdd,
+		"slow-on-hit":         BuffToggle,
+		"gesture-speed":       BuffPercentage,
+		"base-health-on-kill": BuffAdd,
 	}
 	for _, effect := range WeaponEffects {
 		if mode, ok := wanted[effect.Key]; ok {
@@ -529,10 +586,11 @@ func TestEveryRequestedSillyEffectKeepsItsStackingMode(t *testing.T) {
 
 func TestRequestedSecondPassEffectValues(t *testing.T) {
 	wanted := map[string]float32{
-		"heal-on-kill":  15,
-		"no-self-blast": 1,
-		"slow-on-hit":   1,
-		"gesture-speed": 0.50,
+		"heal-on-kill":        15,
+		"no-self-blast":       1,
+		"slow-on-hit":         1,
+		"gesture-speed":       0.50,
+		"base-health-on-kill": 50,
 	}
 	for _, effect := range WeaponEffects {
 		if value, ok := wanted[effect.Key]; ok {
