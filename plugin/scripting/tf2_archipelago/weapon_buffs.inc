@@ -31,6 +31,7 @@ Handle g_WeaponBuffFlareCreate;
 Handle g_WeaponBuffArrowCreate;
 Handle g_WeaponBuffProjectileGetDamage;
 Handle g_WeaponBuffProjectileSetDamage;
+Handle g_WeaponBuffProjectileSetLauncher;
 Handle g_WeaponBuffFlareAdd;
 bool g_WeaponBuffNativeExtra[2049];
 float g_WeaponBuffNativeExtraBorn[2049];
@@ -232,6 +233,13 @@ static void WeaponBuffs_InitProjectileCalls()
     }
 
     StartPrepSDKCall(SDKCall_Entity);
+    if (PrepSDKCall_SetFromConf(config, SDKConf_Virtual, "CBaseProjectile::SetLauncher"))
+    {
+        PrepSDKCall_AddParameter(SDKType_CBaseEntity, SDKPass_Pointer);
+        g_WeaponBuffProjectileSetLauncher = EndPrepSDKCall();
+    }
+
+    StartPrepSDKCall(SDKCall_Entity);
     if (PrepSDKCall_SetFromConf(config, SDKConf_Signature, "CTFFlareGun::AddFlare"))
     {
         PrepSDKCall_AddParameter(SDKType_CBaseEntity, SDKPass_Pointer);
@@ -244,7 +252,7 @@ static void WeaponBuffs_InitProjectileCalls()
     {
         LogError("Projectile-count flare fanout disabled: this TF2 build does not match the native flare gamedata.");
     }
-    if (g_WeaponBuffArrowCreate == null)
+    if (g_WeaponBuffArrowCreate == null || g_WeaponBuffProjectileSetLauncher == null)
     {
         LogError("Projectile-count arrow fanout disabled: this TF2 build does not match the native arrow gamedata.");
     }
@@ -756,6 +764,7 @@ static int WeaponBuffs_FireNativeArrow(int source, int owner, int launcher, floa
     const float velocity[3])
 {
     if (g_WeaponBuffArrowCreate == null || g_WeaponBuffProjectileSetDamage == null
+        || g_WeaponBuffProjectileSetLauncher == null
         || !HasEntProp(source, Prop_Send, "m_iProjectileType"))
     {
         return -1;
@@ -773,21 +782,22 @@ static int WeaponBuffs_FireNativeArrow(int source, int owner, int launcher, floa
         return -1;
     }
 
-    // Create()/InitArrow() supplies the private scorer, hit list, touch
-    // callback and launch time that cannot be reproduced with netprops.
-    SDKCall(g_WeaponBuffProjectileSetDamage, extra, damage);
-    if (HasEntProp(extra, Prop_Send, "m_hLauncher"))
-    {
-        SetEntPropEnt(extra, Prop_Send, "m_hLauncher", launcher);
-    }
-    if (HasEntProp(extra, Prop_Send, "m_hOriginalLauncher"))
-    {
-        SetEntPropEnt(extra, Prop_Send, "m_hOriginalLauncher", launcher);
-    }
+    // HealingBolt::GetDamage scales m_flDamage by flight time. Preserve the
+    // unscaled backing value so the extra is not distance-scaled twice.
+    float baseDamage = HasEntProp(source, Prop_Data, "m_flDamage")
+        ? GetEntPropFloat(source, Prop_Data, "m_flDamage") : damage;
+    SDKCall(g_WeaponBuffProjectileSetDamage, extra, baseDamage);
+
+    // Calling SetLauncher matters: its native ResetCollideWithTeammates path
+    // immediately enables teammate collision for healing bolts. Assigning the
+    // launcher netprop alone skips that private state. Unlike FireArrow, this
+    // setup call does not replay the weapon's firing sound for every extra.
+    SDKCall(g_WeaponBuffProjectileSetLauncher, extra, launcher);
     WeaponBuffs_CopySendInt(source, extra, "m_bCritical");
     WeaponBuffs_CopySendInt(source, extra, "m_bArrowAlight");
     WeaponBuffs_CopySendInt(source, extra, "m_bChargedShot");
     WeaponBuffs_CopySendInt(source, extra, "m_CollisionGroup");
+    WeaponBuffs_CopyArrowPenetration(source, extra);
     if (!HasEntProp(source, Prop_Send, "m_bCritical")
         && HasEntProp(extra, Prop_Send, "m_bCritical"))
     {
@@ -797,7 +807,7 @@ static int WeaponBuffs_FireNativeArrow(int source, int owner, int launcher, floa
     {
         SetEntPropVector(extra, Prop_Send, "m_vInitialVelocity", velocity);
     }
-    TeleportEntity(extra, NULL_VECTOR, angles, velocity);
+    TeleportEntity(extra, origin, angles, velocity);
 
     g_WeaponBuffArrowExtra[extra] = true;
     g_WeaponBuffArrowTouched[extra] = false;
@@ -806,6 +816,31 @@ static int WeaponBuffs_FireNativeArrow(int source, int owner, int launcher, floa
     CreateTimer(0.15, WeaponBuffs_ArrowFlightCheck, EntIndexToEntRef(extra),
         TIMER_FLAG_NO_MAPCHANGE);
     return extra;
+}
+
+static void WeaponBuffs_CopyArrowPenetration(int source, int extra)
+{
+    int criticalOffset = GetEntSendPropOffs(source, "m_bCritical");
+    if (criticalOffset < 0 || !HasEntProp(source, Prop_Data, "m_usSolidFlags")
+        || !HasEntProp(extra, Prop_Data, "m_usSolidFlags"))
+    {
+        return;
+    }
+
+    int penetrateOffset = criticalOffset + 1;
+    int penetrate = GetEntData(source, penetrateOffset, 1);
+    if (penetrate != 0 && penetrate != 1)
+    {
+        LogError("Could not copy arrow penetration: unexpected value %d at offset %d.",
+            penetrate, penetrateOffset);
+        return;
+    }
+    SetEntData(extra, penetrateOffset, penetrate, 1, true);
+    if (penetrate != 0)
+    {
+        SetEntProp(extra, Prop_Data, "m_usSolidFlags",
+            GetEntProp(source, Prop_Data, "m_usSolidFlags"));
+    }
 }
 
 public Action WeaponBuffs_ArrowStartTouch(int entity, int other)
@@ -1228,7 +1263,8 @@ public Action Command_ProjectileDebug(int client, int args)
     ReplyToCommand(client, "[AP] Projectile debug %s; backend=mimic, native flare/arrow, plus family clone.",
         g_WeaponBuffProjectileDebug.BoolValue ? "ON" : "OFF");
     ReplyToCommand(client, "[AP] Native calls: arrow=%d flare=%d get-damage=%d set-damage=%d add-detonator=%d.",
-        g_WeaponBuffArrowCreate != null, g_WeaponBuffFlareCreate != null, g_WeaponBuffProjectileGetDamage != null,
+        g_WeaponBuffArrowCreate != null && g_WeaponBuffProjectileSetLauncher != null,
+        g_WeaponBuffFlareCreate != null, g_WeaponBuffProjectileGetDamage != null,
         g_WeaponBuffProjectileSetDamage != null, g_WeaponBuffFlareAdd != null);
     if (args == 0 && g_WeaponBuffProjectileLineHeld > 0)
     {
