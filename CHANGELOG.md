@@ -4,11 +4,12 @@ What each release changes, for somebody who plays the game. The workflow in
 `.github/workflows/release.yml` reads the section matching the tag and puts it
 in the release notes, so this file is the only place to write it.
 
-## Unreleased
+## v1.12.0
 
 Traps, a medal on every mission clear, a Grappling Hook the multiworld can hand
 you, maps that download over HTTP, and a long pass over the weapon buffs from
-Cowser's sheet and kelly-cs's issues. Bots at 2.52.3.
+Cowser's sheet and kelly-cs's issues. Bots at 2.52.3. The settings screen says
+what it did with a Save, and where it put the file.
 
 ### The run
 
@@ -157,6 +158,46 @@ Cowser's sheet and kelly-cs's issues. Bots at 2.52.3.
 - An **Unlocks** tab, window and terminal, lists what the multiworld has handed
   the run: classes, weapon slots, missions and weapon buffs, with the level a
   repeated buff reached.
+- The install folder is a setting, with Browse beside it, instead of a choice
+  the installer screen made once and never offered again. Changing it does not
+  move what is already downloaded, and the help says so.
+- **Show the settings file** opens the folder holding `config.json`, which is
+  under the OS config directory and not in the install folder. Two players went
+  looking for it in the install folder, found nothing, and concluded that
+  nothing had saved.
+- A Save that is refused says so where you are looking: a message box, and the
+  page holding the reason. A refusal used to be a small label beside a box on
+  another tab, so a player could set a login token three times over while the
+  room address two pages away was what stopped every one of them. Every refusal
+  is in the log now as well, so a debug bundle carries it.
+- A failed write keeps the screen up with your answers on it and names the path
+  it could not write.
+- Save asks the room whether it is listening, and says which of "live", "not
+  there" or "did not answer" it got. None of the three refuses the save: a room
+  you have not made yet is not a mistake. Start used to be where you found out,
+  with "AP_PORT is not set", and one player spent seventeen minutes on that.
+- The mission count you may ask for is the number the seed can actually draw.
+  The ceiling counted every mission in the catalogue, including the community
+  ones a fresh settings file leaves out and any needing a server mod you do not
+  load, so the tier rows offered 82 missions at the normal floor where the run
+  held 29. Both numbers now count what the generator counts, and the generator
+  says in its log when the pool is smaller than the ask. Reported by [-SAM-].
+- The settings window is laid out like a settings window again. Moving the rows
+  into one declaration flattened it: the Bots page became one list of
+  thirty-nine rows where it had been four sub-tabs, every button took a line
+  with its own name in the label column beside it, Debug logs, Repair and Reset
+  settings left the bottom bar for a page, and a page of three settings spread
+  its rows down the window instead of leaving the space at the bottom. The
+  window nests, groups and lays out again: Bots holds Team, Classes, Looks and
+  Loadouts; the seats and the classes sit two to a line; buttons share a line;
+  numbers are the width of a number rather than of the window; and the three
+  buttons that are about the launcher are along the bottom where they were.
+- SourceMod's one automatic restart waits for the settings window to close. The
+  updater fetches gamedata and asks for a restart whenever it likes, so the
+  server came round in the middle of an edit and looked like the edit had done
+  it: Sirknobbles reported changing the bot team as restarting the server, but
+  only when the window had been open long enough. A save that restarts anyway
+  loads the new gamedata itself.
 - Terminal tabs that list more than fits scroll, and the last line counts what
   is off the screen. The Unlocks and Bot Switcher lists were cut at the body
   height and said nothing about the rest.
