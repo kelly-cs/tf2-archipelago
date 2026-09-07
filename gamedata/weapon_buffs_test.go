@@ -301,8 +301,7 @@ func TestWeaponBuffSubstancesUseTheSharedHitPath(t *testing.T) {
 	damage := substanceSourceFunction(t, "public void WeaponBuffs_OnTakeDamagePost")
 	for _, guard := range []string{
 		"GetClientTeam(victim) == GetClientTeam(attacker)",
-		"damagecustom == TF_CUSTOM_BURNING",
-		"damagecustom == TF_CUSTOM_BLEEDING",
+		"WeaponBuffs_IsDamageOverTime(attacker, inflictor, damagecustom)",
 		"WeaponBuffs_IsSubstanceProjectile(inflictorClass)",
 	} {
 		if !strings.Contains(damage, guard) {
@@ -331,6 +330,50 @@ func TestPluginImplementsActiveHealthRegenInsteadOfBrokenSchemaHealing(t *testin
 	} {
 		if !strings.Contains(text, required) {
 			t.Errorf("active health regeneration implementation has no %q", required)
+		}
+	}
+}
+
+func TestPluginImplementsAmmoOnHitForClippedAndMeleeWeapons(t *testing.T) {
+	body, err := os.ReadFile("../plugin/scripting/tf2_archipelago/weapon_buffs.inc")
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(body)
+	for _, required := range []string{
+		"#define AmmoOnHitEffect 69",
+		"WeaponBuffs_AddAmmoOnHit(attacker, weapon, catalog)",
+		"GetPlayerWeaponSlot(attacker, TFWeaponSlot_Primary)",
+		"GetEntProp(ammoWeapon, Prop_Send, \"m_iPrimaryAmmoType\")",
+		"GivePlayerAmmo(attacker, amount, ammoType, true)",
+		"if (effect == AmmoOnHitEffect)",
+		"FindEntityByClassname(tank, \"tank_boss\")",
+		"SDKHook(tank, SDKHook_OnTakeDamagePost, WeaponBuffs_OnTankTakeDamagePost)",
+		"WeaponBuffs_AddAmmoOnHit(attacker, weapon, catalog)",
+	} {
+		if !strings.Contains(text, required) {
+			t.Errorf("ammo-on-hit implementation has no %q", required)
+		}
+	}
+
+	tank := substanceSourceFunction(t, "public void WeaponBuffs_OnTankTakeDamagePost")
+	for _, guard := range []string{
+		"damage <= 0.0",
+		"GetClientTeam(attacker) == GetEntProp(tank, Prop_Send, \"m_iTeamNum\")",
+		"WeaponBuffs_IsDamageOverTime(attacker, inflictor, damagecustom)",
+	} {
+		if !strings.Contains(tank, guard) {
+			t.Errorf("tank ammo-on-hit path lost guard %q", guard)
+		}
+	}
+
+	damageOverTime := substanceSourceFunction(t, "static bool WeaponBuffs_IsDamageOverTime")
+	for _, required := range []string{
+		"damagecustom == TF_CUSTOM_BLEEDING",
+		"damagecustom == TF_CUSTOM_BURNING && inflictor == attacker",
+	} {
+		if !strings.Contains(damageOverTime, required) {
+			t.Errorf("damage-over-time classifier has no %q", required)
 		}
 	}
 }

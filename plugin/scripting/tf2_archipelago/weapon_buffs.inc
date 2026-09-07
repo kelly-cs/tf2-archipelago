@@ -11,6 +11,7 @@
 #define MarkForDeathEffect 16
 #define JarateEffect 60
 #define ActiveHealthRegenEffect 66
+#define AmmoOnHitEffect 69
 #define NoSelfBlastEffect 62
 #define SelfBlastDamageAttribute "blast dmg to self increased"
 #define RocketJumpProtectionEffect 72
@@ -84,6 +85,11 @@ void WeaponBuffs_Init()
         {
             WeaponBuffs_HookClient(client);
         }
+    }
+    int tank = -1;
+    while ((tank = FindEntityByClassname(tank, "tank_boss")) != -1)
+    {
+        WeaponBuffs_HookTank(tank);
     }
 }
 
@@ -263,6 +269,12 @@ void WeaponBuffs_HookClient(int client)
     SDKHook(client, SDKHook_WeaponSwitchPost, WeaponBuffs_WeaponSwitchPost);
 }
 
+static void WeaponBuffs_HookTank(int tank)
+{
+    SDKUnhook(tank, SDKHook_OnTakeDamagePost, WeaponBuffs_OnTankTakeDamagePost);
+    SDKHook(tank, SDKHook_OnTakeDamagePost, WeaponBuffs_OnTankTakeDamagePost);
+}
+
 public void WeaponBuffs_WeaponSwitchPost(int client, int weapon)
 {
     WeaponBuffs_Apply(client);
@@ -289,6 +301,10 @@ public void OnEntityCreated(int entity, const char[] classname)
     g_WeaponBuffNativeExtraBorn[entity] = GetGameTime();
     g_WeaponBuffArrowExtra[entity] = false;
     g_WeaponBuffArrowTouched[entity] = false;
+    if (StrEqual(classname, "tank_boss"))
+    {
+        WeaponBuffs_HookTank(entity);
+    }
     if (WeaponBuffs_IsProjectile(classname) && g_WeaponBuffProjectileDebug != null
         && g_WeaponBuffProjectileDebug.BoolValue)
     {
@@ -430,6 +446,36 @@ static void WeaponBuffs_ApplyHitEffects(int victim, int attacker, int weapon)
     {
         WeaponBuffs_DebugLog("[AP substance] weapon=%s attacker=%d victim=%d bleed=%d ignite=%d milk=%d gas=%d marked=%d jarate=%d",
             g_WeaponNames[weapon], attacker, victim, bleed, ignite, milk, gas, marked, jarate);
+    }
+}
+
+// TF2's add_onhit_addammo attribute queues ammo on a hit, but only pays that
+// queue when a clipless gun fires. Give the reserve ammo here so the effect has
+// the same meaning for clipped and clipless weapons. A melee hit has no useful
+// ammo type of its own, so it supplies the attacker's primary weapon instead.
+static void WeaponBuffs_AddAmmoOnHit(int attacker, int entity, int weapon)
+{
+    int amount = g_WeaponEffectLevels[weapon][AmmoOnHitEffect];
+    if (amount <= 0 || entity <= MaxClients || !IsValidEntity(entity))
+    {
+        return;
+    }
+
+    int ammoWeapon = entity;
+    if (WeaponBuffs_IsMelee(entity))
+    {
+        ammoWeapon = GetPlayerWeaponSlot(attacker, TFWeaponSlot_Primary);
+    }
+    if (ammoWeapon <= MaxClients || !IsValidEntity(ammoWeapon)
+        || !HasEntProp(ammoWeapon, Prop_Send, "m_iPrimaryAmmoType"))
+    {
+        return;
+    }
+
+    int ammoType = GetEntProp(ammoWeapon, Prop_Send, "m_iPrimaryAmmoType");
+    if (ammoType >= 0)
+    {
+        GivePlayerAmmo(attacker, amount, ammoType, true);
     }
 }
 
@@ -1144,6 +1190,16 @@ static int WeaponBuffs_WeaponOfHit(int attacker, int inflictor, int weapon)
     return weapon;
 }
 
+// Direct flamethrower contact and afterburn both use TF_CUSTOM_BURNING. Valve
+// identifies direct contact with the weapon as the inflictor; an afterburn tick
+// uses the attacking player instead. Keep the former as a hit and reject the
+// latter, along with all periodic bleed damage.
+static bool WeaponBuffs_IsDamageOverTime(int attacker, int inflictor, int damagecustom)
+{
+    return damagecustom == TF_CUSTOM_BLEEDING
+        || (damagecustom == TF_CUSTOM_BURNING && inflictor == attacker);
+}
+
 // Scale self-inflicted blast damage for rocket-jump protection. Do not turn
 // no-self-blast into a zero-damage SDKHook event here: TF2 stops processing a
 // zero-damage event before it applies the explosion's push. The launcher
@@ -1193,7 +1249,7 @@ public void WeaponBuffs_OnTakeDamagePost(int victim, int attacker, int inflictor
         || victim == attacker || !IsClientInGame(victim) || !IsClientInGame(attacker)
         || !IsPlayerAlive(victim) || !WeaponBuffs_CanUseRunBuffs(attacker)
         || GetClientTeam(victim) == GetClientTeam(attacker)
-        || damagecustom == TF_CUSTOM_BURNING || damagecustom == TF_CUSTOM_BLEEDING)
+        || WeaponBuffs_IsDamageOverTime(attacker, inflictor, damagecustom))
     {
         return;
     }
@@ -1213,6 +1269,30 @@ public void WeaponBuffs_OnTakeDamagePost(int victim, int attacker, int inflictor
     if (catalog >= 0)
     {
         WeaponBuffs_ApplyHitEffects(victim, attacker, catalog);
+        if (damage > 0.0)
+        {
+            WeaponBuffs_AddAmmoOnHit(attacker, weapon, catalog);
+        }
+    }
+}
+
+public void WeaponBuffs_OnTankTakeDamagePost(int tank, int attacker, int inflictor,
+    float damage, int damagetype, int weapon, const float damageForce[3],
+    const float damagePosition[3], int damagecustom)
+{
+    if (damage <= 0.0 || attacker < 1 || attacker > MaxClients
+        || !IsClientInGame(attacker) || !WeaponBuffs_CanUseRunBuffs(attacker)
+        || GetClientTeam(attacker) == GetEntProp(tank, Prop_Send, "m_iTeamNum")
+        || WeaponBuffs_IsDamageOverTime(attacker, inflictor, damagecustom))
+    {
+        return;
+    }
+
+    weapon = WeaponBuffs_WeaponOfHit(attacker, inflictor, weapon);
+    int catalog = WeaponBuffs_ForEntity(weapon);
+    if (catalog >= 0)
+    {
+        WeaponBuffs_AddAmmoOnHit(attacker, weapon, catalog);
     }
 }
 
@@ -1521,6 +1601,12 @@ void WeaponBuffs_Apply(int client)
         // negative-damage heal changes no health. The timer above owns this
         // effect so it can heal to the player's real, modified maximum.
         if (effect == ActiveHealthRegenEffect)
+        {
+            continue;
+        }
+        // TF2 only pays this attribute's queued reward when a clipless gun
+        // fires. The confirmed-hit path above handles every weapon explicitly.
+        if (effect == AmmoOnHitEffect)
         {
             continue;
         }
