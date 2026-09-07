@@ -413,7 +413,7 @@ static bool Unlocks_SlotOpen(TFClassType class, int slot, int held)
  * Jumper, which is a Soldier's secondary and a Demoman's primary. Anything not
  * listed, hats included, answers -1 and is left alone.
  */
-static int Unlocks_WearableSlot(TFClassType class, int defindex)
+int Unlocks_WearableSlot(TFClassType class, int defindex)
 {
     switch (defindex)
     {

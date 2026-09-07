@@ -94,7 +94,7 @@ check by hand when the game fails to fire the expected event.
 | `tf2ap_bot_upgrades_chat` | `0` | Say what the defender bots buy at the upgrade station |
 | `tf2ap_robot_health_scale` | `1.0` | Direct robot health multiplier, from `0.1` to `10.0`. Relayed after configs execute. |
 | `tf2ap_mirror_buffs_to_robots` | `0` | Mirror the run's Archipelago weapon buffs to enemy BLU robots. Set to `1` for the optional chaos mode. |
-| `tf2ap_buffs_for_defender_bots` | `0` | Let the defender bots carry the run's weapon buffs. For measuring a buff on a server with no player: give one with `sm_ap_buff_give` and read the log. |
+| `tf2ap_buffs_for_defender_bots` | `0` | Let the defender bots carry the run's weapon buffs. For measuring a buff on a server with no player: give one with `sm_ap_buff_give` or `sm_ap_buff_slot` and read the log. |
 
 The plugin reports a lost wave only while a wave it saw start is running.
 The game fires `mvm_wave_failed` while a mission loads. A live server sent a

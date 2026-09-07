@@ -129,6 +129,7 @@ state reloads them.
 | --- | --- |
 | `sm_ap_buff_test <1-80\|effect-key\|all> [levels]` | Add effects to your active weapon. Example: `sm_ap_buff_test projectile-count 3` |
 | `sm_ap_buff_give <target> <1-80\|effect-key\|all> [levels]` | Add effects to another living RED player's active weapon |
+| `sm_ap_buff_slot <target> <1\|2\|3\|primary\|secondary\|melee> <1-80\|effect-key\|all> [levels]` | Add effects to an equipped loadout item by slot, including shields and passive wearables |
 | `sm_ap_projectile_debug on` | Enable projectile diagnostics and print the active weapon state |
 | `sm_ap_projectile_debug` | Print the 24 most recent projectile diagnostic lines |
 | `sm_ap_projectile_debug off` | Disable projectile diagnostics |

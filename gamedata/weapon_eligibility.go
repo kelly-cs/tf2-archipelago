@@ -103,6 +103,8 @@ var attackRequiredEffects = names(
 
 var (
 	banners         = names("Battalion's Backup", "Buff Banner", "Concheror")
+	demomanShields  = names("Chargin' Targe", "Splendid Screen", "Tide Turner")
+	stompWeapons    = names("Mantreads", "Thermal Thruster")
 	mediguns        = names("Kritzkrieg", "Medi Gun", "Quick-Fix", "Vaccinator")
 	airblastWeapons = names("Backburner", "Degreaser", "Dragon's Fury", "Flame Thrower")
 	flamethrowers   = names("Backburner", "Degreaser", "Dragon's Fury", "Flame Thrower", "Phlogistinator")
@@ -307,6 +309,13 @@ penetration stays off explosives and on arrows, syringes and flares.
 */
 func eligibilityByShape(name, key string) (decided, eligible bool) {
 	switch {
+	case stompWeapons[name] && (key == "ammo-on-hit" || key == "damage" ||
+		key == "base-health-on-kill" ||
+		(onKillEffects[key] && key != "heal-on-kill")),
+		name == "Thermal Thruster" && key == "clip-size":
+		return true, true
+	case key == "base-health-on-kill":
+		return true, false
 	case passiveWeapons[name], key == "gasoline":
 		return true, false
 	case thrownSubstances[name]:
@@ -320,6 +329,8 @@ func eligibilityByShape(name, key string) (decided, eligible bool) {
 		return true, projectileWeapons[name] && !explosiveWeapons[name]
 	case key == "destroy-projectiles":
 		return true, projectileDestructionWeapons[name]
+	case demomanShields[name] && key == "ammo-on-hit":
+		return true, true
 	case killCapableNonAttackers[name] && onKillEffects[key]:
 		return true, true
 	case nonAttackingWeapons[name] && attackRequiredEffects[key],
