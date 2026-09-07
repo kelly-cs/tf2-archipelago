@@ -194,7 +194,9 @@ static bool WeaponBuffs_IsSyringeGun(int weapon)
 static int WeaponBuffs_LoadoutLevels(int client, int effect)
 {
     int levels;
-    for (int slot = Slot_Primary; slot < Slot_Count; slot++)
+    // Every slot the game has, not the three the unlocks work in: a Spy's watch
+    // and an Engineer's PDAs sit past those and can carry one of these.
+    for (int slot = 0; slot <= 5; slot++)
     {
         int weapon = WeaponBuffs_ForEntity(WeaponBuffs_EntityInLoadoutSlot(client, slot));
         if (weapon >= 0)

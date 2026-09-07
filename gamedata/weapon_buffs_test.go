@@ -858,7 +858,7 @@ func TestPassiveBuffsReadTheWholeLoadout(t *testing.T) {
 	}
 	levels := substanceSourceFunction(t, "static int WeaponBuffs_LoadoutLevels")
 	for _, required := range []string{
-		"slot = Slot_Primary; slot < Slot_Count",
+		"for (int slot = 0; slot <= 5; slot++)",
 		"WeaponBuffs_EntityInLoadoutSlot(client, slot)",
 		"levels += g_WeaponEffectLevels[weapon][effect]",
 	} {
