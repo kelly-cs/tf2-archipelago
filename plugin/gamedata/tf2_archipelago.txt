@@ -45,7 +45,7 @@
 			"CBaseProjectile::SetLauncher"
 			{
 				"windows"	"234"
-				"linux"		"234"
+				"linux"		"235"
 			}
 		}
 	}
