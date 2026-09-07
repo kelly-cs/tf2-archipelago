@@ -268,7 +268,6 @@ func TestNonMinigunProjectileDestructionUsesConfirmedShots(t *testing.T) {
 	}
 }
 
-
 func TestWeaponBuffOwnershipPolicyDefaultsToPlayers(t *testing.T) {
 	buffs := "../plugin/scripting/tf2_archipelago/weapon_buffs.inc"
 	source, err := os.ReadFile(buffs)
