@@ -190,6 +190,8 @@ func TestWeaponBuffOwnershipPolicyDefaultsToPlayers(t *testing.T) {
 		"MvM_IsPlayer(client)",
 		"g_WeaponBuffMirrorRobots.BoolValue",
 		"WeaponBuffs_IsEnemyRobot(client)",
+		"g_WeaponBuffDefenderBots.BoolValue",
+		"WeaponBuffs_IsDefenderBot(client)",
 	} {
 		if !strings.Contains(policy, required) {
 			t.Fatalf("weapon-buff ownership policy has no %s", required)
@@ -208,11 +210,80 @@ func TestWeaponBuffOwnershipPolicyDefaultsToPlayers(t *testing.T) {
 		}
 	}
 
-	changed := sourceFunction(t, buffs, "public void WeaponBuffs_MirrorRobotsChanged")
-	for _, required := range []string{"WeaponBuffs_Apply(client)", "WeaponBuffs_Remove(client)"} {
-		if !strings.Contains(changed, required) {
-			t.Fatalf("live robot mirror toggle has no %s", required)
+	for _, signature := range []string{
+		"public void WeaponBuffs_MirrorRobotsChanged", "public void WeaponBuffs_DefenderBotsChanged",
+	} {
+		changed := sourceFunction(t, buffs, signature)
+		for _, required := range []string{"WeaponBuffs_Apply(client)", "WeaponBuffs_Remove(client)"} {
+			if !strings.Contains(changed, required) {
+				t.Fatalf("%s has no %s", signature, required)
+			}
 		}
+	}
+	if !strings.Contains(sourceFunction(t, buffs, "void WeaponBuffs_Init()"), `CreateConVar("tf2ap_buffs_for_defender_bots", "0"`) {
+		t.Fatal("the defender-bot toggle is not off by default")
+	}
+}
+
+// A jar splash is not a weapon attack, so the game never reads heal on hit or
+// speed on hit off it, and the on-kill attributes are read through the
+// provider, which carries the held weapon's buffs rather than the killing
+// weapon's. Both are paid by the plugin, on the path that already knows the
+// weapon.
+func TestJarHitsAndHolsteredKillsArePaidByThePlugin(t *testing.T) {
+	buffs := "../plugin/scripting/tf2_archipelago/weapon_buffs.inc"
+	splash := sourceFunction(t, buffs, "public void WeaponBuffs_ApplySubstances(any rawPack)")
+	if !strings.Contains(splash, "WeaponBuffs_ApplyJarHitRewards(attacker, weapon)") {
+		t.Fatal("a jar splash pays no heal or speed on hit")
+	}
+	jar := sourceFunction(t, buffs, "static void WeaponBuffs_ApplyJarHitRewards")
+	for _, required := range []string{
+		"g_WeaponEffectLevels[weapon][HealOnHitEffect]",
+		"g_WeaponEffectLevels[weapon][SpeedOnHitEffect]",
+		"WeaponBuffs_HealClient(attacker",
+		"TF2_AddCondition(attacker, TFCond_SpeedBuffAlly, SpeedOnHitSeconds",
+	} {
+		if !strings.Contains(jar, required) {
+			t.Fatalf("jar hit rewards have no %s", required)
+		}
+	}
+
+	death := sourceFunction(t, buffs, "public void WeaponBuffs_PlayerDeath")
+	for _, required := range []string{
+		`event.GetInt("weapon_def_index")`,
+		"WeaponBuffs_CanUseRunBuffs(attacker)",
+		"GetClientTeam(attacker) == GetClientTeam(victim)",
+		"if (weapon >= 0 && active != weapon)",
+		"WeaponBuffs_ApplyKillRewards(attacker, weapon)",
+		"WeaponBuffs_CreditGasBurn(attacker, victim, weapon)",
+	} {
+		if !strings.Contains(death, required) {
+			t.Fatalf("holstered kill path has no %s", required)
+		}
+	}
+	kill := sourceFunction(t, buffs, "static void WeaponBuffs_ApplyKillRewards")
+	for _, required := range []string{
+		"HealOnKillEffect", "TFCond_CritOnKill", "TFCond_MiniCritOnKill",
+		"TFCond_SpeedBuffAlly, SpeedOnKillSeconds",
+	} {
+		if !strings.Contains(kill, required) {
+			t.Fatalf("kill rewards have no %s", required)
+		}
+	}
+	if !strings.Contains(sourceFunction(t, buffs, "void WeaponBuffs_Init()"), `HookEvent("player_death", WeaponBuffs_PlayerDeath)`) {
+		t.Fatal("the plugin does not watch kills")
+	}
+	gas := sourceFunction(t, buffs, "static void WeaponBuffs_CreditGasBurn")
+	for _, required := range []string{
+		"WeaponBuffs_ForDefinition(GasPasserDefinition)", "killedWith == gasPasser",
+		"g_WeaponBuffGasFrom[victim] != attacker", "GasCreditSeconds",
+	} {
+		if !strings.Contains(gas, required) {
+			t.Fatalf("gas burn credit has no %s", required)
+		}
+	}
+	if !strings.Contains(sourceFunction(t, buffs, "public Action Timer_WeaponBuffGasWatch"), "TF2_IsPlayerInCondition(client, TFCond_Gas)") {
+		t.Fatal("nothing watches robots turning gassed")
 	}
 }
 
@@ -266,5 +337,45 @@ func TestSelfBlastBuffsPreserveTheNativeExplosionAndPush(t *testing.T) {
 	remove := sourceFunction(t, buffs, "static void WeaponBuffs_Remove(int client)")
 	if !strings.Contains(remove, "WeaponBuffs_SyncNativeSelfBlast(client, true)") {
 		t.Fatal("buff removal leaves native no-self-blast attributes behind")
+	}
+}
+
+func TestExtraHealingBoltsUseNativeHealingAndPreservePenetration(t *testing.T) {
+	buffs := "../plugin/scripting/tf2_archipelago/weapon_buffs.inc"
+	native := sourceFunction(t, buffs, "static int WeaponBuffs_FireNativeArrow")
+	for _, required := range []string{
+		"g_WeaponBuffArrowCreate", "m_iProjectileType",
+		"SDKCall(g_WeaponBuffArrowCreate", "g_WeaponBuffProjectileSetLauncher",
+		"SDKCall(g_WeaponBuffProjectileSetLauncher, extra, launcher)",
+		`GetEntPropFloat(source, Prop_Data, "m_flDamage")`,
+		"WeaponBuffs_CopyArrowPenetration(source, extra)",
+	} {
+		if !strings.Contains(native, required) {
+			t.Fatalf("native arrow fanout has no %s", required)
+		}
+	}
+
+	for _, forbidden := range []string{"g_WeaponBuffArrowFire", "SDKCall(g_WeaponBuffArrowFire"} {
+		if strings.Contains(native, forbidden) {
+			t.Fatalf("extra arrows still patch private penetration state with %s", forbidden)
+		}
+	}
+
+	for _, path := range []string{
+		"../plugin/gamedata/tf2_archipelago.txt",
+		"../launcher/internal/assets/embedded/tf2_archipelago.txt",
+	} {
+		data, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		text := string(data)
+		if !strings.Contains(text,
+			"@_ZN19CTFProjectile_Arrow6CreateERK6VectorRK6QAngleff16ProjectileType_tP11CBaseEntityS8_") {
+			t.Fatalf("%s has no Linux native arrow factory", path)
+		}
+		if !strings.Contains(text, `"CBaseProjectile::SetLauncher"`) {
+			t.Fatalf("%s has no native SetLauncher offset", path)
+		}
 	}
 }
