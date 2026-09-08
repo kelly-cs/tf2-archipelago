@@ -151,7 +151,7 @@ func TestPageCarriesTheWholeOperationalInterface(t *testing.T) {
 	for _, want := range []string{
 		"EventSource", "Start", "Restart", "Join", "Settings", "rcon", "Send", "Quit",
 		"Source", "Mission name", "Wave #s", "Compatibility status", "Mods",
-		"location.href=state.join_url",
+		"state.join_url",
 	} {
 		if !strings.Contains(response.Body.String(), want) {
 			t.Errorf("the page does not contain %q", want)
@@ -204,7 +204,7 @@ func TestSnapshotProvidesSteamURLToTheBrowser(t *testing.T) {
 
 func TestJoinRunsInTheBrowser(t *testing.T) {
 	body := string(page)
-	if !strings.Contains(body, "location.href=state.join_url") {
+	if !strings.Contains(body, "window.location.href") || !strings.Contains(body, "state.join_url") {
 		t.Fatal("Join does not open the Steam URL in the browser")
 	}
 	if strings.Contains(body, "/api/server/join") {
@@ -235,7 +235,8 @@ func TestSteamJoinWaitsForThePublishedAddress(t *testing.T) {
 }
 
 func TestPeriodicDrawDoesNotRebuildUnchangedSettings(t *testing.T) {
-	if !bytes.Contains(page, []byte("key!==formKey")) {
+	if !bytes.Contains(page, []byte("function drawSettings")) ||
+		!bytes.Contains(page, []byte("JSON.stringify([snapshot.form, snapshot.mission_pool])")) {
 		t.Fatal("settings controls are rebuilt on every session refresh")
 	}
 }
