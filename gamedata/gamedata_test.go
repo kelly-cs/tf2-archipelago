@@ -248,6 +248,11 @@ func TestMissionsWithoutTanksAreExplicit(t *testing.T) {
 		"Thriller Terror",
 		"Unholy Undead",
 		"Gatebot Apocalypse",
+		// Three of the Mannhattan missions on a Valve map, read off their
+		// population files by inspectPopulation with the rest.
+		"Factory Reset",
+		"Scorched Skies",
+		"Discordant",
 	}
 	if !slices.Equal(without, want) {
 		t.Errorf("missions with no tank: %v, want %v", without, want)

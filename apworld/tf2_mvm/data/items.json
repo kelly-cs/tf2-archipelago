@@ -674,6 +674,246 @@
       "mission_id": 159
     },
     {
+      "id": 7443001160,
+      "name": "Mission Ticket: Decimal Destruction",
+      "kind": "mission_ticket",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 160
+    },
+    {
+      "id": 7443001161,
+      "name": "Mission Ticket: Grutesque Getaway",
+      "kind": "mission_ticket",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 161
+    },
+    {
+      "id": 7443001162,
+      "name": "Mission Ticket: Dissolution",
+      "kind": "mission_ticket",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 162
+    },
+    {
+      "id": 7443001163,
+      "name": "Mission Ticket: Trouble in Mann Town",
+      "kind": "mission_ticket",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 163
+    },
+    {
+      "id": 7443001164,
+      "name": "Mission Ticket: Catastrophic Course",
+      "kind": "mission_ticket",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 164
+    },
+    {
+      "id": 7443001165,
+      "name": "Mission Ticket: Mathematical Miscalculation",
+      "kind": "mission_ticket",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 165
+    },
+    {
+      "id": 7443001166,
+      "name": "Mission Ticket: XLR-8",
+      "kind": "mission_ticket",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 166
+    },
+    {
+      "id": 7443001167,
+      "name": "Mission Ticket: Manntenance",
+      "kind": "mission_ticket",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 167
+    },
+    {
+      "id": 7443001168,
+      "name": "Mission Ticket: Monster Maneuvers",
+      "kind": "mission_ticket",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 168
+    },
+    {
+      "id": 7443001169,
+      "name": "Mission Ticket: Bionic Breach",
+      "kind": "mission_ticket",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 169
+    },
+    {
+      "id": 7443001170,
+      "name": "Mission Ticket: Breaking Point",
+      "kind": "mission_ticket",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 170
+    },
+    {
+      "id": 7443001171,
+      "name": "Mission Ticket: Factory Reset",
+      "kind": "mission_ticket",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 171
+    },
+    {
+      "id": 7443001172,
+      "name": "Mission Ticket: Scorched Skies",
+      "kind": "mission_ticket",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 172
+    },
+    {
+      "id": 7443001173,
+      "name": "Mission Ticket: AX20",
+      "kind": "mission_ticket",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 173
+    },
+    {
+      "id": 7443001174,
+      "name": "Mission Ticket: Discordant",
+      "kind": "mission_ticket",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 174
+    },
+    {
+      "id": 7443001175,
+      "name": "Mission Ticket: Calendartillery",
+      "kind": "mission_ticket",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 175
+    },
+    {
+      "id": 7443001176,
+      "name": "Mission Ticket: German Gears",
+      "kind": "mission_ticket",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 176
+    },
+    {
+      "id": 7443001177,
+      "name": "Mission Ticket: Assault and Battery",
+      "kind": "mission_ticket",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 177
+    },
+    {
+      "id": 7443001178,
+      "name": "Mission Ticket: Cybernetic Carnage",
+      "kind": "mission_ticket",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 178
+    },
+    {
+      "id": 7443001179,
+      "name": "Mission Ticket: Marathon",
+      "kind": "mission_ticket",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 179
+    },
+    {
+      "id": 7443001180,
+      "name": "Mission Ticket: Munich Mugging",
+      "kind": "mission_ticket",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 180
+    },
+    {
+      "id": 7443001181,
+      "name": "Mission Ticket: Township Tussle",
+      "kind": "mission_ticket",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 181
+    },
+    {
+      "id": 7443001182,
+      "name": "Mission Ticket: Windy Windup",
+      "kind": "mission_ticket",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 182
+    },
+    {
+      "id": 7443001183,
+      "name": "Mission Ticket: BX20",
+      "kind": "mission_ticket",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 183
+    },
+    {
+      "id": 7443001184,
+      "name": "Mission Ticket: Germanium Gearbox",
+      "kind": "mission_ticket",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 184
+    },
+    {
+      "id": 7443001185,
+      "name": "Mission Ticket: CPU Spookies",
+      "kind": "mission_ticket",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 185
+    },
+    {
+      "id": 7443001186,
+      "name": "Mission Ticket: Phantasm",
+      "kind": "mission_ticket",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 186
+    },
+    {
+      "id": 7443001187,
+      "name": "Mission Ticket: Horrorsome Happenings",
+      "kind": "mission_ticket",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 187
+    },
+    {
+      "id": 7443001188,
+      "name": "Mission Ticket: Misfortunes",
+      "kind": "mission_ticket",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 188
+    },
+    {
+      "id": 7443001189,
+      "name": "Mission Ticket: Deadweight",
+      "kind": "mission_ticket",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 189
+    },
+    {
       "id": 7443002001,
       "name": "Class: Scout",
       "kind": "class",
@@ -156610,6 +156850,246 @@
       "classification": "progression",
       "count": 1,
       "mission_id": 159
+    },
+    {
+      "id": 7443008160,
+      "name": "Australium Medal: Decimal Destruction",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 160
+    },
+    {
+      "id": 7443008161,
+      "name": "Australium Medal: Grutesque Getaway",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 161
+    },
+    {
+      "id": 7443008162,
+      "name": "Australium Medal: Dissolution",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 162
+    },
+    {
+      "id": 7443008163,
+      "name": "Australium Medal: Trouble in Mann Town",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 163
+    },
+    {
+      "id": 7443008164,
+      "name": "Australium Medal: Catastrophic Course",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 164
+    },
+    {
+      "id": 7443008165,
+      "name": "Australium Medal: Mathematical Miscalculation",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 165
+    },
+    {
+      "id": 7443008166,
+      "name": "Australium Medal: XLR-8",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 166
+    },
+    {
+      "id": 7443008167,
+      "name": "Australium Medal: Manntenance",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 167
+    },
+    {
+      "id": 7443008168,
+      "name": "Australium Medal: Monster Maneuvers",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 168
+    },
+    {
+      "id": 7443008169,
+      "name": "Australium Medal: Bionic Breach",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 169
+    },
+    {
+      "id": 7443008170,
+      "name": "Australium Medal: Breaking Point",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 170
+    },
+    {
+      "id": 7443008171,
+      "name": "Australium Medal: Factory Reset",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 171
+    },
+    {
+      "id": 7443008172,
+      "name": "Australium Medal: Scorched Skies",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 172
+    },
+    {
+      "id": 7443008173,
+      "name": "Australium Medal: AX20",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 173
+    },
+    {
+      "id": 7443008174,
+      "name": "Australium Medal: Discordant",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 174
+    },
+    {
+      "id": 7443008175,
+      "name": "Australium Medal: Calendartillery",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 175
+    },
+    {
+      "id": 7443008176,
+      "name": "Australium Medal: German Gears",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 176
+    },
+    {
+      "id": 7443008177,
+      "name": "Australium Medal: Assault and Battery",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 177
+    },
+    {
+      "id": 7443008178,
+      "name": "Australium Medal: Cybernetic Carnage",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 178
+    },
+    {
+      "id": 7443008179,
+      "name": "Australium Medal: Marathon",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 179
+    },
+    {
+      "id": 7443008180,
+      "name": "Australium Medal: Munich Mugging",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 180
+    },
+    {
+      "id": 7443008181,
+      "name": "Australium Medal: Township Tussle",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 181
+    },
+    {
+      "id": 7443008182,
+      "name": "Australium Medal: Windy Windup",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 182
+    },
+    {
+      "id": 7443008183,
+      "name": "Australium Medal: BX20",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 183
+    },
+    {
+      "id": 7443008184,
+      "name": "Australium Medal: Germanium Gearbox",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 184
+    },
+    {
+      "id": 7443008185,
+      "name": "Australium Medal: CPU Spookies",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 185
+    },
+    {
+      "id": 7443008186,
+      "name": "Australium Medal: Phantasm",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 186
+    },
+    {
+      "id": 7443008187,
+      "name": "Australium Medal: Horrorsome Happenings",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 187
+    },
+    {
+      "id": 7443008188,
+      "name": "Australium Medal: Misfortunes",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 188
+    },
+    {
+      "id": 7443008189,
+      "name": "Australium Medal: Deadweight",
+      "kind": "trophy",
+      "classification": "progression",
+      "count": 1,
+      "mission_id": 189
     }
   ]
 }

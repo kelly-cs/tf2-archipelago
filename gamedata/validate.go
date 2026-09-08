@@ -121,12 +121,17 @@ func validateMissions() error {
 // Map and popfile names are interpolated into server commands. Restricting
 // them to the filename vocabulary used by TF2 also prevents whitespace or a
 // command separator in an operator-authored manifest from becoming a command.
+//
+// The hyphen is in that vocabulary: mvm_mannworks_int_xlr-8 is a real popfile
+// in the Moonlight archive, and it is no more a command separator than the
+// underscore beside it. Leaving it out is not a safety property, it is a
+// mission the launcher can never offer.
 func safeConsoleName(name string) bool {
 	if name == "" {
 		return false
 	}
 	for _, r := range name {
-		if (r < 'a' || r > 'z') && (r < '0' || r > '9') && r != '_' {
+		if (r < 'a' || r > 'z') && (r < '0' || r > '9') && r != '_' && r != '-' {
 			return false
 		}
 	}

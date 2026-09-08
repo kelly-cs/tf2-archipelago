@@ -130,6 +130,17 @@ func TestPortableCommunityMissionCountsByMap(t *testing.T) {
 		"mvm_teien_rc6":          3,
 		"mvm_transmission_rc7a":  2,
 		"mvm_yiresa_rc5a":        1,
+
+		// The Valve maps. A community mission that plays on one needs its pack
+		// for the population file and nothing else: the .bsp and the .nav ship
+		// with the game.
+		"mvm_decoy":      3,
+		"mvm_coaltown":   2,
+		"mvm_mannworks":  4,
+		"mvm_bigrock":    2,
+		"mvm_mannhattan": 4,
+		"mvm_rottenburg": 10,
+		"mvm_ghost_town": 5,
 	}
 
 	got := make(map[string]int, len(want))
@@ -181,8 +192,10 @@ func TestValidateRejectsUnsafeConsoleNames(t *testing.T) {
 			t.Errorf("safeConsoleName(%q) = true", name)
 		}
 	}
-	if !safeConsoleName("mvm_underground_rc3") {
-		t.Error("a normal community map name was rejected")
+	for _, name := range []string{"mvm_underground_rc3", "mvm_mannworks_int_xlr-8"} {
+		if !safeConsoleName(name) {
+			t.Errorf("safeConsoleName(%q) = false, and it is a real popfile", name)
+		}
 	}
 }
 
