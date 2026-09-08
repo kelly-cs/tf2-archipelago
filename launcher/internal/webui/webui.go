@@ -143,7 +143,8 @@ func Run(s settings.Settings, logger *slog.Logger) error {
 		a.logFile = file
 		defer func() { _ = file.Close() }()
 	}
-	listener, err := net.Listen("tcp4", "127.0.0.1:0")
+	var listenConfig net.ListenConfig
+	listener, err := listenConfig.Listen(context.Background(), "tcp4", "127.0.0.1:0")
 	if err != nil {
 		return fmt.Errorf("cannot start the launcher interface: %w", err)
 	}
@@ -189,11 +190,26 @@ func openOrPrompt(address string, output io.Writer, opener func(string) error) e
 	if err == nil {
 		return nil
 	}
-	fmt.Fprintf(output, "\nThe launcher could not open a browser automatically: %v\n\n", err)
-	fmt.Fprintf(output, "Open this URL manually:\n\n    %s\n\n", address)
-	fmt.Fprintln(output, "The launcher will keep running. Press Ctrl+C here or Quit in the browser to stop it.")
-	fmt.Fprintln(output)
+	if promptErr := writeManualURL(output, address, err); promptErr != nil {
+		return errors.Join(err, promptErr)
+	}
 	return err
+}
+
+func writeManualURL(output io.Writer, address string, openErr error) error {
+	if _, err := fmt.Fprintf(output, "\nThe launcher could not open a browser automatically: %v\n\n", openErr); err != nil {
+		return fmt.Errorf("write browser fallback: %w", err)
+	}
+	if _, err := fmt.Fprintf(output, "Open this URL manually:\n\n    %s\n\n", address); err != nil {
+		return fmt.Errorf("write browser fallback: %w", err)
+	}
+	if _, err := fmt.Fprintln(output, "The launcher will keep running. Press Ctrl+C here or Quit in the browser to stop it."); err != nil {
+		return fmt.Errorf("write browser fallback: %w", err)
+	}
+	if _, err := fmt.Fprintln(output); err != nil {
+		return fmt.Errorf("write browser fallback: %w", err)
+	}
+	return nil
 }
 
 func (a *App) Handler() http.Handler {
@@ -235,9 +251,15 @@ func (a *App) servePage(w http.ResponseWriter, _ *http.Request) {
 	_, _ = w.Write(page)
 }
 
+// Local address discovery is internally bounded and does not perform work on
+// behalf of the browser request.
+//
+//nolint:contextcheck // Address discovery owns its timeout instead of the request.
 func (a *App) serveSnapshot(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(a.Snapshot())
+	if err := json.NewEncoder(w).Encode(a.Snapshot()); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 }
 
 func (a *App) draftSettings() (settings.Settings, error) {
@@ -303,6 +325,10 @@ func (a *App) serveGeneratedSeed(w http.ResponseWriter, r *http.Request) {
 	serveBrowserFile(w, r, result.Archive, "attachment")
 }
 
+// Bundle collection owns a short timeout for its optional bridge snapshot and
+// should finish producing the requested download if the browser disconnects.
+//
+//nolint:contextcheck // Bundle collection owns its bridge timeout.
 func (a *App) serveDebugBundle(w http.ResponseWriter, r *http.Request) {
 	s, err := a.draftSettings()
 	if err != nil {
@@ -545,6 +571,10 @@ func (a *App) publishLocked(message event) {
 	}
 }
 
+// Starting the competing server processes is application-lifetime work. It
+// deliberately survives the HTTP request that triggered it.
+//
+//nolint:contextcheck // The server lifecycle is independent of browser requests.
 func (a *App) Start() {
 	a.mu.Lock()
 	if a.busy || a.supervisor.Running() {
@@ -929,55 +959,13 @@ func (a *App) Dispatch(id string) error {
 	case "missions.pool_all", "missions.pool_none":
 		a.setPool(id == "missions.pool_all")
 	case "bots.save_team":
-		name := strings.TrimSpace(s.Draft.TeamName)
-		if name == "" {
-			a.notify("name the team first")
-			return nil
-		}
-		presets := maps.Clone(s.Settings.SrcdsBotTeamPresets)
-		if presets == nil {
-			presets = map[string]settings.BotTeam{}
-		}
-		presets[name] = settings.BotTeamOf(s.Settings)
-		a.mutateDraft(func(state *form.State) { state.Settings.SrcdsBotTeamPresets, state.Draft.TeamName = presets, "" })
-		a.notify("saved the team as " + name)
+		a.saveTeam(s)
 	case "bots.remove_team":
-		name := strings.TrimSpace(s.Draft.TeamName)
-		if name == "" {
-			a.notify("name the team to remove first")
-			return nil
-		}
-		if _, ok := s.Settings.SrcdsBotTeamPresets[name]; !ok {
-			a.notify("no team saved as " + name)
-			return nil
-		}
-		presets := maps.Clone(s.Settings.SrcdsBotTeamPresets)
-		delete(presets, name)
-		if len(presets) == 0 {
-			presets = nil
-		}
-		a.mutateDraft(func(state *form.State) { state.Settings.SrcdsBotTeamPresets, state.Draft.TeamName = presets, "" })
-		a.notify("removed the team " + name)
+		a.removeTeam(s)
 	case "loadout.save":
-		name := strings.TrimSpace(s.Draft.LoadoutName)
-		if name == "" {
-			a.notify("name the loadout first")
-			return nil
-		}
-		built := maps.Clone(s.Settings.SrcdsBotCustomLoadouts)
-		if built == nil {
-			built = map[string]botloadout.Built{}
-		}
-		built[name] = s.Draft.Loadout
-		a.mutateDraft(func(state *form.State) { state.Settings.SrcdsBotCustomLoadouts = built })
-		a.notify("saved the loadout as " + name)
+		a.saveLoadout(s)
 	case "missions.check_selection":
-		result, err := settings.CheckRunSelection(s.Settings)
-		if err != nil {
-			a.notify(err.Error())
-		} else {
-			a.notify(result.Summary())
-		}
+		a.checkMissionSelection(s.Settings)
 	case "missions.download_packs":
 		go a.downloadPacks(s.Settings)
 	case "missions.import_assets":
@@ -990,6 +978,68 @@ func (a *App) Dispatch(id string) error {
 		return fmt.Errorf("settings action %q is not wired", id)
 	}
 	return nil
+}
+
+func (a *App) saveTeam(s form.State) {
+	name := strings.TrimSpace(s.Draft.TeamName)
+	if name == "" {
+		a.notify("name the team first")
+		return
+	}
+	presets := maps.Clone(s.Settings.SrcdsBotTeamPresets)
+	if presets == nil {
+		presets = map[string]settings.BotTeam{}
+	}
+	presets[name] = settings.BotTeamOf(s.Settings)
+	a.mutateDraft(func(state *form.State) {
+		state.Settings.SrcdsBotTeamPresets, state.Draft.TeamName = presets, ""
+	})
+	a.notify("saved the team as " + name)
+}
+
+func (a *App) removeTeam(s form.State) {
+	name := strings.TrimSpace(s.Draft.TeamName)
+	if name == "" {
+		a.notify("name the team to remove first")
+		return
+	}
+	if _, ok := s.Settings.SrcdsBotTeamPresets[name]; !ok {
+		a.notify("no team saved as " + name)
+		return
+	}
+	presets := maps.Clone(s.Settings.SrcdsBotTeamPresets)
+	delete(presets, name)
+	if len(presets) == 0 {
+		presets = nil
+	}
+	a.mutateDraft(func(state *form.State) {
+		state.Settings.SrcdsBotTeamPresets, state.Draft.TeamName = presets, ""
+	})
+	a.notify("removed the team " + name)
+}
+
+func (a *App) saveLoadout(s form.State) {
+	name := strings.TrimSpace(s.Draft.LoadoutName)
+	if name == "" {
+		a.notify("name the loadout first")
+		return
+	}
+	built := maps.Clone(s.Settings.SrcdsBotCustomLoadouts)
+	if built == nil {
+		built = map[string]botloadout.Built{}
+	}
+	built[name] = s.Draft.Loadout
+	a.mutateDraft(func(state *form.State) { state.Settings.SrcdsBotCustomLoadouts = built })
+	a.notify("saved the loadout as " + name)
+}
+
+func (a *App) checkMissionSelection(s settings.Settings) {
+	result, err := settings.CheckRunSelection(s)
+	if err != nil {
+		a.notify(err.Error())
+		return
+	}
+	a.notify(result.Summary())
 }
 
 var wiredActions = []string{
@@ -1122,6 +1172,7 @@ func (a *App) joinURLLocked() string {
 
 func (a *App) sayLine(text string) { a.say("%s", text) }
 
+// Server lifecycle operations deliberately survive the browser request.
 func (a *App) serveServerAction(w http.ResponseWriter, r *http.Request) {
 	switch r.PathValue("action") {
 	case "start":
@@ -1144,6 +1195,10 @@ func decode[T any](w http.ResponseWriter, r *http.Request) (T, bool) {
 	return value, true
 }
 
+// RCON is queued as application-lifetime work so a browser navigation cannot
+// cancel a command after it was accepted.
+//
+//nolint:contextcheck // Accepted commands survive browser navigation.
 func (a *App) serveRCON(w http.ResponseWriter, r *http.Request) {
 	if body, ok := decode[struct {
 		Command string `json:"command"`
@@ -1152,6 +1207,9 @@ func (a *App) serveRCON(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// Mission changes use the same application-lifetime RCON queue.
+//
+//nolint:contextcheck // Accepted mission changes survive browser navigation.
 func (a *App) serveMission(w http.ResponseWriter, r *http.Request) {
 	if body, ok := decode[struct {
 		PopFile string `json:"popfile"`
@@ -1175,6 +1233,10 @@ func (a *App) serveSettingsChange(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// Settings actions can start downloads, repairs and server lifecycle work
+// which deliberately survives the browser request.
+//
+//nolint:contextcheck // Dispatched actions can outlive the request.
 func (a *App) serveSettingsAction(w http.ResponseWriter, r *http.Request) {
 	if body, ok := decode[struct {
 		ID string `json:"id"`
@@ -1185,6 +1247,8 @@ func (a *App) serveSettingsAction(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// The accepted import is reported to every connected browser, independent of
+// the upload request remaining open for the final notification.
 func (a *App) serveSettingsImport(w http.ResponseWriter, r *http.Request) {
 	imported, err := a.importAssets(r)
 	if err != nil {
@@ -1194,9 +1258,16 @@ func (a *App) serveSettingsImport(w http.ResponseWriter, r *http.Request) {
 	a.notify("imported " + strings.Join(imported, ", "))
 }
 
+// Saving can restart the server and check the room after persistence; those
+// application-lifetime tasks deliberately survive the browser request.
+//
+//nolint:contextcheck // Post-save lifecycle work outlives the request.
 func (a *App) serveSettingsSave(w http.ResponseWriter, _ *http.Request) {
 	if err := a.SaveSettings(); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 	}
 }
+
+// Cancelling can release a deferred server restart, which must survive the
+// browser request.
 func (a *App) serveSettingsCancel(http.ResponseWriter, *http.Request) { a.CancelSettings() }
