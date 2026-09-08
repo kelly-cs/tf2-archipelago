@@ -260,7 +260,7 @@ func openChoice(id, tab, label, help string, options func(State, Env) []Option, 
 // what it does. The work is the interface's, because it ends in that
 // interface's own idea of a command.
 func press(id, tab, label, help string) Spec {
-	return Spec{ID: id, Tab: tab, Kind: Action, Label: label, Help: help, Hint: "enter"}
+	return Spec{ID: id, Tab: tab, Kind: Action, Label: label, Help: help}
 }
 
 // confirm declares a button that cannot be taken back. The window asks with a

@@ -1,12 +1,8 @@
 #!/bin/sh
 # Render a command's terminal output into an SVG for the book and the README.
 #
-# The Linux launcher has no window: walk is a Win32 binding, so a terminal is
-# what there is to show. SVG rather than a screenshot of one, for three
-# reasons. It is text, so a diff says what changed in a capture. It is sharp at
-# any size, on any display. And it uses the reader's own monospace font, so
-# nothing here depends on which fonts this machine happened to have installed,
-# which is what made the Wine captures of the Windows window look wrong.
+# Render textual commands such as -status and -version. SVG rather than a
+# screenshot means a diff says what changed and no machine's fonts leak in.
 #
 # Usage:
 #   docs/capture.sh <title> <output.svg> <<'EOF'

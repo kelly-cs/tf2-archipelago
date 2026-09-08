@@ -13,12 +13,8 @@ import (
 /*
 	The pages that describe the run: what it draws from and how it is reached
 
-Where the window and the terminal already disagreed, the window's wording is
-kept: it is what most players read, and it was the longer of the two in every
-case, so nothing was lost by taking it. None of the differences was chosen.
-
-The IDs are stable. An interface stores nothing under one, but the web mode will
-send them over a socket and a Change names its row, so renaming one is a
+The IDs are stable. The browser sends them over HTTP and a Change names its
+row, so renaming one is a
 protocol change rather than a rename.
 */
 func runSpecs(s State, env Env) []Spec {
@@ -58,7 +54,10 @@ func playerSpecs(s State) []Spec {
 			"The easiest tier a mission may come from. Harder tiers are always in as well, so the pool shrinks as this rises. Expert leaves four, because Valve made only three expert missions and one haunted one.",
 			options(tierValues, tierLabels),
 			func(s State) string { return s.Settings.MvmDifficulty },
-			func(s State, v string) State { s.Settings.MvmDifficulty = v; return s }),
+			func(s State, v string) State {
+				s.Settings.MvmDifficulty = v
+				return clearIneligibleStart(s)
+			}),
 
 		/* The ceiling is the pool the tier leaves, so raising the tier lowers
 		   it. Asking for more than the pool holds gives the whole pool anyway,
@@ -127,19 +126,18 @@ func runFolderSpecs(tab string) []Spec {
 			func(s State, v string) State { s.Settings.ArchipelagoDir = trim(v); return s }),
 
 		press("run.generate", tab, "Generate seed",
-			"Make the seed with the Archipelago app installed on this machine: the launcher installs the world file into it, writes the player file, runs the generator and opens the folder with the archive. Upload that archive at archipelago.gg/uploads to open a room."),
+			"Make and download the seed archive through the browser. Upload that archive at archipelago.gg/uploads to open a room."),
 		press("run.open_player_file", tab, "Open tf2.yaml",
-			"Write the player file from what is on screen, then open it. Copy it into the Archipelago app's Players folder to generate the seed."),
-		press("run.open_folder", tab, "Open the install folder",
-			"The folder above: the game files, the player file, the log and the run's state."),
+			"Write the player file from what is on screen, then show it in the browser."),
+		press("run.open_folder", tab, "Browse install files",
+			"Browse the folder above through this private launcher page: the game files, player file, log and run state."),
 
 		/* Asked in as many words on Discord, by somebody who had gone looking
 		   in the install folder and found nothing. The settings are not there:
 		   they are one file under the OS's own config directory, and until now
 		   nothing in the launcher said so or would show it. */
 		press("run.open_settings_file", tab, "Show the settings file",
-			"Open the folder holding config.json, which is where the launcher keeps everything on these pages. "+
-				"It is not in the install folder above."),
+			"Show config.json in the browser. It holds everything on these pages and is not in the install folder above."),
 	}
 }
 
@@ -228,12 +226,6 @@ func missionSpecs(env Env) []Spec {
 	classValues := append([]string{""}, classLabels[1:]...)
 
 	specs := []Spec{
-		folder("missions.content_dir", tab, "Asset pack folder",
-			"Folder containing archive-assets.zip and/or mlarchive-assets.zip. Start never downloads community content.",
-			"",
-			func(s State) string { return s.Settings.CommunityContentDir },
-			func(s State, v string) State { s.Settings.CommunityContentDir = trim(v); return s }),
-
 		packSpec("missions.potato", "Potato Archive", settings.CommunityPackPotato,
 			"Select archive-assets.zip for the explicit download action and for installation when the local ZIP is valid."),
 		packSpec("missions.moonlight", "Moonlight Archive", settings.CommunityPackMoonlight,
@@ -241,8 +233,8 @@ func missionSpecs(env Env) []Spec {
 
 		press("missions.download_packs", tab, "Download Selected Community Assets",
 			"Download only the checked full-with-maps community packs. Start never downloads community content."),
-		press("missions.use_local_packs", tab, "Use Local Community Assets",
-			"Validate archive-assets.zip and mlarchive-assets.zip already present in the asset pack folder, then show their missions."),
+		press("missions.import_assets", tab, "Import local assets",
+			"Choose archive-assets.zip and/or mlarchive-assets.zip from this computer. Valid packs are selected and their missions appear below immediately."),
 		press("missions.check_selection", tab, "Check Run Selection",
 			"Confirm that the eligible mission pool has enough checks to hold every mission, class, and weapon-slot unlock."),
 
@@ -326,7 +318,7 @@ func poolSpec(mission gamedata.Mission) Spec {
 				excluded = append(excluded, mission.PopFile)
 			}
 			s.Settings.MvmExcludedMissions = excluded
-			return s
+			return clearIneligibleStart(s)
 		})
 
 	/* A mission the game cannot play is shown and refused rather than hidden,
@@ -366,6 +358,24 @@ func startMission(s State, popFile string) State {
 	if pack != "" && !slices.Contains(s.Settings.CommunityPacks, pack) {
 		s.Settings.CommunityPacks = append(slices.Clone(s.Settings.CommunityPacks), pack)
 	}
+	return s
+}
+
+// clearIneligibleStart returns the start choice to "Any" when a higher
+// difficulty floor stops that named mission from being drawable. Keeping the
+// stale choice makes every pool edit look broken when preflight reports
+// the old start mission instead of the rows the player just selected.
+func clearIneligibleStart(s State) State {
+	if s.Settings.MvmStartMission == "" {
+		return s
+	}
+	floor, valid := gamedata.DifficultyByKey(s.Settings.MvmDifficulty)
+	for _, mission := range settings.MissionPool(s.Settings).Missions() {
+		if mission.PopFile == s.Settings.MvmStartMission && (!valid || mission.Difficulty >= floor) {
+			return s
+		}
+	}
+	s.Settings.MvmStartMission = ""
 	return s
 }
 
@@ -444,7 +454,7 @@ func serverSpecs() []Spec {
 		   rows moved into form and where a player looking for the debug bundle
 		   still looks. */
 		onBar(press("server.debug_bundle", tab, "Debug logs",
-			"Put the logs, the settings without their passwords and the player file in one zip, for sending to whoever is helping you.")),
+			"Download the logs, settings without passwords and player file as one zip for whoever is helping you.")),
 
 		onBar(confirm("server.repair", tab, "Repair",
 			"Throw SteamCMD and the mods away and fetch them again. Keeps the game files and the run.",

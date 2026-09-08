@@ -21,10 +21,6 @@ the same unlocks.
 > publishes `SHA256SUMS` and a VirusTotal report, and `make launcher` builds the
 > same file on your machine.
 
-<p align="center">
-  <img alt="The launcher: the run, Start and Stop, a Join button" src="docs/images/launcher-main.png" width="820">
-</p>
-
 ## Start
 
 **Windows.** Download `tf2ap.exe` and run it. One file: no Docker, no clone, no
@@ -32,8 +28,9 @@ compiler. SmartScreen stops you the first time, so click **More info**, then
 **Run anyway**. [The Windows guide](./docs/en/setup/install-windows.md) goes
 from there to the first wave.
 
-**Linux.** The same program with a full-screen terminal interface, which works
-over SSH. [The Linux guide](./docs/en/setup/install-linux.md) has the rest.
+**Linux.** The same program opens the same interface in your browser. Use
+`-console` for a headless server or a session over SSH. [The Linux
+guide](./docs/en/setup/install-linux.md) has the rest.
 
 ```sh
 curl -fsSLO https://github.com/m-this/tf2-archipelago/releases/latest/download/tf2ap-linux-amd64
@@ -50,7 +47,7 @@ Custom MvM packs can be overlaid without modifying the container image. The
 [community content guide](./community-content/README.md) covers custom BSPs,
 population files, stable Archipelago IDs, validation, and the rebuild/relaunch
 sequence. In the standalone launcher, community downloads happen only through
-**Download Selected Community Assets**. Use **Use Local Community Assets** for
+**Download Selected Community Assets**. Use **Import local assets** for
 full pack ZIPs you already have; **Start** never downloads community content.
 
 ## What you get

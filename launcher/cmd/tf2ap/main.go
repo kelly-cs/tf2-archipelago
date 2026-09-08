@@ -25,15 +25,14 @@ import (
 
 	"github.com/m-this/tf2-archipelago/launcher/internal/assets"
 	"github.com/m-this/tf2-archipelago/launcher/internal/generate"
-	"github.com/m-this/tf2-archipelago/launcher/internal/gui"
 	"github.com/m-this/tf2-archipelago/launcher/internal/installer"
 	"github.com/m-this/tf2-archipelago/launcher/internal/runshape"
 	"github.com/m-this/tf2-archipelago/launcher/internal/runtime"
 	"github.com/m-this/tf2-archipelago/launcher/internal/settings"
 	"github.com/m-this/tf2-archipelago/launcher/internal/srcdsconfig"
 	"github.com/m-this/tf2-archipelago/launcher/internal/tailscalefastdl"
-	"github.com/m-this/tf2-archipelago/launcher/internal/tui"
 	"github.com/m-this/tf2-archipelago/launcher/internal/ui"
+	"github.com/m-this/tf2-archipelago/launcher/internal/webui"
 )
 
 const version = "dev"
@@ -64,7 +63,6 @@ func run(logger *slog.Logger) error {
 	yamlFlag := flag.String("yaml", "", "write the Archipelago player file to this path, then exit")
 	envFlag := flag.Bool("env", false, "list the environment variables that override the configuration, then exit")
 	consoleFlag := flag.Bool("console", false, "print the log and nothing else, with no interface over it")
-	tuiFlag := flag.Bool("tui", false, "the terminal interface, on a platform whose default is the window")
 	setupFunnelFlag := flag.Bool("setup-funnel", false, "check Tailscale Funnel authorization, then exit")
 	showVersion := flag.Bool("version", false, "print the version and exit")
 	flag.Parse()
@@ -124,14 +122,14 @@ func run(logger *slog.Logger) error {
 		return nil
 	}
 
-	return launchInterface(logger, s, *consoleFlag, *tuiFlag)
+	return launchInterface(logger, s, *consoleFlag)
 }
 
-func launchInterface(logger *slog.Logger, s settings.Settings, console, terminal bool) error {
-	if gui.Available() && !console && !terminal {
-		return gui.Run(s, nil)
+func launchInterface(logger *slog.Logger, s settings.Settings, console bool) error {
+	if !console {
+		return webui.Run(s, logger)
 	}
-	return guided(logger, s, !console)
+	return guided(logger, s)
 }
 
 func printVersion() {
@@ -165,12 +163,10 @@ guided is the no-args path: ask for the room if this is a first run, install
 whatever is missing, write the server configs, then start.
 
 The questions and the install print as they go, because a 14 GB download with a
-progress line is not something to hide behind an interface. What comes after is
-either the terminal interface or the plain log, which is what -console asks for
-and what a service or a CI job wants: an interface that draws over the whole
-screen writes nothing useful into a file.
+progress line is not something to hide. This is the -console path for a service,
+CI job or terminal session; the ordinary desktop path uses webui instead.
 */
-func guided(logger *slog.Logger, s settings.Settings, interactive bool) error {
+func guided(logger *slog.Logger, s settings.Settings) error {
 	// The question comes before the 14 GB, so a player who mistyped the address
 	// finds out in a second rather than after the download.
 	s, err := ensureConfigured(ui.New(), s)
@@ -188,10 +184,6 @@ func guided(logger *slog.Logger, s settings.Settings, interactive bool) error {
 		return err
 	}
 	summary(s)
-
-	if interactive && tui.Available() {
-		return tui.Run(s, logger)
-	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
@@ -277,8 +269,8 @@ func summary(s settings.Settings) {
 	fmt.Printf("\ntf2ap.exe -configure changes any of this. It is saved in %s.\n", path)
 }
 
-// configure walks every setting, section by section, the way the window's
-// tabs do. One function per section: the whole list read as one is longer than
+// configure walks every setting, section by section, the way the browser's
+// pages do. One function per section: the whole list read as one is longer than
 // a screen, and each section stands on its own.
 func configure(p *ui.Prompt, s settings.Settings) settings.Settings {
 	s = configureRoom(p, s)

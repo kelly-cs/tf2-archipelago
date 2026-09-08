@@ -163,6 +163,14 @@ func TestTheMapComesFromTheStartMission(t *testing.T) {
 	}
 }
 
+func TestARemovedStartMissionUsesTheDefaultMap(t *testing.T) {
+	s := baseSettings()
+	s.SrcdsStartMission = "mvm_removed_mission"
+	if got := value(srcdsArgs(s, "srcds_run"), "+map"); got != "mvm_decoy" {
+		t.Errorf("+map = %q, want mvm_decoy", got)
+	}
+}
+
 // The default reach leaves the local network, and a fresh install has no token
 // yet. That server has to come up on the local network rather than come up
 // refusing everybody, which is what srcds does with sv_lan 0 and no Steam

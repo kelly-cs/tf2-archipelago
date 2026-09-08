@@ -44,8 +44,8 @@ run the command again. This works over SSH; it does not depend on `xdg-open`.
 
 Choose either interface:
 
-- In the terminal interface, press `,`, open **Networking**, run **Set up /
-  check Funnel**, enable **Tailscale FastDL**, and save.
+- In the browser interface, open **Settings**, then **Networking**, run **Set
+  up / check Funnel**, enable **Tailscale FastDL**, and save.
 - For a plain terminal, run `./tf2ap-linux-amd64 -configure` and answer yes to
   **Publish map downloads with Tailscale Funnel**.
 

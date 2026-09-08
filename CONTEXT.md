@@ -146,9 +146,10 @@ The SourcePawn plugin inside the `srcds` container. Sees the game, knows
 nothing about Archipelago, holds no authoritative state.
 
 **Launcher**
-The Windows exe, `tf2ap.exe`. Installs the game server and its mods, and runs
-the bridge in-process next to `srcds.exe`. Its window holds the log, the start
-and stop buttons and an rcon box. The Windows equivalent of the compose stack.
+The Windows and Linux executable. It installs the game server and its mods and
+runs the bridge in-process next to SRCDS. Its embedded browser interface holds
+the log, Start and Stop, settings and an RCON box; `-console` is the headless
+equivalent of the compose stack.
 
 **Defender bots**
 OfficerSpy's MvM Defender TFBots and its five dependencies, staged by

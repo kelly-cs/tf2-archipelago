@@ -54,7 +54,7 @@ split this way and what the alternatives cost.
 | `fakeroom/` | Go | The multiworld of one that test mode serves, with simulated players. |
 | `apworld/` | Python | A thin apworld. It reads the exported JSON and sets the regions, the rules, and the YAML options. |
 | `plugin/` | SourcePawn | Detects the objectives. Applies the unlocks. |
-| `launcher/` | Go | The Windows exe: a window over the bridge and the game server, the installer, the seed generator's driver. |
+| `launcher/` | Go | The Windows/Linux launcher: a browser UI over the bridge and game server, the installer, and the seed generator's driver. |
 | `deploy/` | Compose, shell | The images, the compose files, and the build of the defender bots. |
 | `docs/` | Markdown | The book, in English and French. Spec, ADRs, prior art, and the original Discord thread. |
 

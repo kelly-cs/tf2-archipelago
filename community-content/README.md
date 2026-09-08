@@ -9,8 +9,8 @@ archive-assets.zip
 mlarchive-assets.zip
 ```
 
-In `tf2ap.exe`, open **Settings → Missions**, choose the folder that will hold
-the ZIPs, and tick **Potato Archive** and/or **Moonlight Archive**. Press
+In `tf2ap.exe`, open **Settings → Missions** and tick **Potato Archive** and/or
+**Moonlight Archive**. Press
 **Download Selected Community Assets** to fetch only the checked packs. This
 button is the only operation that downloads community content. **Start** never
 downloads a community file: it validates and installs selected local ZIPs, and
@@ -24,21 +24,21 @@ cannot be added to a seed.
 
 ### Use asset ZIPs you already have
 
-Keep the original full-with-maps ZIP intact; do not extract or rename it. Put
-either or both supported ZIPs directly in the folder selected in the launcher:
+Keep the original full-with-maps ZIP intact; do not extract or rename it. Press
+**Import local assets** and choose either or both supported ZIPs:
 
 ```text
 archive-assets.zip
 mlarchive-assets.zip
 ```
 
-Then press **Use Local Community Assets**, choose that folder, and let the
-launcher validate the files. It checks the matching pack boxes and refreshes
-the mission list without contacting the network. On the terminal interface,
-type the folder into **Asset pack folder** first and activate the same action.
+The launcher validates and copies them into its asset cache, checks the matching
+pack boxes, and refreshes the mission list without contacting the network.
+Imported missions are enabled in the pool automatically and show `Imported` in
+the **Source** column.
 
 The ZIP may have Potato's normal `tf/download/...` root or a direct `tf/...`
-root. The launcher reads it in place and installs its contents beneath the
+root. The launcher keeps its own copy and installs its contents beneath the
 dedicated server's `tf/` directory; it does not move, rewrite, or delete the
 source archive.
 
@@ -51,7 +51,8 @@ The `-no-maps.zip` alternatives are deliberately not used: they omit the
 BSP/NAV files required by this catalog.
 
 The mission table has an explicit **Source** column (`Valve`, `Potato Archive`,
-or `Moonlight Archive`), and every start-mission choice has the same source prefix.
+`Moonlight Archive`, or `Imported`), and every start-mission choice has the same
+source prefix.
 This build installs every asset in the selected archives and offers 53
 stock-syntax missions across 19 community maps. The number of compatible
 missions varies by map because missions that require SigMod are not offered:
@@ -101,9 +102,9 @@ names and offer the same 19 portable community maps.
 
 1. Run `dist\tf2ap.exe`.
 2. Open **Settings → Missions**.
-3. Choose the folder for the supported ZIPs and tick both archives for the full
-    set. Press **Download Selected Community Assets**, or press **Use Local
-    Community Assets** if the ZIPs are already in the selected folder.
+3. Tick both archives for the full set and press **Download Selected Community
+   Assets**, or press **Import local assets** and select ZIPs already on your
+   computer.
 4. Choose any available community mission as the start mission.
 5. Tick the community missions wanted in the pool and untick unwanted Valve
    missions. Save.

@@ -412,12 +412,8 @@ func usable(s Settings) error {
 }
 
 /*
-Persist is what saving the settings means, for every interface.
-
-The window and the terminal both do these three things in this order, and they
-each used to do them separately: fill in an RCON password, refuse a run the seed
-could not hold, then write the file. The first was the one that drifted, because
-both dropped the error from NewRconPassword on the floor.
+Persist is what saving settings means: fill in an RCON password, refuse a run
+the seed could not hold, then write the file.
 
 It returns what it wrote rather than what it was given. The password is filled
 in here, so the caller's copy is not what ended up on disk, and handing back the
@@ -512,7 +508,7 @@ func (s Settings) withDefaults() Settings {
 	if s.SrcdsStartMission == "" {
 		s.SrcdsStartMission = startMissionFor(s.SrcdsStartMap, d.SrcdsStartMission)
 	}
-	if mission, known := gamedata.MissionByPopFile(s.SrcdsStartMission); known && !gamedata.IsPlayableMission(mission.ID) {
+	if mission, known := gamedata.MissionByPopFile(s.SrcdsStartMission); !known || !gamedata.IsPlayableMission(mission.ID) {
 		s.SrcdsStartMission = d.SrcdsStartMission
 	}
 	s.SrcdsStartMap = ""
@@ -579,8 +575,10 @@ func withCommunityDefaults(s, defaults Settings) Settings {
 	if s.MvmExcludedMissions == nil {
 		s.MvmExcludedMissions = slices.Clone(defaults.MvmExcludedMissions)
 	}
-	if mission, known := gamedata.MissionByPopFile(s.MvmStartMission); known && !gamedata.IsPlayableMission(mission.ID) {
-		s.MvmStartMission = ""
+	if s.MvmStartMission != "" {
+		if mission, known := gamedata.MissionByPopFile(s.MvmStartMission); !known || !gamedata.IsPlayableMission(mission.ID) {
+			s.MvmStartMission = ""
+		}
 	}
 	return s
 }
