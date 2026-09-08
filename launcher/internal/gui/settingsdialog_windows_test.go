@@ -55,7 +55,12 @@ func testSettings() settings.Settings {
 
 func build(t *testing.T) *settingsDialog {
 	t.Helper()
-	built, err := buildSettingsDialog(nil, testSettings(),
+	return buildWithSettings(t, testSettings())
+}
+
+func buildWithSettings(t *testing.T, s settings.Settings) *settingsDialog {
+	t.Helper()
+	built, err := buildSettingsDialog(nil, s,
 		func(s settings.Settings) (settings.Settings, error) { return s, nil },
 		func() ([]string, error) { return nil, nil },
 		func() error { return nil },
@@ -429,6 +434,56 @@ func TestNumberRowsCarryTheBoundsFormResolved(t *testing.T) {
 	}
 	if checked == 0 {
 		t.Fatal("form declares no number rows, so this checked nothing")
+	}
+}
+
+// A settings file can be valid when it is written and outside today's bounds
+// when it is opened. The clearest case is the mission count: excluding a
+// mission or raising the minimum tier shrinks its dynamic ceiling. walk refuses
+// to create a NumberEdit whose initial value is outside its range, which used
+// to make the Settings button appear to do nothing except log "value out of
+// range". The window must open on the nearest value instead.
+func TestNumberValueClampsSettingsWrittenUnderOlderBounds(t *testing.T) {
+	tests := []struct {
+		name  string
+		field form.Field
+		want  float64
+	}{
+		{"below", form.Field{Value: "1", Low: 10, High: 100}, 10},
+		{"above", form.Field{Value: "30", Low: 1, High: 4}, 4},
+		{"inside", form.Field{Value: "25", Low: 0, High: 100}, 25},
+		{"not a number", form.Field{Value: "old", Low: 10, High: 100}, 10},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if got := numberValue(test.field); got != test.want {
+				t.Errorf("numberValue(%q, %d..%d) = %v, want %v",
+					test.field.Value, test.field.Low, test.field.High, got, test.want)
+			}
+		})
+	}
+}
+
+func TestTheWindowOpensWhenTheMissionCountExceedsTheCurrentPool(t *testing.T) {
+	s := testSettings()
+	s.MvmMissionCount = 1_000_000
+	built := buildWithSettings(t, s)
+
+	field, ok := built.model.Field("run.mission_count")
+	if !ok {
+		t.Fatal("form has no mission-count row")
+	}
+	tab, ok := form.Page(built.model, "Player options")
+	if !ok {
+		t.Fatal("form has no Player options page")
+	}
+	edit, ok := controlFor(t, pageOf(t, built, tab, field), field).(*walk.NumberEdit)
+	if !ok {
+		t.Fatal("mission count is not a number in the window")
+	}
+	if got := int(edit.Value()); got != field.High {
+		t.Errorf("mission count opened at %d, want its current ceiling %d", got, field.High)
 	}
 }
 
