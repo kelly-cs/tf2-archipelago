@@ -55,15 +55,31 @@ func testSettings() settings.Settings {
 
 func build(t *testing.T) *settingsDialog {
 	t.Helper()
-	return buildWithSettings(t, testSettings())
+	return buildDialog(t, testSettings(), false)
 }
 
+// buildWithSettings is build for a settings file of the test's own, which is
+// how a value written under bounds that have since moved gets in front of the
+// window.
 func buildWithSettings(t *testing.T, s settings.Settings) *settingsDialog {
+	t.Helper()
+	return buildDialog(t, s, false)
+}
+
+// buildRunning is build with a say over whether there is a server up, which is
+// what decides whether the tick beside Save can appear at all.
+func buildRunning(t *testing.T, running bool) *settingsDialog {
+	t.Helper()
+	return buildDialog(t, testSettings(), running)
+}
+
+func buildDialog(t *testing.T, s settings.Settings, running bool) *settingsDialog {
 	t.Helper()
 	built, err := buildSettingsDialog(nil, s,
 		func(s settings.Settings) (settings.Settings, error) { return s, nil },
 		func() ([]string, error) { return nil, nil },
 		func() error { return nil },
+		func() bool { return running },
 		func(string, ...any) {},
 	)
 	if err != nil {
@@ -641,6 +657,7 @@ func TestAFailedWriteIsNotReportedAsSaved(t *testing.T) {
 		},
 		func() ([]string, error) { return nil, nil },
 		func() error { return nil },
+		func() bool { return false },
 		func(format string, args ...any) { logged = append(logged, fmt.Sprintf(format, args...)) },
 	)
 	if err != nil {
@@ -705,4 +722,108 @@ func barButton(built *settingsDialog, label string) *walk.PushButton {
 		}
 	}
 	return nil
+}
+
+/*
+	The tick beside Save appears for a change the server has to be brought round
+
+for, and for no other.
+
+apw-vip: saving a mission count restarted the server and changed nothing about
+it, and Likai reported the settings as too aggressive. The tick is the say the
+player gets, and a bot lineup changed between waves is the case it must not
+appear in at all: that save never restarts anything, so offering to would be a
+question with one answer.
+*/
+func TestTheRestartTickAppearsOnlyForASaveThatNeedsOne(t *testing.T) {
+	built := buildRunning(t, true)
+
+	built.refreshRestartBox()
+	if built.restartShown {
+		t.Error("nothing was edited and the window offers to restart")
+	}
+	if !built.restartWanted() {
+		t.Error("a tick nobody was shown reads as a refusal to restart")
+	}
+
+	// The bot lineup, which the mod re-reads: no restart, so no tick.
+	seat := fieldNamed(t, built, "bots.seat.0.class")
+	setChoice(t, built, seat, 1)
+	built.refreshRestartBox()
+	if built.restartShown {
+		t.Error("changing a seat offers a restart the save would not do")
+	}
+
+	// The game port, which the server reads once at startup.
+	port := fieldNamed(t, built, "server.port")
+	edit, ok := controlFor(t, pageOf(t, built, tabOf(t, built, port.ID), port), port).(*walk.NumberEdit)
+	if !ok {
+		t.Fatal("the game port is not a number edit")
+	}
+	if err := edit.SetValue(edit.Value() + 1); err != nil {
+		t.Fatalf("moving the port: %v", err)
+	}
+	built.refreshRestartBox()
+	if !built.restartShown {
+		t.Fatal("the port moved and the window does not offer to restart")
+	}
+
+	// Shown and turned off is the one way to get a save that does not restart.
+	built.restartBox.SetChecked(false)
+	if built.restartWanted() {
+		t.Error("the tick is off and the save would still restart")
+	}
+}
+
+// With no server up there is nothing to restart, so the tick stays away
+// whatever was edited.
+func TestTheRestartTickStaysAwayWithNoServer(t *testing.T) {
+	built := buildRunning(t, false)
+
+	port := fieldNamed(t, built, "server.port")
+	edit, ok := controlFor(t, pageOf(t, built, tabOf(t, built, port.ID), port), port).(*walk.NumberEdit)
+	if !ok {
+		t.Fatal("the game port is not a number edit")
+	}
+	if err := edit.SetValue(edit.Value() + 1); err != nil {
+		t.Fatalf("moving the port: %v", err)
+	}
+	built.refreshRestartBox()
+
+	if built.restartShown {
+		t.Error("the server is not running and the window offers to restart it")
+	}
+}
+
+func fieldNamed(t *testing.T, built *settingsDialog, id string) form.Field {
+	t.Helper()
+	field, ok := built.model.Field(id)
+	if !ok {
+		t.Fatalf("form declares no row %q", id)
+	}
+	return field
+}
+
+func tabOf(t *testing.T, built *settingsDialog, id string) form.Tab {
+	t.Helper()
+	for _, tab := range built.model.Tabs {
+		for _, f := range tab.Fields {
+			if f.ID == id {
+				return tab
+			}
+		}
+	}
+	t.Fatalf("no page holds %q", id)
+	return form.Tab{}
+}
+
+func setChoice(t *testing.T, built *settingsDialog, field form.Field, at int) {
+	t.Helper()
+	box, ok := controlFor(t, pageOf(t, built, tabOf(t, built, field.ID), field), field).(*walk.ComboBox)
+	if !ok {
+		t.Fatalf("%q is not a combo box", field.ID)
+	}
+	if err := box.SetCurrentIndex(at); err != nil {
+		t.Fatalf("choosing on %q: %v", field.ID, err)
+	}
 }

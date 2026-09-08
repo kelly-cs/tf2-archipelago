@@ -31,6 +31,7 @@ import (
 	"github.com/m-this/tf2-archipelago/launcher/internal/installer"
 	"github.com/m-this/tf2-archipelago/launcher/internal/rcon"
 	apruntime "github.com/m-this/tf2-archipelago/launcher/internal/runtime"
+	"github.com/m-this/tf2-archipelago/launcher/internal/saveplan"
 	"github.com/m-this/tf2-archipelago/launcher/internal/session"
 	"github.com/m-this/tf2-archipelago/launcher/internal/settings"
 	"github.com/m-this/tf2-archipelago/launcher/internal/srcdsconfig"
@@ -273,10 +274,17 @@ func (m *model) applySettings(next settings.Settings) tea.Cmd {
 	if !m.supervisor.Running() {
 		return func() tea.Msg { return noticeMsg("settings saved") }
 	}
-	/* A bot team is the one change a running mission takes: the mod re-reads
-	 * its lineup from a convar and its weapons from a file, so the wave carries
-	 * on. Everything else is read once at startup and needs the restart. */
-	if botlive.LiveOnly(before, next) {
+	/* What the running server is owed, which is not always a restart. A bot
+	 * team the mod re-reads; a run shape it never reads at all. The window has
+	 * a tick beside Save for the third case and the terminal does not, so here
+	 * a restart that is needed is a restart that happens. */
+	plan := saveplan.For(before, next)
+	switch {
+	case plan.Quiet():
+		return func() tea.Msg {
+			return noticeMsg("settings saved. The server keeps playing: nothing here changes a run it is already in")
+		}
+	case !plan.Restart:
 		return m.applyTeam(before)
 	}
 	return tea.Sequence(

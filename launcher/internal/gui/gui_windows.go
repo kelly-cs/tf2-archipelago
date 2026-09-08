@@ -26,6 +26,7 @@ import (
 	"github.com/m-this/tf2-archipelago/launcher/internal/installer"
 	"github.com/m-this/tf2-archipelago/launcher/internal/rcon"
 	apruntime "github.com/m-this/tf2-archipelago/launcher/internal/runtime"
+	"github.com/m-this/tf2-archipelago/launcher/internal/saveplan"
 	"github.com/m-this/tf2-archipelago/launcher/internal/session"
 	"github.com/m-this/tf2-archipelago/launcher/internal/settings"
 	"github.com/m-this/tf2-archipelago/launcher/internal/srcdsconfig"
@@ -756,7 +757,8 @@ func (w *window) editSettings() { w.editSettingsOn("") }
 func (w *window) editSettingsOn(tab string) {
 	s := w.supervisor.Settings()
 	w.noteSettingsOpen(true)
-	next, ok, err := runSettingsDialog(w.main, s, settings.Persist, w.repair, w.resetSettings, w.say, tab)
+	done, err := runSettingsDialog(w.main, s, settings.Persist,
+		w.repair, w.resetSettings, w.supervisor.Running, w.say, tab)
 	w.noteSettingsOpen(false)
 
 	/* Whatever the player did with the window, a SourceMod restart it held back
@@ -770,10 +772,11 @@ func (w *window) editSettingsOn(tab string) {
 	}
 	// Cancelled, or Save refused and the player closed the window anyway. Either
 	// way the file on disk is what it was: the dialog writes it, so reaching
-	// here without ok means nothing was written.
-	if !ok {
+	// here without saved means nothing was written.
+	if !done.saved {
 		return
 	}
+	next := done.settings
 	w.supervisor.SetSettings(next)
 	w.writePlayerFile(next)
 	w.refresh()
@@ -786,19 +789,29 @@ func (w *window) editSettingsOn(tab string) {
 		return
 	}
 
-	/* A bot team is the one change the running mission takes: the mod re-reads
-	 * its lineup from a convar and its weapons from a file. Restarting for it
-	 * ended the mission somebody was four waves into, which is what made
-	 * changing a lineup mid-run not worth doing. */
-	if botlive.LiveOnly(s, next) {
+	/* What the running server is owed. A bot team it re-reads from a convar and
+	 * a file, so the wave carries on: restarting for it ended the mission
+	 * somebody was four waves into, which is what made changing a lineup
+	 * mid-run not worth doing. The run shape it never reads at all. Everything
+	 * else reaches it through server.cfg and the command line, both read once
+	 * at startup. */
+	plan := saveplan.For(s, next)
+	if plan.Team {
 		w.applyBotTeam(s)
+	}
+	if !plan.Restart {
+		if plan.Quiet() {
+			w.say("settings saved. The server keeps playing: nothing here changes a run it is already in.")
+		}
 		return
 	}
 
-	// Everything else reaches the game server through server.cfg and the
-	// command line, both of which it reads once at startup. Saving one while
-	// the server runs used to change nothing until the player pressed Restart
-	// themselves, and the log line saying so was easy to miss.
+	/* The player was shown the tick beside Save and turned it off. The settings
+	   are on disk either way; what they asked for is to keep the mission. */
+	if !done.restart {
+		w.say("settings saved. The server is still playing on what it started with: press Restart to apply them.")
+		return
+	}
 	w.mu.Lock()
 	w.sourcemod.drop()
 	w.mu.Unlock()

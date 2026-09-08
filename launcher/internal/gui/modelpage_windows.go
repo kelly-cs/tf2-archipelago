@@ -37,6 +37,20 @@ type windowScreen struct {
 	// cues are the placeholder texts, applied after the window is made rather
 	// than while it is being built. See applyCues.
 	cues []cue
+
+	/* edited is called when a control's value moves, so the dialog can work out
+	   whether Save would now need the server brought round. Nil while the
+	   window is being built, because walk fires a change event for the value a
+	   control is created with. */
+	edited func()
+}
+
+// note tells the dialog a control moved, and does nothing before there is a
+// dialog to tell.
+func (w *windowScreen) note() {
+	if w.edited != nil {
+		w.edited()
+	}
 }
 
 // cue is one placeholder waiting for its edit to exist. The edit is a pointer
@@ -371,6 +385,7 @@ func (w *windowScreen) control(field form.Field, span int) declarative.Widget {
 				declarative.CheckBox{
 					AssignTo: &box, Text: field.Hint,
 					Checked: field.Value == "true", Enabled: !field.Disabled,
+					OnClicked:   w.note,
 					ToolTipText: field.Help,
 				},
 				declarative.HSpacer{},
@@ -396,9 +411,10 @@ func (w *windowScreen) control(field form.Field, span int) declarative.Widget {
 					AssignTo: &edit, Value: numberValue(field),
 					MinValue: float64(field.Low), MaxValue: float64(field.High),
 					Decimals: 0, Enabled: !field.Disabled,
-					MinSize:     declarative.Size{Width: numberWidth},
-					MaxSize:     declarative.Size{Width: numberWidth},
-					ToolTipText: field.Help,
+					MinSize:        declarative.Size{Width: numberWidth},
+					MaxSize:        declarative.Size{Width: numberWidth},
+					OnValueChanged: w.note,
+					ToolTipText:    field.Help,
 				},
 				declarative.HSpacer{},
 			},
@@ -417,7 +433,8 @@ func (w *windowScreen) control(field form.Field, span int) declarative.Widget {
 		return declarative.ComboBox{
 			AssignTo: &box, Model: optionLabels(options),
 			Value: selectedLabel(field), Enabled: !field.Disabled,
-			StretchFactor: 1, ColumnSpan: span, ToolTipText: field.Help,
+			OnCurrentIndexChanged: w.note,
+			StretchFactor:         1, ColumnSpan: span, ToolTipText: field.Help,
 		}
 
 	case form.Password:
@@ -425,7 +442,8 @@ func (w *windowScreen) control(field form.Field, span int) declarative.Widget {
 		w.read(field, func() string { return edit.Text() })
 		return declarative.LineEdit{
 			AssignTo: &edit, Text: field.Value, PasswordMode: true,
-			Enabled: !field.Disabled, ColumnSpan: span, ToolTipText: field.Help,
+			Enabled: !field.Disabled, OnTextChanged: w.note,
+			ColumnSpan: span, ToolTipText: field.Help,
 		}
 
 	case form.Action, form.Confirm:
@@ -451,7 +469,8 @@ func (w *windowScreen) control(field form.Field, span int) declarative.Widget {
 		}
 		line := declarative.LineEdit{
 			AssignTo: &edit, Text: field.Value,
-			Enabled: !field.Disabled, StretchFactor: 1, ToolTipText: field.Help,
+			Enabled: !field.Disabled, OnTextChanged: w.note,
+			StretchFactor: 1, ToolTipText: field.Help,
 		}
 		if !field.Browse {
 			line.ColumnSpan = span

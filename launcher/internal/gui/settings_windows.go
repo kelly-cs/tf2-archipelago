@@ -37,6 +37,7 @@ import (
 	"github.com/m-this/tf2-archipelago/launcher/internal/installer"
 	"github.com/m-this/tf2-archipelago/launcher/internal/roomcheck"
 	apruntime "github.com/m-this/tf2-archipelago/launcher/internal/runtime"
+	"github.com/m-this/tf2-archipelago/launcher/internal/saveplan"
 	"github.com/m-this/tf2-archipelago/launcher/internal/settings"
 	"github.com/m-this/tf2-archipelago/launcher/internal/tailscalefastdl"
 	"github.com/m-this/tf2-archipelago/launcher/internal/winproc"
@@ -51,6 +52,11 @@ const sentenceWidth = 980
 // numberWidth is a number's box: wide enough for five digits and the spinner,
 // and no wider, so the answer sits beside its label.
 const numberWidth = 90
+
+// restartBoxDelay is how long the typing has to stop before the window works
+// out whether Save would need a restart. Long enough that a held key costs one
+// pass over the rows, short enough to have settled before a hand reaches Save.
+const restartBoxDelay = 300 * time.Millisecond
 
 /*
 	settingsDialog is the window built but not yet shown.
@@ -68,6 +74,26 @@ type settingsDialog struct {
 	pool   *poolModel
 	model  form.Model
 
+	// start is the settings the window opened on, which is what a save is
+	// compared against to work out what the running server is owed.
+	start settings.Settings
+
+	// running says whether there is a server to restart at all.
+	running func() bool
+
+	/* restartBox is the tick beside Save, shown only for a save that a running
+	   server would have to be brought round for. A bot lineup changed between
+	   waves is the case it must not appear in: that save never restarts
+	   anything, so a tick offering to is a question with one answer. */
+	restartBox *walk.CheckBox
+	editQueued bool
+
+	/* restartShown is whether the tick is on screen, kept here rather than
+	   asked of the control. Win32 reports a child of a window that has not been
+	   shown as invisible whatever was set on it, and what Save does must not
+	   depend on whether anybody has looked at the window yet. */
+	restartShown bool
+
 	// collect reads every widget back into a state, which is what Save does
 	// and what a test asserts on. persist is the write it then attempts, and
 	// refuse is what it does when either says no.
@@ -82,6 +108,21 @@ type settingsDialog struct {
 	ok    bool
 }
 
+// outcome is what the settings window came back with. A struct rather than
+// three returns, because two bools in a row is a pair of arguments waiting to
+// be swapped.
+type outcome struct {
+	settings settings.Settings
+
+	// saved is whether Save was pressed and the write went through.
+	saved bool
+
+	// restart is whether the player left the tick beside Save on. True when
+	// they never saw it: a restart nobody was offered a say in is the one the
+	// launcher has always done.
+	restart bool
+}
+
 /*
 	runSettingsDialog shows the settings and returns what was saved.
 
@@ -92,20 +133,73 @@ func runSettingsDialog(
 	owner walk.Form, s settings.Settings,
 	persist func(settings.Settings) (settings.Settings, error),
 	repair func() ([]string, error), reset func() error,
+	running func() bool,
 	say func(format string, args ...any), openOn string,
-) (settings.Settings, bool, error) {
-	built, err := buildSettingsDialog(owner, s, persist, repair, reset, say)
+) (outcome, error) {
+	built, err := buildSettingsDialog(owner, s, persist, repair, reset, running, say)
 	if err != nil {
-		return s, false, err
+		return outcome{settings: s}, err
 	}
 	// A button that names what it is about to change opens the page it changes,
 	// by title rather than by index: the pages a beta flag adds move the numbers.
 	showPage(built.tabs, openOn)
+	built.refreshRestartBox()
 
 	if built.dialog.Run() != walk.DlgCmdOK {
-		return s, false, nil
+		return outcome{settings: s}, nil
 	}
-	return built.saved, built.ok, nil
+	return outcome{settings: built.saved, saved: built.ok, restart: built.restartWanted()}, nil
+}
+
+/*
+	restartWanted is whether Save should bring the server round.
+
+Yes unless the player was shown the tick and turned it off. A save that never
+offered the choice restarts, which is what the launcher did before there was a
+tick and is the safe way round: the alternative is a setting that silently does
+not take.
+*/
+func (b *settingsDialog) restartWanted() bool {
+	if b.restartBox == nil || !b.restartShown {
+		return true
+	}
+	return b.restartBox.Checked()
+}
+
+/*
+	refreshRestartBox shows or hides the tick for what is on screen now.
+
+Debounced by noteEdit rather than run per keystroke: collect reads every row
+back through form.Apply, which resolves the specs once per row, and the answer
+only has to be right by the time somebody reaches for Save.
+
+A row that will not parse leaves the tick where it is. Half of a room address is
+not a reason to change what Save is about to do.
+*/
+func (b *settingsDialog) refreshRestartBox() {
+	if b.restartBox == nil {
+		return
+	}
+	next, err := b.collect()
+	if err != nil {
+		return
+	}
+	b.restartShown = b.running() && saveplan.For(b.start, next.Settings).Restart
+	b.restartBox.SetVisible(b.restartShown)
+}
+
+// noteEdit asks for a refresh once the typing stops.
+func (b *settingsDialog) noteEdit() {
+	if b.dialog == nil || b.editQueued {
+		return
+	}
+	b.editQueued = true
+	time.AfterFunc(restartBoxDelay, func() {
+		b.dialog.Synchronize(func() {
+			b.editQueued = false
+			b.refreshRestartBox()
+		})
+	})
 }
 
 /*
@@ -120,6 +214,7 @@ func buildSettingsDialog(
 	owner walk.Form, s settings.Settings,
 	persist func(settings.Settings) (settings.Settings, error),
 	repair func() ([]string, error), reset func() error,
+	running func() bool,
 	say func(format string, args ...any),
 ) (*settingsDialog, error) {
 	var (
@@ -182,7 +277,21 @@ func buildSettingsDialog(
 	}
 	bar = append(bar, declarative.HSpacer{})
 
-	built := &settingsDialog{screen: screen, pool: pool, model: model, collect: collect, persist: persist, saved: s}
+	/* The tick that decides what Save does to a running server, next to Save
+	   because that is the button it is about. Hidden until refreshRestartBox
+	   says the change on screen needs a restart at all. */
+	var restartBox *walk.CheckBox
+	bar = append(bar, declarative.CheckBox{
+		AssignTo: &restartBox, Text: "Restart on save", Checked: true, Visible: false,
+		ToolTipText: "The server reads server.cfg and its command line once, at startup. Off, the settings are saved and the server keeps playing on what it started with until you press Restart.",
+	})
+
+	built := &settingsDialog{
+		screen: screen, pool: pool, model: model,
+		collect: collect, persist: persist,
+		start: s, saved: s, running: running,
+	}
+	screen.edited = built.noteEdit
 
 	err := declarative.Dialog{
 		AssignTo:     &dialog,
@@ -268,7 +377,7 @@ func buildSettingsDialog(
 	if err != nil {
 		return nil, err
 	}
-	built.dialog, built.tabs = dialog, tabs
+	built.dialog, built.tabs, built.restartBox = dialog, tabs, restartBox
 	built.note = func(page, reason string) string { return noteRefusal(tabs, say, page, reason) }
 	screen.applyCues(say)
 

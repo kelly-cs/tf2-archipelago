@@ -43,7 +43,7 @@ not, because a weapon is handed out on the way in and never again.
 func Commands(before, after settings.Settings) []string {
 	var out []string
 	// First, so the player reads it while the mod is still rebuilding the team.
-	if teamMoved(before, after) {
+	if TeamMoved(before, after) {
 		out = append(out, "say "+Announcement)
 	}
 	out = append(out, convars(after)...)
@@ -53,9 +53,10 @@ func Commands(before, after settings.Settings) []string {
 	return out
 }
 
-// teamMoved is whether these two settings ask for a different team at all. A
-// save that changed nothing about the bots has nothing to announce.
-func teamMoved(before, after settings.Settings) bool {
+// TeamMoved is whether these two settings ask for a different team at all. A
+// save that changed nothing about the bots has nothing to announce and nothing
+// to send.
+func TeamMoved(before, after settings.Settings) bool {
 	return !reflect.DeepEqual(teamOf(before), teamOf(after))
 }
 
@@ -101,28 +102,16 @@ func customLoadouts(s settings.Settings) int {
 }
 
 /*
-	LiveOnly is whether the only thing that moved between these two settings is
+	WithoutTeam is these settings with the bot team taken out, so what is left is
 
-the bot team, which is the case the running server does not have to restart for.
+everything the mod does not re-read.
 
-Everything else the launcher writes reaches the game through the command line or
-through server.cfg, and the server reads both once at startup. The bot team is
-the exception: the mod re-reads its lineup from a convar and its weapons from a
-file, so Commands can hand it over without the mission ending.
-
-Written as a comparison of everything else, not of the team: a setting added
-later is not live until somebody says so, which is the safe way round.
+There used to be a LiveOnly here that compared two of these and answered whether
+the bot team was the only thing that moved. saveplan asks a wider question, of
+which that was one answer, and asking it twice in two packages is how the two
+drift apart.
 */
-func LiveOnly(before, after settings.Settings) bool {
-	if reflect.DeepEqual(before, after) {
-		return false
-	}
-	return reflect.DeepEqual(withoutTeam(before), withoutTeam(after))
-}
-
-// withoutTeam is these settings with the bot team taken out, so what is left
-// is everything a restart is still the only way to change.
-func withoutTeam(s settings.Settings) settings.Settings {
+func WithoutTeam(s settings.Settings) settings.Settings {
 	s.SrcdsBotTeamComp = nil
 	s.SrcdsBotSeatLoadouts = nil
 	s.SrcdsBotLoadouts = nil
