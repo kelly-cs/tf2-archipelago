@@ -482,13 +482,24 @@ func (w *windowScreen) read(field form.Field, value func() string) {
 	})
 }
 
-// numberValue is the row's value as a NumberEdit wants it. A row that does not
-// hold a number falls back to the floor rather than to zero, which may be
-// outside the bounds and which walk refuses to display.
+// numberValue is the row's value as a NumberEdit wants it. Saved settings may
+// outlive the bounds they were written under: the mission pool can shrink, and
+// a newer launcher can tighten a fixed bound. walk refuses to create the whole
+// dialog when a NumberEdit starts outside its range, so put a stale value on
+// the nearest bound where the player can see and save it.
+//
+// A row that does not hold a number falls back to the floor rather than to
+// zero, which may itself be outside the bounds.
 func numberValue(field form.Field) float64 {
 	n, err := strconv.Atoi(field.Value)
 	if err != nil {
 		return float64(field.Low)
+	}
+	if n < field.Low {
+		return float64(field.Low)
+	}
+	if n > field.High {
+		return float64(field.High)
 	}
 	return float64(n)
 }
