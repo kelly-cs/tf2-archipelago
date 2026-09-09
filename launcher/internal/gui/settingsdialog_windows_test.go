@@ -338,7 +338,7 @@ func TestTheMissionTableIsThePoolRows(t *testing.T) {
 	}
 
 	// Untick the first playable mission and read it back out of the state.
-	at := slices.IndexFunc(built.pool.rows, func(f form.Field) bool { return !f.Disabled })
+	at := slices.IndexFunc(built.pool.rows, func(r poolRow) bool { return !r.Disabled })
 	if at < 0 {
 		t.Fatal("no mission in the table can be ticked")
 	}
@@ -360,7 +360,7 @@ func TestTheMissionTableIsThePoolRows(t *testing.T) {
 func TestAnUnplayableMissionRefusesTheTick(t *testing.T) {
 	built := build(t)
 
-	at := slices.IndexFunc(built.pool.rows, func(f form.Field) bool { return f.Disabled })
+	at := slices.IndexFunc(built.pool.rows, func(r poolRow) bool { return r.Disabled })
 	if at < 0 {
 		t.Skip("no unplayable mission in this build's tables")
 	}
@@ -825,5 +825,152 @@ func setChoice(t *testing.T, built *settingsDialog, field form.Field, at int) {
 	}
 	if err := box.SetCurrentIndex(at); err != nil {
 		t.Fatalf("choosing on %q: %v", field.ID, err)
+	}
+}
+
+/*
+	The headers sort, and a sort keeps every tick on the mission it was on.
+
+EZKSupernova: the headers look pressable and nothing happens, which with
+eighty-five missions makes finding one a nightmare. The rows and their ticks
+used to be two parallel slices, so this also asks the question that shape could
+not answer: after sorting, is each tick still on its own mission.
+*/
+func TestSortingTheMissionTableKeepsEveryTickOnItsMission(t *testing.T) {
+	built := build(t)
+
+	at := slices.IndexFunc(built.pool.rows, func(r poolRow) bool { return !r.Disabled })
+	if at < 0 {
+		t.Fatal("no mission the launcher can play")
+	}
+	if err := built.pool.SetChecked(at, false); err != nil {
+		t.Fatal(err)
+	}
+	unticked := built.pool.rows[at].ID
+
+	if err := built.pool.Sort(0, walk.SortAscending); err != nil {
+		t.Fatal(err)
+	}
+
+	var names []string
+	for _, row := range built.pool.rows {
+		names = append(names, missionSortKey(row.Label))
+		if row.ID == unticked && row.inPool {
+			t.Error("the tick did not follow its mission through the sort")
+		}
+	}
+	if !slices.IsSorted(names) {
+		t.Error("ascending by mission did not sort the rows")
+	}
+
+	if err := built.pool.Sort(0, walk.SortDescending); err != nil {
+		t.Fatal(err)
+	}
+	var reversed []string
+	for _, row := range built.pool.rows {
+		reversed = append(reversed, missionSortKey(row.Label))
+	}
+	if !slices.IsSortedFunc(reversed, func(a, b string) int { return strings.Compare(b, a) }) {
+		t.Error("descending by mission did not reverse the rows")
+	}
+}
+
+// The archive a mission came from opens its label, and sorting on the label
+// would group by archive. Somebody looking for one mission by name is why the
+// header was pressed.
+func TestMissionsSortByNameAndNotByArchive(t *testing.T) {
+	if got := missionSortKey("[Potato Archive] Void Voyage (mvm_null_b9c)"); got != "void voyage (mvm_null_b9c)" {
+		t.Errorf("sort key = %q", got)
+	}
+	if got := missionSortKey("[Valve] Doe's Drill (mvm_decoy)"); got != "doe's drill (mvm_decoy)" {
+		t.Errorf("sort key = %q", got)
+	}
+}
+
+/*
+	A row the table is told about is a row the table redraws.
+
+The maintainer's report: the lines do not update until you pass the mouse over
+them. The "In the pool" column is read off the tick, and SetChecked wrote it and
+published nothing, so the text kept its old answer until Windows repainted the
+row for its own reasons. A refused tick was worse: the control drew the tick the
+player clicked and the model had not taken it.
+
+walk gives no way to ask a model what it published, so this asks the two things
+that can be asked: the value the column would draw, and that a refused tick
+leaves the row reading as out of the pool.
+*/
+func TestARefusedTickLeavesTheRowReadingAsOutOfThePool(t *testing.T) {
+	built := build(t)
+
+	at := slices.IndexFunc(built.pool.rows, func(r poolRow) bool { return r.Disabled })
+	if at < 0 {
+		t.Skip("no unplayable mission in this build's tables")
+	}
+	if err := built.pool.SetChecked(at, true); err != nil {
+		t.Fatal(err)
+	}
+	if built.pool.Checked(at) {
+		t.Error("an unplayable mission took the tick")
+	}
+	if got, _ := built.pool.Value(at, 1).(string); got != built.pool.rows[at].HintOff {
+		t.Errorf("the In the pool column reads %q, want %q", got, built.pool.rows[at].HintOff)
+	}
+}
+
+// A TableView whose model sorts re-sorts on every row it is told changed, and
+// it passes the column it currently has, which is -1 until a header is pressed.
+// Reordering there rearranges the table under the hand that was ticking a box.
+func TestNoColumnSortLeavesTheRowsWhereTheyAre(t *testing.T) {
+	built := build(t)
+
+	before := make([]string, 0, len(built.pool.rows))
+	for _, row := range built.pool.rows {
+		before = append(before, row.ID)
+	}
+	if err := built.pool.Sort(-1, walk.SortAscending); err != nil {
+		t.Fatal(err)
+	}
+	after := make([]string, 0, len(built.pool.rows))
+	for _, row := range built.pool.rows {
+		after = append(after, row.ID)
+	}
+	if !slices.Equal(before, after) {
+		t.Error("sorting no column reordered the table")
+	}
+}
+
+/*
+	The table opens sorted by mission name.
+
+Not a preference: a TableView asks a Sorter model to sort by its own default
+column as soon as it has one, and nothing here can say "no column" to that. It
+is asserted so that the day it stops being true is a failure here rather than a
+surprise in front of a player.
+*/
+func TestTheMissionTableOpensSortedByMissionName(t *testing.T) {
+	built := build(t)
+
+	var names []string
+	for _, row := range built.pool.rows {
+		names = append(names, missionSortKey(row.Label))
+	}
+	if !slices.IsSorted(names) {
+		t.Error("the table did not open in mission-name order")
+	}
+
+	// And every tick is still on the mission it was declared for.
+	byID := map[string]bool{}
+	for _, tab := range built.model.Tabs {
+		for _, field := range tab.Fields {
+			if strings.HasPrefix(field.ID, poolPrefix) {
+				byID[field.ID] = field.Value == "true"
+			}
+		}
+	}
+	for _, row := range built.pool.rows {
+		if byID[row.ID] != row.inPool {
+			t.Fatalf("%s reads %v and form declared %v", row.ID, row.inPool, byID[row.ID])
+		}
 	}
 }
