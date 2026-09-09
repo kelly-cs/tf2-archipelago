@@ -124,7 +124,7 @@ func TestImportSelectsPackAndMissions(t *testing.T) {
 func TestPageCarriesTheWholeOperationalInterface(t *testing.T) {
 	request := localRequest(http.MethodGet, "/", nil)
 	response := httptest.NewRecorder()
-	newApp(settings.Defaults(), nil).Handler().ServeHTTP(response, request)
+	newApp(settings.Defaults(), nil).localHandler().ServeHTTP(response, request)
 
 	if response.Code != http.StatusOK {
 		t.Fatalf("GET / answered %d", response.Code)
@@ -165,7 +165,7 @@ func TestFilesOpenThroughTheBrowser(t *testing.T) {
 		{"/api/files/install", s.InstallRoot},
 	} {
 		response := httptest.NewRecorder()
-		app.Handler().ServeHTTP(response, localRequest(http.MethodGet, test.path, nil))
+		app.localHandler().ServeHTTP(response, localRequest(http.MethodGet, test.path, nil))
 		if response.Code != http.StatusOK {
 			t.Errorf("GET %s answered %d: %s", test.path, response.Code, response.Body.String())
 		} else if !strings.Contains(response.Body.String(), test.want) {
@@ -174,7 +174,7 @@ func TestFilesOpenThroughTheBrowser(t *testing.T) {
 	}
 
 	response := httptest.NewRecorder()
-	app.Handler().ServeHTTP(response, localRequest(http.MethodGet, "/api/files/install/tf/cfg/server.cfg", nil))
+	app.localHandler().ServeHTTP(response, localRequest(http.MethodGet, "/api/files/install/tf/cfg/server.cfg", nil))
 	if response.Code != http.StatusNotFound {
 		t.Errorf("an unrequested install file answered %d, want 404", response.Code)
 	}
@@ -209,7 +209,7 @@ func TestAnotherOriginCannotPressButtons(t *testing.T) {
 	request := localRequest(http.MethodPost, "/api/server/start", strings.NewReader("{}"))
 	request.Header.Set("Origin", "https://example.com")
 	response := httptest.NewRecorder()
-	newApp(settings.Defaults(), nil).Handler().ServeHTTP(response, request)
+	newApp(settings.Defaults(), nil).localHandler().ServeHTTP(response, request)
 
 	if response.Code != http.StatusForbidden {
 		t.Errorf("cross-origin POST answered %d, want 403", response.Code)
@@ -221,7 +221,7 @@ func TestRebindingHostCannotReachTheLauncher(t *testing.T) {
 	request.Host = "evil.example"
 	request.Header.Set("Origin", "http://evil.example")
 	response := httptest.NewRecorder()
-	newApp(settings.Defaults(), nil).Handler().ServeHTTP(response, request)
+	newApp(settings.Defaults(), nil).localHandler().ServeHTTP(response, request)
 
 	if response.Code != http.StatusForbidden {
 		t.Errorf("rebound Host and Origin answered %d, want 403", response.Code)
@@ -244,7 +244,7 @@ func TestForeignHostCannotReadFiles(t *testing.T) {
 		request.Host = "evil.example"
 		request.Header.Set("Origin", "http://evil.example")
 		response := httptest.NewRecorder()
-		app.Handler().ServeHTTP(response, request)
+		app.localHandler().ServeHTTP(response, request)
 		if response.Code != http.StatusForbidden {
 			t.Errorf("foreign GET %s answered %d, want 403", path, response.Code)
 		}

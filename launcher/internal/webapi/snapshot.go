@@ -89,30 +89,15 @@ func (a *App) Snapshot() Snapshot {
 			sessionState.Missions[i].Source = "Imported"
 		}
 	}
-	var model *form.Model
-	var missionPool []MissionPoolRow
-	restartOnSave := false
-	if a.draft != nil {
-		built := form.Build(*a.draft, a.formEnvLocked())
-		for page := range built.Tabs {
-			for field := range built.Tabs[page].Fields {
-				if built.Tabs[page].Fields[field].Kind == form.Password {
-					built.Tabs[page].Fields[field].Value = ""
-				}
-			}
-		}
-		model = &built
-		missionPool = missionPoolRows(*a.draft, a.community, a.imported)
-		restartOnSave = restartNeeded(running, s, a.draft)
-	}
+	screen := a.screenLocked(running)
 	result := Snapshot{
 		Title:  assets.Title("Mann vs Archipelago"),
 		Status: status, Running: running, Busy: a.busy, Room: room,
 		Join: a.joinLineLocked(), JoinURL: a.joinURLLocked(), Mission: playing,
 		Logs: slices.Clone(a.logs), Session: sessionState,
 		Bots: botlive.Team(s), DrawnBots: botlive.Drawn(s),
-		Form: model, FormPage: a.formPage, Notice: a.notice, NoticeSeq: a.noticeSeq,
-		ItemServer: a.itemServer, MissionPool: missionPool, RestartNeeded: restartOnSave,
+		Form: screen.Form, FormPage: screen.Page, Notice: a.notice, NoticeSeq: a.noticeSeq,
+		ItemServer: a.itemServer, MissionPool: screen.MissionPool, RestartNeeded: screen.RestartNeeded,
 	}
 	if a.fetchErr != nil {
 		result.SessionError = a.fetchErr.Error()
@@ -200,4 +185,46 @@ func (a *App) joinURLLocked() string {
 		return ""
 	}
 	return apruntime.SteamConnectURL(a.settings, a.steamURL)
+}
+
+// Screen is the settings part of one draw: the rows, the page they are on, the
+// mission table beside them and whether saving would restart a running server.
+// A closed settings screen has a nil Form, which is not the same as a Form with
+// no tabs.
+type Screen struct {
+	Form          *form.Model
+	Page          string
+	MissionPool   []MissionPoolRow
+	RestartNeeded bool
+}
+
+// Screen answers what the settings screen holds now. Every settings call
+// answers with one, because a change can move another row's bounds, add and
+// remove rows outright, and move the mission table under them.
+func (a *App) Screen() Screen {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	return a.screenLocked(a.supervisor.Running())
+}
+
+// screenLocked builds it. Passwords are blanked here rather than at the wire,
+// because there is one Screen and every interface reads this one.
+func (a *App) screenLocked(running bool) Screen {
+	if a.draft == nil {
+		return Screen{Page: a.formPage}
+	}
+	built := form.Build(*a.draft, a.formEnvLocked())
+	for page := range built.Tabs {
+		for field := range built.Tabs[page].Fields {
+			if built.Tabs[page].Fields[field].Kind == form.Password {
+				built.Tabs[page].Fields[field].Value = ""
+			}
+		}
+	}
+	return Screen{
+		Form:          &built,
+		Page:          a.formPage,
+		MissionPool:   missionPoolRows(*a.draft, a.community, a.imported),
+		RestartNeeded: restartNeeded(running, a.settings, a.draft),
+	}
 }

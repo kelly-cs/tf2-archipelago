@@ -122,7 +122,7 @@ func writeManualURL(output io.Writer, address string, openErr error) error {
 	return nil
 }
 
-func (a *app) Handler() http.Handler {
+func (a *app) localHandler() http.Handler {
 	return a.handler("127.0.0.1")
 }
 

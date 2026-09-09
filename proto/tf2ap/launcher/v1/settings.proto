@@ -4,6 +4,7 @@ package tf2ap.launcher.v1;
 
 import "buf/validate/validate.proto";
 import "tf2ap/launcher/v1/form.proto";
+import "tf2ap/launcher/v1/launcher.proto";
 
 option go_package = "github.com/m-this/tf2-archipelago/launcher/internal/gen/tf2ap/launcher/v1;launcherv1";
 
@@ -28,9 +29,23 @@ message OpenSettingsRequest {
   string page = 1 [(buf.validate.field).string.max_len = 64];
 }
 
-message OpenSettingsResponse {
+// Screen is what every settings call answers with. Not a Model on its own: a
+// change can move another row's bounds, add and remove rows outright, and move
+// the mission table under them, and a screen that redrew only the row that was
+// touched is the bug the window and the web view each had once.
+message Screen {
+  // The rows, absent when the settings screen is closed. A Model with no tabs
+  // is a screen with nothing on it, which is a different thing.
   Model model = 1;
   string page = 2;
+  repeated MissionPoolRow mission_pool = 3;
+
+  // Saving would restart a running server, so the screen asks first.
+  bool restart_needed = 4;
+}
+
+message OpenSettingsResponse {
+  Screen screen = 1;
 }
 
 message ChangeSettingRequest {
@@ -38,7 +53,7 @@ message ChangeSettingRequest {
 }
 
 message ChangeSettingResponse {
-  Model model = 1;
+  Screen screen = 1;
 }
 
 message DispatchActionRequest {
@@ -49,7 +64,7 @@ message DispatchActionRequest {
 }
 
 message DispatchActionResponse {
-  Model model = 1;
+  Screen screen = 1;
 }
 
 message SaveSettingsRequest {
@@ -64,6 +79,10 @@ message SaveSettingsRequest {
 message SaveSettingsResponse {
   bool saved = 1;
   string refusal = 2;
+
+  // The screen as it stands after the attempt, so a refusal is drawn with the
+  // player's answers still in front of them.
+  Screen screen = 3;
 }
 
 message CancelSettingsRequest {}
