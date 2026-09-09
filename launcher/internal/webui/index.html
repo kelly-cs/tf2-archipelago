@@ -283,7 +283,14 @@
         text-align: center;
         width: 4rem;
       }
-      .pool-table td:nth-child(3) {
+      .pool-table td:nth-child(4) {
+        font-weight: 600;
+      }
+      .pool-sort {
+        padding: 0;
+        border: 0;
+        background: transparent;
+        color: inherit;
         font-weight: 600;
       }
       .pool-table .ready {
@@ -311,7 +318,7 @@
           grid-column: 1;
         }
         .pool-table {
-          min-width: 680px;
+          min-width: 780px;
         }
       }
     </style>
@@ -438,7 +445,8 @@
         formKey = "",
         logsLoaded = false,
         lastLog = "",
-        noticeSeq = 0;
+        noticeSeq = 0,
+        poolSort = { key: "map", direction: 1 };
       function enqueue(request) {
         queue = queue.catch(() => {}).then(request);
         return queue;
@@ -763,13 +771,64 @@
         return row;
       }
 
+      function missionPoolSortValue(mission, field, key) {
+        if (key === "in_pool") return field.value === "true" ? 1 : 0;
+        if (key === "waves") return Number(mission.waves.match(/\d+$/)?.[0]);
+        return mission[key] || "";
+      }
+
+      function sortedMissionPool(fieldsByID) {
+        const rows = (state.mission_pool || [])
+          .map((mission, index) => ({
+            mission,
+            field: fieldsByID.get(mission.field),
+            index,
+          }))
+          .filter((row) => row.field);
+        if (!poolSort.key) return rows;
+        return rows.sort((left, right) => {
+          const a = missionPoolSortValue(
+              left.mission,
+              left.field,
+              poolSort.key,
+            ),
+            b = missionPoolSortValue(
+              right.mission,
+              right.field,
+              poolSort.key,
+            );
+          const order =
+            typeof a === "number"
+              ? a - b
+              : String(a).localeCompare(String(b), undefined, {
+                  numeric: true,
+                  sensitivity: "base",
+                });
+          return order ? order * poolSort.direction : left.index - right.index;
+        });
+      }
+
+      function missionPoolHeader(key, label) {
+        const active = poolSort.key === key;
+        const direction =
+          active && poolSort.direction < 0 ? "descending" : "ascending";
+        const button = el(
+          "button",
+          { class: "pool-sort", type: "button" },
+          label + (active ? (poolSort.direction > 0 ? " ▲" : " ▼") : ""),
+        );
+        button.onclick = () => {
+          if (active) poolSort.direction *= -1;
+          else poolSort = { key, direction: 1 };
+          drawForm(state.form);
+        };
+        return el("th", { "aria-sort": active ? direction : "none" }, button);
+      }
+
       function missionPool(fields) {
         const fieldsByID = new Map(fields.map((field) => [field.id, field]));
         const rows = [];
-        for (const mission of state.mission_pool || []) {
-          const field = fieldsByID.get(mission.field);
-          if (!field) continue;
-
+        for (const { mission, field } of sortedMissionPool(fieldsByID)) {
           const toggle = fieldControl(field);
           const status = el(
             "span",
@@ -784,6 +843,7 @@
               { title: field.help },
               el("td", {}, toggle),
               el("td", {}, mission.source),
+              el("td", {}, mission.map),
               el("td", {}, mission.name),
               el("td", {}, mission.waves),
               el("td", {}, status),
@@ -808,12 +868,13 @@
                 el(
                   "tr",
                   {},
-                  el("th", {}, "In pool"),
-                  el("th", {}, "Source"),
-                  el("th", {}, "Mission name"),
-                  el("th", {}, "Wave #s"),
-                  el("th", {}, "Compatibility status"),
-                  el("th", {}, "Mods"),
+                  missionPoolHeader("in_pool", "In pool"),
+                  missionPoolHeader("source", "Source"),
+                  missionPoolHeader("map", "Map"),
+                  missionPoolHeader("name", "Mission name"),
+                  missionPoolHeader("waves", "Wave #s"),
+                  missionPoolHeader("compatibility", "Compatibility status"),
+                  missionPoolHeader("mods", "Mods"),
                 ),
               ),
               el("tbody", {}, ...rows),
