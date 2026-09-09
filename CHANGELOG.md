@@ -7,9 +7,10 @@ in the release notes, so this file is the only place to write it.
 ## v1.12.0
 
 Traps, a medal on every mission clear, a Grappling Hook the multiworld can hand
-you, maps that download over HTTP, and a long pass over the weapon buffs from
-Cowser's sheet and kelly-cs's issues. Bots at 2.52.3. The settings screen says
-what it did with a Save, and where it put the file.
+you, maps that download over HTTP, thirty more community missions, and a long
+pass over the weapon buffs from Cowser's sheet and kelly-cs's issues. Bots at
+2.52.3. The settings screen says what it did with a Save and where it put the
+file, and a save stops ending the mission you are four waves into.
 
 ### The run
 
@@ -28,6 +29,13 @@ what it did with a Save, and where it put the file.
   useful, never progression: no wave needs it.
 - A `community_missions` option keeps every community mission out of a run in
   one line, instead of naming each in `excluded_missions`.
+- Thirty community missions that play on a Valve map are on the lists. Every
+  mission in the catalogue named one of its own community maps, so Moonlight's
+  Trouble in Mann Town on Coaltown and Manntenance on Mannworks were in the
+  downloaded assets and on no list. They need their pack for the population
+  file and nothing else. A run that keeps every mission draws from 112 at the
+  normal floor instead of 82, and the defaults do not move: community missions
+  still start excluded. Reported by Glitch.
 - Community missions can name a server mod they need. The Docker image carries
   SigMod and loads it with `SRCDS_MODS=sigsegv-mvm`; the seed's `server_mods`
   option draws those missions only for a server that has it. The Windows
@@ -117,6 +125,13 @@ what it did with a Save, and where it put the file.
   scales the effect bar, which is a different meter, so it never reached it.
 - The Flying Guillotine no longer draws clip size, reserve ammo or reload speed.
   It recharges, so it holds no rounds for any of them to act on.
+- A server where no buff applies at all says why in its log. The plugin hangs
+  the buffs off an attribute provider it attaches through VScript, because
+  TF2Utils' equip offset is stale on current Windows TF2, and a server with no
+  VScript VM refuses that input. The refusal was dropped and came back a step
+  later as the provider not providing attributes, which is a symptom no debug
+  bundle could explain. Nine of those lines in four minutes sat behind Likai's
+  screenshot.
 
 ### Balancing
 
@@ -198,9 +213,40 @@ what it did with a Save, and where it put the file.
   it: Sirknobbles reported changing the bot team as restarting the server, but
   only when the window had been open long enough. A save that restarts anyway
   loads the new gamedata itself.
+- A save restarts the server only for a setting the server reads at startup.
+  Saving a mission count ended the mission the team was four waves into and
+  brought the server back exactly as it was. A **Restart on save** tick sits
+  beside Save and shows only when what is on screen would need one, never with
+  the server down, so a lineup changed between waves costs the run nothing.
+  Reported by Likai.
+- A run of nothing but community missions has missions again. The community
+  switch was absent from every settings file written before the option existed,
+  so it loaded as off, and no screen had a row to turn it back on once it was
+  the field that empties the pool. It has one on the Missions page, and a
+  community mission's Compatibility column reads "community missions are off"
+  while the switch is, so the table stops looking full over an empty pool.
+  Reported by Peppy.
+- A run selection the launcher refuses is reported as refused. The button
+  dropped the error naming the empty pool and printed "Selection is valid: 0
+  eligible mission(s) provide 0 checks for 0 unlocks" over it. From Peppy's
+  screenshot.
+- The mission table sorts on its headers, and a row it was told about redraws.
+  The "In the pool" column kept its old answer until the mouse passed over the
+  line, and a tick the launcher had refused was drawn as taken. The headers
+  looked pressable and did nothing, which with eighty-five missions makes
+  finding one a nightmare. The table opens sorted by mission name. Reported by
+  EZKSupernova.
+- The settings window opens on a number saved outside the bounds it has now.
+  The mission pool can shrink under a count already saved, and the window
+  refuses to build at all for one number box starting outside its range, so
+  nothing opened. The stale value sits on the nearest bound, where you can see
+  it and save it. By kelly-cs.
 - Terminal tabs that list more than fits scroll, and the last line counts what
   is off the screen. The Unlocks and Bot Switcher lists were cut at the body
   height and said nothing about the rest.
+- `-web` opts into an experimental browser interface, the same screens on
+  Windows and Linux, served on loopback by the launcher itself. The window and
+  the terminal interface stay the defaults until a later cutover. By kelly-cs.
 
 ### The bots
 
