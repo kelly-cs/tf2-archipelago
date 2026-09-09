@@ -1,0 +1,115 @@
+syntax = "proto3";
+
+package tf2ap.launcher.v1;
+
+import "buf/validate/validate.proto";
+
+option go_package = "github.com/m-this/tf2-archipelago/launcher/internal/gen/tf2ap/launcher/v1;launcherv1";
+
+// Kind is what an interface has to draw. One value per form.Kind, in the same
+// order; TestProtoKindsMatchFormKinds in launcher/internal/form fails when the
+// two drift, so adding a Kind cannot silently reach the browser as a Text row.
+enum Kind {
+  KIND_UNSPECIFIED = 0;
+  // A line: a folder, a server name, a room address.
+  KIND_TEXT = 1;
+  // A line that is never shown back, only replaced.
+  KIND_PASSWORD = 2;
+  // A whole number with a floor and a ceiling.
+  KIND_NUMBER = 3;
+  // Yes or no.
+  KIND_TOGGLE = 4;
+  // One of Field.options.
+  KIND_CHOICE = 5;
+  // A button. It carries no value, only what pressing it does.
+  KIND_ACTION = 6;
+  // An action that cannot be taken back, so the browser asks first.
+  KIND_CONFIRM = 7;
+}
+
+// Option is one answer of a KIND_CHOICE: the value that is saved, and the line
+// the player reads.
+message Option {
+  string value = 1;
+  string label = 2;
+}
+
+// Field is one row, resolved for the settings it was built from. Every answer
+// a Spec closure would have given is already a value here: bounds that depend
+// on another setting are numbers, a row a missing asset pack makes unusable is
+// already disabled with its reason, and a button is an id the caller
+// dispatches. The renderer never needs a second source.
+message Field {
+  string id = 1;
+  Kind kind = 2;
+  string label = 3;
+  string help = 4;
+
+  // The section of the page this row is in, and whether the action is about
+  // the whole window rather than about this page. Both are placement an
+  // interface may use or ignore.
+  string group = 5;
+  bool bar = 6;
+
+  // Every kind carries its value as text, including numbers and toggles: it is
+  // what an <input> hands back anyway, and Apply is the one place that turns it
+  // into an int or a bool. Empty for KIND_ACTION and KIND_CONFIRM.
+  string value = 7;
+
+  // What a blank text row means, spelled out. Not a default: the setting stays
+  // empty and the launcher works the value out at run time.
+  string placeholder = 8;
+
+  // The bounds of a KIND_NUMBER, resolved: the mission count's ceiling is
+  // however many missions the chosen tier leaves.
+  int32 low = 9;
+  int32 high = 10;
+
+  repeated Option options = 11;
+
+  // What a toggle says beside the tick, and what a confirm says while it asks.
+  string hint = 12;
+  string warning = 13;
+
+  // What a toggle says when it is not ticked, where that is worth a different
+  // word. Empty means hint either way, which is most of them.
+  string hint_off = 14;
+
+  // A text row naming a folder, so an interface with a picker offers one.
+  bool browse = 15;
+
+  // A row whose value is parsed rather than stored, so an interface keeps what
+  // was typed while it is still half an answer.
+  bool deferred = 16;
+
+  // A row the player can see and cannot use, with the reason. Hiding it would
+  // leave them looking for a setting the documentation says exists.
+  bool disabled = 17;
+  string reason = 18;
+}
+
+// Tab is one page of rows. Intro is the paragraph above them, for a page whose
+// rows do not explain themselves.
+message Tab {
+  string title = 1;
+  string intro = 2;
+
+  // The page this one is a section of, empty for a top-level page.
+  string under = 3;
+  repeated Field fields = 4;
+}
+
+// Model is the whole screen for one set of settings.
+message Model {
+  repeated Tab tabs = 1;
+}
+
+// Change is one answer: a keystroke, a click or a call. Value is text for the
+// same reason Field.value is.
+message Change {
+  string field = 1 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 128
+  }];
+  string value = 2 [(buf.validate.field).string.max_len = 4096];
+}

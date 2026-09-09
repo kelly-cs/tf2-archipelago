@@ -1,0 +1,48 @@
+syntax = "proto3";
+
+package tf2ap.launcher.v1;
+
+import "buf/validate/validate.proto";
+
+option go_package = "github.com/m-this/tf2-archipelago/launcher/internal/gen/tf2ap/launcher/v1;launcherv1";
+
+// FilesService is the four Show buttons and the debug bundle. Showing a file is
+// Go-side work because a browser cannot open a folder; the bundle is a download
+// because the player has to attach it somewhere.
+service FilesService {
+  rpc ShowFile(ShowFileRequest) returns (ShowFileResponse);
+  rpc DownloadDebugBundle(DownloadDebugBundleRequest) returns (stream DownloadDebugBundleResponse);
+}
+
+// FileTarget is what a Show button points at. The player file and the seed are
+// produced on demand; the other two already exist.
+enum FileTarget {
+  FILE_TARGET_UNSPECIFIED = 0;
+  FILE_TARGET_SETTINGS_FILE = 1;
+  FILE_TARGET_PLAYER_FILE = 2;
+  FILE_TARGET_INSTALL_ROOT = 3;
+  FILE_TARGET_GENERATED_SEED = 4;
+}
+
+message ShowFileRequest {
+  FileTarget target = 1 [(buf.validate.field).enum = {
+    defined_only: true
+    not_in: [0]
+  }];
+}
+
+// ShowFileResponse names what was opened, so the screen can say the path when
+// the desktop has no handler for it.
+message ShowFileResponse {
+  string path = 1;
+}
+
+message DownloadDebugBundleRequest {}
+
+// DownloadDebugBundleResponse is one chunk of the zip. The first message of the
+// stream carries the filename and no bytes; every message after it carries
+// bytes and no filename.
+message DownloadDebugBundleResponse {
+  string filename = 1;
+  bytes chunk = 2;
+}
