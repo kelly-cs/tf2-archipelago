@@ -280,7 +280,7 @@ func (a *app) serveEvents(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("X-Accel-Buffering", "no")
-	events, done := a.Subscribe()
+	listener, done := a.Subscribe()
 	defer done()
 	_, _ = fmt.Fprint(w, "event: state\ndata: {}\n\n")
 	flusher.Flush()
@@ -288,7 +288,7 @@ func (a *app) serveEvents(w http.ResponseWriter, r *http.Request) {
 		select {
 		case <-r.Context().Done():
 			return
-		case message := <-events:
+		case message := <-listener.Events():
 			data, err := json.Marshal(message.Data)
 			if err != nil {
 				continue

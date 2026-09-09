@@ -34,6 +34,7 @@ func (a *App) Handler(authority string) http.Handler {
 		launcherv1connect.SettingsServiceName,
 		launcherv1connect.FilesServiceName,
 	)))
+	mux.HandleFunc("GET /ws", a.serveStream(authority))
 	mux.Handle("/", spa.Handler())
 
 	return guard(authority, mux)

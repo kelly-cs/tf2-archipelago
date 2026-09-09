@@ -20,6 +20,7 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/m-this/tf2-archipelago/launcher/internal/form"
@@ -36,9 +37,9 @@ const (
 	linesMax     = 20000
 	sessionEvery = 5 * time.Second
 
-	// subscriberQueue is how far one interface may fall behind before its
+	// listenerQueue is how far one interface may fall behind before its
 	// events start being dropped rather than buffered.
-	subscriberQueue = 128
+	listenerQueue = 128
 )
 
 type Event struct {
@@ -71,19 +72,19 @@ type App struct {
 	itemServer string
 	logFile    *os.File
 
-	subscribers map[chan Event]struct{}
-	quit        chan struct{}
-	quitOnce    sync.Once
+	listeners map[*Listener]struct{}
+	quit      chan struct{}
+	quitOnce  sync.Once
 }
 
 func New(s settings.Settings, logger *slog.Logger) *App {
 	community := availableCommunityPackNames(s.CommunityContentDir)
 	a := &App{
-		settings:    s,
-		community:   community,
-		imported:    importedCommunityPackNames(s.CommunityContentDir, community),
-		subscribers: make(map[chan Event]struct{}),
-		quit:        make(chan struct{}),
+		settings:  s,
+		community: community,
+		imported:  importedCommunityPackNames(s.CommunityContentDir, community),
+		listeners: make(map[*Listener]struct{}),
+		quit:      make(chan struct{}),
 	}
 	a.supervisor = apruntime.NewSupervisor(s, logger, a.append)
 	return a
@@ -149,11 +150,16 @@ func (a *App) publishState() {
 	a.mu.Unlock()
 }
 
+// publishLocked hands one event to every interface listening. A queue that is
+// full is not waited on: the launcher must not stall because a browser stopped
+// reading. The Listener is marked behind instead, and reads the whole state
+// again once it catches up, so dropping an event never leaves a stale screen.
 func (a *App) publishLocked(message Event) {
-	for subscriber := range a.subscribers {
+	for listener := range a.listeners {
 		select {
-		case subscriber <- message:
+		case listener.events <- message:
 		default:
+			listener.behind.Store(true)
 		}
 	}
 }
@@ -299,18 +305,31 @@ func (a *App) LogTo(file *os.File) {
 	a.mu.Unlock()
 }
 
-// Subscribe returns the stream of events and the func that ends it. The channel
-// is buffered and a publish that would block is dropped: a browser that stopped
-// reading is a browser that gets the next snapshot instead of one that stalls
-// the launcher. Call the returned func when done, once.
-func (a *App) Subscribe() (<-chan Event, func()) {
-	channel := make(chan Event, subscriberQueue)
+// Listener is one interface listening. behind says the launcher had to drop
+// an event for it, which is a promise to read everything again rather than an
+// event lost.
+type Listener struct {
+	events chan Event
+	behind atomic.Bool
+}
+
+// Subscribe returns one listener and the func that ends it. Call the func once,
+// when done.
+func (a *App) Subscribe() (*Listener, func()) {
+	listener := &Listener{events: make(chan Event, listenerQueue)}
 	a.mu.Lock()
-	a.subscribers[channel] = struct{}{}
+	a.listeners[listener] = struct{}{}
 	a.mu.Unlock()
-	return channel, func() {
+	return listener, func() {
 		a.mu.Lock()
-		delete(a.subscribers, channel)
+		delete(a.listeners, listener)
 		a.mu.Unlock()
 	}
 }
+
+// Events is what the listener has been handed and has not read yet.
+func (s *Listener) Events() <-chan Event { return s.events }
+
+// Behind reports and clears whether the launcher had to drop an event. A
+// listener that sees true owes itself a whole snapshot.
+func (s *Listener) Behind() bool { return s.behind.Swap(false) }
