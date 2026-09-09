@@ -231,6 +231,18 @@ func missionSpecs(env Env) []Spec {
 		packSpec("missions.moonlight", "Moonlight Archive", settings.CommunityPackMoonlight,
 			"Select mlarchive-assets.zip for the explicit download action and for installation when the local ZIP is valid."),
 
+		/* The generator's own switch for community missions, which is a
+		   different question from which packs to install: the packs put the
+		   files on disk, this decides whether a seed may draw one at all. It
+		   had no row, so a settings file that said no could not be talked out
+		   of it, and the pool it emptied looked full because the table below
+		   reads only the ticks. */
+		toggle("missions.community", tab, "Community missions",
+			"Whether a seed may draw a community mission at all. Off, the run is Valve's missions however many are ticked below.",
+			"let the seed draw them",
+			func(s State) bool { return s.Settings.MvmCommunityMissions },
+			func(s State, v bool) State { s.Settings.MvmCommunityMissions = v; return s }),
+
 		press("missions.download_packs", tab, "Download Selected Community Assets",
 			"Download only the checked full-with-maps community packs. Start never downloads community content."),
 		press("missions.import_assets", tab, "Import local assets",
@@ -334,6 +346,18 @@ func poolSpec(mission gamedata.Mission) Spec {
 		short := strings.ToLower(gamedata.RequirementLabel(gamedata.MissionRequirement(mission.ID)))
 		spec.Help = why
 		spec.Unavailable = func(State, Env) string { return short }
+		return spec
+	}
+	/* A ticked community mission the switch above will not let the seed draw.
+	   The tick is not wrong and neither is the pack, so the row says which
+	   switch is in the way rather than being hidden or quietly refused. */
+	if gamedata.IsCommunityMission(mission.ID) {
+		spec.Unavailable = func(s State, _ Env) string {
+			if s.Settings.MvmCommunityMissions {
+				return ""
+			}
+			return "community missions are off"
+		}
 	}
 	return spec
 }

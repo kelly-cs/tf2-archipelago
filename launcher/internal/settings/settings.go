@@ -352,6 +352,7 @@ func (s Settings) withAppearanceDefaults(data []byte) Settings {
 		WeaponBuffPct         *int  `json:"mvm_weapon_buff_percentage"`
 		WeaponBuffStackChance *int  `json:"mvm_weapon_buff_stack_chance"`
 		TrapPct               *int  `json:"mvm_trap_percentage"`
+		CommunityMissions     *bool `json:"mvm_community_missions"`
 	}
 	// A file that parsed once parses again; anything else has already been
 	// reported by the caller.
@@ -373,6 +374,13 @@ func (s Settings) withAppearanceDefaults(data []byte) Settings {
 	}
 	if said.TrapPct == nil {
 		s.MvmTrapPct = d.MvmTrapPct
+	}
+	/* A file written before this option existed loads it as off, and off means
+	   the generator draws no community mission at all. That was invisible until
+	   the pool started counting the way the generator counts, and then it was a
+	   player with every community mission ticked and a run of nothing. */
+	if said.CommunityMissions == nil {
+		s.MvmCommunityMissions = d.MvmCommunityMissions
 	}
 	return s
 }

@@ -34,13 +34,12 @@ var notOnAPage = map[string]string{
 	"CommunityContentDir": "the browser imports into the launcher's internal asset cache; old files may still override its location",
 	"SrcdsStartMission": "written by the start mission row on the Missions page, which owns both this " +
 		"and MvmStartMission so the seed and the server cannot disagree",
-	"SrcdsStartMap":        "read from files written before 1.3 and never written again",
-	"SrcdsLanLegacy":       "the srcds_lan boolean SrcdsReach replaced, read once and never written",
-	"MvmCommunityMissions": "superseded by CommunityPacks, which names the packs rather than a yes or no",
-	"SrcdsBotTeamPresets":  "written by the save and remove team buttons, not by a row",
-	"APHost":               "written by the room address row, which parses one line into three fields",
-	"APPort":               "written by the room address row",
-	"APTls":                "written by the room address row",
+	"SrcdsStartMap":       "read from files written before 1.3 and never written again",
+	"SrcdsLanLegacy":      "the srcds_lan boolean SrcdsReach replaced, read once and never written",
+	"SrcdsBotTeamPresets": "written by the save and remove team buttons, not by a row",
+	"APHost":              "written by the room address row, which parses one line into three fields",
+	"APPort":              "written by the room address row",
+	"APTls":               "written by the room address row",
 	"MetricsPort": "the launcher's own metrics listener, on a fixed port. No interface has ever " +
 		"offered it and nothing has asked for one; it is here to be changed in the file.",
 }
