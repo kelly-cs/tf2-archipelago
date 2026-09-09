@@ -1,0 +1,45 @@
+/* ==========================================================================
+   Design tokens — single source of truth.
+   Runtime, themeable values are CSS custom properties, emitted once into
+   :root by the global stylesheet (`@include tokens.root`). Components read
+   them ambiently as `var(--x)`; nothing is re-emitted on `@use`, so importing
+   this partial costs zero bytes until you reference something from it.
+   Breakpoints stay SCSS-only: a media query condition cannot read a custom
+   property, so they are exposed as values plus the `respond()` mixin.
+
+   The values below are placeholders. apw-srw.17 replaces them with the Admin
+   Console palette, type scale and spacing.
+   ========================================================================== */
+
+@use 'sass:map';
+
+$breakpoints: (
+  'sm': 640px,
+  'md': 768px,
+  'lg': 1024px,
+);
+
+@mixin respond($name) {
+  @media (min-width: map.get($breakpoints, $name)) {
+    @content;
+  }
+}
+
+@mixin root {
+  :root {
+    --color-bg: #ffffff;
+    --color-fg: #111111;
+    --color-accent: #2563eb;
+    --color-muted: #6b7280;
+
+    --radius: 6px;
+    --spacing: 1rem;
+
+    font-family:
+      system-ui,
+      -apple-system,
+      'Segoe UI',
+      Roboto,
+      sans-serif;
+  }
+}

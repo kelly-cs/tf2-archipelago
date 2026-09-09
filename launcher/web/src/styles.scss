@@ -1,0 +1,17 @@
+/* ==========================================================================
+   Global stylesheet entry point.
+   Composes the importable partials under src/styles/. Tokens and animations
+   are pure (they emit nothing on @use); the runtime :root tokens and the
+   app-wide keyframes are emitted here, exactly once. Components pull
+   individual pieces a la carte, e.g. `@use 'animations' as anim;
+   @include anim.fade-in;` — `stylePreprocessorOptions.includePaths` in
+   angular.json lets both this entry and inline component styles resolve the
+   bare `@use 'tokens'` / `@use 'animations'` names.
+   ========================================================================== */
+
+@use 'tokens';
+@use 'animations';
+@use 'base';
+
+@include tokens.root;
+@include animations.global;

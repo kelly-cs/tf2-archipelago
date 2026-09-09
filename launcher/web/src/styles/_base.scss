@@ -1,0 +1,13 @@
+/* ==========================================================================
+   Base — element defaults. Emitted once by the global stylesheet; references
+   tokens ambiently via var(--x). Keep tokens and animations pure: anything
+   that emits CSS belongs here or in a component.
+   ========================================================================== */
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--color-bg);
+  color: var(--color-fg);
+}

@@ -1,0 +1,43 @@
+/* ==========================================================================
+   Animations — each keyframe is a mixin, so a stylesheet pulls in only the
+   ones it uses (`@include animations.fade-in`) with no other CSS emitted.
+   The app-wide set ships once via `@include animations.global`. Keyframe
+   names are not scoped by Angular's emulated encapsulation, so a component can
+   also reference a global name by string without including it.
+   ========================================================================== */
+
+@mixin fade-in {
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+}
+
+@mixin spin {
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+}
+
+@mixin reduced-motion-guard {
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@mixin global {
+  @include fade-in;
+  @include spin;
+  @include reduced-motion-guard;
+}
