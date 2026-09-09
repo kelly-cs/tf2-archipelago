@@ -88,6 +88,7 @@ type Snapshot struct {
 type MissionPoolRow struct {
 	Field         string `json:"field"`
 	Source        string `json:"source"`
+	Map           string `json:"map"`
 	Name          string `json:"name"`
 	Waves         string `json:"waves"`
 	Compatibility string `json:"compatibility"`
@@ -482,6 +483,7 @@ func missionPoolRows(s form.State, availablePacks, importedPacks []string) []Mis
 	missions := runshape.VisibleMissions(availablePacks)
 	rows := make([]MissionPoolRow, 0, len(missions))
 	for _, mission := range missions {
+		played, _ := gamedata.MapByID(mission.Map)
 		compatibility := gamedata.RequirementLabel(gamedata.MissionRequirement(mission.ID))
 		if gamedata.IsPlayableMission(mission.ID) {
 			compatibility = "Ready"
@@ -500,6 +502,7 @@ func missionPoolRows(s form.State, availablePacks, importedPacks []string) []Mis
 		rows = append(rows, MissionPoolRow{
 			Field:         "missions.pool." + mission.PopFile,
 			Source:        missionSource(mission, importedPacks),
+			Map:           played.Name,
 			Name:          mission.Name,
 			Waves:         fmt.Sprintf("1–%d", mission.Waves),
 			Compatibility: compatibility,

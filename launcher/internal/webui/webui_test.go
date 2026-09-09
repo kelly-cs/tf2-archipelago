@@ -63,7 +63,7 @@ func TestMissionPoolRowsCarryTableMetadata(t *testing.T) {
 		t.Fatal("the mission pool table is empty")
 	}
 	row := rows[0]
-	if row.Field == "" || row.Source == "" || row.Name == "" || row.Waves == "" ||
+	if row.Field == "" || row.Source == "" || row.Map == "" || row.Name == "" || row.Waves == "" ||
 		row.Compatibility == "" || row.Mods == "" {
 		t.Fatalf("mission pool row has an empty column: %+v", row)
 	}
@@ -166,7 +166,8 @@ func TestPageCarriesTheWholeOperationalInterface(t *testing.T) {
 	}
 	for _, want := range []string{
 		"EventSource", "Start", "Restart", "Join", "Settings", "rcon", "Send", "Quit",
-		"Source", "Mission name", "Wave #s", "Compatibility status", "Mods",
+		"Source", "Map", "Mission name", "Wave #s", "Compatibility status", "Mods",
+		"missionPoolHeader", "aria-sort",
 		"state.join_url",
 	} {
 		if !strings.Contains(response.Body.String(), want) {
