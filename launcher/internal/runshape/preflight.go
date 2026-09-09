@@ -28,8 +28,18 @@ type Preflight struct {
 	RequiredUnlocks int
 }
 
-// Summary is suitable for a launcher status line after a successful check.
+/*
+	Summary is suitable for a launcher status line after a successful check.
+
+A report with nothing in it is not one: CheckSelection returns the zero value
+beside every error it gives, so a caller that drops the error and prints this
+used to say a pool of no missions was valid. Saying so here as well, because an
+invariant that lives only in the callers is one line from being untrue.
+*/
 func (p Preflight) Summary() string {
+	if p.Eligible == 0 {
+		return "This selection has no missions in it. Check the difficulty floor, the mission pool and whether community missions are on."
+	}
 	message := fmt.Sprintf(
 		"Selection is valid: %d eligible mission(s) provide %d checks for %d unlocks.",
 		p.Eligible, p.AvailableChecks, p.RequiredUnlocks,

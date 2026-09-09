@@ -448,7 +448,15 @@ func checkRunSelection(owner walk.Form, collect func() (settings.Settings, error
 		walk.MsgBox(owner, "Archipelago run selection", err.Error(), walk.MsgBoxIconWarning)
 		return
 	}
-	result, _ := settings.CheckRunSelection(next)
+	/* The refusal is the one thing this button exists to find out. It used to be
+	   dropped, and a refused selection came back as the zero Preflight, whose
+	   Summary opened with "Selection is valid" and named nothing: a player with
+	   an empty pool was told it was fine and given four zeroes. */
+	result, err := settings.CheckRunSelection(next)
+	if err != nil {
+		walk.MsgBox(owner, "Archipelago run selection", err.Error(), walk.MsgBoxIconWarning)
+		return
+	}
 	walk.MsgBox(owner, "Archipelago run selection", result.Summary(), walk.MsgBoxIconInformation)
 }
 
