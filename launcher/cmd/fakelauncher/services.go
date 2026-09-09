@@ -3,6 +3,9 @@ package main
 import (
 	"context"
 	"errors"
+	"os"
+	"path/filepath"
+	"slices"
 
 	"connectrpc.com/connect"
 
@@ -166,3 +169,31 @@ func (s filesRPC) DownloadDebugBundle(_ context.Context, _ *connect.Request[laun
 }
 
 var _ = settings.Defaults
+
+// ListFolder reads the machine it runs on, like the real one. The browser tests
+// only ask that Up and a child move, which any folder can show.
+func (s filesRPC) ListFolder(_ context.Context, request *connect.Request[launcherv1.ListFolderRequest]) (*connect.Response[launcherv1.ListFolderResponse], error) {
+	path := request.Msg.GetPath()
+	if path == "" {
+		path = "/"
+	}
+	path = filepath.Clean(path)
+	answer := &launcherv1.ListFolderResponse{Path: path}
+	if parent := filepath.Dir(path); parent != path {
+		answer.Parent = parent
+	}
+	entries, err := os.ReadDir(path)
+	if err != nil {
+		// A folder that cannot be read is drawn empty rather than as a failure:
+		// a permission dialog on the way to somewhere else is noise.
+		//nolint:nilerr // An unreadable folder is an empty folder here.
+		return connect.NewResponse(answer), nil
+	}
+	for _, entry := range entries {
+		if entry.IsDir() {
+			answer.Folders = append(answer.Folders, entry.Name())
+		}
+	}
+	slices.Sort(answer.Folders)
+	return connect.NewResponse(answer), nil
+}

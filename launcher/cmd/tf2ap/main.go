@@ -25,16 +25,14 @@ import (
 
 	"github.com/m-this/tf2-archipelago/launcher/internal/assets"
 	"github.com/m-this/tf2-archipelago/launcher/internal/generate"
-	"github.com/m-this/tf2-archipelago/launcher/internal/gui"
 	"github.com/m-this/tf2-archipelago/launcher/internal/installer"
 	"github.com/m-this/tf2-archipelago/launcher/internal/runshape"
 	"github.com/m-this/tf2-archipelago/launcher/internal/runtime"
 	"github.com/m-this/tf2-archipelago/launcher/internal/settings"
 	"github.com/m-this/tf2-archipelago/launcher/internal/srcdsconfig"
 	"github.com/m-this/tf2-archipelago/launcher/internal/tailscalefastdl"
-	"github.com/m-this/tf2-archipelago/launcher/internal/tui"
 	"github.com/m-this/tf2-archipelago/launcher/internal/ui"
-	"github.com/m-this/tf2-archipelago/launcher/internal/webui"
+	"github.com/m-this/tf2-archipelago/launcher/internal/webapi"
 )
 
 const version = "dev"
@@ -64,7 +62,7 @@ func run(logger *slog.Logger) error {
 	roomFlag := flag.String("room", "", "the Archipelago room address, as host:port")
 	yamlFlag := flag.String("yaml", "", "write the Archipelago player file to this path, then exit")
 	envFlag := flag.Bool("env", false, "list the environment variables that override the configuration, then exit")
-	consoleFlag, tuiFlag, webFlag := interfaceFlags()
+	consoleFlag, addressFlag, noBrowserFlag := interfaceFlags()
 	setupFunnelFlag := flag.Bool("setup-funnel", false, "check Tailscale Funnel authorization, then exit")
 	showVersion := flag.Bool("version", false, "print the version and exit")
 	flag.Parse()
@@ -124,24 +122,24 @@ func run(logger *slog.Logger) error {
 		return nil
 	}
 
-	return launchInterface(logger, s, *consoleFlag, *tuiFlag, *webFlag)
+	return launchInterface(logger, s, *consoleFlag, *addressFlag, *noBrowserFlag)
 }
 
-func interfaceFlags() (console, terminal, web *bool) {
+// The launcher has one face and it is a browser. -console is what is left of
+// the others: the log and nothing over it, for Docker, for a server with no
+// desktop, and for anyone who would rather read it in a terminal.
+func interfaceFlags() (console *bool, address *string, noBrowser *bool) {
 	console = flag.Bool("console", false, "print the log and nothing else, with no interface over it")
-	terminal = flag.Bool("tui", false, "the terminal interface, on a platform whose default is the window")
-	web = flag.Bool("web", false, "run the experimental browser interface")
-	return console, terminal, web
+	address = flag.String("addr", "", "serve the interface here instead of 127.0.0.1 on a free port")
+	noBrowser = flag.Bool("no-browser", false, "print the address instead of opening a browser on it")
+	return console, address, noBrowser
 }
 
-func launchInterface(logger *slog.Logger, s settings.Settings, console, terminal, web bool) error {
-	if web {
-		return webui.Run(s, logger)
+func launchInterface(logger *slog.Logger, s settings.Settings, console bool, address string, noBrowser bool) error {
+	if console {
+		return guided(logger, s)
 	}
-	if gui.Available() && !console && !terminal {
-		return gui.Run(s, nil)
-	}
-	return guided(logger, s, !console)
+	return webapi.Run(s, logger, webapi.Options{Address: address, OpenBrowser: !noBrowser})
 }
 
 func printVersion() {
@@ -180,7 +178,7 @@ either the terminal interface or the plain log, which is what -console asks for
 and what a service or a CI job wants: an interface that draws over the whole
 screen writes nothing useful into a file.
 */
-func guided(logger *slog.Logger, s settings.Settings, interactive bool) error {
+func guided(logger *slog.Logger, s settings.Settings) error {
 	// The question comes before the 14 GB, so a player who mistyped the address
 	// finds out in a second rather than after the download.
 	s, err := ensureConfigured(ui.New(), s)
@@ -198,10 +196,6 @@ func guided(logger *slog.Logger, s settings.Settings, interactive bool) error {
 		return err
 	}
 	summary(s)
-
-	if interactive && tui.Available() {
-		return tui.Run(s, logger)
-	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()

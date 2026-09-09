@@ -5,15 +5,18 @@ import {
   inject,
   input,
   linkedSignal,
+  signal,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { applyEach, disabled, form } from '@angular/forms/signals';
-import { Subject, concatMap, debounceTime, groupBy, mergeMap } from 'rxjs';
+import { Subject, concatMap, debounceTime, groupBy, mergeMap, tap } from 'rxjs';
 
 import { MissionTable } from '@app/settings/components/mission-table';
 import { SettingsRow } from '@app/settings/components/settings-row';
+import { SettingsActions } from '@app/settings/settings-actions';
 import { SettingsStore } from '@app/settings/settings-store';
 import { EmptyState } from '@app/ui/empty-state';
+import { Notice } from '@app/ui/notice';
 import { SearchBox } from '@app/ui/search-box';
 import { Field } from '@gen/tf2ap/launcher/v1/form_pb';
 
@@ -51,12 +54,13 @@ interface Row {
 @Component({
   selector: 'app-settings-tab-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [EmptyState, MissionTable, SearchBox, SettingsRow],
+  imports: [EmptyState, MissionTable, Notice, SearchBox, SettingsRow],
   templateUrl: './settings-tab-page.html',
   styleUrl: './settings-tab-page.scss',
 })
 export class SettingsTabPage {
   private readonly store = inject(SettingsStore);
+  private readonly actions = inject(SettingsActions);
 
   readonly settingsTab = input('');
   readonly filter = linkedSignal<string, string>({
@@ -110,6 +114,10 @@ export class SettingsTabPage {
     });
   });
 
+  /** said is the last thing a button answered with: a path opened, a page to
+      visit, a file saved. The launcher says the rest on the stream. */
+  readonly said = signal('');
+
   readonly typed = new Subject<{ id: string; value: string }>();
   readonly fired = new Subject<string>();
 
@@ -132,7 +140,8 @@ export class SettingsTabPage {
 
     this.fired
       .pipe(
-        concatMap((id) => this.store.dispatch(id)),
+        concatMap((id) => this.actions.press(id)),
+        tap((said) => this.said.set(said)),
         takeUntilDestroyed(),
       )
       .subscribe();

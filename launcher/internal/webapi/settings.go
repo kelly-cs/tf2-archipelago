@@ -178,7 +178,7 @@ func (a *App) Dispatch(id string) error {
 	case "missions.download_packs":
 		go a.downloadPacks(s.Settings)
 	case "missions.import_assets":
-		a.Notify("choose the local asset ZIPs in the browser")
+		return a.useLocalPacks(s.Settings.CommunityContentDir)
 	case "server.repair":
 		go a.repair(s.Settings.InstallRoot)
 	case "server.reset":
@@ -346,5 +346,29 @@ func (a *App) resetSettings() error {
 	a.draft = &state
 	a.mu.Unlock()
 	a.Notify("every setting is back to its default")
+	return nil
+}
+
+/*
+useLocalPacks takes the asset packs already sitting in the content folder.
+
+The packs run to gigabytes and they are on the same machine as the launcher, so
+there is nothing to upload: the player points the content folder at where they
+put the zips and this reads what is there. It is what the terminal interface has
+always done. The browser's old multipart upload existed only because a page with
+no folder picker had no other way to name a file.
+*/
+func (a *App) useLocalPacks(folder string) error {
+	if strings.TrimSpace(folder) == "" {
+		return errors.New("choose an asset pack folder first")
+	}
+	available := availableCommunityPackNames(folder)
+	if len(available) == 0 {
+		return fmt.Errorf("no archive-assets.zip or mlarchive-assets.zip was found in %s", folder)
+	}
+	if err := a.AcceptImportedPacks(available); err != nil {
+		return err
+	}
+	a.Notify("using the community packs in " + folder)
 	return nil
 }

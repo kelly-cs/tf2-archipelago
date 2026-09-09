@@ -61,6 +61,18 @@ export class LauncherCommands {
     return from(this.files.showFile({ target }));
   }
 
+  /** debugBundle is a stream of chunks: the first message names the file and
+      the ones after it carry bytes. */
+  debugBundle(): Observable<{ filename: string; chunk: Uint8Array }> {
+    return from(this.files.downloadDebugBundle({}));
+  }
+
+  /** listFolder is what a Browse row picks from: a browser has no file dialog,
+      so the launcher reads the folder and the picker draws it. */
+  listFolder(path: string): Observable<{ path: string; parent: string; folders: string[] }> {
+    return from(this.files.listFolder({ path }));
+  }
+
   /** done drops an empty answer. Every one of these replies carries no fields:
       what the press changed arrives on the stream, not here. */
   private done(call: Promise<object>): Observable<void> {

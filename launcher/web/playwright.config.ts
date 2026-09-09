@@ -26,8 +26,7 @@ export default defineConfig({
   webServer: {
     // The frontend is fenced out of the Go module by launcher/web/go.mod, so
     // the fake is run from the repository root rather than from here.
-    command:
-      `npm run build && cd ../.. && go run ./launcher/cmd/fakelauncher -addr 127.0.0.1:${port}`,
+    command: `npm run build && cd ../.. && go run ./launcher/cmd/fakelauncher -addr 127.0.0.1:${port}`,
     url: `http://127.0.0.1:${port}/`,
     reuseExistingServer: !process.env['CI'],
     timeout: 240_000,

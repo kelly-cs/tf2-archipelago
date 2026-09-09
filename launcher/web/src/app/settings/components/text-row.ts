@@ -1,7 +1,8 @@
-import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
 import { FormField } from '@angular/forms/signals';
 import type { FieldTree } from '@angular/forms/signals';
 
+import { FolderPicker } from '@app/settings/components/folder-picker';
 import { Button } from '@app/ui/button';
 import { Field } from '@gen/tf2ap/launcher/v1/form_pb';
 
@@ -14,7 +15,7 @@ import { Field } from '@gen/tf2ap/launcher/v1/form_pb';
 @Component({
   selector: 'app-text-row',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Button, FormField],
+  imports: [Button, FolderPicker, FormField],
   template: `
     <div class="line">
       <input
@@ -25,19 +26,32 @@ import { Field } from '@gen/tf2ap/launcher/v1/form_pb';
         (input)="typed.emit($any($event.target).value)"
       />
       @if (field().browse) {
-        <app-button size="small" [disabled]="field().disabled" (press)="browse.emit()">
+        <app-button size="small" [disabled]="field().disabled" (press)="picking.set(!picking())">
           Browse
         </app-button>
       }
     </div>
+    @if (picking()) {
+      <app-folder-picker
+        [start]="value()"
+        (chosen)="pick($event)"
+        (dismissed)="picking.set(false)"
+      />
+    }
   `,
   styleUrl: './control.scss',
 })
 export class TextRow {
   readonly field = input.required<Field>();
   readonly control = input.required<FieldTree<string>>();
+  readonly value = input('');
   readonly typed = output<string>();
-  readonly browse = output<void>();
 
+  readonly picking = signal(false);
   readonly deferred = computed(() => this.field().deferred);
+
+  pick(path: string): void {
+    this.picking.set(false);
+    this.typed.emit(path);
+  }
 }

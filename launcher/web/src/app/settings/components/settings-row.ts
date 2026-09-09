@@ -44,8 +44,8 @@ import { Field, Kind } from '@gen/tf2ap/launcher/v1/form_pb';
             <app-text-row
               [field]="field()"
               [control]="control()"
+              [value]="value()"
               (typed)="typed.emit($event)"
-              (browse)="browse.emit(field().id)"
             />
           }
           @case (Kind.PASSWORD) {
@@ -78,7 +78,6 @@ export class SettingsRow {
 
   readonly typed = output<string>();
   readonly fired = output<string>();
-  readonly browse = output<string>();
 
   readonly isButton = computed(
     () => this.field().kind === Kind.ACTION || this.field().kind === Kind.CONFIRM,

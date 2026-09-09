@@ -4,10 +4,13 @@
     "outDir": "./out-tsc/spec",
     "types": [
       "vitest/globals"
-    ]
+    ],
+    "composite": true
   },
   "include": [
     "src/**/*.spec.ts",
-    "src/**/*.ts"
+    "src/**/*.d.ts",
+    "e2e/**/*.ts",
+    "playwright.config.ts"
   ]
 }

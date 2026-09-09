@@ -73,7 +73,6 @@ GOFUMPT := go run mvdan.cc/gofumpt@$(GOFUMPT_VERSION)
 GOLANGCI_LINT := go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
 GOVULNCHECK := go run golang.org/x/vuln/cmd/govulncheck@$(GOVULNCHECK_VERSION)
 RUFF := uv run --quiet --with ruff==$(RUFF_VERSION) ruff
-SHADOW := go run ./launcher/cmd/shadow
 BUF := go run github.com/bufbuild/buf/cmd/buf@$(BUF_VERSION)
 # npm is the one tool of record that is not a Go program, so it runs in a
 # container the way honkit does: nothing is installed on a laptop, and the
@@ -93,8 +92,7 @@ NPM := docker run --rm -u $$(id -u):$$(id -g) \
 GO_SRC := $$(find . -type f -name '*.go' -not -path './deploy/bots/build/*' -not -path './launcher/internal/gen/*' -not -path './launcher/web/*')
 
 .PHONY: help seed up down restart logs ps rcon community-check \
-        check fmt fmt-check vet lint lint-fix fix-check vuln compile test shadows \
-        window-captures \
+        check fmt fmt-check vet lint lint-fix fix-check vuln compile test \
         test-fast export apworld-lint \
 		apworld-fmt apworld-test apworld-build apworld-package plugin bots bots-pin-check bots-from-source \
         integration build docs \
@@ -104,7 +102,7 @@ GO_SRC := $$(find . -type f -name '*.go' -not -path './deploy/bots/build/*' -not
         proto proto-lint proto-fmt proto-deps \
         web-install web-build web-lint web-check \
         web-install-direct web-build-direct web-lint-direct web-check-direct \
-        launcher-linux launcher-assets-linux captures embed-placeholders toolchain gui-test
+        launcher-linux launcher-assets-linux captures embed-placeholders toolchain
 
 help:
 	@echo "tf2-archipelago"
@@ -126,8 +124,6 @@ help:
 	@echo "  make launcher      Cross-compile tf2ap.exe (Windows) into ./dist"
 	@echo "  make launcher-linux Build tf2ap-linux-amd64 into ./dist"
 	@echo "  make captures      Redraw the terminal captures in docs/images"
-	@echo "  make shadows       Drop-shadow the window screenshots in docs/images/raw"
-	@echo "  make window-captures Rephotograph the launcher's window through Wine"
 	@echo "  make docs          Build the book and serve it on 127.0.0.1"
 	@echo "  make clean         Stop, remove volumes, remove build output"
 
@@ -331,46 +327,6 @@ SPENV := SPCOMP=$(SPROOT)/objdir/spcomp/linux-x86_64/spcomp \
 # Idempotent: a second run finds the two binaries and exits.
 toolchain:
 	SPWORK=$(SPWORK) sh $(BOTS_MOD)/tools/spshell.sh
-
-# --- The settings window ---
-#
-# walk is a Win32 binding, so internal/gui only builds on Windows and its tests
-# only run there. Wine is close enough to create the window, its tabs and its
-# controls, which is what the tests ask about: that every row internal/form
-# declares became a control, and that reading the controls back gives the state
-# they were built from.
-#
-# It is not a substitute for opening the real thing on Windows. Nothing is
-# clicked and nothing is drawn to a screen anybody looks at. What it catches is
-# a row wired to the wrong ID, which looks perfect and loses the player's
-# answer at Save.
-#
-# Skipped rather than failed when wine is missing: it is not on the CI image.
-# The test's own verdict decides, not the exit code. Wine's teardown is not
-# reliable under Xvfb: a run that printed PASS has come back with the loader
-# asserting `new->l_relocated' on the way out, and taking that as a failure
-# reports a green test as broken. A run that really fails prints FAIL and no
-# PASS, and one that hangs prints neither, so both are still caught.
-#
-# One wine process per test, which is not a preference. A second settings
-# dialog created in the same process hangs under wine: every test below passes
-# on its own and the run stops dead at the second one. Real Windows does not do
-# this, and neither does anything the launcher does, since it makes one dialog
-# and shows it. So the loop is a wine workaround and it is spelled out here
-# rather than left as a mystery in a CI log.
-gui-test:
-	@command -v wine >/dev/null 2>&1 || { echo "no wine, skipping the window tests"; exit 0; }
-	@command -v xvfb-run >/dev/null 2>&1 || { echo "no xvfb-run, skipping the window tests"; exit 0; }
-	@mkdir -p $(DIST)
-	GOOS=windows GOARCH=amd64 go test -c -o $(DIST)/gui.test.exe ./launcher/internal/gui/
-	@cd $(DIST) && for t in $$(grep -ho '^func Test[A-Za-z0-9_]*' \
-		$(CURDIR)/launcher/internal/gui/*_test.go | sed 's/^func //' | sort -u); do \
-		printf '%s ' "$$t"; \
-		xvfb-run -a wine gui.test.exe -test.run "^$$t$$" -test.timeout 60s >$$t.log 2>&1; \
-		grep -qx PASS $$t.log \
-			&& echo ok \
-			|| { echo FAIL; grep -vE "wine32|apt-get|^X connection|^[0-9a-f]{4}:" $$t.log; exit 1; }; \
-	done
 
 export:
 	go generate ./gamedata
@@ -593,26 +549,6 @@ captures: launcher-linux
 		| sed "s|$$HOME|/home/player|g" \
 		| ./docs/capture.sh 'tf2ap-linux-amd64 -status' docs/images/linux-status.svg
 
-# The launcher's window, photographed. walk is a Win32 binding, so the window
-# runs under Wine on a virtual display and ImageMagick takes the picture; see
-# docs/window-shot.sh for what that needs installed. A shot taken by hand on a
-# real Windows machine and dropped in docs/images/raw/ goes through the same
-# second half.
-window-captures: launcher
-	mkdir -p docs/images/raw
-	./docs/window-shot.sh $(DIST)/tf2ap.exe docs/images/raw/launcher-main.png 30 main
-	./docs/window-shot.sh $(DIST)/tf2ap.exe docs/images/raw/launcher-settings.png 30 dialog
-	$(MAKE) shadows
-
-# The drop shadow and the transparent margins, over whatever is in
-# docs/images/raw/. Separate from taking the picture, because a picture taken
-# on Windows needs this half and not the other one.
-shadows:
-	@for raw in docs/images/raw/*.png; do \
-		[ -e "$$raw" ] || { echo "nothing in docs/images/raw"; exit 0; }; \
-		$(SHADOW) "$$raw" "docs/images/$$(basename $$raw)"; \
-	done
-
 # --- Integration ---
 
 # Archipelago and the bridge, for real, driven the way the plugin drives them.
@@ -699,7 +635,7 @@ version-check:
 # whole point: the gate refuses to skip a differential test, and a developer
 # who has not run `make toolchain` gets a skip that names what is missing.
 check: REQUIRE_SPSHELL := TF2AP_REQUIRE_SPSHELL=1
-check: go-version-check bots-pin-check fmt-check proto-lint lint fix-check compile web-check toolchain test gui-test vuln apworld-lint plugin apworld-test docs-build compose-release integration
+check: go-version-check bots-pin-check fmt-check proto-lint lint fix-check compile web-check toolchain test vuln apworld-lint plugin apworld-test docs-build compose-release integration
 
 # The go directive owns the version. Two pins cannot read it, so this says when
 # they have drifted rather than leaving it to whoever hits the failure.

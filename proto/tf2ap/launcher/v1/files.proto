@@ -12,6 +12,7 @@ option go_package = "github.com/m-this/tf2-archipelago/launcher/internal/gen/tf2
 service FilesService {
   rpc ShowFile(ShowFileRequest) returns (ShowFileResponse);
   rpc DownloadDebugBundle(DownloadDebugBundleRequest) returns (stream DownloadDebugBundleResponse);
+  rpc ListFolder(ListFolderRequest) returns (ListFolderResponse);
 }
 
 // FileTarget is what a Show button points at. The player file and the seed are
@@ -45,4 +46,28 @@ message DownloadDebugBundleRequest {}
 message DownloadDebugBundleResponse {
   string filename = 1;
   bytes chunk = 2;
+}
+
+// ListFolder is what a Browse row uses instead of a native file dialog. The
+// window had one from walk and a browser has none, so the picker is a small
+// tree over this: one behaviour on both platforms, and one that can be tested.
+//
+// Folders only. Every Browse row in form names a folder, and a picker that
+// listed files would be offering something no row can hold.
+message ListFolderRequest {
+  // The folder to read. Empty means where the player's own files start: their
+  // home directory, which is where a first Browse should land.
+  string path = 1 [(buf.validate.field).string.max_len = 4096];
+}
+
+message ListFolderResponse {
+  // The folder that was read, absolute and cleaned, so the picker can show
+  // where it is rather than what it was asked for.
+  string path = 1;
+
+  // The folder above this one, empty at the root.
+  string parent = 2;
+
+  // The folders inside it, by name, sorted. Never the files.
+  repeated string folders = 3;
 }

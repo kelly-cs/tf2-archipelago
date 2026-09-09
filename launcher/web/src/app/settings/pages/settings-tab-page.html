@@ -31,6 +31,10 @@
     }
   }
 
+  @if (said()) {
+    <app-notice tone="info">{{ said() }}</app-notice>
+  }
+
   @if (missionTabs()) {
     <app-mission-table (typed)="typed.next($event)" />
   }

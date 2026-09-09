@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"slices"
 	"time"
 
 	"connectrpc.com/connect"
@@ -23,6 +24,11 @@ import (
 // few megabytes and the connection is loopback, so this is only about keeping
 // one message under Connect's default ceiling.
 const bundleChunk = 64 << 10
+
+// foldersMax bounds one answer. A folder with more subfolders than this is not
+// one anybody is picking from by scrolling, and the typed path stays beside the
+// picker for exactly that case.
+const foldersMax = 2000
 
 // FilePath answers where the player's copy of something is, making it first
 // where making it is what the button means: the player file and the seed are
@@ -117,4 +123,62 @@ func (s FilesRPC) DownloadDebugBundle(_ context.Context, _ *connect.Request[laun
 			return connect.NewError(connect.CodeInternal, err)
 		}
 	}
+}
+
+/*
+ListFolder reads one folder for the Browse picker.
+
+Folders only, and no attempt to hide anything: this is the player's own machine
+and their own launcher, so there is nothing here to keep them out of. What it
+does do is refuse to answer with a file, because every Browse row in form names
+a folder and a picker offering a file would be offering an answer no row holds.
+
+An unreadable folder is not an error the player has to solve. It answers with
+the folder and no children, and the picker draws it empty: a permission-denied
+dialog on the way to somewhere else is noise.
+*/
+func (s FilesRPC) ListFolder(_ context.Context, request *connect.Request[launcherv1.ListFolderRequest]) (*connect.Response[launcherv1.ListFolderResponse], error) {
+	path := request.Msg.GetPath()
+	if path == "" {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return nil, connect.NewError(connect.CodeInternal, err)
+		}
+		path = home
+	}
+	path = filepath.Clean(path)
+	if !filepath.IsAbs(path) {
+		return nil, connect.NewError(connect.CodeInvalidArgument,
+			fmt.Errorf("%q is not a full path", path))
+	}
+
+	answer := &launcherv1.ListFolderResponse{Path: path, Parent: parentOf(path)}
+	entries, err := os.ReadDir(path)
+	if err != nil {
+		// A folder that cannot be read is drawn empty rather than as a failure:
+		// a permission dialog on the way to somewhere else is noise.
+		//nolint:nilerr // An unreadable folder is an empty folder here.
+		return connect.NewResponse(answer), nil
+	}
+	for _, entry := range entries {
+		if entry.IsDir() {
+			answer.Folders = append(answer.Folders, entry.Name())
+		}
+		if len(answer.Folders) == foldersMax {
+			break
+		}
+	}
+	slices.Sort(answer.Folders)
+	return connect.NewResponse(answer), nil
+}
+
+// parentOf answers with the folder above, and empty at the top: filepath.Dir
+// returns its argument at a root, and a picker that offered Up there would go
+// nowhere for ever.
+func parentOf(path string) string {
+	parent := filepath.Dir(path)
+	if parent == path {
+		return ""
+	}
+	return parent
 }
