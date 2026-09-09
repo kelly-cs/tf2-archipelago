@@ -1,22 +1,19 @@
-/* ==========================================================================
-   Design tokens — single source of truth.
-   Runtime, themeable values are CSS custom properties, emitted once into
-   :root by the global stylesheet (`@include tokens.root`). Components read
-   them ambiently as `var(--x)`; nothing is re-emitted on `@use`, so importing
-   this partial costs zero bytes until you reference something from it.
-   Breakpoints stay SCSS-only: a media query condition cannot read a custom
-   property, so they are exposed as values plus the `respond()` mixin.
-
-   The values below are placeholders. apw-srw.17 replaces them with the Admin
-   Console palette, type scale and spacing.
-   ========================================================================== */
-
 @use 'sass:map';
+
+/* ==========================================================================
+   Design tokens: the Admin Console palette, one source of truth.
+
+   Runtime values are CSS custom properties, emitted once into :root by the
+   global stylesheet. Components read them ambiently as var(--x); nothing is
+   emitted on @use, so importing this partial costs nothing until something
+   references it. Breakpoints stay SCSS: a media query cannot read a custom
+   property.
+   ========================================================================== */
 
 $breakpoints: (
   'sm': 640px,
-  'md': 768px,
-  'lg': 1024px,
+  'md': 900px,
+  'lg': 1200px,
 );
 
 @mixin respond($name) {
@@ -27,19 +24,63 @@ $breakpoints: (
 
 @mixin root {
   :root {
-    --color-bg: #ffffff;
-    --color-fg: #111111;
-    --color-accent: #2563eb;
-    --color-muted: #6b7280;
+    /* Surfaces, darkest first. The page, the raised panel, the sunken slot a
+       command line or a log sits in. */
+    --surface-void: #120c06;
+    --surface-page: #1c150d;
+    --surface-nav: #1f170e;
+    --surface-panel: #221a10;
+    --surface-header: #241b10;
+    --surface-raised: #2a2013;
+    --surface-hover: #352a18;
 
-    --radius: 6px;
-    --spacing: 1rem;
+    /* Lines, lightest last. */
+    --line-soft: #3a2d1a;
+    --line: #4a3a22;
+    --line-strong: #5a4830;
 
-    font-family:
-      system-ui,
-      -apple-system,
-      'Segoe UI',
-      Roboto,
-      sans-serif;
+    /* Text, brightest first. */
+    --text: #f1e6c8;
+    --text-dim: #c9b895;
+    --text-faint: #a8916b;
+    --text-disabled: #6b5c42;
+
+    /* The one accent: Mann Co. gold. Everything the player presses. */
+    --accent: #e0ac4f;
+    --accent-bright: #f0c46e;
+
+    /* What a state means. Good is the RED team's olive, bad is its red. */
+    --state-good: #7a9a3f;
+    --state-warn: #e08b82;
+    --state-bad: #b8483f;
+    --state-info: #8bb8db;
+
+    --font-display: 'Anton', 'Arial Narrow', sans-serif;
+    --font-body: 'Source Sans 3', system-ui, sans-serif;
+    --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+
+    --text-xs: 12px;
+    --text-sm: 13px;
+    --text-md: 14px;
+    --text-lg: 15px;
+    --text-xl: 18px;
+    --title: 20px;
+    --title-lg: 22px;
+
+    --radius: 4px;
+    --radius-panel: 6px;
+    --radius-pill: 20px;
+
+    --gap-xs: 4px;
+    --gap-sm: 8px;
+    --gap: 12px;
+    --gap-lg: 18px;
+    --gap-xl: 22px;
+
+    /* One duration and one curve, so nothing on screen moves at its own pace.
+       Fast enough that a press feels answered, slow enough to be seen. */
+    --ease: cubic-bezier(0.32, 0.72, 0, 1);
+    --quick: 120ms;
+    --settle: 220ms;
   }
 }

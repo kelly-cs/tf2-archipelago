@@ -1,18 +1,65 @@
 /* ==========================================================================
-   Animations — each keyframe is a mixin, so a stylesheet pulls in only the
-   ones it uses (`@include animations.fade-in`) with no other CSS emitted.
-   The app-wide set ships once via `@include animations.global`. Keyframe
-   names are not scoped by Angular's emulated encapsulation, so a component can
-   also reference a global name by string without including it.
+   Animations. Each keyframe is a mixin, so a stylesheet pulls in only the ones
+   it uses and emits nothing else. The app-wide set ships once through
+   `global`. Keyframe names are not scoped by Angular's emulated
+   encapsulation, so a component may also reference a global name by string.
+
+   Every duration here comes from --quick or --settle: nothing on screen moves
+   at a pace of its own.
    ========================================================================== */
+
+/* The status dot while the server is coming up. Not a spinner: the thing it
+   describes has no progress to report, only that it is still happening. */
+@mixin pulse-dot {
+  @keyframes pulse-dot {
+    0%,
+    100% {
+      opacity: 1;
+    }
+
+    50% {
+      opacity: 0.35;
+    }
+  }
+}
+
+/* A ring leaving a live indicator. Once per beat, outwards, gone. */
+@mixin pulse-live {
+  @keyframes pulse-live {
+    from {
+      box-shadow: 0 0 0 0 rgb(122 154 63 / 50%);
+    }
+
+    to {
+      box-shadow: 0 0 0 5px rgb(122 154 63 / 0%);
+    }
+  }
+}
 
 @mixin fade-in {
   @keyframes fade-in {
     from {
       opacity: 0;
     }
+
     to {
       opacity: 1;
+    }
+  }
+}
+
+/* A panel or a row arriving: up a little, not across. Movement across the
+   screen reads as something being moved; movement up reads as it appearing. */
+@mixin rise-in {
+  @keyframes rise-in {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+
+    to {
+      opacity: 1;
+      transform: none;
     }
   }
 }
@@ -25,19 +72,31 @@
   }
 }
 
+/*
+ * The reduced-motion guard, once, over everything.
+ *
+ * Not `animation: none`: an element whose arrival animation never runs can be
+ * left at its from-state, invisible. Collapsing the duration runs it and lands
+ * it, which is the same end with no movement to watch.
+ */
 @mixin reduced-motion-guard {
   @media (prefers-reduced-motion: reduce) {
     *,
     *::before,
     *::after {
       animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
       transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
     }
   }
 }
 
 @mixin global {
+  @include pulse-dot;
+  @include pulse-live;
   @include fade-in;
+  @include rise-in;
   @include spin;
   @include reduced-motion-guard;
 }

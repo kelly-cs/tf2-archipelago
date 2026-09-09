@@ -1,0 +1,36 @@
+@if (!open()) {
+  <app-empty-state>
+    The settings are closed. Opening them makes a draft: nothing is written until you press Save.
+    <div class="open">
+      <app-button tone="primary" (press)="openScreen.next()">Open the settings</app-button>
+    </div>
+  </app-empty-state>
+} @else {
+  <div class="screen">
+    <nav aria-label="Settings pages">
+      @for (page of pages(); track page.title) {
+        <a [routerLink]="page.link" routerLinkActive="here">{{ page.title }}</a>
+      }
+    </nav>
+
+    <div class="rows">
+      @if (refusalText()) {
+        <app-notice tone="bad">{{ refusalText() }}</app-notice>
+      }
+      <router-outlet />
+
+      <footer>
+        @if (restartNeeded()) {
+          <app-notice tone="warn">
+            Saving this restarts the running server.
+            <app-button tone="primary" (press)="save.next(true)">Save and restart</app-button>
+          </app-notice>
+        }
+        <div class="buttons">
+          <app-button tone="ghost" (press)="cancel.next()">Discard</app-button>
+          <app-button tone="primary" (press)="save.next(false)">Save</app-button>
+        </div>
+      </footer>
+    </div>
+  </div>
+}

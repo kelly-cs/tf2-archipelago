@@ -1,0 +1,72 @@
+:host {
+  display: block;
+  animation: fade-in var(--settle) var(--ease);
+}
+
+.open {
+  margin-top: var(--gap);
+}
+
+.screen {
+  display: grid;
+  grid-template-columns: minmax(0, 200px) minmax(0, 1fr);
+  gap: var(--gap-lg);
+  align-items: start;
+}
+
+@media (max-width: 800px) {
+  .screen {
+    grid-template-columns: 1fr;
+  }
+}
+
+nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  position: sticky;
+  top: 100px;
+}
+
+nav a {
+  padding: var(--gap-sm) var(--gap);
+  border-left: 3px solid transparent;
+  border-radius: 0 var(--radius) var(--radius) 0;
+  color: var(--text-dim);
+  text-decoration: none;
+  font-weight: 600;
+  transition:
+    color var(--quick) var(--ease),
+    background var(--quick) var(--ease);
+}
+
+nav a:hover {
+  color: var(--text);
+  background: var(--surface-raised);
+}
+
+nav a.here {
+  color: var(--accent);
+  border-left-color: var(--accent);
+  background: var(--surface-panel);
+}
+
+.rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+  min-width: 0;
+}
+
+footer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+  padding-top: var(--gap);
+}
+
+.buttons {
+  display: flex;
+  gap: var(--gap-sm);
+  justify-content: flex-end;
+}

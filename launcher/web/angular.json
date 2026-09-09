@@ -61,6 +61,13 @@
             },
             "styles": [
               "src/styles.scss"
+            ],
+            "assets": [
+              {
+                "glob": "**/*",
+                "input": "src/assets",
+                "output": "assets"
+              }
             ]
           },
           "configurations": {
@@ -107,6 +114,14 @@
               "src/**/*.ts",
               "src/**/*.html"
             ]
+          }
+        },
+        "test": {
+          "builder": "@angular/build:unit-test",
+          "options": {
+            "tsConfig": "tsconfig.spec.json",
+            "runner": "vitest",
+            "buildTarget": "tf2ap-web:build:development"
           }
         }
       }

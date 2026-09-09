@@ -1,0 +1,99 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+  min-height: 0;
+  animation: fade-in var(--settle) var(--ease);
+}
+
+.bar {
+  display: flex;
+  gap: var(--gap-sm);
+  align-items: center;
+}
+
+.bar app-search-box {
+  flex: 1;
+}
+
+cdk-virtual-scroll-viewport {
+  height: 60vh;
+  background: var(--surface-void);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-panel);
+}
+
+ol {
+  margin: 0;
+  padding: var(--gap-sm) 0;
+  list-style: none;
+}
+
+li {
+  display: flex;
+  gap: var(--gap);
+  height: 20px;
+  align-items: center;
+  padding: 0 var(--gap);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  white-space: pre;
+  color: var(--text-dim);
+}
+
+.at {
+  color: var(--text-disabled);
+  flex: none;
+}
+
+.source {
+  color: var(--text-faint);
+  flex: none;
+  width: 7ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Colour says what kind of line it is, and nothing else does, so the words
+   still have to say it: an error line reads as an error in a screenshot with
+   the colour stripped. */
+li.error .text {
+  color: var(--state-warn);
+}
+
+li.warn .text {
+  color: var(--accent);
+}
+
+li.note .text {
+  color: var(--state-info);
+}
+
+.console {
+  display: flex;
+  gap: var(--gap-sm);
+  align-items: center;
+}
+
+.console label {
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-faint);
+}
+
+.console input {
+  flex: 1;
+  background: var(--surface-void);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: var(--text-md);
+  padding: 8px 10px;
+}

@@ -23,7 +23,12 @@ var statusNames = map[string]launcherv1.ServerStatus{
 	"running":  launcherv1.ServerStatus_SERVER_STATUS_RUNNING,
 }
 
-func snapshotProto(s Snapshot) *launcherv1.Snapshot {
+// Proto is the wire form of one draw.
+//
+// Exported because the fake launcher the browser tests run against builds a
+// Snapshot by hand and has to encode it exactly as the real one does. A second
+// encoder written for the tests would be a test of itself.
+func (s Snapshot) Proto() *launcherv1.Snapshot {
 	return &launcherv1.Snapshot{
 		Title:         s.Title,
 		Status:        statusNames[s.Status],
@@ -159,7 +164,9 @@ func fieldProto(field form.Field) *launcherv1.Field {
 	}
 }
 
-func screenProto(screen Screen) *launcherv1.Screen {
+// Proto is the wire form of the settings screen. Exported for the same reason
+// Snapshot.Proto is.
+func (screen Screen) Proto() *launcherv1.Screen {
 	return &launcherv1.Screen{
 		Model:         modelProto(screen.Form),
 		Page:          screen.Page,

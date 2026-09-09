@@ -1,17 +1,19 @@
 /* ==========================================================================
    Global stylesheet entry point.
-   Composes the importable partials under src/styles/. Tokens and animations
-   are pure (they emit nothing on @use); the runtime :root tokens and the
-   app-wide keyframes are emitted here, exactly once. Components pull
-   individual pieces a la carte, e.g. `@use 'animations' as anim;
-   @include anim.fade-in;` — `stylePreprocessorOptions.includePaths` in
-   angular.json lets both this entry and inline component styles resolve the
-   bare `@use 'tokens'` / `@use 'animations'` names.
+
+   Composes the partials under src/styles/. Tokens, fonts and animations are
+   pure: they emit nothing on @use, so a component pulls one in a la carte
+   (`@use 'animations' as anim; @include anim.fade-in;`) at no cost. The :root
+   tokens, the @font-face rules and the app-wide keyframes are emitted here,
+   exactly once. stylePreprocessorOptions.includePaths in angular.json is what
+   lets both this entry and an inline component style resolve the bare names.
    ========================================================================== */
 
 @use 'tokens';
+@use 'fonts';
 @use 'animations';
 @use 'base';
 
 @include tokens.root;
+@include fonts.faces;
 @include animations.global;

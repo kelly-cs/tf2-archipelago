@@ -88,7 +88,7 @@ func (a *App) forward(ctx context.Context, socket *websocket.Conn, listener *Lis
 //
 //nolint:contextcheck // Address discovery owns its timeout instead of the frame.
 func (a *App) sendState(ctx context.Context, socket *websocket.Conn, withLogs bool) error {
-	state := snapshotProto(a.Snapshot())
+	state := a.Snapshot().Proto()
 	if !withLogs {
 		state.Logs = nil
 	}

@@ -1,0 +1,33 @@
+<header>
+  <div class="mark">
+    <app-logo />
+    <div>
+      <div class="title">{{ title() }}</div>
+      <app-status-line />
+    </div>
+  </div>
+  <app-server-buttons />
+</header>
+
+<nav aria-label="Sections">
+  @for (tab of tabs; track tab.label) {
+    <a
+      [routerLink]="tab.link"
+      routerLinkActive="here"
+      [routerLinkActiveOptions]="{ exact: false }"
+      >{{ tab.label }}</a
+    >
+  }
+</nav>
+
+<main>
+  @if (lost()) {
+    <app-notice tone="bad">
+      The launcher is not answering. It may have been closed. Start it again and reload this page.
+    </app-notice>
+  }
+  @if (notice()) {
+    <app-notice tone="warn">{{ notice() }}</app-notice>
+  }
+  <router-outlet />
+</main>

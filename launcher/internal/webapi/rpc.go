@@ -27,7 +27,7 @@ type LauncherRPC struct{ App *App }
 //nolint:contextcheck // Address discovery owns its timeout instead of the request.
 func (s LauncherRPC) GetSnapshot(context.Context, *connect.Request[launcherv1.GetSnapshotRequest]) (*connect.Response[launcherv1.GetSnapshotResponse], error) {
 	return connect.NewResponse(&launcherv1.GetSnapshotResponse{
-		Snapshot: snapshotProto(s.App.Snapshot()),
+		Snapshot: s.App.Snapshot().Proto(),
 	}), nil
 }
 
@@ -89,7 +89,7 @@ type SettingsRPC struct{ App *App }
 
 func (s SettingsRPC) OpenSettings(_ context.Context, request *connect.Request[launcherv1.OpenSettingsRequest]) (*connect.Response[launcherv1.OpenSettingsResponse], error) {
 	s.App.OpenSettings(request.Msg.GetPage())
-	return connect.NewResponse(&launcherv1.OpenSettingsResponse{Screen: screenProto(s.App.Screen())}), nil
+	return connect.NewResponse(&launcherv1.OpenSettingsResponse{Screen: s.App.Screen().Proto()}), nil
 }
 
 // ChangeSetting refuses a value form cannot apply, with the words form chose:
@@ -98,7 +98,7 @@ func (s SettingsRPC) ChangeSetting(_ context.Context, request *connect.Request[l
 	if err := s.App.Change(changeFrom(request.Msg.GetChange())); err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
-	return connect.NewResponse(&launcherv1.ChangeSettingResponse{Screen: screenProto(s.App.Screen())}), nil
+	return connect.NewResponse(&launcherv1.ChangeSettingResponse{Screen: s.App.Screen().Proto()}), nil
 }
 
 // Actions start downloads, repairs and server lifecycle work that deliberately
@@ -109,7 +109,7 @@ func (s SettingsRPC) DispatchAction(_ context.Context, request *connect.Request[
 	if err := s.App.Dispatch(request.Msg.GetId()); err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
-	return connect.NewResponse(&launcherv1.DispatchActionResponse{Screen: screenProto(s.App.Screen())}), nil
+	return connect.NewResponse(&launcherv1.DispatchActionResponse{Screen: s.App.Screen().Proto()}), nil
 }
 
 // SaveSettings reports a refusal in the response rather than as an error.
@@ -122,7 +122,7 @@ func (s SettingsRPC) SaveSettings(_ context.Context, request *connect.Request[la
 	if err := s.App.SaveSettings(request.Msg.GetRestart()); err != nil {
 		response.Saved, response.Refusal = false, err.Error()
 	}
-	response.Screen = screenProto(s.App.Screen())
+	response.Screen = s.App.Screen().Proto()
 	return connect.NewResponse(response), nil
 }
 

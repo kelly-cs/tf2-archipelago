@@ -255,7 +255,7 @@ func TestFilesThatNeedTheScreenSayWhenItIsClosed(t *testing.T) {
 func TestEveryRowKeepsItsKindOnTheWire(t *testing.T) {
 	app := New(settings.Defaults(), nil)
 	app.OpenSettings("")
-	screen := screenProto(app.Screen())
+	screen := app.Screen().Proto()
 	seen := map[form.Kind]bool{}
 	for _, tab := range screen.GetModel().GetTabs() {
 		for _, field := range tab.GetFields() {

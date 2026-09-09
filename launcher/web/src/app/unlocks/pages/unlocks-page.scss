@@ -1,0 +1,48 @@
+:host {
+  display: block;
+  animation: fade-in var(--settle) var(--ease);
+}
+
+.count {
+  font-size: var(--text-sm);
+  color: var(--text-faint);
+}
+
+.bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gap-sm);
+  align-items: center;
+}
+
+.bar app-search-box {
+  flex: 1;
+  min-width: 200px;
+}
+
+ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--gap-sm);
+}
+
+li {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-sm);
+  padding: var(--gap-sm) var(--gap);
+  background: var(--surface-raised);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius);
+  animation: rise-in var(--settle) var(--ease);
+}
+
+.name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

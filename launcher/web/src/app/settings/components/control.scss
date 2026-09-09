@@ -1,0 +1,71 @@
+:host {
+  display: block;
+  width: 100%;
+}
+
+.line {
+  display: flex;
+  gap: var(--gap-sm);
+  align-items: center;
+}
+
+input,
+select {
+  flex: 1;
+  min-width: 0;
+  background: var(--surface-void);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: var(--text-md);
+  padding: 7px 10px;
+  transition: border-color var(--quick) var(--ease);
+}
+
+input:hover:not(:disabled),
+select:hover:not(:disabled) {
+  border-color: var(--line-strong);
+}
+
+input:disabled,
+select:disabled {
+  cursor: not-allowed;
+  color: var(--text-disabled);
+}
+
+input[type='number'] {
+  font-family: var(--font-mono);
+  max-width: 140px;
+  text-align: right;
+}
+
+input[type='password'] {
+  font-family: var(--font-mono);
+}
+
+.tick {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-sm);
+  cursor: pointer;
+}
+
+.tick input {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
+}
+
+.hint {
+  font-size: var(--text-sm);
+  color: var(--text-dim);
+}
+
+.bounds {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-faint);
+  white-space: nowrap;
+}

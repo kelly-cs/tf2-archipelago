@@ -1,0 +1,104 @@
+:host {
+  display: block;
+  background: var(--surface-panel);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-panel);
+  padding: var(--gap) var(--gap-lg);
+}
+
+.bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--gap-sm);
+  padding-bottom: var(--gap);
+}
+
+h3 {
+  font-size: var(--text-xl);
+  margin-right: auto;
+}
+
+.count {
+  font-size: var(--text-sm);
+  color: var(--text-faint);
+}
+
+.bar app-search-box {
+  min-width: 200px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+th {
+  text-align: left;
+  border-bottom: 1px solid var(--line-soft);
+  padding: 0 0 var(--gap-sm);
+}
+
+th button {
+  background: none;
+  border: none;
+  padding: 0 var(--gap-sm);
+  color: var(--text-faint);
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+
+th button:hover {
+  color: var(--text);
+}
+
+td {
+  padding: 6px var(--gap-sm);
+  border-bottom: 1px solid var(--surface-hover);
+}
+
+tbody tr {
+  transition:
+    background var(--quick) var(--ease),
+    opacity var(--quick) var(--ease);
+}
+
+tbody tr:hover {
+  background: var(--surface-raised);
+}
+
+/* A mission out of the pool is still readable: the player is deciding about it. */
+.off {
+  opacity: 0.55;
+}
+
+.name {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.waves,
+.mods {
+  font-family: var(--font-mono);
+  color: var(--text-dim);
+}
+
+input[type='checkbox'] {
+  width: 17px;
+  height: 17px;
+  accent-color: var(--accent);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

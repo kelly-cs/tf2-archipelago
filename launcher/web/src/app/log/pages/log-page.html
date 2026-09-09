@@ -1,0 +1,45 @@
+<div class="bar">
+  <app-search-box label="Filter the log" [(text)]="filter" />
+  <app-button
+    size="small"
+    [pressed]="follow()"
+    [tone]="follow() ? 'primary' : 'ghost'"
+    (press)="follow.set(!follow())"
+  >
+    Follow
+  </app-button>
+  <app-button size="small" (press)="copyAll()">{{ copied() ? 'Copied' : 'Copy' }}</app-button>
+</div>
+
+@if (rows().length === 0) {
+  <app-empty-state>
+    @if (filter()) {
+      No line matches that filter.
+    } @else {
+      Nothing has been said yet. Press Start.
+    }
+  </app-empty-state>
+} @else {
+  <cdk-virtual-scroll-viewport itemSize="20" (scrolledIndexChange)="onScroll($event)">
+    <ol>
+      <li *cdkVirtualFor="let row of rows(); trackBy: trackRow" [class]="row.level">
+        <span class="at">{{ row.at }}</span>
+        <span class="source">{{ row.source }}</span>
+        <span class="text">{{ row.text }}</span>
+      </li>
+    </ol>
+  </cdk-virtual-scroll-viewport>
+}
+
+<form class="console" (submit)="$event.preventDefault(); send.next()">
+  <label for="rcon">Server command</label>
+  <input
+    id="rcon"
+    name="rcon"
+    autocomplete="off"
+    placeholder="sm_ap_status"
+    [value]="command()"
+    (input)="command.set($any($event.target).value)"
+  />
+  <app-button type="submit" tone="primary" [disabled]="!command()">Send</app-button>
+</form>

@@ -1,0 +1,28 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+  animation: fade-in var(--quick) var(--ease);
+}
+
+.intro {
+  margin: 0;
+  color: var(--text-dim);
+  max-width: 70ch;
+}
+
+section {
+  background: var(--surface-panel);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-panel);
+  padding: var(--gap) var(--gap-lg);
+}
+
+h3 {
+  font-size: var(--text-xl);
+  padding-bottom: var(--gap-sm);
+}
+
+app-settings-row:last-of-type ::ng-deep .row {
+  border-bottom: none;
+}

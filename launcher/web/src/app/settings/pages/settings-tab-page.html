@@ -1,0 +1,37 @@
+@if (rows().length === 0) {
+  <app-empty-state>This page has no settings on it.</app-empty-state>
+} @else {
+  @if (intro()) {
+    <p class="intro">{{ intro() }}</p>
+  }
+
+  <app-search-box label="Find a setting on this page" [(text)]="filter" />
+
+  @if (shown().length === 0) {
+    <app-empty-state>No setting here matches your search.</app-empty-state>
+  }
+
+  @for (section of sections(); track section.title) {
+    @let sectionRows = shown().filter((row) => row.section === section.title);
+    @if (sectionRows.length > 0) {
+      <section>
+        @if (section.under) {
+          <h3>{{ section.title }}</h3>
+        }
+        @for (row of sectionRows; track row.field.id) {
+          <app-settings-row
+            [field]="row.field"
+            [value]="value(row.field.id)"
+            [control]="page.rows[indexOf(row.field.id)].value"
+            (typed)="typed.next({ id: row.field.id, value: $event })"
+            (fired)="fired.next($event)"
+          />
+        }
+      </section>
+    }
+  }
+
+  @if (missionTabs()) {
+    <app-mission-table (typed)="typed.next($event)" />
+  }
+}
