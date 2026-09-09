@@ -108,7 +108,7 @@ func TestImportSelectsPackAndMissions(t *testing.T) {
 
 	var body bytes.Buffer
 	writer := multipart.NewWriter(&body)
-	part, err := writer.CreateFormFile("assets", settings.CommunityPackPotato)
+	part, err := writer.CreateFormFile("assets", settings.CommunityPackMoonlight)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -124,15 +124,25 @@ func TestImportSelectsPackAndMissions(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !slices.Equal(imported, []string{settings.CommunityPackPotato}) {
+	if !slices.Equal(imported, []string{settings.CommunityPackMoonlight}) {
 		t.Fatalf("imported = %v", imported)
 	}
-	if !slices.Contains(app.draft.Settings.CommunityPacks, settings.CommunityPackPotato) {
+	if !slices.Contains(app.draft.Settings.CommunityPacks, settings.CommunityPackMoonlight) {
 		t.Fatal("the imported pack was not selected")
 	}
 	rows := missionPoolRows(*app.draft, app.community, app.imported)
-	if !slices.ContainsFunc(rows, func(row MissionPoolRow) bool { return row.Source == "Imported" }) {
-		t.Fatal("the imported pack added no Imported mission rows")
+	for popFile, name := range map[string]string{
+		"mvm_coaltown_int_trouble_in_mann_town": "Trouble in Mann Town",
+		"mvm_mannworks_adv_manntenance":         "Manntenance",
+	} {
+		if !slices.ContainsFunc(rows, func(row MissionPoolRow) bool {
+			return row.Name == name && row.Source == "Imported"
+		}) {
+			t.Errorf("imported Moonlight assets did not add %q to the mission pool", name)
+		}
+		if slices.Contains(app.draft.Settings.MvmExcludedMissions, popFile) {
+			t.Errorf("imported mission %q is still excluded from the pool", name)
+		}
 	}
 }
 
