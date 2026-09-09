@@ -34,6 +34,7 @@ import (
 	"github.com/m-this/tf2-archipelago/launcher/internal/tailscalefastdl"
 	"github.com/m-this/tf2-archipelago/launcher/internal/tui"
 	"github.com/m-this/tf2-archipelago/launcher/internal/ui"
+	"github.com/m-this/tf2-archipelago/launcher/internal/webui"
 )
 
 const version = "dev"
@@ -63,8 +64,7 @@ func run(logger *slog.Logger) error {
 	roomFlag := flag.String("room", "", "the Archipelago room address, as host:port")
 	yamlFlag := flag.String("yaml", "", "write the Archipelago player file to this path, then exit")
 	envFlag := flag.Bool("env", false, "list the environment variables that override the configuration, then exit")
-	consoleFlag := flag.Bool("console", false, "print the log and nothing else, with no interface over it")
-	tuiFlag := flag.Bool("tui", false, "the terminal interface, on a platform whose default is the window")
+	consoleFlag, tuiFlag, webFlag := interfaceFlags()
 	setupFunnelFlag := flag.Bool("setup-funnel", false, "check Tailscale Funnel authorization, then exit")
 	showVersion := flag.Bool("version", false, "print the version and exit")
 	flag.Parse()
@@ -124,10 +124,20 @@ func run(logger *slog.Logger) error {
 		return nil
 	}
 
-	return launchInterface(logger, s, *consoleFlag, *tuiFlag)
+	return launchInterface(logger, s, *consoleFlag, *tuiFlag, *webFlag)
 }
 
-func launchInterface(logger *slog.Logger, s settings.Settings, console, terminal bool) error {
+func interfaceFlags() (console, terminal, web *bool) {
+	console = flag.Bool("console", false, "print the log and nothing else, with no interface over it")
+	terminal = flag.Bool("tui", false, "the terminal interface, on a platform whose default is the window")
+	web = flag.Bool("web", false, "run the experimental browser interface")
+	return console, terminal, web
+}
+
+func launchInterface(logger *slog.Logger, s settings.Settings, console, terminal, web bool) error {
+	if web {
+		return webui.Run(s, logger)
+	}
 	if gui.Available() && !console && !terminal {
 		return gui.Run(s, nil)
 	}

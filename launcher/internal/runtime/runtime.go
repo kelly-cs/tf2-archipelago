@@ -368,15 +368,18 @@ func runSrcdsWithSink(ctx context.Context, s settings.Settings, logger *slog.Log
 	return waitErr
 }
 
-// StartMap is the map the start mission runs on. A mission the tables do not
-// know is taken as a map name, which is what an older setting held.
+// StartMap is the map the start mission runs on. Unknown missions can remain
+// in a saved file after a catalog update; they fall back rather than being
+// passed to srcds as a map name that cannot exist.
 func StartMap(s settings.Settings) string {
 	if mission, ok := gamedata.MissionByPopFile(s.SrcdsStartMission); ok {
 		if played, ok := gamedata.MapByID(mission.Map); ok {
 			return played.Name
 		}
 	}
-	return s.SrcdsStartMission
+	mission, _ := gamedata.MissionByPopFile(settings.Defaults().SrcdsStartMission)
+	played, _ := gamedata.MapByID(mission.Map)
+	return played.Name
 }
 
 // report says something to whoever is listening. The window passes a sink and

@@ -35,6 +35,8 @@ archive layout, custom-upgrade findings, build commands, and RafMod boundary.
 | `internal/srcdsconfig` | Renders `server.cfg`, `admins_simple.ini`, `tf2_archipelago.cfg` |
 | `internal/runtime` | The `srcds.exe` subprocess and the in-process bridge, interleaved |
 | `internal/gui` | The window: log view, Start/Stop, settings dialog, rcon box |
+| `internal/tui` | The terminal interface used by the Linux launcher and `-tui` |
+| `internal/webui` | The experimental cross-platform browser interface selected by `-web` |
 | `internal/generate` | Drives the Archipelago app's generator: installs the apworld, writes the player file, runs it |
 | `internal/debugbundle` | The zip a play-tester sends: logs, settings without passwords, player file |
 | `../fakeroom` | The multiworld of one that test mode serves, shared with the bridge |
@@ -64,6 +66,10 @@ output back when a terminal started them.
 
 `-console` runs the old prompt flow, which is also what every other platform
 gets: `gui.Available()` is false there.
+
+`-web` opts into the experimental browser interface on Windows or Linux. The
+native window and terminal interface remain the defaults until a later
+cutover.
 
 Three Win32 details the window depends on, each found by running the exe under
 Wine:

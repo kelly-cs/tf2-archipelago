@@ -28,9 +28,10 @@ notOnAPage is the decided exceptions, each with the reason. It is short and it
 is meant to stay short: an entry is a decision, not a way to quieten this.
 */
 var notOnAPage = map[string]string{
-	"SrcdsRconPw":     "generated per run and never shown; a player who types one has no use for it",
-	"SrcdsMaxPlayers": "derived from the bot team size and the reach, never asked",
-	"SrcdsMods":       "the launcher installs none of them yet, it only carries the choice through",
+	"SrcdsRconPw":         "generated per run and never shown; a player who types one has no use for it",
+	"SrcdsMaxPlayers":     "derived from the bot team size and the reach, never asked",
+	"SrcdsMods":           "the launcher installs none of them yet, it only carries the choice through",
+	"CommunityContentDir": "the browser imports into the launcher's internal asset cache; old files may still override its location",
 	"SrcdsStartMission": "written by the start mission row on the Missions page, which owns both this " +
 		"and MvmStartMission so the seed and the server cannot disagree",
 	"SrcdsStartMap":        "read from files written before 1.3 and never written again",

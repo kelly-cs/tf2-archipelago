@@ -53,6 +53,9 @@ func TestEverySpecIsComplete(t *testing.T) {
 			if spec.Get != nil || spec.Set != nil {
 				t.Errorf("%s is a %s and has nothing to read or write", spec.ID, spec.Kind)
 			}
+			if spec.Hint != "" {
+				t.Errorf("%s uses %q instead of its action label", spec.ID, spec.Hint)
+			}
 		default:
 			if spec.Get == nil || spec.Set == nil {
 				t.Errorf("%s is a %s and needs both a Get and a Set", spec.ID, spec.Kind)
@@ -205,6 +208,39 @@ func TestARefusedChangeChangesNothing(t *testing.T) {
 	}
 	if !reflect.DeepEqual(s, base()) {
 		t.Error("a refused change wrote to the settings it was given")
+	}
+}
+
+func TestPoolCannotLeaveAnExcludedStartMission(t *testing.T) {
+	s := base()
+	s = startMission(s, "mvm_decoy")
+	next, err := Apply(s, Env{}, Change{Field: "missions.pool.mvm_decoy", Value: "false"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if next.Settings.MvmStartMission != "" {
+		t.Errorf("excluded start mission remains %q", next.Settings.MvmStartMission)
+	}
+}
+
+func TestDifficultyCannotLeaveAStartBelowItsFloor(t *testing.T) {
+	s := base()
+	s = startMission(s, "mvm_decoy")
+	next, err := Apply(s, Env{}, Change{Field: "run.tier", Value: "advanced"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if next.Settings.MvmStartMission != "" {
+		t.Errorf("normal start mission remains under the advanced floor: %q", next.Settings.MvmStartMission)
+	}
+}
+
+func TestOpeningSettingsClearsAnAlreadyExcludedStart(t *testing.T) {
+	s := settings.Defaults()
+	s.MvmStartMission = "mvm_decoy"
+	s.MvmExcludedMissions = append(s.MvmExcludedMissions, "mvm_decoy")
+	if got := NewState(s).Settings.MvmStartMission; got != "" {
+		t.Errorf("opening settings kept excluded start mission %q", got)
 	}
 }
 

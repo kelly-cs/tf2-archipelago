@@ -115,7 +115,7 @@ func LoadoutSlots(class string) []string {
 // NewState is the state a freshly opened settings screen starts in: the saved
 // settings, an empty team name, and a stock loadout of the first class.
 func NewState(s settings.Settings) State {
-	return State{
+	state := State{
 		Settings: s,
 		Draft: Draft{
 			Loadout: StockLoadout(botloadout.Classes[0].Key),
@@ -124,4 +124,5 @@ func NewState(s settings.Settings) State {
 			}.String(),
 		},
 	}
+	return clearIneligibleStart(state)
 }

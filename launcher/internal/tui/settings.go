@@ -182,7 +182,7 @@ refuses one, and wiredActions below is the same list for the other direction.
 */
 var wiredActions = []string{
 	"run.generate", "run.open_player_file", "run.open_folder", "run.open_settings_file",
-	"missions.download_packs", "missions.use_local_packs", "missions.check_selection",
+	"missions.download_packs", "missions.import_assets", "missions.check_selection",
 	"missions.pool_all", "missions.pool_none",
 	"server.debug_bundle", "server.repair", "server.reset",
 	"net.check_funnel",
@@ -202,7 +202,7 @@ func (f *settingsForm) action(id string) func() tea.Cmd {
 		return f.openSettingsFile
 	case "missions.download_packs":
 		return f.downloadSelectedCommunityAssets
-	case "missions.use_local_packs":
+	case "missions.import_assets":
 		return f.useLocalCommunityAssets
 	case "missions.check_selection":
 		return f.checkRunSelection

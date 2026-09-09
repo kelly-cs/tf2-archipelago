@@ -397,7 +397,7 @@ func buildSettingsDialog(
 		},
 		"run.open_settings_file":  func() { openSettingsFile(dialog) },
 		"missions.download_packs": func() { downloadSelectedCommunityAssets(dialog, settingsFrom(collect), say) },
-		"missions.use_local_packs": func() {
+		"missions.import_assets": func() {
 			useLocalCommunityAssets(dialog, settingsFrom(collect), say)
 			available = communityPackNames(state.Settings.CommunityContentDir)
 		},

@@ -1,29 +1,14 @@
 /*
-Package form is what the launcher asks the player, said once.
+Package form declares what the launcher asks the player.
 
-The terminal screen and the Windows window each used to carry their own list of
-rows, and the lists drifted. Not in which settings they held, which a package
-called uiparity checked by reading the two files with a regular expression, but
-in what they told the player: the window said an Expert pool leaves four
-missions and the terminal said nothing, the window's cash checkbox read "include
-cash filler" and the terminal's read "include cash". Nobody chose either
-difference, and no comparison of field names could have found one.
-
-A web page is planned as a third. It is a renderer over this, not a third list.
-
-So a setting is declared once, here, as a Spec: what it is called, what it is
-for, what values it takes, and how it is read off and written back. Build turns
-the specs and the state into a Model, and a Model is plain data with no closures
-and no styling, which is what makes it the same screen everywhere:
+A setting is one Spec: its words, values and state binding. Build resolves the
+specs into the plain-data Model served to the browser, and Apply turns a browser
+change back into State:
 
 	Build(state, env) -> Model -> the interface draws it
 	                                  |
 	                                  v
 	                Apply(state, env, Change) -> State -> Build again
-
-The interface decides how a choice is picked, not what the choices are. A
-combo box, a left-and-right pair of keys and a <select> are three answers to
-Kind Choice, and none of them is in this package.
 
 # Why the Model holds no functions
 
@@ -34,12 +19,17 @@ depend on another setting are numbers by then, a row that a missing asset pack
 makes unavailable is already marked Disabled with the reason, and a button is an
 ID the caller dispatches rather than a func nobody can serialise.
 
-So a Model is a snapshot and it goes stale the moment anything changes. Both
-interfaces rebuild rather than patching a row in place, because a change can
-move another row's bounds and can add and remove rows outright: ticking a
-community asset pack adds a row per mission of that pack.
+The Model is a snapshot. The browser rebuilds it after a change because that
+change can move another row's bounds or add and remove rows outright; ticking a
+community asset pack adds a row for each mission in that pack.
 */
 package form
+
+import (
+	"encoding/json"
+	"fmt"
+	"strconv"
+)
 
 // Kind is what an interface has to draw, and there are seven of them.
 type Kind uint8
@@ -57,10 +47,32 @@ const (
 	Choice
 	// Action is a button. It carries no value, only what pressing it does.
 	Action
-	// Confirm is an Action that cannot be taken back, so the interface asks
-	// first: a message box in the window, a second Enter in the terminal.
+	// Confirm is an Action that cannot be taken back, so the browser asks first.
 	Confirm
 )
+
+// MarshalJSON gives renderers a stable, readable contract. The numeric iota is
+// an implementation detail: adding a Kind must not silently turn every browser
+// row after it into a different control.
+func (k Kind) MarshalJSON() ([]byte, error) {
+	return []byte(strconv.Quote(k.String())), nil
+}
+
+// UnmarshalJSON keeps Model's round-trip guarantee for tests and for any
+// renderer that stores then reloads a model.
+func (k *Kind) UnmarshalJSON(data []byte) error {
+	var name string
+	if err := json.Unmarshal(data, &name); err != nil {
+		return fmt.Errorf("form kind: %w", err)
+	}
+	for candidate := Text; candidate <= Confirm; candidate++ {
+		if candidate.String() == name {
+			*k = candidate
+			return nil
+		}
+	}
+	return fmt.Errorf("form kind %q is unknown", name)
+}
 
 // Option is one answer of a Choice: the value that is saved, and the line the
 // player reads. The two are separate because "progression" is what the settings
@@ -107,8 +119,7 @@ type Field struct {
 	// Options are the answers to a Choice, in the order they are offered.
 	Options []Option `json:"options,omitempty"`
 
-	// Hint is what pressing an Action does, in the two or three words a button
-	// has room for, and for a Toggle it is what the box says beside the tick.
+	// Hint is what a Toggle says beside the tick.
 	// Warning is what a Confirm says while it is asking.
 	Hint    string `json:"hint,omitempty"`
 	Warning string `json:"warning,omitempty"`
