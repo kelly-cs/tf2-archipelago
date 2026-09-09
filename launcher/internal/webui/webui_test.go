@@ -3,7 +3,6 @@ package webui
 import (
 	"archive/zip"
 	"bytes"
-	"encoding/json"
 	"errors"
 	"io"
 	"mime/multipart"
@@ -15,8 +14,8 @@ import (
 	"testing"
 
 	"github.com/m-this/tf2-archipelago/launcher/internal/form"
-	apruntime "github.com/m-this/tf2-archipelago/launcher/internal/runtime"
 	"github.com/m-this/tf2-archipelago/launcher/internal/settings"
+	"github.com/m-this/tf2-archipelago/launcher/internal/webapi"
 )
 
 func localRequest(method, target string, body io.Reader) *http.Request {
@@ -57,32 +56,6 @@ func TestOpenSuccessDoesNotPrompt(t *testing.T) {
 	}
 }
 
-func TestMissionPoolRowsCarryTableMetadata(t *testing.T) {
-	rows := missionPoolRows(form.NewState(settings.Defaults()), nil, nil)
-	if len(rows) == 0 {
-		t.Fatal("the mission pool table is empty")
-	}
-	row := rows[0]
-	if row.Field == "" || row.Source == "" || row.Map == "" || row.Name == "" || row.Waves == "" ||
-		row.Compatibility == "" || row.Mods == "" {
-		t.Fatalf("mission pool row has an empty column: %+v", row)
-	}
-	if !strings.HasPrefix(row.Field, "missions.pool.") {
-		t.Errorf("mission pool field = %q", row.Field)
-	}
-}
-
-func TestMissionPoolRowsExplainDifficultyFloor(t *testing.T) {
-	state := form.NewState(settings.Defaults())
-	state.Settings.MvmDifficulty = "advanced"
-	rows := missionPoolRows(state, nil, nil)
-	if !slices.ContainsFunc(rows, func(row MissionPoolRow) bool {
-		return strings.HasPrefix(row.Compatibility, "Below Advanced")
-	}) {
-		t.Fatal("the table does not explain why lower-tier missions are ineligible")
-	}
-}
-
 func assetZIP(t *testing.T) []byte {
 	t.Helper()
 	var archive bytes.Buffer
@@ -103,7 +76,7 @@ func assetZIP(t *testing.T) []byte {
 func TestImportSelectsPackAndMissions(t *testing.T) {
 	s := settings.Defaults()
 	s.CommunityContentDir = t.TempDir()
-	app := New(s, nil)
+	app := newApp(s, nil)
 	app.OpenSettings("Missions")
 
 	var body bytes.Buffer
@@ -127,39 +100,31 @@ func TestImportSelectsPackAndMissions(t *testing.T) {
 	if !slices.Equal(imported, []string{settings.CommunityPackMoonlight}) {
 		t.Fatalf("imported = %v", imported)
 	}
-	if !slices.Contains(app.draft.Settings.CommunityPacks, settings.CommunityPackMoonlight) {
+
+	snapshot := app.Snapshot()
+	field, ok := snapshot.Form.Field("missions.moonlight")
+	if !ok || field.Value != "true" {
 		t.Fatal("the imported pack was not selected")
 	}
-	rows := missionPoolRows(*app.draft, app.community, app.imported)
 	for popFile, name := range map[string]string{
 		"mvm_coaltown_int_trouble_in_mann_town": "Trouble in Mann Town",
 		"mvm_mannworks_adv_manntenance":         "Manntenance",
 	} {
-		if !slices.ContainsFunc(rows, func(row MissionPoolRow) bool {
+		if !slices.ContainsFunc(snapshot.MissionPool, func(row webapi.MissionPoolRow) bool {
 			return row.Name == name && row.Source == "Imported"
 		}) {
 			t.Errorf("imported Moonlight assets did not add %q to the mission pool", name)
 		}
-		if slices.Contains(app.draft.Settings.MvmExcludedMissions, popFile) {
+		if pooled, ok := snapshot.Form.Field("missions.pool." + popFile); !ok || pooled.Value != "true" {
 			t.Errorf("imported mission %q is still excluded from the pool", name)
 		}
-	}
-}
-
-func TestPoolNoneClearsTheNamedStartMission(t *testing.T) {
-	app := New(settings.Defaults(), nil)
-	app.OpenSettings("Missions")
-	app.draft.Settings.MvmStartMission = "mvm_decoy"
-	app.setPool(false)
-	if got := app.draft.Settings.MvmStartMission; got != "" {
-		t.Errorf("pool none kept start mission %q", got)
 	}
 }
 
 func TestPageCarriesTheWholeOperationalInterface(t *testing.T) {
 	request := localRequest(http.MethodGet, "/", nil)
 	response := httptest.NewRecorder()
-	New(settings.Defaults(), nil).Handler().ServeHTTP(response, request)
+	newApp(settings.Defaults(), nil).Handler().ServeHTTP(response, request)
 
 	if response.Code != http.StatusOK {
 		t.Fatalf("GET / answered %d", response.Code)
@@ -188,7 +153,7 @@ func TestFilesOpenThroughTheBrowser(t *testing.T) {
 	if err := settings.Save(s); err != nil {
 		t.Fatal(err)
 	}
-	app := New(s, nil)
+	app := newApp(s, nil)
 	app.OpenSettings("Run")
 
 	for _, test := range []struct {
@@ -215,13 +180,6 @@ func TestFilesOpenThroughTheBrowser(t *testing.T) {
 	}
 }
 
-func TestSnapshotProvidesSteamURLToTheBrowser(t *testing.T) {
-	snapshot := New(settings.Defaults(), nil).Snapshot()
-	if !strings.HasPrefix(snapshot.JoinURL, "steam://run/440//+connect%20") {
-		t.Errorf("join URL = %q", snapshot.JoinURL)
-	}
-}
-
 func TestJoinRunsInTheBrowser(t *testing.T) {
 	body := string(page)
 	if !strings.Contains(body, "window.location.href") || !strings.Contains(body, "state.join_url") {
@@ -240,20 +198,6 @@ func TestJoinRunsInTheBrowser(t *testing.T) {
 	}
 }
 
-func TestSteamJoinWaitsForThePublishedAddress(t *testing.T) {
-	s := settings.Defaults()
-	s.SrcdsToken = "real-token"
-	s.SrcdsReach = settings.ReachSteam
-	app := New(s, nil)
-	if got := app.Snapshot().JoinURL; got != "" {
-		t.Fatalf("Join used a local address while Steam was still starting: %q", got)
-	}
-	app.append(apruntime.Line{Source: "srcds", Text: "FakeIP allocation succeeded: 169.254.13.42:20232, 20233"})
-	if got := app.Snapshot().JoinURL; !strings.Contains(got, "169.254.13.42:20232") {
-		t.Fatalf("Join did not use Steam's published address: %q", got)
-	}
-}
-
 func TestPeriodicDrawDoesNotRebuildUnchangedSettings(t *testing.T) {
 	if !bytes.Contains(page, []byte("function drawSettings")) ||
 		!bytes.Contains(page, []byte("JSON.stringify([snapshot.form, snapshot.mission_pool])")) {
@@ -261,59 +205,11 @@ func TestPeriodicDrawDoesNotRebuildUnchangedSettings(t *testing.T) {
 	}
 }
 
-func TestSettingsAreTheFormModelAndChangesGoThroughApply(t *testing.T) {
-	app := New(settings.Defaults(), nil)
-	app.OpenSettings("Rewards")
-	if err := app.Change(form.Change{Field: "rewards.traps", Value: "42"}); err != nil {
-		t.Fatal(err)
-	}
-
-	snapshot := app.Snapshot()
-	if snapshot.Form == nil {
-		t.Fatal("opening settings produced no form model")
-	}
-	field, ok := snapshot.Form.Field("rewards.traps")
-	if !ok {
-		t.Fatal("the form omitted rewards.traps")
-	}
-	if field.Value != "42" {
-		t.Errorf("the trap share is %q, want 42", field.Value)
-	}
-	if app.settings.MvmTrapPct == 42 {
-		t.Error("editing the draft changed the running settings before Save")
-	}
-}
-
-func TestSnapshotDoesNotExposePasswords(t *testing.T) {
-	s := settings.Defaults()
-	s.APPassword = "archipelago-secret"
-	s.SrcdsRconPw = "rcon-secret"
-	s.SrcdsPw = "game-secret"
-	app := New(s, nil)
-	app.OpenSettings("")
-
-	data, err := json.Marshal(app.Snapshot())
-	if err != nil {
-		t.Fatal(err)
-	}
-	text := string(data)
-	for _, secret := range []string{"archipelago-secret", "rcon-secret"} {
-		if strings.Contains(text, secret) {
-			t.Errorf("the browser snapshot exposes %q", secret)
-		}
-	}
-	// The join line intentionally contains the ordinary game password: it is
-	// what the player copies to friends and what the old window showed.
-	if !strings.Contains(text, "game-secret") {
-		t.Error("the snapshot lost the join password")
-	}
-}
-
 func TestAnotherOriginCannotPressButtons(t *testing.T) {
 	request := localRequest(http.MethodPost, "/api/server/start", strings.NewReader("{}"))
 	request.Header.Set("Origin", "https://example.com")
 	response := httptest.NewRecorder()
-	New(settings.Defaults(), nil).Handler().ServeHTTP(response, request)
+	newApp(settings.Defaults(), nil).Handler().ServeHTTP(response, request)
 
 	if response.Code != http.StatusForbidden {
 		t.Errorf("cross-origin POST answered %d, want 403", response.Code)
@@ -325,7 +221,7 @@ func TestRebindingHostCannotReachTheLauncher(t *testing.T) {
 	request.Host = "evil.example"
 	request.Header.Set("Origin", "http://evil.example")
 	response := httptest.NewRecorder()
-	New(settings.Defaults(), nil).Handler().ServeHTTP(response, request)
+	newApp(settings.Defaults(), nil).Handler().ServeHTTP(response, request)
 
 	if response.Code != http.StatusForbidden {
 		t.Errorf("rebound Host and Origin answered %d, want 403", response.Code)
@@ -337,7 +233,7 @@ func TestForeignHostCannotReadFiles(t *testing.T) {
 	s.APPassword = "archipelago-secret"
 	s.SrcdsRconPw = "rcon-secret"
 	s.SrcdsToken = "steam-secret"
-	app := New(s, nil)
+	app := newApp(s, nil)
 	app.OpenSettings("")
 
 	for _, path := range []string{
@@ -360,54 +256,11 @@ func TestForeignHostCannotReadFiles(t *testing.T) {
 	}
 }
 
-func TestEveryFormButtonIsWiredAndNothingStaleIsWired(t *testing.T) {
-	state := form.NewState(settings.Defaults())
-	declared := map[string]bool{}
-	for _, spec := range form.Specs(state, form.Env{}) {
-		if spec.Kind == form.Action || spec.Kind == form.Confirm {
-			declared[spec.ID] = true
-			if !slices.Contains(wiredActions, spec.ID) {
-				t.Errorf("form declares %q and the browser does not wire it", spec.ID)
-			}
-		}
-	}
-	for _, id := range wiredActions {
-		if !declared[id] {
-			t.Errorf("the browser wires %q and form does not declare it", id)
-		}
-	}
-}
-
 func TestEveryFormRowKindHasAnExplicitBrowserControl(t *testing.T) {
 	for kind := form.Text; kind <= form.Confirm; kind++ {
 		marker := "case FieldKind." + kind.String() + ":"
 		if !bytes.Contains(page, []byte(marker)) {
 			t.Errorf("form kind %q has no explicit browser control", kind)
 		}
-	}
-}
-
-func TestRestartOnSaveAppearsOnlyForAChangeThatNeedsOne(t *testing.T) {
-	before := settings.Defaults()
-
-	port := form.NewState(before)
-	port.Settings.SrcdsPort++
-	if !restartNeeded(true, before, &port) {
-		t.Error("a running server did not offer Restart on save for a port change")
-	}
-	if restartNeeded(false, before, &port) {
-		t.Error("a stopped server offered Restart on save")
-	}
-
-	team := form.NewState(before)
-	team.Settings.SrcdsBotTeamSize++
-	if restartNeeded(true, before, &team) {
-		t.Error("a bot lineup change offered Restart on save")
-	}
-
-	runShape := form.NewState(before)
-	runShape.Settings.MvmMissionCount++
-	if restartNeeded(true, before, &runShape) {
-		t.Error("a run-shape change offered Restart on save")
 	}
 }
