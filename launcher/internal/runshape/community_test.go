@@ -25,6 +25,16 @@ func TestCommunityMissionsStayHiddenUntilTheirArchiveExists(t *testing.T) {
 	if slices.ContainsFunc(visible, func(m gamedata.Mission) bool { return m.PopFile == "mvm_area_52_rc3_int_anomalous_materials" }) {
 		t.Fatal("a Moonlight mission appeared without the Moonlight archive")
 	}
+
+	moonlight := VisibleMissions([]string{"mlarchive-assets.zip"})
+	for _, popFile := range []string{
+		"mvm_coaltown_int_trouble_in_mann_town",
+		"mvm_mannworks_adv_manntenance",
+	} {
+		if !slices.ContainsFunc(moonlight, func(m gamedata.Mission) bool { return m.PopFile == popFile }) {
+			t.Errorf("Moonlight mission on a Valve map is missing: %s", popFile)
+		}
+	}
 }
 
 func TestMedievalLoadoutAppearsInStartMissionChoices(t *testing.T) {
