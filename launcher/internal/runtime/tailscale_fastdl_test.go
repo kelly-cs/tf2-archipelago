@@ -87,6 +87,20 @@ func TestStoppingTailscaleFastDLRemovesItsRoute(t *testing.T) {
 	}
 }
 
+func TestStoppingTailscaleFastDLStillRunsAfterShutdownCancellation(t *testing.T) {
+	parent, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	var cleanupErr error
+	stopTailscaleFastDLWith(parent, settings.Settings{TailscaleFastDL: true}, func(context.Context, string) {}, func(ctx context.Context) error {
+		cleanupErr = ctx.Err()
+		return nil
+	})
+	if cleanupErr != nil {
+		t.Fatalf("cleanup inherited the cancelled run context: %v", cleanupErr)
+	}
+}
+
 func TestStoppingTailscaleFastDLOffDoesNothing(t *testing.T) {
 	stopTailscaleFastDLWith(context.Background(), settings.Settings{}, func(context.Context, string) {
 		t.Fatal("cleanup spoke while FastDL was off")

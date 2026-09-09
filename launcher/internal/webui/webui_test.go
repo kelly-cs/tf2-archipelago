@@ -3,6 +3,7 @@ package webui
 import (
 	"archive/zip"
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"io"
@@ -17,6 +18,7 @@ import (
 	"github.com/m-this/tf2-archipelago/launcher/internal/form"
 	apruntime "github.com/m-this/tf2-archipelago/launcher/internal/runtime"
 	"github.com/m-this/tf2-archipelago/launcher/internal/settings"
+	"github.com/m-this/tf2-archipelago/launcher/internal/tailscalefastdl"
 )
 
 func localRequest(method, target string, body io.Reader) *http.Request {
@@ -226,6 +228,33 @@ func TestJoinRunsInTheBrowser(t *testing.T) {
 		if !strings.Contains(body, path) {
 			t.Errorf("the browser does not own %s", path)
 		}
+	}
+}
+
+func TestFunnelFailureRecommendsTheLauncherCLI(t *testing.T) {
+	original := authorizeFunnel
+	authorizeFunnel = func(context.Context) (tailscalefastdl.Authorization, error) {
+		return tailscalefastdl.Authorization{}, &tailscalefastdl.OperatorRequiredError{}
+	}
+	t.Cleanup(func() { authorizeFunnel = original })
+
+	response := httptest.NewRecorder()
+	New(settings.Defaults(), nil).Handler().ServeHTTP(
+		response,
+		localRequest(http.MethodGet, "/api/open/funnel", nil),
+	)
+	if response.Code != http.StatusBadGateway {
+		t.Fatalf("GET /api/open/funnel answered %d", response.Code)
+	}
+	body := response.Body.String()
+	if !strings.Contains(body, "-setup-funnel") || !strings.Contains(body, "performs the Funnel command automatically") {
+		t.Fatalf("Funnel guidance does not recommend the launcher CLI:\n%s", body)
+	}
+	if !strings.Contains(body, "sudo tailscale set --operator=$USER") {
+		t.Fatalf("Funnel guidance does not explain the one-time operator permission:\n%s", body)
+	}
+	if strings.Contains(body, "sudo tailscale funnel") {
+		t.Fatalf("Funnel guidance repeats Tailscale's unsafe shell rendering:\n%s", body)
 	}
 }
 

@@ -43,6 +43,15 @@ func (e *ApprovalRequiredError) Error() string {
 	return "tailscale Funnel needs approval at " + e.URL
 }
 
+// OperatorRequiredError means tailscaled has not authorized this OS user to
+// change Serve or Funnel configuration. The launcher itself should remain
+// unprivileged; Tailscale needs one privileged command to name its operator.
+type OperatorRequiredError struct{}
+
+func (e *OperatorRequiredError) Error() string {
+	return "tailscale denied Funnel setup for this user; first run: sudo tailscale set --operator=$USER ; then rerun this launcher with -setup-funnel"
+}
+
 type status struct {
 	BackendState string `json:"BackendState"`
 	Self         struct {
@@ -74,6 +83,9 @@ func authorize(ctx context.Context, executable string, command runner) (Authoriz
 		if approvalURL := funnelApprovalURL.FindString(err.Error()); approvalURL != "" {
 			return Authorization{ApprovalURL: approvalURL}, nil
 		}
+		if operatorRequired(err) {
+			return Authorization{}, &OperatorRequiredError{}
+		}
 		return Authorization{}, fmt.Errorf("cannot enable Tailscale Funnel: %w", err)
 	}
 	if _, err := command(ctx, executable, "funnel", "--https="+httpsPort,
@@ -81,6 +93,12 @@ func authorize(ctx context.Context, executable string, command runner) (Authoriz
 		return Authorization{}, fmt.Errorf("funnel is enabled, but the setup check could not be removed: %w", err)
 	}
 	return Authorization{Ready: true}, nil
+}
+
+func operatorRequired(err error) bool {
+	detail := strings.ToLower(err.Error())
+	return strings.Contains(detail, "serve config denied") ||
+		strings.Contains(detail, "tailscale set --operator=")
 }
 
 // Configure finds the installed Tailscale client, verifies that it is signed

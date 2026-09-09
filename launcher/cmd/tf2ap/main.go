@@ -157,6 +157,14 @@ func setupFunnel() error {
 	defer cancel()
 	result, err := tailscalefastdl.Authorize(ctx)
 	if err != nil {
+		if _, ok := errors.AsType[*tailscalefastdl.OperatorRequiredError](err); ok {
+			fmt.Println("Tailscale needs one-time permission for your user to manage Funnel.")
+			fmt.Println()
+			fmt.Println("sudo tailscale set --operator=$USER")
+			fmt.Println()
+			fmt.Println("After that succeeds, rerun this launcher with -setup-funnel.")
+			return errors.New("tailscale Funnel setup needs operator permission")
+		}
 		return err
 	}
 	if result.ApprovalURL != "" {

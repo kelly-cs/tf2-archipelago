@@ -526,12 +526,12 @@ func networkingSpecs() []Spec {
 			func(s State, v string) State { s.Settings.SrcdsDownloadURL = trim(v); return s }),
 
 		toggle("net.tailscale", tab, "Tailscale FastDL",
-			"Publish maps through Tailscale Funnel. Only the server needs Tailscale; players use its public HTTPS URL. This does not change the game address. Start stops with instructions if the saved Funnel cannot be restored.",
+			"Publish maps through Tailscale Funnel. Only the server needs Tailscale; players use its public HTTPS URL. This does not change the game address. Run Set up / check Funnel before Start; on headless Linux, run this launcher with -setup-funnel. Stop, Quit, Ctrl+C, and normal server exit remove the launcher's /tf route.",
 			"use Funnel",
 			func(s State) bool { return s.Settings.TailscaleFastDL },
 			func(s State, v bool) State { s.Settings.TailscaleFastDL = v; return s }),
 
 		press("net.check_funnel", tab, "Set up / check Funnel",
-			"Optional first-time check. If Funnel needs tailnet approval, this opens the approval page. Once approved, Start keeps the route configured automatically."),
+			"Preferred first-time setup: this checks Funnel and opens its approval page when needed. On headless Linux, run this launcher with -setup-funnel. If Tailscale says serve config denied, run sudo tailscale set --operator=$USER once, then retry -setup-funnel normally. The launcher itself does not need to run as root."),
 	}
 }
