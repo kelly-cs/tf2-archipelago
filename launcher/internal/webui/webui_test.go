@@ -5,10 +5,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"io"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -18,6 +18,12 @@ import (
 	apruntime "github.com/m-this/tf2-archipelago/launcher/internal/runtime"
 	"github.com/m-this/tf2-archipelago/launcher/internal/settings"
 )
+
+func localRequest(method, target string, body io.Reader) *http.Request {
+	request := httptest.NewRequest(method, target, body)
+	request.Host = "127.0.0.1"
+	return request
+}
 
 func TestOpenFailurePromptsWithManualURL(t *testing.T) {
 	const address = "http://localhost:35337"
@@ -141,7 +147,7 @@ func TestPoolNoneClearsTheNamedStartMission(t *testing.T) {
 }
 
 func TestPageCarriesTheWholeOperationalInterface(t *testing.T) {
-	request := httptest.NewRequest(http.MethodGet, "/", nil)
+	request := localRequest(http.MethodGet, "/", nil)
 	response := httptest.NewRecorder()
 	New(settings.Defaults(), nil).Handler().ServeHTTP(response, request)
 
@@ -168,9 +174,6 @@ func TestFilesOpenThroughTheBrowser(t *testing.T) {
 	t.Setenv("APPDATA", filepath.Join(home, "AppData", "Roaming"))
 	s := settings.Defaults()
 	s.InstallRoot = t.TempDir()
-	if err := os.WriteFile(filepath.Join(s.InstallRoot, "visible.txt"), []byte("install file"), 0o644); err != nil {
-		t.Fatal(err)
-	}
 	if err := settings.Save(s); err != nil {
 		t.Fatal(err)
 	}
@@ -183,15 +186,21 @@ func TestFilesOpenThroughTheBrowser(t *testing.T) {
 	}{
 		{"/api/files/settings", "install_root"},
 		{"/api/files/player", "Team Fortress 2 Mann vs Machine"},
-		{"/api/files/install/visible.txt", "install file"},
+		{"/api/files/install", s.InstallRoot},
 	} {
 		response := httptest.NewRecorder()
-		app.Handler().ServeHTTP(response, httptest.NewRequest(http.MethodGet, test.path, nil))
+		app.Handler().ServeHTTP(response, localRequest(http.MethodGet, test.path, nil))
 		if response.Code != http.StatusOK {
 			t.Errorf("GET %s answered %d: %s", test.path, response.Code, response.Body.String())
 		} else if !strings.Contains(response.Body.String(), test.want) {
 			t.Errorf("GET %s did not contain %q", test.path, test.want)
 		}
+	}
+
+	response := httptest.NewRecorder()
+	app.Handler().ServeHTTP(response, localRequest(http.MethodGet, "/api/files/install/tf/cfg/server.cfg", nil))
+	if response.Code != http.StatusNotFound {
+		t.Errorf("an unrequested install file answered %d, want 404", response.Code)
 	}
 }
 
@@ -211,7 +220,7 @@ func TestJoinRunsInTheBrowser(t *testing.T) {
 		t.Fatal("Join still delegates Steam launching to the server OS")
 	}
 	for _, path := range []string{
-		"/api/files/settings", "/api/files/player", "/api/files/install/",
+		"/api/files/settings", "/api/files/player", "/api/files/install",
 		"/api/files/seed", "/api/files/debug", "/api/open/funnel",
 	} {
 		if !strings.Contains(body, path) {
@@ -290,13 +299,53 @@ func TestSnapshotDoesNotExposePasswords(t *testing.T) {
 }
 
 func TestAnotherOriginCannotPressButtons(t *testing.T) {
-	request := httptest.NewRequest(http.MethodPost, "/api/server/start", strings.NewReader("{}"))
+	request := localRequest(http.MethodPost, "/api/server/start", strings.NewReader("{}"))
 	request.Header.Set("Origin", "https://example.com")
 	response := httptest.NewRecorder()
 	New(settings.Defaults(), nil).Handler().ServeHTTP(response, request)
 
 	if response.Code != http.StatusForbidden {
 		t.Errorf("cross-origin POST answered %d, want 403", response.Code)
+	}
+}
+
+func TestRebindingHostCannotReachTheLauncher(t *testing.T) {
+	request := httptest.NewRequest(http.MethodPost, "/api/rcon", strings.NewReader(`{"command":"say hello"}`))
+	request.Host = "evil.example"
+	request.Header.Set("Origin", "http://evil.example")
+	response := httptest.NewRecorder()
+	New(settings.Defaults(), nil).Handler().ServeHTTP(response, request)
+
+	if response.Code != http.StatusForbidden {
+		t.Errorf("rebound Host and Origin answered %d, want 403", response.Code)
+	}
+}
+
+func TestForeignHostCannotReadFiles(t *testing.T) {
+	s := settings.Defaults()
+	s.APPassword = "archipelago-secret"
+	s.SrcdsRconPw = "rcon-secret"
+	s.SrcdsToken = "steam-secret"
+	app := New(s, nil)
+	app.OpenSettings("")
+
+	for _, path := range []string{
+		"/api/files/settings", "/api/files/player", "/api/files/install",
+		"/api/files/seed", "/api/files/debug",
+	} {
+		request := httptest.NewRequest(http.MethodGet, path, nil)
+		request.Host = "evil.example"
+		request.Header.Set("Origin", "http://evil.example")
+		response := httptest.NewRecorder()
+		app.Handler().ServeHTTP(response, request)
+		if response.Code != http.StatusForbidden {
+			t.Errorf("foreign GET %s answered %d, want 403", path, response.Code)
+		}
+		for _, secret := range []string{s.APPassword, s.SrcdsRconPw, s.SrcdsToken} {
+			if strings.Contains(response.Body.String(), secret) {
+				t.Errorf("foreign GET %s exposed %q", path, secret)
+			}
+		}
 	}
 }
 
@@ -315,5 +364,39 @@ func TestEveryFormButtonIsWiredAndNothingStaleIsWired(t *testing.T) {
 		if !declared[id] {
 			t.Errorf("the browser wires %q and form does not declare it", id)
 		}
+	}
+}
+
+func TestEveryFormRowKindHasAnExplicitBrowserControl(t *testing.T) {
+	for kind := form.Text; kind <= form.Confirm; kind++ {
+		marker := "case FieldKind." + kind.String() + ":"
+		if !bytes.Contains(page, []byte(marker)) {
+			t.Errorf("form kind %q has no explicit browser control", kind)
+		}
+	}
+}
+
+func TestRestartOnSaveAppearsOnlyForAChangeThatNeedsOne(t *testing.T) {
+	before := settings.Defaults()
+
+	port := form.NewState(before)
+	port.Settings.SrcdsPort++
+	if !restartNeeded(true, before, &port) {
+		t.Error("a running server did not offer Restart on save for a port change")
+	}
+	if restartNeeded(false, before, &port) {
+		t.Error("a stopped server offered Restart on save")
+	}
+
+	team := form.NewState(before)
+	team.Settings.SrcdsBotTeamSize++
+	if restartNeeded(true, before, &team) {
+		t.Error("a bot lineup change offered Restart on save")
+	}
+
+	runShape := form.NewState(before)
+	runShape.Settings.MvmMissionCount++
+	if restartNeeded(true, before, &runShape) {
+		t.Error("a run-shape change offered Restart on save")
 	}
 }

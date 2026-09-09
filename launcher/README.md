@@ -1,12 +1,12 @@
 # launcher
 
-Go. The all-in-one Windows and Linux launcher. It embeds the compiled plugin,
-ripext and the MvM defender bots. It installs SteamCMD, the TF2 dedicated
-server, Metamod:Source and SourceMod, then runs the bridge in-process next to
-the SRCDS subprocess.
+Go. The all-in-one Windows exe. It embeds the compiled plugin, the ripext
+Windows build and the MvM defender bots. It installs SteamCMD, the TF2
+dedicated server, Metamod:Source and SourceMod. It then runs the bridge
+in-process next to the `srcds.exe` subprocess.
 
-One executable, no Docker and no clone. Its browser interface is identical on
-both platforms.
+One exe, no Docker, no clone. The primary way to run a Mann vs Archipelago
+server on Windows.
 
 ## Build
 
@@ -34,13 +34,15 @@ archive layout, custom-upgrade findings, build commands, and RafMod boundary.
 | `internal/installer` | SteamCMD, TF2 server, Metamod, SourceMod, ripext, plugin, bots |
 | `internal/srcdsconfig` | Renders `server.cfg`, `admins_simple.ini`, `tf2_archipelago.cfg` |
 | `internal/runtime` | The `srcds.exe` subprocess and the in-process bridge, interleaved |
-| `internal/webui` | The cross-platform browser UI: logs, controls, settings, session and RCON |
+| `internal/gui` | The window: log view, Start/Stop, settings dialog, rcon box |
+| `internal/tui` | The terminal interface used by the Linux launcher and `-tui` |
+| `internal/webui` | The experimental cross-platform browser interface selected by `-web` |
 | `internal/generate` | Drives the Archipelago app's generator: installs the apworld, writes the player file, runs it |
 | `internal/debugbundle` | The zip a play-tester sends: logs, settings without passwords, player file |
 | `../fakeroom` | The multiworld of one that test mode serves, shared with the bridge |
 | `internal/rcon` | Source RCON client, shared by the command box and `cmd/rcon`, which `make rcon` runs |
 | `internal/runshape` | The run's choices, counted from `gamedata` |
-| `internal/ui` | Console prompts, and the console the Windows build attaches to |
+| `internal/ui` | Console prompts, and the console the window build attaches to |
 
 ## Configuration
 
@@ -54,17 +56,32 @@ already uses, so a compose operator's file works here unchanged. An environment
 value is never written back: an override for one run must not become the saved
 answer.
 
-## The browser and the console
+## The window and the console
 
-With no arguments the launcher serves its embedded interface on a random
-loopback port and opens it in the desktop browser. Windows and Linux draw the
-same HTML over the same HTTP handlers. `runtime.Supervisor` owns the processes
-behind Start and Stop, and Server-Sent Events carry its log and state changes
-to the page. The server listens only on `127.0.0.1`.
-
-`-console` keeps the prompt-and-log flow for a headless machine. The Windows
-exe still links with `-H windowsgui`; `ui.AttachConsole` gives flags their
+`tf2ap.exe` with no arguments opens the window on Windows. `runtime.Supervisor`
+owns the pair of processes behind the Start and Stop buttons, and every log
+line reaches the view through its sink. The exe links with `-H windowsgui`, so
+a double-click opens no console; `ui.AttachConsole` gives the flags their
 output back when a terminal started them.
+
+`-console` runs the old prompt flow, which is also what every other platform
+gets: `gui.Available()` is false there.
+
+`-web` opts into the experimental browser interface on Windows or Linux. The
+native window and terminal interface remain the defaults until a later
+cutover.
+
+Three Win32 details the window depends on, each found by running the exe under
+Wine:
+
+- `runtime.LockOSThread` in `gui.Run`. Windows delivers a window's messages to
+  the thread that created it, and Go moves a goroutine between threads at any
+  blocking call.
+- `CREATE_NO_WINDOW` on the game server (`runtime.hideConsole`). srcds is a
+  console program and this is not, so Windows gives the child a console of its
+  own. That console leaves this window half laid out.
+- The settings dialog reads its fields in the Save handler. Closing a dialog
+  destroys its children, and a destroyed control reads back empty.
 
 ## How it fits
 

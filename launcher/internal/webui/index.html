@@ -211,6 +211,11 @@
         top: 0;
         z-index: 2;
       }
+      .restart-option {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+      }
       .settings {
         display: grid;
         grid-template-columns: 175px 1fr;
@@ -413,6 +418,10 @@
       <header>
         <strong>Settings</strong>
         <span class="grow"></span>
+        <label id="restart-option" class="restart-option hidden">
+          <input id="restart-on-save" type="checkbox" checked />
+          Restart on save
+        </label>
         <button id="save">Save</button>
         <button id="cancel">Cancel</button>
       </header>
@@ -452,19 +461,31 @@
       const browserActions = {
         "run.generate": "/api/files/seed",
         "run.open_player_file": "/api/files/player",
-        "run.open_folder": "/api/files/install/",
+        "run.open_folder": "/api/files/install",
         "run.open_settings_file": "/api/files/settings",
         "server.debug_bundle": "/api/files/debug",
         "net.check_funnel": "/api/open/funnel",
       };
       const FieldKind = Object.freeze({
-        password: 2,
-        number: 3,
-        toggle: 4,
-        choice: 5,
-        action: 6,
-        confirm: 7,
+        text: "text",
+        password: "password",
+        number: "number",
+        toggle: "toggle",
+        choice: "choice",
+        action: "action",
+        confirm: "confirm",
       });
+      const editableFieldKinds = new Set([
+        FieldKind.text,
+        FieldKind.password,
+        FieldKind.number,
+        FieldKind.toggle,
+        FieldKind.choice,
+      ]);
+
+      function isActionKind(kind) {
+        return kind === FieldKind.action || kind === FieldKind.confirm;
+      }
       function text(value) {
         return document.createTextNode(value ?? "");
       }
@@ -608,14 +629,23 @@
 
       function drawSettings(snapshot) {
         if (snapshot.form) {
+          const opening = !$("settings").open;
           const key = JSON.stringify([snapshot.form, snapshot.mission_pool]);
           if (key !== formKey) {
             formKey = key;
             drawForm(snapshot.form);
           }
-          if (!$("settings").open) $("settings").showModal();
+          $("restart-option").classList.toggle(
+            "hidden",
+            !snapshot.restart_needed,
+          );
+          if (opening) {
+            $("restart-on-save").checked = true;
+            $("settings").showModal();
+          }
         } else {
           formKey = "";
+          $("restart-option").classList.add("hidden");
           if ($("settings").open) $("settings").close();
         }
       }
@@ -665,14 +695,13 @@
       }
 
       function inputControl(field) {
-        const type =
-          field.kind === FieldKind.password
-            ? "password"
-            : field.kind === FieldKind.number
-              ? "number"
-              : "text";
+        const inputTypes = {
+          [FieldKind.text]: "text",
+          [FieldKind.password]: "password",
+          [FieldKind.number]: "number",
+        };
         const control = el("input", {
-          type,
+          type: inputTypes[field.kind],
           placeholder: field.placeholder || "",
           value: field.value || "",
         });
@@ -697,12 +726,17 @@
           case FieldKind.confirm:
             control = actionControl(field);
             break;
-          default:
+          case FieldKind.text:
+          case FieldKind.password:
+          case FieldKind.number:
             control = inputControl(field);
+            break;
+          default:
+            throw new Error(`unsupported field kind: ${field.kind}`);
         }
 
         control.disabled = Boolean(field.disabled);
-        if (field.kind < FieldKind.action) {
+        if (editableFieldKinds.has(field.kind)) {
           control.onchange = () => {
             const value =
               field.kind === FieldKind.toggle
@@ -813,13 +847,10 @@
         if (!page) return;
 
         const fields = page.fields || [];
-        const actions = fields.filter(
-          (field) => field.kind >= FieldKind.action,
-        );
+        const actions = fields.filter((field) => isActionKind(field.kind));
         const regular = fields.filter(
           (field) =>
-            field.kind < FieldKind.action &&
-            !field.id.startsWith("missions.pool."),
+            !isActionKind(field.kind) && !field.id.startsWith("missions.pool."),
         );
         const rows = [];
         if (actions.length) {
@@ -924,7 +955,10 @@
         };
         $("rcon").onsubmit = sendRCON;
         $("cancel").onclick = () => post("/api/settings/cancel").catch(notice);
-        $("save").onclick = () => post("/api/settings/save").catch(notice);
+        $("save").onclick = () =>
+          post("/api/settings/save", {
+            restart: $("restart-on-save").checked,
+          }).catch(notice);
       }
 
       function connectEvents() {

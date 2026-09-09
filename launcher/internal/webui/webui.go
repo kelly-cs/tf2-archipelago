@@ -36,6 +36,7 @@ import (
 	"github.com/m-this/tf2-archipelago/launcher/internal/roomcheck"
 	"github.com/m-this/tf2-archipelago/launcher/internal/runshape"
 	apruntime "github.com/m-this/tf2-archipelago/launcher/internal/runtime"
+	"github.com/m-this/tf2-archipelago/launcher/internal/saveplan"
 	"github.com/m-this/tf2-archipelago/launcher/internal/session"
 	"github.com/m-this/tf2-archipelago/launcher/internal/settings"
 	"github.com/m-this/tf2-archipelago/launcher/internal/srcdsconfig"
@@ -59,25 +60,26 @@ type event struct {
 // Snapshot is everything the page needs for one draw. Passwords never cross
 // the loopback boundary; form already represents them as replacement fields.
 type Snapshot struct {
-	Title        string           `json:"title"`
-	Status       string           `json:"status"`
-	Running      bool             `json:"running"`
-	Busy         bool             `json:"busy"`
-	Room         string           `json:"room"`
-	Join         string           `json:"join"`
-	JoinURL      string           `json:"join_url"`
-	Mission      string           `json:"mission"`
-	Logs         []apruntime.Line `json:"logs"`
-	Session      session.Snapshot `json:"session"`
-	SessionError string           `json:"session_error,omitempty"`
-	Bots         []botlive.Seat   `json:"bots"`
-	DrawnBots    string           `json:"drawn_bots,omitempty"`
-	Form         *form.Model      `json:"form,omitempty"`
-	FormPage     string           `json:"form_page,omitempty"`
-	Notice       string           `json:"notice,omitempty"`
-	NoticeSeq    uint64           `json:"notice_seq,omitempty"`
-	ItemServer   string           `json:"item_server,omitempty"`
-	MissionPool  []MissionPoolRow `json:"mission_pool,omitempty"`
+	Title         string           `json:"title"`
+	Status        string           `json:"status"`
+	Running       bool             `json:"running"`
+	Busy          bool             `json:"busy"`
+	Room          string           `json:"room"`
+	Join          string           `json:"join"`
+	JoinURL       string           `json:"join_url"`
+	Mission       string           `json:"mission"`
+	Logs          []apruntime.Line `json:"logs"`
+	Session       session.Snapshot `json:"session"`
+	SessionError  string           `json:"session_error,omitempty"`
+	Bots          []botlive.Seat   `json:"bots"`
+	DrawnBots     string           `json:"drawn_bots,omitempty"`
+	Form          *form.Model      `json:"form,omitempty"`
+	FormPage      string           `json:"form_page,omitempty"`
+	Notice        string           `json:"notice,omitempty"`
+	NoticeSeq     uint64           `json:"notice_seq,omitempty"`
+	ItemServer    string           `json:"item_server,omitempty"`
+	MissionPool   []MissionPoolRow `json:"mission_pool,omitempty"`
+	RestartNeeded bool             `json:"restart_needed,omitempty"`
 }
 
 // MissionPoolRow is the domain data behind one dense row in the settings
@@ -148,7 +150,7 @@ func Run(s settings.Settings, logger *slog.Logger) error {
 	if err != nil {
 		return fmt.Errorf("cannot start the launcher interface: %w", err)
 	}
-	server := &http.Server{Handler: a.Handler(), ReadHeaderTimeout: 5 * time.Second}
+	server := &http.Server{Handler: a.handler(listener.Addr().String()), ReadHeaderTimeout: 5 * time.Second}
 	go func() {
 		if err := server.Serve(listener); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			a.say("interface: %v", err)
@@ -213,13 +215,17 @@ func writeManualURL(output io.Writer, address string, openErr error) error {
 }
 
 func (a *App) Handler() http.Handler {
+	return a.handler("127.0.0.1")
+}
+
+func (a *App) handler(authority string) http.Handler {
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /", a.servePage)
+	mux.HandleFunc("GET /{$}", a.servePage)
 	mux.HandleFunc("GET /api/snapshot", a.serveSnapshot)
 	mux.HandleFunc("GET /api/events", a.serveEvents)
 	mux.HandleFunc("GET /api/files/settings", a.serveSettingsFile)
 	mux.HandleFunc("GET /api/files/player", a.servePlayerFile)
-	mux.HandleFunc("GET /api/files/install/", a.serveInstallFiles)
+	mux.HandleFunc("GET /api/files/install", a.serveInstallLocation)
 	mux.HandleFunc("GET /api/files/seed", a.serveGeneratedSeed)
 	mux.HandleFunc("GET /api/files/debug", a.serveDebugBundle)
 	mux.HandleFunc("GET /api/open/funnel", a.serveFunnelApproval)
@@ -234,9 +240,15 @@ func (a *App) Handler() http.Handler {
 	mux.HandleFunc("POST /api/settings/cancel", a.serveSettingsCancel)
 	mux.HandleFunc("POST /api/quit", func(http.ResponseWriter, *http.Request) { a.Quit() })
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// A hostile page must not be able to drive RCON through a browser. Same-
-		// origin requests either omit Origin or name this loopback server.
-		if origin := r.Header.Get("Origin"); origin != "" && origin != "http://"+r.Host {
+		// Host is pinned to the address this listener actually bound. Comparing
+		// Origin with Host is not enough: a DNS-rebinding attacker controls both.
+		if r.Host != authority {
+			http.Error(w, "wrong host", http.StatusForbidden)
+			return
+		}
+		// Browsers send Origin for script requests. An empty Origin stays allowed
+		// so trusted local tools can use the loopback API on this single-user app.
+		if origin := r.Header.Get("Origin"); origin != "" && origin != "http://"+authority {
 			http.Error(w, "wrong origin", http.StatusForbidden)
 			return
 		}
@@ -299,13 +311,14 @@ func (a *App) servePlayerFile(w http.ResponseWriter, r *http.Request) {
 	serveBrowserFile(w, r, path, "inline")
 }
 
-func (a *App) serveInstallFiles(w http.ResponseWriter, r *http.Request) {
+func (a *App) serveInstallLocation(w http.ResponseWriter, _ *http.Request) {
 	s, err := a.draftSettings()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusConflict)
 		return
 	}
-	http.StripPrefix("/api/files/install", http.FileServer(http.Dir(s.InstallRoot))).ServeHTTP(w, r)
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	_, _ = fmt.Fprintf(w, "Server folder:\n\n%s\n", s.InstallRoot)
 }
 
 func (a *App) serveGeneratedSeed(w http.ResponseWriter, r *http.Request) {
@@ -431,6 +444,7 @@ func (a *App) Snapshot() Snapshot {
 	}
 	var model *form.Model
 	var missionPool []MissionPoolRow
+	restartOnSave := false
 	if a.draft != nil {
 		built := form.Build(*a.draft, a.formEnvLocked())
 		for page := range built.Tabs {
@@ -442,6 +456,7 @@ func (a *App) Snapshot() Snapshot {
 		}
 		model = &built
 		missionPool = missionPoolRows(*a.draft, a.community, a.imported)
+		restartOnSave = restartNeeded(running, s, a.draft)
 	}
 	result := Snapshot{
 		Title:  assets.Title("Mann vs Archipelago"),
@@ -450,12 +465,16 @@ func (a *App) Snapshot() Snapshot {
 		Logs: slices.Clone(a.logs), Session: sessionState,
 		Bots: botlive.Team(s), DrawnBots: botlive.Drawn(s),
 		Form: model, FormPage: a.formPage, Notice: a.notice, NoticeSeq: a.noticeSeq,
-		ItemServer: a.itemServer, MissionPool: missionPool,
+		ItemServer: a.itemServer, MissionPool: missionPool, RestartNeeded: restartOnSave,
 	}
 	if a.fetchErr != nil {
 		result.SessionError = a.fetchErr.Error()
 	}
 	return result
+}
+
+func restartNeeded(running bool, before settings.Settings, draft *form.State) bool {
+	return running && draft != nil && saveplan.For(before, draft.Settings).Restart
 }
 
 func missionPoolRows(s form.State, availablePacks, importedPacks []string) []MissionPoolRow {
@@ -724,7 +743,7 @@ func (a *App) Change(c form.Change) error {
 	return nil
 }
 
-func (a *App) SaveSettings() error {
+func (a *App) SaveSettings(restart bool) error {
 	a.mu.Lock()
 	if a.draft == nil {
 		a.mu.Unlock()
@@ -755,7 +774,8 @@ func (a *App) SaveSettings() error {
 		a.say("%v", err)
 	}
 	if a.supervisor.Running() {
-		if botlive.LiveOnly(before, written) {
+		plan := saveplan.For(before, written)
+		if plan.Team {
 			if err := srcdsconfig.Install(written); err != nil {
 				a.say("cannot write the bot files: %v", err)
 			} else {
@@ -763,12 +783,18 @@ func (a *App) SaveSettings() error {
 					a.SendRCON(command)
 				}
 			}
-			if heldRestart {
-				a.say("SourceMod updated its gamedata. Restarting the server to load it.")
-				a.Restart()
-			}
-		} else {
+		}
+		switch {
+		case plan.Restart && restart:
+			a.say("settings saved. Restarting the server to apply them.")
 			a.Restart()
+		case heldRestart:
+			a.say("SourceMod updated its gamedata. Restarting the server to load it.")
+			a.Restart()
+		case plan.Restart:
+			a.say("settings saved. The server is still playing on what it started with: press Restart to apply them.")
+		case plan.Quiet():
+			a.say("settings saved. The server keeps playing: nothing here changes a run it is already in.")
 		}
 	}
 	go a.reportRoom(written, draft.Draft.Room, roomErr)
@@ -1262,8 +1288,14 @@ func (a *App) serveSettingsImport(w http.ResponseWriter, r *http.Request) {
 // application-lifetime tasks deliberately survive the browser request.
 //
 //nolint:contextcheck // Post-save lifecycle work outlives the request.
-func (a *App) serveSettingsSave(w http.ResponseWriter, _ *http.Request) {
-	if err := a.SaveSettings(); err != nil {
+func (a *App) serveSettingsSave(w http.ResponseWriter, r *http.Request) {
+	body, ok := decode[struct {
+		Restart bool `json:"restart"`
+	}](w, r)
+	if !ok {
+		return
+	}
+	if err := a.SaveSettings(body.Restart); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 	}
 }

@@ -2390,8 +2390,21 @@ static int WeaponBuffs_Provider(int client, int weaponEntity)
     // add the entity to CTFPlayer::m_hMyWearables: TF2Utils' wearable-equip
     // virtual offset is stale on current Windows TF2, and no visible/equipped
     // cosmetic is needed for an attribute provider.
+    /* The whole provider rests on this input being accepted. A server with no
+     * VScript VM refuses it, ReapplyProvision never runs, and every weapon buff
+     * in the run silently does nothing. That was reported as the provider not
+     * providing, which is the symptom two steps downstream: say which it was,
+     * because the fix for one is a server setting and the fix for the other is
+     * here. */
     SetVariantString("self.ReapplyProvision()");
-    AcceptEntityInput(provider, "RunScriptCode");
+    if (!AcceptEntityInput(provider, "RunScriptCode"))
+    {
+        LogError("This server refused RunScriptCode, so no weapon buff can be applied to %N. The provider is attached through VScript and this server has none.", client);
+        RemoveEntity(provider);
+        g_WeaponBuffProviderRef[client] = INVALID_ENT_REFERENCE;
+        g_WeaponBuffProviderRetryAt[client] = GetGameTime() + WeaponBuffProviderRetrySeconds;
+        return -1;
+    }
     if (GetEntPropEnt(provider, Prop_Send, "m_hOwnerEntity") != client)
     {
         LogError("Could not attach the private Archipelago attribute provider to %N.", client);
@@ -2413,7 +2426,22 @@ static int WeaponBuffs_Provider(int client, int weaponEntity)
     TF2Attrib_ClearCache(weaponEntity);
     if (FloatAbs(damageAfter - damageBefore) < 0.001)
     {
-        LogError("The private Archipelago provider attached to %N but did not provide attributes.", client);
+        /* What was in hand, and both readings. The line used to say only that
+         * the probe failed, which left apw-l3v with a player whose buffs never
+         * applied and nothing in the bundle to say what was different about the
+         * moment it was tried. */
+        char held[64];
+        if (!GetEntityClassname(weaponEntity, held, sizeof(held)))
+        {
+            strcopy(held, sizeof(held), "an unnamed entity");
+        }
+        int definition = -1;
+        if (HasEntProp(weaponEntity, Prop_Send, "m_iItemDefinitionIndex"))
+        {
+            definition = GetEntProp(weaponEntity, Prop_Send, "m_iItemDefinitionIndex");
+        }
+        LogError("The private Archipelago provider attached to %N but did not provide attributes, so no weapon buff can apply. Held %s (item %d), which read %.4f before the probe and %.4f after.",
+            client, held, definition, damageBefore, damageAfter);
         RemoveEntity(provider);
         g_WeaponBuffProviderRef[client] = INVALID_ENT_REFERENCE;
         g_WeaponBuffProviderRetryAt[client] = GetGameTime() + WeaponBuffProviderRetrySeconds;

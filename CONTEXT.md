@@ -147,9 +147,9 @@ nothing about Archipelago, holds no authoritative state.
 
 **Launcher**
 The Windows and Linux executable. It installs the game server and its mods and
-runs the bridge in-process next to SRCDS. Its embedded browser interface holds
-the log, Start and Stop, settings and an RCON box; `-console` is the headless
-equivalent of the compose stack.
+runs the bridge in-process next to SRCDS. Windows defaults to its native window,
+Linux to its terminal interface; `-web` opts into the experimental shared
+browser interface. The desktop equivalent of the compose stack.
 
 **Defender bots**
 OfficerSpy's MvM Defender TFBots and its five dependencies, staged by

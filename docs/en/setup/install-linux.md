@@ -41,6 +41,10 @@ Then the interface opens on it.
 service or a `screen` session wants: an interface that draws over the whole
 screen writes nothing useful into a file. Stop that one with Ctrl+C.
 
+`tf2ap-linux-amd64 -web` opts into the experimental browser interface. The
+terminal interface remains the default until the browser version replaces the
+platform UIs in a later release.
+
 For public community-map downloads without forwarding another router port,
 see [Fast map downloads with Tailscale](tailscale-fastdl.md). Linux has the
 same Networking settings as the Windows launcher. A headless host can use

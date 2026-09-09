@@ -143,7 +143,12 @@ func ValidateCommunitySources(sources ...string) error {
 		required[filepath.ToSlash(filepath.Join("maps", m.Name+".bsp"))] = "map " + m.Name
 	}
 	for _, m := range communityMissions {
-		if IsPlayableMission(m.ID) {
+		/* A community map has to bring its own navigation mesh, or the bots
+		   have nowhere to walk. A Valve map does not: the .bsp and the .nav
+		   ship with the game, and a community mission that plays on one needs
+		   the pack for its population file and nothing else. Asking the archive
+		   for mvm_mannworks.nav is asking for a file it has no reason to hold. */
+		if IsPlayableMission(m.ID) && IsCommunityMap(m.Map) {
 			if played, ok := MapByID(m.Map); ok {
 				required[filepath.ToSlash(filepath.Join("maps", played.Name+".nav"))] = "navigation mesh " + played.Name
 			}

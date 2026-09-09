@@ -88,13 +88,31 @@ plugin rather than to its tests.
 `make check` sets `TF2AP_REQUIRE_SPSHELL`, so a driver fails there rather than
 skipping. Without the toolchain a developer gets a skip naming what to run.
 
-## The launcher interface
+## The settings window under Wine
 
-`launcher/internal/webui` is the one interface on every desktop. It serves an
-embedded page on loopback, uses ordinary POST requests for commands and
-settings, and uses Server-Sent Events for logs and state changes. Keep it free
-of frontend frameworks and build steps. `form.Model` is the settings contract;
-the page renders it rather than declaring another list of settings.
+`make gui-test` cross-compiles `internal/gui`'s tests and runs them under Wine
+and Xvfb, which is enough to create the window, its tabs and its controls. It
+asks the three things nothing else can: that every row `form` declares became a
+control, that the control matches the kind, and that reading the widgets back
+gives the state they were built from. The last is the one that matters, because
+a control wired to the wrong ID draws perfectly and loses the answer at Save.
+
+It is not a substitute for opening the real thing on Windows. Nothing is
+clicked, and Wine is not Windows.
+
+Two things it taught us, both kept:
+
+- `EM_SETCUEBANNER` needs comctl32 version 6, which comes from the application
+  manifest. `tf2ap.exe` has one and a test binary does not, and walk's
+  declarative `CueBanner` treats the failure as fatal, so the whole window
+  refused to open over placeholder text. The placeholder is applied after the
+  window is made now and a failure is logged, not raised.
+- A second dialog created in the same process hangs under Wine. So `gui-test`
+  runs one test per Wine process. That is a Wine workaround, not a shape the
+  launcher has: it makes one dialog and shows it.
+
+`gui-test` skips itself when `wine` or `xvfb-run` is missing, because neither is
+on the CI image.
 
 ## Build
 

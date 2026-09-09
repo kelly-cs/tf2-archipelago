@@ -24,9 +24,10 @@ indexes and a name. A pick is a preset key, per class
 `Render` turns the pair into `configs/defenderbots/loadout.cfg`.
 
 Saved teams already work: `settings.BotTeam` holds the seats, their loadouts,
-the per-class picks and the blacklist. The Bots specs declare the Save / Load /
-Remove rows that the browser renders. Whatever this feature grows should read
-like those rows, because that is the control the user is asking for by name.
+the per-class picks and the blacklist. `presetRow`
+(`launcher/internal/gui/settings_windows.go:1024`) is the Save / Load / Remove
+row. Whatever this feature grows should read like that row, because that is
+the control the user is asking for by name.
 
 ## The finding that decides the design
 
@@ -122,9 +123,13 @@ Nothing new appears on the Team or Classes tabs. Their existing loadout menus
 simply grow the custom entries at the bottom of the same list, under a
 separator, which is why the key prefix has to be enough on its own.
 
-Watch the model size. Four combo boxes is nothing; a per-slot list of every
-Scout primary is not. Filter the reskins out before they reach `form.Model`.
-The browser draws those same fields in the same order with no new concepts.
+Watch the build cost. The Bots tab is already two thirds of the settings
+dialog's open time and is built lazily for that reason
+(`settings_windows.go:463`). Four combo boxes is nothing; a per-slot list of
+every Scout primary is not. Filter the reskins out before they reach walk.
+
+The TUI mirrors it (`launcher/internal/tui/settings.go:386`). Same fields, same
+order, no new concepts.
 
 ## Render
 

@@ -25,6 +25,12 @@ community asset pack adds a row for each mission in that pack.
 */
 package form
 
+import (
+	"encoding/json"
+	"fmt"
+	"strconv"
+)
+
 // Kind is what an interface has to draw, and there are seven of them.
 type Kind uint8
 
@@ -44,6 +50,29 @@ const (
 	// Confirm is an Action that cannot be taken back, so the browser asks first.
 	Confirm
 )
+
+// MarshalJSON gives renderers a stable, readable contract. The numeric iota is
+// an implementation detail: adding a Kind must not silently turn every browser
+// row after it into a different control.
+func (k Kind) MarshalJSON() ([]byte, error) {
+	return []byte(strconv.Quote(k.String())), nil
+}
+
+// UnmarshalJSON keeps Model's round-trip guarantee for tests and for any
+// renderer that stores then reloads a model.
+func (k *Kind) UnmarshalJSON(data []byte) error {
+	var name string
+	if err := json.Unmarshal(data, &name); err != nil {
+		return fmt.Errorf("form kind: %w", err)
+	}
+	for candidate := Text; candidate <= Confirm; candidate++ {
+		if candidate.String() == name {
+			*k = candidate
+			return nil
+		}
+	}
+	return fmt.Errorf("form kind %q is unknown", name)
+}
 
 // Option is one answer of a Choice: the value that is saved, and the line the
 // player reads. The two are separate because "progression" is what the settings

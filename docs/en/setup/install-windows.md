@@ -148,6 +148,7 @@ Run these from a terminal. The window opens on its own otherwise.
 | `tf2ap.exe` | Open the window |
 | `tf2ap.exe -room <host:port>` | Set the room address, then open the window |
 | `tf2ap.exe -console` | Run in the terminal, with no window |
+| `tf2ap.exe -web` | Try the experimental browser interface |
 | `tf2ap.exe -configure` | Edit every setting in the terminal, then exit |
 | `tf2ap.exe -install` | Install or repair the server, then exit |
 | `tf2ap.exe -status` | Show the settings and the install state |

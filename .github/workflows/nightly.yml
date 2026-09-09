@@ -81,7 +81,7 @@ jobs:
             -t "$IMAGE/archipelago:nightly" .
           deploy/push-image.sh "$IMAGE/archipelago:nightly"
 
-      # BUILD_CHANNEL is what puts "nightly" in the browser title and the debug
+      # BUILD_CHANNEL is what puts "nightly" in the window title and the debug
       # bundle instead of the release version this was built past. Without it a
       # build from main after 1.9.0 calls itself 1.9.0 and a player reporting a
       # bug on it looks like a player on the release.
