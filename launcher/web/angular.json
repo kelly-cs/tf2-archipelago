@@ -3,7 +3,9 @@
   "version": 1,
   "cli": {
     "packageManager": "npm",
-    "schematicCollections": ["angular-eslint"],
+    "schematicCollections": [
+      "angular-eslint"
+    ],
     "analytics": false
   },
   "newProjectRoot": "projects",
@@ -11,14 +13,31 @@
     "tf2ap-web": {
       "projectType": "application",
       "schematics": {
-        "@schematics/angular:component": { "style": "scss", "skipTests": true },
-        "@schematics/angular:class": { "skipTests": true },
-        "@schematics/angular:directive": { "skipTests": true },
-        "@schematics/angular:guard": { "skipTests": true },
-        "@schematics/angular:interceptor": { "skipTests": true },
-        "@schematics/angular:pipe": { "skipTests": true },
-        "@schematics/angular:resolver": { "skipTests": true },
-        "@schematics/angular:service": { "skipTests": true }
+        "@schematics/angular:component": {
+          "style": "scss",
+          "skipTests": true
+        },
+        "@schematics/angular:class": {
+          "skipTests": true
+        },
+        "@schematics/angular:directive": {
+          "skipTests": true
+        },
+        "@schematics/angular:guard": {
+          "skipTests": true
+        },
+        "@schematics/angular:interceptor": {
+          "skipTests": true
+        },
+        "@schematics/angular:pipe": {
+          "skipTests": true
+        },
+        "@schematics/angular:resolver": {
+          "skipTests": true
+        },
+        "@schematics/angular:service": {
+          "skipTests": true
+        }
       },
       "root": "",
       "sourceRoot": "src",
@@ -30,17 +49,34 @@
             "browser": "src/main.ts",
             "index": "src/index.html",
             "tsConfig": "tsconfig.app.json",
-            "outputPath": { "base": "dist", "browser": "" },
+            "outputPath": {
+              "base": "../internal/spa/dist",
+              "browser": ""
+            },
             "inlineStyleLanguage": "scss",
-            "stylePreprocessorOptions": { "includePaths": ["src/styles"] },
-            "styles": ["src/styles.scss"]
+            "stylePreprocessorOptions": {
+              "includePaths": [
+                "src/styles"
+              ]
+            },
+            "styles": [
+              "src/styles.scss"
+            ]
           },
           "configurations": {
             "production": {
               "optimization": true,
               "budgets": [
-                { "type": "initial", "maximumWarning": "450kB", "maximumError": "500kB" },
-                { "type": "anyComponentStyle", "maximumWarning": "4kB", "maximumError": "8kB" }
+                {
+                  "type": "initial",
+                  "maximumWarning": "450kB",
+                  "maximumError": "500kB"
+                },
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "4kB",
+                  "maximumError": "8kB"
+                }
               ],
               "outputHashing": "all"
             },
@@ -55,15 +91,22 @@
         "serve": {
           "builder": "@angular/build:dev-server",
           "configurations": {
-            "production": { "buildTarget": "tf2ap-web:build:production" },
-            "development": { "buildTarget": "tf2ap-web:build:development" }
+            "production": {
+              "buildTarget": "tf2ap-web:build:production"
+            },
+            "development": {
+              "buildTarget": "tf2ap-web:build:development"
+            }
           },
           "defaultConfiguration": "development"
         },
         "lint": {
           "builder": "@angular-eslint/builder:lint",
           "options": {
-            "lintFilePatterns": ["src/**/*.ts", "src/**/*.html"]
+            "lintFilePatterns": [
+              "src/**/*.ts",
+              "src/**/*.html"
+            ]
           }
         }
       }

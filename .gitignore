@@ -72,3 +72,9 @@ toolchain/
 # what the contract says.
 launcher/internal/gen/
 launcher/web/src/gen/
+
+# The Angular build's output, which the launcher embeds. `ng build` writes it
+# straight into the package that serves it, the way the kit's does; `make
+# web-build` is what puts a real one there and embed-placeholders leaves a
+# holding page so a fresh clone still compiles.
+launcher/internal/spa/dist/

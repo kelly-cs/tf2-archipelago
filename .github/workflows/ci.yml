@@ -10,7 +10,7 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-# Four languages, four jobs, each on the smallest image that can run it. Every
+# Five languages, five jobs, each on the smallest image that can run it. Every
 # step is a make target: what runs here is what runs on a laptop, and `make
 # check` runs all of it in one go.
 #
@@ -38,7 +38,9 @@ jobs:
 
       - uses: actions/cache@v6
         with:
-          path: /root/.cache/go-build
+          path: |
+            /root/.cache/go-build
+            /root/go/pkg/mod
           key: ${{ runner.os }}-go-${{ hashFiles('go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-
@@ -85,6 +87,36 @@ jobs:
       # actually reach, so red here is a real exposure, not a CVE headline.
       - name: govulncheck
         run: make vuln
+
+  # The browser interface. Its TypeScript is generated from proto/ by buf, which
+  # is a Go program, so this job carries both toolchains: one generator on every
+  # machine. npm runs directly here, the way it does in every other image; a
+  # laptop gets the container through the plain `make web-check`.
+  web:
+    runs-on: ubuntu-latest
+    container:
+      image: node:26-slim
+    steps:
+      - name: install git and make
+        run: |
+          apt-get update
+          apt-get install --yes --no-install-recommends git make
+
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: buf lint and format
+        run: make proto-lint
+
+      # eslint, prettier and `ng build` under the 500 kB initial budget, which
+      # is an error rather than a warning: the budget is the point.
+      - name: eslint, prettier and the bundle budget
+        run: make web-check-direct
 
   apworld:
     runs-on: ubuntu-latest
@@ -183,10 +215,10 @@ jobs:
   # runner. Everything else in this file runs on both; this job opts out with
   # its own `if` instead of moving out to a second workflow file.
   #
-  # Runs after the other four are green, and only for a push to main: a PR
+  # Runs after the other five are green, and only for a push to main: a PR
   # gets the same build check via `stack`'s `book` step, not a deploy.
   pages:
-    needs: [go, apworld, plugin, stack]
+    needs: [go, web, apworld, plugin, stack]
     if: github.server_url == 'https://github.com' && github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
     permissions:

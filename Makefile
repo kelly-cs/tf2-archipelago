@@ -60,6 +60,13 @@ COMPOSE_RELEASE := docker compose --project-directory . \
 
 DIST := dist
 
+# The browser interface. `ng build` writes straight into the package that
+# serves it, so there is one copy of the bundle and it cannot go stale.
+WEB := launcher/web
+SPA_DIST := launcher/internal/spa/dist
+GEN_GO := launcher/internal/gen/tf2ap/launcher/v1
+PROTO_SRC := $(shell find proto -name '*.proto')
+
 # Tools of record: pinned and run through `go run` or `uv run`, so no host
 # install is needed and a local run is byte-identical to CI.
 GOFUMPT := go run mvdan.cc/gofumpt@$(GOFUMPT_VERSION)
@@ -67,11 +74,23 @@ GOLANGCI_LINT := go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$
 GOVULNCHECK := go run golang.org/x/vuln/cmd/govulncheck@$(GOVULNCHECK_VERSION)
 RUFF := uv run --quiet --with ruff==$(RUFF_VERSION) ruff
 SHADOW := go run ./launcher/cmd/shadow
-# Ours only. deploy/bots/build/ holds seven repositories this project fetches
-# and compiles, and one of them now carries Go of its own: formatting somebody
-# else's tree is not this project's business, and a fresh checkout of it must
-# not be able to fail our own format check.
-GO_SRC := $$(find . -type f -name '*.go' -not -path './deploy/bots/build/*')
+BUF := go run github.com/bufbuild/buf/cmd/buf@$(BUF_VERSION)
+# npm is the one tool of record that is not a Go program, so it runs in a
+# container the way honkit does: nothing is installed on a laptop, and the
+# -direct targets below are for CI, which already stands in a node image.
+# The whole repository is mounted, not just $(WEB): `ng build` writes its output
+# into launcher/internal/spa, which is outside the frontend project.
+NPM := docker run --rm -u $$(id -u):$$(id -g) \
+	-v $(CURDIR):/work -w /work/$(WEB) \
+	-e HOME=/tmp -e npm_config_cache=/tmp/.npm \
+	node:$(NODE_VERSION) npm
+# Ours only, and ours means written here. deploy/bots/build/ holds seven
+# repositories this project fetches and compiles, and one of them now carries Go
+# of its own; launcher/web holds npm's tree, which carries Go too; and
+# launcher/internal/gen is buf's output, which answers to the .proto files.
+# Formatting somebody else's tree is not this project's business, and a fresh
+# checkout of one must not be able to fail our own format check.
+GO_SRC := $$(find . -type f -name '*.go' -not -path './deploy/bots/build/*' -not -path './launcher/internal/gen/*' -not -path './launcher/web/*')
 
 .PHONY: help seed up down restart logs ps rcon community-check \
         check fmt fmt-check vet lint lint-fix fix-check vuln compile test shadows \
@@ -82,6 +101,9 @@ GO_SRC := $$(find . -type f -name '*.go' -not -path './deploy/bots/build/*')
         docs-build docs-down dist compose-release version-check clean \
         go-version-check \
         launcher launcher-assets launcher-assets-common \
+        proto proto-lint proto-fmt proto-deps \
+        web-install web-build web-lint web-check \
+        web-install-direct web-build-direct web-lint-direct web-check-direct \
         launcher-linux launcher-assets-linux captures embed-placeholders toolchain gui-test
 
 help:
@@ -92,6 +114,8 @@ help:
 	@echo "  make logs          Follow logs"
 	@echo "  make rcon          Send a server command: make rcon CMD='sm_ap_status'"
 	@echo "  make check         The gate: everything CI runs"
+	@echo "  make proto         Regenerate the launcher contract from proto/"
+	@echo "  make web-build     Build the browser interface into the launcher"
 	@echo "  make export        Regenerate apworld/tf2_mvm/data from gamedata/"
 	@echo "  make community-check Validate community.json against community-content/tf"
 	@echo "  make plugin        Compile the SourceMod plugin"
@@ -183,21 +207,76 @@ embed-placeholders:
 		*) printf 'PK\005\006\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000' > "$$f" ;; \
 		esac; \
 	done
+	@mkdir -p $(SPA_DIST)
+	@[ -e $(SPA_DIST)/index.html ] || \
+		printf '<!doctype html><meta charset="utf-8"><title>tf2ap</title>\n<p>The browser interface was not built. Run <code>make web-build</code>.\n' \
+			> $(SPA_DIST)/index.html
+
+# --- The browser interface ---
+#
+# proto/ is the contract between the launcher and the Angular app. Both sides
+# are generated and neither is committed: one source of truth, and a checked-in
+# copy could only ever be a second answer to what the .proto files say. So every
+# Go target depends on `proto`, which is a no-op once the tree is newer than the
+# protos it was generated from.
+proto: $(GEN_GO)
+
+$(GEN_GO): $(PROTO_SRC) proto/buf.gen.yaml proto/buf.yaml proto/buf.lock
+	cd proto && $(BUF) generate
+	@touch $(GEN_GO)
+
+proto-lint:
+	cd proto && $(BUF) lint
+	cd proto && $(BUF) format --diff --exit-code
+
+proto-fmt:
+	cd proto && $(BUF) format -w
+
+# buf.lock names the commit of every dependency, so moving one is a decision
+# rather than something a build does behind you. Not in `check`.
+proto-deps:
+	cd proto && $(BUF) dep update
+
+web-install:
+	$(NPM) ci --prefer-offline --no-audit --no-fund
+
+web-build: proto web-install
+	$(NPM) run build
+
+web-lint: web-install
+	$(NPM) run lint
+	$(NPM) run format:check
+
+web-check: web-lint web-build
+
+# Direct targets: host npm, for CI, which already runs inside a node image, and
+# for a developer who would rather not pay the container round trip.
+web-install-direct:
+	cd $(WEB) && npm ci --prefer-offline --no-audit --no-fund
+
+web-build-direct: proto web-install-direct
+	cd $(WEB) && npm run build
+
+web-lint-direct: web-install-direct
+	cd $(WEB) && npm run lint
+	cd $(WEB) && npm run format:check
+
+web-check-direct: web-lint-direct web-build-direct
 
 # Not in `check`: every analyzer it registers is in golangci-lint's govet.
-vet: embed-placeholders
+vet: embed-placeholders proto
 	go vet ./...
 
-lint: embed-placeholders
+lint: embed-placeholders proto
 	$(GOLANGCI_LINT) run ./...
 
-lint-fix: embed-placeholders
+lint-fix: embed-placeholders proto
 	$(GOLANGCI_LINT) run --fix ./...
 
 # `go fix` must be a no-op: whatever it would rewrite belongs in the commit.
 # `-diff` reports without touching the tree, so this is safe on a dirty working
 # copy.
-fix-check: embed-placeholders
+fix-check: embed-placeholders proto
 	@out="$$(go fix -diff ./...)"; \
 	if [ -n "$$out" ]; then \
 		printf '%s\n' "$$out"; \
@@ -207,10 +286,10 @@ fix-check: embed-placeholders
 
 # Reports only the vulnerabilities whose vulnerable symbol this code can
 # actually reach, so a hit is a bug to fix rather than a number to argue with.
-vuln: embed-placeholders
+vuln: embed-placeholders proto
 	$(GOVULNCHECK) ./...
 
-compile: embed-placeholders
+compile: embed-placeholders proto
 	go build ./...
 
 # The race detector is the only tool that sees a data race, and the bridge is
@@ -225,10 +304,10 @@ compile: embed-placeholders
 # way to require. `check` builds the toolchain before it gets here and sets
 # TF2AP_REQUIRE_SPSHELL, so the gate runs the drivers and refuses to skip them.
 # Run `make check` or `make toolchain` once to have them locally.
-test: embed-placeholders
+test: embed-placeholders proto
 	CGO_ENABLED=1 $(SPENV) $(REQUIRE_SPSHELL) go test -race -shuffle=on ./...
 
-test-fast: embed-placeholders
+test-fast: embed-placeholders proto
 	$(SPENV) go test ./...
 
 # --- SourcePawn under its own VM ---
@@ -459,7 +538,7 @@ launcher-assets-linux: launcher-assets-common
 # tag against, so the resource and the release cannot disagree. The manifest's
 # assemblyIdentity gets the same number, which is why it is generated and not
 # committed with a version baked into it.
-launcher: launcher-assets
+launcher: launcher-assets web-build
 	mkdir -p $(DIST)
 	sed 's/version="0\.0\.0\.0"/version="$(RELEASE_VERSION).0"/' \
 		launcher/cmd/tf2ap/tf2ap.manifest > $(DIST)/tf2ap.manifest
@@ -479,7 +558,7 @@ launcher: launcher-assets
 
 # No window: walk is a Win32 binding, so the Linux build is the console flow
 # the compose stack already uses. Everything else is the same program.
-launcher-linux: launcher-assets-linux
+launcher-linux: launcher-assets-linux web-build
 	mkdir -p $(DIST)
 	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath \
 		-ldflags="-s -w $(LAUNCHER_LDFLAGS)" \
@@ -620,7 +699,7 @@ version-check:
 # whole point: the gate refuses to skip a differential test, and a developer
 # who has not run `make toolchain` gets a skip that names what is missing.
 check: REQUIRE_SPSHELL := TF2AP_REQUIRE_SPSHELL=1
-check: go-version-check bots-pin-check fmt-check lint fix-check compile toolchain test gui-test vuln apworld-lint plugin apworld-test docs-build compose-release integration
+check: go-version-check bots-pin-check fmt-check proto-lint lint fix-check compile web-check toolchain test gui-test vuln apworld-lint plugin apworld-test docs-build compose-release integration
 
 # The go directive owns the version. Two pins cannot read it, so this says when
 # they have drifted rather than leaving it to whoever hits the failure.
