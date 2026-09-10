@@ -77,7 +77,14 @@ générateur de seed reste dans l'app officielle.
 
 1. Installez l'app officielle
    [Archipelago](https://github.com/ArchipelagoMW/Archipelago/releases). Le
-   lanceur la cherche dans `~/Archipelago`, `/opt/Archipelago` et `/ap`.
+   Le lanceur détecte `ArchipelagoGenerate` dans le `PATH`, les applications
+   extraites dans `~/Applications/Archipelago`, `~/.local/opt/Archipelago`,
+   `~/Archipelago`, `~/Downloads/Archipelago`, `/opt/Archipelago`,
+   `/usr/local/lib/Archipelago` et `/ap`. Il cherche aussi les fichiers
+   exécutables `Archipelago*.AppImage` dans `~/Applications`, `~/.local/bin`,
+   `~/Downloads`, `/opt` et `/usr/local/bin`. Si nécessaire, **Application
+   Archipelago** accepte explicitement une AppImage ou le dossier d'une
+   application extraite.
 2. Lancez `./tf2ap-linux-amd64 -yaml tf2.yaml` pour écrire le fichier joueur,
    et déposez-le dans le dossier `Players/` de l'app.
 3. Générez là-bas, puis envoyez l'archive sur

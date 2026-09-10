@@ -120,7 +120,7 @@ func runFolderSpecs(tab string) []Spec {
 			func(s State, v string) State { s.Settings.InstallRoot = trim(v); return s }),
 
 		folder("run.app_dir", tab, "Archipelago app",
-			"Where the Archipelago app is installed. Blank means the launcher looks where the installer puts it.",
+			"Where the Archipelago app is installed. On Linux this may be the AppImage itself. Blank searches PATH and common install, application and download locations.",
 			"",
 			func(s State) string { return s.Settings.ArchipelagoDir },
 			func(s State, v string) State { s.Settings.ArchipelagoDir = trim(v); return s }),
