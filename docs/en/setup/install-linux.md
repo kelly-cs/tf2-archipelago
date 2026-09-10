@@ -82,7 +82,13 @@ generator stays with the official app.
 
 1. Install the official
    [Archipelago](https://github.com/ArchipelagoMW/Archipelago/releases) app.
-   The launcher looks for it in `~/Archipelago`, `/opt/Archipelago` and `/ap`.
+   The launcher detects `ArchipelagoGenerate` on `PATH`, extracted apps in
+   `~/Applications/Archipelago`, `~/.local/opt/Archipelago`, `~/Archipelago`,
+   `~/Downloads/Archipelago`, `/opt/Archipelago`, `/usr/local/lib/Archipelago`
+   and `/ap`. It also checks for executable `Archipelago*.AppImage` files in
+   `~/Applications`, `~/.local/bin`, `~/Downloads`, `/opt` and `/usr/local/bin`.
+   You can always set **Archipelago app** to an AppImage or extracted app
+   explicitly if yours lives elsewhere.
 2. Run `./tf2ap-linux-amd64 -yaml tf2.yaml` to write the player file, and drop
    it into the app's `Players/` folder.
 3. Generate there, then upload the archive at

@@ -28,8 +28,8 @@ var ErrNotInstalled = errors.New("the Archipelago app is not installed, or not w
 // Options is what one generation needs.
 type Options struct {
 	Settings settings.Settings
-	// AppDir is where the Archipelago app is, or empty to look in the places
-	// its installer uses.
+	// AppDir is where the Archipelago app is, or the AppImage itself. Empty
+	// searches the conventional locations for the current platform.
 	AppDir string
 	// Apworld is the world file to install into the app, or empty to leave
 	// whatever the app has.
@@ -47,7 +47,7 @@ type Options struct {
 type Result struct {
 	// Archive is the AP_*.zip the room is created from.
 	Archive string
-	// AppDir is where the app was found.
+	// AppDir is where the app was found; on Linux it may be an AppImage path.
 	AppDir string
 }
 
@@ -92,7 +92,7 @@ func Run(ctx context.Context, options Options) (Result, error) {
 		"--outputpath", winproc.ShortPath(output),
 	)
 	cmd := exec.CommandContext(ctx, program, args...)
-	cmd.Dir = appDir
+	cmd.Dir = appWorkingDir(appDir)
 	cmd.Stdout = lineWriter(logf)
 	cmd.Stderr = lineWriter(logf)
 	winproc.HideConsole(cmd)
@@ -111,12 +111,12 @@ func Run(ctx context.Context, options Options) (Result, error) {
 	return Result{Archive: archive, AppDir: appDir}, nil
 }
 
-// FindApp returns the app's directory: the one given, if it holds a generator,
-// else the first of the places the installer uses that does.
+// FindApp returns the app location: the given location if it holds a generator,
+// else the first conventional location that does.
 //
-// The given path may name the app's own exe rather than its folder, because
-// that is what a file picker hands back and what a player copies out of a
-// shortcut.
+// The given path may name the generator rather than its folder, or the official
+// Linux AppImage itself, because those are what file pickers and shortcuts hand
+// back.
 func FindApp(given string) (string, error) {
 	for _, dir := range SearchPath(given) {
 		if exists(generatorPath(dir)) {
@@ -126,7 +126,7 @@ func FindApp(given string) (string, error) {
 	return "", ErrNotInstalled
 }
 
-// SearchPath is every directory FindApp looks in, in order. The settings
+// SearchPath is every directory or AppImage FindApp looks in, in order. The settings
 // dialog prints it, because "not where the launcher looked" is only useful
 // with the list beside it.
 func SearchPath(given string) []string {
@@ -134,17 +134,47 @@ func SearchPath(given string) []string {
 	if given == "" {
 		return dirs
 	}
-	return append([]string{appDirOf(given)}, dirs...)
+	return uniquePaths(append([]string{appDirOf(given)}, dirs...))
 }
 
-// appDirOf takes the folder out of a path that names a file. A folder that is
-// not there yet is passed through: the caller reports it as missing.
+// appDirOf takes the folder out of a path that names the generator. Other files
+// are locations in their own right on Linux, where the official app is an
+// AppImage. A folder that is not there yet is passed through so the caller can
+// report it as missing.
 func appDirOf(given string) string {
 	info, err := os.Stat(given)
 	if err == nil && !info.IsDir() {
+		if standaloneApp(given) {
+			// A Linux AppImage is the application, not a file inside one.
+			return given
+		}
+		// Preserve the old, useful behavior for any executable inside an
+		// extracted app, including ArchipelagoLauncher.exe on Windows.
 		return filepath.Dir(given)
 	}
 	return given
+}
+
+func uniquePaths(paths []string) []string {
+	seen := make(map[string]struct{}, len(paths))
+	unique := make([]string, 0, len(paths))
+	for _, path := range paths {
+		path = filepath.Clean(path)
+		if _, ok := seen[path]; ok {
+			continue
+		}
+		seen[path] = struct{}{}
+		unique = append(unique, path)
+	}
+	return unique
+}
+
+func appWorkingDir(appLocation string) string {
+	info, err := os.Stat(appLocation)
+	if err == nil && !info.IsDir() {
+		return filepath.Dir(appLocation)
+	}
+	return appLocation
 }
 
 // installApworld puts the world file where the app looks for worlds. Nothing
@@ -153,7 +183,10 @@ func installApworld(appDir string, apworld []byte, logf func(string)) error {
 	if len(apworld) == 0 {
 		return nil
 	}
-	worldsDir := filepath.Join(appDir, "custom_worlds")
+	worldsDir, err := apworldInstallDir(appDir)
+	if err != nil {
+		return err
+	}
 	if err := os.MkdirAll(worldsDir, 0o755); err != nil {
 		return fmt.Errorf("cannot create %s: %w", worldsDir, err)
 	}
