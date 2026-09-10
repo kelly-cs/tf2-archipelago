@@ -336,8 +336,11 @@ func loadoutOptions(s State, class string) []Option {
 			out = append(out, Option{Value: loadout.Key, Label: loadout.Label()})
 		}
 	}
+	// The value is the key the library answers to, prefix and all. It was the
+	// bare name once, and a seat handed one played stock: the file, the tab
+	// and the mod all pass keys around, and a name is not a key.
 	for _, name := range slices.Sorted(customLoadoutNames(s, class)) {
-		out = append(out, Option{Value: name, Label: name + " (saved)"})
+		out = append(out, Option{Value: botloadout.CustomKey(name), Label: name + " (saved)"})
 	}
 	return out
 }

@@ -8,6 +8,12 @@ in the release notes, so this file is the only place to write it.
 
 The launcher has one screen now, and it opens in your browser.
 
+### Fixed
+
+- A saved loadout handed to a seat or a class plays that loadout. It played
+  stock: the menu wrote the loadout's name where its key belongs. A settings
+  file written by 1.12 still works, the name is understood too.
+
 ### The new interface
 
 - Double-click the launcher and a browser opens on it. Same screen on Windows

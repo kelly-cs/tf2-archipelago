@@ -120,6 +120,11 @@ func (c Class) LoadoutByKey(key string) Loadout {
 	return stock
 }
 
+// hasPreset is whether a key names one of the presets the class ships with.
+func (c Class) hasPreset(key string) bool {
+	return slices.ContainsFunc(c.Loadouts, func(loadout Loadout) bool { return loadout.Key == key })
+}
+
 // Custom reports whether any class has a preset other than stock, which is
 // what decides whether the mod's custom loadouts are turned on at all.
 func Custom(picks map[string]string) bool {

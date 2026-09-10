@@ -3,10 +3,12 @@ package form
 import (
 	"encoding/json"
 	"reflect"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
 
+	"github.com/m-this/tf2-archipelago/launcher/internal/botloadout"
 	"github.com/m-this/tf2-archipelago/launcher/internal/settings"
 )
 
@@ -353,4 +355,18 @@ func indexOf(list []string, want string) int {
 		}
 	}
 	return -1
+}
+
+// The menu's value is what a seat is handed and what the library is asked for,
+// so it has to be the key. It was the name once, and the library answered stock.
+func TestASavedLoadoutIsOfferedByItsKey(t *testing.T) {
+	s := NewState(settings.Defaults())
+	s.Settings.SrcdsBotCustomLoadouts = map[string]botloadout.Built{
+		"gas runner": {Class: "pyro", Primary: 40, Second: botloadout.Stock, Melee: botloadout.Stock, PDA2: botloadout.Stock},
+	}
+	options := loadoutOptions(s, "pyro")
+	want := botloadout.CustomKey("gas runner")
+	if !slices.ContainsFunc(options, func(o Option) bool { return o.Value == want }) {
+		t.Fatalf("the Pyro's menu offers %v, want a value of %q", options, want)
+	}
 }

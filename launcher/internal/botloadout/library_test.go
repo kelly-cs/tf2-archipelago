@@ -99,3 +99,26 @@ func TestAnUnknownWeaponShowsItsNumber(t *testing.T) {
 		t.Errorf("WeaponName(stock) = %q", got)
 	}
 }
+
+// Releases 1.12 and before offered a saved loadout under its bare name and
+// wrote that name where the key belongs, so a seat handed one played stock.
+// A file from one of them still names its loadout that way.
+func TestABareSavedNameStillFindsTheLoadout(t *testing.T) {
+	library := Library{Built: map[string]Built{
+		"gas runner": {Class: "pyro", Primary: 40, Second: 1180, Melee: Stock, PDA2: Stock},
+	}}
+	pyro, _ := ClassByKey("pyro")
+
+	if got := library.Loadout(pyro, "gas runner"); got.Primary != 40 {
+		t.Fatalf("a bare saved name plays %+v, want the loadout saved under it", got)
+	}
+	if got := library.Loadout(pyro, CustomKey("gas runner")); got.Primary != 40 {
+		t.Fatalf("the key plays %+v, want the loadout saved under it", got)
+	}
+	if got := library.Loadout(pyro, "phlog"); got.Key != "phlog" {
+		t.Fatalf("a preset key plays %+v, want the preset", got)
+	}
+	if got := library.Loadout(pyro, "never saved"); got.Key != StockKey {
+		t.Fatalf("an unknown name plays %+v, want stock", got)
+	}
+}
