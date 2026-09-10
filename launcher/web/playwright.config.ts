@@ -23,6 +23,9 @@ export default defineConfig({
     trace: 'retain-on-failure',
   },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+  // The real-launcher tests talk to a launcher somebody started; the rest bring
+  // the fake up themselves. Both live in e2e/, and the real ones skip
+  // themselves when TF2AP_REAL is unset.
   webServer: {
     // The frontend is fenced out of the Go module by launcher/web/go.mod, so
     // the fake is run from the repository root rather than from here.

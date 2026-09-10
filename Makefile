@@ -100,7 +100,8 @@ GO_SRC := $$(find . -type f -name '*.go' -not -path './deploy/bots/build/*' -not
         go-version-check \
         launcher launcher-assets launcher-assets-common \
         proto proto-lint proto-fmt proto-deps \
-        web-install web-build web-lint web-test web-e2e web-captures web-check \
+        web-install web-build web-lint web-test web-e2e web-e2e-real \
+        web-captures web-check \
         web-install-direct web-build-direct web-lint-direct web-test-direct \
         web-e2e-direct web-check-direct \
         launcher-linux launcher-assets-linux captures embed-placeholders toolchain
@@ -255,6 +256,18 @@ web-test: proto web-install
 # download that no other target needs, and CI installs it in the web job.
 web-e2e: web-build
 	cd $(WEB) && npx playwright test
+
+# The browser tests against a launcher somebody started, rather than the fake.
+# It asks the half a fake cannot: that the binary a player downloads carries the
+# interface, serves it, and answers with a form.Model built from their own
+# settings. Start one first, on either platform:
+#
+#   ./dist/tf2ap-linux-amd64 -no-browser -addr 127.0.0.1:8477
+#   make web-e2e-real REAL=http://127.0.0.1:8477
+REAL ?= http://127.0.0.1:8477
+
+web-e2e-real:
+	cd $(WEB) && TF2AP_REAL=$(REAL) npx playwright test e2e/real-launcher.spec.ts
 
 # The pictures in the README and the book, redrawn against the fake launcher so
 # the same run draws the same image every time: no machine's fonts, no player's

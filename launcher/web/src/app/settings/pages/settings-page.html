@@ -1,4 +1,6 @@
-@if (!open()) {
+@if (!known()) {
+  <app-empty-state>Reading the launcher.</app-empty-state>
+} @else if (!open()) {
   <app-empty-state>
     The settings are closed. Opening them makes a draft: nothing is written until you press Save.
     <div class="open">

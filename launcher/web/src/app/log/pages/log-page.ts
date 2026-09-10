@@ -66,7 +66,6 @@ export class LogPage {
       }));
   });
 
-
   readonly send = new Subject<void>();
   readonly copy = new Subject<void>();
 

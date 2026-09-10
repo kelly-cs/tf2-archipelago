@@ -28,6 +28,7 @@ export class SettingsPage {
   private readonly store = inject(SettingsStore);
   private readonly router = inject(Router);
 
+  readonly known = computed(() => this.store.known());
   readonly open = computed(() => this.store.open());
   readonly restartNeeded = computed(() => this.store.restartNeeded());
 

@@ -40,6 +40,29 @@ func (a *App) Handler(authority string) http.Handler {
 	return guard(authority, mux)
 }
 
+/*
+policy is what the page is allowed to do.
+
+Everything comes from this origin and nothing is fetched from anywhere: the
+fonts are bundled, there is no analytics and no CDN. script-src has no
+unsafe-inline, so nothing injected into a log line or a mission name could run.
+
+style-src does, and it has to. Angular writes an element's style attribute for
+a style binding, and the virtual scroll the log view is built on moves its
+content by writing a transform there on every frame. Without unsafe-inline the
+browser drops those writes and the log stops scrolling, which is what running
+the real binary is for.
+*/
+const policy = "default-src 'self'; " +
+	"script-src 'self'; " +
+	"style-src 'self' 'unsafe-inline'; " +
+	"connect-src 'self'; " +
+	"img-src 'self' data:; " +
+	"font-src 'self'; " +
+	"base-uri 'self'; " +
+	"form-action 'none'; " +
+	"frame-ancestors 'none'"
+
 func guard(authority string, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Host != authority {
@@ -51,8 +74,7 @@ func guard(authority string, next http.Handler) http.Handler {
 			return
 		}
 		w.Header().Set("X-Content-Type-Options", "nosniff")
-		w.Header().Set("Content-Security-Policy",
-			"default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self' data:")
+		w.Header().Set("Content-Security-Policy", policy)
 		next.ServeHTTP(w, r)
 	})
 }

@@ -27,6 +27,11 @@ export class SettingsStore {
   );
 
   readonly model = computed(() => this.launcher.screen());
+
+  /** known is false until the first frame. Before it, the screen is not closed:
+      it is not yet known, and drawing it as closed flashes a button that is
+      about to vanish. */
+  readonly known = computed(() => this.launcher.connected());
   readonly open = computed(() => this.model() !== undefined);
   readonly page = computed(() => this.launcher.screenPage());
   readonly missionPool = computed(() => this.launcher.missionPool());
