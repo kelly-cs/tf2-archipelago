@@ -62,7 +62,6 @@ export class Shell {
     { label: 'Play', link: appLink.session() },
     { label: 'Unlocks', link: appLink.unlocks() },
     { label: 'Bots', link: appLink.bots() },
-    { label: 'Console', link: appLink.log() },
     { label: 'Settings', link: appLink.settings() },
   ];
 }

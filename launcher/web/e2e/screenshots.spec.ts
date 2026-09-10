@@ -23,7 +23,7 @@ test.describe('the pictures', () => {
   });
 
   test('the log', async ({ page }) => {
-    await page.goto('/log');
+    await page.goto('/session');
     await expect(page.getByText('bridge connected to archipelago.gg:38281 as Scout')).toBeVisible();
     await page.screenshot({ path: '../../docs/images/launcher-log.png' });
   });

@@ -68,7 +68,9 @@
           (change)="setSeatClass(seat, $any($event.target).value)"
         >
           @for (option of seat.playedBy.options; track option.value) {
-            <option [value]="option.value">{{ option.label }}</option>
+            <option [value]="option.value" [selected]="option.value === value(seat.playedBy)">
+              {{ option.label }}
+            </option>
           }
         </select>
         @if (seat.carries; as carries) {
@@ -80,7 +82,9 @@
             (change)="setSeatLoadout(seat, $any($event.target).value)"
           >
             @for (option of carries.options; track option.value) {
-              <option [value]="option.value">{{ option.label }}</option>
+              <option [value]="option.value" [selected]="option.value === value(carries)">
+                {{ option.label }}
+              </option>
             }
           </select>
         }
@@ -107,7 +111,9 @@
           (change)="loadTeam($any($event.target).value)"
         >
           @for (option of preset.options; track option.value) {
-            <option [value]="option.value">{{ option.label }}</option>
+            <option [value]="option.value" [selected]="option.value === value(preset)">
+              {{ option.label }}
+            </option>
           }
         </select>
       }

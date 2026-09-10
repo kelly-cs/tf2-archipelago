@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { sourceOf } from '@app/log/log-level';
+import { sourceOf } from '@app/session/log-level';
 
 /**
  * The source is a fact the launcher set, so this only checks the mapping and

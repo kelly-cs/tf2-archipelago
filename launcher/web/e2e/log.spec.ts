@@ -2,7 +2,7 @@ import { expect, test } from './fixtures';
 
 test.describe('the Console screen', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/log');
+    await page.goto('/session');
   });
 
   test('shows what the server said, and who said it', async ({ page }) => {
@@ -65,7 +65,6 @@ test.describe('the Console screen', () => {
   test('a new line arrives without a reload', async ({ page }) => {
     await page.getByRole('link', { name: 'Play', exact: true }).click();
     await page.getByRole('button', { name: 'Start server' }).click();
-    await page.getByRole('link', { name: 'Console', exact: true }).click();
 
     await expect(page.getByText('the server is up')).toBeVisible();
   });

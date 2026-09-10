@@ -21,8 +21,9 @@ test.describe('the shell', () => {
     for (const [name, path] of [
       ['Unlocks', '/unlocks'],
       ['Bots', '/bots'],
-      ['Console', '/log'],
-      ['Settings', '/settings'],
+      // Settings lands on its first page: a settings screen with nothing on
+      // it is a screen the player has to guess at.
+      ['Settings', '/settings/player-options'],
       ['Play', '/session'],
     ] as const) {
       await page
@@ -42,7 +43,7 @@ test.describe('the shell', () => {
     await expect(page.getByRole('button', { name: 'Start server' })).toBeVisible();
     // Join is there before the server is, disabled: the one button the player
     // came for is where they will look for it.
-    await expect(page.getByRole('button', { name: 'Join' })).toBeDisabled();
+    await expect(page.getByRole('button', { name: 'Join', exact: true })).toBeDisabled();
     await expect(page.getByRole('link', { name: 'Star on GitHub' })).toHaveAttribute(
       'href',
       'https://github.com/m-this/tf2-archipelago',

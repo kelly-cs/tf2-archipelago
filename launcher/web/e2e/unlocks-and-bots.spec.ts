@@ -61,6 +61,10 @@ test.describe('the Bots screen', () => {
     await page.getByRole('button', { name: 'Apply' }).click();
     await expect(page.getByText('Applied.')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Apply' })).toBeDisabled();
+
+    // The lineup is drawn again from the saved settings, and it used to come
+    // back as stock: the select's value was set before its options existed.
+    await expect(page.getByLabel('Seat 2', { exact: true })).toHaveValue('medic');
   });
 
   test('sets how many RED fills to, humans included', async ({ page }) => {

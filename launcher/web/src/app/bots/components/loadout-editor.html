@@ -31,7 +31,9 @@
           (change)="hold(slot, $any($event.target).value)"
         >
           @for (option of slot.field.options; track option.value) {
-            <option [value]="option.value">{{ option.label }}</option>
+            <option [value]="option.value" [selected]="option.value === value(slot.field)">
+              {{ option.label }}
+            </option>
           }
         </select>
       </div>
