@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="256" height="256">
+  <!-- The mark: Archipelago's five circles with Mann Co.'s wrench across them.
+       The same drawing as web/src/app/ui/logo.ts; this file is what the .exe
+       icon and the tray icon are rendered from. -->
+  <circle cx="100" cy="46" r="36" fill="#c9788a"/>
+  <circle cx="47" cy="78" r="36" fill="#ebe08a"/>
+  <circle cx="153" cy="78" r="36" fill="#7cc47a"/>
+  <circle cx="47" cy="138" r="36" fill="#7a7fc0"/>
+  <circle cx="153" cy="138" r="36" fill="#cb96c4"/>
+  <g transform="translate(100 160) rotate(-8)">
+    <circle r="38" fill="#b5561f"/>
+    <rect x="-42" y="-4.5" width="84" height="9" fill="#241b10"/>
+    <rect x="-4.5" y="-42" width="9" height="84" fill="#241b10"/>
+    <circle r="13" fill="#241b10"/>
+  </g>
+</svg>

@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { Subject, concatMap, tap } from 'rxjs';
+import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
+import { Subject, concatMap, exhaustMap, filter, tap } from 'rxjs';
 
 import { LauncherStore } from '@app/server/launcher-store';
 import { SettingsStore } from '@app/settings/settings-store';
@@ -68,7 +68,6 @@ export class BotLineup {
     return known ? 'Update' : 'Save as new';
   });
 
-  readonly openSettings = new Subject<void>();
   readonly fired = new Subject<string>();
   readonly answered = new Subject<{ id: string; value: string; said: string }>();
 
@@ -83,9 +82,12 @@ export class BotLineup {
       )
       .subscribe();
 
-    this.openSettings
+    // The seats are rows of the settings draft, so the draft is opened the
+    // moment this finds it closed, and again after a Save closes it.
+    toObservable(computed(() => this.launcher.connected() && !this.open()))
       .pipe(
-        concatMap(() => this.settings.openSettings('Bots')),
+        filter((closed) => closed),
+        exhaustMap(() => this.settings.openSettings('Bots')),
         takeUntilDestroyed(),
       )
       .subscribe();

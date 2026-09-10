@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
+import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { Subject, exhaustMap, filter, map, tap } from 'rxjs';
 
@@ -17,7 +17,9 @@ import { Notice } from '@app/ui/notice';
  *
  * Which pages exist is decided at run time, so they come off the model rather
  * than a list here. Opening the screen is a call: the launcher makes the draft,
- * and closing it without saving throws the draft away.
+ * and closing it without saving throws the draft away. The call is made the
+ * moment this page finds the screen closed, and again whenever it closes: a
+ * web page with a button to open it was a door in front of a door.
  */
 @Component({
   selector: 'app-settings-page',
@@ -93,13 +95,13 @@ export class SettingsPage {
   /** What it said when it took one. */
   readonly saved = signal('');
 
-  readonly openScreen = new Subject<void>();
   readonly save = new Subject<boolean>();
   readonly cancel = new Subject<void>();
 
   constructor() {
-    this.openScreen
+    toObservable(computed(() => this.known() && !this.open()))
       .pipe(
+        filter((closed) => closed),
         exhaustMap(() => this.store.openSettings('')),
         tap(() => this.goToFirstPage()),
         takeUntilDestroyed(),
@@ -125,9 +127,11 @@ export class SettingsPage {
       .subscribe();
   }
 
+  /** goToFirstPage lands on a page when the URL names none. It never moves a
+      player off the page they are on: the screen reopens after every Save. */
   private goToFirstPage(): void {
     const first = this.pages()[0];
-    if (first !== undefined) {
+    if (first !== undefined && this.here() < 0) {
       void this.router.navigate(first.link);
     }
   }

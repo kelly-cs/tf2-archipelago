@@ -19,23 +19,26 @@ cdk-virtual-scroll-viewport {
   height: 60vh;
 }
 
-.lines {
-  padding: var(--gap-sm) 0;
+/* Every row is exactly the height the viewport is told, and a long line runs
+   off to the right rather than wrapping. It used to wrap, and the viewport
+   places rows by count times height: enough wrapped lines and the rows it
+   drew sat above the part of the log on screen, which showed nothing. */
+cdk-virtual-scroll-viewport {
+  overflow-x: auto;
 }
 
-/* A long line wraps rather than being cut off: the end of an install error is
-   usually the part that says what to do about it. */
 .line {
   display: flex;
   gap: var(--gap-sm);
   align-items: baseline;
   padding: 0 var(--gap);
+  width: max-content;
+  min-width: 100%;
   font-family: var(--font-mono);
   font-size: var(--text-xxs);
-  line-height: 1.15;
-  min-height: 18px;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
+  height: 18px;
+  line-height: 18px;
+  white-space: pre;
   color: var(--text-log);
 }
 

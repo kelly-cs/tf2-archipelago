@@ -11,16 +11,8 @@ import { expect, test } from '@playwright/test';
 async function openSettings(page: Page): Promise<void> {
   await page.goto('/settings');
 
-  const pages = page.getByRole('navigation', { name: 'Settings pages' });
-  const open = page.getByRole('button', { name: 'Open the settings' });
-
-  // Wait for the launcher to say which it is. Until the first frame arrives the
-  // screen is neither open nor closed, and asking before then reads as closed.
-  await expect(pages.or(open).first()).toBeVisible();
-  if (await open.isVisible()) {
-    await open.click();
-  }
-  await expect(pages).toBeVisible();
+  // The page opens the draft itself once the first frame says it is closed.
+  await expect(page.getByRole('navigation', { name: 'Settings pages' })).toBeVisible();
 }
 
 const at = process.env['TF2AP_REAL'] ?? '';

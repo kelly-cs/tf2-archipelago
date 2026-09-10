@@ -31,6 +31,10 @@ type Options struct {
 	// OpenBrowser is false for a player who would rather open the link
 	// themselves, and for a machine with no desktop to open it on.
 	OpenBrowser bool
+
+	// Serving is told the address once it answers, with what Quit does. It is
+	// how a tray icon knows what to open and what to close. Nil is fine.
+	Serving func(url string, quit func())
 }
 
 /*
@@ -69,6 +73,9 @@ func Run(s settings.Settings, logger *slog.Logger, options Options) error {
 	go app.WatchSession()
 
 	announce(app, url, options.OpenBrowser)
+	if options.Serving != nil {
+		options.Serving(url, app.Quit)
+	}
 	if s.APPort != 0 || s.TestMode {
 		app.Start()
 	} else {

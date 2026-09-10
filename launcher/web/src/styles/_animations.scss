@@ -45,10 +45,15 @@
  * this takes the movement out and leaves opacity alone. The transform is reset
  * rather than the duration collapsed, because an element whose arrival never
  * ran would otherwise sit at its from-state, off to one side and invisible.
+ *
+ * Two things are placed by a transform rather than moved by one, and a reset
+ * of every element took them apart: the logo's wrench, an SVG group that
+ * landed at the origin, and the virtual scroll's content wrapper, which the
+ * viewport positions by transform, so a scrolled log showed nothing.
  */
 @mixin reduced-motion-guard {
   @media (prefers-reduced-motion: reduce) {
-    *,
+    *:not(svg, svg *, .cdk-virtual-scroll-content-wrapper),
     *::before,
     *::after {
       transform: none !important;
