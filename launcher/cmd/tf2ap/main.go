@@ -12,6 +12,7 @@ package main
 
 import (
 	"context"
+	_ "embed"
 	"errors"
 	"flag"
 	"fmt"
@@ -31,6 +32,7 @@ import (
 	"github.com/m-this/tf2-archipelago/launcher/internal/settings"
 	"github.com/m-this/tf2-archipelago/launcher/internal/srcdsconfig"
 	"github.com/m-this/tf2-archipelago/launcher/internal/tailscalefastdl"
+	"github.com/m-this/tf2-archipelago/launcher/internal/tray"
 	"github.com/m-this/tf2-archipelago/launcher/internal/ui"
 	"github.com/m-this/tf2-archipelago/launcher/internal/webapi"
 )
@@ -125,6 +127,11 @@ func run(logger *slog.Logger) error {
 	return launchInterface(logger, s, *consoleFlag, *addressFlag, *noBrowserFlag)
 }
 
+// trayIcon is the same picture the .exe carries, for the notification area.
+//
+//go:embed tf2ap.ico
+var trayIcon []byte
+
 // The launcher has one face and it is a browser. -console is what is left of
 // the others: the log and nothing over it, for Docker, for a server with no
 // desktop, and for anyone who would rather read it in a terminal.
@@ -139,7 +146,13 @@ func launchInterface(logger *slog.Logger, s settings.Settings, console bool, add
 	if console {
 		return guided(logger, s)
 	}
-	return webapi.Run(s, logger, webapi.Options{Address: address, OpenBrowser: !noBrowser})
+	return tray.Run(trayIcon, func(serving tray.Serving) error {
+		return webapi.Run(s, logger, webapi.Options{
+			Address:     address,
+			OpenBrowser: !noBrowser,
+			Serving:     serving,
+		})
+	})
 }
 
 func printVersion() {

@@ -14,7 +14,6 @@ const settingsPages = (page: Page) => page.getByRole('navigation', { name: 'Sett
 test.describe('the settings screen', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/settings');
-    await page.getByRole('button', { name: 'Open the settings' }).click();
     await expect(page.getByRole('link', { name: 'Player options' })).toBeVisible();
   });
 
@@ -142,7 +141,6 @@ test.describe('the settings screen', () => {
 test.describe('the mission table', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/settings');
-    await page.getByRole('button', { name: 'Open the settings' }).click();
     await settingsPages(page).getByRole('link', { name: 'Missions', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'Mission pool' })).toBeVisible();
   });

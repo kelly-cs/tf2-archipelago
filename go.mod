@@ -7,6 +7,7 @@ require (
 	connectrpc.com/connect v1.21.0
 	connectrpc.com/grpchealth v1.5.0
 	connectrpc.com/validate v0.6.0
+	fyne.io/systray v1.12.2
 	github.com/coder/websocket v1.8.15
 	github.com/m-this/tf2-mvm-bots-go v0.14.4-0.20260907151630-b9d8c6538749
 	golang.org/x/sys v0.47.0
@@ -18,6 +19,7 @@ require (
 	cel.dev/cel-go v0.32.0 // indirect
 	cel.dev/expr v0.25.3 // indirect
 	github.com/antlr4-go/antlr/v4 v4.13.1 // indirect
+	github.com/godbus/dbus/v5 v5.1.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	golang.org/x/exp v0.0.0-20260820142414-ca536658362e // indirect
 	golang.org/x/text v0.41.0 // indirect

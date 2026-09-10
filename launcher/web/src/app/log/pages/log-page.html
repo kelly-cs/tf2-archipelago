@@ -16,7 +16,7 @@
       (scrolledIndexChange)="onScroll()"
     >
       <div class="lines">
-        <div class="line" *cdkVirtualFor="let row of rows(); trackBy: trackRow">
+        <div class="line" *cdkVirtualFor="let row of rows(); trackBy: trackRow" [title]="row.text">
           <span class="at">{{ row.at }}</span>
           <span class="source" [class]="row.kind">[{{ row.source }}]</span>
           <span class="text">{{ row.text }}</span>

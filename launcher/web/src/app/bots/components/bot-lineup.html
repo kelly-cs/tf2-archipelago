@@ -8,8 +8,7 @@
 }
 
 @if (!open()) {
-  <p class="lead">Opening the settings makes the draft these seats are edited in.</p>
-  <app-button tone="primary" (press)="openSettings.next()">Open the lineup</app-button>
+  <p class="lead">Opening the lineup.</p>
 } @else {
   <div class="seats">
     @for (seat of seats(); track seat.playedBy.id) {

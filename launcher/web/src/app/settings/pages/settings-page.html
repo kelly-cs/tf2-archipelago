@@ -1,12 +1,7 @@
 @if (!known()) {
   <app-empty-state>Reading the launcher.</app-empty-state>
 } @else if (!open()) {
-  <app-empty-state>
-    The settings are closed. Opening them makes a draft: nothing is written until you press Save.
-    <div class="open">
-      <app-button tone="primary" (press)="openScreen.next()">Open the settings</app-button>
-    </div>
-  </app-empty-state>
+  <app-empty-state>Opening the settings.</app-empty-state>
 } @else {
   <div class="screen">
     <nav aria-label="Settings pages">

@@ -21,7 +21,10 @@ The launcher has one screen now, and it opens in your browser.
   ready rather than leaving it out.
 - Leaving the tab open behind the game costs nothing: it stops listening while
   it is hidden and picks the state back up when you come back to it.
-- Closing the tab leaves the server running. Quit on the screen stops it.
+- Closing the tab leaves the server running. On Windows the launcher sits in
+  the notification area while it does: click the icon to get the page back,
+  right-click it for Quit. Quit on the screen stops it too.
+- The settings open when you go to them. There is no button to press first.
 
 ### Gone
 

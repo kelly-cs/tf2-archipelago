@@ -46,7 +46,6 @@ test.describe('the pictures', () => {
 
   test('the settings, on the mission pool', async ({ page }) => {
     await page.goto('/settings');
-    await page.getByRole('button', { name: 'Open the settings' }).click();
     await page
       .getByRole('navigation', { name: 'Settings pages' })
       .getByRole('link', { name: 'Missions', exact: true })

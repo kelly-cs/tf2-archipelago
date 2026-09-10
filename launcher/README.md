@@ -37,6 +37,7 @@ archive layout, custom-upgrade findings, build commands, and RafMod boundary.
 | `internal/webapi` | The launcher as the browser talks to it: state, Connect services, `/ws` |
 | `internal/spa` | The Angular build, embedded and served |
 | `internal/browser` | Opening the player's browser, per desktop |
+| `internal/tray` | The icon in the Windows notification area: open the page, Quit |
 | `web/` | The Angular app. Not part of the Go module: see `web/go.mod` |
 | `internal/generate` | Drives the Archipelago app's generator: installs the apworld, writes the player file, runs it |
 | `internal/debugbundle` | The zip a play-tester sends: logs, settings without passwords, player file |
@@ -77,8 +78,10 @@ to the authority the listener actually took.
 | `-console` | The log and nothing over it, for Docker and for a machine with no desktop |
 | `-configure` | The console prompts, then exit |
 
-Closing the browser tab leaves the server running. Quit in the interface stops
-it, and so does Ctrl-C in a console.
+Closing the browser tab leaves the server running. On Windows the launcher is
+an icon in the notification area while it runs: a click opens the page again,
+and the right-click menu has Quit. Quit in the interface stops it too, and so
+does Ctrl-C in a console.
 
 Opening the browser is `internal/browser`, and WSL is the awkward one:
 `xdg-open` there either does nothing or opens a browser inside the distribution
