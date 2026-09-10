@@ -32,7 +32,9 @@
             (change)="carry(mercenary, $any($event.target).value)"
           >
             @for (option of carries.options; track option.value) {
-              <option [value]="option.value">{{ option.label }}</option>
+              <option [value]="option.value" [selected]="option.value === value(carries)">
+                {{ option.label }}
+              </option>
             }
           </select>
         }

@@ -16,7 +16,6 @@ export const SEGMENT = {
   session: 'session',
   unlocks: 'unlocks',
   bots: 'bots',
-  log: 'log',
   settings: 'settings',
 } as const;
 
@@ -31,7 +30,6 @@ export const ROUTE = {
   session: SEGMENT.session,
   unlocks: SEGMENT.unlocks,
   bots: SEGMENT.bots,
-  log: SEGMENT.log,
   settings: SEGMENT.settings,
   settingsTab: `:${PARAM.settingsTab}`,
   settingsSection: `:${PARAM.settingsTab}/:${PARAM.settingsSection}`,
@@ -42,7 +40,6 @@ export const appLink = {
   session: (): string[] => ['/', SEGMENT.session],
   unlocks: (): string[] => ['/', SEGMENT.unlocks],
   bots: (): string[] => ['/', SEGMENT.bots],
-  log: (): string[] => ['/', SEGMENT.log],
   settings: (): string[] => ['/', SEGMENT.settings],
   settingsTab: (tab: string): string[] => ['/', SEGMENT.settings, tab],
   settingsSection: (tab: string, section: string): string[] => [
@@ -58,7 +55,6 @@ export const appUrl = {
   session: (): string => `/${SEGMENT.session}`,
   unlocks: (): string => `/${SEGMENT.unlocks}`,
   bots: (): string => `/${SEGMENT.bots}`,
-  log: (): string => `/${SEGMENT.log}`,
   settings: (): string => `/${SEGMENT.settings}`,
   settingsTab: (tab: string): string => `/${SEGMENT.settings}/${tab}`,
   settingsSection: (tab: string, section: string): string =>

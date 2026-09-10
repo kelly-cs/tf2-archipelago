@@ -68,7 +68,6 @@ test.describe('the Play screen', () => {
     await expect(locked.getByRole('button', { name: 'Play' })).toHaveCount(0);
 
     await ready.getByRole('button', { name: 'Play' }).click();
-    await page.getByRole('link', { name: 'Console', exact: true }).click();
     await expect(page.getByText('next mission is mvm_coaltown')).toBeVisible();
   });
 

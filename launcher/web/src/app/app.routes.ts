@@ -29,10 +29,6 @@ export const routes: Routes = [
         loadComponent: () => import('@app/bots/pages/bots-page').then((m) => m.BotsPage),
       },
       {
-        path: ROUTE.log,
-        loadComponent: () => import('@app/log/pages/log-page').then((m) => m.LogPage),
-      },
-      {
         path: ROUTE.settings,
         loadComponent: () =>
           import('@app/settings/pages/settings-page').then((m) => m.SettingsPage),

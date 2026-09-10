@@ -40,6 +40,13 @@ The launcher has one screen now, and it opens in your browser.
   saved ones are a list with Load and Remove on each line.
 - The mission pool is one table, the same one the Play screen has, with a
   tick per mission and the tier beside it. It was drawn twice.
+- The console is under the missions on the Play screen, the same width, with
+  the search, the command box, Save debug logs and Clear this view. There is
+  no Console tab.
+- Join is in the header, left of Start, and the Bot Switcher has Apply:
+  the seats are a draft, and a lineup built there was gone on the next
+  visit because nothing wrote it.
+- Star on GitHub, in a footer that stays put.
 
 ### Gone
 

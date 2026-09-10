@@ -17,6 +17,15 @@ test.describe('the settings screen', () => {
     await expect(page.getByRole('link', { name: 'Player options' })).toBeVisible();
   });
 
+  test('lands on the first page when the URL names none', async ({ page }) => {
+    await expect(page).toHaveURL(/\/settings\/player-options$/);
+    await expect(page.getByRole('heading', { name: 'Player options' })).toBeVisible();
+
+    // And again when the draft is already open: the page is what was missing.
+    await page.goto('/settings');
+    await expect(page).toHaveURL(/\/settings\/player-options$/);
+  });
+
   test('draws the pages the model declares, not a list written here', async ({ page }) => {
     const pages = page.getByRole('navigation', { name: 'Settings pages' });
     for (const name of [

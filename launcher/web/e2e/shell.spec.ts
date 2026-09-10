@@ -21,8 +21,9 @@ test.describe('the shell', () => {
     for (const [name, path] of [
       ['Unlocks', '/unlocks'],
       ['Bots', '/bots'],
-      ['Console', '/log'],
-      ['Settings', '/settings'],
+      // Settings lands on its first page: a settings screen with nothing on
+      // it is a screen the player has to guess at.
+      ['Settings', '/settings/player-options'],
       ['Play', '/session'],
     ] as const) {
       await page

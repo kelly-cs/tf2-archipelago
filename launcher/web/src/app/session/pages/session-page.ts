@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 
+import { Console } from '@app/session/components/console';
 import { JoinPanel } from '@app/session/components/join-panel';
 import { MissionList } from '@app/session/components/mission-list';
 import { WhatYouCanPlay } from '@app/session/components/what-you-can-play';
@@ -7,12 +8,13 @@ import { YourBotTeam } from '@app/session/components/your-bot-team';
 
 /**
  * The screen a player watches while they play: how to get in, what the run has
- * handed them, who is on their team, and what is left to play.
+ * handed them, who is on their team, what is left to play, and under it all
+ * what the server is saying.
  */
 @Component({
   selector: 'app-session-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [JoinPanel, MissionList, WhatYouCanPlay, YourBotTeam],
+  imports: [Console, JoinPanel, MissionList, WhatYouCanPlay, YourBotTeam],
   template: `
     <div class="cards">
       <app-join-panel />
@@ -20,6 +22,7 @@ import { YourBotTeam } from '@app/session/components/your-bot-team';
       <app-your-bot-team />
     </div>
     <app-mission-list />
+    <app-console />
   `,
   styles: `
     :host {

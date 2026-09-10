@@ -52,7 +52,7 @@ export class ServerButtons {
   private readonly commands = inject(LauncherCommands);
 
   readonly running = computed(() => this.store.running());
-  readonly joinable = computed(() => this.store.joinUrl() !== '');
+  readonly joinable = computed(() => this.store.running() && this.store.joinUrl() !== '');
 
   /** halting is the button meaning Stop: the server is up, or on its way up. */
   readonly halting = computed(

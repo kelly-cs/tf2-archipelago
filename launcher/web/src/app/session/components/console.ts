@@ -11,7 +11,7 @@ import {
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { Subject, exhaustMap, filter, map, switchMap, tap, timer } from 'rxjs';
 
-import { LogSource, sourceOf } from '@app/log/log-level';
+import { LogSource, sourceOf } from '@app/session/log-level';
 import { LauncherCommands } from '@app/server/launcher-commands';
 import { LauncherStore } from '@app/server/launcher-store';
 import { SettingsActions } from '@app/settings/settings-actions';
@@ -43,19 +43,21 @@ interface Row {
 }
 
 /**
- * Everything the server and the launcher have said.
+ * Everything the server and the launcher have said, under the missions on the
+ * Play screen: the log is read while playing, beside the state it explains,
+ * not on a page of its own.
  *
  * Twenty thousand lines, drawn a screenful at a time: the whole log is never in
  * the DOM, which is what makes a tab left open all evening cost nothing.
  */
 @Component({
-  selector: 'app-log-page',
+  selector: 'app-console',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [Button, EmptyState, ScrollingModule, SearchBox],
-  templateUrl: './log-page.html',
-  styleUrl: './log-page.scss',
+  templateUrl: './console.html',
+  styleUrl: './console.scss',
 })
-export class LogPage {
+export class Console {
   private readonly store = inject(LauncherStore);
   private readonly commands = inject(LauncherCommands);
   private readonly actions = inject(SettingsActions);

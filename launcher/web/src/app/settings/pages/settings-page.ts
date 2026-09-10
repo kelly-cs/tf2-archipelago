@@ -5,7 +5,7 @@ import { Subject, exhaustMap, filter, map, tap } from 'rxjs';
 
 import { SettingsStore } from '@app/settings/settings-store';
 import { slugOf } from '@app/settings/slug';
-import { appLink } from '@app/routing/app-routes';
+import { SEGMENT, appLink } from '@app/routing/app-routes';
 import { Button } from '@app/ui/button';
 import { SearchBox } from '@app/ui/search-box';
 import { EmptyState } from '@app/ui/empty-state';
@@ -64,9 +64,11 @@ export class SettingsPage {
     { initialValue: this.router.url },
   );
 
-  readonly currentSlug = computed(
-    () => this.url().split('?')[0].split('/').filter(Boolean).at(-1) ?? '',
-  );
+  /** The page segment: what follows /settings, whatever section follows it. */
+  readonly currentSlug = computed(() => {
+    const parts = this.url().split('?')[0].split('/').filter(Boolean);
+    return parts[parts.indexOf(SEGMENT.settings) + 1] ?? '';
+  });
 
   readonly here = computed(() =>
     this.pages().findIndex((page) => page.slug === this.currentSlug()),
@@ -103,6 +105,16 @@ export class SettingsPage {
       .pipe(
         filter((closed) => closed),
         exhaustMap(() => this.store.openSettings('')),
+        takeUntilDestroyed(),
+      )
+      .subscribe();
+
+    // /settings with no page named lands on the first one, whether the draft
+    // was just opened or was open already: a settings screen with nothing on
+    // it is a screen the player has to guess at.
+    toObservable(computed(() => this.open() && this.here() < 0 && this.pages().length > 0))
+      .pipe(
+        filter((unplaced) => unplaced),
         tap(() => this.goToFirstPage()),
         takeUntilDestroyed(),
       )
