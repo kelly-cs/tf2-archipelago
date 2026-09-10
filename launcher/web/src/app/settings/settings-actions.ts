@@ -1,8 +1,9 @@
 import { Injectable, inject } from '@angular/core';
-import { Observable, map, reduce } from 'rxjs';
+import { Observable, map, of, reduce } from 'rxjs';
 
 import { LauncherCommands } from '@app/server/launcher-commands';
 import { SettingsStore } from '@app/settings/settings-store';
+import { orRefusal } from '@app/transport/refusal';
 import { FileTarget } from '@gen/tf2ap/launcher/v1/files_pb';
 
 /**
@@ -29,9 +30,17 @@ export class SettingsActions {
   private readonly commands = inject(LauncherCommands);
   private readonly store = inject(SettingsStore);
 
-  /** press answers with what to tell the player, or empty when the launcher
-      will say it on the stream. */
+  /**
+   * press answers with what to tell the player, or empty when the launcher will
+   * say it on the stream. A refusal is an answer too, not an error: the buttons
+   * share one subscription, and one refused press used to end it for all of
+   * them.
+   */
   press(id: string): Observable<string> {
+    return this.route(id).pipe(orRefusal((refusal) => of(refusal)));
+  }
+
+  private route(id: string): Observable<string> {
     const target = shows[id];
     if (target !== undefined) {
       return this.commands.showFile(target).pipe(map((answer) => `opened ${answer.path}`));
@@ -44,7 +53,7 @@ export class SettingsActions {
     if (id === 'server.debug_bundle') {
       return this.download();
     }
-    return this.store.dispatch(id).pipe(map(() => ''));
+    return this.store.dispatch(id);
   }
 
   /**

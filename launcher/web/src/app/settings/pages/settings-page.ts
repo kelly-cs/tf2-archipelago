@@ -3,7 +3,8 @@ import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { Subject, exhaustMap, filter, map, tap } from 'rxjs';
 
-import { SettingsStore, slugOf } from '@app/settings/settings-store';
+import { SettingsStore } from '@app/settings/settings-store';
+import { slugOf } from '@app/settings/slug';
 import { appLink } from '@app/routing/app-routes';
 import { Button } from '@app/ui/button';
 import { SearchBox } from '@app/ui/search-box';

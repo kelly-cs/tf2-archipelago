@@ -69,11 +69,11 @@ func (a *App) serveStream(authority string) http.HandlerFunc {
 }
 
 // forward turns one event into one frame. A listener that fell behind gets the
-// whole state instead of the event it is holding, because the events it lost
-// were the ones that said what changed.
+// whole state instead of the event it is holding, logs included: the events it
+// lost were the ones that said what changed, and some of them were lines.
 func (a *App) forward(ctx context.Context, socket *websocket.Conn, listener *Listener, message Event) error {
 	if listener.Behind() {
-		return a.sendState(ctx, socket, false)
+		return a.sendState(ctx, socket, true)
 	}
 	if line, ok := message.Data.(apruntime.Line); ok && message.Name == "log" {
 		return send(ctx, socket, &launcherv1.StreamMessage{
@@ -83,8 +83,9 @@ func (a *App) forward(ctx context.Context, socket *websocket.Conn, listener *Lis
 	return a.sendState(ctx, socket, false)
 }
 
-// sendState writes the whole state. withLogs is true only for the first frame:
-// after it the browser has every line and is sent each new one as it happens.
+// sendState writes the whole state. withLogs is true for the first frame and
+// for a resync: in between, the browser has every line and is sent each new
+// one as it happens.
 //
 //nolint:contextcheck // Address discovery owns its timeout instead of the frame.
 func (a *App) sendState(ctx context.Context, socket *websocket.Conn, withLogs bool) error {

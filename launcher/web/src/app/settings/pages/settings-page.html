@@ -27,6 +27,9 @@
       @if (refusal()) {
         <app-notice tone="bad">{{ refusal() }}</app-notice>
       }
+      @if (store.refusal()) {
+        <app-notice tone="bad">{{ store.refusal() }}</app-notice>
+      }
       @if (saved()) {
         <app-notice tone="info">{{ saved() }}</app-notice>
       }

@@ -4,6 +4,7 @@ import {
   Observable,
   catchError,
   distinctUntilChanged,
+  endWith,
   fromEvent,
   map,
   of,
@@ -71,6 +72,10 @@ export class LauncherStream {
         resetOnSuccess: true,
       }),
       map((message): Frame => message),
+      // A clean close completes rather than errors: the launcher quit and said
+      // so. That is the launcher being gone all the same, and without this the
+      // shell went on saying Running to a tab with nothing behind it.
+      endWith<Frame>({ lost: true }),
     );
   }
 }

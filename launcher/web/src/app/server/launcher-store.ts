@@ -71,9 +71,10 @@ export class LauncherStore {
 }
 
 /**
- * apply folds one frame into the state. A snapshot replaces everything but the
- * log, because only the first one carries lines; a line is appended, oldest
- * dropped at the bound.
+ * apply folds one frame into the state. A snapshot replaces everything, and
+ * the log too when it carries lines: the first frame does, and so does a
+ * resync for a browser that fell behind. A line is appended, oldest dropped at
+ * the bound.
  */
 function apply(state: State, frame: Frame): State {
   if (isLost(frame)) {

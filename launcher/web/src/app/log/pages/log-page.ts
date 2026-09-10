@@ -15,6 +15,7 @@ import { LogSource, sourceOf } from '@app/log/log-level';
 import { LauncherCommands } from '@app/server/launcher-commands';
 import { LauncherStore } from '@app/server/launcher-store';
 import { SettingsActions } from '@app/settings/settings-actions';
+import { LogLine } from '@gen/tf2ap/launcher/v1/launcher_pb';
 import { Button } from '@app/ui/button';
 import { EmptyState } from '@app/ui/empty-state';
 import { SearchBox } from '@app/ui/search-box';
@@ -68,10 +69,14 @@ export class LogPage {
   readonly command = signal('');
   readonly said = signal('');
 
-  /** cleared is how many lines were on screen when the player asked for a
-      clean view. The launcher keeps its log; this only stops showing the part
-      that was there before. */
-  private readonly cleared = signal(0);
+  /**
+   * cleared is the clock of the last line on screen when the player asked for
+   * a clean view; the launcher keeps its log, this only stops showing what was
+   * there before. A time rather than a count: the log is a ring of twenty
+   * thousand lines, and a count into a ring blanked the whole view for good
+   * once the ring turned.
+   */
+  private readonly cleared = signal(-1n);
 
   private history: string[] = readHistory();
   private walking = -1;
@@ -79,9 +84,9 @@ export class LogPage {
 
   readonly rows = computed<Row[]>(() => {
     const needle = this.filterText().trim().toLowerCase();
-    return this.store
-      .logs()
-      .slice(this.cleared())
+    const logs = this.store.logs();
+    const first = logs.findIndex((line) => stampOf(line) > this.cleared());
+    return (first < 0 ? [] : logs.slice(first))
       .filter((line) => needle === '' || line.text.toLowerCase().includes(needle))
       .map((line, index) => ({
         key: `${index}:${line.text}`,
@@ -159,7 +164,8 @@ export class LogPage {
   }
 
   clearView(): void {
-    this.cleared.set(this.store.logs().length);
+    const last = this.store.logs().at(-1);
+    this.cleared.set(last === undefined ? -1n : stampOf(last));
     this.said.set(
       'This view is clear. The launcher still has every line, and the bundle carries them.',
     );
@@ -195,6 +201,10 @@ function readHistory(): string[] {
   } catch {
     return [];
   }
+}
+
+function stampOf(line: LogLine): bigint {
+  return (line.at?.seconds ?? 0n) * 1_000_000_000n + BigInt(line.at?.nanos ?? 0);
 }
 
 function clock(seconds: bigint): string {

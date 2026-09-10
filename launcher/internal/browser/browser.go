@@ -24,15 +24,9 @@ import (
 	"os/exec"
 	"runtime"
 	"strings"
-	"time"
 
 	"github.com/m-this/tf2-archipelago/launcher/internal/winproc"
 )
-
-// openGrace bounds the wait for the opener to start. It is not the wait for a
-// browser to appear: every one of these returns as soon as the request is
-// handed over.
-const openGrace = 10 * time.Second
 
 // Open shows the URL to the player.
 func Open(url string) error {
@@ -77,17 +71,17 @@ func openThroughWindows(url string) error {
 	return start(url, "cmd.exe", "/c", "start", "")
 }
 
-// start hands the URL over and returns. The timeout bounds the handover, not
-// the browser: every one of these opens returns as soon as the request is
-// taken, and a browser that takes ten seconds to appear is not this to wait on.
+// start hands the URL over and returns. Start is all that is waited on, and
+// the context is one nothing cancels: a cancel would kill the opener, which
+// with a timeout for the handover it did, a moment after Start returned and
+// before xdg-open had asked anybody for a browser.
 func start(url string, command ...string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), openGrace)
-	defer cancel()
 	arguments := append(append([]string{}, command[1:]...), url)
-	if err := exec.CommandContext(ctx, command[0], arguments...).Start(); err != nil {
+	process := exec.CommandContext(context.Background(), command[0], arguments...)
+	if err := process.Start(); err != nil {
 		return fmt.Errorf("cannot open a browser: %w", err)
 	}
-	return nil
+	return process.Process.Release()
 }
 
 func procVersion() string {

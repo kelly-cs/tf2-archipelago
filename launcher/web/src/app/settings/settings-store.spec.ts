@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { Transport } from '@connectrpc/connect';
+import { Code, ConnectError, Transport } from '@connectrpc/connect';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { SettingsStore } from '@app/settings/settings-store';
@@ -34,6 +34,9 @@ describe('the settings store', () => {
       ) => {
         const body = message as { change?: { field: string; value: string } };
         if (method.name === 'ChangeSetting' && body.change) {
+          if (body.change.value === 'refused') {
+            return Promise.reject(new ConnectError('not that one', Code.InvalidArgument));
+          }
           sent.push({ field: body.change.field, value: body.change.value });
           order.push(`change ${body.change.field}=${body.change.value}`);
         }
@@ -87,6 +90,33 @@ describe('the settings store', () => {
 
     expect(order.indexOf('save')).toBeGreaterThan(0);
     expect(order.slice(0, order.indexOf('save'))).toContain('change rewards.traps=42');
+    expect(saves).toBe(1);
+  });
+
+  // One refused keystroke used to end the subscription every row shares:
+  // nothing typed after it reached the launcher, and nobody was told why.
+  it('shows a refusal and still sends the next answer', async () => {
+    store.change('rewards.traps', 'refused');
+    await vi.advanceTimersByTimeAsync(300);
+    expect(store.refusal()).toBe('not that one');
+
+    store.change('rewards.traps', '42');
+    await vi.advanceTimersByTimeAsync(300);
+    expect(sent).toEqual([{ field: 'rewards.traps', value: '42' }]);
+    expect(store.refusal()).toBe('');
+  });
+
+  // Discard drops the launcher's draft. What was typed and not yet sent has to
+  // go with it, or the next Save writes back what was just thrown away.
+  it('forgets what was typed when the draft is discarded', async () => {
+    store.change('rewards.traps', '42');
+    store.cancel().subscribe();
+    expect(store.dirty()).toBe(false);
+
+    const done = store.save(false).toPromise();
+    await vi.runAllTimersAsync();
+    await done;
+    expect(sent).toHaveLength(0);
     expect(saves).toBe(1);
   });
 

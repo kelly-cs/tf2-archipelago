@@ -4,6 +4,7 @@ import { Client, createClient } from '@connectrpc/connect';
 import {
   EMPTY,
   Observable,
+  OperatorFunction,
   Subject,
   concat,
   concatMap,
@@ -19,7 +20,9 @@ import {
 } from 'rxjs';
 
 import { LauncherStore } from '@app/server/launcher-store';
+import { slugOf } from '@app/settings/slug';
 import { LAUNCHER_TRANSPORT } from '@app/transport/connect-transport';
+import { orRefusal } from '@app/transport/refusal';
 import { Field, Model, Tab } from '@gen/tf2ap/launcher/v1/form_pb';
 import { SettingsService } from '@gen/tf2ap/launcher/v1/settings_pb';
 
@@ -76,6 +79,14 @@ export class SettingsStore {
       The launcher clears its draft on Save, so a screen with rows on it and no
       pending edits is one where Save would write what is already there. */
   readonly dirty = computed(() => this.touched().size > 0);
+
+  /**
+   * What the launcher refused the last answer for, empty once it takes one.
+   * A refusal has to be caught, not just shown: the keystrokes go down one
+   * subscription for the whole screen, and an error that reached it would end
+   * it, after which nothing typed reaches the launcher and nobody is told.
+   */
+  readonly refusal = signal('');
 
   /**
    * What the player is looking for, across every page rather than the one they
@@ -197,37 +208,69 @@ export class SettingsStore {
   }
 
   /**
-   * send tells the launcher one answer, once.
+   * send tells the launcher one answer, once, and only while it is still the
+   * player's answer.
    *
    * Two paths reach here: the wait after the last keystroke, and Save hurrying
    * what has not gone yet. Without a guard they both send the same answer and
    * the launcher rebuilds the model twice for one keystroke.
    *
-   * The guard is the launcher's own value, not a note of what was last sent.
-   * A note goes stale: type 42, then 43, then 42 again, and a note would say 42
-   * had already gone while the launcher was holding 43. Asking what the
-   * launcher has cannot be wrong about it.
+   * The guard is the pending edit, not a note of what was last sent. A note
+   * goes stale: type 42, then 43, then 42 again, and a note would say 42 had
+   * already gone while the launcher was holding 43. An edit is dropped the
+   * moment the launcher agrees with it, and all of them when the draft is
+   * discarded, which is how a keystroke still in its quarter second does not
+   * follow a Discard into the launcher.
    */
   private send(id: string, value: string): Observable<void> {
     return defer(() => {
-      if (serverValue(this.model(), id) === value) {
+      if (this.edits()[id] !== value) {
         return EMPTY;
       }
       return from(this.service.changeSetting({ change: { field: id, value } }));
-    }).pipe(map(() => undefined));
+    }).pipe(
+      map(() => this.refusal.set('')),
+      this.noted(),
+    );
   }
 
-  dispatch(id: string): Observable<void> {
-    return from(this.service.dispatchAction({ id })).pipe(map(() => undefined));
+  /** noted keeps a refusal where the screen shows it and lets the stream go on. */
+  private noted<T>(): OperatorFunction<T, T> {
+    return orRefusal<T>((refusal) => {
+      this.refusal.set(refusal);
+      return EMPTY;
+    });
+  }
+
+  /** dispatch presses a button, and answers with the refusal or nothing. */
+  dispatch(id: string): Observable<string> {
+    return from(this.service.dispatchAction({ id })).pipe(
+      map(() => ''),
+      orRefusal((refusal) => of(refusal)),
+    );
   }
 
   openSettings(page: string): Observable<void> {
     this.touched.set(new Set());
-    return from(this.service.openSettings({ page })).pipe(map(() => undefined));
+    return this.quietly(this.service.openSettings({ page }));
   }
 
+  /** cancel drops the draft on both sides. The edits go too: they were what
+      the player typed into the draft they just threw away, and a Save after
+      a Discard used to write them back. */
   cancel(): Observable<void> {
-    return from(this.service.cancelSettings({})).pipe(map(() => undefined));
+    this.edits.set({});
+    this.touched.set(new Set());
+    this.refusal.set('');
+    return this.quietly(this.service.cancelSettings({}));
+  }
+
+  /** quietly drops an empty answer: what the call changed arrives on the stream. */
+  private quietly(call: Promise<object>): Observable<void> {
+    return from(call).pipe(
+      map(() => undefined),
+      this.noted(),
+    );
   }
 
   /**
@@ -277,21 +320,9 @@ export class SettingsStore {
   private write(restart: boolean): Observable<string> {
     return from(this.service.saveSettings({ restart })).pipe(
       map((answer) => (answer.saved ? '' : answer.refusal)),
+      orRefusal((refusal) => of(refusal)),
     );
   }
-}
-
-/** slugOf turns a tab title into the segment that names it in the URL. Which
-    tabs exist is decided at run time, so the URL cannot hold a declared name. */
-export function slugOf(title: string): string {
-  return title
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '');
-}
-
-export function fieldsOf(tab: Tab | undefined): Field[] {
-  return tab?.fields ?? [];
 }
 
 function serverValue(model: Model | undefined, id: string): string | undefined {

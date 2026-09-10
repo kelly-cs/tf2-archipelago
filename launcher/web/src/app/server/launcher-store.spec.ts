@@ -67,6 +67,19 @@ describe('the launcher store', () => {
     expect(store.logs()[0].text).toBe('kept');
   });
 
+  // A browser that fell behind is sent the whole state again, log included:
+  // the lines it missed are in there, and the ones it holds are a prefix.
+  it('takes the log again when a resync carries one', () => {
+    frames.next(snapshot({ logs: [create(LogLineSchema, { text: 'first' })] }));
+    frames.next(
+      snapshot({
+        logs: [create(LogLineSchema, { text: 'first' }), create(LogLineSchema, { text: 'missed' })],
+      }),
+    );
+
+    expect(store.logs().map((row) => row.text)).toEqual(['first', 'missed']);
+  });
+
   it('appends a line as it happens', () => {
     frames.next(snapshot({}));
     frames.next(line('the server said something'));

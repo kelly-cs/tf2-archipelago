@@ -93,6 +93,11 @@ export class BotLineup {
     this.fired
       .pipe(
         concatMap((id) => this.settings.dispatch(id)),
+        tap((refusal) => {
+          if (refusal !== '') {
+            this.feedback.set(refusal);
+          }
+        }),
         takeUntilDestroyed(),
       )
       .subscribe();

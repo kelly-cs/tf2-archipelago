@@ -32,6 +32,19 @@ func (a *App) DraftSettings() (settings.Settings, error) {
 	return a.draft.Settings, nil
 }
 
+// SettingsNow is the draft while the screen is open and the saved settings
+// otherwise. The debug bundle asks: it is offered from the console as well as
+// from the settings, and a bundle nobody can save from the log they are
+// reading is the one that never reaches a bug report.
+func (a *App) SettingsNow() settings.Settings {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	if a.draft != nil {
+		return a.draft.Settings
+	}
+	return a.settings
+}
+
 func (a *App) OpenSettings(page string) {
 	a.mu.Lock()
 	state := form.NewState(a.settings)

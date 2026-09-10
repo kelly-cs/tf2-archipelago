@@ -12,6 +12,10 @@ import { ServerStatus } from '@gen/tf2ap/launcher/v1/launcher_pb';
  * what the server is doing: two buttons where one is always wrong is how a
  * player presses Start on a running server.
  *
+ * Stop is never disabled. Starting is when it is needed most: an install that
+ * is a few gigabytes in, or a server waiting on Steam for an address it will
+ * not get, is stopped by this button and by nothing else.
+ *
  * Every press goes through exhaustMap, so holding the button down sends one
  * call rather than one per click while the first is still in flight.
  */
@@ -20,8 +24,8 @@ import { ServerStatus } from '@gen/tf2ap/launcher/v1/launcher_pb';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [Button],
   template: `
-    <app-button [tone]="running() ? 'halt' : 'go'" [disabled]="busy()" (press)="toggle.next()">
-      {{ running() ? 'Stop server' : 'Start server' }}
+    <app-button [tone]="halting() ? 'halt' : 'go'" (press)="toggle.next()">
+      {{ halting() ? 'Stop server' : 'Start server' }}
     </app-button>
     <app-button tone="ghost" [disabled]="!running()" (press)="restart.next()">Restart</app-button>
     <app-button tone="ghost" hint="Close the launcher" (press)="quit.next()">Quit</app-button>
@@ -38,8 +42,11 @@ export class ServerButtons {
   private readonly commands = inject(LauncherCommands);
 
   readonly running = computed(() => this.store.running());
-  readonly busy = computed(
-    () => this.store.busy() || this.store.status() === ServerStatus.STARTING,
+
+  /** halting is the button meaning Stop: the server is up, or on its way up. */
+  readonly halting = computed(
+    () =>
+      this.store.running() || this.store.busy() || this.store.status() === ServerStatus.STARTING,
   );
 
   readonly toggle = new Subject<void>();
@@ -49,7 +56,7 @@ export class ServerButtons {
   constructor() {
     this.toggle
       .pipe(
-        exhaustMap(() => (this.running() ? this.commands.stop() : this.commands.start())),
+        exhaustMap(() => (this.halting() ? this.commands.stop() : this.commands.start())),
         takeUntilDestroyed(),
       )
       .subscribe();
