@@ -15,7 +15,7 @@
         <a
           [routerLink]="page.link"
           routerLinkActive="here"
-          [attr.aria-current]="page.slug === store.page() ? 'page' : null"
+          [attr.aria-current]="page.slug === currentSlug() ? 'page' : null"
         >
           <span class="number" aria-hidden="true">{{ page.number }}</span>
           <span>{{ page.title }}</span>

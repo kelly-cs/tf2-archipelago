@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
-import { Subject, exhaustMap, tap } from 'rxjs';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
+import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { Subject, exhaustMap, filter, map, tap } from 'rxjs';
 
 import { SettingsStore, slugOf } from '@app/settings/settings-store';
 import { appLink } from '@app/routing/app-routes';
@@ -46,8 +46,28 @@ export class SettingsPage {
     })),
   );
 
-  /** Where the player is, and what is either side of it. */
-  readonly here = computed(() => this.pages().findIndex((page) => page.slug === this.store.page()));
+  /**
+   * Which page is on screen, read off the URL.
+   *
+   * Not off the launcher's own form page: that is where it was asked to open,
+   * which stops being where the player is the moment they click another one in
+   * the list, and the footer would offer to go next from a page nobody was on.
+   */
+  private readonly url = toSignal(
+    this.router.events.pipe(
+      filter((event) => event instanceof NavigationEnd),
+      map(() => this.router.url),
+    ),
+    { initialValue: this.router.url },
+  );
+
+  readonly currentSlug = computed(
+    () => this.url().split('?')[0].split('/').filter(Boolean).at(-1) ?? '',
+  );
+
+  readonly here = computed(() =>
+    this.pages().findIndex((page) => page.slug === this.currentSlug()),
+  );
   readonly previous = computed(() => this.pages()[this.here() - 1]);
   readonly next = computed(() => this.pages()[this.here() + 1]);
   readonly nextLabel = computed(() => {

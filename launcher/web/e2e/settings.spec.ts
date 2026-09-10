@@ -40,6 +40,19 @@ test.describe('the settings screen', () => {
     await expect(page.getByRole('heading', { name: 'Loadouts' })).toBeVisible();
   });
 
+  // The footer offered to go next from the page the launcher had opened rather
+  // than the one on screen, so Next said "Player options" while the player was
+  // standing on Missions.
+  test('the footer walks the pages the player is actually on', async ({ page }) => {
+    await settingsPages(page).getByRole('link', { name: 'Missions', exact: true }).click();
+    await expect(page.getByText('Section 4 of 8')).toBeVisible();
+    await expect(page.getByRole('button', { name: /Next: Archipelago room/ })).toBeVisible();
+
+    await page.getByRole('button', { name: /Next: Archipelago room/ }).click();
+    await expect(page).toHaveURL(/\/settings\/archipelago-room$/);
+    await expect(page.getByText('Section 5 of 8')).toBeVisible();
+  });
+
   test('every kind the model uses gets its own control', async ({ page }) => {
     await settingsPages(page).getByRole('link', { name: 'Game server', exact: true }).click();
     await expect(page.getByLabel('Server name')).toHaveAttribute('type', 'text');

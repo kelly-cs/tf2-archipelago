@@ -38,6 +38,12 @@ test.describe('the pictures', () => {
     await page.screenshot({ path: '../../docs/images/launcher-bots.png' });
   });
 
+  test('the unlocks screen', async ({ page }) => {
+    await page.goto('/unlocks');
+    await expect(page.getByText(/unlocks so far/)).toBeVisible();
+    await page.screenshot({ path: '../../docs/images/launcher-unlocks.png' });
+  });
+
   test('the settings, on the mission pool', async ({ page }) => {
     await page.goto('/settings');
     await page.getByRole('button', { name: 'Open the settings' }).click();

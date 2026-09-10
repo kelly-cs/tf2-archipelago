@@ -10,6 +10,9 @@
   color: var(--text-dim);
 }
 
+/* An inline code run inside a sentence. white-space: pre-wrap on the paragraph
+   would keep the template's own newlines, so the spacing comes from the markup
+   collapsing normally and this only changes the face. */
 .command {
   font-family: var(--font-mono);
 }
