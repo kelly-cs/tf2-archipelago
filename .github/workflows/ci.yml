@@ -97,10 +97,14 @@ jobs:
     container:
       image: node:26-slim
     steps:
-      - name: install git and make
+      # ca-certificates is not optional: node:26-slim ships none, so git cannot
+      # verify github.com and checkout fails with "Problem with the SSL CA
+      # cert" before anything else runs. npm needs it for the same reason.
+      # The plugin job installs it on debian:stable-slim for the same reason.
+      - name: install git, make and the CA certificates
         run: |
           apt-get update
-          apt-get install --yes --no-install-recommends git make
+          apt-get install --yes --no-install-recommends ca-certificates git make
 
       - uses: actions/checkout@v7
         with:
