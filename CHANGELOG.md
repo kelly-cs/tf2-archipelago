@@ -4,15 +4,9 @@ What each release changes, for somebody who plays the game. The workflow in
 `.github/workflows/release.yml` reads the section matching the tag and puts it
 in the release notes, so this file is the only place to write it.
 
-## Unreleased
+## v1.13.0
 
 The launcher has one screen now, and it opens in your browser.
-
-### Fixed
-
-- A saved loadout handed to a seat or a class plays that loadout. It played
-  stock: the menu wrote the loadout's name where its key belongs. A settings
-  file written by 1.12 still works, the name is understood too.
 
 ### The new interface
 
@@ -63,6 +57,12 @@ The launcher has one screen now, and it opens in your browser.
 The address is printed either way. Open it yourself. On WSL the launcher asks
 the Windows browser rather than one inside the distribution, where you could
 not see it.
+
+### Fixed
+
+- A saved loadout handed to a seat or a class plays that loadout. It played
+  stock: the menu wrote the loadout's name where its key belongs. A settings
+  file written by 1.12 still works, the name is understood too.
 
 ## v1.12.0
 
