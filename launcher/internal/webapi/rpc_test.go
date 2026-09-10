@@ -13,6 +13,7 @@ import (
 	"github.com/m-this/tf2-archipelago/launcher/internal/form"
 	launcherv1 "github.com/m-this/tf2-archipelago/launcher/internal/gen/tf2ap/launcher/v1"
 	"github.com/m-this/tf2-archipelago/launcher/internal/gen/tf2ap/launcher/v1/launcherv1connect"
+	"github.com/m-this/tf2-archipelago/launcher/internal/session"
 	"github.com/m-this/tf2-archipelago/launcher/internal/settings"
 )
 
@@ -284,5 +285,35 @@ func TestTheTierComesFromGamedata(t *testing.T) {
 		if got := tierOf(popFile); got != want {
 			t.Errorf("tierOf(%q) = %q, want %q", popFile, got, want)
 		}
+	}
+}
+
+/*
+The archive a mission came from is the launcher's answer, not the bridge's.
+
+The bridge fills Source out of its own state file, which for a mission it has
+never seen is empty. gamedata knows the pack for every pop file, so the launcher
+overwrites it, and this asks that it does so for every mission rather than only
+for one out of an imported pack (kelly-cs, #50).
+*/
+func TestTheArchiveComesFromTheLauncherNotTheBridge(t *testing.T) {
+	app := New(settings.Defaults(), nil)
+	app.mu.Lock()
+	app.snapshot = session.Snapshot{
+		Missions: []session.Mission{
+			{PopFile: "mvm_decoy", Name: "Doe's Drill", Source: "whatever the bridge said"},
+			{PopFile: "not_a_mission", Name: "Made up", Source: "left alone"},
+		},
+	}
+	app.mu.Unlock()
+
+	missions := app.Snapshot().Session.Missions
+	if got := missions[0].Source; got != "Valve" {
+		t.Errorf("a Valve mission reads as %q, want Valve", got)
+	}
+	// A pop file gamedata does not know is one the launcher cannot name, so the
+	// bridge's own answer is the only one there is.
+	if got := missions[1].Source; got != "left alone" {
+		t.Errorf("an unknown mission reads as %q, want the bridge's own answer", got)
 	}
 }

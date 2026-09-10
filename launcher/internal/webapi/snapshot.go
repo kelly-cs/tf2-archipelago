@@ -85,9 +85,14 @@ func (a *App) Snapshot() Snapshot {
 	sessionState := a.snapshot
 	sessionState.Missions = slices.Clone(sessionState.Missions)
 	for i := range sessionState.Missions {
-		mission, known := gamedata.MissionByPopFile(sessionState.Missions[i].PopFile)
-		if known && slices.Contains(a.imported, gamedata.MissionPack(mission.ID)) {
-			sessionState.Missions[i].Source = "Imported"
+		// The launcher names the archive, not the bridge. The bridge answers
+		// with whatever its own state file holds, which for a mission it has
+		// never seen is nothing at all; gamedata knows which pack every pop
+		// file came from. This used to overwrite the source only for an
+		// imported pack, so a Potato mission on a machine that had downloaded
+		// it read as whatever the bridge happened to say (kelly-cs, #50).
+		if mission, known := gamedata.MissionByPopFile(sessionState.Missions[i].PopFile); known {
+			sessionState.Missions[i].Source = missionSource(mission, a.imported)
 		}
 	}
 	screen := a.screenLocked(running)
