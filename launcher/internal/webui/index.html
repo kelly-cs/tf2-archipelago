@@ -542,30 +542,30 @@
       }
 
       function missionStatus(mission) {
-        if (mission.Played) return "cleared";
-        if (mission.Cleared) return "collected";
-        if (mission.Unlocked) return "unlocked";
+        if (mission.played) return "cleared";
+        if (mission.cleared) return "collected";
+        if (mission.unlocked) return "unlocked";
         return "locked";
       }
 
       function missionRow(mission, index, running) {
         const play = el(
           "button",
-          { disabled: !running || !mission.Unlocked },
+          { disabled: !running || !mission.unlocked },
           "Play this mission",
         );
         play.onclick = () =>
-          post("/api/mission", { popfile: mission.PopFile }).catch(notice);
+          post("/api/mission", { popfile: mission.popfile }).catch(notice);
         return el(
           "tr",
           {
-            class: mission.Played ? "played" : mission.Unlocked ? "" : "locked",
+            class: mission.played ? "played" : mission.unlocked ? "" : "locked",
           },
           el("td", {}, index + 1),
-          el("td", {}, mission.Name),
-          el("td", {}, mission.Map),
-          el("td", {}, mission.Source),
-          el("td", {}, mission.Waves),
+          el("td", {}, mission.name),
+          el("td", {}, mission.map),
+          el("td", {}, mission.source),
+          el("td", {}, mission.waves),
           el("td", {}, missionStatus(mission)),
           el("td", {}, play),
         );
@@ -577,11 +577,11 @@
           $("health").textContent = "Bridge: " + snapshot.session_error;
         } else if (!snapshot.running) {
           $("health").textContent = "The server is not running.";
-        } else if (!health.Connected) {
+        } else if (!health.connected) {
           $("health").textContent = "not connected yet";
         } else {
           $("health").textContent =
-            `connected as ${health.Slot}, ${health.Checks} checks, ${health.Items} items`;
+            `connected as ${health.slot}, ${health.checks} checks, ${health.items} items`;
         }
         $("itemserver").textContent = snapshot.item_server || "";
         $("missions").replaceChildren(

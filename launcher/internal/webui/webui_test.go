@@ -16,6 +16,7 @@ import (
 
 	"github.com/m-this/tf2-archipelago/launcher/internal/form"
 	apruntime "github.com/m-this/tf2-archipelago/launcher/internal/runtime"
+	"github.com/m-this/tf2-archipelago/launcher/internal/session"
 	"github.com/m-this/tf2-archipelago/launcher/internal/settings"
 )
 
@@ -176,6 +177,52 @@ func TestPageCarriesTheWholeOperationalInterface(t *testing.T) {
 	}
 	if strings.Contains(response.Body.String(), "/api/server/join") {
 		t.Error("Join still asks the launcher host to open Steam")
+	}
+}
+
+func TestSessionTableUsesTheSnapshotJSONFields(t *testing.T) {
+	app := New(settings.Defaults(), nil)
+	app.snapshot = session.Snapshot{
+		Health: session.Health{Connected: true, Slot: "tf2", Checks: 4, Items: 2},
+		Missions: []session.Mission{{
+			PopFile: "mvm_decoy", Name: "Doe's Drill", Map: "Decoy",
+			Waves: 8, Unlocked: true, Cleared: true, Played: true,
+		}},
+	}
+	snapshot := app.Snapshot()
+	if got := snapshot.Session.Missions[0].Source; got != "Valve" {
+		t.Errorf("known mission source = %q, want Valve", got)
+	}
+	body, err := json.Marshal(snapshot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, field := range []string{
+		`"connected":true`, `"slot":"tf2"`, `"checks":4`, `"items":2`,
+		`"popfile":"mvm_decoy"`, `"name":"Doe's Drill"`, `"map":"Decoy"`,
+		`"source":"Valve"`, `"waves":8`, `"unlocked":true`, `"cleared":true`, `"played":true`,
+	} {
+		if !bytes.Contains(body, []byte(field)) {
+			t.Errorf("snapshot JSON does not contain %s: %s", field, body)
+		}
+	}
+	for _, field := range []string{
+		"health.connected", "health.slot", "health.checks", "health.items",
+		"mission.popfile", "mission.name", "mission.map", "mission.source", "mission.waves",
+		"mission.unlocked", "mission.cleared", "mission.played",
+	} {
+		if !bytes.Contains(page, []byte(field)) {
+			t.Errorf("the browser does not read %s", field)
+		}
+	}
+	for _, field := range []string{
+		"health.Connected", "health.Slot", "health.Checks", "health.Items",
+		"mission.PopFile", "mission.Name", "mission.Map", "mission.Source", "mission.Waves",
+		"mission.Unlocked", "mission.Cleared", "mission.Played",
+	} {
+		if bytes.Contains(page, []byte(field)) {
+			t.Errorf("the browser reads nonexistent JSON field %s", field)
+		}
 	}
 }
 
