@@ -61,7 +61,13 @@ Gunslinger.
 func (l Library) Loadout(class Class, key string) Loadout {
 	name := CustomName(key)
 	if name == "" {
-		return class.LoadoutByKey(key)
+		if key == "" || class.hasPreset(key) {
+			return class.LoadoutByKey(key)
+		}
+		// A bare name. Releases 1.12 and before wrote a saved loadout's name
+		// into the settings where the key belongs, so a file from one of them
+		// still names its loadout this way.
+		name = key
 	}
 	built, found := l.Built[name]
 	if !found || built.Class != class.Key {
