@@ -365,7 +365,16 @@ stock void MvM_OnCommandKeyValues(int client, const char[] name, int count)
 {
     if (StrEqual(name, "MvM_UpgradesBegin", false))
     {
+        // Remove the client-side disposable-sentry prediction mirror before
+        // the shop reads the PDA. AP levels must not become purchased ranks.
+        WeaponBuffs_EnterUpgradeStation(client);
         WeaponBuffs_AnnounceAtStation(client);
+        return;
+    }
+    if (StrEqual(name, "MvM_UpgradesDone", false))
+    {
+        // The client needs its prediction mirror again after leaving the shop.
+        WeaponBuffs_LeaveUpgradeStation(client);
         return;
     }
     if (StrEqual(name, "MVM_Respec", false))

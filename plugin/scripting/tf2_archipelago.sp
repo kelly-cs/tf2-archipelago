@@ -15,6 +15,7 @@
 #include <sourcemod>
 #include <sdkhooks>
 #include <sdktools>
+#include <dhooks>
 #include <tf2>
 #include <tf2_stocks>
 #include <ripext>
@@ -151,6 +152,8 @@ public void OnPluginStart()
         "Test an active-weapon effect: sm_ap_buff_test <number|key|all> [levels]");
     RegAdminCmd("sm_ap_buff_give", Command_GiveWeaponBuff, ADMFLAG_ROOT,
         "Give a test effect to a player's active weapon: sm_ap_buff_give <target> <number|key|all> [levels]");
+    RegAdminCmd("sm_ap_buff_debug", Command_DisposableSentryDebug, ADMFLAG_ROOT,
+        "Show disposable-sentry PDA/toolbox state for the calling player");
     RegAdminCmd("sm_ap_buff_slot", Command_GiveSlotWeaponBuff, ADMFLAG_ROOT,
         "Give a test effect by loadout slot: sm_ap_buff_slot <target> <1|2|3> <number|key|all> [levels]");
     RegAdminCmd("sm_ap_projectile_debug", Command_ProjectileDebug, ADMFLAG_ROOT,
@@ -187,6 +190,11 @@ public void OnPluginStart()
     Bridge_FetchMissions();
     Bridge_PollMessages();
     Bridge_PollDeaths();
+}
+
+public void OnPluginEnd()
+{
+    WeaponBuffs_Shutdown();
 }
 
 public void OnClientPutInServer(int client)

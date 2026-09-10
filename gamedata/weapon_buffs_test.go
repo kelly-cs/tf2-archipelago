@@ -199,7 +199,7 @@ func TestPluginImplementsStompDamageAndThermalClipSize(t *testing.T) {
 	}
 }
 
-func TestFunctionalReskinsShareOneRewardPool(t *testing.T) {
+func TestWeaponFamiliesShareOneRewardPool(t *testing.T) {
 	for _, family := range weaponFamilies {
 		canonical := weaponNamed(t, family[0])
 		for _, name := range family {
@@ -213,9 +213,26 @@ func TestFunctionalReskinsShareOneRewardPool(t *testing.T) {
 				}
 			}
 			if name != canonical.Name && buffNamed(t, name, "damage").Eligible {
-				t.Errorf("reskin %s has a separate eligible reward pool", name)
+				t.Errorf("family member %s has a separate eligible reward pool", name)
 			}
 		}
+	}
+}
+
+func TestBuilderToolboxSharesTheConstructionPDABuffPool(t *testing.T) {
+	construction := weaponNamed(t, "Construction PDA")
+	builder := weaponNamed(t, "PDA")
+	if builder.ApplyID != construction.ID {
+		t.Fatalf("builder toolbox applies to weapon %d, want Construction PDA %d", builder.ApplyID, construction.ID)
+	}
+	if !slices.Contains(construction.DefIndexes, 28) {
+		t.Errorf("Construction PDA definitions = %v, want builder toolbox definition 28", construction.DefIndexes)
+	}
+	if !buffNamed(t, "Construction PDA", "disposable-sentry").Eligible {
+		t.Error("Construction PDA cannot draw the disposable-sentry buff")
+	}
+	if buffNamed(t, "PDA", "disposable-sentry").Eligible {
+		t.Error("builder toolbox has a separate disposable-sentry reward pool")
 	}
 }
 

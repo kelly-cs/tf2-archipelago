@@ -4,6 +4,14 @@
 	{
 		"Signatures"
 		{
+			"CTFPlayer::CanBuild"
+			{
+				"library"	"server"
+				"linux"		"@_ZN9CTFPlayer8CanBuildEii"
+				"linux64"	"@_ZN9CTFPlayer8CanBuildEii"
+				"windows"	"\x55\x8B\xEC\x83\xEC\x0C\x53\x8B\x5D\x08\x57\x8B\xF9\x83\xFB\x03"
+				"windows64"	"\x40\x56\x57\x41\x54\x48\x83\xEC\x40\x45\x8B\xE0"
+			}
 			"CTFProjectile_Arrow::Create"
 			{
 				"library"	"server"
@@ -46,6 +54,27 @@
 			{
 				"windows"	"234"
 				"linux"		"235"
+			}
+		}
+		"Functions"
+		{
+			"CTFPlayer::CanBuild"
+			{
+				"signature"	"CTFPlayer::CanBuild"
+				"callconv"	"thiscall"
+				"return"	"int"
+				"this"		"entity"
+				"arguments"
+				{
+					"objectType"
+					{
+						"type"	"int"
+					}
+					"objectMode"
+					{
+						"type"	"int"
+					}
+				}
 			}
 		}
 	}

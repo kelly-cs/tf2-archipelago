@@ -2,11 +2,13 @@ package gamedata
 
 import "slices"
 
-// weaponFamilies are mechanically identical item definitions. The first name
-// owns the reward pool; every member resolves to that pool in the plugin. This
-// keeps a reward useful when a player swaps a stock weapon for its promotional
-// or cosmetic reskin.
+// weaponFamilies are mechanically identical item definitions and temporary
+// entities representing the same loadout item. The first name owns the reward
+// pool; every member resolves to that pool in the plugin.
 var weaponFamilies = [][]string{
+	// Choosing a building replaces the Construction PDA (definition 25) with
+	// the Builder toolbox (definition 28, named PDA in the item schema).
+	{"Construction PDA", "PDA"},
 	{"Sapper", "Ap-Sap", "Snack Attack"},
 	{"Minigun", "Iron Curtain", "Reissued Iron Curtain", "Deflector"},
 	{"Pistol", "Lugermorph", "Reissued Lugermorph", "C.A.P.P.E.R"},
