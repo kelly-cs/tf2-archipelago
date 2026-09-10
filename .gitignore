@@ -78,3 +78,7 @@ launcher/web/src/gen/
 # web-build` is what puts a real one there and embed-placeholders leaves a
 # holding page so a fresh clone still compiles.
 launcher/internal/spa/dist/
+
+# A stray `go build ./launcher/cmd/fakelauncher` drops a 23 MB ELF here. The
+# browser tests use `go run`, so nothing ever needs one on disk.
+/fakelauncher
