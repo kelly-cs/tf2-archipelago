@@ -1,0 +1,128 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-sm);
+  max-width: 1100px;
+  min-height: 0;
+}
+
+.panel {
+  background: var(--surface-log);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-panel);
+  overflow: hidden;
+}
+
+cdk-virtual-scroll-viewport {
+  min-height: 440px;
+  max-height: 64vh;
+  height: 60vh;
+}
+
+.lines {
+  padding: var(--gap-sm) 0;
+}
+
+/* A long line wraps rather than being cut off: the end of an install error is
+   usually the part that says what to do about it. */
+.line {
+  display: flex;
+  gap: var(--gap-sm);
+  align-items: baseline;
+  padding: 0 var(--gap);
+  font-family: var(--font-mono);
+  font-size: var(--text-xxs);
+  line-height: 1.15;
+  min-height: 18px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: var(--text-log);
+}
+
+.at {
+  color: var(--text-mute);
+  flex: none;
+}
+
+/* Who said it, in their own colour. The launcher set the source, so this is a
+   fact rather than a guess made from the words. */
+.source {
+  flex: none;
+  color: var(--text-mute);
+}
+
+.source.srcds {
+  color: var(--source-srcds);
+}
+
+.source.rcon {
+  color: var(--source-rcon);
+}
+
+.source.launcher {
+  color: var(--source-launcher);
+}
+
+.source.install {
+  color: var(--source-install);
+}
+
+.console {
+  display: flex;
+  gap: var(--gap-sm);
+  align-items: center;
+  padding: var(--gap-sm) var(--gap);
+  background: var(--surface-header);
+  border-top: 1px solid var(--line-soft);
+}
+
+.prompt {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--text-faint);
+}
+
+.console input {
+  flex: 1;
+  min-width: 0;
+  background: var(--surface-void);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: var(--text-md);
+  padding: 8px 10px;
+}
+
+.bar {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-sm);
+  flex-wrap: wrap;
+}
+
+.bar app-search-box {
+  flex: 1;
+  min-width: 180px;
+}
+
+.tick {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-sm);
+  font-size: var(--text-md);
+  color: var(--text-dim);
+  cursor: pointer;
+}
+
+.tick input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+}
+
+.said {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--text-faint);
+}

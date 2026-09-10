@@ -1,0 +1,109 @@
+:host {
+  display: block;
+}
+
+.open {
+  margin-top: var(--gap);
+}
+
+.screen {
+  display: grid;
+  grid-template-columns: minmax(0, 200px) minmax(0, 1fr);
+  gap: var(--gap-lg);
+  align-items: start;
+}
+
+@media (max-width: 800px) {
+  .screen {
+    grid-template-columns: 1fr;
+  }
+}
+
+nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  position: sticky;
+  top: 84px;
+}
+
+nav app-search-box {
+  margin-bottom: var(--gap-sm);
+}
+
+nav a {
+  display: flex;
+  align-items: baseline;
+  gap: var(--gap-sm);
+  padding: var(--gap-sm) var(--gap);
+  border-left: 3px solid transparent;
+  border-radius: 0 var(--radius) var(--radius) 0;
+  color: var(--text-dim);
+  text-decoration: none;
+  font-weight: 600;
+  transition:
+    color var(--quick) var(--ease-out),
+    background var(--quick) var(--ease-out);
+}
+
+nav a:hover {
+  color: var(--text);
+  background: var(--surface-raised);
+}
+
+nav a.here {
+  color: var(--text);
+  border-left-color: var(--accent);
+  background: var(--accent-tint);
+}
+
+/* The number is what makes a nine-page screen feel finite. Monospaced and
+   zero-padded so the labels line up whatever the count reaches. */
+.number {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-faint);
+}
+
+.rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+  min-width: 0;
+}
+
+/* Sticky, because the answer to "did that save" should not need a scroll. */
+footer {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gap);
+  max-width: 934px;
+  padding: var(--gap) 0;
+  background: var(--surface-page);
+  border-top: 1px solid var(--line-soft);
+}
+
+.steps {
+  display: flex;
+  gap: var(--gap-sm);
+}
+
+.buttons {
+  display: flex;
+  gap: var(--gap-sm);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.dirty {
+  font-size: var(--text-sm);
+  color: var(--text-faint);
+}
+
+.dirty.pending {
+  color: var(--accent);
+}

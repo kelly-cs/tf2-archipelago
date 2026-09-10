@@ -1,0 +1,121 @@
+@use 'parts';
+
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+  background: var(--surface-panel);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-panel);
+  padding: var(--gap-lg) 20px;
+}
+
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--gap-sm);
+  flex-wrap: wrap;
+}
+
+h2 {
+  font-size: var(--title);
+}
+
+.line {
+  font-size: var(--text-md);
+  color: var(--text-dim);
+}
+
+/* The table has seven columns and a narrow window is a real one, so it scrolls
+   sideways rather than folding a column away. */
+.scroller {
+  overflow-x: auto;
+}
+
+table {
+  @include parts.table;
+
+  min-width: 700px;
+}
+
+th {
+  padding: 0 0 var(--gap-sm);
+}
+
+th button {
+  background: none;
+  border: none;
+  padding: 0 var(--gap-sm);
+  color: var(--text-faint);
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+
+th button:hover {
+  color: var(--text);
+}
+
+/* The mission on the server now. A left edge rather than a filled row: the row
+   still has to be readable beside the ones around it. */
+.playing td:first-child {
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.name {
+  font-weight: 600;
+}
+
+.waves {
+  @include parts.figure;
+}
+
+.play {
+  text-align: right;
+}
+
+.sr-only {
+  @include parts.only-for-screen-readers;
+}
+
+/* Zebra rows: seven columns is more than the eye tracks unaided. */
+tbody tr:nth-child(odd) {
+  background: var(--zebra);
+}
+
+/* A mission the run has not unlocked is still listed, dimmer: what you cannot
+   play yet is half of what the table is telling you. */
+.locked td {
+  color: var(--text-mute);
+}
+
+/* The state is bold coloured words, not a pill: the tier beside it is the pill,
+   and two pills in one row read as one control with two halves. */
+.state {
+  font-weight: 700;
+}
+
+.state.good {
+  color: var(--state-good);
+}
+
+.state.info {
+  color: var(--state-info);
+}
+
+.state.accent {
+  color: var(--accent);
+}
+
+.state.neutral {
+  color: var(--text-faint);
+}
+
+.loadout {
+  font-size: var(--text-xs);
+  color: var(--state-info);
+}

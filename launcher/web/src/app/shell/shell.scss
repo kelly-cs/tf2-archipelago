@@ -1,0 +1,87 @@
+@use 'tokens';
+
+:host {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gap) var(--gap-xl);
+  padding: 10px 20px;
+  background: var(--surface-header);
+  border-bottom: 2px solid var(--line);
+}
+
+.mark {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.title {
+  font-family: var(--font-display);
+  font-size: var(--title-lg);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+  padding: 0 20px;
+  background: var(--surface-nav);
+  border-bottom: 1px solid var(--surface-hover);
+}
+
+nav a {
+  border-bottom: 3px solid transparent;
+  color: var(--text-faint);
+  font-size: var(--text-lg);
+  font-weight: 600;
+  padding: 12px 16px;
+  text-decoration: none;
+  transition:
+    color var(--quick) var(--ease-out),
+    border-color var(--quick) var(--ease-out);
+}
+
+nav a:hover {
+  color: var(--text);
+}
+
+/* The underline carries the accent and the label goes bright. A gold label on
+   a gold underline says the same thing twice and leaves the other tabs looking
+   disabled rather than merely unselected. */
+nav a.here {
+  color: var(--text);
+  border-bottom-color: var(--accent);
+}
+
+main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-lg);
+  flex: 1;
+  width: 100%;
+  max-width: 1500px;
+  margin: 0 auto;
+  padding: var(--gap-xl);
+  box-sizing: border-box;
+}
+
+@include tokens.respond('sm') {
+  main {
+    padding: var(--gap-xl);
+  }
+}

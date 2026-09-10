@@ -1,0 +1,64 @@
+<header>
+  <h2>Missions</h2>
+  <div class="line">{{ multiworldLine() }}</div>
+</header>
+
+@if (rows().length === 0) {
+  <app-empty-state>
+    No missions yet. They arrive once the bridge is on the multiworld.
+  </app-empty-state>
+} @else {
+  <div class="scroller">
+    <table>
+      <thead>
+        <tr>
+          @for (column of columns; track column.key) {
+            <th
+              scope="col"
+              [attr.aria-sort]="
+                sortBy() === column.key ? (ascending() ? 'ascending' : 'descending') : 'none'
+              "
+            >
+              <button type="button" (click)="sortOn(column.key)">
+                {{ column.label }}
+                @if (sortBy() === column.key) {
+                  <span aria-hidden="true">{{ ascending() ? '▲' : '▼' }}</span>
+                }
+              </button>
+            </th>
+          }
+          <th scope="col"><span class="sr-only">Play</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of rows(); track row.mission.popFile) {
+          <tr
+            [class.playing]="row.mission.popFile === playing()"
+            [class.locked]="!row.mission.unlocked"
+          >
+            <td class="name">
+              {{ row.mission.name }}
+              @if (row.mission.loadout) {
+                <span class="loadout">{{ row.mission.loadout }}</span>
+              }
+            </td>
+            <td>{{ row.mission.map }}</td>
+            <td><app-tier [tier]="row.mission.tier" /></td>
+            <td>{{ row.mission.source }}</td>
+            <td class="waves">{{ row.mission.waves }}</td>
+            <td class="state" [class]="row.tone">{{ row.state }}</td>
+            <td class="play">
+              @if (row.mission.unlocked && running()) {
+                <app-button size="small" tone="primary" (press)="choose.next(row.mission.popFile)">
+                  {{ row.mission.played ? 'Replay' : 'Play' }}
+                </app-button>
+              }
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <div class="line">{{ switchHint() }}</div>
+}

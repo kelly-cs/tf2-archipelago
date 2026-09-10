@@ -1,0 +1,106 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+}
+
+h3 {
+  font-size: 17px;
+}
+
+.lead {
+  margin: 0;
+  color: var(--text-dim);
+}
+
+.not-running {
+  margin: 0;
+  color: var(--state-warn);
+}
+
+.seats {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-sm);
+}
+
+.seat {
+  display: grid;
+  grid-template-columns: minmax(56px, auto) minmax(130px, 1fr) minmax(150px, 1.6fr);
+  gap: 10px;
+  align-items: center;
+  padding: 10px 12px;
+  background: var(--surface-inset);
+  border-radius: var(--radius);
+}
+
+.seat label {
+  font-weight: 600;
+  color: var(--text-dim);
+}
+
+select,
+input {
+  min-width: 0;
+  background: var(--surface-raised);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: var(--text-lg);
+  padding: 8px 10px;
+}
+
+.size {
+  display: flex;
+  align-items: center;
+  gap: var(--gap);
+  flex-wrap: wrap;
+  color: var(--text-dim);
+}
+
+.size input {
+  width: 70px;
+  font-family: var(--font-mono);
+  font-size: var(--text-md);
+  background: var(--surface-void);
+  border-color: var(--line);
+}
+
+.size span {
+  font-size: var(--text-sm);
+  color: var(--text-faint);
+}
+
+/* Kept at a fixed height so the panel does not jump every time a seat changes. */
+.feedback {
+  min-height: 20px;
+  color: var(--state-good);
+}
+
+.saved {
+  border-top: 1px solid var(--line-soft);
+  padding-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-sm);
+}
+
+.load,
+.name {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-sm);
+  flex-wrap: wrap;
+}
+
+.load label {
+  color: var(--text-dim);
+}
+
+.load select,
+.name input {
+  flex: 1;
+  min-width: 160px;
+  font-size: var(--text-md);
+}

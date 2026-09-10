@@ -4,6 +4,41 @@ What each release changes, for somebody who plays the game. The workflow in
 `.github/workflows/release.yml` reads the section matching the tag and puts it
 in the release notes, so this file is the only place to write it.
 
+## Unreleased
+
+The launcher has one screen now, and it opens in your browser.
+
+### The new interface
+
+- Double-click the launcher and a browser opens on it. Same screen on Windows
+  and on Linux, so a screenshot in Discord is a screenshot of what you have.
+- Everything is on it: the connect line, the run and its missions, what the
+  multiworld has unlocked, your bot team, the log with a search over it, and
+  every setting.
+- The log holds twenty thousand lines and stays quick to scroll, and the search
+  narrows it as you type. The server command box is under it.
+- The mission table sorts on any column, searches, and says why a mission is not
+  ready rather than leaving it out.
+- Leaving the tab open behind the game costs nothing: it stops listening while
+  it is hidden and picks the state back up when you come back to it.
+- Closing the tab leaves the server running. Quit on the screen stops it.
+
+### Gone
+
+- The old settings window and the terminal interface are both gone. The
+  browser is what you get.
+- `-tui` and `-web` are gone with them. `-console` still prints the log and
+  nothing over it, for a machine with no desktop; `-configure` still asks the
+  questions in a terminal.
+- New: `-no-browser` prints the address instead of opening one, and `-addr`
+  says where to serve.
+
+### If the browser does not open
+
+The address is printed either way. Open it yourself. On WSL the launcher asks
+the Windows browser rather than one inside the distribution, where you could
+not see it.
+
 ## v1.12.0
 
 Traps, a medal on every mission clear, a Grappling Hook the multiworld can hand

@@ -60,29 +60,52 @@ COMPOSE_RELEASE := docker compose --project-directory . \
 
 DIST := dist
 
+# The browser interface. `ng build` writes straight into the package that
+# serves it, so there is one copy of the bundle and it cannot go stale.
+WEB := launcher/web
+SPA_DIST := launcher/internal/spa/dist
+GEN_GO := launcher/internal/gen/tf2ap/launcher/v1
+PROTO_SRC := $(shell find proto -name '*.proto')
+
 # Tools of record: pinned and run through `go run` or `uv run`, so no host
 # install is needed and a local run is byte-identical to CI.
 GOFUMPT := go run mvdan.cc/gofumpt@$(GOFUMPT_VERSION)
 GOLANGCI_LINT := go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
 GOVULNCHECK := go run golang.org/x/vuln/cmd/govulncheck@$(GOVULNCHECK_VERSION)
 RUFF := uv run --quiet --with ruff==$(RUFF_VERSION) ruff
-SHADOW := go run ./launcher/cmd/shadow
-# Ours only. deploy/bots/build/ holds seven repositories this project fetches
-# and compiles, and one of them now carries Go of its own: formatting somebody
-# else's tree is not this project's business, and a fresh checkout of it must
-# not be able to fail our own format check.
-GO_SRC := $$(find . -type f -name '*.go' -not -path './deploy/bots/build/*')
+BUF := go run github.com/bufbuild/buf/cmd/buf@$(BUF_VERSION)
+# npm is the one tool of record that is not a Go program, so it runs in a
+# container the way honkit does: nothing is installed on a laptop, and the
+# -direct targets below are for CI, which already stands in a node image.
+# The whole repository is mounted, not just $(WEB): `ng build` writes its output
+# into launcher/internal/spa, which is outside the frontend project.
+NPM := docker run --rm -u $$(id -u):$$(id -g) \
+	-v $(CURDIR):/work -w /work/$(WEB) \
+	-e HOME=/tmp -e npm_config_cache=/tmp/.npm \
+	node:$(NODE_VERSION) npm
+# Ours only, and ours means written here. deploy/bots/build/ holds seven
+# repositories this project fetches and compiles, and one of them now carries Go
+# of its own; launcher/web holds npm's tree, which carries Go too; and
+# launcher/internal/gen is buf's output, which answers to the .proto files.
+# Formatting somebody else's tree is not this project's business, and a fresh
+# checkout of one must not be able to fail our own format check.
+GO_SRC := $$(find . -type f -name '*.go' -not -path './deploy/bots/build/*' -not -path './launcher/internal/gen/*' -not -path './launcher/web/*')
 
 .PHONY: help seed up down restart logs ps rcon community-check \
-        check fmt fmt-check vet lint lint-fix fix-check vuln compile test shadows \
-        window-captures \
+        check fmt fmt-check vet lint lint-fix fix-check vuln compile test \
         test-fast export apworld-lint \
 		apworld-fmt apworld-test apworld-build apworld-package plugin bots bots-pin-check bots-from-source \
         integration build docs \
         docs-build docs-down dist compose-release version-check clean \
         go-version-check \
         launcher launcher-assets launcher-assets-common \
-        launcher-linux launcher-assets-linux captures embed-placeholders toolchain gui-test
+        proto proto-lint proto-fmt proto-deps \
+        web-ready web-install web-build web-lint web-test web-e2e web-e2e-real \
+        web-captures web-check \
+        web-ready-direct web-install-direct web-build-direct web-lint-direct \
+        web-test-direct \
+        web-e2e-direct web-check-direct \
+        launcher-linux launcher-assets-linux captures embed-placeholders toolchain
 
 help:
 	@echo "tf2-archipelago"
@@ -92,6 +115,9 @@ help:
 	@echo "  make logs          Follow logs"
 	@echo "  make rcon          Send a server command: make rcon CMD='sm_ap_status'"
 	@echo "  make check         The gate: everything CI runs"
+	@echo "  make proto         Regenerate the launcher contract from proto/"
+	@echo "  make web-build     Build the browser interface into the launcher"
+	@echo "  make web-e2e       Drive the interface in a browser against the fake launcher"
 	@echo "  make export        Regenerate apworld/tf2_mvm/data from gamedata/"
 	@echo "  make community-check Validate community.json against community-content/tf"
 	@echo "  make plugin        Compile the SourceMod plugin"
@@ -102,8 +128,6 @@ help:
 	@echo "  make launcher      Cross-compile tf2ap.exe (Windows) into ./dist"
 	@echo "  make launcher-linux Build tf2ap-linux-amd64 into ./dist"
 	@echo "  make captures      Redraw the terminal captures in docs/images"
-	@echo "  make shadows       Drop-shadow the window screenshots in docs/images/raw"
-	@echo "  make window-captures Rephotograph the launcher's window through Wine"
 	@echo "  make docs          Build the book and serve it on 127.0.0.1"
 	@echo "  make clean         Stop, remove volumes, remove build output"
 
@@ -183,21 +207,131 @@ embed-placeholders:
 		*) printf 'PK\005\006\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000' > "$$f" ;; \
 		esac; \
 	done
+	@mkdir -p $(SPA_DIST)
+	@[ -e $(SPA_DIST)/index.html ] || \
+		printf '<!doctype html><meta charset="utf-8"><title>tf2ap</title>\n<p>The browser interface was not built. Run <code>make web-build</code>.\n' \
+			> $(SPA_DIST)/index.html
+
+# --- The browser interface ---
+#
+# proto/ is the contract between the launcher and the Angular app. Both sides
+# are generated and neither is committed: one source of truth, and a checked-in
+# copy could only ever be a second answer to what the .proto files say. So every
+# Go target depends on `proto`, which is a no-op once the tree is newer than the
+# protos it was generated from.
+proto: $(GEN_GO)
+
+$(GEN_GO): $(PROTO_SRC) proto/buf.gen.yaml proto/buf.yaml proto/buf.lock
+	cd proto && $(BUF) generate
+	@touch $(GEN_GO)
+
+proto-lint:
+	cd proto && $(BUF) lint
+	cd proto && $(BUF) format --diff --exit-code
+
+proto-fmt:
+	cd proto && $(BUF) format -w
+
+# buf.lock names the commit of every dependency, so moving one is a decision
+# rather than something a build does behind you. Not in `check`.
+proto-deps:
+	cd proto && $(BUF) dep update
+
+web-install:
+	$(NPM) ci --prefer-offline --no-audit --no-fund
+
+# Everything a frontend target needs that a fresh clone does not have.
+#
+# Three things, and forgetting any one of them fails only in CI, because a
+# machine that has built once already has all three:
+#
+#   proto               the generated contract. eslint is type-aware, so
+#                       without the TypeScript every @gen import is unresolved
+#                       and the no-unsafe-* family fires on every line.
+#   embed-placeholders  the files internal/assets embeds. The fake launcher is
+#                       a Go binary and will not compile without them.
+#   node_modules        the obvious one.
+#
+# Named once so a target added later cannot quietly want a fourth thing and
+# get away with it on a laptop that already has one.
+web-ready: proto embed-placeholders web-install
+
+web-build: web-ready
+	$(NPM) run build
+
+web-lint: web-ready
+	$(NPM) run lint
+	$(NPM) run format:check
+
+web-test: web-ready
+	$(NPM) test
+
+# The browser tests drive the real app against launcher/cmd/fakelauncher: the
+# real handlers, the real WebSocket and the real form model, with no game server
+# behind them. Playwright brings the fake up itself, so this needs a browser on
+# the machine and not much else. Not in `check`: the browser is a 150 MB
+# download that no other target needs, and CI installs it in the web job.
+web-e2e: web-build
+	cd $(WEB) && npx playwright test
+
+# The browser tests against a launcher somebody started, rather than the fake.
+# It asks the half a fake cannot: that the binary a player downloads carries the
+# interface, serves it, and answers with a form.Model built from their own
+# settings. Start one first, on either platform:
+#
+#   ./dist/tf2ap-linux-amd64 -no-browser -addr 127.0.0.1:8477
+#   make web-e2e-real REAL=http://127.0.0.1:8477
+REAL ?= http://127.0.0.1:8477
+
+web-e2e-real:
+	cd $(WEB) && TF2AP_REAL=$(REAL) npx playwright test e2e/real-launcher.spec.ts
+
+# The pictures in the README and the book, redrawn against the fake launcher so
+# the same run draws the same image every time: no machine's fonts, no player's
+# home directory, no state left over from an evening of playing. Not in `check`:
+# a screenshot that differs by a pixel is not a failure.
+web-captures: web-build
+	cd $(WEB) && TF2AP_CAPTURE=1 npx playwright test e2e/screenshots.spec.ts
+
+web-check: web-lint web-test web-build
+
+# Direct targets: host npm, for CI, which already runs inside a node image, and
+# for a developer who would rather not pay the container round trip.
+web-install-direct:
+	cd $(WEB) && npm ci --prefer-offline --no-audit --no-fund
+
+web-ready-direct: proto embed-placeholders web-install-direct
+
+web-build-direct: web-ready-direct
+	cd $(WEB) && npm run build
+
+web-lint-direct: web-ready-direct
+	cd $(WEB) && npm run lint
+	cd $(WEB) && npm run format:check
+
+web-test-direct: web-ready-direct
+	cd $(WEB) && npm test
+
+web-e2e-direct: web-build-direct
+	cd $(WEB) && npx playwright install --with-deps chromium
+	cd $(WEB) && npx playwright test
+
+web-check-direct: web-lint-direct web-test-direct web-build-direct
 
 # Not in `check`: every analyzer it registers is in golangci-lint's govet.
-vet: embed-placeholders
+vet: embed-placeholders proto
 	go vet ./...
 
-lint: embed-placeholders
+lint: embed-placeholders proto
 	$(GOLANGCI_LINT) run ./...
 
-lint-fix: embed-placeholders
+lint-fix: embed-placeholders proto
 	$(GOLANGCI_LINT) run --fix ./...
 
 # `go fix` must be a no-op: whatever it would rewrite belongs in the commit.
 # `-diff` reports without touching the tree, so this is safe on a dirty working
 # copy.
-fix-check: embed-placeholders
+fix-check: embed-placeholders proto
 	@out="$$(go fix -diff ./...)"; \
 	if [ -n "$$out" ]; then \
 		printf '%s\n' "$$out"; \
@@ -207,10 +341,10 @@ fix-check: embed-placeholders
 
 # Reports only the vulnerabilities whose vulnerable symbol this code can
 # actually reach, so a hit is a bug to fix rather than a number to argue with.
-vuln: embed-placeholders
+vuln: embed-placeholders proto
 	$(GOVULNCHECK) ./...
 
-compile: embed-placeholders
+compile: embed-placeholders proto
 	go build ./...
 
 # The race detector is the only tool that sees a data race, and the bridge is
@@ -225,10 +359,10 @@ compile: embed-placeholders
 # way to require. `check` builds the toolchain before it gets here and sets
 # TF2AP_REQUIRE_SPSHELL, so the gate runs the drivers and refuses to skip them.
 # Run `make check` or `make toolchain` once to have them locally.
-test: embed-placeholders
+test: embed-placeholders proto
 	CGO_ENABLED=1 $(SPENV) $(REQUIRE_SPSHELL) go test -race -shuffle=on ./...
 
-test-fast: embed-placeholders
+test-fast: embed-placeholders proto
 	$(SPENV) go test ./...
 
 # --- SourcePawn under its own VM ---
@@ -252,46 +386,6 @@ SPENV := SPCOMP=$(SPROOT)/objdir/spcomp/linux-x86_64/spcomp \
 # Idempotent: a second run finds the two binaries and exits.
 toolchain:
 	SPWORK=$(SPWORK) sh $(BOTS_MOD)/tools/spshell.sh
-
-# --- The settings window ---
-#
-# walk is a Win32 binding, so internal/gui only builds on Windows and its tests
-# only run there. Wine is close enough to create the window, its tabs and its
-# controls, which is what the tests ask about: that every row internal/form
-# declares became a control, and that reading the controls back gives the state
-# they were built from.
-#
-# It is not a substitute for opening the real thing on Windows. Nothing is
-# clicked and nothing is drawn to a screen anybody looks at. What it catches is
-# a row wired to the wrong ID, which looks perfect and loses the player's
-# answer at Save.
-#
-# Skipped rather than failed when wine is missing: it is not on the CI image.
-# The test's own verdict decides, not the exit code. Wine's teardown is not
-# reliable under Xvfb: a run that printed PASS has come back with the loader
-# asserting `new->l_relocated' on the way out, and taking that as a failure
-# reports a green test as broken. A run that really fails prints FAIL and no
-# PASS, and one that hangs prints neither, so both are still caught.
-#
-# One wine process per test, which is not a preference. A second settings
-# dialog created in the same process hangs under wine: every test below passes
-# on its own and the run stops dead at the second one. Real Windows does not do
-# this, and neither does anything the launcher does, since it makes one dialog
-# and shows it. So the loop is a wine workaround and it is spelled out here
-# rather than left as a mystery in a CI log.
-gui-test:
-	@command -v wine >/dev/null 2>&1 || { echo "no wine, skipping the window tests"; exit 0; }
-	@command -v xvfb-run >/dev/null 2>&1 || { echo "no xvfb-run, skipping the window tests"; exit 0; }
-	@mkdir -p $(DIST)
-	GOOS=windows GOARCH=amd64 go test -c -o $(DIST)/gui.test.exe ./launcher/internal/gui/
-	@cd $(DIST) && for t in $$(grep -ho '^func Test[A-Za-z0-9_]*' \
-		$(CURDIR)/launcher/internal/gui/*_test.go | sed 's/^func //' | sort -u); do \
-		printf '%s ' "$$t"; \
-		xvfb-run -a wine gui.test.exe -test.run "^$$t$$" -test.timeout 60s >$$t.log 2>&1; \
-		grep -qx PASS $$t.log \
-			&& echo ok \
-			|| { echo FAIL; grep -vE "wine32|apt-get|^X connection|^[0-9a-f]{4}:" $$t.log; exit 1; }; \
-	done
 
 export:
 	go generate ./gamedata
@@ -459,7 +553,7 @@ launcher-assets-linux: launcher-assets-common
 # tag against, so the resource and the release cannot disagree. The manifest's
 # assemblyIdentity gets the same number, which is why it is generated and not
 # committed with a version baked into it.
-launcher: launcher-assets
+launcher: launcher-assets web-build
 	mkdir -p $(DIST)
 	sed 's/version="0\.0\.0\.0"/version="$(RELEASE_VERSION).0"/' \
 		launcher/cmd/tf2ap/tf2ap.manifest > $(DIST)/tf2ap.manifest
@@ -479,7 +573,7 @@ launcher: launcher-assets
 
 # No window: walk is a Win32 binding, so the Linux build is the console flow
 # the compose stack already uses. Everything else is the same program.
-launcher-linux: launcher-assets-linux
+launcher-linux: launcher-assets-linux web-build
 	mkdir -p $(DIST)
 	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath \
 		-ldflags="-s -w $(LAUNCHER_LDFLAGS)" \
@@ -513,26 +607,6 @@ captures: launcher-linux
 	$(CAPTURE_ENV) ./dist/tf2ap-linux-amd64 -status \
 		| sed "s|$$HOME|/home/player|g" \
 		| ./docs/capture.sh 'tf2ap-linux-amd64 -status' docs/images/linux-status.svg
-
-# The launcher's window, photographed. walk is a Win32 binding, so the window
-# runs under Wine on a virtual display and ImageMagick takes the picture; see
-# docs/window-shot.sh for what that needs installed. A shot taken by hand on a
-# real Windows machine and dropped in docs/images/raw/ goes through the same
-# second half.
-window-captures: launcher
-	mkdir -p docs/images/raw
-	./docs/window-shot.sh $(DIST)/tf2ap.exe docs/images/raw/launcher-main.png 30 main
-	./docs/window-shot.sh $(DIST)/tf2ap.exe docs/images/raw/launcher-settings.png 30 dialog
-	$(MAKE) shadows
-
-# The drop shadow and the transparent margins, over whatever is in
-# docs/images/raw/. Separate from taking the picture, because a picture taken
-# on Windows needs this half and not the other one.
-shadows:
-	@for raw in docs/images/raw/*.png; do \
-		[ -e "$$raw" ] || { echo "nothing in docs/images/raw"; exit 0; }; \
-		$(SHADOW) "$$raw" "docs/images/$$(basename $$raw)"; \
-	done
 
 # --- Integration ---
 
@@ -620,7 +694,7 @@ version-check:
 # whole point: the gate refuses to skip a differential test, and a developer
 # who has not run `make toolchain` gets a skip that names what is missing.
 check: REQUIRE_SPSHELL := TF2AP_REQUIRE_SPSHELL=1
-check: go-version-check bots-pin-check fmt-check lint fix-check compile toolchain test gui-test vuln apworld-lint plugin apworld-test docs-build compose-release integration
+check: go-version-check bots-pin-check fmt-check proto-lint lint fix-check compile web-check toolchain test vuln apworld-lint plugin apworld-test docs-build compose-release integration
 
 # The go directive owns the version. Two pins cannot read it, so this says when
 # they have drifted rather than leaving it to whoever hits the failure.

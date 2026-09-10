@@ -1,0 +1,55 @@
+<div class="bar">
+  <h3>Mission pool</h3>
+  <span class="count">{{ chosen() }} of {{ store.missionPool().length }} in the pool</span>
+  <app-search-box label="Find a mission" [(text)]="filter" />
+  <app-button size="small" (press)="setShown(true)">Tick shown</app-button>
+  <app-button size="small" (press)="setShown(false)">Untick shown</app-button>
+</div>
+
+@if (rows().length === 0) {
+  <app-empty-state>No mission matches that filter.</app-empty-state>
+} @else {
+  <table>
+    <thead>
+      <tr>
+        @for (column of columns; track column.key) {
+          <th
+            scope="col"
+            [attr.aria-sort]="
+              sortBy() === column.key ? (ascending() ? 'ascending' : 'descending') : 'none'
+            "
+          >
+            <button type="button" (click)="sortOn(column.key)">
+              {{ column.label }}
+              @if (sortBy() === column.key) {
+                <span aria-hidden="true">{{ ascending() ? '▲' : '▼' }}</span>
+              }
+            </button>
+          </th>
+        }
+      </tr>
+    </thead>
+    <tbody>
+      @for (row of rows(); track row.pool.field) {
+        <tr [class.off]="!row.on">
+          <td>
+            <input
+              type="checkbox"
+              [checked]="row.on"
+              [attr.aria-label]="row.pool.name"
+              (change)="flip(row)"
+            />
+          </td>
+          <td>{{ row.pool.source }}</td>
+          <td>{{ row.pool.map }}</td>
+          <td class="name">{{ row.pool.name }}</td>
+          <td class="waves">{{ row.pool.waves }}</td>
+          <td>
+            <app-badge [tone]="tone(row)">{{ row.reason }}</app-badge>
+          </td>
+          <td class="mods">{{ row.pool.mods }}</td>
+        </tr>
+      }
+    </tbody>
+  </table>
+}

@@ -1,0 +1,46 @@
+<app-panel heading="Everything unlocked">
+  <p class="summary">
+    {{ summary() }} In the game,
+    <span class="command">!ap buffs</span>
+    shows the buffs on the loadout you hold.
+  </p>
+
+  <div role="group" aria-label="Filter by kind" class="filters">
+    @for (kind of kinds; track kind.key) {
+      <app-chip [pressed]="kind.key === chosen()" (press)="chosen.set(kind.key)">
+        {{ kind.label }}
+      </app-chip>
+    }
+  </div>
+
+  @if (rows().length === 0) {
+    <app-empty-state>
+      @if (all().length === 0) {
+        Nothing yet. Unlocks arrive as the multiworld sends them.
+      } @else {
+        Nothing of that kind yet.
+      }
+    </app-empty-state>
+  } @else {
+    <div class="scroller">
+      <table>
+        <thead>
+          <tr>
+            <th scope="col" class="kind">Kind</th>
+            <th scope="col">Unlock</th>
+            <th scope="col" class="level">Level</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of rows(); track row.kind + row.name) {
+            <tr>
+              <td class="kind">{{ row.kind }}</td>
+              <td class="name">{{ row.name }}</td>
+              <td class="level">{{ level(row.level) }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</app-panel>

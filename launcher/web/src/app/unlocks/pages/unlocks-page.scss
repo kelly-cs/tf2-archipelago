@@ -1,0 +1,61 @@
+@use 'parts';
+
+:host {
+  display: block;
+  max-width: 900px;
+}
+
+.summary {
+  margin: 0;
+  color: var(--text-dim);
+}
+
+/* An inline code run inside a sentence. white-space: pre-wrap on the paragraph
+   would keep the template's own newlines, so the spacing comes from the markup
+   collapsing normally and this only changes the face. */
+.command {
+  font-family: var(--font-mono);
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gap-sm);
+}
+
+.scroller {
+  overflow-x: auto;
+}
+
+table {
+  @include parts.table;
+
+  min-width: 420px;
+}
+
+.kind {
+  width: 140px;
+  color: var(--text-dim);
+}
+
+.name {
+  color: var(--text);
+}
+
+.level {
+  @include parts.figure;
+
+  width: 80px;
+  color: var(--accent);
+}
+
+th.level,
+th.kind {
+  color: var(--text-faint);
+}
+
+/* Zebra rows: a table read across three columns needs the eye kept on the row
+   it started on. */
+tbody tr:nth-child(odd) {
+  background: var(--zebra);
+}

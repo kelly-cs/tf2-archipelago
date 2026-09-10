@@ -1,0 +1,93 @@
+<h3>The lineup</h3>
+<p class="lead">
+  Pick a class and a loadout for each seat. Changes apply on the bot's next respawn, no restart.
+</p>
+
+@if (notRunning()) {
+  <p class="not-running">The server is not running. Press Start server to fill the seats.</p>
+}
+
+@if (!open()) {
+  <p class="lead">Opening the settings makes the draft these seats are edited in.</p>
+  <app-button tone="primary" (press)="openSettings.next()">Open the lineup</app-button>
+} @else {
+  <div class="seats">
+    @for (seat of seats(); track seat.playedBy.id) {
+      <div class="seat">
+        <label [attr.for]="seat.playedBy.id">{{ seat.label }}</label>
+        <select
+          [id]="seat.playedBy.id"
+          [value]="value(seat.playedBy)"
+          (change)="setSeatClass(seat, $any($event.target).value)"
+        >
+          @for (option of seat.playedBy.options; track option.value) {
+            <option [value]="option.value">{{ option.label }}</option>
+          }
+        </select>
+        @if (seat.carries) {
+          <select
+            [attr.aria-label]="'Loadout for ' + seat.label"
+            [value]="value(seat.carries)"
+            (change)="setSeatLoadout(seat, $any($event.target).value)"
+          >
+            @for (option of seat.carries.options; track option.value) {
+              <option [value]="option.value">{{ option.label }}</option>
+            }
+          </select>
+        }
+      </div>
+    }
+  </div>
+
+  @if (teamSize(); as size) {
+    <div class="size">
+      <label [attr.for]="size.id">Fill RED to</label>
+      <input
+        [id]="size.id"
+        type="number"
+        [attr.min]="size.low"
+        [attr.max]="size.high"
+        [value]="value(size)"
+        (change)="setTeamSize($any($event.target).value)"
+      />
+      <span>players, humans included.</span>
+    </div>
+  }
+
+  <div class="feedback">{{ feedback() }}</div>
+
+  <div class="saved">
+    <h3>Saved lineups</h3>
+    <p class="lead">Load one to fill the seats above, or save the current seats under a name.</p>
+
+    @if (savedTeams(); as preset) {
+      <div class="load">
+        <label [attr.for]="preset.id">Load</label>
+        <select
+          [id]="preset.id"
+          [value]="value(preset)"
+          (change)="loadTeam($any($event.target).value)"
+        >
+          @for (option of preset.options; track option.value) {
+            <option [value]="option.value">{{ option.label }}</option>
+          }
+        </select>
+        <app-button size="small" tone="danger" (press)="removeTeam()">Delete</app-button>
+      </div>
+    }
+
+    @if (teamName(); as named) {
+      <div class="name">
+        <input
+          [id]="named.id"
+          [attr.placeholder]="named.placeholder || 'name the current seats'"
+          aria-label="Lineup name"
+          [value]="value(named)"
+          (input)="setName($any($event.target).value)"
+          (keydown.enter)="saveTeam()"
+        />
+        <app-button size="small" (press)="saveTeam()">{{ saveLabel() }}</app-button>
+      </div>
+    }
+  </div>
+}

@@ -1,0 +1,198 @@
+syntax = "proto3";
+
+package tf2ap.launcher.v1;
+
+import "buf/validate/validate.proto";
+import "google/protobuf/timestamp.proto";
+import "tf2ap/launcher/v1/form.proto";
+
+option go_package = "github.com/m-this/tf2-archipelago/launcher/internal/gen/tf2ap/launcher/v1;launcherv1";
+
+// LauncherService is everything the interface asks of the launcher itself: one
+// reading of the run, and the buttons that change it. The live stream is a
+// WebSocket at /ws, not an RPC; GetSnapshot is what it starts from.
+service LauncherService {
+  rpc GetSnapshot(GetSnapshotRequest) returns (GetSnapshotResponse);
+  rpc Start(StartRequest) returns (StartResponse);
+  rpc Stop(StopRequest) returns (StopResponse);
+  rpc Restart(RestartRequest) returns (RestartResponse);
+  rpc Quit(QuitRequest) returns (QuitResponse);
+  rpc SendRcon(SendRconRequest) returns (SendRconResponse);
+  rpc SetMission(SetMissionRequest) returns (SetMissionResponse);
+  rpc ApproveFunnel(ApproveFunnelRequest) returns (ApproveFunnelResponse);
+}
+
+// ServerStatus is what the status bar reads. Starting covers both the install
+// and the wait for a Steam address, which is why it is not just !running.
+enum ServerStatus {
+  SERVER_STATUS_UNSPECIFIED = 0;
+  SERVER_STATUS_STOPPED = 1;
+  SERVER_STATUS_STARTING = 2;
+  SERVER_STATUS_RUNNING = 3;
+}
+
+// LogLine is one entry of the log view: where it came from and what it said.
+message LogLine {
+  google.protobuf.Timestamp at = 1;
+  string source = 2;
+  string text = 3;
+}
+
+// SessionHealth is the bridge's /healthz, the fields the session page shows.
+message SessionHealth {
+  bool connected = 1;
+  string slot = 2;
+  string seed = 3;
+  int32 checks = 4;
+  int32 items = 5;
+  bool death_link = 6;
+  bool goal_sent = 7;
+  string last_check = 8;
+  string last_error = 9;
+}
+
+// SessionMission is one mission of the run, as the bridge lists them.
+message SessionMission {
+  string pop_file = 1;
+  string name = 2;
+  string map = 3;
+  int32 waves = 4;
+  string source = 5;
+  string loadout = 6;
+  bool unlocked = 7;
+  bool cleared = 8;
+
+  // The tier, as Valve names it. The bridge does not carry one, so the
+  // launcher reads it out of gamedata by pop file: the browser should not have
+  // to know which missions are Advanced.
+  string tier = 10;
+
+  // This server having cleared it, where cleared is only the room holding the
+  // check. Another world's !collect sends every check it still has, so the two
+  // disagree and the run list has to show what you did.
+  bool played = 9;
+}
+
+// SessionUnlock is one thing the run has handed this slot, named for a person
+// rather than by the key the plugin wants.
+message SessionUnlock {
+  string kind = 1;
+  string name = 2;
+  int32 level = 3;
+}
+
+// Session is one reading of the run, off the bridge.
+message Session {
+  SessionHealth health = 1;
+  repeated SessionMission missions = 2;
+  repeated SessionUnlock unlocks = 3;
+}
+
+// BotSeat is one place on RED. Class and weapons are already the words a player
+// reads, so a page lines the columns up and prints them.
+message BotSeat {
+  int32 number = 1;
+  string class = 2;
+  string weapons = 3;
+}
+
+// MissionPoolRow is the domain data behind one row of the missions table. The
+// form field still owns selection; this only keeps the browser from
+// reverse-engineering facts out of a human-readable label.
+message MissionPoolRow {
+  string field = 1;
+  string source = 2;
+  string map = 3;
+  string name = 4;
+  string waves = 5;
+  string compatibility = 6;
+  string mods = 7;
+}
+
+// Snapshot is everything the interface needs for one draw. Passwords never
+// cross the loopback boundary: form already represents them as replacement
+// fields, and the launcher blanks them here.
+message Snapshot {
+  string title = 1;
+  ServerStatus status = 2;
+  bool running = 3;
+  bool busy = 4;
+  string room = 5;
+  string join = 6;
+  string join_url = 7;
+  string mission = 8;
+  repeated LogLine logs = 9;
+  Session session = 10;
+  string session_error = 11;
+  repeated BotSeat bots = 12;
+  string drawn_bots = 13;
+
+  // The settings screen, present only while it is open.
+  Model form = 14;
+  string form_page = 15;
+
+  // The last thing the launcher said, and a sequence number so a page can tell
+  // a repeat of the same words from the same notice drawn twice.
+  string notice = 16;
+  uint64 notice_seq = 17;
+  string item_server = 18;
+  repeated MissionPoolRow mission_pool = 19;
+
+  // Saving these settings would restart a running server.
+  bool restart_needed = 20;
+
+  // The slot this server plays as, for the line under the title. The room
+  // string already reads well on its own; this is the other half of who you
+  // are on the multiworld.
+  string slot = 21;
+}
+
+message GetSnapshotRequest {}
+
+message GetSnapshotResponse {
+  Snapshot snapshot = 1;
+}
+
+message StartRequest {}
+
+message StartResponse {}
+
+message StopRequest {}
+
+message StopResponse {}
+
+message RestartRequest {}
+
+message RestartResponse {}
+
+message QuitRequest {}
+
+message QuitResponse {}
+
+message SendRconRequest {
+  string command = 1 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 1024
+  }];
+}
+
+message SendRconResponse {}
+
+message SetMissionRequest {
+  string pop_file = 1 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 128
+    pattern: "^[A-Za-z0-9_.-]+$"
+  }];
+}
+
+message SetMissionResponse {}
+
+message ApproveFunnelRequest {}
+
+// ApproveFunnelResponse carries the page the player has to visit, or the word
+// saying the tailnet already allows Funnel.
+message ApproveFunnelResponse {
+  string approval_url = 1;
+  string message = 2;
+}

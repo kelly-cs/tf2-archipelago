@@ -66,3 +66,19 @@ __pycache__/
 go.work
 go.work.sum
 toolchain/
+
+# Generated from proto/. `make proto` rebuilds both trees; CI regenerates and
+# fails on a diff, so a checked-in copy would only ever be a second answer to
+# what the contract says.
+launcher/internal/gen/
+launcher/web/src/gen/
+
+# The Angular build's output, which the launcher embeds. `ng build` writes it
+# straight into the package that serves it, the way the kit's does; `make
+# web-build` is what puts a real one there and embed-placeholders leaves a
+# holding page so a fresh clone still compiles.
+launcher/internal/spa/dist/
+
+# A stray `go build ./launcher/cmd/fakelauncher` drops a 23 MB ELF here. The
+# browser tests use `go run`, so nothing ever needs one on disk.
+/fakelauncher

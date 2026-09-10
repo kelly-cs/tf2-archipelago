@@ -1,0 +1,39 @@
+/* ==========================================================================
+   The three faces, bundled rather than fetched. See assets/fonts/LICENSE.txt
+   for why. font-display: swap so a slow disk shows the text in a fallback
+   rather than nothing.
+   ========================================================================== */
+
+@mixin faces {
+  @font-face {
+    font-family: 'Anton';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url('/assets/fonts/anton-400.woff2') format('woff2');
+  }
+
+  @font-face {
+    font-family: 'Source Sans 3';
+    font-style: normal;
+    font-weight: 200 900;
+    font-display: swap;
+    src: url('/assets/fonts/source-sans-3.woff2') format('woff2');
+  }
+
+  @font-face {
+    font-family: 'IBM Plex Mono';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url('/assets/fonts/ibm-plex-mono-400.woff2') format('woff2');
+  }
+
+  @font-face {
+    font-family: 'IBM Plex Mono';
+    font-style: normal;
+    font-weight: 600;
+    font-display: swap;
+    src: url('/assets/fonts/ibm-plex-mono-600.woff2') format('woff2');
+  }
+}

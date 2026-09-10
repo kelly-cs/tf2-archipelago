@@ -22,18 +22,19 @@ the same unlocks.
 > same file on your machine.
 
 <p align="center">
-  <img alt="The launcher: the run, Start and Stop, a Join button" src="docs/images/launcher-main.png" width="820">
+  <img alt="The launcher: the connect line, the run, and the missions of the seed" src="docs/images/launcher-session.png" width="820">
 </p>
 
 ## Start
 
 **Windows.** Download `tf2ap.exe` and run it. One file: no Docker, no clone, no
-compiler. SmartScreen stops you the first time, so click **More info**, then
-**Run anyway**. [The Windows guide](./docs/en/setup/install-windows.md) goes
-from there to the first wave.
+compiler. It opens in your browser. SmartScreen stops you the first time, so
+click **More info**, then **Run anyway**. [The Windows
+guide](./docs/en/setup/install-windows.md) goes from there to the first wave.
 
-**Linux.** The same program with a full-screen terminal interface, which works
-over SSH. [The Linux guide](./docs/en/setup/install-linux.md) has the rest.
+**Linux.** The same program and the same screen. Over SSH, `-no-browser` prints
+the address to open from wherever you are. [The Linux
+guide](./docs/en/setup/install-linux.md) has the rest.
 
 ```sh
 curl -fsSLO https://github.com/m-this/tf2-archipelago/releases/latest/download/tf2ap-linux-amd64

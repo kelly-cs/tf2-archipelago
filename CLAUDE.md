@@ -51,17 +51,39 @@ interface is not a thing that happens.
   settings are written, and points at archipelago.gg or Test mode when there is
   nothing there. Advice, never a refusal.
 
-`uiparity` is gone. It compared the window's source with the terminal's using a
-regular expression, which could only ask whether the two wrote the same struct
-fields and never whether they told the player the same thing. They did not: nine
-rows had different help text and nobody had chosen one of the differences. Where
-they differed the window's wording was kept.
+There is one interface now and it is a browser. `internal/webapi` holds the
+launcher's state and answers the contract in `proto/tf2ap/launcher/v1`; the
+Angular app in `launcher/web` renders `form.Model` and nothing else. The window,
+the terminal interface and Kelly's hand-written page are gone, and so are walk,
+bubbletea, lipgloss and termenv. `launcher/README.md` has the shape of it.
 
-The interfaces keep what is genuinely theirs. A choice is a `ComboBox` in the
-window and a pair of arrow keys in the terminal. The mission pool is
-twenty-six `Toggle` rows in the model, drawn as a checkable table with columns
-in the window and as rows in the terminal. Same rows, same IDs, same values
-written back.
+What that bought: a setting is one `Spec` and no interface has a list to keep in
+step, a person helping a player can be looked at the same screen, and Linux
+stopped getting the interface that was unreadable next to the server's own
+output.
+
+`uiparity` is gone with them. It compared the window's source with the
+terminal's using a regular expression, which could only ask whether the two
+wrote the same struct fields and never whether they told the player the same
+thing. They did not: nine rows had different help text and nobody had chosen one
+of the differences. Where they differed the window's wording was kept, and that
+wording is what the browser draws.
+
+## The browser interface, without a game server
+
+`launcher/cmd/fakelauncher` answers the whole contract with nothing behind it:
+the real Connect handlers, the real WebSocket and a real `form.Model` built from
+`settings.Defaults`, with no game server, no bridge and no multiworld. `make
+web-e2e` drives the real app against it in a browser, so the run is the same
+every time on a machine with no Team Fortress 2 on it.
+
+The fake is not a second launcher. Every answer it gives is built by the same
+`Snapshot.Proto` the real one uses, and its mission table is built from the rows
+`form` actually declares, so a table of invented ids cannot pass. What it makes
+up is the state a run would be in.
+
+`make web-check` is the rest: eslint, prettier, the component tests, and `ng
+build` under a 500 kB initial budget that is an error rather than a warning.
 
 ## Running the plugin without a server
 
@@ -87,32 +109,6 @@ plugin rather than to its tests.
 
 `make check` sets `TF2AP_REQUIRE_SPSHELL`, so a driver fails there rather than
 skipping. Without the toolchain a developer gets a skip naming what to run.
-
-## The settings window under Wine
-
-`make gui-test` cross-compiles `internal/gui`'s tests and runs them under Wine
-and Xvfb, which is enough to create the window, its tabs and its controls. It
-asks the three things nothing else can: that every row `form` declares became a
-control, that the control matches the kind, and that reading the widgets back
-gives the state they were built from. The last is the one that matters, because
-a control wired to the wrong ID draws perfectly and loses the answer at Save.
-
-It is not a substitute for opening the real thing on Windows. Nothing is
-clicked, and Wine is not Windows.
-
-Two things it taught us, both kept:
-
-- `EM_SETCUEBANNER` needs comctl32 version 6, which comes from the application
-  manifest. `tf2ap.exe` has one and a test binary does not, and walk's
-  declarative `CueBanner` treats the failure as fatal, so the whole window
-  refused to open over placeholder text. The placeholder is applied after the
-  window is made now and a failure is logged, not raised.
-- A second dialog created in the same process hangs under Wine. So `gui-test`
-  runs one test per Wine process. That is a Wine workaround, not a shape the
-  launcher has: it makes one dialog and shows it.
-
-`gui-test` skips itself when `wine` or `xvfb-run` is missing, because neither is
-on the CI image.
 
 ## Build
 

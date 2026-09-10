@@ -1,0 +1,67 @@
+/* ==========================================================================
+   Animations.
+
+   Three rules decide everything here.
+
+   Something the player sees a hundred times a day does not animate: switching
+   sections is a click away and animating it makes the launcher feel slower
+   than it is. Something that appears does, because appearing from nothing
+   reads as a screen that broke. And nothing that can be triggered twice in a
+   second is a keyframe, because a keyframe restarts from zero when it is
+   interrupted while a transition retargets from where it got to.
+
+   Each keyframe is a mixin, so a stylesheet pulls in only the ones it uses and
+   emits nothing else. The app-wide set ships once through `global`.
+   ========================================================================== */
+
+/* The status dot while the server is coming up. Not a spinner: the thing it
+   describes has no progress to report, only that it is still happening. */
+@mixin pulse-dot {
+  @keyframes pulse-dot {
+    0%,
+    100% {
+      opacity: 1;
+    }
+
+    50% {
+      opacity: 0.35;
+    }
+  }
+}
+
+@mixin spin {
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+}
+
+/*
+ * The reduced-motion guard.
+ *
+ * Reduced motion is fewer and gentler animations, not none: a fade still tells
+ * the player something arrived, and it is movement that causes the harm. So
+ * this takes the movement out and leaves opacity alone. The transform is reset
+ * rather than the duration collapsed, because an element whose arrival never
+ * ran would otherwise sit at its from-state, off to one side and invisible.
+ */
+@mixin reduced-motion-guard {
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      transform: none !important;
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-property: opacity, background-color, border-color, color !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@mixin global {
+  @include pulse-dot;
+  @include spin;
+  @include reduced-motion-guard;
+}

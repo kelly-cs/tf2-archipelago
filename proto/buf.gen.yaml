@@ -1,0 +1,21 @@
+version: v2
+clean: true
+plugins:
+  - remote: buf.build/protocolbuffers/go
+    out: ../launcher/internal/gen
+    opt:
+      - paths=source_relative
+  - remote: buf.build/connectrpc/go
+    out: ../launcher/internal/gen
+    opt:
+      - paths=source_relative
+  # The TypeScript side carries the protovalidate descriptors it imports:
+  # protobuf-es resolves a file's dependencies at run time, so a generated file
+  # that names buf/validate/validate.proto needs it beside. Go does not, and
+  # must not: buf.build/go/protovalidate already registers those descriptors,
+  # and a second copy panics at init.
+  - remote: buf.build/bufbuild/es
+    out: ../launcher/web/src/gen
+    include_imports: true
+    opt:
+      - target=ts
