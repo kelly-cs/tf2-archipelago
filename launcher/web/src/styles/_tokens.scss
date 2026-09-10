@@ -34,6 +34,17 @@ $breakpoints: (
     --surface-raised: #2a2013;
     --surface-hover: #352a18;
 
+    /* A slot inside a panel: a seat row, a count tile, a table's header row.
+       Darker than the panel it sits in, lighter than the page behind it. */
+    --surface-inset: #1a130b;
+
+    /* The log, which is its own thing: a wall of text wants a shade off the
+       page so the panel edge is visible without a border doing the work. */
+    --surface-log: #181109;
+
+    /* A row the eye has to keep its place along. Barely there on purpose. */
+    --zebra: rgb(255 255 255 / 2%);
+
     /* Lines, lightest last. */
     --line-soft: #3a2d1a;
     --line: #4a3a22;
@@ -45,6 +56,15 @@ $breakpoints: (
     --text-faint: #a8916b;
     --text-disabled: #6b5c42;
 
+    /* Dimmer than dim, brighter than disabled: a timestamp, a locked row, a
+       line that is there to be skipped over unless you are looking for it. */
+    --text-mute: #8a7a5c;
+    --text-locked: #7d6e50;
+
+    /* The log's own text. Warmer than --text-dim, because a screen of
+       monospace at --text-dim reads as switched off. */
+    --text-log: #e3d6b6;
+
     /* The one accent: Mann Co. gold. Everything the player presses. */
     --accent: #e0ac4f;
     --accent-bright: #f0c46e;
@@ -55,17 +75,52 @@ $breakpoints: (
     --state-bad: #b8483f;
     --state-info: #8bb8db;
 
+    /* Stop is red because stopping a server mid-wave is a thing to mean. */
+    --state-stop: #c25c56;
+
+    /* A tier, and the tint behind it. Four colours the player learns once and
+       reads everywhere a mission is named. */
+    --tier-normal: #8bb8db;
+    --tier-intermediate: #7a9a3f;
+    --tier-advanced: #e0ac4f;
+    --tier-expert: #e08b82;
+    --tier-normal-bg: rgb(139 184 219 / 12%);
+    --tier-intermediate-bg: rgb(122 154 63 / 14%);
+    --tier-advanced-bg: rgb(224 172 79 / 14%);
+    --tier-expert-bg: rgb(224 139 130 / 14%);
+
+    /* The tint behind something chosen, and behind something allowed. */
+    --accent-tint: rgb(224 172 79 / 12%);
+    --accent-tint-strong: rgb(224 172 79 / 18%);
+    --good-tint: rgb(122 154 63 / 12%);
+
+    /* Where a source in the log came from. */
+    --source-srcds: #8bb8db;
+    --source-rcon: #e0ac4f;
+    --source-launcher: #c9bb99;
+    --source-install: #e08b82;
+
     --font-display: 'Anton', 'Arial Narrow', sans-serif;
     --font-body: 'Source Sans 3', system-ui, sans-serif;
     --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
 
+    --text-xxs: 12.5px;
     --text-xs: 12px;
     --text-sm: 13px;
     --text-md: 14px;
     --text-lg: 15px;
+    --text-row: 16px;
     --text-xl: 18px;
     --title: 20px;
     --title-lg: 22px;
+    --title-page: 26px;
+
+    /* A connect line is read off the screen and typed into a console, so it is
+       the largest thing on the page that is not a heading. */
+    --text-command: 19px;
+
+    /* Uppercase needs air between the letters or it reads as one word. */
+    --caps-spacing: 0.06em;
 
     --radius: 4px;
     --radius-panel: 6px;

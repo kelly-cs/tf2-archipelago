@@ -88,6 +88,34 @@ test.describe('the settings screen', () => {
     await expect(page.getByText('opened /home/player/.config/tf2ap/settings.json')).toBeVisible();
   });
 
+  // The footer is the only thing that says whether there is anything to save.
+  // It went quiet once when the store lost track of what had been answered, and
+  // Save sat disabled over a screen full of changes.
+  test('says whether there is anything to save, and only offers Save then', async ({ page }) => {
+    await expect(page.getByText('All saved')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Save', exact: true })).toBeDisabled();
+    await expect(page.getByRole('button', { name: 'Discard' })).toBeDisabled();
+
+    await settingsPages(page).getByRole('link', { name: 'Rewards', exact: true }).click();
+    await page.getByLabel('Traps (%)').fill('42');
+
+    await expect(page.getByText('Unsaved changes')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Save', exact: true })).toBeEnabled();
+  });
+
+  test('Save writes what was typed', async ({ page }) => {
+    await settingsPages(page).getByRole('link', { name: 'Rewards', exact: true }).click();
+    await page.getByLabel('Traps (%)').fill('37');
+    await expect(page.getByText('Unsaved changes')).toBeVisible();
+
+    await page.getByRole('button', { name: 'Save', exact: true }).click();
+    await expect(page.getByText('All saved')).toBeVisible();
+
+    await settingsPages(page).getByRole('link', { name: 'Balancing', exact: true }).click();
+    await settingsPages(page).getByRole('link', { name: 'Rewards', exact: true }).click();
+    await expect(page.getByLabel('Traps (%)')).toHaveValue('37');
+  });
+
   test('Save is answered, and a refusal keeps the answers on screen', async ({ page }) => {
     await settingsPages(page).getByRole('link', { name: 'Player options', exact: true }).click();
     await page.getByLabel('Install folder').fill('');

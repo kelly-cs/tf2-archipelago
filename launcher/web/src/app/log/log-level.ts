@@ -1,26 +1,25 @@
 /**
- * What a line is, read off the line. srcds and the bridge write plain text with
- * no level in it, so this is the launcher reading the words rather than a field
- * anybody set: a guess that is right often enough to colour by, and never load
- * bearing.
+ * What colour a log line's source tag gets.
+ *
+ * The source is a fact the launcher set, not a guess: srcds said it, or rcon
+ * did, or the launcher, or the installer. Colouring by that is worth doing
+ * because it answers "who is telling me this", which is the first question
+ * anybody reading a wall of server output has.
+ *
+ * Nothing here guesses severity from the words. A line saying "error" may be
+ * srcds reporting a missing sound; a line saying nothing of the sort may be the
+ * install giving up. Painting one red on the strength of a substring tells the
+ * player something the launcher does not know.
  */
-export type LogLevel = 'error' | 'warn' | 'note' | 'plain';
+export type LogSource = 'srcds' | 'rcon' | 'launcher' | 'install' | 'other';
 
-const errorWords = /\b(error|failed|failure|cannot|refused|fatal|crash|segfault|panic)\b/i;
-const warnWords = /\b(warn|warning|missing|retry|retrying|timeout|timed out|deprecated)\b/i;
+const known: Record<string, LogSource> = {
+  srcds: 'srcds',
+  rcon: 'rcon',
+  launcher: 'launcher',
+  install: 'install',
+};
 
-export function levelOf(text: string): LogLevel {
-  if (errorWords.test(text)) {
-    return 'error';
-  }
-  if (warnWords.test(text)) {
-    return 'warn';
-  }
-  return 'plain';
-}
-
-/** The launcher's own lines are worth telling apart from the server's. */
-export function levelOfLine(source: string, text: string): LogLevel {
-  const level = levelOf(text);
-  return level === 'plain' && source === 'launcher' ? 'note' : level;
+export function sourceOf(source: string): LogSource {
+  return known[source] ?? 'other';
 }

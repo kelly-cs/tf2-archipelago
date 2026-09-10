@@ -20,12 +20,8 @@ import { ServerStatus } from '@gen/tf2ap/launcher/v1/launcher_pb';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [Button],
   template: `
-    <app-button
-      [tone]="running() ? 'ghost' : 'primary'"
-      [disabled]="busy()"
-      (press)="toggle.next()"
-    >
-      {{ running() ? 'Stop' : 'Start' }}
+    <app-button [tone]="running() ? 'halt' : 'go'" [disabled]="busy()" (press)="toggle.next()">
+      {{ running() ? 'Stop server' : 'Start server' }}
     </app-button>
     <app-button tone="ghost" [disabled]="!running()" (press)="restart.next()">Restart</app-button>
     <app-button tone="ghost" hint="Close the launcher" (press)="quit.next()">Quit</app-button>

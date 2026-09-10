@@ -39,8 +39,11 @@ const copiedForMs = 1600;
   styles: `
     .line {
       font-family: var(--font-mono);
-      font-size: 19px;
-      word-break: break-all;
+      font-size: var(--text-command);
+
+      /* break-word, not break-all: a connect line is read off the screen and
+         typed into a console, and a word split down the middle is read wrong. */
+      overflow-wrap: break-word;
       background: var(--surface-void);
       border: 1px solid var(--line);
       border-radius: var(--radius);

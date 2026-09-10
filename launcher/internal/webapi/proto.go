@@ -3,6 +3,8 @@ package webapi
 import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 
+	"github.com/m-this/tf2-archipelago/gamedata"
+
 	"github.com/m-this/tf2-archipelago/launcher/internal/botlive"
 	"github.com/m-this/tf2-archipelago/launcher/internal/form"
 	launcherv1 "github.com/m-this/tf2-archipelago/launcher/internal/gen/tf2ap/launcher/v1"
@@ -31,6 +33,7 @@ var statusNames = map[string]launcherv1.ServerStatus{
 func (s Snapshot) Proto() *launcherv1.Snapshot {
 	return &launcherv1.Snapshot{
 		Title:         s.Title,
+		Slot:          s.Slot,
 		Status:        statusNames[s.Status],
 		Running:       s.Running,
 		Busy:          s.Busy,
@@ -76,6 +79,7 @@ func sessionProto(s session.Snapshot) *launcherv1.Session {
 			PopFile: mission.PopFile, Name: mission.Name, Map: mission.Map,
 			Waves: int32(mission.Waves), Source: mission.Source, Loadout: mission.Loadout,
 			Unlocked: mission.Unlocked, Cleared: mission.Cleared, Played: mission.Played,
+			Tier: tierOf(mission.PopFile),
 		})
 	}
 	unlocks := make([]*launcherv1.SessionUnlock, 0, len(s.Unlocks))
@@ -180,4 +184,14 @@ func (screen Screen) Proto() *launcherv1.Screen {
 // bool and where a bad one gets the message the player reads.
 func changeFrom(change *launcherv1.Change) form.Change {
 	return form.Change{Field: change.GetField(), Value: change.GetValue()}
+}
+
+// tierOf reads a mission's tier out of gamedata. The bridge does not carry one,
+// and a browser guessing it from the name would be guessing.
+func tierOf(popFile string) string {
+	mission, known := gamedata.MissionByPopFile(popFile)
+	if !known {
+		return ""
+	}
+	return mission.Difficulty.String()
 }

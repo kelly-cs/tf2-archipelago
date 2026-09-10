@@ -13,7 +13,7 @@ test.describe('the shell', () => {
 
     // The state line comes from the first WebSocket frame. Seeing the room in
     // it proves the frame arrived, decoded, and reached a signal.
-    await expect(page.getByText(/stopped, room archipelago\.gg:38281/)).toBeVisible();
+    await expect(page.getByText(/^Stopped · room archipelago\.gg:38281/)).toBeVisible();
   });
 
   test('every section is one click away and survives a reload', async ({ page }) => {
@@ -21,11 +21,14 @@ test.describe('the shell', () => {
     for (const [name, path] of [
       ['Unlocks', '/unlocks'],
       ['Bots', '/bots'],
-      ['Log', '/log'],
+      ['Console', '/log'],
       ['Settings', '/settings'],
-      ['Session', '/session'],
+      ['Play', '/session'],
     ] as const) {
-      await page.getByRole('link', { name, exact: true }).click();
+      await page
+        .getByRole('navigation', { name: 'Sections' })
+        .getByRole('link', { name, exact: true })
+        .click();
       await expect(page).toHaveURL(new RegExp(`${path}$`));
     }
 
@@ -36,16 +39,16 @@ test.describe('the shell', () => {
 
   test('Start moves the state, and the change arrives without a reload', async ({ page }) => {
     await page.goto('/');
-    await expect(page.getByRole('button', { name: 'Start', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Start server' })).toBeVisible();
 
-    await page.getByRole('button', { name: 'Start', exact: true }).click();
+    await page.getByRole('button', { name: 'Start server' }).click();
 
     // No reload anywhere: the button sent an RPC and the stream pushed the
     // answer back into the state line.
-    await expect(page.getByRole('button', { name: 'Stop', exact: true })).toBeVisible();
-    await expect(page.getByText(/^running,/)).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Stop server' })).toBeVisible();
+    await expect(page.getByText(/^Running/)).toBeVisible();
 
-    await page.getByRole('button', { name: 'Stop', exact: true }).click();
-    await expect(page.getByRole('button', { name: 'Start', exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Stop server' }).click();
+    await expect(page.getByRole('button', { name: 'Start server' })).toBeVisible();
   });
 });

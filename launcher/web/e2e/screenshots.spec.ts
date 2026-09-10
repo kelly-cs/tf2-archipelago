@@ -17,8 +17,8 @@ test.describe('the pictures', () => {
 
   test('the session screen', async ({ page }) => {
     await page.goto('/session');
-    await page.getByRole('button', { name: 'Start', exact: true }).click();
-    await expect(page.getByText(/^running,/)).toBeVisible();
+    await page.getByRole('button', { name: 'Start server' }).click();
+    await expect(page.getByText(/^Running/)).toBeVisible();
     await page.screenshot({ path: '../../docs/images/launcher-session.png' });
   });
 
@@ -26,6 +26,16 @@ test.describe('the pictures', () => {
     await page.goto('/log');
     await expect(page.getByText('bridge connected to archipelago.gg:38281 as Scout')).toBeVisible();
     await page.screenshot({ path: '../../docs/images/launcher-log.png' });
+  });
+
+  test('the bots screen', async ({ page }) => {
+    await page.goto('/bots');
+    const open = page.getByRole('button', { name: 'Open the lineup' });
+    if (await open.isVisible().catch(() => false)) {
+      await open.click();
+    }
+    await page.waitForTimeout(1500);
+    await page.screenshot({ path: '../../docs/images/launcher-bots.png' });
   });
 
   test('the settings, on the mission pool', async ({ page }) => {

@@ -1,20 +1,20 @@
 @if (rows().length === 0) {
   <app-empty-state>This page has no settings on it.</app-empty-state>
 } @else {
-  @if (intro()) {
-    <p class="intro">{{ intro() }}</p>
-  }
+  <section>
+    <div class="step">{{ stepLabel() }}</div>
+    <h2>{{ title() }}</h2>
+    @if (intro()) {
+      <p class="intro">{{ intro() }}</p>
+    }
 
-  <app-search-box label="Find a setting on this page" [(text)]="filter" />
+    @if (shown().length === 0) {
+      <app-empty-state>No settings here match your search.</app-empty-state>
+    }
 
-  @if (shown().length === 0) {
-    <app-empty-state>No setting here matches your search.</app-empty-state>
-  }
-
-  @for (section of sections(); track section.title) {
-    @let sectionRows = shown().filter((row) => row.section === section.title);
-    @if (sectionRows.length > 0) {
-      <section>
+    @for (section of sections(); track section.title) {
+      @let sectionRows = shown().filter((row) => row.section === section.title);
+      @if (sectionRows.length > 0) {
         @if (section.under) {
           <h3>{{ section.title }}</h3>
         }
@@ -27,13 +27,13 @@
             (fired)="fired.next($event)"
           />
         }
-      </section>
+      }
     }
-  }
 
-  @if (said()) {
-    <app-notice tone="info">{{ said() }}</app-notice>
-  }
+    @if (said()) {
+      <app-notice tone="info">{{ said() }}</app-notice>
+    }
+  </section>
 
   @if (missionTabs()) {
     <app-mission-table (typed)="answer($event.id, $event.value)" />

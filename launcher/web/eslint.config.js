@@ -132,6 +132,25 @@ module.exports = defineConfig([
     },
   },
   {
+    // A spec that fakes a transport has to describe what the real one is handed:
+    // a Connect Transport takes the service descriptor, the method and the
+    // message as separate arguments, and typing them properly here would be
+    // rebuilding Connect's own generics to say "I ignored these". async is the
+    // shape a fake Promise-based API is written in, for the same reason the
+    // transport itself is carved out above.
+    files: ['**/*.spec.ts'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: "CallExpression[callee.name='effect']",
+          message:
+            'No effect(). Derive with computed/linkedSignal, load with rxResource, run side effects through RxJS operators on an explicit stream.',
+        },
+      ],
+    },
+  },
+  {
     // The browser tests are not Angular code. Playwright's whole API is
     // Promise-based and reads as async/await; there is no change detection here
     // to keep off the microtask queue and nothing to hold in a signal. The rest

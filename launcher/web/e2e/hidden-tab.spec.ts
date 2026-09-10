@@ -7,7 +7,7 @@ import { expect, test } from './fixtures';
 test.describe('a tab left open', () => {
   test('drops the stream while hidden and picks the state back up on return', async ({ page }) => {
     await page.goto('/session');
-    await expect(page.getByText(/stopped, room/)).toBeVisible();
+    await expect(page.getByText(/^Stopped ·/)).toBeVisible();
 
     const sockets: string[] = [];
     page.on('websocket', (socket) => sockets.push(socket.url()));
@@ -23,8 +23,8 @@ test.describe('a tab left open', () => {
     await page.request.post('/fake/reset');
     const other = await page.context().newPage();
     await other.goto('/session');
-    await other.getByRole('button', { name: 'Start', exact: true }).click();
-    await expect(other.getByText(/^running,/)).toBeVisible();
+    await other.getByRole('button', { name: 'Start server' }).click();
+    await expect(other.getByText(/^Running/)).toBeVisible();
     await other.close();
 
     // Coming back opens the socket again, and its first frame is the whole
@@ -33,7 +33,7 @@ test.describe('a tab left open', () => {
       Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true });
       document.dispatchEvent(new Event('visibilitychange'));
     });
-    await expect(page.getByText(/^running,/)).toBeVisible();
+    await expect(page.getByText(/^Running/)).toBeVisible();
     expect(sockets.length).toBeGreaterThan(0);
   });
 });

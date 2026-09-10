@@ -1,93 +1,90 @@
 :host {
   display: flex;
   flex-direction: column;
-  gap: var(--gap);
+  gap: var(--gap-sm);
+  max-width: 1100px;
   min-height: 0;
 }
 
-.bar {
-  display: flex;
-  gap: var(--gap-sm);
-  align-items: center;
-}
-
-.bar app-search-box {
-  flex: 1;
+.panel {
+  background: var(--surface-log);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-panel);
+  overflow: hidden;
 }
 
 cdk-virtual-scroll-viewport {
+  min-height: 440px;
+  max-height: 64vh;
   height: 60vh;
-  background: var(--surface-void);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-panel);
 }
 
-ol {
-  margin: 0;
+.lines {
   padding: var(--gap-sm) 0;
-  list-style: none;
 }
 
-li {
+/* A long line wraps rather than being cut off: the end of an install error is
+   usually the part that says what to do about it. */
+.line {
   display: flex;
-  gap: var(--gap);
-  height: 20px;
-  align-items: center;
+  gap: var(--gap-sm);
+  align-items: baseline;
   padding: 0 var(--gap);
   font-family: var(--font-mono);
-  font-size: var(--text-sm);
-  white-space: pre;
-  color: var(--text-dim);
+  font-size: var(--text-xxs);
+  line-height: 1.15;
+  min-height: 18px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: var(--text-log);
 }
 
 .at {
-  color: var(--text-disabled);
+  color: var(--text-mute);
   flex: none;
 }
 
+/* Who said it, in their own colour. The launcher set the source, so this is a
+   fact rather than a guess made from the words. */
 .source {
-  color: var(--text-faint);
   flex: none;
-  width: 9ch;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  color: var(--text-mute);
 }
 
-.text {
-  overflow: hidden;
-  text-overflow: ellipsis;
+.source.srcds {
+  color: var(--source-srcds);
 }
 
-/* Colour says what kind of line it is, and nothing else does, so the words
-   still have to say it: an error line reads as an error in a screenshot with
-   the colour stripped. */
-li.error .text {
-  color: var(--state-warn);
+.source.rcon {
+  color: var(--source-rcon);
 }
 
-li.warn .text {
-  color: var(--accent);
+.source.launcher {
+  color: var(--source-launcher);
 }
 
-li.note .text {
-  color: var(--state-info);
+.source.install {
+  color: var(--source-install);
 }
 
 .console {
   display: flex;
   gap: var(--gap-sm);
   align-items: center;
+  padding: var(--gap-sm) var(--gap);
+  background: var(--surface-header);
+  border-top: 1px solid var(--line-soft);
 }
 
-.console label {
-  font-size: var(--text-xs);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+.prompt {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
   color: var(--text-faint);
 }
 
 .console input {
   flex: 1;
+  min-width: 0;
   background: var(--surface-void);
   border: 1px solid var(--line);
   border-radius: var(--radius);
@@ -95,4 +92,37 @@ li.note .text {
   font-family: var(--font-mono);
   font-size: var(--text-md);
   padding: 8px 10px;
+}
+
+.bar {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-sm);
+  flex-wrap: wrap;
+}
+
+.bar app-search-box {
+  flex: 1;
+  min-width: 180px;
+}
+
+.tick {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-sm);
+  font-size: var(--text-md);
+  color: var(--text-dim);
+  cursor: pointer;
+}
+
+.tick input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+}
+
+.said {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--text-faint);
 }

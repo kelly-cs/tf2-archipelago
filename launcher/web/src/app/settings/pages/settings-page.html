@@ -10,8 +10,16 @@
 } @else {
   <div class="screen">
     <nav aria-label="Settings pages">
+      <app-search-box label="Search settings" [(text)]="search" />
       @for (page of pages(); track page.title) {
-        <a [routerLink]="page.link" routerLinkActive="here">{{ page.title }}</a>
+        <a
+          [routerLink]="page.link"
+          routerLinkActive="here"
+          [attr.aria-current]="page.slug === store.page() ? 'page' : null"
+        >
+          <span class="number" aria-hidden="true">{{ page.number }}</span>
+          <span>{{ page.title }}</span>
+        </a>
       }
     </nav>
 
@@ -19,18 +27,40 @@
       @if (refusal()) {
         <app-notice tone="bad">{{ refusal() }}</app-notice>
       }
+      @if (saved()) {
+        <app-notice tone="info">{{ saved() }}</app-notice>
+      }
+      @if (restartNeeded() && !dirty()) {
+        <app-notice tone="warn">
+          Saved, but the running server still uses the old values. Restart when your players are
+          between waves.
+          <app-button tone="primary" size="small" (press)="save.next(true)">
+            Restart to apply
+          </app-button>
+        </app-notice>
+      }
+
       <router-outlet />
 
       <footer>
-        @if (restartNeeded()) {
-          <app-notice tone="warn">
-            Saving this restarts the running server.
-            <app-button tone="primary" (press)="save.next(true)">Save and restart</app-button>
-          </app-notice>
-        }
+        <div class="steps">
+          @if (previous(); as back) {
+            <app-button tone="ghost" [routerLink]="back.link">&larr; Previous</app-button>
+          } @else {
+            <app-button tone="ghost" [disabled]="true">&larr; Previous</app-button>
+          }
+          @if (next(); as forward) {
+            <app-button tone="ghost" [routerLink]="forward.link">{{ nextLabel() }}</app-button>
+          } @else {
+            <app-button tone="ghost" [disabled]="true">{{ nextLabel() }}</app-button>
+          }
+        </div>
         <div class="buttons">
-          <app-button tone="ghost" (press)="cancel.next()">Discard</app-button>
-          <app-button tone="primary" (press)="save.next(false)">Save</app-button>
+          <span class="dirty" [class.pending]="dirty()">{{ dirtyLabel() }}</span>
+          <app-button tone="ghost" [disabled]="!dirty()" (press)="cancel.next()"
+            >Discard</app-button
+          >
+          <app-button tone="go" [disabled]="!dirty()" (press)="save.next(false)">Save</app-button>
         </div>
       </footer>
     </div>

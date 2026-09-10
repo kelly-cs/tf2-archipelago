@@ -1,45 +1,55 @@
-<div class="bar">
-  <app-search-box label="Filter the log" [(text)]="filter" />
-  <app-button
-    size="small"
-    [pressed]="follow()"
-    [tone]="follow() ? 'primary' : 'ghost'"
-    (press)="follow.set(!follow())"
-  >
-    Follow
-  </app-button>
-  <app-button size="small" (press)="copyAll()">{{ copied() ? 'Copied' : 'Copy' }}</app-button>
+<div class="panel">
+  @if (rows().length === 0) {
+    <app-empty-state>
+      @if (filterText()) {
+        No line matches that filter.
+      } @else {
+        Nothing has been said yet. Press Start server.
+      }
+    </app-empty-state>
+  } @else {
+    <cdk-virtual-scroll-viewport
+      role="log"
+      aria-live="polite"
+      aria-label="Server log"
+      [itemSize]="rowHeight"
+      (scrolledIndexChange)="onScroll()"
+    >
+      <div class="lines">
+        <div class="line" *cdkVirtualFor="let row of rows(); trackBy: trackRow">
+          <span class="at">{{ row.at }}</span>
+          <span class="source" [class]="row.kind">[{{ row.source }}]</span>
+          <span class="text">{{ row.text }}</span>
+        </div>
+      </div>
+    </cdk-virtual-scroll-viewport>
+  }
+
+  <form class="console" (submit)="$event.preventDefault(); send.next()">
+    <span class="prompt">rcon</span>
+    <input
+      name="rcon"
+      autocomplete="off"
+      aria-label="RCON command"
+      placeholder="type a command, press Enter. Up arrow walks your history"
+      [value]="command()"
+      (input)="command.set($any($event.target).value)"
+      (keydown)="onKey($event)"
+    />
+    <app-button type="submit" tone="primary">Send</app-button>
+  </form>
 </div>
 
-@if (rows().length === 0) {
-  <app-empty-state>
-    @if (filter()) {
-      No line matches that filter.
-    } @else {
-      Nothing has been said yet. Press Start.
-    }
-  </app-empty-state>
-} @else {
-  <cdk-virtual-scroll-viewport itemSize="20" (scrolledIndexChange)="onScroll()">
-    <ol>
-      <li *cdkVirtualFor="let row of rows(); trackBy: trackRow" [class]="row.level">
-        <span class="at">{{ row.at }}</span>
-        <span class="source">{{ row.source }}</span>
-        <span class="text">{{ row.text }}</span>
-      </li>
-    </ol>
-  </cdk-virtual-scroll-viewport>
-}
+<div class="bar">
+  <label class="tick">
+    <input type="checkbox" [checked]="follow()" (change)="follow.set(!follow())" />
+    Follow the newest lines
+  </label>
+  <app-search-box label="Filter the log" [(text)]="filterText" />
+  <app-button size="small" (press)="saveBundle()">Save debug logs</app-button>
+  <app-button size="small" tone="ghost" (press)="clearView()">Clear this view</app-button>
+</div>
 
-<form class="console" (submit)="$event.preventDefault(); send.next()">
-  <label for="rcon">Server command</label>
-  <input
-    id="rcon"
-    name="rcon"
-    autocomplete="off"
-    placeholder="sm_ap_status"
-    [value]="command()"
-    (input)="command.set($any($event.target).value)"
-  />
-  <app-button type="submit" tone="primary" [disabled]="!command()">Send</app-button>
-</form>
+@if (said()) {
+  <p class="said">{{ said() }}</p>
+}

@@ -1,130 +1,79 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { Subject, exhaustMap } from 'rxjs';
+import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 
-import { LauncherCommands } from '@app/server/launcher-commands';
-import { LauncherStore } from '@app/server/launcher-store';
-import { Badge } from '@app/ui/badge';
-import { Button } from '@app/ui/button';
-import { EmptyState } from '@app/ui/empty-state';
-import { Notice } from '@app/ui/notice';
+import { BotLineup } from '@app/bots/components/bot-lineup';
+import { SettingsStore } from '@app/settings/settings-store';
+import { Chip } from '@app/ui/chip';
 import { Panel } from '@app/ui/panel';
 
-/** The nine classes, in the order the game lists them. */
-const classes = [
-  'scout',
-  'soldier',
-  'pyro',
-  'demoman',
-  'heavyweapons',
-  'engineer',
-  'medic',
-  'sniper',
-  'spy',
-] as const;
-
 /**
- * The Bot Switcher: which classes the mod may draw for RED's empty seats, and
- * what it drew.
+ * The Bot Switcher: who holds RED's seats, and which classes the mod may draw
+ * for the ones nobody named.
  *
- * Applying is one console command, taken between waves. A wave in progress is
- * left alone: swapping a defender mid-wave is how a run is lost to the
- * interface rather than to the robots.
+ * Both halves are rows form already declares, read straight off the model:
+ * which classes exist, what each is called and whether it is allowed all come
+ * from there, so a class the game adds later appears here without this file
+ * knowing about it. A class allowed here is the same answer the settings screen
+ * holds, so the two cannot disagree.
  */
 @Component({
   selector: 'app-bots-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Badge, Button, EmptyState, Notice, Panel],
+  imports: [BotLineup, Chip, Panel],
   template: `
-    <app-panel heading="Your bot team">
-      <app-badge panelAside tone="neutral">{{ seats().length }} seats</app-badge>
-      @if (seats().length === 0) {
-        <app-empty-state>RED holds nobody yet. Start the server.</app-empty-state>
-      } @else {
-        <table>
-          <thead>
-            <tr>
-              <th scope="col">Seat</th>
-              <th scope="col">Class</th>
-              <th scope="col">Weapons</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (seat of seats(); track seat.number) {
-              <tr>
-                <td class="seat">{{ seat.number }}</td>
-                <td>{{ seat.class }}</td>
-                <td class="weapons">{{ seat.weapons || 'stock' }}</td>
-              </tr>
-            }
-          </tbody>
-        </table>
-      }
-      @if (drawn()) {
-        <p class="drawn">{{ drawn() }}</p>
-      }
+    <app-panel heading="Bot Switcher">
+      <app-bot-lineup />
     </app-panel>
 
-    <app-panel heading="Bot Switcher">
-      <p class="lead">Classes the mod may draw for a seat you have not named.</p>
-      <div class="chips">
-        @for (name of classNames; track name) {
-          <app-button
-            size="small"
-            [tone]="allowed().has(name) ? 'primary' : 'ghost'"
-            [pressed]="allowed().has(name)"
-            (press)="flip(name)"
-          >
-            {{ name }}
-          </app-button>
-        }
-      </div>
-      @if (!running()) {
-        <app-notice tone="info">
-          The server is not up. The lineup applies the next time it starts.
-        </app-notice>
+    <app-panel heading="Classes the mod may draw">
+      <p class="lead">For seats left to the mod. Click to allow or forbid.</p>
+
+      @if (chips().length === 0) {
+        <p class="lead">Open the lineup to change these.</p>
+      } @else {
+        <div role="group" aria-label="Classes the mod may draw" class="chips">
+          @for (mercenary of chips(); track mercenary.id) {
+            <app-chip
+              tone="allow"
+              [pressed]="mercenary.allowed"
+              [hint]="
+                mercenary.allowed
+                  ? mercenary.name + ' may be drawn'
+                  : mercenary.name + ' is forbidden'
+              "
+              (press)="flip(mercenary.id)"
+            >
+              {{ mercenary.name }}
+            </app-chip>
+          }
+        </div>
       }
-      <div class="apply">
-        <app-button tone="primary" [disabled]="!running()" (press)="apply.next()">
-          Apply between waves
-        </app-button>
-      </div>
     </app-panel>
   `,
   styleUrl: './bots-page.scss',
 })
 export class BotsPage {
-  private readonly store = inject(LauncherStore);
-  private readonly commands = inject(LauncherCommands);
+  private readonly settings = inject(SettingsStore);
 
-  readonly classNames = classes;
-  readonly seats = computed(() => this.store.bots());
-  readonly drawn = computed(() => this.store.drawnBots());
-  readonly running = computed(() => this.store.running());
+  /** Only the allowed rows. bots.class.<key>.loadout is the class's default
+      loadout and lives on the settings screen, not on a chip. */
+  readonly chips = computed(() =>
+    this.settings
+      .fieldsMatching('bots.class.')
+      .filter((field) => field.id.endsWith('.allowed'))
+      .map((field) => ({
+        id: field.id,
+        name: field.label,
+        allowed: this.settings.value(field.id) === 'true',
+      })),
+  );
 
-  readonly allowed = signal(new Set<string>(classes));
-
-  readonly apply = new Subject<void>();
-
-  constructor() {
-    this.apply
-      .pipe(
-        exhaustMap(() => this.commands.sendRcon(`sm_ap_bots ${[...this.allowed()].join(',')}`)),
-        takeUntilDestroyed(),
-      )
-      .subscribe();
-  }
-
-  flip(name: string): void {
-    const next = new Set(this.allowed());
-    if (next.has(name)) {
-      next.delete(name);
-    } else {
-      next.add(name);
+  flip(id: string): void {
+    const allowed = this.settings.value(id) === 'true';
+    // Never all nine forbidden: a lineup the mod cannot draw from leaves the
+    // seats empty, and an empty seat is a wave short of six defenders.
+    if (allowed && this.chips().filter((one) => one.allowed).length === 1) {
+      return;
     }
-    // Never all nine off: a lineup the mod cannot draw from leaves RED empty.
-    if (next.size > 0) {
-      this.allowed.set(next);
-    }
+    this.settings.change(id, allowed ? 'false' : 'true');
   }
 }

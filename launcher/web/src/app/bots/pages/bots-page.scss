@@ -1,39 +1,26 @@
-@use 'parts';
+@use 'tokens';
 
 :host {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  grid-template-columns: minmax(0, 1.6fr) minmax(240px, 1fr);
   gap: var(--gap-lg);
+  align-items: start;
 }
 
-table {
-  @include parts.table;
+@media (max-width: 900px) {
+  :host {
+    grid-template-columns: 1fr;
+  }
 }
 
-.seat {
-  @include parts.figure;
-
-  width: 3ch;
-}
-
-.weapons {
-  color: var(--text-dim);
-  font-size: var(--text-sm);
-}
-
-.drawn,
 .lead {
   margin: 0;
-  color: var(--text-dim);
+  color: var(--text-faint);
   font-size: var(--text-sm);
 }
 
 .chips {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--gap-sm);
-}
-
-.apply {
-  margin-top: auto;
+  gap: 6px;
 }

@@ -1,20 +1,25 @@
 import { expect, test } from './fixtures';
 
-test.describe('the log screen', () => {
+test.describe('the Console screen', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/log');
   });
 
-  test('shows what the server said, newest last', async ({ page }) => {
+  test('shows what the server said, and who said it', async ({ page }) => {
     await expect(page.getByText('Executing dedicated server config: server.cfg')).toBeVisible();
-    await expect(page.getByText('bridge connected to archipelago.gg:38281 as Scout')).toBeVisible();
+
+    // The source is a fact the launcher set, so it is what gets the colour. The
+    // words are not read for severity: a line saying "error" may be srcds
+    // reporting a missing sound.
+    const fromSrcds = page.locator('.source.srcds').first();
+    await expect(fromSrcds).toHaveText('[srcds]');
+    await expect(page.locator('.source.launcher').first()).toHaveText('[launcher]');
   });
 
-  test('colours a line by what it looks like, and still says the words', async ({ page }) => {
-    // Colour is never the only thing that says a line went wrong: the words are
-    // there in a screenshot with the colour stripped.
-    const warned = page.locator('li.warn', { hasText: 'Warning: sv_pure is not set' });
-    await expect(warned).toBeVisible();
+  test('follows the newest line from the moment it opens', async ({ page }) => {
+    // A log short enough to fit reports the first index and no scrolling has
+    // happened, which used to switch following off as the page opened.
+    await expect(page.getByLabel('Follow the newest lines')).toBeChecked();
   });
 
   test('filtering narrows it and says so when nothing is left', async ({ page }) => {
@@ -25,29 +30,42 @@ test.describe('the log screen', () => {
     await expect(page.getByText('No line matches that filter.')).toBeVisible();
   });
 
-  test('a console command is sent and comes back on the stream', async ({ page }) => {
-    await page.getByLabel('Server command').fill('sm_ap_status');
+  test('a console command is sent, and the box empties for the next one', async ({ page }) => {
+    await page.getByLabel('RCON command').fill('sm_ap_status');
     await page.getByRole('button', { name: 'Send' }).click();
 
     await expect(page.getByText('rcon: sm_ap_status')).toBeVisible();
-    // The box empties, because the next command is a new one.
-    await expect(page.getByLabel('Server command')).toHaveValue('');
+    await expect(page.getByLabel('RCON command')).toHaveValue('');
   });
 
-  // Following starts on and stays on: a log short enough to fit reports the
-  // first index and no scrolling has happened, which used to switch it off the
-  // moment the page opened.
-  test('follows the newest line from the moment it opens', async ({ page }) => {
-    await expect(page.getByRole('button', { name: 'Follow' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
+  test('the up arrow walks what was typed before', async ({ page }) => {
+    const box = page.getByLabel('RCON command');
+    for (const command of ['sm_ap_status', 'sm_ap_resync']) {
+      await box.fill(command);
+      await page.getByRole('button', { name: 'Send' }).click();
+      await expect(box).toHaveValue('');
+    }
+
+    await box.press('ArrowUp');
+    await expect(box).toHaveValue('sm_ap_resync');
+    await box.press('ArrowUp');
+    await expect(box).toHaveValue('sm_ap_status');
+    await box.press('ArrowDown');
+    await expect(box).toHaveValue('sm_ap_resync');
+  });
+
+  test("clearing the view keeps the launcher's own log", async ({ page }) => {
+    await expect(page.getByText('Server is hibernating')).toBeVisible();
+    await page.getByRole('button', { name: 'Clear this view' }).click();
+
+    await expect(page.getByText('Server is hibernating')).toHaveCount(0);
+    await expect(page.getByText(/The launcher still has every line/)).toBeVisible();
   });
 
   test('a new line arrives without a reload', async ({ page }) => {
-    await page.getByRole('link', { name: 'Session', exact: true }).click();
-    await page.getByRole('button', { name: 'Start', exact: true }).click();
-    await page.getByRole('link', { name: 'Log', exact: true }).click();
+    await page.getByRole('link', { name: 'Play', exact: true }).click();
+    await page.getByRole('button', { name: 'Start server' }).click();
+    await page.getByRole('link', { name: 'Console', exact: true }).click();
 
     await expect(page.getByText('the server is up')).toBeVisible();
   });

@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 
-export type ButtonTone = 'primary' | 'secondary' | 'ghost' | 'danger';
+export type ButtonTone = 'primary' | 'go' | 'halt' | 'secondary' | 'ghost' | 'danger';
 export type ButtonSize = 'small' | 'medium' | 'large';
 
 /**
@@ -81,6 +81,11 @@ export type ButtonSize = 'small' | 'medium' | 'large';
         background: var(--accent-bright);
       }
 
+      .go:hover:not(:disabled),
+      .halt:hover:not(:disabled) {
+        filter: brightness(1.12);
+      }
+
       .secondary:hover:not(:disabled) {
         background: var(--surface-hover);
       }
@@ -98,6 +103,20 @@ export type ButtonSize = 'small' | 'medium' | 'large';
 
     .primary {
       background: var(--accent);
+      color: var(--surface-page);
+      font-weight: 700;
+    }
+
+    /* Starting and stopping the server are the two presses with consequences,
+       so they are the two that are not gold: green to go, red to stop. */
+    .go {
+      background: var(--state-good);
+      color: var(--surface-page);
+      font-weight: 700;
+    }
+
+    .halt {
+      background: var(--state-stop);
       color: var(--surface-page);
       font-weight: 700;
     }

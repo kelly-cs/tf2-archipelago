@@ -271,3 +271,18 @@ func TestEveryRowKeepsItsKindOnTheWire(t *testing.T) {
 		}
 	}
 }
+
+// The bridge does not carry a tier, so the launcher reads it out of gamedata.
+// A browser guessing which missions are Advanced would be guessing.
+func TestTheTierComesFromGamedata(t *testing.T) {
+	for popFile, want := range map[string]string{
+		"mvm_decoy_advanced":    "Advanced",
+		"mvm_coaltown":          "Normal",
+		"mvm_mannworks_expert1": "Expert",
+		"not_a_mission_that_is": "",
+	} {
+		if got := tierOf(popFile); got != want {
+			t.Errorf("tierOf(%q) = %q, want %q", popFile, got, want)
+		}
+	}
+}

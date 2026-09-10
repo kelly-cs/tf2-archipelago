@@ -34,6 +34,7 @@ export class LauncherStore {
   readonly lost = computed(() => this.state().lost);
 
   readonly title = this.field((s) => s.title, '');
+  readonly slot = this.field((s) => s.slot, '');
   readonly status = this.field((s) => s.status, ServerStatus.UNSPECIFIED);
   readonly running = this.field((s) => s.running, false);
   readonly busy = this.field((s) => s.busy, false);

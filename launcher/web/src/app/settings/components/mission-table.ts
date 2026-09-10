@@ -14,7 +14,7 @@ import { EmptyState } from '@app/ui/empty-state';
 import { SearchBox } from '@app/ui/search-box';
 import { MissionPoolRow } from '@gen/tf2ap/launcher/v1/launcher_pb';
 
-type Column = 'source' | 'map' | 'name' | 'waves' | 'compatibility' | 'mods';
+type Column = 'in_pool' | 'source' | 'map' | 'name' | 'waves' | 'compatibility' | 'mods';
 
 /** One drawn row: the pool data, plus the tick that decides whether it plays. */
 interface Row {
@@ -45,10 +45,11 @@ export class MissionTable {
   readonly typed = output<{ id: string; value: string }>();
 
   readonly filter = signal('');
-  readonly sortBy = signal<Column>('name');
+  readonly sortBy = signal<Column>('map');
   readonly ascending = signal(true);
 
   readonly columns: { key: Column; label: string }[] = [
+    { key: 'in_pool', label: 'In pool' },
     { key: 'source', label: 'Archive' },
     { key: 'map', label: 'Map' },
     { key: 'name', label: 'Mission' },
@@ -72,9 +73,7 @@ export class MissionTable {
     const direction = this.ascending() ? 1 : -1;
     return this.all()
       .filter((row) => needle === '' || matches(row.pool, needle))
-      .toSorted(
-        (left: Row, right: Row) => direction * left.pool[key].localeCompare(right.pool[key]),
-      );
+      .toSorted((left: Row, right: Row) => direction * compare(left, right, key));
   });
 
   readonly chosen = computed(() => this.all().filter((row) => row.on).length);
@@ -114,4 +113,27 @@ function matches(pool: MissionPoolRow, needle: string): boolean {
     pool.source.toLowerCase().includes(needle) ||
     pool.compatibility.toLowerCase().includes(needle)
   );
+}
+
+/**
+ * How two rows compare on one column.
+ *
+ * Three kinds of column, and text order is wrong for two of them. The tick is
+ * what the player came to sort by: seeing the pool together is the question the
+ * screen answers. And waves read "1-10", which sorts before "1-6" as text.
+ */
+function compare(left: Row, right: Row, key: Column): number {
+  if (key === 'in_pool') {
+    return Number(left.on) - Number(right.on) || left.pool.name.localeCompare(right.pool.name);
+  }
+  if (key === 'waves') {
+    return wavesOf(left.pool.waves) - wavesOf(right.pool.waves);
+  }
+  return left.pool[key].localeCompare(right.pool[key]);
+}
+
+/** The wave count out of "1-6". The launcher writes the range; the number at
+    the end of it is what a mission is long or short by. */
+function wavesOf(waves: string): number {
+  return Number(/\d+$/.exec(waves)?.[0] ?? 0);
 }

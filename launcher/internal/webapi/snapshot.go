@@ -20,6 +20,7 @@ import (
 // the loopback boundary; form already represents them as replacement fields.
 type Snapshot struct {
 	Title         string           `json:"title"`
+	Slot          string           `json:"slot,omitempty"`
 	Status        string           `json:"status"`
 	Running       bool             `json:"running"`
 	Busy          bool             `json:"busy"`
@@ -92,6 +93,7 @@ func (a *App) Snapshot() Snapshot {
 	screen := a.screenLocked(running)
 	result := Snapshot{
 		Title:  assets.Title("Mann vs Archipelago"),
+		Slot:   s.APSlotName,
 		Status: status, Running: running, Busy: a.busy, Room: room,
 		Join: a.joinLineLocked(), JoinURL: a.joinURLLocked(), Mission: playing,
 		Logs: slices.Clone(a.logs), Session: sessionState,

@@ -62,6 +62,11 @@ message SessionMission {
   bool unlocked = 7;
   bool cleared = 8;
 
+  // The tier, as Valve names it. The bridge does not carry one, so the
+  // launcher reads it out of gamedata by pop file: the browser should not have
+  // to know which missions are Advanced.
+  string tier = 10;
+
   // This server having cleared it, where cleared is only the room holding the
   // check. Another world's !collect sends every check it still has, so the two
   // disagree and the run list has to show what you did.
@@ -135,6 +140,11 @@ message Snapshot {
 
   // Saving these settings would restart a running server.
   bool restart_needed = 20;
+
+  // The slot this server plays as, for the line under the title. The room
+  // string already reads well on its own; this is the other half of who you
+  // are on the multiworld.
+  string slot = 21;
 }
 
 message GetSnapshotRequest {}

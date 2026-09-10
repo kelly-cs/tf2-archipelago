@@ -1,28 +1,23 @@
 import { describe, expect, it } from 'vitest';
 
-import { levelOf, levelOfLine } from '@app/log/log-level';
+import { sourceOf } from '@app/log/log-level';
 
-describe('reading a level off a log line', () => {
-  it('finds the words that mean something broke', () => {
-    expect(levelOf('L 09/09/2026 - 21:11:02: [SM] Plugin failed to load')).toBe('error');
-    expect(levelOf('cannot open tf/cfg/server.cfg')).toBe('error');
-    expect(levelOf('Segfault in engine.so')).toBe('error');
+/**
+ * The source is a fact the launcher set, so this only checks the mapping and
+ * the fallback. Nothing guesses severity from the words any more: a line saying
+ * "error" may be srcds reporting a missing sound, and painting it red on the
+ * strength of a substring told the player something the launcher did not know.
+ */
+describe('who said a log line', () => {
+  it('names the four the launcher writes', () => {
+    expect(sourceOf('srcds')).toBe('srcds');
+    expect(sourceOf('rcon')).toBe('rcon');
+    expect(sourceOf('launcher')).toBe('launcher');
+    expect(sourceOf('install')).toBe('install');
   });
 
-  it('finds the words that mean something may break', () => {
-    expect(levelOf('Warning: sv_pure is not set')).toBe('warn');
-    expect(levelOf('retrying the download')).toBe('warn');
-  });
-
-  it('leaves an ordinary line alone', () => {
-    expect(levelOf('Wave 3 of 6 begins')).toBe('plain');
-  });
-
-  // The launcher's own lines are worth telling from the server's: they are the
-  // ones that say what the launcher is about to do to the player's machine.
-  it('marks the launcher speaking, but never over a real error', () => {
-    expect(levelOfLine('launcher', 'installing SourceMod')).toBe('note');
-    expect(levelOfLine('launcher', 'cannot reach archipelago.gg')).toBe('error');
-    expect(levelOfLine('srcds', 'Wave 3 of 6 begins')).toBe('plain');
+  it('falls back rather than inventing a colour for a source it does not know', () => {
+    expect(sourceOf('bridge')).toBe('other');
+    expect(sourceOf('')).toBe('other');
   });
 });

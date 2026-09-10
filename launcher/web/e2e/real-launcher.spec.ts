@@ -35,8 +35,8 @@ test.describe('the real launcher', () => {
     await expect(page.getByRole('img', { name: 'Mann vs Archipelago' })).toBeVisible();
 
     // The state line comes off the real WebSocket, decoded from real proto.
-    await expect(page.getByText(/^stopped,/)).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Start', exact: true })).toBeEnabled();
+    await expect(page.getByText(/^Stopped/)).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Start server' })).toBeEnabled();
   });
 
   test('draws the real form model, every page of it', async ({ page }) => {

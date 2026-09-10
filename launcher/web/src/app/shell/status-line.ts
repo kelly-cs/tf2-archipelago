@@ -47,28 +47,36 @@ export class StatusLine {
     }
   });
 
+  /**
+   * Who this server is, in one line: what it is doing, which room it answers
+   * to, and which slot it plays. Separated by middots because each part is a
+   * different kind of fact and a comma would read as a list of one thing.
+   */
   readonly words = computed(() => {
     if (this.store.lost()) {
-      return 'launcher unreachable';
+      return 'Launcher unreachable';
     }
     if (!this.store.connected()) {
-      return 'connecting';
+      return 'Connecting';
     }
-    const state = statusWord(this.store.status());
-    const room = this.store.room();
-    return room === '' ? state : `${state}, ${room}`;
+    const parts = [statusWord(this.store.status())];
+    parts.push(this.store.room() || 'no room connected');
+    if (this.store.slot()) {
+      parts.push(`slot ${this.store.slot()}`);
+    }
+    return parts.join(' \u00b7 ');
   });
 }
 
 function statusWord(status: ServerStatus): string {
   switch (status) {
     case ServerStatus.RUNNING:
-      return 'running';
+      return 'Running';
     case ServerStatus.STARTING:
-      return 'starting';
+      return 'Starting';
     case ServerStatus.STOPPED:
-      return 'stopped';
+      return 'Stopped';
     default:
-      return 'unknown';
+      return 'Unknown';
   }
 }

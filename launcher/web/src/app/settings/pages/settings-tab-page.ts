@@ -14,10 +14,9 @@ import { Subject, concatMap, tap } from 'rxjs';
 import { MissionTable } from '@app/settings/components/mission-table';
 import { SettingsRow } from '@app/settings/components/settings-row';
 import { SettingsActions } from '@app/settings/settings-actions';
-import { SettingsStore } from '@app/settings/settings-store';
+import { SettingsStore, slugOf } from '@app/settings/settings-store';
 import { EmptyState } from '@app/ui/empty-state';
 import { Notice } from '@app/ui/notice';
-import { SearchBox } from '@app/ui/search-box';
 import { Field } from '@gen/tf2ap/launcher/v1/form_pb';
 
 /** Placed is a row and the section it was found in. */
@@ -49,12 +48,12 @@ interface Row {
 @Component({
   selector: 'app-settings-tab-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [EmptyState, MissionTable, Notice, SearchBox, SettingsRow],
+  imports: [EmptyState, MissionTable, Notice, SettingsRow],
   templateUrl: './settings-tab-page.html',
   styleUrl: './settings-tab-page.scss',
 })
 export class SettingsTabPage {
-  private readonly store = inject(SettingsStore);
+  readonly store = inject(SettingsStore);
   private readonly actions = inject(SettingsActions);
 
   readonly settingsTab = input('');
@@ -72,16 +71,16 @@ export class SettingsTabPage {
     ),
   );
 
-  readonly shown = computed(() => {
-    const needle = this.filter().trim().toLowerCase();
-    if (needle === '') {
-      return this.rows();
-    }
-    return this.rows().filter(
-      ({ field }) =>
-        field.label.toLowerCase().includes(needle) || field.help.toLowerCase().includes(needle),
-    );
+  readonly shown = computed(() => this.rows().filter(({ field }) => this.store.matches(field)));
+
+  /** Which page of how many, so the player knows how much is left. */
+  readonly stepLabel = computed(() => {
+    const pages = this.store.topTabs();
+    const here = pages.findIndex((tab) => slugOf(tab.title) === this.settingsTab());
+    return here < 0 ? '' : `Section ${here + 1} of ${pages.length}`;
   });
+
+  readonly title = computed(() => this.sections()[0]?.title ?? '');
 
   readonly missionTabs = computed(() => this.settingsTab() === 'missions');
   readonly intro = computed(() => this.sections()[0]?.intro ?? '');

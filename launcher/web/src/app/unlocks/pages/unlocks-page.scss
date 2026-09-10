@@ -1,46 +1,58 @@
+@use 'parts';
+
 :host {
   display: block;
+  max-width: 900px;
 }
 
-.count {
-  font-size: var(--text-sm);
-  color: var(--text-faint);
+.summary {
+  margin: 0;
+  color: var(--text-dim);
 }
 
-.bar {
+.command {
+  font-family: var(--font-mono);
+}
+
+.filters {
   display: flex;
   flex-wrap: wrap;
   gap: var(--gap-sm);
-  align-items: center;
 }
 
-.bar app-search-box {
-  flex: 1;
-  min-width: 200px;
+.scroller {
+  overflow-x: auto;
 }
 
-ul {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: var(--gap-sm);
+table {
+  @include parts.table;
+
+  min-width: 420px;
 }
 
-li {
-  display: flex;
-  align-items: center;
-  gap: var(--gap-sm);
-  padding: var(--gap-sm) var(--gap);
-  background: var(--surface-raised);
-  border: 1px solid var(--line-soft);
-  border-radius: var(--radius);
+.kind {
+  width: 140px;
+  color: var(--text-dim);
 }
 
 .name {
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  color: var(--text);
+}
+
+.level {
+  @include parts.figure;
+
+  width: 80px;
+  color: var(--accent);
+}
+
+th.level,
+th.kind {
+  color: var(--text-faint);
+}
+
+/* Zebra rows: a table read across three columns needs the eye kept on the row
+   it started on. */
+tbody tr:nth-child(odd) {
+  background: var(--zebra);
 }

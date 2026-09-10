@@ -230,16 +230,21 @@ func fakeSession(running bool) session.Snapshot {
 			Connected: running, Slot: "Scout", Seed: "PROOF-OF-A-SEED",
 			Checks: 12, Items: 7, DeathLink: true,
 		},
+		// Real pop files, so gamedata answers with a real tier. A made-up one
+		// draws a blank column and proves nothing.
 		Missions: []session.Mission{
-			{PopFile: "mvm_decoy_advanced", Name: "Doe's Doom", Map: "Decoy", Waves: 7, Source: "Valve", Unlocked: true, Played: true},
-			{PopFile: "mvm_coaltown_advanced", Name: "Caliginous Caper", Map: "Coal Town", Waves: 6, Source: "Valve", Unlocked: true},
-			{PopFile: "mvm_mannworks_advanced", Name: "Mean Machines", Map: "Mannworks", Waves: 7, Source: "Valve", Cleared: true},
-			{PopFile: "mvm_rottenburg_advanced", Name: "Bavarian Botbash", Map: "Rottenburg", Waves: 7, Source: "Valve"},
+			{PopFile: "mvm_decoy_advanced", Name: "Disk Deletion", Map: "Decoy", Waves: 7, Source: "Valve", Unlocked: true, Played: true},
+			{PopFile: "mvm_coaltown_advanced", Name: "Ctrl+Alt+Destruction", Map: "Coal Town", Waves: 6, Source: "Valve", Unlocked: true},
+			{PopFile: "mvm_mannworks_intermediate", Name: "Mean Machines", Map: "Mannworks", Waves: 7, Source: "Valve", Cleared: true},
+			{PopFile: "mvm_coaltown", Name: "Crash Course", Map: "Coal Town", Waves: 4, Source: "Valve", Unlocked: true},
+			{PopFile: "mvm_decoy_expert1", Name: "Desperation", Map: "Decoy", Waves: 6, Source: "Valve"},
+			{PopFile: "mvm_bigrock_advanced1", Name: "Broken Parts", Map: "Big Rock", Waves: 7, Source: "Valve"},
 		},
 		Unlocks: []session.Unlock{
 			{Kind: "Class", Name: "Scout"},
 			{Kind: "Class", Name: "Soldier"},
 			{Kind: "Weapon slot", Name: "Soldier, secondary"},
+			{Kind: "Weapon slot", Name: "Scout, melee"},
 			{Kind: "Weapon buff", Name: "Scattergun damage", Level: 2},
 			{Kind: "Mission", Name: "Doe's Doom"},
 		},
