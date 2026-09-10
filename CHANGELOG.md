@@ -31,6 +31,15 @@ The launcher has one screen now, and it opens in your browser.
   the notification area while it does: click the icon to get the page back,
   right-click it for Quit. Quit on the screen stops it too.
 - The settings open when you go to them. There is no button to press first.
+- A settings page with sections shows them as tabs across the top, one at a
+  time. Bots is Team, Classes, Looks and Loadouts, each a screen rather than
+  a scroll; a search still finds a setting whatever tab it is on.
+- The Team tab is a grid of six seats with the fill controls above it; the
+  Classes tab is one line per class, allowed or not and what it carries.
+- Loadouts is a builder: pick the class, a weapon per slot, name it. The
+  saved ones are a list with Load and Remove on each line.
+- The mission pool is one table, the same one the Play screen has, with a
+  tick per mission and the tier beside it. It was drawn twice.
 
 ### Gone
 

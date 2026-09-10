@@ -4,14 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"maps"
 	"slices"
 	"strings"
 
 	"github.com/m-this/tf2-archipelago/gamedata"
 	"github.com/m-this/tf2-archipelago/launcher/internal/assets"
 	"github.com/m-this/tf2-archipelago/launcher/internal/botlive"
-	"github.com/m-this/tf2-archipelago/launcher/internal/botloadout"
 	"github.com/m-this/tf2-archipelago/launcher/internal/form"
 	"github.com/m-this/tf2-archipelago/launcher/internal/generate"
 	"github.com/m-this/tf2-archipelago/launcher/internal/installer"
@@ -180,12 +178,10 @@ func (a *App) Dispatch(id string) error {
 	switch id {
 	case "missions.pool_all", "missions.pool_none":
 		a.setPool(id == "missions.pool_all")
-	case "bots.save_team":
-		a.saveTeam(s)
-	case "bots.remove_team":
-		a.removeTeam(s)
-	case "loadout.save":
-		a.saveLoadout(s)
+	case "bots.save_team", "bots.remove_team", "loadout.save":
+		next, said, _ := form.Act(s, id)
+		a.mutateDraft(func(state *form.State) { *state = next })
+		a.Notify(said)
 	case "missions.check_selection":
 		a.checkMissionSelection(s.Settings)
 	case "missions.download_packs":
@@ -200,59 +196,6 @@ func (a *App) Dispatch(id string) error {
 		return fmt.Errorf("settings action %q is not wired", id)
 	}
 	return nil
-}
-
-func (a *App) saveTeam(s form.State) {
-	name := strings.TrimSpace(s.Draft.TeamName)
-	if name == "" {
-		a.Notify("name the team first")
-		return
-	}
-	presets := maps.Clone(s.Settings.SrcdsBotTeamPresets)
-	if presets == nil {
-		presets = map[string]settings.BotTeam{}
-	}
-	presets[name] = settings.BotTeamOf(s.Settings)
-	a.mutateDraft(func(state *form.State) {
-		state.Settings.SrcdsBotTeamPresets, state.Draft.TeamName = presets, ""
-	})
-	a.Notify("saved the team as " + name)
-}
-
-func (a *App) removeTeam(s form.State) {
-	name := strings.TrimSpace(s.Draft.TeamName)
-	if name == "" {
-		a.Notify("name the team to remove first")
-		return
-	}
-	if _, ok := s.Settings.SrcdsBotTeamPresets[name]; !ok {
-		a.Notify("no team saved as " + name)
-		return
-	}
-	presets := maps.Clone(s.Settings.SrcdsBotTeamPresets)
-	delete(presets, name)
-	if len(presets) == 0 {
-		presets = nil
-	}
-	a.mutateDraft(func(state *form.State) {
-		state.Settings.SrcdsBotTeamPresets, state.Draft.TeamName = presets, ""
-	})
-	a.Notify("removed the team " + name)
-}
-
-func (a *App) saveLoadout(s form.State) {
-	name := strings.TrimSpace(s.Draft.LoadoutName)
-	if name == "" {
-		a.Notify("name the loadout first")
-		return
-	}
-	built := maps.Clone(s.Settings.SrcdsBotCustomLoadouts)
-	if built == nil {
-		built = map[string]botloadout.Built{}
-	}
-	built[name] = s.Draft.Loadout
-	a.mutateDraft(func(state *form.State) { state.Settings.SrcdsBotCustomLoadouts = built })
-	a.Notify("saved the loadout as " + name)
 }
 
 func (a *App) checkMissionSelection(s settings.Settings) {

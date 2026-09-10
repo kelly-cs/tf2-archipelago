@@ -1,0 +1,122 @@
+@use 'parts';
+
+:host {
+  display: block;
+}
+
+/* Seven columns and a narrow window is a real one, so it scrolls sideways
+   rather than folding a column away. */
+.scroller {
+  overflow-x: auto;
+}
+
+table {
+  @include parts.table;
+
+  min-width: 700px;
+  font-size: var(--text-sm);
+}
+
+th {
+  padding: 0 0 var(--gap-sm);
+}
+
+td {
+  padding: 6px var(--gap-sm);
+}
+
+th button {
+  background: none;
+  border: none;
+  padding: 0 var(--gap-sm);
+  color: var(--text-faint);
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+
+th button:hover {
+  color: var(--text);
+}
+
+/* Zebra rows: seven columns is more than the eye tracks unaided. */
+tbody tr:nth-child(odd) {
+  background: var(--zebra);
+}
+
+tbody tr {
+  transition: opacity var(--quick) var(--ease-out);
+}
+
+/* The mission on the server now. A left edge rather than a filled row: the row
+   still has to be readable beside the ones around it. */
+.playing td:first-child {
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+/* Out of the pool or not unlocked: still listed, dimmer. What you cannot play
+   yet, or have left out, is half of what the table is telling you. */
+.dim td {
+  color: var(--text-mute);
+}
+
+.dim .name {
+  color: var(--text-mute);
+}
+
+.name {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.loadout {
+  display: block;
+  font-size: var(--text-xs);
+  font-weight: 400;
+  color: var(--state-info);
+}
+
+.waves,
+.mods {
+  @include parts.figure;
+}
+
+/* The state is bold coloured words, not a pill: the tier beside it is the pill,
+   and two pills in one row read as one control with two halves. A reason is a
+   pill, because it is a verdict rather than a state. */
+.status {
+  font-weight: 700;
+}
+
+.status.good {
+  color: var(--state-good);
+}
+
+.status.info {
+  color: var(--state-info);
+}
+
+.status.accent {
+  color: var(--accent);
+}
+
+.status.neutral {
+  color: var(--text-faint);
+}
+
+.play {
+  text-align: right;
+}
+
+input[type='checkbox'] {
+  width: 17px;
+  height: 17px;
+  accent-color: var(--accent);
+}
+
+.sr-only {
+  @include parts.only-for-screen-readers;
+}

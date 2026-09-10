@@ -40,6 +40,13 @@ test.describe('the shell', () => {
   test('Start moves the state, and the change arrives without a reload', async ({ page }) => {
     await page.goto('/');
     await expect(page.getByRole('button', { name: 'Start server' })).toBeVisible();
+    // Join is there before the server is, disabled: the one button the player
+    // came for is where they will look for it.
+    await expect(page.getByRole('button', { name: 'Join' })).toBeDisabled();
+    await expect(page.getByRole('link', { name: 'Star on GitHub' })).toHaveAttribute(
+      'href',
+      'https://github.com/m-this/tf2-archipelago',
+    );
 
     await page.getByRole('button', { name: 'Start server' }).click();
 

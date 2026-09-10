@@ -24,3 +24,32 @@
   flex-wrap: wrap;
   gap: 6px;
 }
+
+/* Sticky, because the answer to "did that apply" should not need a scroll. */
+footer {
+  grid-column: 1 / -1;
+  position: sticky;
+  bottom: var(--footer-height);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--gap-sm);
+  padding: var(--gap) 0;
+  background: var(--surface-page);
+  border-top: 1px solid var(--line-soft);
+}
+
+footer app-notice {
+  flex-basis: 100%;
+}
+
+.dirty {
+  margin-right: auto;
+  font-size: var(--text-sm);
+  color: var(--text-faint);
+}
+
+.dirty.pending {
+  color: var(--accent);
+}

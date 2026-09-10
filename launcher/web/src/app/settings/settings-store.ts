@@ -20,6 +20,7 @@ import {
 } from 'rxjs';
 
 import { LauncherStore } from '@app/server/launcher-store';
+import { serverValue } from '@app/settings/server-value';
 import { slugOf } from '@app/settings/slug';
 import { LAUNCHER_TRANSPORT } from '@app/transport/connect-transport';
 import { orRefusal } from '@app/transport/refusal';
@@ -242,9 +243,15 @@ export class SettingsStore {
     });
   }
 
-  /** dispatch presses a button, and answers with the refusal or nothing. */
+  /** dispatch presses a button, and answers with the refusal or nothing. What
+      is still in flight goes first, as for Save: a name typed and its button
+      pressed in the same quarter second used to arrive after the press. */
   dispatch(id: string): Observable<string> {
-    return from(this.service.dispatchAction({ id })).pipe(
+    return concat(
+      this.flush(),
+      defer(() => from(this.service.dispatchAction({ id }))),
+    ).pipe(
+      last(),
       map(() => ''),
       orRefusal((refusal) => of(refusal)),
     );
@@ -265,7 +272,6 @@ export class SettingsStore {
     return this.quietly(this.service.cancelSettings({}));
   }
 
-  /** quietly drops an empty answer: what the call changed arrives on the stream. */
   private quietly(call: Promise<object>): Observable<void> {
     return from(call).pipe(
       map(() => undefined),
@@ -293,13 +299,11 @@ export class SettingsStore {
       // is standing on, so a save that emptied the screen would throw them out
       // of it. Reopening gives them the saved values back in place.
       switchMap((refusal) =>
-        refusal === '' ? this.reopen().pipe(map(() => refusal)) : of(refusal),
+        refusal === ''
+          ? this.openSettings(this.launcher.screenPage()).pipe(map(() => refusal))
+          : of(refusal),
       ),
     );
-  }
-
-  private reopen(): Observable<void> {
-    return this.openSettings(this.launcher.screenPage());
   }
 
   /**
@@ -323,15 +327,4 @@ export class SettingsStore {
       orRefusal((refusal) => of(refusal)),
     );
   }
-}
-
-function serverValue(model: Model | undefined, id: string): string | undefined {
-  for (const tab of model?.tabs ?? []) {
-    for (const field of tab.fields) {
-      if (field.id === id) {
-        return field.value;
-      }
-    }
-  }
-  return undefined;
 }

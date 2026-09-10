@@ -44,6 +44,9 @@ describe('the settings store', () => {
           saves++;
           order.push('save');
         }
+        if (method.name === 'DispatchAction') {
+          order.push('press');
+        }
         return Promise.resolve({ message: { saved: true, refusal: '' }, stream: false });
       },
       stream: () => Promise.reject(new Error('no streams here')),
@@ -118,6 +121,19 @@ describe('the settings store', () => {
     await done;
     expect(sent).toHaveLength(0);
     expect(saves).toBe(1);
+  });
+
+  // A name typed and its button pressed inside the quarter second used to reach
+  // the launcher after the press, which saved nothing and said to name it first.
+  it('sends what is still in flight before it presses a button', async () => {
+    store.change('loadout.name', 'pop');
+    const done = store.dispatch('loadout.save').toPromise();
+
+    await vi.runAllTimersAsync();
+    await done;
+
+    expect(order.indexOf('press')).toBeGreaterThan(0);
+    expect(order.slice(0, order.indexOf('press'))).toContain('change loadout.name=pop');
   });
 
   it('has nothing to save until something is answered', () => {

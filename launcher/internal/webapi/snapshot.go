@@ -53,6 +53,7 @@ type MissionPoolRow struct {
 	Waves         string `json:"waves"`
 	Compatibility string `json:"compatibility"`
 	Mods          string `json:"mods"`
+	Tier          string `json:"tier"`
 }
 
 func (a *App) Snapshot() Snapshot {
@@ -143,6 +144,7 @@ func missionPoolRows(s form.State, availablePacks, importedPacks []string) []Mis
 			Map:           played.Name,
 			Name:          mission.Name,
 			Waves:         fmt.Sprintf("1–%d", mission.Waves),
+			Tier:          mission.Difficulty.String(),
 			Compatibility: compatibility,
 			Mods:          mods,
 		})

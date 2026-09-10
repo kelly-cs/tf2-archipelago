@@ -4,6 +4,10 @@
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+
+  /* The sticky footer's height, so a page with its own sticky bar (Save and
+     Discard, Apply) sits above it rather than under it. */
+  --footer-height: 38px;
 }
 
 header {
@@ -84,4 +88,30 @@ main {
   main {
     padding: var(--gap-xl);
   }
+}
+
+/* Sticky, one line, and out of the way: a page that ends with buttons ends
+   above it, by --footer-height. */
+footer {
+  position: sticky;
+  bottom: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  height: var(--footer-height);
+  padding: 0 20px;
+  box-sizing: border-box;
+  background: var(--surface-header);
+  border-top: 1px solid var(--line);
+  font-size: var(--text-sm);
+}
+
+footer a {
+  color: var(--text-dim);
+  text-decoration: none;
+}
+
+footer a:hover {
+  color: var(--accent);
 }

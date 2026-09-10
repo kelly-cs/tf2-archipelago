@@ -364,7 +364,11 @@ func savedLoadoutOptions(nothing string) func(State, Env) []Option {
 	return func(s State, _ Env) []Option {
 		out := []Option{{Value: "", Label: nothing}}
 		for _, name := range slices.Sorted(mapKeys(s.Settings.SrcdsBotCustomLoadouts)) {
-			out = append(out, Option{Value: name, Label: name})
+			label := name
+			if class, ok := botloadout.ClassByKey(s.Settings.SrcdsBotCustomLoadouts[name].Class); ok {
+				label = name + " (" + class.Name + ")"
+			}
+			out = append(out, Option{Value: name, Label: label})
 		}
 		return out
 	}
