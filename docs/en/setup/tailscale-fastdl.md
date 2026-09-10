@@ -41,6 +41,35 @@ Install and sign in to Tailscale on the server using its
 
 If it prints an approval URL, open that URL in any browser, approve Funnel and
 run the command again. This works over SSH; it does not depend on `xdg-open`.
+It is the preferred setup method because the launcher also removes its temporary
+authorization-check route once the check finishes.
+
+If Tailscale answers `Access denied: serve config denied`, allow your normal
+user to manage Funnel with this one-time command:
+
+```sh
+sudo tailscale set --operator=$USER
+```
+
+Then rerun `./tf2ap-linux-amd64 -setup-funnel` without `sudo`. The launcher
+itself does not need to run as root.
+
+To perform the same authorization probe manually, quote the complete static
+text target because it contains spaces:
+
+```sh
+tailscale funnel --yes --bg --https=443 \
+  --set-path=/tf2ap-funnel-setup \
+  "text:TF2 Archipelago Funnel setup"
+```
+
+Without the quotes, the shell passes `text:TF2`, `Archipelago`, `Funnel`, and
+`setup` as four targets, and Tailscale reports `invalid number of arguments
+(4)`. Remove the temporary manual route after Funnel is authorized:
+
+```sh
+tailscale funnel --https=443 --set-path=/tf2ap-funnel-setup off
+```
 
 Choose either way in:
 
@@ -69,8 +98,31 @@ https://server-name.example-tailnet.ts.net/tf
 
 The local HTTP listener is loopback-only. If login or Funnel authorization has
 expired, startup stops before SRCDS starts and prints the repair or approval
-instructions. When the server stops, the launcher removes only `/tf`; the
-saved setting and Tailscale login remain ready for the next start.
+instructions.
+
+## Route cleanup
+
+The launcher owns two narrowly scoped Funnel routes and leaves other Tailscale
+Serve and Funnel configuration alone:
+
+- `-setup-funnel` briefly creates `/tf2ap-funnel-setup` to check authorization,
+  then removes it immediately when the check succeeds.
+- A running server uses `/tf`. The launcher removes it on **Stop**, **Restart**,
+  **Quit**, Ctrl+C or SIGTERM, normal server exit, and a later startup failure
+  after the route was created. Restart creates a fresh route for the new run.
+
+Cleanup has its own five-second timeout, so it still runs after the server's
+shutdown signal cancels the run. A forced process kill, power loss, or Tailscale
+failure can prevent any program from cleaning up. The launcher reports a failed
+cleanup in its log; remove a stale route manually with:
+
+```sh
+tailscale funnel --https=443 --set-path=/tf off
+```
+
+This command removes only the launcher's `/tf` route. It does not disable
+Tailscale, sign the machine out, or erase unrelated routes. The saved setting
+remains enabled, so the launcher recreates `/tf` on the next Start.
 
 ## Docker Compose
 

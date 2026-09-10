@@ -15,6 +15,7 @@ import (
 	"github.com/m-this/tf2-archipelago/launcher/internal/gen/tf2ap/launcher/v1/launcherv1connect"
 	"github.com/m-this/tf2-archipelago/launcher/internal/session"
 	"github.com/m-this/tf2-archipelago/launcher/internal/settings"
+	"github.com/m-this/tf2-archipelago/launcher/internal/tailscalefastdl"
 )
 
 // served starts the real mux over a real App and answers with clients for it.
@@ -315,5 +316,45 @@ func TestTheArchiveComesFromTheLauncherNotTheBridge(t *testing.T) {
 	// bridge's own answer is the only one there is.
 	if got := missions[1].Source; got != "left alone" {
 		t.Errorf("an unknown mission reads as %q, want the bridge's own answer", got)
+	}
+}
+
+/*
+A Funnel failure has to say what to do about it.
+
+Taken from kelly-cs's #45. The usual cause is not a broken tailnet: it is
+tailscaled refusing because this OS user was never made an operator. A browser
+cannot run the fix and the launcher will not ask for root, so the only useful
+answer is the exact command, in the message.
+*/
+func TestFunnelSaysHowToFixTheUsualFailure(t *testing.T) {
+	restore := authorizeFunnel
+	t.Cleanup(func() { authorizeFunnel = restore })
+
+	app := New(settings.Defaults(), nil)
+	service := LauncherRPC{App: app}
+
+	authorizeFunnel = func(context.Context) (tailscalefastdl.Authorization, error) {
+		return tailscalefastdl.Authorization{}, &tailscalefastdl.OperatorRequiredError{}
+	}
+	_, err := service.ApproveFunnel(context.Background(), connect.NewRequest(&launcherv1.ApproveFunnelRequest{}))
+	if err == nil {
+		t.Fatal("an unauthorized operator answered with no error")
+	}
+	said := err.Error()
+	for _, want := range []string{"sudo tailscale set --operator=$USER", "-setup-funnel"} {
+		if !strings.Contains(said, want) {
+			t.Errorf("the answer does not name %q: %s", want, said)
+		}
+	}
+
+	// Anything else still carries Tailscale's own words, because they are the
+	// only thing that says which of the other failures it was.
+	authorizeFunnel = func(context.Context) (tailscalefastdl.Authorization, error) {
+		return tailscalefastdl.Authorization{}, errors.New("tailscaled is not running")
+	}
+	_, err = service.ApproveFunnel(context.Background(), connect.NewRequest(&launcherv1.ApproveFunnelRequest{}))
+	if err == nil || !strings.Contains(err.Error(), "tailscaled is not running") {
+		t.Errorf("a different failure lost what Tailscale said: %v", err)
 	}
 }

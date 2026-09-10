@@ -84,6 +84,22 @@ func TestAuthorizeReturnsTheBrowserApproval(t *testing.T) {
 	}
 }
 
+func TestAuthorizeExplainsHowToGrantOperatorAccess(t *testing.T) {
+	run := func(context.Context, string, ...string) ([]byte, error) {
+		return nil, errors.New("sending serve config: access denied: serve config denied\nuse 'sudo tailscale funnel --set-path=/tf text:some text'\nto not require root, use 'sudo tailscale set --operator=$USER' once")
+	}
+	_, err := authorize(context.Background(), "tailscale", run)
+	if _, ok := errors.AsType[*OperatorRequiredError](err); !ok {
+		t.Fatalf("error = %v, want OperatorRequiredError", err)
+	}
+	if !strings.Contains(err.Error(), "sudo tailscale set --operator=$USER") {
+		t.Fatalf("operator guidance is missing the one-time command: %v", err)
+	}
+	if strings.Contains(err.Error(), "sudo tailscale funnel") {
+		t.Fatalf("operator guidance repeats the malformed Funnel command: %v", err)
+	}
+}
+
 func TestAuthorizeRemovesItsPublicSetupPath(t *testing.T) {
 	var calls [][]string
 	run := func(_ context.Context, _ string, args ...string) ([]byte, error) {
@@ -97,8 +113,12 @@ func TestAuthorizeRemovesItsPublicSetupPath(t *testing.T) {
 	if !got.Ready || got.ApprovalURL != "" {
 		t.Fatalf("authorization = %#v", got)
 	}
-	if len(calls) != 2 || calls[1][len(calls[1])-1] != "off" {
-		t.Fatalf("calls = %#v", calls)
+	wantCleanup := []string{"funnel", "--https=443", "--set-path=/tf2ap-funnel-setup", "off"}
+	if len(calls) != 2 {
+		t.Fatalf("calls = %#v, want two calls", calls)
+	}
+	if !reflect.DeepEqual(calls[1], wantCleanup) {
+		t.Fatalf("cleanup call = %#v, want %#v; all calls = %#v", calls[1], wantCleanup, calls)
 	}
 }
 

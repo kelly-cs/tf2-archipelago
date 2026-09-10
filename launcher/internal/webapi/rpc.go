@@ -2,6 +2,10 @@ package webapi
 
 import (
 	"context"
+	"errors"
+	"os"
+	"strconv"
+	"strings"
 	"time"
 
 	"connectrpc.com/connect"
@@ -73,9 +77,9 @@ func (s LauncherRPC) SetMission(_ context.Context, request *connect.Request[laun
 func (s LauncherRPC) ApproveFunnel(ctx context.Context, _ *connect.Request[launcherv1.ApproveFunnelRequest]) (*connect.Response[launcherv1.ApproveFunnelResponse], error) {
 	ctx, cancel := context.WithTimeout(ctx, funnelGrace)
 	defer cancel()
-	result, err := tailscalefastdl.Authorize(ctx)
+	result, err := authorizeFunnel(ctx)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeUnavailable, err)
+		return nil, connect.NewError(connect.CodeUnavailable, errors.New(funnelSetupAdvice(err)))
 	}
 	response := &launcherv1.ApproveFunnelResponse{ApprovalUrl: result.ApprovalURL}
 	if result.ApprovalURL == "" {
@@ -129,4 +133,43 @@ func (s SettingsRPC) SaveSettings(_ context.Context, request *connect.Request[la
 func (s SettingsRPC) CancelSettings(context.Context, *connect.Request[launcherv1.CancelSettingsRequest]) (*connect.Response[launcherv1.CancelSettingsResponse], error) {
 	s.App.CancelSettings()
 	return connect.NewResponse(&launcherv1.CancelSettingsResponse{}), nil
+}
+
+// authorizeFunnel is a variable so a test can answer for Tailscale without one
+// installed. Nothing else replaces it.
+var authorizeFunnel = tailscalefastdl.Authorize
+
+/*
+funnelSetupAdvice turns a Funnel failure into something the player can act on.
+
+Taken from kelly-cs's #45. The common failure is not a broken tailnet: it is
+tailscaled refusing because this OS user was never made an operator, and the fix
+is one command run once. A browser cannot run it, and the launcher will not ask
+for root, so the screen has to name it exactly.
+*/
+func funnelSetupAdvice(err error) string {
+	executable, pathErr := os.Executable()
+	if pathErr != nil {
+		executable = "tf2ap-linux-amd64"
+	}
+	command := strconv.Quote(executable) + " -setup-funnel"
+
+	operatorRequired := &tailscalefastdl.OperatorRequiredError{}
+	if errors.As(err, &operatorRequired) {
+		return "Tailscale needs one-time permission for your user to manage Funnel.\n\n" +
+			"Run this once in a terminal:\n\n    sudo tailscale set --operator=$USER\n\n" +
+			"Then run the launcher normally; -setup-funnel performs the Funnel command " +
+			"automatically:\n\n    " + command
+	}
+
+	// Tailscale's own first line, unless it only repeats the words the sentence
+	// above already used, in which case it says nothing worth reading.
+	detail := strings.TrimSpace(strings.Split(err.Error(), "\n")[0])
+	if detail == "" || strings.Contains(strings.ToLower(detail), "tailscale funnel") {
+		detail = "Tailscale could not complete the setup check."
+	}
+	return "The launcher could not finish Tailscale Funnel setup.\n\n" +
+		"Run it from a terminal instead; -setup-funnel performs the Funnel command " +
+		"automatically and prints any approval URL:\n\n    " + command +
+		"\n\nTailscale said: " + detail
 }
