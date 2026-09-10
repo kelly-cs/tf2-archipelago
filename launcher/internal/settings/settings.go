@@ -24,8 +24,8 @@ type Settings struct {
 	// live. Default is <home>/tf2-archipelago.
 	InstallRoot string `json:"install_root"`
 
-	// ArchipelagoDir is where the Archipelago app is, when it is not where its
-	// installer puts it. Empty means look in the usual places.
+	// ArchipelagoDir is where the Archipelago app is, when it is not in a usual
+	// location. On Linux this may name the AppImage itself. Empty auto-detects.
 	ArchipelagoDir string `json:"archipelago_dir,omitempty"`
 
 	// CommunityContentDir holds downloaded or user-supplied community archives.
