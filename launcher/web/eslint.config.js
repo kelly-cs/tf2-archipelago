@@ -132,6 +132,22 @@ module.exports = defineConfig([
     },
   },
   {
+    // The browser tests are not Angular code. Playwright's whole API is
+    // Promise-based and reads as async/await; there is no change detection here
+    // to keep off the microtask queue and nothing to hold in a signal. The rest
+    // of the rules stay.
+    files: ['e2e/**/*.ts', 'playwright.config.ts'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: 'TSUnknownKeyword',
+          message: 'No bare `unknown` — use a concrete type.',
+        },
+      ],
+    },
+  },
+  {
     files: ['**/*.html'],
     extends: [...angular.configs.templateRecommended, ...angular.configs.templateAccessibility],
     rules: {},

@@ -100,8 +100,9 @@ GO_SRC := $$(find . -type f -name '*.go' -not -path './deploy/bots/build/*' -not
         go-version-check \
         launcher launcher-assets launcher-assets-common \
         proto proto-lint proto-fmt proto-deps \
-        web-install web-build web-lint web-check \
-        web-install-direct web-build-direct web-lint-direct web-check-direct \
+        web-install web-build web-lint web-test web-e2e web-check \
+        web-install-direct web-build-direct web-lint-direct web-test-direct \
+        web-e2e-direct web-check-direct \
         launcher-linux launcher-assets-linux captures embed-placeholders toolchain
 
 help:
@@ -114,6 +115,7 @@ help:
 	@echo "  make check         The gate: everything CI runs"
 	@echo "  make proto         Regenerate the launcher contract from proto/"
 	@echo "  make web-build     Build the browser interface into the launcher"
+	@echo "  make web-e2e       Drive the interface in a browser against the fake launcher"
 	@echo "  make export        Regenerate apworld/tf2_mvm/data from gamedata/"
 	@echo "  make community-check Validate community.json against community-content/tf"
 	@echo "  make plugin        Compile the SourceMod plugin"
@@ -243,7 +245,18 @@ web-lint: web-install
 	$(NPM) run lint
 	$(NPM) run format:check
 
-web-check: web-lint web-build
+web-test: proto web-install
+	$(NPM) test
+
+# The browser tests drive the real app against launcher/cmd/fakelauncher: the
+# real handlers, the real WebSocket and the real form model, with no game server
+# behind them. Playwright brings the fake up itself, so this needs a browser on
+# the machine and not much else. Not in `check`: the browser is a 150 MB
+# download that no other target needs, and CI installs it in the web job.
+web-e2e: web-build
+	cd $(WEB) && npx playwright test
+
+web-check: web-lint web-test web-build
 
 # Direct targets: host npm, for CI, which already runs inside a node image, and
 # for a developer who would rather not pay the container round trip.
@@ -257,7 +270,14 @@ web-lint-direct: web-install-direct
 	cd $(WEB) && npm run lint
 	cd $(WEB) && npm run format:check
 
-web-check-direct: web-lint-direct web-build-direct
+web-test-direct: proto web-install-direct
+	cd $(WEB) && npm test
+
+web-e2e-direct: web-build-direct
+	cd $(WEB) && npx playwright install --with-deps chromium
+	cd $(WEB) && npx playwright test
+
+web-check-direct: web-lint-direct web-test-direct web-build-direct
 
 # Not in `check`: every analyzer it registers is in golangci-lint's govet.
 vet: embed-placeholders proto

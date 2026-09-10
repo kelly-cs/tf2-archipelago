@@ -9,7 +9,7 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { applyEach, disabled, form } from '@angular/forms/signals';
-import { Subject, concatMap, debounceTime, groupBy, mergeMap, tap } from 'rxjs';
+import { Subject, concatMap, tap } from 'rxjs';
 
 import { MissionTable } from '@app/settings/components/mission-table';
 import { SettingsRow } from '@app/settings/components/settings-row';
@@ -19,11 +19,6 @@ import { EmptyState } from '@app/ui/empty-state';
 import { Notice } from '@app/ui/notice';
 import { SearchBox } from '@app/ui/search-box';
 import { Field } from '@gen/tf2ap/launcher/v1/form_pb';
-
-// How long to wait after the last keystroke before telling the launcher. Every
-// change rebuilds the model, so a call per character would be a model per
-// character.
-const settleMs = 250;
 
 /** Placed is a row and the section it was found in. */
 interface Placed {
@@ -118,26 +113,9 @@ export class SettingsTabPage {
       visit, a file saved. The launcher says the rest on the stream. */
   readonly said = signal('');
 
-  readonly typed = new Subject<{ id: string; value: string }>();
   readonly fired = new Subject<string>();
 
   constructor() {
-    // Grouped by row: two rows edited in the same breath both land, and two
-    // edits of the same row send only the last. concatMap inside the group so
-    // one row's answers reach the launcher in the order they were given.
-    this.typed
-      .pipe(
-        groupBy((change) => change.id),
-        mergeMap((ofOneRow) =>
-          ofOneRow.pipe(
-            debounceTime(settleMs),
-            concatMap((change) => this.store.change(change.id, change.value)),
-          ),
-        ),
-        takeUntilDestroyed(),
-      )
-      .subscribe();
-
     this.fired
       .pipe(
         concatMap((id) => this.actions.press(id)),
@@ -145,6 +123,10 @@ export class SettingsTabPage {
         takeUntilDestroyed(),
       )
       .subscribe();
+  }
+
+  answer(id: string, value: string): void {
+    this.store.change(id, value);
   }
 
   value(id: string): string {

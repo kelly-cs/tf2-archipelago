@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { Subject, exhaustMap, tap } from 'rxjs';
@@ -38,9 +38,9 @@ export class SettingsPage {
     })),
   );
 
-  readonly refusal = new Subject<string>();
-  readonly refusalText = computed(() => this.refused);
-  private refused = '';
+  /** What the launcher refused the last save for, empty when it took it. A
+      signal, not a field: a computed over a field never runs again. */
+  readonly refusal = signal('');
 
   readonly openScreen = new Subject<void>();
   readonly save = new Subject<boolean>();
@@ -58,7 +58,7 @@ export class SettingsPage {
     this.save
       .pipe(
         exhaustMap((restart) => this.store.save(restart)),
-        tap((refusal) => (this.refused = refusal)),
+        tap((refusal) => this.refusal.set(refusal)),
         takeUntilDestroyed(),
       )
       .subscribe();

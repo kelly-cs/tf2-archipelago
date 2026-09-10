@@ -14,8 +14,8 @@
     </nav>
 
     <div class="rows">
-      @if (refusalText()) {
-        <app-notice tone="bad">{{ refusalText() }}</app-notice>
+      @if (refusal()) {
+        <app-notice tone="bad">{{ refusal() }}</app-notice>
       }
       <router-outlet />
 

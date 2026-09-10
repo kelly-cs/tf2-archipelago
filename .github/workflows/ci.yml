@@ -113,10 +113,25 @@ jobs:
       - name: buf lint and format
         run: make proto-lint
 
-      # eslint, prettier and `ng build` under the 500 kB initial budget, which
-      # is an error rather than a warning: the budget is the point.
-      - name: eslint, prettier and the bundle budget
+      # eslint, prettier, the component tests, and `ng build` under the 500 kB
+      # initial budget, which is an error rather than a warning: the budget is
+      # the point.
+      - name: eslint, prettier, vitest and the bundle budget
         run: make web-check-direct
+
+      # The browser tests drive the real app against the fake launcher: the real
+      # handlers, the real WebSocket and the real form model. They are here
+      # rather than in `make check` because the browser is a 150 MB download
+      # that no other target needs.
+      - name: Playwright against the fake launcher
+        run: make web-e2e-direct
+
+      - if: failure()
+        uses: actions/upload-artifact@v5
+        with:
+          name: playwright-report
+          path: launcher/web/playwright-report
+          retention-days: 7
 
   apworld:
     runs-on: ubuntu-latest

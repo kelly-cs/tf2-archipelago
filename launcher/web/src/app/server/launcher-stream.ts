@@ -1,6 +1,17 @@
 import { Injectable } from '@angular/core';
 import { fromBinary } from '@bufbuild/protobuf';
-import { Observable, catchError, map, of, retry, timer } from 'rxjs';
+import {
+  Observable,
+  catchError,
+  distinctUntilChanged,
+  fromEvent,
+  map,
+  of,
+  retry,
+  startWith,
+  switchMap,
+  timer,
+} from 'rxjs';
 import { webSocket } from 'rxjs/webSocket';
 
 import { StreamMessage, StreamMessageSchema } from '@gen/tf2ap/launcher/v1/stream_pb';
@@ -36,6 +47,18 @@ export class LauncherStream {
    * because the shell has to say so rather than fail.
    */
   frames(): Observable<Frame> {
+    return visible().pipe(
+      switchMap((showing) => (showing ? this.socket() : of<Frame>())),
+      catchError(() => of<Frame>({ lost: true })),
+    );
+  }
+
+  /**
+   * The socket itself. Opening it is what asks the launcher for the state, so
+   * every time the tab comes back the first frame is a whole snapshot and
+   * nothing has to be caught up on.
+   */
+  private socket(): Observable<Frame> {
     return webSocket<StreamMessage>({
       url: streamURL(),
       binaryType: 'arraybuffer',
@@ -48,9 +71,25 @@ export class LauncherStream {
         resetOnSuccess: true,
       }),
       map((message): Frame => message),
-      catchError(() => of<Frame>({ lost: true })),
     );
   }
+}
+
+/**
+ * Whether the tab is in front of the player.
+ *
+ * A launcher tab is left open for a whole evening, usually behind the game. A
+ * hidden tab is told nothing: the socket is closed, the launcher drops the
+ * listener, and no frame is decoded for a screen nobody is looking at. Coming
+ * back opens it again, and the first frame is the whole state, so there is
+ * nothing to replay and nothing was missed.
+ */
+function visible(): Observable<boolean> {
+  return fromEvent(document, 'visibilitychange').pipe(
+    map(() => document.visibilityState === 'visible'),
+    startWith(document.visibilityState === 'visible'),
+    distinctUntilChanged(),
+  );
 }
 
 function streamURL(): string {

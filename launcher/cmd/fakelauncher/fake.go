@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/http"
 	"slices"
-	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -246,30 +246,47 @@ func fakeSession(running bool) session.Snapshot {
 	}
 }
 
-// fakePool is the mission table with the compatibility words the real launcher
-// uses. The tick still lives on the form row, so the table only carries what a
-// human-readable label would otherwise have to be parsed for.
+// fakePool is the mission table, built from the rows the real form declares.
+//
+// The field id has to be the real one: the tick lives on the form row, so a
+// table of invented ids would draw ticks that go nowhere and prove nothing. The
+// columns beside it are made up, because what they hold on a real machine
+// depends on which asset packs are on disk.
 func fakePool(state form.State) []webapi.MissionPoolRow {
-	rows := make([]webapi.MissionPoolRow, 0, 8)
-	for i, mission := range []struct{ name, place, waves, compat, mods string }{
-		{"Doe's Doom", "Decoy", "1-7", "Ready", "—"},
-		{"Caliginous Caper", "Coal Town", "1-6", "Ready", "—"},
-		{"Mean Machines", "Mannworks", "1-7", "Ready", "—"},
-		{"Bavarian Botbash", "Rottenburg", "1-7", "Ready", "—"},
-		{"Ghost Town", "Ghost Town", "1-6", "Below Advanced floor", "—"},
-		{"Hamlet Hostility", "Hamlet", "1-6", "Medieval", "—"},
-		{"Trouble in Mann Town", "Coal Town", "1-6", "Community missions are off", "SigMod"},
-	} {
-		rows = append(rows, webapi.MissionPoolRow{
-			Field:         "missions.pool.fake_" + strconv.Itoa(i),
-			Source:        "Valve",
-			Map:           mission.place,
-			Name:          mission.name,
-			Waves:         mission.waves,
-			Compatibility: mission.compat,
-			Mods:          mission.mods,
-		})
+	compatibility := []string{"Ready", "Ready", "Ready", "Below Advanced floor", "Medieval", "Community missions are off"}
+	rows := make([]webapi.MissionPoolRow, 0, 32)
+	for _, tab := range form.Build(state, form.Env{}).Tabs {
+		for _, field := range tab.Fields {
+			if !strings.HasPrefix(field.ID, "missions.pool.") {
+				continue
+			}
+			source, name, place := readPoolLabel(field.Label)
+			rows = append(rows, webapi.MissionPoolRow{
+				Field:         field.ID,
+				Source:        source,
+				Map:           place,
+				Name:          name,
+				Waves:         "1-6",
+				Compatibility: compatibility[len(rows)%len(compatibility)],
+				Mods:          "-",
+			})
+		}
 	}
-	_ = state
 	return rows
+}
+
+// readPoolLabel takes "[Valve] Doe's Drill (mvm_decoy)" apart. The label is the
+// one thing that carries all three, which is why MissionPoolRow exists on the
+// real launcher: a browser should not have to parse a sentence written for a
+// person.
+func readPoolLabel(label string) (source, name, place string) {
+	source, rest, found := strings.Cut(strings.TrimPrefix(label, "["), "] ")
+	if !found {
+		return "Valve", label, ""
+	}
+	name, place, found = strings.Cut(rest, " (")
+	if !found {
+		return source, rest, ""
+	}
+	return source, name, strings.TrimSuffix(place, ")")
 }

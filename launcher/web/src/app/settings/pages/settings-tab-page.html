@@ -23,7 +23,7 @@
             [field]="row.field"
             [value]="value(row.field.id)"
             [control]="page.rows[indexOf(row.field.id)].value"
-            (typed)="typed.next({ id: row.field.id, value: $event })"
+            (typed)="answer(row.field.id, $event)"
             (fired)="fired.next($event)"
           />
         }
@@ -36,6 +36,6 @@
   }
 
   @if (missionTabs()) {
-    <app-mission-table (typed)="typed.next($event)" />
+    <app-mission-table (typed)="answer($event.id, $event.value)" />
   }
 }
