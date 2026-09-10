@@ -249,6 +249,14 @@ func TestEveryWeaponIsFoundByItsDefinition(t *testing.T) {
 	}
 }
 
+func TestBuilderToolboxResolvesToTheConstructionPDA(t *testing.T) {
+	want := int32(weaponNamed(t, "Construction PDA").ID - 1)
+	got := driver{body: "    printnum(WeaponBuffs_ForDefinition(28));\n"}.run(t)
+	if len(got) != 1 || got[0] != want {
+		t.Fatalf("builder toolbox definition 28 resolved to %v, want Construction PDA index %d", got, want)
+	}
+}
+
 // max32 is the plugin's own floor, written out in Go rather than reached for,
 // because the point of the test above is that the two agree.
 func max32(a, b float32) float32 {

@@ -30,3 +30,9 @@ func generatorPath(appDir string) string {
 
 // generatorCommand runs the frozen exe as it is.
 func generatorCommand(exe string) (string, []string) { return exe, nil }
+
+func standaloneApp(string) bool { return false }
+
+func apworldInstallDir(appLocation string) (string, error) {
+	return filepath.Join(appLocation, "custom_worlds"), nil
+}

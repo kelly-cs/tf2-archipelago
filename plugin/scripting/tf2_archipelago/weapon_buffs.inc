@@ -3,6 +3,7 @@
 #define DamageEffect 0
 #define ProjectileCountEffect 5
 #define DestroyProjectilesEffect 19
+#define DisposableSentryEffect 36
 #define FireRateEffect 1
 #define ClipSizeEffect 3
 // The multiplier a melee weapon's fire rate never goes below: +50% and no more.
@@ -39,6 +40,7 @@
 #define EnergyClipSizeAttribute "clip size bonus upgrade"
 #define EnergyClipSizeAttributeClass "mult_clipsize_upgrade"
 #define WeaponBuffProviderRetrySeconds 5.0
+#define WeaponBuffProviderTargetName "tf2ap_weapon_buff_provider"
 #define ItemChargeMeterMaximum 100.0
 #define RocketPackReadyCharge 50.0
 #define StompBaseFallDamageMultiplier 3.0
@@ -51,6 +53,12 @@
 int g_WeaponEffectLevels[WeaponCount][WeaponEffectCount];
 int g_WeaponBuffProviderRef[MAXPLAYERS + 1];
 float g_WeaponBuffProviderRetryAt[MAXPLAYERS + 1];
+bool g_WeaponBuffAtUpgradeStation[MAXPLAYERS + 1];
+int g_DisposableSentryLastSwitchArgumentRef[MAXPLAYERS + 1];
+int g_DisposableSentryLastSwitchActiveRef[MAXPLAYERS + 1];
+int g_DisposableSentryCanBuildCalls[MAXPLAYERS + 1];
+int g_DisposableSentryCanBuildOverrides[MAXPLAYERS + 1];
+int g_DisposableSentryLastCanBuildResult[MAXPLAYERS + 1];
 ConVar g_WeaponBuffProjectileDebug;
 ConVar g_WeaponBuffMirrorRobots;
 ConVar g_WeaponBuffDefenderBots;
@@ -103,6 +111,7 @@ static void WeaponBuffs_DebugLog(const char[] format, any ...)
 
 void WeaponBuffs_Init()
 {
+    WeaponBuffs_RemoveStaleProviders();
     g_WeaponBuffProjectileDebug = CreateConVar("tf2ap_projectile_debug", "0",
         "Log extra-projectile creation and lifetime", FCVAR_NONE, true, 0.0, true, 1.0);
     CreateTimer(1.0, Timer_WeaponBuffHealthRegen, _, TIMER_REPEAT);
@@ -115,6 +124,7 @@ void WeaponBuffs_Init()
     g_WeaponBuffDefenderBots.AddChangeHook(WeaponBuffs_DefenderBotsChanged);
     HookEvent("player_death", WeaponBuffs_PlayerDeath);
     HookEvent("rocketpack_launch", WeaponBuffs_RocketPackLaunch);
+    WeaponBuffs_InitDisposableSentryHook();
     WeaponBuffs_InitProjectileCalls();
     UserMsg jarated = GetUserMessageId("PlayerJarated");
     if (jarated == INVALID_MESSAGE_ID || GetUserMessageType() != UM_BitBuf)
@@ -137,6 +147,195 @@ void WeaponBuffs_Init()
     {
         WeaponBuffs_HookTank(tank);
     }
+}
+
+static bool WeaponBuffs_IsPrivateProvider(int entity)
+{
+    if (entity <= MaxClients || !IsValidEntity(entity)
+        || !HasEntProp(entity, Prop_Send, "m_iItemDefinitionIndex")
+        || GetEntProp(entity, Prop_Send, "m_iItemDefinitionIndex") != 940
+        || !HasEntProp(entity, Prop_Send, "m_ProviderType")
+        || GetEntProp(entity, Prop_Send, "m_ProviderType") != 0
+        || GetEntityRenderMode(entity) != RENDER_NONE)
+    {
+        return false;
+    }
+    char targetname[48];
+    if (HasEntProp(entity, Prop_Data, "m_iName"))
+    {
+        GetEntPropString(entity, Prop_Data, "m_iName", targetname,
+            sizeof(targetname));
+    }
+    // Legacy providers had no targetname. Their invisible, generic, level-one
+    // Ghostly Gibus shape is otherwise unused and safe to retire on startup.
+    return StrEqual(targetname, WeaponBuffProviderTargetName)
+        || (HasEntProp(entity, Prop_Send, "m_iEntityLevel")
+            && GetEntProp(entity, Prop_Send, "m_iEntityLevel") == 1);
+}
+
+static int WeaponBuffs_PrivateProviderCount()
+{
+    int count;
+    int entity = -1;
+    while ((entity = FindEntityByClassname(entity, "tf_wearable")) != -1)
+    {
+        if (WeaponBuffs_IsPrivateProvider(entity))
+        {
+            count++;
+        }
+    }
+    return count;
+}
+
+static void WeaponBuffs_RemoveStaleProviders()
+{
+    int entity = -1;
+    while ((entity = FindEntityByClassname(entity, "tf_wearable")) != -1)
+    {
+        if (WeaponBuffs_IsPrivateProvider(entity))
+        {
+            RemoveEntity(entity);
+        }
+    }
+}
+
+void WeaponBuffs_Shutdown()
+{
+    for (int client = 1; client <= MaxClients; client++)
+    {
+        int provider = EntRefToEntIndex(g_WeaponBuffProviderRef[client]);
+        g_WeaponBuffProviderRef[client] = INVALID_ENT_REFERENCE;
+        if (provider > MaxClients && IsValidEntity(provider))
+        {
+            RemoveEntity(provider);
+        }
+    }
+}
+
+// CTFPlayer::CanBuild result values from tf_shareddefs.h. The hook changes only
+// the ordinary one-sentry limit; every other refusal remains the game's.
+#define CanBuild_Allowed 0
+#define CanBuild_LimitReached 2
+
+static void WeaponBuffs_InitDisposableSentryHook()
+{
+    GameData config = LoadGameConfigFile("tf2_archipelago");
+    if (config == null)
+    {
+        LogError("Disposable-sentry buffs disabled: tf2_archipelago gamedata is missing.");
+        return;
+    }
+    DynamicDetour hook = DynamicDetour.FromConf(config, "CTFPlayer::CanBuild");
+    delete config;
+    if (hook == null || !hook.Enable(Hook_Post, WeaponBuffs_CanBuildPost))
+    {
+        LogError("Disposable-sentry buffs disabled: CTFPlayer::CanBuild could not be hooked.");
+    }
+    delete hook;
+}
+
+static int WeaponBuffs_DisposableSentryLevels()
+{
+    int constructionPDA = WeaponBuffs_ForDefinition(25);
+    return constructionPDA >= 0
+        ? g_WeaponEffectLevels[constructionPDA][DisposableSentryEffect] : 0;
+}
+
+static int WeaponBuffs_DirectDisposableSentryLevels(int entity)
+{
+    if (entity < 1 || !IsValidEntity(entity))
+    {
+        return 0;
+    }
+    Address attribute = TF2Attrib_GetByName(entity, "engy disposable sentries");
+    return attribute == Address_Null ? 0
+        : RoundToFloor(TF2Attrib_GetValue(attribute));
+}
+
+static int WeaponBuffs_NativeDisposableSentryLevels(int client)
+{
+    // AP never writes this attribute onto the player or his loadout entities,
+    // so direct values are exactly the ranks owned by Valve's MvM station.
+    int levels = WeaponBuffs_DirectDisposableSentryLevels(client);
+    for (int slot = 0; slot <= 5; slot++)
+    {
+        levels += WeaponBuffs_DirectDisposableSentryLevels(
+            WeaponBuffs_EntityInLoadoutSlot(client, slot));
+    }
+    return levels;
+}
+
+static bool WeaponBuffs_HasDisposableSentryRoom(int client)
+{
+    int apLevels = WeaponBuffs_DisposableSentryLevels();
+    if (apLevels <= 0)
+    {
+        return false;
+    }
+
+    // AP never supplies this attribute. What remains is exactly the upgrade
+    // station's allowance, appended to the levels held by the multiworld.
+    int allowed = apLevels + WeaponBuffs_NativeDisposableSentryLevels(client);
+    int disposable;
+    bool hasPrimary;
+    int sentry = -1;
+    while ((sentry = FindEntityByClassname(sentry, "obj_sentrygun")) != -1)
+    {
+        if (GetEntPropEnt(sentry, Prop_Send, "m_hBuilder") != client)
+        {
+            continue;
+        }
+        // Placement ghosts have a builder but are not in the player's object
+        // list yet. Counting one would turn the first real sentry disposable.
+        if (HasEntProp(sentry, Prop_Send, "m_bPlacing")
+            && GetEntProp(sentry, Prop_Send, "m_bPlacing") != 0)
+        {
+            continue;
+        }
+        if (GetEntProp(sentry, Prop_Send, "m_bDisposableBuilding") != 0)
+        {
+            disposable++;
+        }
+        else
+        {
+            hasPrimary = true;
+        }
+    }
+    return hasPrimary && disposable < allowed;
+}
+
+public MRESReturn WeaponBuffs_CanBuildPost(int client, DHookReturn result,
+    DHookParam params)
+{
+    if (client >= 1 && client <= MaxClients
+        && params.Get(1) == view_as<int>(TFObject_Sentry))
+    {
+        g_DisposableSentryCanBuildCalls[client]++;
+        g_DisposableSentryLastCanBuildResult[client] = result.Value;
+    }
+    if (result.Value != CanBuild_LimitReached
+        || params.Get(1) != view_as<int>(TFObject_Sentry)
+        || client < 1 || client > MaxClients || !IsClientInGame(client)
+        || !WeaponBuffs_CanUseRunBuffs(client)
+        || !WeaponBuffs_HasDisposableSentryRoom(client))
+    {
+        return MRES_Ignored;
+    }
+    g_DisposableSentryCanBuildOverrides[client]++;
+    result.Value = CanBuild_Allowed;
+    return MRES_Override;
+}
+
+void WeaponBuffs_EnterUpgradeStation(int client)
+{
+    g_WeaponBuffAtUpgradeStation[client] = true;
+    WeaponBuffs_Apply(client);
+}
+
+void WeaponBuffs_LeaveUpgradeStation(int client)
+{
+    g_WeaponBuffAtUpgradeStation[client] = false;
+    WeaponBuffs_ApplyNextFrame(client);
 }
 
 /*
@@ -401,6 +600,11 @@ static void WeaponBuffs_InitProjectileCalls()
 void WeaponBuffs_HookClient(int client)
 {
     g_WeaponBuffProviderRetryAt[client] = 0.0;
+    g_DisposableSentryLastSwitchArgumentRef[client] = INVALID_ENT_REFERENCE;
+    g_DisposableSentryLastSwitchActiveRef[client] = INVALID_ENT_REFERENCE;
+    g_DisposableSentryCanBuildCalls[client] = 0;
+    g_DisposableSentryCanBuildOverrides[client] = 0;
+    g_DisposableSentryLastCanBuildResult[client] = -1;
     g_WeaponBuffLastButtons[client] = 0;
     g_WeaponBuffShotWeaponRef[client] = 0;
     g_WeaponBuffProjectileDestructionReadyAt[client] = 0.0;
@@ -424,7 +628,18 @@ static void WeaponBuffs_HookTank(int tank)
 
 public void WeaponBuffs_WeaponSwitchPost(int client, int weapon)
 {
-    WeaponBuffs_Apply(client);
+    // WeaponSwitchPost supplies the new entity before m_hActiveWeapon is
+    // guaranteed to expose it. Applying immediately can therefore leave the
+    // PDA value active after the player has taken out the toolbox. The next
+    // frame observes the settled entity, just like station transactions do.
+    g_DisposableSentryLastSwitchArgumentRef[client] =
+        weapon > MaxClients && IsValidEntity(weapon)
+        ? EntIndexToEntRef(weapon) : INVALID_ENT_REFERENCE;
+    int active = GetEntPropEnt(client, Prop_Send, "m_hActiveWeapon");
+    g_DisposableSentryLastSwitchActiveRef[client] =
+        active > MaxClients && IsValidEntity(active)
+        ? EntIndexToEntRef(active) : INVALID_ENT_REFERENCE;
+    WeaponBuffs_ApplyNextFrame(client);
 }
 
 static bool WeaponBuffs_IsProjectile(const char[] classname)
@@ -2370,6 +2585,7 @@ static int WeaponBuffs_Provider(int client, int weaponEntity)
     SetEntProp(provider, Prop_Send, "m_iEntityLevel", 1);
     SetEntProp(provider, Prop_Send, "m_iTeamNum", GetClientTeam(client));
     SetEntityRenderMode(provider, RENDER_NONE);
+    DispatchKeyValue(provider, "targetname", WeaponBuffProviderTargetName);
     DispatchSpawn(provider);
     if (!HasEntProp(provider, Prop_Send, "m_ProviderType"))
     {
@@ -2508,6 +2724,7 @@ void WeaponBuffs_Disconnect(int client)
     int provider = EntRefToEntIndex(g_WeaponBuffProviderRef[client]);
     g_WeaponBuffProviderRef[client] = INVALID_ENT_REFERENCE;
     g_WeaponBuffProviderRetryAt[client] = 0.0;
+    g_WeaponBuffAtUpgradeStation[client] = false;
     if (provider > MaxClients && IsValidEntity(provider))
     {
         RemoveEntity(provider);
@@ -2600,6 +2817,13 @@ void WeaponBuffs_Apply(int client)
         {
             continue;
         }
+        // This is a Construction-PDA effect, not an active-weapon effect. The
+        // separate prediction pass below installs it even though opening the
+        // build menu commonly leaves the wrench as m_hActiveWeapon.
+        if (effect == DisposableSentryEffect)
+        {
+            continue;
+        }
         // This one uses a different launcher attribute below so TF2 retains
         // both normal explosion visuals and blast-jump movement.
         if (effect == NoSelfBlastEffect)
@@ -2679,8 +2903,44 @@ void WeaponBuffs_Apply(int client)
                 g_WeaponEffectAttributes[effect], g_WeaponNames[weapon]);
         }
     }
+    WeaponBuffs_ApplyDisposableSentryPrediction(client, provider);
     WeaponBuffs_ApplyPassives(client, provider);
     TF2Attrib_ClearCache(entity);
+}
+
+static void WeaponBuffs_ApplyDisposableSentryPrediction(int client, int provider)
+{
+    // TF2's client refuses to send a build command unless predicted CanBuild
+    // sees this attribute. Use the same private provider as every other AP
+    // buff, leaving the item lists owned by the MvM station untouched. Both
+    // PDAs share one reward pool; placement consumes one toolbox-side slot.
+    int levels = WeaponBuffs_DisposableSentryLevels();
+    if (g_WeaponBuffAtUpgradeStation[client] || levels <= 0)
+    {
+        return;
+    }
+    int active = GetEntPropEnt(client, Prop_Send, "m_hActiveWeapon");
+    if (active <= MaxClients || !IsValidEntity(active)
+        || !HasEntProp(active, Prop_Send, "m_iItemDefinitionIndex"))
+    {
+        return;
+    }
+    int definition = GetEntProp(active, Prop_Send, "m_iItemDefinitionIndex");
+    bool pda = definition == 25 || definition == 737 || definition == 15025;
+    bool toolbox = definition == 28 || definition == 15028;
+    if (!pda && !toolbox)
+    {
+        return;
+    }
+    if (toolbox)
+    {
+        levels++;
+    }
+    if (!TF2Attrib_SetByName(provider, "engy disposable sentries", float(levels)))
+    {
+        LogError("Could not provide disposable-sentry level %d to item %d for %N.",
+            levels, definition, client);
+    }
 }
 
 /*
@@ -2758,13 +3018,17 @@ static void WeaponBuffs_DescribeEffect(int weapon, int effect,
 static int WeaponBuffs_Lines(int client, char lines[BuffLinesMax][BuffLineMax])
 {
     int listed;
+    bool seen[WeaponCount];
     for (int slot = 0; slot <= 5; slot++)
     {
         int weapon = WeaponBuffs_ForEntity(WeaponBuffs_EntityInLoadoutSlot(client, slot));
-        if (weapon < 0)
+        if (weapon < 0 || seen[weapon])
         {
             continue;
         }
+        // Functional families can occupy two loadout slots at once. The
+        // Construction PDA and its toolbox are one reward pool and one line.
+        seen[weapon] = true;
         for (int effect = 0; effect < WeaponEffectCount; effect++)
         {
             int levels = g_WeaponEffectLevels[weapon][effect];
@@ -2879,6 +3143,84 @@ static void WeaponBuffs_DebugEmptyListing(int client)
     }
     AP_Debug("%N opened the station with nothing to list: %d buff level(s) granted in total, holding %s.",
         client, granted, held);
+}
+
+static void WeaponBuffs_DebugDisposableEntity(int client, const char[] label,
+    int entity)
+{
+    if (entity <= MaxClients || !IsValidEntity(entity))
+    {
+        ReplyToCommand(client, "[AP debug] %s: none", label);
+        return;
+    }
+    char classname[48];
+    GetEntityClassname(entity, classname, sizeof(classname));
+    int definition = HasEntProp(entity, Prop_Send, "m_iItemDefinitionIndex")
+        ? GetEntProp(entity, Prop_Send, "m_iItemDefinitionIndex") : -1;
+    int weapon = WeaponBuffs_ForEntity(entity);
+    int levels = weapon >= 0
+        ? g_WeaponEffectLevels[weapon][DisposableSentryEffect] : -1;
+    float hooked = TF2Attrib_HookValueFloat(0.0,
+        "engy_disposable_sentries", entity);
+    ReplyToCommand(client,
+        "[AP debug] %s: ent=%d class=%s def=%d canonical=%d AP=%d direct=%d hooked=%.1f",
+        label, entity, classname, definition, weapon, levels,
+        WeaponBuffs_DirectDisposableSentryLevels(entity), hooked);
+}
+
+public Action Command_DisposableSentryDebug(int client, int args)
+{
+    if (client < 1 || client > MaxClients || !IsClientInGame(client))
+    {
+        ReplyToCommand(client, "[AP debug] Run sm_ap_buff_debug from the player console.");
+        return Plugin_Handled;
+    }
+    int active = GetEntPropEnt(client, Prop_Send, "m_hActiveWeapon");
+    WeaponBuffs_DebugDisposableEntity(client, "active", active);
+    WeaponBuffs_DebugDisposableEntity(client, "slot 3 / Construction PDA",
+        WeaponBuffs_EntityInLoadoutSlot(client, 3));
+    WeaponBuffs_DebugDisposableEntity(client, "slot 5 / PDA toolbox",
+        WeaponBuffs_EntityInLoadoutSlot(client, 5));
+    WeaponBuffs_DebugDisposableEntity(client, "last switch argument",
+        EntRefToEntIndex(g_DisposableSentryLastSwitchArgumentRef[client]));
+    WeaponBuffs_DebugDisposableEntity(client, "active during switch callback",
+        EntRefToEntIndex(g_DisposableSentryLastSwitchActiveRef[client]));
+
+    int provider = EntRefToEntIndex(g_WeaponBuffProviderRef[client]);
+    int providerDirect = provider > MaxClients && IsValidEntity(provider)
+        ? WeaponBuffs_DirectDisposableSentryLevels(provider) : -1;
+    int primary;
+    int disposable;
+    int sentry = -1;
+    while ((sentry = FindEntityByClassname(sentry, "obj_sentrygun")) != -1)
+    {
+        if (GetEntPropEnt(sentry, Prop_Send, "m_hBuilder") != client
+            || (HasEntProp(sentry, Prop_Send, "m_bPlacing")
+                && GetEntProp(sentry, Prop_Send, "m_bPlacing") != 0))
+        {
+            continue;
+        }
+        if (GetEntProp(sentry, Prop_Send, "m_bDisposableBuilding") != 0)
+        {
+            disposable++;
+        }
+        else
+        {
+            primary++;
+        }
+    }
+    ReplyToCommand(client,
+        "[AP debug] shared AP=%d native=%d provider=%d provider-direct=%d private-providers=%d station=%d sentries=%d primary/%d disposable",
+        WeaponBuffs_DisposableSentryLevels(),
+        WeaponBuffs_NativeDisposableSentryLevels(client), provider,
+        providerDirect, WeaponBuffs_PrivateProviderCount(),
+        g_WeaponBuffAtUpgradeStation[client], primary, disposable);
+    ReplyToCommand(client,
+        "[AP debug] CanBuild sentry calls=%d overrides=%d last-result=%d",
+        g_DisposableSentryCanBuildCalls[client],
+        g_DisposableSentryCanBuildOverrides[client],
+        g_DisposableSentryLastCanBuildResult[client]);
+    return Plugin_Handled;
 }
 
 public Action Command_WeaponBuffs(int client, int args)
