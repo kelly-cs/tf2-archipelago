@@ -22,28 +22,28 @@ SteamCMD, the TF2 dedicated server, Metamod:Source, SourceMod, the plugin, and
 the bots that fill your team. The game server is about 14 GB, and the first
 start takes a while because of it. Every later start takes seconds.
 
-Then the interface opens on it.
+Then a browser opens on it. It is the same screen the Windows launcher shows:
 
-| Key | What it does |
+| Section | What is on it |
 | --- | --- |
-| `s` | Start the server, or stop it |
-| `r` | Restart it |
-| `j` | Start Team Fortress 2 and join |
-| `c` | Copy the join line, for sending to a friend |
-| `,` | The settings, in the eight tabs the window uses |
-| `tab` | Between the run, the Bot Switcher and the log |
-| `i` | The rcon line. `esc` gives the keys back |
-| `p` | On the run's tab, load the mission the cursor is on |
-| `a` | On the Bot Switcher, hand the bot team to the running server |
-| `q` | Quit, which stops the server |
+| Session | The connect line, the run, and the missions with what has happened to each |
+| Unlocks | Everything the multiworld has handed your slot |
+| Bots | Your team on RED, and which classes the mod may draw |
+| Log | Everything the server said, with a search and the command box |
+| Settings | The room, the missions, the bots, who can join, the shape of the run |
+
+![The session screen](../../images/launcher-session.png)
+
+Start, Stop, Restart and Quit are at the top of every one of them. Closing the
+tab leaves the server running: Quit is what stops it, and so is Ctrl+C here.
 
 `tf2ap-linux-amd64 -console` prints the log and nothing else, which is what a
 service or a `screen` session wants: an interface that draws over the whole
 screen writes nothing useful into a file. Stop that one with Ctrl+C.
 
-`tf2ap-linux-amd64 -web` opts into the experimental browser interface. The
-terminal interface remains the default until the browser version replaces the
-platform UIs in a later release.
+`tf2ap-linux-amd64 -no-browser` prints the address and opens nothing, for a
+machine you reach over SSH: open the address from wherever you are, or forward
+the port. `-addr host:port` says where to serve.
 
 For public community-map downloads without forwarding another router port,
 see [Fast map downloads with Tailscale](tailscale-fastdl.md). Linux has the

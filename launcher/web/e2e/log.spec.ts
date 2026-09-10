@@ -34,6 +34,16 @@ test.describe('the log screen', () => {
     await expect(page.getByLabel('Server command')).toHaveValue('');
   });
 
+  // Following starts on and stays on: a log short enough to fit reports the
+  // first index and no scrolling has happened, which used to switch it off the
+  // moment the page opened.
+  test('follows the newest line from the moment it opens', async ({ page }) => {
+    await expect(page.getByRole('button', { name: 'Follow' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+  });
+
   test('a new line arrives without a reload', async ({ page }) => {
     await page.getByRole('link', { name: 'Session', exact: true }).click();
     await page.getByRole('button', { name: 'Start', exact: true }).click();

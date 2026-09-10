@@ -42,11 +42,11 @@ Install and sign in to Tailscale on the server using its
 If it prints an approval URL, open that URL in any browser, approve Funnel and
 run the command again. This works over SSH; it does not depend on `xdg-open`.
 
-Choose either interface:
+Choose either way in:
 
-- In the terminal interface, press `,`, open **Networking**, run **Set up /
-  check Funnel**, enable **Tailscale FastDL**, and save.
-- For a plain terminal, run `./tf2ap-linux-amd64 -configure` and answer yes to
+- On the launcher's screen, open **Settings**, then **Networking**, run **Set up
+  / check Funnel**, tick **Tailscale FastDL**, and save.
+- With no desktop, run `./tf2ap-linux-amd64 -configure` and answer yes to
   **Publish map downloads with Tailscale Funnel**.
 
 Then start normally. A service can override the saved setting explicitly:

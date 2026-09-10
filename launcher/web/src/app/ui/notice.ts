@@ -26,7 +26,19 @@ export type NoticeTone = 'info' | 'warn' | 'bad';
       border-radius: var(--radius);
       padding: 10px 14px;
       font-size: var(--text-md);
-      animation: rise-in var(--settle) var(--ease);
+      opacity: 1;
+      transform: none;
+      transition:
+        opacity var(--settle) var(--ease-out),
+        transform var(--settle) var(--ease-out);
+
+      /* A transition rather than a keyframe: the launcher replaces this as fast
+         as it has something to say, and a keyframe restarts from zero when it
+         is interrupted. */
+      @starting-style {
+        opacity: 0;
+        transform: translateY(4px);
+      }
     }
 
     .info {

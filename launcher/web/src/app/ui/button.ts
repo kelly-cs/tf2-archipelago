@@ -40,15 +40,17 @@ export type ButtonSize = 'small' | 'medium' | 'large';
       border: 1px solid transparent;
       cursor: pointer;
       transition:
-        background var(--quick) var(--ease),
-        border-color var(--quick) var(--ease),
-        color var(--quick) var(--ease);
+        transform var(--press) var(--ease-out),
+        background var(--quick) var(--ease-out),
+        border-color var(--quick) var(--ease-out),
+        color var(--quick) var(--ease-out);
     }
 
-    /* The press itself, not a hover: the only thing that moves is the thing
-       under the finger, and only while it is under it. */
+    /* The press. scale rather than a nudge, because scale takes the label and
+       the icon with it: the whole control answers, which is what makes the
+       launcher feel like it heard. */
     button:active:not(:disabled) {
-      transform: translateY(1px);
+      transform: scale(0.97);
     }
 
     button:disabled {
@@ -71,14 +73,33 @@ export type ButtonSize = 'small' | 'medium' | 'large';
       padding: 11px 16px;
     }
 
+    /* Hover only where there is a pointer. A tap on a touch screen fires
+       hover too, and leaves the control looking pressed after the finger
+       has gone. */
+    @media (hover: hover) and (pointer: fine) {
+      .primary:hover:not(:disabled) {
+        background: var(--accent-bright);
+      }
+
+      .secondary:hover:not(:disabled) {
+        background: var(--surface-hover);
+      }
+
+      .ghost:hover:not(:disabled) {
+        color: var(--text);
+        background: var(--surface-raised);
+      }
+
+      .danger:hover:not(:disabled) {
+        background: var(--state-bad);
+        color: var(--text);
+      }
+    }
+
     .primary {
       background: var(--accent);
       color: var(--surface-page);
       font-weight: 700;
-    }
-
-    .primary:hover:not(:disabled) {
-      background: var(--accent-bright);
     }
 
     .secondary {
@@ -87,30 +108,16 @@ export type ButtonSize = 'small' | 'medium' | 'large';
       color: var(--text);
     }
 
-    .secondary:hover:not(:disabled) {
-      background: var(--surface-hover);
-    }
-
     .ghost {
       background: transparent;
       border-color: var(--line-strong);
       color: var(--text-dim);
     }
 
-    .ghost:hover:not(:disabled) {
-      color: var(--text);
-      background: var(--surface-raised);
-    }
-
     .danger {
       background: transparent;
       border-color: var(--state-bad);
       color: var(--state-warn);
-    }
-
-    .danger:hover:not(:disabled) {
-      background: var(--state-bad);
-      color: var(--text);
     }
   `,
 })

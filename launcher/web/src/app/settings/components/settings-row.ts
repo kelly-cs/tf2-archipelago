@@ -23,8 +23,9 @@ import { Field, Kind } from '@gen/tf2ap/launcher/v1/form_pb';
   imports: [ActionRow, ChoiceRow, FieldShell, NumberRow, PasswordRow, TextRow, ToggleRow],
   template: `
     @if (isButton()) {
+      <!-- No label: the button carries it, and a row that printed it beside the
+           button said the same words twice. -->
       <app-field-shell
-        [label]="field().label"
         [help]="field().help"
         [reason]="field().reason"
         [disabled]="field().disabled"

@@ -77,10 +77,22 @@ $breakpoints: (
     --gap-lg: 18px;
     --gap-xl: 22px;
 
-    /* One duration and one curve, so nothing on screen moves at its own pace.
-       Fast enough that a press feels answered, slow enough to be seen. */
-    --ease: cubic-bezier(0.32, 0.72, 0, 1);
-    --quick: 120ms;
+    /*
+     * Two curves and three durations, so nothing on screen moves at a pace of
+     * its own.
+     *
+     * ease-out for anything arriving or leaving: it starts fast, which is the
+     * moment the player is watching. Never ease-in, which delays exactly then
+     * and reads as a slow interface at the same duration. ease-drawer is for
+     * something moving across the screen rather than appearing on it.
+     */
+    --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+    --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+
+    /* A press has to feel answered, so it is the fastest thing here. Nothing
+       goes over 300ms: past that a screen stops feeling responsive. */
+    --press: 140ms;
+    --quick: 160ms;
     --settle: 220ms;
   }
 }

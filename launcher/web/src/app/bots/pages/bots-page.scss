@@ -1,33 +1,18 @@
+@use 'parts';
+
 :host {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
   gap: var(--gap-lg);
-  animation: fade-in var(--settle) var(--ease);
 }
 
 table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-th {
-  text-align: left;
-  font-size: var(--text-xs);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--text-faint);
-  padding: 0 var(--gap-sm) var(--gap-sm);
-  border-bottom: 1px solid var(--line-soft);
-}
-
-td {
-  padding: var(--gap-sm);
-  border-bottom: 1px solid var(--surface-hover);
+  @include parts.table;
 }
 
 .seat {
-  font-family: var(--font-mono);
-  color: var(--text-faint);
+  @include parts.figure;
+
   width: 3ch;
 }
 

@@ -20,7 +20,7 @@
     }
   </app-empty-state>
 } @else {
-  <cdk-virtual-scroll-viewport itemSize="20" (scrolledIndexChange)="onScroll($event)">
+  <cdk-virtual-scroll-viewport itemSize="20" (scrolledIndexChange)="onScroll()">
     <ol>
       <li *cdkVirtualFor="let row of rows(); trackBy: trackRow" [class]="row.level">
         <span class="at">{{ row.at }}</span>

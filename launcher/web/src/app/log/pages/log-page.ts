@@ -4,12 +4,11 @@ import {
   Component,
   computed,
   inject,
-  linkedSignal,
   signal,
   viewChild,
 } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { Subject, exhaustMap, tap } from 'rxjs';
+import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
+import { Subject, exhaustMap, filter, map, switchMap, tap, timer } from 'rxjs';
 
 import { LauncherCommands } from '@app/server/launcher-commands';
 import { LauncherStore } from '@app/server/launcher-store';
@@ -17,6 +16,10 @@ import { levelOfLine } from '@app/log/log-level';
 import { Button } from '@app/ui/button';
 import { EmptyState } from '@app/ui/empty-state';
 import { SearchBox } from '@app/ui/search-box';
+
+// How close to the bottom still counts as being at it. A few pixels of slack,
+// because a wheel rarely lands exactly on the end.
+const atBottomPx = 24;
 
 /** One line, ready to draw: the clock, where it came from, and what it is. */
 interface Row {
@@ -63,14 +66,6 @@ export class LogPage {
       }));
   });
 
-  /** The newest row, tracked so following can jump to it as it changes. */
-  readonly newest = linkedSignal(() => {
-    const last = this.rows().length - 1;
-    if (this.follow() && last >= 0) {
-      this.viewport()?.scrollToIndex(last, 'auto');
-    }
-    return last;
-  });
 
   readonly send = new Subject<void>();
   readonly copy = new Subject<void>();
@@ -83,16 +78,40 @@ export class LogPage {
         takeUntilDestroyed(),
       )
       .subscribe();
+
+    // Following is a side effect on the viewport, so it runs through the stream
+    // of row counts rather than inside a computed. It waits a frame because the
+    // viewport has to measure the new rows before it can scroll to them.
+    toObservable(this.rows)
+      .pipe(
+        filter(() => this.follow()),
+        switchMap((rows) => timer(0).pipe(map(() => rows.length - 1))),
+        tap((last) => {
+          if (last >= 0) {
+            this.viewport()?.scrollTo({ bottom: 0 });
+          }
+        }),
+        takeUntilDestroyed(),
+      )
+      .subscribe();
   }
 
   trackRow(_: number, row: Row): string {
     return row.key;
   }
 
-  onScroll(index: number): void {
-    if (index + 1 < this.rows().length - 1) {
-      this.follow.set(false);
+  /**
+   * Scrolling away from the bottom stops following, and scrolling back starts
+   * again. Measured from the bottom rather than by index: a log short enough to
+   * fit reports the first index and no scrolling has happened, which used to
+   * turn following off the moment the page opened.
+   */
+  onScroll(): void {
+    const viewport = this.viewport();
+    if (viewport === undefined) {
+      return;
     }
+    this.follow.set(viewport.measureScrollOffset('bottom') <= atBottomPx);
   }
 
   copyAll(): void {

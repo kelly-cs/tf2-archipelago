@@ -1,11 +1,17 @@
 /* ==========================================================================
-   Animations. Each keyframe is a mixin, so a stylesheet pulls in only the ones
-   it uses and emits nothing else. The app-wide set ships once through
-   `global`. Keyframe names are not scoped by Angular's emulated
-   encapsulation, so a component may also reference a global name by string.
+   Animations.
 
-   Every duration here comes from --quick or --settle: nothing on screen moves
-   at a pace of its own.
+   Three rules decide everything here.
+
+   Something the player sees a hundred times a day does not animate: switching
+   sections is a click away and animating it makes the launcher feel slower
+   than it is. Something that appears does, because appearing from nothing
+   reads as a screen that broke. And nothing that can be triggered twice in a
+   second is a keyframe, because a keyframe restarts from zero when it is
+   interrupted while a transition retargets from where it got to.
+
+   Each keyframe is a mixin, so a stylesheet pulls in only the ones it uses and
+   emits nothing else. The app-wide set ships once through `global`.
    ========================================================================== */
 
 /* The status dot while the server is coming up. Not a spinner: the thing it
@@ -23,47 +29,6 @@
   }
 }
 
-/* A ring leaving a live indicator. Once per beat, outwards, gone. */
-@mixin pulse-live {
-  @keyframes pulse-live {
-    from {
-      box-shadow: 0 0 0 0 rgb(122 154 63 / 50%);
-    }
-
-    to {
-      box-shadow: 0 0 0 5px rgb(122 154 63 / 0%);
-    }
-  }
-}
-
-@mixin fade-in {
-  @keyframes fade-in {
-    from {
-      opacity: 0;
-    }
-
-    to {
-      opacity: 1;
-    }
-  }
-}
-
-/* A panel or a row arriving: up a little, not across. Movement across the
-   screen reads as something being moved; movement up reads as it appearing. */
-@mixin rise-in {
-  @keyframes rise-in {
-    from {
-      opacity: 0;
-      transform: translateY(4px);
-    }
-
-    to {
-      opacity: 1;
-      transform: none;
-    }
-  }
-}
-
 @mixin spin {
   @keyframes spin {
     to {
@@ -73,20 +38,23 @@
 }
 
 /*
- * The reduced-motion guard, once, over everything.
+ * The reduced-motion guard.
  *
- * Not `animation: none`: an element whose arrival animation never runs can be
- * left at its from-state, invisible. Collapsing the duration runs it and lands
- * it, which is the same end with no movement to watch.
+ * Reduced motion is fewer and gentler animations, not none: a fade still tells
+ * the player something arrived, and it is movement that causes the harm. So
+ * this takes the movement out and leaves opacity alone. The transform is reset
+ * rather than the duration collapsed, because an element whose arrival never
+ * ran would otherwise sit at its from-state, off to one side and invisible.
  */
 @mixin reduced-motion-guard {
   @media (prefers-reduced-motion: reduce) {
     *,
     *::before,
     *::after {
+      transform: none !important;
       animation-duration: 0.01ms !important;
       animation-iteration-count: 1 !important;
-      transition-duration: 0.01ms !important;
+      transition-property: opacity, background-color, border-color, color !important;
       scroll-behavior: auto !important;
     }
   }
@@ -94,9 +62,6 @@
 
 @mixin global {
   @include pulse-dot;
-  @include pulse-live;
-  @include fade-in;
-  @include rise-in;
   @include spin;
   @include reduced-motion-guard;
 }

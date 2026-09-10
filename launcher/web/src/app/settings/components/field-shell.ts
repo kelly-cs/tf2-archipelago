@@ -16,7 +16,9 @@ import { Badge } from '@app/ui/badge';
   template: `
     <div class="row" [class.off]="disabled()">
       <div class="words">
-        <label [attr.for]="controlId()">{{ label() }}</label>
+        @if (label()) {
+          <label [attr.for]="controlId()">{{ label() }}</label>
+        }
         @if (help()) {
           <p>{{ help() }}</p>
         }

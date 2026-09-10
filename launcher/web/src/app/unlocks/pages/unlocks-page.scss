@@ -1,6 +1,5 @@
 :host {
   display: block;
-  animation: fade-in var(--settle) var(--ease);
 }
 
 .count {
@@ -37,7 +36,6 @@ li {
   background: var(--surface-raised);
   border: 1px solid var(--line-soft);
   border-radius: var(--radius);
-  animation: rise-in var(--settle) var(--ease);
 }
 
 .name {

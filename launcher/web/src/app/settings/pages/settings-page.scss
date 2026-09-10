@@ -1,6 +1,5 @@
 :host {
   display: block;
-  animation: fade-in var(--settle) var(--ease);
 }
 
 .open {
@@ -36,8 +35,8 @@ nav a {
   text-decoration: none;
   font-weight: 600;
   transition:
-    color var(--quick) var(--ease),
-    background var(--quick) var(--ease);
+    color var(--quick) var(--ease-out),
+    background var(--quick) var(--ease-out);
 }
 
 nav a:hover {

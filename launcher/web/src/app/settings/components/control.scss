@@ -20,7 +20,7 @@ select {
   font-family: var(--font-body);
   font-size: var(--text-md);
   padding: 7px 10px;
-  transition: border-color var(--quick) var(--ease);
+  transition: border-color var(--quick) var(--ease-out);
 }
 
 input:hover:not(:disabled),

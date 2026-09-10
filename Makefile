@@ -100,7 +100,7 @@ GO_SRC := $$(find . -type f -name '*.go' -not -path './deploy/bots/build/*' -not
         go-version-check \
         launcher launcher-assets launcher-assets-common \
         proto proto-lint proto-fmt proto-deps \
-        web-install web-build web-lint web-test web-e2e web-check \
+        web-install web-build web-lint web-test web-e2e web-captures web-check \
         web-install-direct web-build-direct web-lint-direct web-test-direct \
         web-e2e-direct web-check-direct \
         launcher-linux launcher-assets-linux captures embed-placeholders toolchain
@@ -255,6 +255,13 @@ web-test: proto web-install
 # download that no other target needs, and CI installs it in the web job.
 web-e2e: web-build
 	cd $(WEB) && npx playwright test
+
+# The pictures in the README and the book, redrawn against the fake launcher so
+# the same run draws the same image every time: no machine's fonts, no player's
+# home directory, no state left over from an evening of playing. Not in `check`:
+# a screenshot that differs by a pixel is not a failure.
+web-captures: web-build
+	cd $(WEB) && TF2AP_CAPTURE=1 npx playwright test e2e/screenshots.spec.ts
 
 web-check: web-lint web-test web-build
 

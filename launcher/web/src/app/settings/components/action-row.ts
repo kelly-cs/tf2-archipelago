@@ -40,7 +40,14 @@ import { Field, Kind } from '@gen/tf2ap/launcher/v1/form_pb';
       gap: var(--gap-sm);
       flex-wrap: wrap;
       justify-content: flex-end;
-      animation: rise-in var(--quick) var(--ease);
+      opacity: 1;
+      transition: opacity var(--quick) var(--ease-out);
+
+      /* Asking is a transition, not a keyframe: the player can press Cancel and
+         press again before it has settled. */
+      @starting-style {
+        opacity: 0;
+      }
     }
 
     .warning {

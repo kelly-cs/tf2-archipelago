@@ -74,7 +74,10 @@ import { Panel } from '@app/ui/panel';
       margin: 2px 0 0;
       font-family: var(--font-mono);
       font-size: var(--text-lg);
-      word-break: break-all;
+
+      /* break-word, not break-all: a seed is one token and breaking it mid
+         character group makes it unreadable to copy by eye. */
+      overflow-wrap: break-word;
     }
 
     .error {

@@ -21,7 +21,6 @@ import { RunGlance } from '@app/session/components/run-glance';
       display: flex;
       flex-direction: column;
       gap: var(--gap-lg);
-      animation: fade-in var(--settle) var(--ease);
     }
 
     .top {

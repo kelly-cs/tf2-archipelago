@@ -1,50 +1,19 @@
+@use 'parts';
+
 table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: var(--text-md);
+  @include parts.table;
 }
 
-th {
-  text-align: left;
-  font-size: var(--text-xs);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--text-faint);
-  font-weight: 600;
-  padding: 0 var(--gap-sm) var(--gap-sm);
-  border-bottom: 1px solid var(--line-soft);
-}
-
-td {
-  padding: var(--gap-sm);
-  border-bottom: 1px solid var(--surface-hover);
-  vertical-align: middle;
-}
-
-tbody tr {
-  transition: background var(--quick) var(--ease);
-}
-
-tbody tr:hover {
-  background: var(--surface-raised);
-}
-
-/* The mission on the server now. A left edge rather than a filled row: the
-   row still has to be readable beside the ones around it. */
+/* The mission on the server now. A left edge rather than a filled row: the row
+   still has to be readable beside the ones around it. */
 .playing td:first-child {
   box-shadow: inset 3px 0 0 var(--accent);
 }
 
 .waves {
-  font-family: var(--font-mono);
-  color: var(--text-dim);
+  @include parts.figure;
 }
 
 .sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
+  @include parts.only-for-screen-readers;
 }

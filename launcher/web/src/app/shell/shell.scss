@@ -52,8 +52,8 @@ nav a {
   padding: 12px 16px;
   text-decoration: none;
   transition:
-    color var(--quick) var(--ease),
-    border-color var(--quick) var(--ease);
+    color var(--quick) var(--ease-out),
+    border-color var(--quick) var(--ease-out);
 }
 
 nav a:hover {

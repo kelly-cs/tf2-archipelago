@@ -22,6 +22,8 @@ import { FormsModule } from '@angular/forms';
     </label>
   `,
   styles: `
+    @use 'parts';
+
     :host {
       display: block;
     }
@@ -39,7 +41,7 @@ import { FormsModule } from '@angular/forms';
       font-family: var(--font-body);
       font-size: var(--text-md);
       padding: 7px 10px;
-      transition: border-color var(--quick) var(--ease);
+      transition: border-color var(--quick) var(--ease-out);
     }
 
     input:hover {
@@ -47,12 +49,7 @@ import { FormsModule } from '@angular/forms';
     }
 
     .sr-only {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      overflow: hidden;
-      clip-path: inset(50%);
-      white-space: nowrap;
+      @include parts.only-for-screen-readers;
     }
   `,
 })

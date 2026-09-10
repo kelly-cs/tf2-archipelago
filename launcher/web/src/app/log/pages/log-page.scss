@@ -3,7 +3,6 @@
   flex-direction: column;
   gap: var(--gap);
   min-height: 0;
-  animation: fade-in var(--settle) var(--ease);
 }
 
 .bar {
@@ -49,7 +48,7 @@ li {
 .source {
   color: var(--text-faint);
   flex: none;
-  width: 7ch;
+  width: 9ch;
   overflow: hidden;
   text-overflow: ellipsis;
 }

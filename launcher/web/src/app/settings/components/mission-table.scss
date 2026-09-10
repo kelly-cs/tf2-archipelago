@@ -1,3 +1,5 @@
+@use 'parts';
+
 :host {
   display: block;
   background: var(--surface-panel);
@@ -29,15 +31,23 @@ h3 {
 }
 
 table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: var(--text-sm);
-}
+  @include parts.table;
 
-th {
-  text-align: left;
-  border-bottom: 1px solid var(--line-soft);
-  padding: 0 0 var(--gap-sm);
+  font-size: var(--text-sm);
+
+  th {
+    padding: 0 0 var(--gap-sm);
+  }
+
+  td {
+    padding: 6px var(--gap-sm);
+  }
+
+  tbody tr {
+    transition:
+      background var(--quick) var(--ease-out),
+      opacity var(--quick) var(--ease-out);
+  }
 }
 
 th button {
@@ -57,21 +67,6 @@ th button:hover {
   color: var(--text);
 }
 
-td {
-  padding: 6px var(--gap-sm);
-  border-bottom: 1px solid var(--surface-hover);
-}
-
-tbody tr {
-  transition:
-    background var(--quick) var(--ease),
-    opacity var(--quick) var(--ease);
-}
-
-tbody tr:hover {
-  background: var(--surface-raised);
-}
-
 /* A mission out of the pool is still readable: the player is deciding about it. */
 .off {
   opacity: 0.55;
@@ -84,8 +79,7 @@ tbody tr:hover {
 
 .waves,
 .mods {
-  font-family: var(--font-mono);
-  color: var(--text-dim);
+  @include parts.figure;
 }
 
 input[type='checkbox'] {
@@ -95,10 +89,5 @@ input[type='checkbox'] {
 }
 
 .sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
+  @include parts.only-for-screen-readers;
 }
