@@ -19,6 +19,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 	"sync"
 	"syscall"
@@ -360,9 +361,9 @@ func (a *App) serveDebugBundle(w http.ResponseWriter, r *http.Request) {
 func (a *App) serveFunnelApproval(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 4*time.Second)
 	defer cancel()
-	result, err := tailscalefastdl.Authorize(ctx)
+	result, err := authorizeFunnel(ctx)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadGateway)
+		http.Error(w, funnelSetupAdvice(err), http.StatusBadGateway)
 		return
 	}
 	if result.ApprovalURL != "" {
@@ -371,6 +372,28 @@ func (a *App) serveFunnelApproval(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	_, _ = fmt.Fprintln(w, "Tailscale Funnel is ready for this tailnet. You can close this tab.")
+}
+
+var authorizeFunnel = tailscalefastdl.Authorize
+
+func funnelSetupAdvice(err error) string {
+	executable, pathErr := os.Executable()
+	if pathErr != nil {
+		executable = "tf2ap-linux-amd64"
+	}
+	command := strconv.Quote(executable) + " -setup-funnel"
+	if _, ok := errors.AsType[*tailscalefastdl.OperatorRequiredError](err); ok {
+		return "Tailscale needs one-time permission for your user to manage Funnel.\n\n" +
+			"Run this once in a terminal:\n\n    sudo tailscale set --operator=$USER\n\n" +
+			"Then run the launcher normally; -setup-funnel performs the Funnel command automatically:\n\n    " + command
+	}
+	detail := strings.TrimSpace(strings.Split(err.Error(), "\n")[0])
+	if detail == "" || strings.Contains(strings.ToLower(detail), "tailscale funnel") {
+		detail = "Tailscale could not complete the setup check."
+	}
+	return "The browser could not finish Tailscale Funnel setup.\n\n" +
+		"Run this launcher from a terminal instead; -setup-funnel performs the Funnel command automatically and prints any approval URL:\n\n    " +
+		command + "\n\nTailscale said: " + detail
 }
 
 func (a *App) serveEvents(w http.ResponseWriter, r *http.Request) {
