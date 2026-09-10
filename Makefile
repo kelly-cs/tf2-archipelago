@@ -242,7 +242,11 @@ web-install:
 web-build: proto web-install
 	$(NPM) run build
 
-web-lint: web-install
+# proto, because eslint is type-aware: without the generated TypeScript every
+# @gen import is unresolved and the no-unsafe-* family fires on every line that
+# touches the contract. A fresh clone has none of it, so the dependency is what
+# makes the target mean the same thing there as it does here.
+web-lint: proto web-install
 	$(NPM) run lint
 	$(NPM) run format:check
 
@@ -286,7 +290,7 @@ web-install-direct:
 web-build-direct: proto web-install-direct
 	cd $(WEB) && npm run build
 
-web-lint-direct: web-install-direct
+web-lint-direct: proto web-install-direct
 	cd $(WEB) && npm run lint
 	cd $(WEB) && npm run format:check
 
