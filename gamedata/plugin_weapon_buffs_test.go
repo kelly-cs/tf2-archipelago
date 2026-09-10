@@ -113,6 +113,101 @@ func TestWeaponBuffsStayOutOfMvMShopping(t *testing.T) {
 	}
 }
 
+func TestDisposableSentryBuffHasAnIndependentBuildAllowance(t *testing.T) {
+	buffs := "../plugin/scripting/tf2_archipelago/weapon_buffs.inc"
+	init := sourceFunction(t, buffs, "static void WeaponBuffs_InitDisposableSentryHook")
+	for _, required := range []string{
+		`DynamicDetour.FromConf(config, "CTFPlayer::CanBuild")`,
+		"hook.Enable(Hook_Post, WeaponBuffs_CanBuildPost)",
+	} {
+		if !strings.Contains(init, required) {
+			t.Fatalf("disposable sentry hook setup has no %s", required)
+		}
+	}
+
+	allowance := sourceFunction(t, buffs, "static bool WeaponBuffs_HasDisposableSentryRoom")
+	for _, required := range []string{
+		"WeaponBuffs_DisposableSentryLevels()",
+		"WeaponBuffs_NativeDisposableSentryLevels(client)",
+		`FindEntityByClassname(sentry, "obj_sentrygun")`,
+		`"m_bDisposableBuilding"`,
+		"hasPrimary && disposable < allowed",
+	} {
+		if !strings.Contains(allowance, required) {
+			t.Fatalf("independent disposable allowance has no %s", required)
+		}
+	}
+
+	native := sourceFunction(t, buffs, "static int WeaponBuffs_NativeDisposableSentryLevels")
+	if strings.Contains(native, "TF2Attrib_HookValue") ||
+		!strings.Contains(native, "WeaponBuffs_DirectDisposableSentryLevels") {
+		t.Fatal("native disposable allowance is not read directly from Valve-owned item attributes")
+	}
+
+	apply := sourceFunction(t, buffs, "void WeaponBuffs_Apply(int client)")
+	for _, required := range []string{
+		"effect == DisposableSentryEffect",
+		"WeaponBuffs_ApplyDisposableSentryPrediction(client, provider)",
+	} {
+		if !strings.Contains(apply, required) {
+			t.Fatalf("client prediction mirror has no %s", required)
+		}
+	}
+	prediction := sourceFunction(t, buffs,
+		"static void WeaponBuffs_ApplyDisposableSentryPrediction")
+	for _, required := range []string{
+		"g_WeaponBuffAtUpgradeStation[client]",
+		"WeaponBuffs_DisposableSentryLevels()",
+		"definition == 25 || definition == 737 || definition == 15025",
+		"definition == 28 || definition == 15028",
+		"if (toolbox)",
+		"levels++",
+		`TF2Attrib_SetByName(provider,`,
+		`"engy disposable sentries"`,
+	} {
+		if !strings.Contains(prediction, required) {
+			t.Fatalf("loadout-wide disposable prediction mirror has no %s", required)
+		}
+	}
+	if strings.Contains(prediction, "TF2Attrib_SetByName(item") {
+		t.Fatal("disposable prediction writes into the MvM station's item list")
+	}
+	switchPost := sourceFunction(t, buffs,
+		"public void WeaponBuffs_WeaponSwitchPost")
+	if !strings.Contains(switchPost, "WeaponBuffs_ApplyNextFrame(client)") {
+		t.Fatal("weapon switching applies before m_hActiveWeapon settles")
+	}
+	listing := sourceFunction(t, buffs, "static int WeaponBuffs_Lines")
+	for _, required := range []string{
+		"bool seen[WeaponCount]", "weapon < 0 || seen[weapon]", "seen[weapon] = true",
+	} {
+		if !strings.Contains(listing, required) {
+			t.Fatalf("weapon-family listing deduplication has no %s", required)
+		}
+	}
+
+	station := sourceFunction(t, "../plugin/scripting/tf2_archipelago/mvm.inc",
+		"stock void MvM_OnCommandKeyValues")
+	for _, required := range []string{
+		`StrEqual(name, "MvM_UpgradesBegin", false)`,
+		`StrEqual(name, "MvM_UpgradesDone", false)`,
+		"WeaponBuffs_EnterUpgradeStation(client)",
+		"WeaponBuffs_LeaveUpgradeStation(client)",
+	} {
+		if !strings.Contains(station, required) {
+			t.Fatalf("upgrade station does not isolate the prediction mirror: missing %s", required)
+		}
+	}
+
+	gamedata, err := os.ReadFile("../plugin/gamedata/tf2_archipelago.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Count(string(gamedata), `"CTFPlayer::CanBuild"`) < 2 {
+		t.Fatal("plugin gamedata has no CTFPlayer::CanBuild signature/function pair")
+	}
+}
+
 func TestAttributeProviderFailureIsRateLimited(t *testing.T) {
 	buffs := "../plugin/scripting/tf2_archipelago/weapon_buffs.inc"
 	source, err := os.ReadFile(buffs)
@@ -129,6 +224,24 @@ func TestAttributeProviderFailureIsRateLimited(t *testing.T) {
 		if !strings.Contains(text, required) {
 			t.Errorf("provider retry guard has no %q", required)
 		}
+	}
+}
+
+func TestAttributeProviderDoesNotSurvivePluginReload(t *testing.T) {
+	buffs := "../plugin/scripting/tf2_archipelago/weapon_buffs.inc"
+	init := sourceFunction(t, buffs, "void WeaponBuffs_Init()")
+	if !strings.Contains(init, "WeaponBuffs_RemoveStaleProviders()") {
+		t.Fatal("weapon-buff startup does not remove orphaned providers")
+	}
+	provider := sourceFunction(t, buffs, "static int WeaponBuffs_Provider")
+	if !strings.Contains(provider,
+		`DispatchKeyValue(provider, "targetname", WeaponBuffProviderTargetName)`) {
+		t.Fatal("weapon-buff provider has no reload-stable identity")
+	}
+	pluginEnd := sourceFunction(t, "../plugin/scripting/tf2_archipelago.sp",
+		"public void OnPluginEnd()")
+	if !strings.Contains(pluginEnd, "WeaponBuffs_Shutdown()") {
+		t.Fatal("plugin unload does not remove the private attribute provider")
 	}
 }
 
