@@ -42,6 +42,11 @@ export const routes: Routes = [
             loadComponent: () =>
               import('@app/settings/pages/settings-tab-page').then((m) => m.SettingsTabPage),
           },
+          {
+            path: ROUTE.settingsSection,
+            loadComponent: () =>
+              import('@app/settings/pages/settings-tab-page').then((m) => m.SettingsTabPage),
+          },
         ],
       },
     ],

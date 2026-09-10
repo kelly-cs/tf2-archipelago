@@ -24,6 +24,7 @@ export const SEGMENT = {
 // the tab title rather than a segment declared here.
 export const PARAM = {
   settingsTab: 'settingsTab',
+  settingsSection: 'settingsSection',
 } as const;
 
 export const ROUTE = {
@@ -33,6 +34,7 @@ export const ROUTE = {
   log: SEGMENT.log,
   settings: SEGMENT.settings,
   settingsTab: `:${PARAM.settingsTab}`,
+  settingsSection: `:${PARAM.settingsTab}/:${PARAM.settingsSection}`,
 } as const;
 
 export const appLink = {
@@ -43,6 +45,12 @@ export const appLink = {
   log: (): string[] => ['/', SEGMENT.log],
   settings: (): string[] => ['/', SEGMENT.settings],
   settingsTab: (tab: string): string[] => ['/', SEGMENT.settings, tab],
+  settingsSection: (tab: string, section: string): string[] => [
+    '/',
+    SEGMENT.settings,
+    tab,
+    section,
+  ],
 } as const;
 
 export const appUrl = {
@@ -53,4 +61,6 @@ export const appUrl = {
   log: (): string => `/${SEGMENT.log}`,
   settings: (): string => `/${SEGMENT.settings}`,
   settingsTab: (tab: string): string => `/${SEGMENT.settings}/${tab}`,
+  settingsSection: (tab: string, section: string): string =>
+    `/${SEGMENT.settings}/${tab}/${section}`,
 } as const;

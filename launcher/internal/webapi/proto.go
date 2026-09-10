@@ -115,7 +115,7 @@ func poolProto(rows []MissionPoolRow) []*launcherv1.MissionPoolRow {
 	for _, row := range rows {
 		out = append(out, &launcherv1.MissionPoolRow{
 			Field: row.Field, Source: row.Source, Map: row.Map, Name: row.Name,
-			Waves: row.Waves, Compatibility: row.Compatibility, Mods: row.Mods,
+			Waves: row.Waves, Compatibility: row.Compatibility, Mods: row.Mods, Tier: row.Tier,
 		})
 	}
 	return out

@@ -39,15 +39,8 @@ test.describe('the Bots screen', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/bots');
 
-    // Until the first frame the screen is neither open nor closed, so wait for
-    // it to say which before deciding whether to press anything.
-    const open = page.getByRole('button', { name: 'Open the lineup' });
-    const lineup = page.getByRole('heading', { name: 'Saved lineups' });
-    await expect(open.or(lineup).first()).toBeVisible();
-    if (await open.isVisible()) {
-      await open.click();
-    }
-    await expect(lineup).toBeVisible();
+    // The page opens the draft itself once the first frame says it is closed.
+    await expect(page.getByRole('heading', { name: 'Saved lineups' })).toBeVisible();
   });
 
   test('gives every seat a class and a loadout to choose', async ({ page }) => {
@@ -57,6 +50,17 @@ test.describe('the Bots screen', () => {
 
     await page.getByLabel('Seat 1', { exact: true }).selectOption({ label: 'Soldier' });
     await expect(page.getByText(/Seat 1 → Soldier/)).toBeVisible();
+  });
+
+  // A whole lineup was built here once and was gone on the next visit: the
+  // seats are a draft, and Apply is what writes it.
+  test('has Apply, and it is offered once a seat changes', async ({ page }) => {
+    await expect(page.getByRole('button', { name: 'Apply' })).toBeDisabled();
+    await page.getByLabel('Seat 2', { exact: true }).selectOption({ label: 'Medic' });
+    await expect(page.getByRole('button', { name: 'Apply' })).toBeEnabled();
+    await page.getByRole('button', { name: 'Apply' }).click();
+    await expect(page.getByText('Applied.')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Apply' })).toBeDisabled();
   });
 
   test('sets how many RED fills to, humans included', async ({ page }) => {

@@ -38,3 +38,35 @@ h3 {
 app-settings-row:last-of-type ::ng-deep .row {
   border-bottom: none;
 }
+
+/* The sections, as tabs across the top of the page. Underlined rather than
+   boxed, the way the app's own sections are: one vocabulary for "you are
+   here" wherever it is asked. */
+.sections {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gap-sm);
+  margin: var(--gap-sm) 0 var(--gap);
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.sections a {
+  padding: var(--gap-sm) var(--gap) 10px;
+  margin-bottom: -1px;
+  border-bottom: 2px solid transparent;
+  color: var(--text-dim);
+  text-decoration: none;
+  font-weight: 600;
+  transition:
+    color var(--quick) var(--ease-out),
+    border-color var(--quick) var(--ease-out);
+}
+
+.sections a:hover {
+  color: var(--text);
+}
+
+.sections a.here {
+  color: var(--text);
+  border-bottom-color: var(--accent);
+}

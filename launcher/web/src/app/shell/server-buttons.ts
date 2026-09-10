@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { Subject, exhaustMap } from 'rxjs';
+import { Subject, exhaustMap, filter, tap } from 'rxjs';
 
 import { LauncherCommands } from '@app/server/launcher-commands';
 import { LauncherStore } from '@app/server/launcher-store';
@@ -8,7 +8,9 @@ import { Button } from '@app/ui/button';
 import { ServerStatus } from '@gen/tf2ap/launcher/v1/launcher_pb';
 
 /**
- * Start, Stop, Restart and Quit. One button says Start or Stop depending on
+ * Join, Start, Stop, Restart and Quit. Join is first and yellow: once the
+ * server is up it is the one button the player came for, and the Play page
+ * is a click further than the header. One button says Start or Stop depending on
  * what the server is doing: two buttons where one is always wrong is how a
  * player presses Start on a running server.
  *
@@ -24,6 +26,14 @@ import { ServerStatus } from '@gen/tf2ap/launcher/v1/launcher_pb';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [Button],
   template: `
+    <app-button
+      tone="primary"
+      [disabled]="!joinable()"
+      [hint]="joinable() ? 'Open TF2 and connect to this server' : 'Start the server to join it'"
+      (press)="join.next()"
+    >
+      Join
+    </app-button>
     <app-button [tone]="halting() ? 'halt' : 'go'" (press)="toggle.next()">
       {{ halting() ? 'Stop server' : 'Start server' }}
     </app-button>
@@ -42,6 +52,7 @@ export class ServerButtons {
   private readonly commands = inject(LauncherCommands);
 
   readonly running = computed(() => this.store.running());
+  readonly joinable = computed(() => this.store.joinUrl() !== '');
 
   /** halting is the button meaning Stop: the server is up, or on its way up. */
   readonly halting = computed(
@@ -49,11 +60,20 @@ export class ServerButtons {
       this.store.running() || this.store.busy() || this.store.status() === ServerStatus.STARTING,
   );
 
+  readonly join = new Subject<void>();
   readonly toggle = new Subject<void>();
   readonly restart = new Subject<void>();
   readonly quit = new Subject<void>();
 
   constructor() {
+    // A steam:// link: the browser hands it to Steam, which connects the game.
+    this.join
+      .pipe(
+        filter(() => this.joinable()),
+        tap(() => (window.location.href = this.store.joinUrl())),
+        takeUntilDestroyed(),
+      )
+      .subscribe();
     this.toggle
       .pipe(
         exhaustMap(() => (this.halting() ? this.commands.stop() : this.commands.start())),

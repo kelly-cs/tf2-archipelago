@@ -1,0 +1,42 @@
+@if (!open()) {
+  <p class="lead">Opening the classes.</p>
+} @else {
+  <p class="lead">
+    For the seats left to the mod: which classes it may draw, and what each carries when drawn.
+    {{ allowedCount() }} of {{ mercenaries().length }} allowed.
+  </p>
+
+  <div class="table" role="group" aria-label="Classes the mod may draw">
+    <div class="head" aria-hidden="true">
+      <span>May be drawn</span>
+      <span>Carries when drawn</span>
+    </div>
+    @for (mercenary of mercenaries(); track mercenary.key) {
+      <div class="row" [class.off]="!on(mercenary.allowed)">
+        <app-chip
+          tone="allow"
+          [pressed]="on(mercenary.allowed)"
+          [hint]="
+            on(mercenary.allowed)
+              ? mercenary.name + ' may be drawn'
+              : mercenary.name + ' is forbidden'
+          "
+          (press)="flip(mercenary)"
+        >
+          {{ mercenary.name }}
+        </app-chip>
+        @if (mercenary.carries; as carries) {
+          <select
+            [attr.aria-label]="mercenary.name + ' carries'"
+            [value]="value(carries)"
+            (change)="carry(mercenary, $any($event.target).value)"
+          >
+            @for (option of carries.options; track option.value) {
+              <option [value]="option.value">{{ option.label }}</option>
+            }
+          </select>
+        }
+      </div>
+    }
+  </div>
+}

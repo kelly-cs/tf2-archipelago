@@ -1,79 +1,81 @@
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Subject, exhaustMap, tap } from 'rxjs';
 
 import { BotLineup } from '@app/bots/components/bot-lineup';
+import { ClassTable } from '@app/bots/components/class-table';
 import { SettingsStore } from '@app/settings/settings-store';
-import { Chip } from '@app/ui/chip';
+import { Button } from '@app/ui/button';
+import { Notice } from '@app/ui/notice';
 import { Panel } from '@app/ui/panel';
 
 /**
  * The Bot Switcher: who holds RED's seats, and which classes the mod may draw
- * for the ones nobody named.
+ * for the ones nobody named. The same two editors the settings draw on the
+ * Bots page, because a change here is a change there: both write the draft.
  *
- * Both halves are rows form already declares, read straight off the model:
- * which classes exist, what each is called and whether it is allowed all come
- * from there, so a class the game adds later appears here without this file
- * knowing about it. A class allowed here is the same answer the settings screen
- * holds, so the two cannot disagree.
+ * Apply is what writes it. The seats are edited in the settings draft, and a
+ * draft is nothing until it is saved: a whole lineup was built here once and
+ * was gone when the tab was opened again, because nothing on this page said
+ * so or offered to keep it.
  */
 @Component({
   selector: 'app-bots-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [BotLineup, Chip, Panel],
+  imports: [BotLineup, Button, ClassTable, Notice, Panel],
   template: `
     <app-panel heading="Bot Switcher">
       <app-bot-lineup />
     </app-panel>
 
     <app-panel heading="Classes the mod may draw">
-      <p class="lead">For seats left to the mod. Click to allow or forbid.</p>
-
-      @if (chips().length === 0) {
-        <p class="lead">Open the lineup to change these.</p>
-      } @else {
-        <div role="group" aria-label="Classes the mod may draw" class="chips">
-          @for (mercenary of chips(); track mercenary.id) {
-            <app-chip
-              tone="allow"
-              [pressed]="mercenary.allowed"
-              [hint]="
-                mercenary.allowed
-                  ? mercenary.name + ' may be drawn'
-                  : mercenary.name + ' is forbidden'
-              "
-              (press)="flip(mercenary.id)"
-            >
-              {{ mercenary.name }}
-            </app-chip>
-          }
-        </div>
-      }
+      <app-class-table />
     </app-panel>
+
+    <footer>
+      @if (refusal()) {
+        <app-notice tone="bad">{{ refusal() }}</app-notice>
+      }
+      <span class="dirty" [class.pending]="dirty()">{{ dirtyLabel() }}</span>
+      <app-button tone="ghost" [disabled]="!dirty()" (press)="discard.next()">Discard</app-button>
+      <app-button tone="go" [disabled]="!dirty()" (press)="apply.next()">Apply</app-button>
+    </footer>
   `,
   styleUrl: './bots-page.scss',
 })
 export class BotsPage {
-  private readonly settings = inject(SettingsStore);
+  private readonly store = inject(SettingsStore);
 
-  /** Only the allowed rows. bots.class.<key>.loadout is the class's default
-      loadout and lives on the settings screen, not on a chip. */
-  readonly chips = computed(() =>
-    this.settings
-      .fieldsMatching('bots.class.')
-      .filter((field) => field.id.endsWith('.allowed'))
-      .map((field) => ({
-        id: field.id,
-        name: field.label,
-        allowed: this.settings.value(field.id) === 'true',
-      })),
-  );
+  readonly dirty = computed(() => this.store.dirty());
+  readonly refusal = signal('');
+  readonly applied = signal(false);
 
-  flip(id: string): void {
-    const allowed = this.settings.value(id) === 'true';
-    // Never all nine forbidden: a lineup the mod cannot draw from leaves the
-    // seats empty, and an empty seat is a wave short of six defenders.
-    if (allowed && this.chips().filter((one) => one.allowed).length === 1) {
-      return;
+  readonly dirtyLabel = computed(() => {
+    if (this.dirty()) {
+      return 'Not applied yet. Apply writes the lineup and the bots switch on their next respawn.';
     }
-    this.settings.change(id, allowed ? 'false' : 'true');
+    return this.applied() ? 'Applied.' : 'Nothing to apply';
+  });
+
+  readonly apply = new Subject<void>();
+  readonly discard = new Subject<void>();
+
+  constructor() {
+    this.apply
+      .pipe(
+        exhaustMap(() => this.store.save(false)),
+        tap((refusal) => {
+          this.refusal.set(refusal);
+          this.applied.set(refusal === '');
+        }),
+        takeUntilDestroyed(),
+      )
+      .subscribe();
+    this.discard
+      .pipe(
+        exhaustMap(() => this.store.cancel()),
+        takeUntilDestroyed(),
+      )
+      .subscribe();
   }
 }

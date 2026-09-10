@@ -32,11 +32,50 @@ test.describe('the settings screen', () => {
       await expect(pages.getByRole('link', { name, exact: true })).toBeVisible();
     }
 
-    // Loadouts is filed under Bots, so it is a section of that page and not a
+    // Loadouts is filed under Bots, so it is a tab of that page and not a
     // page of its own.
     await expect(pages.getByRole('link', { name: 'Loadouts', exact: true })).toHaveCount(0);
     await pages.getByRole('link', { name: 'Bots', exact: true }).click();
-    await expect(page.getByRole('heading', { name: 'Loadouts' })).toBeVisible();
+    const sections = page.getByRole('tablist', { name: 'Sections of Bots' });
+    for (const name of ['Team', 'Classes', 'Looks', 'Loadouts']) {
+      await expect(sections.getByRole('tab', { name })).toBeVisible();
+    }
+  });
+
+  test('a page with sections shows one at a time, as tabs', async ({ page }) => {
+    await settingsPages(page).getByRole('link', { name: 'Bots', exact: true }).click();
+    await expect(page.getByLabel('Seat 1', { exact: true })).toBeVisible();
+    await expect(page.getByLabel('Cosmetic items')).toHaveCount(0);
+
+    await page.getByRole('tab', { name: 'Looks' }).click();
+    await expect(page).toHaveURL(/\/settings\/bots\/looks$/);
+    await expect(page.getByLabel('Cosmetic items')).toBeVisible();
+    await expect(page.getByLabel('Seat 1', { exact: true })).toHaveCount(0);
+
+    // A search flattens the tabs: the setting you cannot name the tab of is
+    // the one you search for.
+    await page.getByRole('searchbox', { name: 'Search settings' }).fill('unusual');
+    await expect(page.getByLabel('Unusual effects')).toBeVisible();
+  });
+
+  test('the loadout builder saves, loads and removes', async ({ page }) => {
+    await settingsPages(page).getByRole('link', { name: 'Bots', exact: true }).click();
+    await page.getByRole('tab', { name: 'Loadouts' }).click();
+
+    const saved = page.getByRole('list', { name: 'Saved loadouts' });
+    await expect(saved.getByText('gas runner (Pyro)')).toBeVisible();
+
+    await page.getByRole('group', { name: 'Class' }).getByRole('button', { name: 'Scout' }).click();
+    await page.getByLabel('Primary').selectOption({ label: 'The Soda Popper' });
+    await page.getByLabel('Name').fill('pop');
+    await page.getByRole('button', { name: 'Save this loadout' }).click();
+    await expect(saved.getByText('pop (Scout)')).toBeVisible();
+
+    // Two presses to remove: one asks, the second does it.
+    const row = saved.getByRole('listitem').filter({ hasText: 'pop (Scout)' });
+    await row.getByRole('button', { name: 'Remove' }).click();
+    await row.getByRole('button', { name: 'Really remove' }).click();
+    await expect(saved.getByText('pop (Scout)')).toHaveCount(0);
   });
 
   // The footer offered to go next from the page the launcher had opened rather
@@ -169,6 +208,17 @@ test.describe('the mission table', () => {
 
     await page.getByRole('button', { name: 'Tick shown', exact: true }).click();
     await expect(page.getByText(`${all} of ${all} in the pool`)).toBeVisible();
+  });
+
+  // The pool used to be drawn twice: a toggle row per mission above the table.
+  test('is the only place a mission is ticked', async ({ page }) => {
+    const table = page.getByRole('table');
+    const rows = await table.getByRole('row').count();
+    const ticks = await table.getByRole('checkbox').count();
+    expect(ticks).toBe(rows - 1);
+    // The three ticks above the table are the packs and the community toggle,
+    // not missions.
+    expect(await page.getByRole('checkbox').count()).toBe(ticks + 3);
   });
 
   test('says why a mission is not ready rather than hiding it', async ({ page }) => {

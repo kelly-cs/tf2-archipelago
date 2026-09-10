@@ -16,7 +16,8 @@ interface Seat {
 }
 
 /**
- * The lineup: a class and a loadout for each of RED's seats.
+ * The team: whether RED is filled and to how many, a class and a loadout for
+ * each seat, and the teams somebody named and kept.
  *
  * Every one of these is a row form already declares, so this picks them out of
  * the model by id rather than inventing a second way to say who plays seat two.
@@ -39,7 +40,9 @@ export class BotLineup {
   readonly notRunning = computed(() => !this.launcher.running());
   readonly feedback = signal('');
 
+  readonly fill = computed(() => this.settings.field('bots.fill'));
   readonly teamSize = computed(() => this.settings.field('bots.team_size'));
+  readonly chat = computed(() => this.settings.field('bots.upgrades_chat'));
   readonly savedTeams = computed(() => this.settings.field('bots.team_preset'));
   readonly teamName = computed(() => this.settings.field('bots.team_name'));
 
@@ -57,6 +60,11 @@ export class BotLineup {
     }
     return seats;
   });
+
+  /** How many seats name a class, for the line under the grid. */
+  readonly named = computed(
+    () => this.seats().filter((seat) => this.value(seat.playedBy) !== '').length,
+  );
 
   /** What Save says, which depends on whether the typed name is already one of
       the saved lineups. */
@@ -105,24 +113,26 @@ export class BotLineup {
       .subscribe();
   }
 
-  setName(value: string): void {
-    const field = this.teamName();
+  set(field: Field | undefined, value: string, said = ''): void {
     if (field !== undefined) {
-      this.settings.change(field.id, value);
+      this.answered.next({ id: field.id, value, said });
     }
+  }
+
+  setSeatClass(seat: Seat, value: string): void {
+    const chosen = seat.playedBy.options.find((option) => option.value === value);
+    this.set(seat.playedBy, value, `${seat.label} → ${chosen?.label ?? value}.`);
+  }
+
+  setSeatLoadout(seat: Seat, value: string): void {
+    this.set(seat.carries, value, `${seat.label} carries ${labelOf(seat.carries, value)}.`);
   }
 
   loadTeam(value: string): void {
     const field = this.savedTeams();
-    if (field === undefined) {
-      return;
+    if (value !== '') {
+      this.set(field, value, `Loaded ${labelOf(field, value)}. Bots switch on their next respawn.`);
     }
-    const chosen = field.options.find((option) => option.value === value);
-    this.answered.next({
-      id: field.id,
-      value,
-      said: `Loaded ${chosen?.label ?? value}. Bots switch on their next respawn.`,
-    });
   }
 
   saveTeam(): void {
@@ -139,31 +149,11 @@ export class BotLineup {
     return field === undefined ? '' : this.settings.value(field.id);
   }
 
-  setSeatClass(seat: Seat, value: string): void {
-    const chosen = seat.playedBy.options.find((option) => option.value === value);
-    this.answered.next({
-      id: seat.playedBy.id,
-      value,
-      said: `${seat.label} → ${chosen?.label ?? value}. Applies on the bot's next respawn.`,
-    });
+  on(field: Field | undefined): boolean {
+    return this.value(field) === 'true';
   }
+}
 
-  setSeatLoadout(seat: Seat, value: string): void {
-    if (seat.carries === undefined) {
-      return;
-    }
-    const chosen = seat.carries.options.find((option) => option.value === value);
-    this.answered.next({
-      id: seat.carries.id,
-      value,
-      said: `${seat.label} carries ${chosen?.label ?? value}.`,
-    });
-  }
-
-  setTeamSize(value: string): void {
-    const field = this.teamSize();
-    if (field !== undefined) {
-      this.answered.next({ id: field.id, value, said: `RED now fills to ${value}.` });
-    }
-  }
+function labelOf(field: Field | undefined, value: string): string {
+  return field?.options.find((option) => option.value === value)?.label ?? value;
 }

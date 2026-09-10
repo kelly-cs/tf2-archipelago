@@ -75,7 +75,7 @@ nav a.here {
 /* Sticky, because the answer to "did that save" should not need a scroll. */
 footer {
   position: sticky;
-  bottom: 0;
+  bottom: var(--footer-height);
   display: flex;
   flex-wrap: wrap;
   align-items: center;

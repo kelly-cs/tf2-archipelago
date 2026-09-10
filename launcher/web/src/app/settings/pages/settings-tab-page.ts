@@ -1,18 +1,23 @@
+import { NgComponentOutlet } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
+  Type,
   computed,
   inject,
   input,
   linkedSignal,
   signal,
 } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { applyEach, disabled, form } from '@angular/forms/signals';
-import { Subject, concatMap, tap } from 'rxjs';
+import { RouterLink } from '@angular/router';
+import { Subject, concatMap, from, of, switchMap, tap } from 'rxjs';
 
+import { appLink } from '@app/routing/app-routes';
 import { MissionTable } from '@app/settings/components/mission-table';
 import { SettingsRow } from '@app/settings/components/settings-row';
+import { SECTION_RENDERERS } from '@app/settings/section-renderers';
 import { SettingsActions } from '@app/settings/settings-actions';
 import { SettingsStore } from '@app/settings/settings-store';
 import { slugOf } from '@app/settings/slug';
@@ -26,6 +31,12 @@ interface Placed {
   readonly field: Field;
 }
 
+/** Section is one tab of a page: its own group of rows, or a page filed under it. */
+interface Section {
+  readonly title: string;
+  readonly slug: string;
+}
+
 /**
  * One row of the form the page binds to. locked travels in the model rather
  * than being looked up by index: the schema reads the row it is applied to, and
@@ -37,42 +48,91 @@ interface Row {
   locked: boolean;
 }
 
+// The Missions page draws its pool as a table, so the tick per mission and the
+// two buttons that tick them all are the table's and not rows as well.
+const poolRow = /^missions\.pool[._]/;
+
 /**
- * One settings page: its own rows, then the rows of every section filed under
- * it, then the mission table if this is the page that owns it.
+ * One settings page. Its sections are tabs across the top: the groups its rows
+ * were declared in, then every page filed under it. One section is on screen
+ * at a time, so a page with sixty rows is four screens of fifteen rather than
+ * one long scroll. A search flattens them: a setting the player cannot name
+ * the section of is the one they are searching for.
  *
- * The form is signal forms over the rows, so the bounds and the disabled state
- * a row carries are the form's rather than a check written twice. What a row
- * means still belongs to the launcher: a change goes there, and the rebuilt
- * model comes back on the stream.
+ * A section a domain draws itself arrives through SECTION_RENDERERS; the rest
+ * are the rows. Either way the form is signal forms over every row of the
+ * page, and what a row means still belongs to the launcher.
  */
 @Component({
   selector: 'app-settings-tab-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [EmptyState, MissionTable, Notice, SettingsRow],
+  imports: [EmptyState, MissionTable, NgComponentOutlet, Notice, RouterLink, SettingsRow],
   templateUrl: './settings-tab-page.html',
   styleUrl: './settings-tab-page.scss',
 })
 export class SettingsTabPage {
   readonly store = inject(SettingsStore);
   private readonly actions = inject(SettingsActions);
+  private readonly renderers = inject(SECTION_RENDERERS);
 
   readonly settingsTab = input('');
-  readonly filter = linkedSignal<string, string>({
-    source: this.settingsTab,
-    computation: () => '',
+  readonly settingsSection = input('');
+  readonly link = appLink;
+
+  readonly tab = computed(() => this.store.tab(this.settingsTab()));
+  readonly title = computed(() => this.tab()?.title ?? '');
+  readonly intro = computed(() => this.tab()?.intro ?? '');
+  readonly missionTabs = computed(() => this.settingsTab() === 'missions');
+
+  /** The rows of the page, in order, each with the section it belongs to. */
+  readonly rows = computed<Placed[]>(() => {
+    const tab = this.tab();
+    if (tab === undefined) {
+      return [];
+    }
+    const own = tab.fields.map((field) => ({ section: field.group || tab.title, field }));
+    const under = this.store
+      .tabs()
+      .filter((candidate) => candidate.under === tab.title)
+      .flatMap((nested) => nested.fields.map((field) => ({ section: nested.title, field })));
+    return [...own, ...under].filter(({ field }) => !poolRow.test(field.id));
   });
 
-  readonly sections = computed(() => this.store.sections(this.settingsTab()));
+  readonly sections = computed<Section[]>(() => {
+    const seen: Section[] = [];
+    for (const { section } of this.rows()) {
+      if (!seen.some((one) => one.title === section)) {
+        seen.push({ title: section, slug: slugOf(section) });
+      }
+    }
+    return seen;
+  });
 
-  /** The rows on this page, in order, with the sections they belong to. */
-  readonly rows = computed(() =>
-    this.sections().flatMap((section) =>
-      section.fields.map((field) => ({ section: section.title, field })),
+  readonly tabbed = computed(() => this.sections().length > 1);
+  readonly current = computed<Section | undefined>(
+    () =>
+      this.sections().find((one) => one.slug === this.settingsSection()) ?? this.sections().at(0),
+  );
+  readonly searching = computed(() => this.store.search().trim() !== '');
+
+  /** What is drawn as rows: the section on screen, or every match of a search. */
+  readonly shown = computed(() =>
+    this.rows().filter(
+      ({ section, field }) =>
+        this.store.matches(field) && (this.searching() || section === this.current()?.title),
     ),
   );
 
-  readonly shown = computed(() => this.rows().filter(({ field }) => this.store.matches(field)));
+  /** The component a domain registered for the section on screen, if any. */
+  readonly custom = toSignal(
+    toObservable(computed(() => `${this.settingsTab()}/${this.current()?.slug ?? ''}`)).pipe(
+      switchMap((key) => {
+        const renderer = this.renderers.find((one) => one.key === key);
+        return renderer === undefined ? of<Type<object> | null>(null) : from(renderer.load());
+      }),
+    ),
+    { initialValue: null },
+  );
 
   /** Which page of how many, so the player knows how much is left. */
   readonly stepLabel = computed(() => {
@@ -80,11 +140,6 @@ export class SettingsTabPage {
     const here = pages.findIndex((tab) => slugOf(tab.title) === this.settingsTab());
     return here < 0 ? '' : `Section ${here + 1} of ${pages.length}`;
   });
-
-  readonly title = computed(() => this.sections()[0]?.title ?? '');
-
-  readonly missionTabs = computed(() => this.settingsTab() === 'missions');
-  readonly intro = computed(() => this.sections()[0]?.intro ?? '');
 
   private readonly model = linkedSignal<Placed[], { rows: Row[] }>({
     source: () => this.rows(),

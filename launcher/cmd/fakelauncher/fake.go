@@ -14,6 +14,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/m-this/tf2-archipelago/launcher/internal/botlive"
+	"github.com/m-this/tf2-archipelago/launcher/internal/botloadout"
 	"github.com/m-this/tf2-archipelago/launcher/internal/form"
 	launcherv1 "github.com/m-this/tf2-archipelago/launcher/internal/gen/tf2ap/launcher/v1"
 	"github.com/m-this/tf2-archipelago/launcher/internal/gen/tf2ap/launcher/v1/launcherv1connect"
@@ -45,6 +46,14 @@ func newFake() *fake {
 	base := settings.Defaults()
 	base.APHost, base.APPort, base.APSlotName = "archipelago.gg", 38281, "Scout"
 	base.InstallRoot = "/home/player/tf2-archipelago"
+	// A loadout somebody built and a team somebody kept, so the editors have
+	// something to load, remove and hand to a seat.
+	base.SrcdsBotCustomLoadouts = map[string]botloadout.Built{
+		"gas runner": {Class: "pyro", Primary: 594, Second: 1180, Melee: botloadout.Stock, PDA2: botloadout.Stock},
+	}
+	base.SrcdsBotTeamPresets = map[string]settings.BotTeam{
+		"two engineers": {Comp: []string{"engineer", "engineer", "medic"}},
+	}
 
 	f := &fake{
 		settings:  base,

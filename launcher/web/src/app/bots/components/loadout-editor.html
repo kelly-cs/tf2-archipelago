@@ -1,0 +1,77 @@
+@if (!open()) {
+  <p class="lead">Opening the builder.</p>
+} @else {
+  <h3>Build a loadout</h3>
+  <p class="lead">
+    Pick the class, then a weapon for each slot. Name it and save it, and it appears in every menu
+    that hands a loadout to that class.
+  </p>
+
+  <div class="classes" role="group" aria-label="Class">
+    @for (option of classes(); track option.value) {
+      <app-chip
+        tone="accent"
+        [pressed]="option.value === chosenClass()"
+        [hint]="'Build a loadout for the ' + option.label"
+        (press)="pickClass(option.value)"
+      >
+        {{ option.label }}
+      </app-chip>
+    }
+  </div>
+
+  <div class="slots">
+    @for (slot of slots(); track slot.field.id) {
+      <div class="slot">
+        <label [attr.for]="slot.field.id">{{ slot.name }}</label>
+        <div class="held">{{ slot.held }}</div>
+        <select
+          [id]="slot.field.id"
+          [value]="value(slot.field)"
+          (change)="hold(slot, $any($event.target).value)"
+        >
+          @for (option of slot.field.options; track option.value) {
+            <option [value]="option.value">{{ option.label }}</option>
+          }
+        </select>
+      </div>
+    }
+  </div>
+
+  @if (nameField(); as named) {
+    <div class="bar">
+      <label [attr.for]="named.id">Name</label>
+      <input
+        [id]="named.id"
+        [attr.placeholder]="named.placeholder"
+        [value]="value(named)"
+        (input)="name($any($event.target).value)"
+        (keydown.enter)="save()"
+      />
+      <app-button tone="primary" size="small" (press)="save()">Save this loadout</app-button>
+    </div>
+  }
+
+  <div class="feedback">{{ feedback() }}</div>
+
+  <h3>Saved loadouts</h3>
+  @if (saved().length === 0) {
+    <p class="lead">None yet. The first one you save appears here.</p>
+  } @else {
+    <ul class="saved" aria-label="Saved loadouts">
+      @for (option of saved(); track option.value) {
+        <li>
+          <span class="name">{{ option.label }}</span>
+          <app-button size="small" (press)="load(option)">Load</app-button>
+          <app-button
+            size="small"
+            [tone]="removing() === option.value ? 'danger' : 'ghost'"
+            (press)="remove(option)"
+          >
+            {{ removing() === option.value ? 'Really remove' : 'Remove' }}
+          </app-button>
+        </li>
+      }
+    </ul>
+  }
+}
