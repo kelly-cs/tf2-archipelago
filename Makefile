@@ -100,9 +100,10 @@ GO_SRC := $$(find . -type f -name '*.go' -not -path './deploy/bots/build/*' -not
         go-version-check \
         launcher launcher-assets launcher-assets-common \
         proto proto-lint proto-fmt proto-deps \
-        web-install web-build web-lint web-test web-e2e web-e2e-real \
+        web-ready web-install web-build web-lint web-test web-e2e web-e2e-real \
         web-captures web-check \
-        web-install-direct web-build-direct web-lint-direct web-test-direct \
+        web-ready-direct web-install-direct web-build-direct web-lint-direct \
+        web-test-direct \
         web-e2e-direct web-check-direct \
         launcher-linux launcher-assets-linux captures embed-placeholders toolchain
 
@@ -239,18 +240,30 @@ proto-deps:
 web-install:
 	$(NPM) ci --prefer-offline --no-audit --no-fund
 
-web-build: proto web-install
+# Everything a frontend target needs that a fresh clone does not have.
+#
+# Three things, and forgetting any one of them fails only in CI, because a
+# machine that has built once already has all three:
+#
+#   proto               the generated contract. eslint is type-aware, so
+#                       without the TypeScript every @gen import is unresolved
+#                       and the no-unsafe-* family fires on every line.
+#   embed-placeholders  the files internal/assets embeds. The fake launcher is
+#                       a Go binary and will not compile without them.
+#   node_modules        the obvious one.
+#
+# Named once so a target added later cannot quietly want a fourth thing and
+# get away with it on a laptop that already has one.
+web-ready: proto embed-placeholders web-install
+
+web-build: web-ready
 	$(NPM) run build
 
-# proto, because eslint is type-aware: without the generated TypeScript every
-# @gen import is unresolved and the no-unsafe-* family fires on every line that
-# touches the contract. A fresh clone has none of it, so the dependency is what
-# makes the target mean the same thing there as it does here.
-web-lint: proto web-install
+web-lint: web-ready
 	$(NPM) run lint
 	$(NPM) run format:check
 
-web-test: proto web-install
+web-test: web-ready
 	$(NPM) test
 
 # The browser tests drive the real app against launcher/cmd/fakelauncher: the
@@ -287,14 +300,16 @@ web-check: web-lint web-test web-build
 web-install-direct:
 	cd $(WEB) && npm ci --prefer-offline --no-audit --no-fund
 
-web-build-direct: proto web-install-direct
+web-ready-direct: proto embed-placeholders web-install-direct
+
+web-build-direct: web-ready-direct
 	cd $(WEB) && npm run build
 
-web-lint-direct: proto web-install-direct
+web-lint-direct: web-ready-direct
 	cd $(WEB) && npm run lint
 	cd $(WEB) && npm run format:check
 
-web-test-direct: proto web-install-direct
+web-test-direct: web-ready-direct
 	cd $(WEB) && npm test
 
 web-e2e-direct: web-build-direct

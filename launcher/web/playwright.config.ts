@@ -17,7 +17,10 @@ export default defineConfig({
   workers: 1,
   forbidOnly: !!process.env['CI'],
   retries: process.env['CI'] ? 1 : 0,
-  reporter: process.env['CI'] ? 'list' : [['list'], ['html', { open: 'never' }]],
+  // The HTML report is written in CI too. It used to be list-only there, so a
+  // failing run uploaded an empty artifact and the only way to see what broke
+  // was to wait for the whole run to finish and read the raw log.
+  reporter: [['list'], ['html', { open: 'never' }]],
   use: {
     baseURL: `http://127.0.0.1:${port}`,
     trace: 'retain-on-failure',
