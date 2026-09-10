@@ -439,8 +439,8 @@ func (a *App) Snapshot() Snapshot {
 	sessionState.Missions = slices.Clone(sessionState.Missions)
 	for i := range sessionState.Missions {
 		mission, known := gamedata.MissionByPopFile(sessionState.Missions[i].PopFile)
-		if known && slices.Contains(a.imported, gamedata.MissionPack(mission.ID)) {
-			sessionState.Missions[i].Source = "Imported"
+		if known {
+			sessionState.Missions[i].Source = missionSource(mission, a.imported)
 		}
 	}
 	var model *form.Model
