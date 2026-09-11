@@ -1407,7 +1407,6 @@
             <section class="panel section" aria-labelledby="loadout-title">
               <header class="section-header">
                 <h2 id="loadout-title">Loadout &amp; equipment</h2>
-                <span id="loadout-aside" class="section-aside">0 slots</span>
               </header>
               <div id="slot-track" class="slot-track"></div>
             </section>
@@ -1867,7 +1866,7 @@
         const equipment = node('div', `server-equipment${grapplingHook ? '' : ' locked'}`);
         equipment.setAttribute(
           'aria-label',
-          `Grappling Hook, ${grapplingHook ? 'unlocked for everyone' : 'not yet unlocked'}`,
+          `Grappling Hook, ${grapplingHook ? 'unlocked for everyone' : 'locked'}`,
         );
         const icon = node('img');
         icon.src =
@@ -1880,12 +1879,9 @@
         equipment.append(
           icon,
           copy,
-          node('span', 'equipment-state', grapplingHook ? 'Unlocked for everyone' : 'Not yet unlocked'),
+          node('span', 'equipment-state', grapplingHook ? 'Unlocked for everyone' : 'Locked'),
         );
         track.append(equipment);
-        $('#loadout-aside').textContent = grapplingHook
-          ? `${count} slot${count === 1 ? '' : 's'} · hook active`
-          : `${count} slot${count === 1 ? '' : 's'} · hook locked`;
       }
 
       function itemKind(name) {
