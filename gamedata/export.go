@@ -253,9 +253,14 @@ func buildWeaponClassesFile() weaponClassesFile {
 	return file
 }
 
+var tfWikiItemIconNames = map[string]string{
+	"Force-a-Nature": "Force-A-Nature",
+	"Übersaw":        "Ubersaw",
+}
+
 func tfWikiItemIconURL(weapon string) string {
-	if weapon == "Übersaw" {
-		weapon = "Ubersaw"
+	if filename, ok := tfWikiItemIconNames[weapon]; ok {
+		weapon = filename
 	}
 	filename := "Item_icon_" + strings.ReplaceAll(weapon, " ", "_") + ".png"
 	hash := fmt.Sprintf("%x", md5.Sum([]byte(filename)))
