@@ -841,11 +841,21 @@
         border-radius: var(--radius);
       }
 
+      .server-equipment.locked {
+        color: var(--text-mute);
+        background: var(--surface-inset);
+        border-color: var(--line-soft);
+      }
+
       .server-equipment img {
         width: 62px;
         height: 54px;
         object-fit: contain;
         filter: drop-shadow(0 4px 4px rgb(0 0 0 / 0.42));
+      }
+
+      .server-equipment.locked img {
+        filter: grayscale(1) opacity(0.42);
       }
 
       .equipment-copy {
@@ -870,6 +880,10 @@
         font: 700 11px/1.2 var(--font-mono);
         text-align: right;
         text-transform: uppercase;
+      }
+
+      .server-equipment.locked .equipment-state {
+        color: var(--text-faint);
       }
 
       .unlock-list {
@@ -1850,22 +1864,28 @@
           track.append(slot);
         });
         const grapplingHook = owned.has('Grappling Hook');
-        if (grapplingHook) {
-          const equipment = node('div', 'server-equipment');
-          const icon = node('img');
-          icon.src =
-            'https://wiki.teamfortress.com/w/images/thumb/e/ea/Item_icon_Grappling_Hook.png/128px-Item_icon_Grappling_Hook.png';
-          icon.alt = '';
-          icon.loading = 'lazy';
-          const copy = node('div', 'equipment-copy');
-          copy.append(node('small', '', 'Server-wide equipment'));
-          copy.append(node('strong', '', 'Grappling Hook'));
-          equipment.append(icon, copy, node('span', 'equipment-state', 'Unlocked for everyone'));
-          track.append(equipment);
-        }
+        const equipment = node('div', `server-equipment${grapplingHook ? '' : ' locked'}`);
+        equipment.setAttribute(
+          'aria-label',
+          `Grappling Hook, ${grapplingHook ? 'unlocked for everyone' : 'not yet unlocked'}`,
+        );
+        const icon = node('img');
+        icon.src =
+          'https://wiki.teamfortress.com/w/images/thumb/e/ea/Item_icon_Grappling_Hook.png/128px-Item_icon_Grappling_Hook.png';
+        icon.alt = '';
+        icon.loading = 'lazy';
+        const copy = node('div', 'equipment-copy');
+        copy.append(node('small', '', 'Server-wide equipment'));
+        copy.append(node('strong', '', 'Grappling Hook'));
+        equipment.append(
+          icon,
+          copy,
+          node('span', 'equipment-state', grapplingHook ? 'Unlocked for everyone' : 'Not yet unlocked'),
+        );
+        track.append(equipment);
         $('#loadout-aside').textContent = grapplingHook
           ? `${count} slot${count === 1 ? '' : 's'} · hook active`
-          : `${count} slot${count === 1 ? '' : 's'}`;
+          : `${count} slot${count === 1 ? '' : 's'} · hook locked`;
       }
 
       function itemKind(name) {
