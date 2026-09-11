@@ -1,10 +1,13 @@
 package gamedata
 
 import (
+	"crypto/md5"
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 // The exported JSON is what the Python apworld reads at import time. It is
@@ -13,9 +16,10 @@ import (
 // shape it does not know. See ADR 0001.
 
 const (
-	FileMeta     = "meta.json"
-	FileMissions = "missions.json"
-	FileItems    = "items.json"
+	FileMeta          = "meta.json"
+	FileMissions      = "missions.json"
+	FileItems         = "items.json"
+	FileWeaponClasses = "weapon_classes.json"
 )
 
 type metaFile struct {
@@ -104,7 +108,18 @@ type itemJSON struct {
 	Eligible       bool      `json:"eligible,omitempty"`
 }
 
-// Export writes the three data files into dir, replacing what is there.
+type weaponClassesFile struct {
+	FormatVersion int                 `json:"format_version"`
+	Weapons       []weaponClassesJSON `json:"weapons"`
+}
+
+type weaponClassesJSON struct {
+	Name    string   `json:"name"`
+	Classes []string `json:"classes"`
+	Icon    string   `json:"icon"`
+}
+
+// Export writes the generated data files into dir, replacing what is there.
 func Export(dir string) error {
 	if err := Validate(); err != nil {
 		return fmt.Errorf("gamedata is not valid, refusing to export: %w", err)
@@ -113,9 +128,10 @@ func Export(dir string) error {
 		return err
 	}
 	files := map[string]any{
-		FileMeta:     buildMetaFile(),
-		FileMissions: buildMissionsFile(),
-		FileItems:    buildItemsFile(),
+		FileMeta:          buildMetaFile(),
+		FileMissions:      buildMissionsFile(),
+		FileItems:         buildItemsFile(),
+		FileWeaponClasses: buildWeaponClassesFile(),
 	}
 	for name, content := range files {
 		body, err := json.MarshalIndent(content, "", "  ")
@@ -216,4 +232,31 @@ func buildItemsFile() itemsFile {
 		})
 	}
 	return file
+}
+
+func buildWeaponClassesFile() weaponClassesFile {
+	file := weaponClassesFile{
+		FormatVersion: FormatVersion,
+		Weapons:       make([]weaponClassesJSON, 0, len(BuffWeapons)),
+	}
+	for _, weapon := range BuffWeapons {
+		if weapon.ID != weapon.ApplyID {
+			continue
+		}
+		classes := weaponClassNames(weapon.Name, weapon.DefIndexes)
+		if len(classes) != 0 {
+			file.Weapons = append(file.Weapons, weaponClassesJSON{
+				Name: weapon.Name, Classes: classes, Icon: tfWikiItemIconURL(weapon.Name),
+			})
+		}
+	}
+	return file
+}
+
+func tfWikiItemIconURL(weapon string) string {
+	filename := "Item_icon_" + strings.ReplaceAll(weapon, " ", "_") + ".png"
+	hash := fmt.Sprintf("%x", md5.Sum([]byte(filename)))
+	escaped := url.PathEscape(filename)
+	return fmt.Sprintf("https://wiki.teamfortress.com/w/images/thumb/%s/%s/%s/128px-%s",
+		hash[:1], hash[:2], escaped, escaped)
 }

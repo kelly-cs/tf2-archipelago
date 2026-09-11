@@ -692,6 +692,45 @@ func TestItemExportMarksOnlyNumericBuffsStackable(t *testing.T) {
 	}
 }
 
+func TestEveryEligibleBuffNamesTheClassesThatCanEquipIt(t *testing.T) {
+	for _, buff := range WeaponBuffs {
+		if buff.Eligible && len(weaponClassNames(buff.Weapon, buff.DefIndexes)) == 0 {
+			t.Errorf("eligible buff %q has no equipping class", buff.ItemName())
+		}
+	}
+	for _, test := range []struct {
+		weapon string
+		want   []string
+	}{
+		{"Air Strike", []string{"Soldier"}},
+		{"Mad Milk", []string{"Scout"}},
+		{"Crusader's Crossbow", []string{"Medic"}},
+		{"Shotgun", []string{"Soldier", "Pyro", "Heavy", "Engineer"}},
+		{"Saxxy", []string{"Scout", "Soldier", "Pyro", "Demoman", "Heavy", "Engineer", "Medic", "Sniper", "Spy"}},
+	} {
+		buff := buffNamed(t, test.weapon, "damage")
+		if got := weaponClassNames(buff.Weapon, buff.DefIndexes); !slices.Equal(got, test.want) {
+			t.Errorf("%s classes = %v, want %v", test.weapon, got, test.want)
+		}
+	}
+}
+
+func TestWeaponClassExportCarriesWeaponClasses(t *testing.T) {
+	for _, weapon := range buildWeaponClassesFile().Weapons {
+		if weapon.Name != "Air Strike" {
+			continue
+		}
+		if !slices.Equal(weapon.Classes, []string{"Soldier"}) {
+			t.Fatalf("Air Strike export classes = %v, want Soldier", weapon.Classes)
+		}
+		if want := "https://wiki.teamfortress.com/w/images/thumb/f/f8/Item_icon_Air_Strike.png/128px-Item_icon_Air_Strike.png"; weapon.Icon != want {
+			t.Fatalf("Air Strike icon = %q, want %q", weapon.Icon, want)
+		}
+		return
+	}
+	t.Fatal("Air Strike is missing from weapon class export")
+}
+
 // Explode on ignite ended waves on its own once substances landed on direct
 // hits (gh-17). It is out of the pool everywhere and keeps its ID.
 func TestExplodeOnIgniteIsOfferedNowhere(t *testing.T) {
