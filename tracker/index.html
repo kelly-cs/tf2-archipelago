@@ -825,6 +825,53 @@
         text-transform: uppercase;
       }
 
+      .server-equipment {
+        display: grid;
+        grid-column: 1 / -1;
+        grid-template-columns: 62px minmax(0, 1fr) auto;
+        gap: 11px;
+        align-items: center;
+        min-height: 68px;
+        padding: 7px 11px 7px 6px;
+        color: var(--text);
+        background:
+          linear-gradient(110deg, var(--good-tint), transparent 68%),
+          var(--surface-inset);
+        border: 1px solid var(--state-good);
+        border-radius: var(--radius);
+      }
+
+      .server-equipment img {
+        width: 62px;
+        height: 54px;
+        object-fit: contain;
+        filter: drop-shadow(0 4px 4px rgb(0 0 0 / 0.42));
+      }
+
+      .equipment-copy {
+        display: grid;
+        gap: 3px;
+      }
+
+      .equipment-copy small {
+        color: var(--text-faint);
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .equipment-copy strong {
+        font: 18px/1 var(--font-display);
+      }
+
+      .equipment-state {
+        color: var(--state-good);
+        font: 700 11px/1.2 var(--font-mono);
+        text-align: right;
+        text-transform: uppercase;
+      }
+
       .unlock-list {
         display: grid;
         gap: 2px;
@@ -1196,6 +1243,15 @@
         .buff-list {
           grid-template-columns: 1fr;
         }
+
+        .server-equipment {
+          grid-template-columns: 56px minmax(0, 1fr);
+        }
+
+        .equipment-state {
+          grid-column: 2;
+          text-align: left;
+        }
       }
 
       @media (prefers-reduced-motion: reduce) {
@@ -1336,7 +1392,7 @@
 
             <section class="panel section" aria-labelledby="loadout-title">
               <header class="section-header">
-                <h2 id="loadout-title">Loadout access</h2>
+                <h2 id="loadout-title">Loadout &amp; equipment</h2>
                 <span id="loadout-aside" class="section-aside">0 slots</span>
               </header>
               <div id="slot-track" class="slot-track"></div>
@@ -1783,7 +1839,7 @@
         dialog.showModal();
       }
 
-      function renderSlots(count) {
+      function renderSlots(count, owned) {
         const track = $('#slot-track');
         track.replaceChildren();
         SLOT_NAMES.forEach((name, index) => {
@@ -1793,7 +1849,23 @@
           slot.append(node('small', '', name));
           track.append(slot);
         });
-        $('#loadout-aside').textContent = `${count} slot${count === 1 ? '' : 's'}`;
+        const grapplingHook = owned.has('Grappling Hook');
+        if (grapplingHook) {
+          const equipment = node('div', 'server-equipment');
+          const icon = node('img');
+          icon.src =
+            'https://wiki.teamfortress.com/w/images/thumb/e/ea/Item_icon_Grappling_Hook.png/128px-Item_icon_Grappling_Hook.png';
+          icon.alt = '';
+          icon.loading = 'lazy';
+          const copy = node('div', 'equipment-copy');
+          copy.append(node('small', '', 'Server-wide equipment'));
+          copy.append(node('strong', '', 'Grappling Hook'));
+          equipment.append(icon, copy, node('span', 'equipment-state', 'Unlocked for everyone'));
+          track.append(equipment);
+        }
+        $('#loadout-aside').textContent = grapplingHook
+          ? `${count} slot${count === 1 ? '' : 's'} · hook active`
+          : `${count} slot${count === 1 ? '' : 's'}`;
       }
 
       function itemKind(name) {
@@ -1803,6 +1875,7 @@
         if (name.startsWith('Australium Medal:')) return 'Medal';
         if (name.startsWith('Trap:')) return 'Trap';
         if (name === 'Progressive Weapon Slot') return 'Loadout';
+        if (name === 'Grappling Hook') return 'Server';
         if (name === 'Cash Bundle') return 'Cash';
         return 'Unlock';
       }
@@ -1893,7 +1966,7 @@
         renderGoal(slotData, missions, checked);
         renderMissions(missions, checked, owned, slotData);
         renderClasses(owned, source.buffWeapons || new Map());
-        renderSlots(slotCount);
+        renderSlots(slotCount, owned);
         renderUnlocks(owned);
         $('#connect-panel').hidden = true;
         $('#tracker-shell').hidden = false;
@@ -2016,6 +2089,7 @@
           [7443005006, 'Weapon Buff: Air Strike — +10% damage'],
           [7443005007, 'Weapon Buff: Air Strike — +15% reload speed'],
           [7443005008, 'Weapon Buff: Minigun — +15 health on kill'],
+          [7443007001, 'Grappling Hook'],
           [7443004001, 'Cash Bundle'],
         ]);
         return {
@@ -2085,6 +2159,7 @@
             [7443005006, 3],
             [7443005007, 1],
             [7443005008, 2],
+            [7443007001, 1],
             [7443004001, 3],
           ]),
           demoSlotData: {
