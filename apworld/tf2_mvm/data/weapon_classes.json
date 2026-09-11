@@ -252,7 +252,7 @@
       "classes": [
         "Engineer"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/6/61/Item_icon_Construction_PDA.png/128px-Item_icon_Construction_PDA.png"
+      "icon": "https://wiki.teamfortress.com/w/images/thumb/1/16/Item_icon_PDA_Build.png/128px-Item_icon_PDA_Build.png"
     },
     {
       "name": "Cow Mangler 5000",
@@ -315,7 +315,7 @@
       "classes": [
         "Engineer"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/0/05/Item_icon_Destruction_PDA.png/128px-Item_icon_Destruction_PDA.png"
+      "icon": "https://wiki.teamfortress.com/w/images/thumb/2/26/Item_icon_PDA_Destroy.png/128px-Item_icon_PDA_Destroy.png"
     },
     {
       "name": "Detonator",
@@ -562,7 +562,7 @@
       "classes": [
         "Spy"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/7/7c/Item_icon_Invis_Watch.png/128px-Item_icon_Invis_Watch.png"
+      "icon": "https://wiki.teamfortress.com/w/images/thumb/0/0e/Item_icon_Invisibility_Watch.png/128px-Item_icon_Invisibility_Watch.png"
     },
     {
       "name": "Iron Bomber",
@@ -862,7 +862,7 @@
       "classes": [
         "Spy"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/6/6c/Item_icon_Sapper.png/128px-Item_icon_Sapper.png"
+      "icon": "https://wiki.teamfortress.com/w/images/thumb/f/f2/Item_icon_Electro_Sapper.png/128px-Item_icon_Electro_Sapper.png"
     },
     {
       "name": "Saxxy",
@@ -964,7 +964,7 @@
       "classes": [
         "Sniper"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/5/50/Item_icon_SMG.png/128px-Item_icon_SMG.png"
+      "icon": "https://wiki.teamfortress.com/w/images/thumb/1/12/Item_icon_Submachine_Gun.png/128px-Item_icon_Submachine_Gun.png"
     },
     {
       "name": "Sniper Rifle",

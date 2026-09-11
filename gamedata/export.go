@@ -254,8 +254,13 @@ func buildWeaponClassesFile() weaponClassesFile {
 }
 
 var tfWikiItemIconNames = map[string]string{
-	"Force-a-Nature": "Force-A-Nature",
-	"Übersaw":        "Ubersaw",
+	"Construction PDA": "PDA Build",
+	"Destruction PDA":  "PDA Destroy",
+	"Force-a-Nature":   "Force-A-Nature",
+	"Invis Watch":      "Invisibility Watch",
+	"Sapper":           "Electro Sapper",
+	"SMG":              "Submachine Gun",
+	"Übersaw":          "Ubersaw",
 }
 
 func tfWikiItemIconURL(weapon string) string {

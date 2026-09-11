@@ -732,11 +732,11 @@ func TestWeaponClassExportCarriesWeaponClasses(t *testing.T) {
 	if icons["Air Strike"] == "" {
 		t.Fatal("Air Strike is missing from weapon class export")
 	}
-	if want := "https://wiki.teamfortress.com/w/images/thumb/0/04/Item_icon_Ubersaw.png/128px-Item_icon_Ubersaw.png"; icons["Übersaw"] != want {
-		t.Fatalf("Übersaw icon = %q, want %q", icons["Übersaw"], want)
-	}
-	if want := "https://wiki.teamfortress.com/w/images/thumb/e/ed/Item_icon_Force-A-Nature.png/128px-Item_icon_Force-A-Nature.png"; icons["Force-a-Nature"] != want {
-		t.Fatalf("Force-a-Nature icon = %q, want %q", icons["Force-a-Nature"], want)
+	for weapon, filename := range tfWikiItemIconNames {
+		want := tfWikiItemIconURL(filename)
+		if got := icons[weapon]; got != want {
+			t.Errorf("%s icon = %q, want %q", weapon, got, want)
+		}
 	}
 }
 
