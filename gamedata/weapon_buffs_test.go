@@ -716,7 +716,9 @@ func TestEveryEligibleBuffNamesTheClassesThatCanEquipIt(t *testing.T) {
 }
 
 func TestWeaponClassExportCarriesWeaponClasses(t *testing.T) {
+	icons := make(map[string]string)
 	for _, weapon := range buildWeaponClassesFile().Weapons {
+		icons[weapon.Name] = weapon.Icon
 		if weapon.Name != "Air Strike" {
 			continue
 		}
@@ -726,9 +728,13 @@ func TestWeaponClassExportCarriesWeaponClasses(t *testing.T) {
 		if want := "https://wiki.teamfortress.com/w/images/thumb/f/f8/Item_icon_Air_Strike.png/128px-Item_icon_Air_Strike.png"; weapon.Icon != want {
 			t.Fatalf("Air Strike icon = %q, want %q", weapon.Icon, want)
 		}
-		return
 	}
-	t.Fatal("Air Strike is missing from weapon class export")
+	if icons["Air Strike"] == "" {
+		t.Fatal("Air Strike is missing from weapon class export")
+	}
+	if want := "https://wiki.teamfortress.com/w/images/thumb/0/04/Item_icon_Ubersaw.png/128px-Item_icon_Ubersaw.png"; icons["Übersaw"] != want {
+		t.Fatalf("Übersaw icon = %q, want %q", icons["Übersaw"], want)
+	}
 }
 
 // Explode on ignite ended waves on its own once substances landed on direct

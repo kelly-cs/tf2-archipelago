@@ -254,6 +254,9 @@ func buildWeaponClassesFile() weaponClassesFile {
 }
 
 func tfWikiItemIconURL(weapon string) string {
+	if weapon == "Übersaw" {
+		weapon = "Ubersaw"
+	}
 	filename := "Item_icon_" + strings.ReplaceAll(weapon, " ", "_") + ".png"
 	hash := fmt.Sprintf("%x", md5.Sum([]byte(filename)))
 	escaped := url.PathEscape(filename)
