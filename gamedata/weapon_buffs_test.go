@@ -1,7 +1,9 @@
 package gamedata
 
 import (
+	"net/url"
 	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
@@ -725,7 +727,7 @@ func TestWeaponClassExportCarriesWeaponClasses(t *testing.T) {
 		if !slices.Equal(weapon.Classes, []string{"Soldier"}) {
 			t.Fatalf("Air Strike export classes = %v, want Soldier", weapon.Classes)
 		}
-		if want := "https://wiki.teamfortress.com/w/images/thumb/f/f8/Item_icon_Air_Strike.png/128px-Item_icon_Air_Strike.png"; weapon.Icon != want {
+		if want := "assets/tf2/items/Item_icon_Air_Strike.png"; weapon.Icon != want {
 			t.Fatalf("Air Strike icon = %q, want %q", weapon.Icon, want)
 		}
 	}
@@ -733,9 +735,25 @@ func TestWeaponClassExportCarriesWeaponClasses(t *testing.T) {
 		t.Fatal("Air Strike is missing from weapon class export")
 	}
 	for weapon, filename := range tfWikiItemIconNames {
-		want := tfWikiItemIconURL(filename)
+		want := trackerItemIconPath(filename)
 		if got := icons[weapon]; got != want {
 			t.Errorf("%s icon = %q, want %q", weapon, got, want)
+		}
+	}
+}
+
+func TestWeaponClassExportIconsAreBundled(t *testing.T) {
+	for _, weapon := range buildWeaponClassesFile().Weapons {
+		icon, err := url.PathUnescape(weapon.Icon)
+		if err != nil {
+			t.Fatalf("%s icon path %q: %v", weapon.Name, weapon.Icon, err)
+		}
+		if !strings.HasPrefix(icon, "assets/tf2/items/") {
+			t.Errorf("%s icon is not a bundled asset: %q", weapon.Name, weapon.Icon)
+			continue
+		}
+		if _, err := os.Stat(filepath.Join("../launcher/web/src", filepath.FromSlash(icon))); err != nil {
+			t.Errorf("%s icon %q is not bundled: %v", weapon.Name, weapon.Icon, err)
 		}
 	}
 }

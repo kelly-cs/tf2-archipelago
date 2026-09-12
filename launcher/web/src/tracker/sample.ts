@@ -44,11 +44,11 @@ export function sampleSource(host: string): TrackerSource {
     7_443_005_008, 7_443_007_001, 7_443_004_001, 7_443_004_001, 7_443_004_001,
   ];
   const weapons = [
-    weapon('Air Strike', ['Soldier'], 'f/f8/Item_icon_Air_Strike.png'),
-    weapon('Minigun', ['Heavy'], 'a/a7/Item_icon_Minigun.png'),
-    weapon('Mad Milk', ['Scout'], '5/56/Item_icon_Mad_Milk.png'),
-    weapon("Crusader's Crossbow", ['Medic'], '9/9c/Item_icon_Crusader%27s_Crossbow.png'),
-    weapon('Grenade Launcher', ['Demoman'], 'e/e6/Item_icon_Grenade_Launcher.png'),
+    weapon('Air Strike', ['Soldier'], 'Item_icon_Air_Strike.png'),
+    weapon('Minigun', ['Heavy'], 'Item_icon_Minigun.png'),
+    weapon('Mad Milk', ['Scout'], 'Item_icon_Mad_Milk.png'),
+    weapon("Crusader's Crossbow", ['Medic'], 'Item_icon_Crusader%27s_Crossbow.png'),
+    weapon('Grenade Launcher', ['Demoman'], 'Item_icon_Grenade_Launcher.png'),
   ];
   return {
     mode: 'demo',
@@ -92,10 +92,10 @@ function mission(id: number, pop: string, name: string, difficulty: string, wave
   return { pop_file: pop, name, difficulty, locations };
 }
 
-function weapon(name: string, classes: readonly string[], path: string): Weapon {
+function weapon(name: string, classes: readonly string[], filename: string): Weapon {
   return {
     name,
     classes,
-    icon: `https://wiki.teamfortress.com/w/images/thumb/${path}/128px-${path.split('/').at(-1)}`,
+    icon: `assets/tf2/items/${filename}`,
   };
 }

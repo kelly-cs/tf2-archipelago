@@ -1,7 +1,6 @@
 package gamedata
 
 import (
-	"crypto/md5"
 	"encoding/json"
 	"fmt"
 	"net/url"
@@ -246,7 +245,7 @@ func buildWeaponClassesFile() weaponClassesFile {
 		classes := weaponClassNames(weapon.Name, weapon.DefIndexes)
 		if len(classes) != 0 {
 			file.Weapons = append(file.Weapons, weaponClassesJSON{
-				Name: weapon.Name, Classes: classes, Icon: tfWikiItemIconURL(weapon.Name),
+				Name: weapon.Name, Classes: classes, Icon: trackerItemIconPath(weapon.Name),
 			})
 		}
 	}
@@ -263,13 +262,10 @@ var tfWikiItemIconNames = map[string]string{
 	"Übersaw":          "Ubersaw",
 }
 
-func tfWikiItemIconURL(weapon string) string {
+func trackerItemIconPath(weapon string) string {
 	if filename, ok := tfWikiItemIconNames[weapon]; ok {
 		weapon = filename
 	}
 	filename := "Item_icon_" + strings.ReplaceAll(weapon, " ", "_") + ".png"
-	hash := fmt.Sprintf("%x", md5.Sum([]byte(filename)))
-	escaped := url.PathEscape(filename)
-	return fmt.Sprintf("https://wiki.teamfortress.com/w/images/thumb/%s/%s/%s/128px-%s",
-		hash[:1], hash[:2], escaped, escaped)
+	return "assets/tf2/items/" + url.PathEscape(filename)
 }

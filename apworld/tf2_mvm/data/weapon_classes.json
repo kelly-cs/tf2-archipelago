@@ -6,42 +6,42 @@
       "classes": [
         "Soldier"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/f/f8/Item_icon_Air_Strike.png/128px-Item_icon_Air_Strike.png"
+      "icon": "assets/tf2/items/Item_icon_Air_Strike.png"
     },
     {
       "name": "Ali Baba's Wee Booties",
       "classes": [
         "Demoman"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/a/a4/Item_icon_Ali_Baba%27s_Wee_Booties.png/128px-Item_icon_Ali_Baba%27s_Wee_Booties.png"
+      "icon": "assets/tf2/items/Item_icon_Ali_Baba%27s_Wee_Booties.png"
     },
     {
       "name": "Ambassador",
       "classes": [
         "Spy"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/e/ec/Item_icon_Ambassador.png/128px-Item_icon_Ambassador.png"
+      "icon": "assets/tf2/items/Item_icon_Ambassador.png"
     },
     {
       "name": "Amputator",
       "classes": [
         "Medic"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/a/ab/Item_icon_Amputator.png/128px-Item_icon_Amputator.png"
+      "icon": "assets/tf2/items/Item_icon_Amputator.png"
     },
     {
       "name": "Atomizer",
       "classes": [
         "Scout"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/2/29/Item_icon_Atomizer.png/128px-Item_icon_Atomizer.png"
+      "icon": "assets/tf2/items/Item_icon_Atomizer.png"
     },
     {
       "name": "Axtinguisher",
       "classes": [
         "Pyro"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/c/c9/Item_icon_Axtinguisher.png/128px-Item_icon_Axtinguisher.png"
+      "icon": "assets/tf2/items/Item_icon_Axtinguisher.png"
     },
     {
       "name": "B.A.S.E. Jumper",
@@ -49,406 +49,406 @@
         "Soldier",
         "Demoman"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/b/b2/Item_icon_B.A.S.E._Jumper.png/128px-Item_icon_B.A.S.E._Jumper.png"
+      "icon": "assets/tf2/items/Item_icon_B.A.S.E._Jumper.png"
     },
     {
       "name": "Baby Face's Blaster",
       "classes": [
         "Scout"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/e/e6/Item_icon_Baby_Face%27s_Blaster.png/128px-Item_icon_Baby_Face%27s_Blaster.png"
+      "icon": "assets/tf2/items/Item_icon_Baby_Face%27s_Blaster.png"
     },
     {
       "name": "Back Scatter",
       "classes": [
         "Scout"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/1/11/Item_icon_Back_Scatter.png/128px-Item_icon_Back_Scatter.png"
+      "icon": "assets/tf2/items/Item_icon_Back_Scatter.png"
     },
     {
       "name": "Back Scratcher",
       "classes": [
         "Pyro"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/4/48/Item_icon_Back_Scratcher.png/128px-Item_icon_Back_Scratcher.png"
+      "icon": "assets/tf2/items/Item_icon_Back_Scratcher.png"
     },
     {
       "name": "Backburner",
       "classes": [
         "Pyro"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/5/5d/Item_icon_Backburner.png/128px-Item_icon_Backburner.png"
+      "icon": "assets/tf2/items/Item_icon_Backburner.png"
     },
     {
       "name": "Bat",
       "classes": [
         "Scout"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/b/b5/Item_icon_Bat.png/128px-Item_icon_Bat.png"
+      "icon": "assets/tf2/items/Item_icon_Bat.png"
     },
     {
       "name": "Battalion's Backup",
       "classes": [
         "Soldier"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/d/d8/Item_icon_Battalion%27s_Backup.png/128px-Item_icon_Battalion%27s_Backup.png"
+      "icon": "assets/tf2/items/Item_icon_Battalion%27s_Backup.png"
     },
     {
       "name": "Bazaar Bargain",
       "classes": [
         "Sniper"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/f/f4/Item_icon_Bazaar_Bargain.png/128px-Item_icon_Bazaar_Bargain.png"
+      "icon": "assets/tf2/items/Item_icon_Bazaar_Bargain.png"
     },
     {
       "name": "Beggar's Bazooka",
       "classes": [
         "Soldier"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/7/77/Item_icon_Beggar%27s_Bazooka.png/128px-Item_icon_Beggar%27s_Bazooka.png"
+      "icon": "assets/tf2/items/Item_icon_Beggar%27s_Bazooka.png"
     },
     {
       "name": "Big Earner",
       "classes": [
         "Spy"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/c/c9/Item_icon_Big_Earner.png/128px-Item_icon_Big_Earner.png"
+      "icon": "assets/tf2/items/Item_icon_Big_Earner.png"
     },
     {
       "name": "Black Box",
       "classes": [
         "Soldier"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/d/d2/Item_icon_Black_Box.png/128px-Item_icon_Black_Box.png"
+      "icon": "assets/tf2/items/Item_icon_Black_Box.png"
     },
     {
       "name": "Blutsauger",
       "classes": [
         "Medic"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/1/13/Item_icon_Blutsauger.png/128px-Item_icon_Blutsauger.png"
+      "icon": "assets/tf2/items/Item_icon_Blutsauger.png"
     },
     {
       "name": "Bonesaw",
       "classes": [
         "Medic"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/8/8d/Item_icon_Bonesaw.png/128px-Item_icon_Bonesaw.png"
+      "icon": "assets/tf2/items/Item_icon_Bonesaw.png"
     },
     {
       "name": "Bonk! Atomic Punch",
       "classes": [
         "Scout"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/8/8f/Item_icon_Bonk%21_Atomic_Punch.png/128px-Item_icon_Bonk%21_Atomic_Punch.png"
+      "icon": "assets/tf2/items/Item_icon_Bonk%21_Atomic_Punch.png"
     },
     {
       "name": "Bootlegger",
       "classes": [
         "Demoman"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/4/4c/Item_icon_Bootlegger.png/128px-Item_icon_Bootlegger.png"
+      "icon": "assets/tf2/items/Item_icon_Bootlegger.png"
     },
     {
       "name": "Boston Basher",
       "classes": [
         "Scout"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/b/b5/Item_icon_Boston_Basher.png/128px-Item_icon_Boston_Basher.png"
+      "icon": "assets/tf2/items/Item_icon_Boston_Basher.png"
     },
     {
       "name": "Bottle",
       "classes": [
         "Demoman"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/b/b2/Item_icon_Bottle.png/128px-Item_icon_Bottle.png"
+      "icon": "assets/tf2/items/Item_icon_Bottle.png"
     },
     {
       "name": "Brass Beast",
       "classes": [
         "Heavy"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/6/64/Item_icon_Brass_Beast.png/128px-Item_icon_Brass_Beast.png"
+      "icon": "assets/tf2/items/Item_icon_Brass_Beast.png"
     },
     {
       "name": "Buff Banner",
       "classes": [
         "Soldier"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/7/7c/Item_icon_Buff_Banner.png/128px-Item_icon_Buff_Banner.png"
+      "icon": "assets/tf2/items/Item_icon_Buff_Banner.png"
     },
     {
       "name": "Buffalo Steak Sandvich",
       "classes": [
         "Heavy"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/6/62/Item_icon_Buffalo_Steak_Sandvich.png/128px-Item_icon_Buffalo_Steak_Sandvich.png"
+      "icon": "assets/tf2/items/Item_icon_Buffalo_Steak_Sandvich.png"
     },
     {
       "name": "Bushwacka",
       "classes": [
         "Sniper"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/4/46/Item_icon_Bushwacka.png/128px-Item_icon_Bushwacka.png"
+      "icon": "assets/tf2/items/Item_icon_Bushwacka.png"
     },
     {
       "name": "Candy Cane",
       "classes": [
         "Scout"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/0/05/Item_icon_Candy_Cane.png/128px-Item_icon_Candy_Cane.png"
+      "icon": "assets/tf2/items/Item_icon_Candy_Cane.png"
     },
     {
       "name": "Chargin' Targe",
       "classes": [
         "Demoman"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/7/7a/Item_icon_Chargin%27_Targe.png/128px-Item_icon_Chargin%27_Targe.png"
+      "icon": "assets/tf2/items/Item_icon_Chargin%27_Targe.png"
     },
     {
       "name": "Claidheamh Mòr",
       "classes": [
         "Demoman"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/0/0f/Item_icon_Claidheamh_M%C3%B2r.png/128px-Item_icon_Claidheamh_M%C3%B2r.png"
+      "icon": "assets/tf2/items/Item_icon_Claidheamh_M%C3%B2r.png"
     },
     {
       "name": "Classic",
       "classes": [
         "Sniper"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/7/73/Item_icon_Classic.png/128px-Item_icon_Classic.png"
+      "icon": "assets/tf2/items/Item_icon_Classic.png"
     },
     {
       "name": "Cleaner's Carbine",
       "classes": [
         "Sniper"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/6/64/Item_icon_Cleaner%27s_Carbine.png/128px-Item_icon_Cleaner%27s_Carbine.png"
+      "icon": "assets/tf2/items/Item_icon_Cleaner%27s_Carbine.png"
     },
     {
       "name": "Cloak and Dagger",
       "classes": [
         "Spy"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/0/00/Item_icon_Cloak_and_Dagger.png/128px-Item_icon_Cloak_and_Dagger.png"
+      "icon": "assets/tf2/items/Item_icon_Cloak_and_Dagger.png"
     },
     {
       "name": "Concheror",
       "classes": [
         "Soldier"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/7/7e/Item_icon_Concheror.png/128px-Item_icon_Concheror.png"
+      "icon": "assets/tf2/items/Item_icon_Concheror.png"
     },
     {
       "name": "Conniver's Kunai",
       "classes": [
         "Spy"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/0/02/Item_icon_Conniver%27s_Kunai.png/128px-Item_icon_Conniver%27s_Kunai.png"
+      "icon": "assets/tf2/items/Item_icon_Conniver%27s_Kunai.png"
     },
     {
       "name": "Construction PDA",
       "classes": [
         "Engineer"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/1/16/Item_icon_PDA_Build.png/128px-Item_icon_PDA_Build.png"
+      "icon": "assets/tf2/items/Item_icon_PDA_Build.png"
     },
     {
       "name": "Cow Mangler 5000",
       "classes": [
         "Soldier"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/4/46/Item_icon_Cow_Mangler_5000.png/128px-Item_icon_Cow_Mangler_5000.png"
+      "icon": "assets/tf2/items/Item_icon_Cow_Mangler_5000.png"
     },
     {
       "name": "Cozy Camper",
       "classes": [
         "Sniper"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/0/01/Item_icon_Cozy_Camper.png/128px-Item_icon_Cozy_Camper.png"
+      "icon": "assets/tf2/items/Item_icon_Cozy_Camper.png"
     },
     {
       "name": "Crit-a-Cola",
       "classes": [
         "Scout"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/a/ae/Item_icon_Crit-a-Cola.png/128px-Item_icon_Crit-a-Cola.png"
+      "icon": "assets/tf2/items/Item_icon_Crit-a-Cola.png"
     },
     {
       "name": "Crusader's Crossbow",
       "classes": [
         "Medic"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/9/9c/Item_icon_Crusader%27s_Crossbow.png/128px-Item_icon_Crusader%27s_Crossbow.png"
+      "icon": "assets/tf2/items/Item_icon_Crusader%27s_Crossbow.png"
     },
     {
       "name": "Dalokohs Bar",
       "classes": [
         "Heavy"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/3/35/Item_icon_Dalokohs_Bar.png/128px-Item_icon_Dalokohs_Bar.png"
+      "icon": "assets/tf2/items/Item_icon_Dalokohs_Bar.png"
     },
     {
       "name": "Darwin's Danger Shield",
       "classes": [
         "Sniper"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/4/44/Item_icon_Darwin%27s_Danger_Shield.png/128px-Item_icon_Darwin%27s_Danger_Shield.png"
+      "icon": "assets/tf2/items/Item_icon_Darwin%27s_Danger_Shield.png"
     },
     {
       "name": "Dead Ringer",
       "classes": [
         "Spy"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/b/b7/Item_icon_Dead_Ringer.png/128px-Item_icon_Dead_Ringer.png"
+      "icon": "assets/tf2/items/Item_icon_Dead_Ringer.png"
     },
     {
       "name": "Degreaser",
       "classes": [
         "Pyro"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/9/94/Item_icon_Degreaser.png/128px-Item_icon_Degreaser.png"
+      "icon": "assets/tf2/items/Item_icon_Degreaser.png"
     },
     {
       "name": "Destruction PDA",
       "classes": [
         "Engineer"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/2/26/Item_icon_PDA_Destroy.png/128px-Item_icon_PDA_Destroy.png"
+      "icon": "assets/tf2/items/Item_icon_PDA_Destroy.png"
     },
     {
       "name": "Detonator",
       "classes": [
         "Pyro"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/5/53/Item_icon_Detonator.png/128px-Item_icon_Detonator.png"
+      "icon": "assets/tf2/items/Item_icon_Detonator.png"
     },
     {
       "name": "Diamondback",
       "classes": [
         "Spy"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/b/b4/Item_icon_Diamondback.png/128px-Item_icon_Diamondback.png"
+      "icon": "assets/tf2/items/Item_icon_Diamondback.png"
     },
     {
       "name": "Direct Hit",
       "classes": [
         "Soldier"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/e/e7/Item_icon_Direct_Hit.png/128px-Item_icon_Direct_Hit.png"
+      "icon": "assets/tf2/items/Item_icon_Direct_Hit.png"
     },
     {
       "name": "Disciplinary Action",
       "classes": [
         "Soldier"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/c/cf/Item_icon_Disciplinary_Action.png/128px-Item_icon_Disciplinary_Action.png"
+      "icon": "assets/tf2/items/Item_icon_Disciplinary_Action.png"
     },
     {
       "name": "Disguise Kit",
       "classes": [
         "Spy"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/8/81/Item_icon_Disguise_Kit.png/128px-Item_icon_Disguise_Kit.png"
+      "icon": "assets/tf2/items/Item_icon_Disguise_Kit.png"
     },
     {
       "name": "Dragon's Fury",
       "classes": [
         "Pyro"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/1/1f/Item_icon_Dragon%27s_Fury.png/128px-Item_icon_Dragon%27s_Fury.png"
+      "icon": "assets/tf2/items/Item_icon_Dragon%27s_Fury.png"
     },
     {
       "name": "Enforcer",
       "classes": [
         "Spy"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/b/b6/Item_icon_Enforcer.png/128px-Item_icon_Enforcer.png"
+      "icon": "assets/tf2/items/Item_icon_Enforcer.png"
     },
     {
       "name": "Equalizer",
       "classes": [
         "Soldier"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/b/ba/Item_icon_Equalizer.png/128px-Item_icon_Equalizer.png"
+      "icon": "assets/tf2/items/Item_icon_Equalizer.png"
     },
     {
       "name": "Escape Plan",
       "classes": [
         "Soldier"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/0/0c/Item_icon_Escape_Plan.png/128px-Item_icon_Escape_Plan.png"
+      "icon": "assets/tf2/items/Item_icon_Escape_Plan.png"
     },
     {
       "name": "Eureka Effect",
       "classes": [
         "Engineer"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/c/cf/Item_icon_Eureka_Effect.png/128px-Item_icon_Eureka_Effect.png"
+      "icon": "assets/tf2/items/Item_icon_Eureka_Effect.png"
     },
     {
       "name": "Eviction Notice",
       "classes": [
         "Heavy"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/6/62/Item_icon_Eviction_Notice.png/128px-Item_icon_Eviction_Notice.png"
+      "icon": "assets/tf2/items/Item_icon_Eviction_Notice.png"
     },
     {
       "name": "Eyelander",
       "classes": [
         "Demoman"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/9/94/Item_icon_Eyelander.png/128px-Item_icon_Eyelander.png"
+      "icon": "assets/tf2/items/Item_icon_Eyelander.png"
     },
     {
       "name": "Family Business",
       "classes": [
         "Heavy"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/c/cd/Item_icon_Family_Business.png/128px-Item_icon_Family_Business.png"
+      "icon": "assets/tf2/items/Item_icon_Family_Business.png"
     },
     {
       "name": "Fan O'War",
       "classes": [
         "Scout"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/f/f4/Item_icon_Fan_O%27War.png/128px-Item_icon_Fan_O%27War.png"
+      "icon": "assets/tf2/items/Item_icon_Fan_O%27War.png"
     },
     {
       "name": "Fire Axe",
       "classes": [
         "Pyro"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/9/9f/Item_icon_Fire_Axe.png/128px-Item_icon_Fire_Axe.png"
+      "icon": "assets/tf2/items/Item_icon_Fire_Axe.png"
     },
     {
       "name": "Fists",
       "classes": [
         "Heavy"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/1/19/Item_icon_Fists.png/128px-Item_icon_Fists.png"
+      "icon": "assets/tf2/items/Item_icon_Fists.png"
     },
     {
       "name": "Fists of Steel",
       "classes": [
         "Heavy"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/9/9c/Item_icon_Fists_of_Steel.png/128px-Item_icon_Fists_of_Steel.png"
+      "icon": "assets/tf2/items/Item_icon_Fists_of_Steel.png"
     },
     {
       "name": "Flame Thrower",
       "classes": [
         "Pyro"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/e/ec/Item_icon_Flame_Thrower.png/128px-Item_icon_Flame_Thrower.png"
+      "icon": "assets/tf2/items/Item_icon_Flame_Thrower.png"
     },
     {
       "name": "Flare Gun",
       "classes": [
         "Pyro"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/7/7b/Item_icon_Flare_Gun.png/128px-Item_icon_Flare_Gun.png"
+      "icon": "assets/tf2/items/Item_icon_Flare_Gun.png"
     },
     {
       "name": "Flying Guillotine",
@@ -456,56 +456,56 @@
         "Scout",
         "Sniper"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/5/5a/Item_icon_Flying_Guillotine.png/128px-Item_icon_Flying_Guillotine.png"
+      "icon": "assets/tf2/items/Item_icon_Flying_Guillotine.png"
     },
     {
       "name": "Force-a-Nature",
       "classes": [
         "Scout"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/e/ed/Item_icon_Force-A-Nature.png/128px-Item_icon_Force-A-Nature.png"
+      "icon": "assets/tf2/items/Item_icon_Force-A-Nature.png"
     },
     {
       "name": "Frontier Justice",
       "classes": [
         "Engineer"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/2/26/Item_icon_Frontier_Justice.png/128px-Item_icon_Frontier_Justice.png"
+      "icon": "assets/tf2/items/Item_icon_Frontier_Justice.png"
     },
     {
       "name": "Gas Passer",
       "classes": [
         "Pyro"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/0/0e/Item_icon_Gas_Passer.png/128px-Item_icon_Gas_Passer.png"
+      "icon": "assets/tf2/items/Item_icon_Gas_Passer.png"
     },
     {
       "name": "Gloves of Running Urgently",
       "classes": [
         "Heavy"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/4/4f/Item_icon_Gloves_of_Running_Urgently.png/128px-Item_icon_Gloves_of_Running_Urgently.png"
+      "icon": "assets/tf2/items/Item_icon_Gloves_of_Running_Urgently.png"
     },
     {
       "name": "Grenade Launcher",
       "classes": [
         "Demoman"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/e/e6/Item_icon_Grenade_Launcher.png/128px-Item_icon_Grenade_Launcher.png"
+      "icon": "assets/tf2/items/Item_icon_Grenade_Launcher.png"
     },
     {
       "name": "Gunboats",
       "classes": [
         "Soldier"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/0/0c/Item_icon_Gunboats.png/128px-Item_icon_Gunboats.png"
+      "icon": "assets/tf2/items/Item_icon_Gunboats.png"
     },
     {
       "name": "Gunslinger",
       "classes": [
         "Engineer"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/c/ca/Item_icon_Gunslinger.png/128px-Item_icon_Gunslinger.png"
+      "icon": "assets/tf2/items/Item_icon_Gunslinger.png"
     },
     {
       "name": "Half-Zatoichi",
@@ -513,203 +513,203 @@
         "Soldier",
         "Demoman"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/a/a9/Item_icon_Half-Zatoichi.png/128px-Item_icon_Half-Zatoichi.png"
+      "icon": "assets/tf2/items/Item_icon_Half-Zatoichi.png"
     },
     {
       "name": "Hitman's Heatmaker",
       "classes": [
         "Sniper"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/1/18/Item_icon_Hitman%27s_Heatmaker.png/128px-Item_icon_Hitman%27s_Heatmaker.png"
+      "icon": "assets/tf2/items/Item_icon_Hitman%27s_Heatmaker.png"
     },
     {
       "name": "Holiday Punch",
       "classes": [
         "Heavy"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/5/54/Item_icon_Holiday_Punch.png/128px-Item_icon_Holiday_Punch.png"
+      "icon": "assets/tf2/items/Item_icon_Holiday_Punch.png"
     },
     {
       "name": "Homewrecker",
       "classes": [
         "Pyro"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/4/4a/Item_icon_Homewrecker.png/128px-Item_icon_Homewrecker.png"
+      "icon": "assets/tf2/items/Item_icon_Homewrecker.png"
     },
     {
       "name": "Hot Hand",
       "classes": [
         "Pyro"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/f/f6/Item_icon_Hot_Hand.png/128px-Item_icon_Hot_Hand.png"
+      "icon": "assets/tf2/items/Item_icon_Hot_Hand.png"
     },
     {
       "name": "Huntsman",
       "classes": [
         "Sniper"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/f/f8/Item_icon_Huntsman.png/128px-Item_icon_Huntsman.png"
+      "icon": "assets/tf2/items/Item_icon_Huntsman.png"
     },
     {
       "name": "Huo-Long Heater",
       "classes": [
         "Heavy"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/8/81/Item_icon_Huo-Long_Heater.png/128px-Item_icon_Huo-Long_Heater.png"
+      "icon": "assets/tf2/items/Item_icon_Huo-Long_Heater.png"
     },
     {
       "name": "Invis Watch",
       "classes": [
         "Spy"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/0/0e/Item_icon_Invisibility_Watch.png/128px-Item_icon_Invisibility_Watch.png"
+      "icon": "assets/tf2/items/Item_icon_Invisibility_Watch.png"
     },
     {
       "name": "Iron Bomber",
       "classes": [
         "Demoman"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/c/cd/Item_icon_Iron_Bomber.png/128px-Item_icon_Iron_Bomber.png"
+      "icon": "assets/tf2/items/Item_icon_Iron_Bomber.png"
     },
     {
       "name": "Jag",
       "classes": [
         "Engineer"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/4/49/Item_icon_Jag.png/128px-Item_icon_Jag.png"
+      "icon": "assets/tf2/items/Item_icon_Jag.png"
     },
     {
       "name": "Jarate",
       "classes": [
         "Sniper"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/b/b3/Item_icon_Jarate.png/128px-Item_icon_Jarate.png"
+      "icon": "assets/tf2/items/Item_icon_Jarate.png"
     },
     {
       "name": "Killing Gloves of Boxing",
       "classes": [
         "Heavy"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/f/f6/Item_icon_Killing_Gloves_of_Boxing.png/128px-Item_icon_Killing_Gloves_of_Boxing.png"
+      "icon": "assets/tf2/items/Item_icon_Killing_Gloves_of_Boxing.png"
     },
     {
       "name": "Knife",
       "classes": [
         "Spy"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/5/57/Item_icon_Knife.png/128px-Item_icon_Knife.png"
+      "icon": "assets/tf2/items/Item_icon_Knife.png"
     },
     {
       "name": "Kritzkrieg",
       "classes": [
         "Medic"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/8/85/Item_icon_Kritzkrieg.png/128px-Item_icon_Kritzkrieg.png"
+      "icon": "assets/tf2/items/Item_icon_Kritzkrieg.png"
     },
     {
       "name": "Kukri",
       "classes": [
         "Sniper"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/e/ea/Item_icon_Kukri.png/128px-Item_icon_Kukri.png"
+      "icon": "assets/tf2/items/Item_icon_Kukri.png"
     },
     {
       "name": "L'Étranger",
       "classes": [
         "Spy"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/b/bd/Item_icon_L%27%C3%89tranger.png/128px-Item_icon_L%27%C3%89tranger.png"
+      "icon": "assets/tf2/items/Item_icon_L%27%C3%89tranger.png"
     },
     {
       "name": "Liberty Launcher",
       "classes": [
         "Soldier"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/2/24/Item_icon_Liberty_Launcher.png/128px-Item_icon_Liberty_Launcher.png"
+      "icon": "assets/tf2/items/Item_icon_Liberty_Launcher.png"
     },
     {
       "name": "Loch-n-Load",
       "classes": [
         "Demoman"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/6/62/Item_icon_Loch-n-Load.png/128px-Item_icon_Loch-n-Load.png"
+      "icon": "assets/tf2/items/Item_icon_Loch-n-Load.png"
     },
     {
       "name": "Loose Cannon",
       "classes": [
         "Demoman"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/7/70/Item_icon_Loose_Cannon.png/128px-Item_icon_Loose_Cannon.png"
+      "icon": "assets/tf2/items/Item_icon_Loose_Cannon.png"
     },
     {
       "name": "Machina",
       "classes": [
         "Sniper"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/a/ae/Item_icon_Machina.png/128px-Item_icon_Machina.png"
+      "icon": "assets/tf2/items/Item_icon_Machina.png"
     },
     {
       "name": "Mad Milk",
       "classes": [
         "Scout"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/5/56/Item_icon_Mad_Milk.png/128px-Item_icon_Mad_Milk.png"
+      "icon": "assets/tf2/items/Item_icon_Mad_Milk.png"
     },
     {
       "name": "Manmelter",
       "classes": [
         "Pyro"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/9/9d/Item_icon_Manmelter.png/128px-Item_icon_Manmelter.png"
+      "icon": "assets/tf2/items/Item_icon_Manmelter.png"
     },
     {
       "name": "Mantreads",
       "classes": [
         "Soldier"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/6/6a/Item_icon_Mantreads.png/128px-Item_icon_Mantreads.png"
+      "icon": "assets/tf2/items/Item_icon_Mantreads.png"
     },
     {
       "name": "Market Gardener",
       "classes": [
         "Soldier"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/a/ac/Item_icon_Market_Gardener.png/128px-Item_icon_Market_Gardener.png"
+      "icon": "assets/tf2/items/Item_icon_Market_Gardener.png"
     },
     {
       "name": "Medi Gun",
       "classes": [
         "Medic"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/4/4a/Item_icon_Medi_Gun.png/128px-Item_icon_Medi_Gun.png"
+      "icon": "assets/tf2/items/Item_icon_Medi_Gun.png"
     },
     {
       "name": "Minigun",
       "classes": [
         "Heavy"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/a/a7/Item_icon_Minigun.png/128px-Item_icon_Minigun.png"
+      "icon": "assets/tf2/items/Item_icon_Minigun.png"
     },
     {
       "name": "Natascha",
       "classes": [
         "Heavy"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/c/cc/Item_icon_Natascha.png/128px-Item_icon_Natascha.png"
+      "icon": "assets/tf2/items/Item_icon_Natascha.png"
     },
     {
       "name": "Neon Annihilator",
       "classes": [
         "Pyro"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/e/e9/Item_icon_Neon_Annihilator.png/128px-Item_icon_Neon_Annihilator.png"
+      "icon": "assets/tf2/items/Item_icon_Neon_Annihilator.png"
     },
     {
       "name": "Overdose",
       "classes": [
         "Medic"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/f/fe/Item_icon_Overdose.png/128px-Item_icon_Overdose.png"
+      "icon": "assets/tf2/items/Item_icon_Overdose.png"
     },
     {
       "name": "Pain Train",
@@ -717,7 +717,7 @@
         "Soldier",
         "Demoman"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/4/4b/Item_icon_Pain_Train.png/128px-Item_icon_Pain_Train.png"
+      "icon": "assets/tf2/items/Item_icon_Pain_Train.png"
     },
     {
       "name": "Panic Attack",
@@ -727,21 +727,21 @@
         "Heavy",
         "Engineer"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/b/be/Item_icon_Panic_Attack.png/128px-Item_icon_Panic_Attack.png"
+      "icon": "assets/tf2/items/Item_icon_Panic_Attack.png"
     },
     {
       "name": "Persian Persuader",
       "classes": [
         "Demoman"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/9/98/Item_icon_Persian_Persuader.png/128px-Item_icon_Persian_Persuader.png"
+      "icon": "assets/tf2/items/Item_icon_Persian_Persuader.png"
     },
     {
       "name": "Phlogistinator",
       "classes": [
         "Pyro"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/2/22/Item_icon_Phlogistinator.png/128px-Item_icon_Phlogistinator.png"
+      "icon": "assets/tf2/items/Item_icon_Phlogistinator.png"
     },
     {
       "name": "Pistol",
@@ -749,63 +749,63 @@
         "Scout",
         "Engineer"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/5/52/Item_icon_Pistol.png/128px-Item_icon_Pistol.png"
+      "icon": "assets/tf2/items/Item_icon_Pistol.png"
     },
     {
       "name": "Pomson 6000",
       "classes": [
         "Engineer"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/8/89/Item_icon_Pomson_6000.png/128px-Item_icon_Pomson_6000.png"
+      "icon": "assets/tf2/items/Item_icon_Pomson_6000.png"
     },
     {
       "name": "Powerjack",
       "classes": [
         "Pyro"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/c/cf/Item_icon_Powerjack.png/128px-Item_icon_Powerjack.png"
+      "icon": "assets/tf2/items/Item_icon_Powerjack.png"
     },
     {
       "name": "Pretty Boy's Pocket Pistol",
       "classes": [
         "Scout"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/f/f6/Item_icon_Pretty_Boy%27s_Pocket_Pistol.png/128px-Item_icon_Pretty_Boy%27s_Pocket_Pistol.png"
+      "icon": "assets/tf2/items/Item_icon_Pretty_Boy%27s_Pocket_Pistol.png"
     },
     {
       "name": "Quick-Fix",
       "classes": [
         "Medic"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/5/50/Item_icon_Quick-Fix.png/128px-Item_icon_Quick-Fix.png"
+      "icon": "assets/tf2/items/Item_icon_Quick-Fix.png"
     },
     {
       "name": "Quickiebomb Launcher",
       "classes": [
         "Demoman"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/f/f9/Item_icon_Quickiebomb_Launcher.png/128px-Item_icon_Quickiebomb_Launcher.png"
+      "icon": "assets/tf2/items/Item_icon_Quickiebomb_Launcher.png"
     },
     {
       "name": "Razorback",
       "classes": [
         "Sniper"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/0/0f/Item_icon_Razorback.png/128px-Item_icon_Razorback.png"
+      "icon": "assets/tf2/items/Item_icon_Razorback.png"
     },
     {
       "name": "Red-Tape Recorder",
       "classes": [
         "Spy"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/7/7d/Item_icon_Red-Tape_Recorder.png/128px-Item_icon_Red-Tape_Recorder.png"
+      "icon": "assets/tf2/items/Item_icon_Red-Tape_Recorder.png"
     },
     {
       "name": "Rescue Ranger",
       "classes": [
         "Engineer"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/2/29/Item_icon_Rescue_Ranger.png/128px-Item_icon_Rescue_Ranger.png"
+      "icon": "assets/tf2/items/Item_icon_Rescue_Ranger.png"
     },
     {
       "name": "Reserve Shooter",
@@ -813,56 +813,56 @@
         "Soldier",
         "Pyro"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/3/34/Item_icon_Reserve_Shooter.png/128px-Item_icon_Reserve_Shooter.png"
+      "icon": "assets/tf2/items/Item_icon_Reserve_Shooter.png"
     },
     {
       "name": "Revolver",
       "classes": [
         "Spy"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/1/1f/Item_icon_Revolver.png/128px-Item_icon_Revolver.png"
+      "icon": "assets/tf2/items/Item_icon_Revolver.png"
     },
     {
       "name": "Righteous Bison",
       "classes": [
         "Soldier"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/1/1d/Item_icon_Righteous_Bison.png/128px-Item_icon_Righteous_Bison.png"
+      "icon": "assets/tf2/items/Item_icon_Righteous_Bison.png"
     },
     {
       "name": "Rocket Jumper",
       "classes": [
         "Soldier"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/5/53/Item_icon_Rocket_Jumper.png/128px-Item_icon_Rocket_Jumper.png"
+      "icon": "assets/tf2/items/Item_icon_Rocket_Jumper.png"
     },
     {
       "name": "Rocket Launcher",
       "classes": [
         "Soldier"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/f/fe/Item_icon_Rocket_Launcher.png/128px-Item_icon_Rocket_Launcher.png"
+      "icon": "assets/tf2/items/Item_icon_Rocket_Launcher.png"
     },
     {
       "name": "Sandman",
       "classes": [
         "Scout"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/7/70/Item_icon_Sandman.png/128px-Item_icon_Sandman.png"
+      "icon": "assets/tf2/items/Item_icon_Sandman.png"
     },
     {
       "name": "Sandvich",
       "classes": [
         "Heavy"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/5/5e/Item_icon_Sandvich.png/128px-Item_icon_Sandvich.png"
+      "icon": "assets/tf2/items/Item_icon_Sandvich.png"
     },
     {
       "name": "Sapper",
       "classes": [
         "Spy"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/f/f2/Item_icon_Electro_Sapper.png/128px-Item_icon_Electro_Sapper.png"
+      "icon": "assets/tf2/items/Item_icon_Electro_Sapper.png"
     },
     {
       "name": "Saxxy",
@@ -877,70 +877,70 @@
         "Sniper",
         "Spy"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/1/18/Item_icon_Saxxy.png/128px-Item_icon_Saxxy.png"
+      "icon": "assets/tf2/items/Item_icon_Saxxy.png"
     },
     {
       "name": "Scattergun",
       "classes": [
         "Scout"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/1/1b/Item_icon_Scattergun.png/128px-Item_icon_Scattergun.png"
+      "icon": "assets/tf2/items/Item_icon_Scattergun.png"
     },
     {
       "name": "Scorch Shot",
       "classes": [
         "Pyro"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/b/be/Item_icon_Scorch_Shot.png/128px-Item_icon_Scorch_Shot.png"
+      "icon": "assets/tf2/items/Item_icon_Scorch_Shot.png"
     },
     {
       "name": "Scotsman's Skullcutter",
       "classes": [
         "Demoman"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/c/c6/Item_icon_Scotsman%27s_Skullcutter.png/128px-Item_icon_Scotsman%27s_Skullcutter.png"
+      "icon": "assets/tf2/items/Item_icon_Scotsman%27s_Skullcutter.png"
     },
     {
       "name": "Scottish Resistance",
       "classes": [
         "Demoman"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/2/2c/Item_icon_Scottish_Resistance.png/128px-Item_icon_Scottish_Resistance.png"
+      "icon": "assets/tf2/items/Item_icon_Scottish_Resistance.png"
     },
     {
       "name": "Second Banana",
       "classes": [
         "Heavy"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/7/77/Item_icon_Second_Banana.png/128px-Item_icon_Second_Banana.png"
+      "icon": "assets/tf2/items/Item_icon_Second_Banana.png"
     },
     {
       "name": "Shahanshah",
       "classes": [
         "Sniper"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/8/8d/Item_icon_Shahanshah.png/128px-Item_icon_Shahanshah.png"
+      "icon": "assets/tf2/items/Item_icon_Shahanshah.png"
     },
     {
       "name": "Sharpened Volcano Fragment",
       "classes": [
         "Pyro"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/a/ac/Item_icon_Sharpened_Volcano_Fragment.png/128px-Item_icon_Sharpened_Volcano_Fragment.png"
+      "icon": "assets/tf2/items/Item_icon_Sharpened_Volcano_Fragment.png"
     },
     {
       "name": "Short Circuit",
       "classes": [
         "Engineer"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/3/36/Item_icon_Short_Circuit.png/128px-Item_icon_Short_Circuit.png"
+      "icon": "assets/tf2/items/Item_icon_Short_Circuit.png"
     },
     {
       "name": "Shortstop",
       "classes": [
         "Scout"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/8/84/Item_icon_Shortstop.png/128px-Item_icon_Shortstop.png"
+      "icon": "assets/tf2/items/Item_icon_Shortstop.png"
     },
     {
       "name": "Shotgun",
@@ -950,217 +950,217 @@
         "Heavy",
         "Engineer"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/5/5f/Item_icon_Shotgun.png/128px-Item_icon_Shotgun.png"
+      "icon": "assets/tf2/items/Item_icon_Shotgun.png"
     },
     {
       "name": "Shovel",
       "classes": [
         "Soldier"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/7/73/Item_icon_Shovel.png/128px-Item_icon_Shovel.png"
+      "icon": "assets/tf2/items/Item_icon_Shovel.png"
     },
     {
       "name": "SMG",
       "classes": [
         "Sniper"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/1/12/Item_icon_Submachine_Gun.png/128px-Item_icon_Submachine_Gun.png"
+      "icon": "assets/tf2/items/Item_icon_Submachine_Gun.png"
     },
     {
       "name": "Sniper Rifle",
       "classes": [
         "Sniper"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/a/a1/Item_icon_Sniper_Rifle.png/128px-Item_icon_Sniper_Rifle.png"
+      "icon": "assets/tf2/items/Item_icon_Sniper_Rifle.png"
     },
     {
       "name": "Soda Popper",
       "classes": [
         "Scout"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/f/f1/Item_icon_Soda_Popper.png/128px-Item_icon_Soda_Popper.png"
+      "icon": "assets/tf2/items/Item_icon_Soda_Popper.png"
     },
     {
       "name": "Solemn Vow",
       "classes": [
         "Medic"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/d/db/Item_icon_Solemn_Vow.png/128px-Item_icon_Solemn_Vow.png"
+      "icon": "assets/tf2/items/Item_icon_Solemn_Vow.png"
     },
     {
       "name": "Southern Hospitality",
       "classes": [
         "Engineer"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/e/ec/Item_icon_Southern_Hospitality.png/128px-Item_icon_Southern_Hospitality.png"
+      "icon": "assets/tf2/items/Item_icon_Southern_Hospitality.png"
     },
     {
       "name": "Splendid Screen",
       "classes": [
         "Demoman"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/c/c3/Item_icon_Splendid_Screen.png/128px-Item_icon_Splendid_Screen.png"
+      "icon": "assets/tf2/items/Item_icon_Splendid_Screen.png"
     },
     {
       "name": "Spy-Cicle",
       "classes": [
         "Spy"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/7/72/Item_icon_Spy-Cicle.png/128px-Item_icon_Spy-Cicle.png"
+      "icon": "assets/tf2/items/Item_icon_Spy-Cicle.png"
     },
     {
       "name": "Sticky Jumper",
       "classes": [
         "Demoman"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/5/56/Item_icon_Sticky_Jumper.png/128px-Item_icon_Sticky_Jumper.png"
+      "icon": "assets/tf2/items/Item_icon_Sticky_Jumper.png"
     },
     {
       "name": "Stickybomb Launcher",
       "classes": [
         "Demoman"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/7/7c/Item_icon_Stickybomb_Launcher.png/128px-Item_icon_Stickybomb_Launcher.png"
+      "icon": "assets/tf2/items/Item_icon_Stickybomb_Launcher.png"
     },
     {
       "name": "Sun-on-a-Stick",
       "classes": [
         "Scout"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/0/06/Item_icon_Sun-on-a-Stick.png/128px-Item_icon_Sun-on-a-Stick.png"
+      "icon": "assets/tf2/items/Item_icon_Sun-on-a-Stick.png"
     },
     {
       "name": "Sydney Sleeper",
       "classes": [
         "Sniper"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/6/6a/Item_icon_Sydney_Sleeper.png/128px-Item_icon_Sydney_Sleeper.png"
+      "icon": "assets/tf2/items/Item_icon_Sydney_Sleeper.png"
     },
     {
       "name": "Syringe Gun",
       "classes": [
         "Medic"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/c/c4/Item_icon_Syringe_Gun.png/128px-Item_icon_Syringe_Gun.png"
+      "icon": "assets/tf2/items/Item_icon_Syringe_Gun.png"
     },
     {
       "name": "Thermal Thruster",
       "classes": [
         "Pyro"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/0/00/Item_icon_Thermal_Thruster.png/128px-Item_icon_Thermal_Thruster.png"
+      "icon": "assets/tf2/items/Item_icon_Thermal_Thruster.png"
     },
     {
       "name": "Third Degree",
       "classes": [
         "Pyro"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/9/91/Item_icon_Third_Degree.png/128px-Item_icon_Third_Degree.png"
+      "icon": "assets/tf2/items/Item_icon_Third_Degree.png"
     },
     {
       "name": "Three-Rune Blade",
       "classes": [
         "Scout"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/f/f6/Item_icon_Three-Rune_Blade.png/128px-Item_icon_Three-Rune_Blade.png"
+      "icon": "assets/tf2/items/Item_icon_Three-Rune_Blade.png"
     },
     {
       "name": "Tide Turner",
       "classes": [
         "Demoman"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/c/cd/Item_icon_Tide_Turner.png/128px-Item_icon_Tide_Turner.png"
+      "icon": "assets/tf2/items/Item_icon_Tide_Turner.png"
     },
     {
       "name": "Tomislav",
       "classes": [
         "Heavy"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/3/3e/Item_icon_Tomislav.png/128px-Item_icon_Tomislav.png"
+      "icon": "assets/tf2/items/Item_icon_Tomislav.png"
     },
     {
       "name": "Tribalman's Shiv",
       "classes": [
         "Sniper"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/5/55/Item_icon_Tribalman%27s_Shiv.png/128px-Item_icon_Tribalman%27s_Shiv.png"
+      "icon": "assets/tf2/items/Item_icon_Tribalman%27s_Shiv.png"
     },
     {
       "name": "Ullapool Caber",
       "classes": [
         "Demoman"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/a/a5/Item_icon_Ullapool_Caber.png/128px-Item_icon_Ullapool_Caber.png"
+      "icon": "assets/tf2/items/Item_icon_Ullapool_Caber.png"
     },
     {
       "name": "Vaccinator",
       "classes": [
         "Medic"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/9/9d/Item_icon_Vaccinator.png/128px-Item_icon_Vaccinator.png"
+      "icon": "assets/tf2/items/Item_icon_Vaccinator.png"
     },
     {
       "name": "Vita-Saw",
       "classes": [
         "Medic"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/7/70/Item_icon_Vita-Saw.png/128px-Item_icon_Vita-Saw.png"
+      "icon": "assets/tf2/items/Item_icon_Vita-Saw.png"
     },
     {
       "name": "Warrior's Spirit",
       "classes": [
         "Heavy"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/8/87/Item_icon_Warrior%27s_Spirit.png/128px-Item_icon_Warrior%27s_Spirit.png"
+      "icon": "assets/tf2/items/Item_icon_Warrior%27s_Spirit.png"
     },
     {
       "name": "Widowmaker",
       "classes": [
         "Engineer"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/b/b8/Item_icon_Widowmaker.png/128px-Item_icon_Widowmaker.png"
+      "icon": "assets/tf2/items/Item_icon_Widowmaker.png"
     },
     {
       "name": "Winger",
       "classes": [
         "Scout"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/4/4e/Item_icon_Winger.png/128px-Item_icon_Winger.png"
+      "icon": "assets/tf2/items/Item_icon_Winger.png"
     },
     {
       "name": "Wrangler",
       "classes": [
         "Engineer"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/c/ce/Item_icon_Wrangler.png/128px-Item_icon_Wrangler.png"
+      "icon": "assets/tf2/items/Item_icon_Wrangler.png"
     },
     {
       "name": "Wrap Assassin",
       "classes": [
         "Scout"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/6/6b/Item_icon_Wrap_Assassin.png/128px-Item_icon_Wrap_Assassin.png"
+      "icon": "assets/tf2/items/Item_icon_Wrap_Assassin.png"
     },
     {
       "name": "Wrench",
       "classes": [
         "Engineer"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/7/7d/Item_icon_Wrench.png/128px-Item_icon_Wrench.png"
+      "icon": "assets/tf2/items/Item_icon_Wrench.png"
     },
     {
       "name": "Your Eternal Reward",
       "classes": [
         "Spy"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/d/d3/Item_icon_Your_Eternal_Reward.png/128px-Item_icon_Your_Eternal_Reward.png"
+      "icon": "assets/tf2/items/Item_icon_Your_Eternal_Reward.png"
     },
     {
       "name": "Übersaw",
       "classes": [
         "Medic"
       ],
-      "icon": "https://wiki.teamfortress.com/w/images/thumb/0/04/Item_icon_Ubersaw.png/128px-Item_icon_Ubersaw.png"
+      "icon": "assets/tf2/items/Item_icon_Ubersaw.png"
     }
   ]
 }
