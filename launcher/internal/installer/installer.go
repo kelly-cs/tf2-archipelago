@@ -602,6 +602,10 @@ var sigmodFiles = []string{
 	"cfg/sigsegv_convars.cfg",
 }
 
+var sigmodLoadPopfileOptimization = regexp.MustCompile(
+	`(?m)^([ \t]*sig_perf_mvm_load_popfile[ \t]+)"?[01]"?([ \t]*(?://[^\r\n]*)?\r?)$`,
+)
+
 func sigmodStamp(modDir string) (string, error) {
 	var stamp strings.Builder
 	fmt.Fprintf(&stamp, "%s\n%s\n", assets.SigsegvMVMVersion, assets.SigsegvMVMSHA256)
@@ -626,6 +630,9 @@ func installServerMods(ctx context.Context, installRoot, modDir string, requeste
 		}
 		if key == sigmodKey {
 			if sigmodReady(modDir) {
+				if err := finalizeSigmodInstall(modDir); err != nil {
+					return err
+				}
 				logf("SigMod %s is already installed and verified", assets.SigsegvMVMVersion)
 				continue
 			}
@@ -637,21 +644,57 @@ func installServerMods(ctx context.Context, installRoot, modDir string, requeste
 			if err := unzipTo(data, modDir); err != nil {
 				return fmt.Errorf("cannot install SigMod: %w", err)
 			}
-			stampDir := filepath.Join(modDir, "addons")
-			if err := os.MkdirAll(stampDir, 0o755); err != nil {
+			if err := finalizeSigmodInstall(modDir); err != nil {
 				return err
-			}
-			stamp, err := sigmodStamp(modDir)
-			if err != nil {
-				return fmt.Errorf("cannot verify installed SigMod files: %w", err)
-			}
-			if err := os.WriteFile(filepath.Join(stampDir, ".tf2ap-sigsegv-mvm.stamp"), []byte(stamp), 0o644); err != nil {
-				return err
-			}
-			if !sigmodReady(modDir) {
-				return errors.New("SigMod package was extracted but its extension, gamedata, or managed version stamp is incomplete")
 			}
 		}
+	}
+	return nil
+}
+
+// The packaged optimization intercepts tf_mvm_popfile, which is how the AP
+// plugin changes missions without restarting SRCDS. With the pinned build it
+// rejects an installed custom population file and TF2 silently keeps the
+// map's default mission. Upstream defaults the detour off; keep it off in the
+// managed configuration too.
+func configureSigmod(modDir string) error {
+	path := filepath.Join(modDir, "cfg", "sigsegv_convars.cfg")
+	body, err := os.ReadFile(path)
+	if err != nil {
+		return err
+	}
+	replacement := []byte(`${1}"0"${2}`)
+	if sigmodLoadPopfileOptimization.Match(body) {
+		body = sigmodLoadPopfileOptimization.ReplaceAll(body, replacement)
+	} else {
+		if len(body) > 0 && body[len(body)-1] != '\n' {
+			body = append(body, '\n')
+		}
+		body = append(body, []byte("sig_perf_mvm_load_popfile \"0\" // tf2ap changes missions at runtime\n")...)
+	}
+	if err := os.WriteFile(path, body, 0o644); err != nil {
+		return fmt.Errorf("cannot configure SigMod mission switching: %w", err)
+	}
+	return nil
+}
+
+func finalizeSigmodInstall(modDir string) error {
+	if err := configureSigmod(modDir); err != nil {
+		return err
+	}
+	stampDir := filepath.Join(modDir, "addons")
+	if err := os.MkdirAll(stampDir, 0o755); err != nil {
+		return err
+	}
+	stamp, err := sigmodStamp(modDir)
+	if err != nil {
+		return fmt.Errorf("cannot verify installed SigMod files: %w", err)
+	}
+	if err := os.WriteFile(filepath.Join(stampDir, ".tf2ap-sigsegv-mvm.stamp"), []byte(stamp), 0o644); err != nil {
+		return err
+	}
+	if !sigmodReady(modDir) {
+		return errors.New("SigMod package was extracted but its extension, gamedata, configuration, or managed version stamp is incomplete")
 	}
 	return nil
 }

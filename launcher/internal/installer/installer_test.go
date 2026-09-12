@@ -34,7 +34,7 @@ func fakeSigmodZip(t *testing.T) []byte {
 		"addons/sourcemod/extensions/x64/sigsegv.ext.2.tf2.so": "64-bit extension",
 		"addons/sourcemod/extensions/sigsegv.autoload":         "",
 		"addons/sourcemod/gamedata/sigsegv/population.txt":     "gamedata",
-		"cfg/sigsegv_convars.cfg":                              "configuration",
+		"cfg/sigsegv_convars.cfg":                              "sig_perf_mvm_load_popfile \"1\" // packaged default",
 	})
 }
 
@@ -243,6 +243,13 @@ func TestInstallServerModsUsesVerifiedCacheAndDetectsTheInstall(t *testing.T) {
 	}
 	if got := ReadyServerMods(root); len(got) != 1 || got[0] != sigmodKey {
 		t.Fatalf("ready server mods = %v", got)
+	}
+	configured, err := os.ReadFile(filepath.Join(modDir, "cfg", "sigsegv_convars.cfg"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Contains(configured, []byte(`sig_perf_mvm_load_popfile "0"`)) {
+		t.Fatalf("managed SigMod config did not disable runtime popfile optimization: %s", configured)
 	}
 	if err := os.Remove(filepath.Join(modDir, "addons", "sourcemod", "gamedata", "sigsegv", "population.txt")); err != nil {
 		t.Fatal(err)
