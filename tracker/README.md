@@ -1,19 +1,21 @@
 # Visual campaign tracker
 
-`index.html` is a static, shared tracker for a TF2 Mann vs Machine
-Archipelago room. It reads Archipelago's public tracker APIs, so viewers do not
-need the room password and the page does not need its own server application.
+The tracker is a second entry point in the launcher's Angular workspace. It
+shares the launcher's design tokens, fonts and UI components, but reads
+Archipelago's public tracker APIs instead of the launcher's loopback API.
+Viewers do not need the room password and the built page needs no server
+application.
 
 ## Try it locally
 
-Serve the repository root so the page can also read the generated mission and
-weapon catalogues:
+Build it and serve the generated static directory:
 
 ```sh
-python3 -m http.server 8000
+make tracker-build
+python3 -m http.server -d dist/tracker 8000
 ```
 
-Open <http://localhost:8000/tracker/> and either:
+Open <http://localhost:8000/> and either:
 
 - paste the room URL from `archipelago.gg`;
 - paste its standard tracker URL or compact tracker ID; or
@@ -26,15 +28,14 @@ and the combined level for each weapon. A live tracker refreshes once a minute;
 
 ## Publish it as a static page
 
-There is no build step. Publish these paths under the same site root:
+Publish the contents of this directory:
 
 ```text
-tracker/index.html
-apworld/tf2_mvm/data/missions.json
-apworld/tf2_mvm/data/weapon_classes.json
+dist/tracker/
 ```
 
-That layout works from a repository-root GitHub Pages deployment. The page
+The build copies the generated mission and weapon catalogues beside the app and
+uses relative asset URLs, so the directory works at any static URL. The page
 falls back to the catalogues on this repository's `main` branch when the local
 copies are unavailable. TF2 class and item icons load from the Official Team
 Fortress Wiki.
