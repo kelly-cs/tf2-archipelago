@@ -307,6 +307,17 @@ func TestBuildShowsTheSettingsItWasGiven(t *testing.T) {
 	if cash.Value != "false" {
 		t.Errorf("cash rewards show %q, wanted false", cash.Value)
 	}
+	if cash.Label != "Cash rewards" || cash.Hint != "enabled" || cash.HintOff != "disabled" {
+		t.Errorf("cash rewards are labelled %+v, wanted an enabled/disabled Cash rewards toggle", cash)
+	}
+
+	hook, ok := model.Field("rewards.server_settings")
+	if !ok {
+		t.Fatal("the Grappling Hook setting is not on the screen")
+	}
+	if hook.Label != "Grappling Hook" || hook.Hint != "enabled" || hook.HintOff != "disabled" {
+		t.Errorf("the Grappling Hook is labelled %+v, wanted an enabled/disabled Grappling Hook toggle", hook)
+	}
 }
 
 // An empty page is dropped rather than drawn, and the pages that are drawn keep
