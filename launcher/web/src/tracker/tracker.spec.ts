@@ -77,5 +77,8 @@ describe('tracker screen', () => {
     expect(element.querySelectorAll('app-panel').length).toBeGreaterThan(3);
     expect(element.textContent).toContain('RED Team Server');
     expect(element.textContent).toContain('Grappling Hook');
+    expect(element.querySelector('.equipment-state')?.textContent?.trim()).toBe('Unlocked');
+    expect(element.querySelector('.tier')).not.toBeNull();
+    expect(element.querySelector('app-badge span.accent')).not.toBeNull();
   });
 });

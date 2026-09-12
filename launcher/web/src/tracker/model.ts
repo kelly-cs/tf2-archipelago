@@ -11,6 +11,7 @@ import {
   TrackerView,
   Weapon,
 } from './types';
+import { itemKind, itemTone } from './presentation';
 
 const startSlots: Readonly<Record<string, number>> = {
   normal: 1,
@@ -59,11 +60,10 @@ export function buildView(source: TrackerSource, player: number): TrackerView {
     classes: mercenaries.map((name) => ({ name, unlocked: owned.has(`Class: ${name}`) })),
     classCount: mercenaries.filter((name) => owned.has(`Class: ${name}`)).length,
     unlocks: [...owned.entries()]
-      .map(([name, count]) => ({
-        kind: itemKind(name),
-        name: name.replace(/^Weapon Buff: /, ''),
-        count,
-      }))
+      .map(([name, count]) => {
+        const kind = itemKind(name);
+        return { kind, name: name.replace(/^Weapon Buff: /, ''), count, tone: itemTone(kind) };
+      })
       .sort((left, right) => left.name.localeCompare(right.name)),
     slotCount,
     grapplingHook: owned.has('Grappling Hook'),
@@ -185,16 +185,4 @@ function buffParts(itemName: string): { weapon: string; effect: string } {
   return separator < 0
     ? { weapon: label, effect: 'Weapon upgrade unlocked' }
     : { weapon: label.slice(0, separator), effect: label.slice(separator + 3) };
-}
-
-function itemKind(name: string): string {
-  if (name.startsWith('Weapon Buff:')) return 'Buff';
-  if (name.startsWith('Mission Ticket:')) return 'Ticket';
-  if (name.startsWith('Class:')) return 'Class';
-  if (name.startsWith('Australium Medal:')) return 'Medal';
-  if (name.startsWith('Trap:')) return 'Trap';
-  if (name === 'Progressive Weapon Slot') return 'Loadout';
-  if (name === 'Grappling Hook') return 'Server';
-  if (name === 'Cash Bundle') return 'Cash';
-  return 'Unlock';
 }

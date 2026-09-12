@@ -12,6 +12,7 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { finalize } from 'rxjs';
+import { Badge } from '@app/ui/badge';
 import { Button } from '@app/ui/button';
 import { EmptyState } from '@app/ui/empty-state';
 import { Logo } from '@app/ui/logo';
@@ -24,7 +25,7 @@ import { ClassView, TrackerSource } from './types';
 @Component({
   selector: 'app-tracker',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Button, EmptyState, Logo, Panel],
+  imports: [Badge, Button, EmptyState, Logo, Panel],
   templateUrl: './tracker.html',
 })
 export class Tracker implements OnDestroy {
@@ -77,7 +78,6 @@ export class Tracker implements OnDestroy {
   readonly powerSegments = Array.from({ length: 10 }, (_, index) => index + 1);
   readonly objectiveLabel = objectiveLabel;
   readonly hideBrokenImage = hideBrokenImage;
-
   constructor() {
     afterNextRender(() => this.openInitialURL());
   }

@@ -219,9 +219,7 @@
               <div
                 class="server-equipment"
                 [class.locked]="!run.grapplingHook"
-                [attr.aria-label]="
-                  'Grappling Hook, ' + (run.grapplingHook ? 'unlocked for everyone' : 'locked')
-                "
+                [attr.aria-label]="'Grappling Hook, ' + (run.grapplingHook ? 'unlocked' : 'locked')"
               >
                 <img [src]="grapplingHookIcon" alt="" loading="lazy" />
                 <div class="equipment-copy">
@@ -229,7 +227,7 @@
                   <strong>Grappling Hook</strong>
                 </div>
                 <span class="equipment-state">
-                  {{ run.grapplingHook ? 'Unlocked for everyone' : 'Locked' }}
+                  {{ run.grapplingHook ? 'Unlocked' : 'Locked' }}
                 </span>
               </div>
             </div>
@@ -242,7 +240,7 @@
             <div class="unlock-list">
               @for (unlock of run.unlocks; track unlock.kind + unlock.name) {
                 <div class="unlock">
-                  <span class="unlock-kind">{{ unlock.kind }}</span>
+                  <app-badge [tone]="unlock.tone">{{ unlock.kind }}</app-badge>
                   <span class="unlock-name">{{ unlock.name }}</span>
                   <span class="unlock-count">{{ unlock.count > 1 ? '×' + unlock.count : '' }}</span>
                 </div>

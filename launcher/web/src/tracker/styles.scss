@@ -355,6 +355,31 @@ main {
   color: var(--accent-bright);
 }
 
+.mission[data-tier='normal'] .tier {
+  color: var(--tier-normal);
+  background: var(--tier-normal-bg);
+}
+
+.mission[data-tier='intermediate'] .tier {
+  color: var(--tier-intermediate);
+  background: var(--tier-intermediate-bg);
+}
+
+.mission[data-tier='advanced'] .tier {
+  color: var(--tier-advanced);
+  background: var(--tier-advanced-bg);
+}
+
+.mission[data-tier='expert'] .tier {
+  color: var(--tier-expert);
+  background: var(--tier-expert-bg);
+}
+
+.mission[data-tier='haunted'] .tier {
+  color: var(--tier-haunted);
+  background: rgb(203 150 196 / 14%);
+}
+
 .objectives {
   display: flex;
   flex-wrap: wrap;
@@ -550,12 +575,6 @@ main {
 
 .unlock:last-child {
   border-bottom: 0;
-}
-
-.unlock-kind {
-  color: var(--text-faint);
-  font: 600 10px/1.5 var(--font-mono);
-  text-transform: uppercase;
 }
 
 .unlock-name {

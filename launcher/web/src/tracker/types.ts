@@ -1,3 +1,4 @@
+import { BadgeTone } from '@app/ui/badge';
 import { Mercenary } from '@app/ui/tf2-art';
 
 export interface Objective {
@@ -94,6 +95,7 @@ export interface UnlockView {
   readonly kind: string;
   readonly name: string;
   readonly count: number;
+  readonly tone: BadgeTone;
 }
 
 export interface BuffEffect {
