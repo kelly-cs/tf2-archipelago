@@ -20,9 +20,18 @@ const game = 'Team Fortress 2 Mann vs Machine';
 interface StaticTracker {
   readonly player_game?: readonly Player[];
   readonly player_locations_total?: readonly TotalRow[];
-  readonly datapackage?: {
-    readonly games?: Readonly<Record<string, { readonly checksum?: string }>>;
-  };
+  readonly datapackage?: DataPackageReferences;
+}
+
+interface PackageReference {
+  readonly checksum?: string;
+  readonly version?: number;
+}
+
+interface DataPackageReferences {
+  readonly games?: Readonly<Record<string, PackageReference>>;
+  readonly [name: string]:
+    PackageReference | Readonly<Record<string, PackageReference>> | undefined;
 }
 
 interface LiveTracker {
@@ -67,7 +76,7 @@ export class TrackerSourceClient {
         }),
       ),
       switchMap((loaded) => {
-        const checksum = loaded.staticData.datapackage?.games?.[game]?.checksum;
+        const checksum = datapackageChecksum(loaded.staticData.datapackage);
         if (checksum === undefined) {
           return throwError(() => new Error('The room does not contain the TF2 MvM datapackage.'));
         }
@@ -169,4 +178,12 @@ export class TrackerSourceClient {
       checks: loaded.live.player_checks_done ?? [],
     };
   }
+}
+
+export function datapackageChecksum(
+  datapackage: DataPackageReferences | undefined,
+): string | undefined {
+  const reference = (datapackage?.games ?? datapackage)?.[game];
+  const checksum = reference?.checksum;
+  return typeof checksum === 'string' ? checksum : undefined;
 }

@@ -5,6 +5,7 @@ import { buffsFor, buildView } from './model';
 import { sampleSource } from './sample';
 import { parseSource } from './source-address';
 import { Tracker } from './tracker';
+import { datapackageChecksum } from './tracker-source';
 
 describe('tracker source', () => {
   it('accepts room URLs, tracker URLs and compact IDs', () => {
@@ -28,6 +29,12 @@ describe('tracker source', () => {
 
   it('rejects strings that cannot be Archipelago IDs', () => {
     expect(() => parseSource('not an id')).toThrow('Archipelago ID');
+  });
+
+  it('reads both public tracker datapackage shapes', () => {
+    const game = 'Team Fortress 2 Mann vs Machine';
+    expect(datapackageChecksum({ [game]: { checksum: 'f3f00d5', version: 0 } })).toBe('f3f00d5');
+    expect(datapackageChecksum({ games: { [game]: { checksum: 'f3f00d5' } } })).toBe('f3f00d5');
   });
 });
 
