@@ -1,0 +1,7396 @@
+{
+  "format_version": 4,
+  "missions": [
+    {
+      "id": 1,
+      "pop_file": "mvm_decoy",
+      "name": "Doe's Drill",
+      "map_id": 1,
+      "difficulty": "normal",
+      "waves": 8,
+      "has_tank": true,
+      "has_giant": true,
+      "community": false,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442000101,
+          "name": "Doe's Drill Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442000102,
+          "name": "Doe's Drill Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442000103,
+          "name": "Doe's Drill Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442000104,
+          "name": "Doe's Drill Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442000105,
+          "name": "Doe's Drill Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442000106,
+          "name": "Doe's Drill Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442000107,
+          "name": "Doe's Drill Wave 7",
+          "kind": "wave_cleared",
+          "wave": 7
+        },
+        {
+          "id": 7442000108,
+          "name": "Doe's Drill Wave 8",
+          "kind": "wave_cleared",
+          "wave": 8
+        },
+        {
+          "id": 7442000190,
+          "name": "Doe's Drill Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442000191,
+          "name": "Doe's Drill Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442000199,
+          "name": "Doe's Drill Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "pop_file": "mvm_decoy_intermediate",
+      "name": "Doe's Doom",
+      "map_id": 1,
+      "difficulty": "intermediate",
+      "waves": 7,
+      "has_tank": true,
+      "has_giant": true,
+      "community": false,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442000201,
+          "name": "Doe's Doom Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442000202,
+          "name": "Doe's Doom Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442000203,
+          "name": "Doe's Doom Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442000204,
+          "name": "Doe's Doom Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442000205,
+          "name": "Doe's Doom Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442000206,
+          "name": "Doe's Doom Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442000207,
+          "name": "Doe's Doom Wave 7",
+          "kind": "wave_cleared",
+          "wave": 7
+        },
+        {
+          "id": 7442000290,
+          "name": "Doe's Doom Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442000291,
+          "name": "Doe's Doom Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442000299,
+          "name": "Doe's Doom Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "pop_file": "mvm_decoy_intermediate2",
+      "name": "Day of Wreckening",
+      "map_id": 1,
+      "difficulty": "intermediate",
+      "waves": 6,
+      "has_tank": true,
+      "has_giant": true,
+      "community": false,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442000301,
+          "name": "Day of Wreckening Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442000302,
+          "name": "Day of Wreckening Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442000303,
+          "name": "Day of Wreckening Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442000304,
+          "name": "Day of Wreckening Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442000305,
+          "name": "Day of Wreckening Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442000306,
+          "name": "Day of Wreckening Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442000390,
+          "name": "Day of Wreckening Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442000391,
+          "name": "Day of Wreckening Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442000399,
+          "name": "Day of Wreckening Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "pop_file": "mvm_decoy_advanced",
+      "name": "Disk Deletion",
+      "map_id": 1,
+      "difficulty": "advanced",
+      "waves": 8,
+      "has_tank": true,
+      "has_giant": true,
+      "community": false,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442000401,
+          "name": "Disk Deletion Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442000402,
+          "name": "Disk Deletion Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442000403,
+          "name": "Disk Deletion Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442000404,
+          "name": "Disk Deletion Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442000405,
+          "name": "Disk Deletion Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442000406,
+          "name": "Disk Deletion Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442000407,
+          "name": "Disk Deletion Wave 7",
+          "kind": "wave_cleared",
+          "wave": 7
+        },
+        {
+          "id": 7442000408,
+          "name": "Disk Deletion Wave 8",
+          "kind": "wave_cleared",
+          "wave": 8
+        },
+        {
+          "id": 7442000490,
+          "name": "Disk Deletion Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442000491,
+          "name": "Disk Deletion Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442000499,
+          "name": "Disk Deletion Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "pop_file": "mvm_decoy_advanced2",
+      "name": "Data Demolition",
+      "map_id": 1,
+      "difficulty": "advanced",
+      "waves": 6,
+      "has_tank": true,
+      "has_giant": true,
+      "community": false,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442000501,
+          "name": "Data Demolition Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442000502,
+          "name": "Data Demolition Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442000503,
+          "name": "Data Demolition Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442000504,
+          "name": "Data Demolition Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442000505,
+          "name": "Data Demolition Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442000506,
+          "name": "Data Demolition Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442000590,
+          "name": "Data Demolition Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442000591,
+          "name": "Data Demolition Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442000599,
+          "name": "Data Demolition Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "pop_file": "mvm_decoy_advanced3",
+      "name": "Disintegration",
+      "map_id": 1,
+      "difficulty": "advanced",
+      "waves": 6,
+      "has_tank": true,
+      "has_giant": true,
+      "community": false,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442000601,
+          "name": "Disintegration Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442000602,
+          "name": "Disintegration Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442000603,
+          "name": "Disintegration Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442000604,
+          "name": "Disintegration Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442000605,
+          "name": "Disintegration Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442000606,
+          "name": "Disintegration Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442000690,
+          "name": "Disintegration Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442000691,
+          "name": "Disintegration Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442000699,
+          "name": "Disintegration Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "pop_file": "mvm_decoy_expert1",
+      "name": "Desperation",
+      "map_id": 1,
+      "difficulty": "expert",
+      "waves": 7,
+      "has_tank": true,
+      "has_giant": true,
+      "community": false,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442000701,
+          "name": "Desperation Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442000702,
+          "name": "Desperation Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442000703,
+          "name": "Desperation Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442000704,
+          "name": "Desperation Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442000705,
+          "name": "Desperation Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442000706,
+          "name": "Desperation Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442000707,
+          "name": "Desperation Wave 7",
+          "kind": "wave_cleared",
+          "wave": 7
+        },
+        {
+          "id": 7442000790,
+          "name": "Desperation Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442000791,
+          "name": "Desperation Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442000799,
+          "name": "Desperation Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "pop_file": "mvm_coaltown",
+      "name": "Crash Course",
+      "map_id": 2,
+      "difficulty": "normal",
+      "waves": 6,
+      "has_tank": true,
+      "has_giant": true,
+      "community": false,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442000801,
+          "name": "Crash Course Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442000802,
+          "name": "Crash Course Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442000803,
+          "name": "Crash Course Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442000804,
+          "name": "Crash Course Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442000805,
+          "name": "Crash Course Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442000806,
+          "name": "Crash Course Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442000890,
+          "name": "Crash Course Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442000891,
+          "name": "Crash Course Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442000899,
+          "name": "Crash Course Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "pop_file": "mvm_coaltown_intermediate",
+      "name": "Cave-in",
+      "map_id": 2,
+      "difficulty": "intermediate",
+      "waves": 6,
+      "has_tank": true,
+      "has_giant": true,
+      "community": false,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442000901,
+          "name": "Cave-in Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442000902,
+          "name": "Cave-in Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442000903,
+          "name": "Cave-in Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442000904,
+          "name": "Cave-in Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442000905,
+          "name": "Cave-in Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442000906,
+          "name": "Cave-in Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442000990,
+          "name": "Cave-in Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442000991,
+          "name": "Cave-in Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442000999,
+          "name": "Cave-in Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "pop_file": "mvm_coaltown_intermediate2",
+      "name": "Quarry",
+      "map_id": 2,
+      "difficulty": "intermediate",
+      "waves": 6,
+      "has_tank": true,
+      "has_giant": true,
+      "community": false,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442001001,
+          "name": "Quarry Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442001002,
+          "name": "Quarry Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442001003,
+          "name": "Quarry Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442001004,
+          "name": "Quarry Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442001005,
+          "name": "Quarry Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442001006,
+          "name": "Quarry Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442001090,
+          "name": "Quarry Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442001091,
+          "name": "Quarry Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442001099,
+          "name": "Quarry Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "pop_file": "mvm_coaltown_advanced",
+      "name": "Ctrl+Alt+Destruction",
+      "map_id": 2,
+      "difficulty": "advanced",
+      "waves": 7,
+      "has_tank": true,
+      "has_giant": true,
+      "community": false,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442001101,
+          "name": "Ctrl+Alt+Destruction Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442001102,
+          "name": "Ctrl+Alt+Destruction Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442001103,
+          "name": "Ctrl+Alt+Destruction Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442001104,
+          "name": "Ctrl+Alt+Destruction Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442001105,
+          "name": "Ctrl+Alt+Destruction Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442001106,
+          "name": "Ctrl+Alt+Destruction Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442001107,
+          "name": "Ctrl+Alt+Destruction Wave 7",
+          "kind": "wave_cleared",
+          "wave": 7
+        },
+        {
+          "id": 7442001190,
+          "name": "Ctrl+Alt+Destruction Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442001191,
+          "name": "Ctrl+Alt+Destruction Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442001199,
+          "name": "Ctrl+Alt+Destruction Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "pop_file": "mvm_coaltown_advanced2",
+      "name": "CPU Slaughter",
+      "map_id": 2,
+      "difficulty": "advanced",
+      "waves": 6,
+      "has_tank": true,
+      "has_giant": true,
+      "community": false,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442001201,
+          "name": "CPU Slaughter Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442001202,
+          "name": "CPU Slaughter Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442001203,
+          "name": "CPU Slaughter Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442001204,
+          "name": "CPU Slaughter Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442001205,
+          "name": "CPU Slaughter Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442001206,
+          "name": "CPU Slaughter Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442001290,
+          "name": "CPU Slaughter Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442001291,
+          "name": "CPU Slaughter Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442001299,
+          "name": "CPU Slaughter Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "pop_file": "mvm_coaltown_expert1",
+      "name": "Cataclysm",
+      "map_id": 2,
+      "difficulty": "expert",
+      "waves": 7,
+      "has_tank": true,
+      "has_giant": true,
+      "community": false,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442001301,
+          "name": "Cataclysm Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442001302,
+          "name": "Cataclysm Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442001303,
+          "name": "Cataclysm Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442001304,
+          "name": "Cataclysm Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442001305,
+          "name": "Cataclysm Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442001306,
+          "name": "Cataclysm Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442001307,
+          "name": "Cataclysm Wave 7",
+          "kind": "wave_cleared",
+          "wave": 7
+        },
+        {
+          "id": 7442001390,
+          "name": "Cataclysm Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442001391,
+          "name": "Cataclysm Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442001399,
+          "name": "Cataclysm Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "pop_file": "mvm_mannworks",
+      "name": "Mann-euvers",
+      "map_id": 3,
+      "difficulty": "normal",
+      "waves": 7,
+      "has_tank": true,
+      "has_giant": true,
+      "community": false,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442001401,
+          "name": "Mann-euvers Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442001402,
+          "name": "Mann-euvers Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442001403,
+          "name": "Mann-euvers Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442001404,
+          "name": "Mann-euvers Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442001405,
+          "name": "Mann-euvers Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442001406,
+          "name": "Mann-euvers Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442001407,
+          "name": "Mann-euvers Wave 7",
+          "kind": "wave_cleared",
+          "wave": 7
+        },
+        {
+          "id": 7442001490,
+          "name": "Mann-euvers Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442001491,
+          "name": "Mann-euvers Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442001499,
+          "name": "Mann-euvers Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "pop_file": "mvm_mannworks_intermediate",
+      "name": "Mean Machines",
+      "map_id": 3,
+      "difficulty": "intermediate",
+      "waves": 6,
+      "has_tank": true,
+      "has_giant": true,
+      "community": false,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442001501,
+          "name": "Mean Machines Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442001502,
+          "name": "Mean Machines Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442001503,
+          "name": "Mean Machines Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442001504,
+          "name": "Mean Machines Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442001505,
+          "name": "Mean Machines Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442001506,
+          "name": "Mean Machines Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442001590,
+          "name": "Mean Machines Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442001591,
+          "name": "Mean Machines Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442001599,
+          "name": "Mean Machines Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "pop_file": "mvm_mannworks_intermediate2",
+      "name": "Mannhunt",
+      "map_id": 3,
+      "difficulty": "intermediate",
+      "waves": 6,
+      "has_tank": true,
+      "has_giant": true,
+      "community": false,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442001601,
+          "name": "Mannhunt Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442001602,
+          "name": "Mannhunt Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442001603,
+          "name": "Mannhunt Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442001604,
+          "name": "Mannhunt Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442001605,
+          "name": "Mannhunt Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442001606,
+          "name": "Mannhunt Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442001690,
+          "name": "Mannhunt Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442001691,
+          "name": "Mannhunt Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442001699,
+          "name": "Mannhunt Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "pop_file": "mvm_mannworks_advanced",
+      "name": "Machine Massacre",
+      "map_id": 3,
+      "difficulty": "advanced",
+      "waves": 7,
+      "has_tank": true,
+      "has_giant": true,
+      "community": false,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442001701,
+          "name": "Machine Massacre Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442001702,
+          "name": "Machine Massacre Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442001703,
+          "name": "Machine Massacre Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442001704,
+          "name": "Machine Massacre Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442001705,
+          "name": "Machine Massacre Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442001706,
+          "name": "Machine Massacre Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442001707,
+          "name": "Machine Massacre Wave 7",
+          "kind": "wave_cleared",
+          "wave": 7
+        },
+        {
+          "id": 7442001790,
+          "name": "Machine Massacre Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442001791,
+          "name": "Machine Massacre Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442001799,
+          "name": "Machine Massacre Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 18,
+      "pop_file": "mvm_mannworks_ironman",
+      "name": "Mech Mutilation",
+      "map_id": 3,
+      "difficulty": "advanced",
+      "waves": 3,
+      "has_tank": true,
+      "has_giant": true,
+      "community": false,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442001801,
+          "name": "Mech Mutilation Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442001802,
+          "name": "Mech Mutilation Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442001803,
+          "name": "Mech Mutilation Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442001890,
+          "name": "Mech Mutilation Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442001891,
+          "name": "Mech Mutilation Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442001899,
+          "name": "Mech Mutilation Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 19,
+      "pop_file": "mvm_mannworks_expert1",
+      "name": "Mannslaughter",
+      "map_id": 3,
+      "difficulty": "expert",
+      "waves": 5,
+      "has_tank": true,
+      "has_giant": true,
+      "community": false,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442001901,
+          "name": "Mannslaughter Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442001902,
+          "name": "Mannslaughter Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442001903,
+          "name": "Mannslaughter Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442001904,
+          "name": "Mannslaughter Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442001905,
+          "name": "Mannslaughter Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442001990,
+          "name": "Mannslaughter Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442001991,
+          "name": "Mannslaughter Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442001999,
+          "name": "Mannslaughter Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 20,
+      "pop_file": "mvm_bigrock",
+      "name": "Benign Infiltration",
+      "map_id": 4,
+      "difficulty": "normal",
+      "waves": 6,
+      "has_tank": true,
+      "has_giant": true,
+      "community": false,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442002001,
+          "name": "Benign Infiltration Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442002002,
+          "name": "Benign Infiltration Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442002003,
+          "name": "Benign Infiltration Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442002004,
+          "name": "Benign Infiltration Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442002005,
+          "name": "Benign Infiltration Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442002006,
+          "name": "Benign Infiltration Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442002090,
+          "name": "Benign Infiltration Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442002091,
+          "name": "Benign Infiltration Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442002099,
+          "name": "Benign Infiltration Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 21,
+      "pop_file": "mvm_bigrock_advanced1",
+      "name": "Broken Parts",
+      "map_id": 4,
+      "difficulty": "advanced",
+      "waves": 7,
+      "has_tank": true,
+      "has_giant": true,
+      "community": false,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442002101,
+          "name": "Broken Parts Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442002102,
+          "name": "Broken Parts Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442002103,
+          "name": "Broken Parts Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442002104,
+          "name": "Broken Parts Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442002105,
+          "name": "Broken Parts Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442002106,
+          "name": "Broken Parts Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442002107,
+          "name": "Broken Parts Wave 7",
+          "kind": "wave_cleared",
+          "wave": 7
+        },
+        {
+          "id": 7442002190,
+          "name": "Broken Parts Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442002191,
+          "name": "Broken Parts Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442002199,
+          "name": "Broken Parts Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 22,
+      "pop_file": "mvm_bigrock_advanced2",
+      "name": "Bone Shaker",
+      "map_id": 4,
+      "difficulty": "advanced",
+      "waves": 8,
+      "has_tank": true,
+      "has_giant": true,
+      "community": false,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442002201,
+          "name": "Bone Shaker Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442002202,
+          "name": "Bone Shaker Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442002203,
+          "name": "Bone Shaker Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442002204,
+          "name": "Bone Shaker Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442002205,
+          "name": "Bone Shaker Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442002206,
+          "name": "Bone Shaker Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442002207,
+          "name": "Bone Shaker Wave 7",
+          "kind": "wave_cleared",
+          "wave": 7
+        },
+        {
+          "id": 7442002208,
+          "name": "Bone Shaker Wave 8",
+          "kind": "wave_cleared",
+          "wave": 8
+        },
+        {
+          "id": 7442002290,
+          "name": "Bone Shaker Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442002291,
+          "name": "Bone Shaker Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442002299,
+          "name": "Bone Shaker Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 23,
+      "pop_file": "mvm_mannhattan",
+      "name": "Big Apple Barricade",
+      "map_id": 5,
+      "difficulty": "intermediate",
+      "waves": 6,
+      "has_tank": false,
+      "has_giant": true,
+      "community": false,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442002301,
+          "name": "Big Apple Barricade Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442002302,
+          "name": "Big Apple Barricade Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442002303,
+          "name": "Big Apple Barricade Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442002304,
+          "name": "Big Apple Barricade Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442002305,
+          "name": "Big Apple Barricade Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442002306,
+          "name": "Big Apple Barricade Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442002391,
+          "name": "Big Apple Barricade Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442002399,
+          "name": "Big Apple Barricade Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 24,
+      "pop_file": "mvm_mannhattan_advanced1",
+      "name": "Empire Escalation",
+      "map_id": 5,
+      "difficulty": "advanced",
+      "waves": 6,
+      "has_tank": false,
+      "has_giant": true,
+      "community": false,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442002401,
+          "name": "Empire Escalation Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442002402,
+          "name": "Empire Escalation Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442002403,
+          "name": "Empire Escalation Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442002404,
+          "name": "Empire Escalation Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442002405,
+          "name": "Empire Escalation Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442002406,
+          "name": "Empire Escalation Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442002491,
+          "name": "Empire Escalation Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442002499,
+          "name": "Empire Escalation Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 25,
+      "pop_file": "mvm_mannhattan_advanced2",
+      "name": "Metro Malice",
+      "map_id": 5,
+      "difficulty": "advanced",
+      "waves": 6,
+      "has_tank": false,
+      "has_giant": true,
+      "community": false,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442002501,
+          "name": "Metro Malice Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442002502,
+          "name": "Metro Malice Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442002503,
+          "name": "Metro Malice Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442002504,
+          "name": "Metro Malice Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442002505,
+          "name": "Metro Malice Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442002506,
+          "name": "Metro Malice Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442002591,
+          "name": "Metro Malice Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442002599,
+          "name": "Metro Malice Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 26,
+      "pop_file": "mvm_rottenburg",
+      "name": "Village Vanguard",
+      "map_id": 6,
+      "difficulty": "intermediate",
+      "waves": 7,
+      "has_tank": true,
+      "has_giant": true,
+      "community": false,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442002601,
+          "name": "Village Vanguard Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442002602,
+          "name": "Village Vanguard Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442002603,
+          "name": "Village Vanguard Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442002604,
+          "name": "Village Vanguard Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442002605,
+          "name": "Village Vanguard Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442002606,
+          "name": "Village Vanguard Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442002607,
+          "name": "Village Vanguard Wave 7",
+          "kind": "wave_cleared",
+          "wave": 7
+        },
+        {
+          "id": 7442002690,
+          "name": "Village Vanguard Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442002691,
+          "name": "Village Vanguard Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442002699,
+          "name": "Village Vanguard Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 27,
+      "pop_file": "mvm_rottenburg_advanced1",
+      "name": "Hamlet Hostility",
+      "map_id": 6,
+      "difficulty": "advanced",
+      "waves": 7,
+      "has_tank": true,
+      "has_giant": true,
+      "community": false,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442002701,
+          "name": "Hamlet Hostility Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442002702,
+          "name": "Hamlet Hostility Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442002703,
+          "name": "Hamlet Hostility Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442002704,
+          "name": "Hamlet Hostility Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442002705,
+          "name": "Hamlet Hostility Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442002706,
+          "name": "Hamlet Hostility Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442002707,
+          "name": "Hamlet Hostility Wave 7",
+          "kind": "wave_cleared",
+          "wave": 7
+        },
+        {
+          "id": 7442002790,
+          "name": "Hamlet Hostility Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442002791,
+          "name": "Hamlet Hostility Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442002799,
+          "name": "Hamlet Hostility Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 28,
+      "pop_file": "mvm_rottenburg_advanced2",
+      "name": "Bavarian Botbash",
+      "map_id": 6,
+      "difficulty": "advanced",
+      "waves": 7,
+      "has_tank": true,
+      "has_giant": true,
+      "community": false,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442002801,
+          "name": "Bavarian Botbash Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442002802,
+          "name": "Bavarian Botbash Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442002803,
+          "name": "Bavarian Botbash Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442002804,
+          "name": "Bavarian Botbash Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442002805,
+          "name": "Bavarian Botbash Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442002806,
+          "name": "Bavarian Botbash Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442002807,
+          "name": "Bavarian Botbash Wave 7",
+          "kind": "wave_cleared",
+          "wave": 7
+        },
+        {
+          "id": 7442002890,
+          "name": "Bavarian Botbash Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442002891,
+          "name": "Bavarian Botbash Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442002899,
+          "name": "Bavarian Botbash Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 29,
+      "pop_file": "mvm_ghost_town_666",
+      "name": "Caliginous Caper",
+      "map_id": 7,
+      "difficulty": "haunted",
+      "waves": 1,
+      "has_tank": true,
+      "has_giant": true,
+      "community": false,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442002901,
+          "name": "Caliginous Caper Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442002990,
+          "name": "Caliginous Caper Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442002991,
+          "name": "Caliginous Caper Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442002999,
+          "name": "Caliginous Caper Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 105,
+      "pop_file": "mvm_area_52_rc3_int_anomalous_materials",
+      "name": "Anomalous Materials",
+      "map_id": 104,
+      "difficulty": "intermediate",
+      "waves": 6,
+      "has_tank": true,
+      "has_giant": true,
+      "community": true,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442010501,
+          "name": "Anomalous Materials Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442010502,
+          "name": "Anomalous Materials Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442010503,
+          "name": "Anomalous Materials Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442010504,
+          "name": "Anomalous Materials Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442010505,
+          "name": "Anomalous Materials Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442010506,
+          "name": "Anomalous Materials Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442010590,
+          "name": "Anomalous Materials Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442010591,
+          "name": "Anomalous Materials Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442010599,
+          "name": "Anomalous Materials Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 106,
+      "pop_file": "mvm_autumnull_rc2_int_urban_uprising",
+      "name": "Urban Uprising",
+      "map_id": 105,
+      "difficulty": "intermediate",
+      "waves": 6,
+      "has_tank": true,
+      "has_giant": true,
+      "community": true,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442010601,
+          "name": "Urban Uprising Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442010602,
+          "name": "Urban Uprising Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442010603,
+          "name": "Urban Uprising Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442010604,
+          "name": "Urban Uprising Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442010605,
+          "name": "Urban Uprising Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442010606,
+          "name": "Urban Uprising Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442010690,
+          "name": "Urban Uprising Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442010691,
+          "name": "Urban Uprising Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442010699,
+          "name": "Urban Uprising Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 107,
+      "pop_file": "mvm_bogland_rc12_adv_swamp_fever",
+      "name": "Swamp Fever",
+      "map_id": 106,
+      "difficulty": "advanced",
+      "waves": 4,
+      "has_tank": true,
+      "has_giant": true,
+      "community": true,
+      "playable": false,
+      "requires": "no_nav",
+      "locations": [
+        {
+          "id": 7442010701,
+          "name": "Swamp Fever Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442010702,
+          "name": "Swamp Fever Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442010703,
+          "name": "Swamp Fever Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442010704,
+          "name": "Swamp Fever Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442010790,
+          "name": "Swamp Fever Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442010791,
+          "name": "Swamp Fever Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442010799,
+          "name": "Swamp Fever Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 108,
+      "pop_file": "mvm_condemned_b3_int_thriller_terror",
+      "name": "Thriller Terror",
+      "map_id": 103,
+      "difficulty": "intermediate",
+      "waves": 5,
+      "has_tank": false,
+      "has_giant": true,
+      "community": true,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442010801,
+          "name": "Thriller Terror Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442010802,
+          "name": "Thriller Terror Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442010803,
+          "name": "Thriller Terror Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442010804,
+          "name": "Thriller Terror Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442010805,
+          "name": "Thriller Terror Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442010891,
+          "name": "Thriller Terror Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442010899,
+          "name": "Thriller Terror Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 109,
+      "pop_file": "mvm_cyberia_rc6a_adv_silver_snow",
+      "name": "Silver Snow",
+      "map_id": 107,
+      "difficulty": "advanced",
+      "waves": 5,
+      "has_tank": true,
+      "has_giant": true,
+      "community": true,
+      "playable": false,
+      "requires": "no_nav",
+      "locations": [
+        {
+          "id": 7442010901,
+          "name": "Silver Snow Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442010902,
+          "name": "Silver Snow Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442010903,
+          "name": "Silver Snow Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442010904,
+          "name": "Silver Snow Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442010905,
+          "name": "Silver Snow Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442010990,
+          "name": "Silver Snow Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442010991,
+          "name": "Silver Snow Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442010999,
+          "name": "Silver Snow Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 110,
+      "pop_file": "mvm_downpour_rc3a_int_flash_flood_flurry",
+      "name": "Flash Flood Flurry",
+      "map_id": 108,
+      "difficulty": "intermediate",
+      "waves": 7,
+      "has_tank": true,
+      "has_giant": true,
+      "community": true,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442011001,
+          "name": "Flash Flood Flurry Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442011002,
+          "name": "Flash Flood Flurry Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442011003,
+          "name": "Flash Flood Flurry Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442011004,
+          "name": "Flash Flood Flurry Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442011005,
+          "name": "Flash Flood Flurry Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442011006,
+          "name": "Flash Flood Flurry Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442011007,
+          "name": "Flash Flood Flurry Wave 7",
+          "kind": "wave_cleared",
+          "wave": 7
+        },
+        {
+          "id": 7442011090,
+          "name": "Flash Flood Flurry Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442011091,
+          "name": "Flash Flood Flurry Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442011099,
+          "name": "Flash Flood Flurry Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 111,
+      "pop_file": "mvm_frostwynd_rc1_int_wicked_wizardry",
+      "name": "Wicked Wizardry",
+      "map_id": 109,
+      "difficulty": "intermediate",
+      "waves": 7,
+      "has_tank": true,
+      "has_giant": true,
+      "community": true,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442011101,
+          "name": "Wicked Wizardry Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442011102,
+          "name": "Wicked Wizardry Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442011103,
+          "name": "Wicked Wizardry Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442011104,
+          "name": "Wicked Wizardry Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442011105,
+          "name": "Wicked Wizardry Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442011106,
+          "name": "Wicked Wizardry Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442011107,
+          "name": "Wicked Wizardry Wave 7",
+          "kind": "wave_cleared",
+          "wave": 7
+        },
+        {
+          "id": 7442011190,
+          "name": "Wicked Wizardry Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442011191,
+          "name": "Wicked Wizardry Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442011199,
+          "name": "Wicked Wizardry Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 112,
+      "pop_file": "mvm_heatrock_rc6a_adv_heated_argument",
+      "name": "Heated Argument",
+      "map_id": 110,
+      "difficulty": "advanced",
+      "waves": 8,
+      "has_tank": true,
+      "has_giant": true,
+      "community": true,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442011201,
+          "name": "Heated Argument Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442011202,
+          "name": "Heated Argument Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442011203,
+          "name": "Heated Argument Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442011204,
+          "name": "Heated Argument Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442011205,
+          "name": "Heated Argument Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442011206,
+          "name": "Heated Argument Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442011207,
+          "name": "Heated Argument Wave 7",
+          "kind": "wave_cleared",
+          "wave": 7
+        },
+        {
+          "id": 7442011208,
+          "name": "Heated Argument Wave 8",
+          "kind": "wave_cleared",
+          "wave": 8
+        },
+        {
+          "id": 7442011290,
+          "name": "Heated Argument Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442011291,
+          "name": "Heated Argument Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442011299,
+          "name": "Heated Argument Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 113,
+      "pop_file": "mvm_hideout_b3_int_covert_compromise",
+      "name": "Covert Compromise",
+      "map_id": 111,
+      "difficulty": "intermediate",
+      "waves": 6,
+      "has_tank": true,
+      "has_giant": true,
+      "community": true,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442011301,
+          "name": "Covert Compromise Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442011302,
+          "name": "Covert Compromise Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442011303,
+          "name": "Covert Compromise Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442011304,
+          "name": "Covert Compromise Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442011305,
+          "name": "Covert Compromise Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442011306,
+          "name": "Covert Compromise Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442011390,
+          "name": "Covert Compromise Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442011391,
+          "name": "Covert Compromise Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442011399,
+          "name": "Covert Compromise Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 114,
+      "pop_file": "mvm_kelly_rc1b_adv_homestead_happenings",
+      "name": "Homestead Happenings",
+      "map_id": 101,
+      "difficulty": "advanced",
+      "waves": 5,
+      "has_tank": true,
+      "has_giant": true,
+      "community": true,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442011401,
+          "name": "Homestead Happenings Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442011402,
+          "name": "Homestead Happenings Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442011403,
+          "name": "Homestead Happenings Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442011404,
+          "name": "Homestead Happenings Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442011405,
+          "name": "Homestead Happenings Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442011490,
+          "name": "Homestead Happenings Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442011491,
+          "name": "Homestead Happenings Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442011499,
+          "name": "Homestead Happenings Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 115,
+      "pop_file": "mvm_lotus_b6_adv_mud",
+      "name": "Mud",
+      "map_id": 112,
+      "difficulty": "advanced",
+      "waves": 6,
+      "has_tank": true,
+      "has_giant": true,
+      "community": true,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442011501,
+          "name": "Mud Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442011502,
+          "name": "Mud Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442011503,
+          "name": "Mud Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442011504,
+          "name": "Mud Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442011505,
+          "name": "Mud Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442011506,
+          "name": "Mud Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442011590,
+          "name": "Mud Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442011591,
+          "name": "Mud Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442011599,
+          "name": "Mud Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 116,
+      "pop_file": "mvm_null_b9c_adv_void_voyage",
+      "name": "Void Voyage",
+      "map_id": 113,
+      "difficulty": "advanced",
+      "waves": 6,
+      "has_tank": true,
+      "has_giant": true,
+      "community": true,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442011601,
+          "name": "Void Voyage Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442011602,
+          "name": "Void Voyage Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442011603,
+          "name": "Void Voyage Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442011604,
+          "name": "Void Voyage Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442011605,
+          "name": "Void Voyage Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442011606,
+          "name": "Void Voyage Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442011690,
+          "name": "Void Voyage Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442011691,
+          "name": "Void Voyage Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442011699,
+          "name": "Void Voyage Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 117,
+      "pop_file": "mvm_oilrig_rc5d_int_offshore_onslaught",
+      "name": "Offshore Onslaught",
+      "map_id": 114,
+      "difficulty": "intermediate",
+      "waves": 7,
+      "has_tank": true,
+      "has_giant": true,
+      "community": true,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442011701,
+          "name": "Offshore Onslaught Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442011702,
+          "name": "Offshore Onslaught Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442011703,
+          "name": "Offshore Onslaught Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442011704,
+          "name": "Offshore Onslaught Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442011705,
+          "name": "Offshore Onslaught Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442011706,
+          "name": "Offshore Onslaught Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442011707,
+          "name": "Offshore Onslaught Wave 7",
+          "kind": "wave_cleared",
+          "wave": 7
+        },
+        {
+          "id": 7442011790,
+          "name": "Offshore Onslaught Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442011791,
+          "name": "Offshore Onslaught Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442011799,
+          "name": "Offshore Onslaught Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 118,
+      "pop_file": "mvm_oxidize_rc3_int_snowy_slaughter",
+      "name": "Snowy Slaughter",
+      "map_id": 115,
+      "difficulty": "intermediate",
+      "waves": 6,
+      "has_tank": true,
+      "has_giant": true,
+      "community": true,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442011801,
+          "name": "Snowy Slaughter Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442011802,
+          "name": "Snowy Slaughter Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442011803,
+          "name": "Snowy Slaughter Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442011804,
+          "name": "Snowy Slaughter Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442011805,
+          "name": "Snowy Slaughter Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442011806,
+          "name": "Snowy Slaughter Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442011890,
+          "name": "Snowy Slaughter Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442011891,
+          "name": "Snowy Slaughter Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442011899,
+          "name": "Snowy Slaughter Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 119,
+      "pop_file": "mvm_oxidize_rr18_int_pollution_dilution",
+      "name": "Pollution Dilution",
+      "map_id": 116,
+      "difficulty": "intermediate",
+      "waves": 8,
+      "has_tank": true,
+      "has_giant": true,
+      "community": true,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442011901,
+          "name": "Pollution Dilution Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442011902,
+          "name": "Pollution Dilution Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442011903,
+          "name": "Pollution Dilution Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442011904,
+          "name": "Pollution Dilution Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442011905,
+          "name": "Pollution Dilution Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442011906,
+          "name": "Pollution Dilution Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442011907,
+          "name": "Pollution Dilution Wave 7",
+          "kind": "wave_cleared",
+          "wave": 7
+        },
+        {
+          "id": 7442011908,
+          "name": "Pollution Dilution Wave 8",
+          "kind": "wave_cleared",
+          "wave": 8
+        },
+        {
+          "id": 7442011990,
+          "name": "Pollution Dilution Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442011991,
+          "name": "Pollution Dilution Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442011999,
+          "name": "Pollution Dilution Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 120,
+      "pop_file": "mvm_radar_b10_int_recursive_reinforcements",
+      "name": "Recursive Reinforcements",
+      "map_id": 117,
+      "difficulty": "intermediate",
+      "waves": 6,
+      "has_tank": true,
+      "has_giant": true,
+      "community": true,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442012001,
+          "name": "Recursive Reinforcements Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442012002,
+          "name": "Recursive Reinforcements Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442012003,
+          "name": "Recursive Reinforcements Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442012004,
+          "name": "Recursive Reinforcements Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442012005,
+          "name": "Recursive Reinforcements Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442012006,
+          "name": "Recursive Reinforcements Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442012090,
+          "name": "Recursive Reinforcements Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442012091,
+          "name": "Recursive Reinforcements Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442012099,
+          "name": "Recursive Reinforcements Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 121,
+      "pop_file": "mvm_redstone_ridge_rc5_adv_armored_apparatus",
+      "name": "Armored Apparatus",
+      "map_id": 118,
+      "difficulty": "advanced",
+      "waves": 6,
+      "has_tank": true,
+      "has_giant": true,
+      "community": true,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442012101,
+          "name": "Armored Apparatus Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442012102,
+          "name": "Armored Apparatus Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442012103,
+          "name": "Armored Apparatus Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442012104,
+          "name": "Armored Apparatus Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442012105,
+          "name": "Armored Apparatus Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442012106,
+          "name": "Armored Apparatus Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442012190,
+          "name": "Armored Apparatus Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442012191,
+          "name": "Armored Apparatus Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442012199,
+          "name": "Armored Apparatus Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 122,
+      "pop_file": "mvm_snowpine_rc4_fix1_int_alpine_assault",
+      "name": "Alpine Assault",
+      "map_id": 119,
+      "difficulty": "intermediate",
+      "waves": 7,
+      "has_tank": true,
+      "has_giant": true,
+      "community": true,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442012201,
+          "name": "Alpine Assault Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442012202,
+          "name": "Alpine Assault Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442012203,
+          "name": "Alpine Assault Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442012204,
+          "name": "Alpine Assault Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442012205,
+          "name": "Alpine Assault Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442012206,
+          "name": "Alpine Assault Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442012207,
+          "name": "Alpine Assault Wave 7",
+          "kind": "wave_cleared",
+          "wave": 7
+        },
+        {
+          "id": 7442012290,
+          "name": "Alpine Assault Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442012291,
+          "name": "Alpine Assault Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442012299,
+          "name": "Alpine Assault Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 123,
+      "pop_file": "mvm_teien_rc6_adv_onsen_onslaught",
+      "name": "Onsen Onslaught",
+      "map_id": 120,
+      "difficulty": "advanced",
+      "waves": 6,
+      "has_tank": true,
+      "has_giant": true,
+      "community": true,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442012301,
+          "name": "Onsen Onslaught Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442012302,
+          "name": "Onsen Onslaught Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442012303,
+          "name": "Onsen Onslaught Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442012304,
+          "name": "Onsen Onslaught Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442012305,
+          "name": "Onsen Onslaught Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442012306,
+          "name": "Onsen Onslaught Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442012390,
+          "name": "Onsen Onslaught Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442012391,
+          "name": "Onsen Onslaught Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442012399,
+          "name": "Onsen Onslaught Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 124,
+      "pop_file": "mvm_transmission_rc7a_int_binary_broadcast",
+      "name": "Binary Broadcast",
+      "map_id": 121,
+      "difficulty": "intermediate",
+      "waves": 7,
+      "has_tank": true,
+      "has_giant": true,
+      "community": true,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442012401,
+          "name": "Binary Broadcast Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442012402,
+          "name": "Binary Broadcast Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442012403,
+          "name": "Binary Broadcast Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442012404,
+          "name": "Binary Broadcast Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442012405,
+          "name": "Binary Broadcast Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442012406,
+          "name": "Binary Broadcast Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442012407,
+          "name": "Binary Broadcast Wave 7",
+          "kind": "wave_cleared",
+          "wave": 7
+        },
+        {
+          "id": 7442012490,
+          "name": "Binary Broadcast Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442012491,
+          "name": "Binary Broadcast Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442012499,
+          "name": "Binary Broadcast Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 125,
+      "pop_file": "mvm_yiresa_rc5a_int_black_east",
+      "name": "Black East",
+      "map_id": 122,
+      "difficulty": "intermediate",
+      "waves": 7,
+      "has_tank": true,
+      "has_giant": true,
+      "community": true,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442012501,
+          "name": "Black East Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442012502,
+          "name": "Black East Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442012503,
+          "name": "Black East Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442012504,
+          "name": "Black East Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442012505,
+          "name": "Black East Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442012506,
+          "name": "Black East Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442012507,
+          "name": "Black East Wave 7",
+          "kind": "wave_cleared",
+          "wave": 7
+        },
+        {
+          "id": 7442012590,
+          "name": "Black East Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442012591,
+          "name": "Black East Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442012599,
+          "name": "Black East Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 126,
+      "pop_file": "mvm_condemned_b3_adv_unholy_undead",
+      "name": "Unholy Undead",
+      "map_id": 103,
+      "difficulty": "advanced",
+      "waves": 5,
+      "has_tank": false,
+      "has_giant": true,
+      "community": true,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442012601,
+          "name": "Unholy Undead Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442012602,
+          "name": "Unholy Undead Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442012603,
+          "name": "Unholy Undead Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442012604,
+          "name": "Unholy Undead Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442012605,
+          "name": "Unholy Undead Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442012691,
+          "name": "Unholy Undead Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442012699,
+          "name": "Unholy Undead Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 127,
+      "pop_file": "mvm_area_52_rc3_adv_australian_christmas",
+      "name": "Australian Christmas",
+      "map_id": 104,
+      "difficulty": "advanced",
+      "waves": 7,
+      "has_tank": true,
+      "has_giant": true,
+      "community": true,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442012701,
+          "name": "Australian Christmas Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442012702,
+          "name": "Australian Christmas Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442012703,
+          "name": "Australian Christmas Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442012704,
+          "name": "Australian Christmas Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442012705,
+          "name": "Australian Christmas Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442012706,
+          "name": "Australian Christmas Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442012707,
+          "name": "Australian Christmas Wave 7",
+          "kind": "wave_cleared",
+          "wave": 7
+        },
+        {
+          "id": 7442012790,
+          "name": "Australian Christmas Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442012791,
+          "name": "Australian Christmas Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442012799,
+          "name": "Australian Christmas Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 128,
+      "pop_file": "mvm_area_52_rc3_adv_complex_chaos",
+      "name": "Complex Chaos",
+      "map_id": 104,
+      "difficulty": "advanced",
+      "waves": 6,
+      "has_tank": true,
+      "has_giant": true,
+      "community": true,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442012801,
+          "name": "Complex Chaos Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442012802,
+          "name": "Complex Chaos Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442012803,
+          "name": "Complex Chaos Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442012804,
+          "name": "Complex Chaos Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442012805,
+          "name": "Complex Chaos Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442012806,
+          "name": "Complex Chaos Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442012890,
+          "name": "Complex Chaos Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442012891,
+          "name": "Complex Chaos Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442012899,
+          "name": "Complex Chaos Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 129,
+      "pop_file": "mvm_area_52_rc3_adv_extraterrestrial_epidemic",
+      "name": "Extraterrestrial Epidemic",
+      "map_id": 104,
+      "difficulty": "advanced",
+      "waves": 1,
+      "has_tank": true,
+      "has_giant": true,
+      "community": true,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442012901,
+          "name": "Extraterrestrial Epidemic Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442012990,
+          "name": "Extraterrestrial Epidemic Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442012991,
+          "name": "Extraterrestrial Epidemic Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442012999,
+          "name": "Extraterrestrial Epidemic Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 130,
+      "pop_file": "mvm_area_52_rc3_adv_interstellar_intervention",
+      "name": "Interstellar Intervention",
+      "map_id": 104,
+      "difficulty": "advanced",
+      "waves": 6,
+      "has_tank": true,
+      "has_giant": true,
+      "community": true,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442013001,
+          "name": "Interstellar Intervention Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442013002,
+          "name": "Interstellar Intervention Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442013003,
+          "name": "Interstellar Intervention Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442013004,
+          "name": "Interstellar Intervention Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442013005,
+          "name": "Interstellar Intervention Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442013006,
+          "name": "Interstellar Intervention Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442013090,
+          "name": "Interstellar Intervention Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442013091,
+          "name": "Interstellar Intervention Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442013099,
+          "name": "Interstellar Intervention Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 131,
+      "pop_file": "mvm_area_52_rc3_adv_tech_mechs",
+      "name": "Tech Mechs",
+      "map_id": 104,
+      "difficulty": "advanced",
+      "waves": 6,
+      "has_tank": true,
+      "has_giant": true,
+      "community": true,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442013101,
+          "name": "Tech Mechs Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442013102,
+          "name": "Tech Mechs Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442013103,
+          "name": "Tech Mechs Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442013104,
+          "name": "Tech Mechs Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442013105,
+          "name": "Tech Mechs Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442013106,
+          "name": "Tech Mechs Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442013190,
+          "name": "Tech Mechs Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442013191,
+          "name": "Tech Mechs Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442013199,
+          "name": "Tech Mechs Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 132,
+      "pop_file": "mvm_area_52_rc3_adv_unusual_onslaught",
+      "name": "Unusual Onslaught",
+      "map_id": 104,
+      "difficulty": "advanced",
+      "waves": 5,
+      "has_tank": true,
+      "has_giant": true,
+      "community": true,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442013201,
+          "name": "Unusual Onslaught Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442013202,
+          "name": "Unusual Onslaught Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442013203,
+          "name": "Unusual Onslaught Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442013204,
+          "name": "Unusual Onslaught Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442013205,
+          "name": "Unusual Onslaught Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442013290,
+          "name": "Unusual Onslaught Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442013291,
+          "name": "Unusual Onslaught Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442013299,
+          "name": "Unusual Onslaught Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 133,
+      "pop_file": "mvm_area_52_rc3_int_gatebot_apocalypse",
+      "name": "Gatebot Apocalypse",
+      "map_id": 104,
+      "difficulty": "intermediate",
+      "waves": 5,
+      "has_tank": false,
+      "has_giant": true,
+      "community": true,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442013301,
+          "name": "Gatebot Apocalypse Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442013302,
+          "name": "Gatebot Apocalypse Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442013303,
+          "name": "Gatebot Apocalypse Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442013304,
+          "name": "Gatebot Apocalypse Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442013305,
+          "name": "Gatebot Apocalypse Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442013391,
+          "name": "Gatebot Apocalypse Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442013399,
+          "name": "Gatebot Apocalypse Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 134,
+      "pop_file": "mvm_autumnull_rc2_adv_steelblock",
+      "name": "Steelblock",
+      "map_id": 105,
+      "difficulty": "advanced",
+      "waves": 5,
+      "has_tank": true,
+      "has_giant": true,
+      "community": true,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442013401,
+          "name": "Steelblock Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442013402,
+          "name": "Steelblock Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442013403,
+          "name": "Steelblock Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442013404,
+          "name": "Steelblock Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442013405,
+          "name": "Steelblock Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442013490,
+          "name": "Steelblock Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442013491,
+          "name": "Steelblock Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442013499,
+          "name": "Steelblock Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 135,
+      "pop_file": "mvm_downpour_rc3a_adv_storm_surge",
+      "name": "Storm Surge",
+      "map_id": 108,
+      "difficulty": "advanced",
+      "waves": 6,
+      "has_tank": true,
+      "has_giant": true,
+      "community": true,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442013501,
+          "name": "Storm Surge Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442013502,
+          "name": "Storm Surge Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442013503,
+          "name": "Storm Surge Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442013504,
+          "name": "Storm Surge Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442013505,
+          "name": "Storm Surge Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442013506,
+          "name": "Storm Surge Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442013590,
+          "name": "Storm Surge Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442013591,
+          "name": "Storm Surge Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442013599,
+          "name": "Storm Surge Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 136,
+      "pop_file": "mvm_downpour_rc3a_exp_alluvion",
+      "name": "Alluvion",
+      "map_id": 108,
+      "difficulty": "expert",
+      "waves": 6,
+      "has_tank": true,
+      "has_giant": true,
+      "community": true,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442013601,
+          "name": "Alluvion Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442013602,
+          "name": "Alluvion Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442013603,
+          "name": "Alluvion Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442013604,
+          "name": "Alluvion Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442013605,
+          "name": "Alluvion Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442013606,
+          "name": "Alluvion Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442013690,
+          "name": "Alluvion Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442013691,
+          "name": "Alluvion Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442013699,
+          "name": "Alluvion Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 137,
+      "pop_file": "mvm_frostwynd_rc1_adv_fiefdom_fiasco",
+      "name": "Fiefdom Fiasco",
+      "map_id": 109,
+      "difficulty": "advanced",
+      "waves": 6,
+      "has_tank": true,
+      "has_giant": true,
+      "community": true,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442013701,
+          "name": "Fiefdom Fiasco Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442013702,
+          "name": "Fiefdom Fiasco Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442013703,
+          "name": "Fiefdom Fiasco Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442013704,
+          "name": "Fiefdom Fiasco Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442013705,
+          "name": "Fiefdom Fiasco Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442013706,
+          "name": "Fiefdom Fiasco Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442013790,
+          "name": "Fiefdom Fiasco Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442013791,
+          "name": "Fiefdom Fiasco Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442013799,
+          "name": "Fiefdom Fiasco Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 138,
+      "pop_file": "mvm_hideout_b3_adv_advanced",
+      "name": "Advanced",
+      "map_id": 111,
+      "difficulty": "advanced",
+      "waves": 5,
+      "has_tank": true,
+      "has_giant": true,
+      "community": true,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442013801,
+          "name": "Advanced Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442013802,
+          "name": "Advanced Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442013803,
+          "name": "Advanced Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442013804,
+          "name": "Advanced Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442013805,
+          "name": "Advanced Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442013890,
+          "name": "Advanced Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442013891,
+          "name": "Advanced Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442013899,
+          "name": "Advanced Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 139,
+      "pop_file": "mvm_hideout_b3_adv_perilous_paradise",
+      "name": "Perilous Paradise",
+      "map_id": 111,
+      "difficulty": "advanced",
+      "waves": 6,
+      "has_tank": true,
+      "has_giant": true,
+      "community": true,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442013901,
+          "name": "Perilous Paradise Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442013902,
+          "name": "Perilous Paradise Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442013903,
+          "name": "Perilous Paradise Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442013904,
+          "name": "Perilous Paradise Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442013905,
+          "name": "Perilous Paradise Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442013906,
+          "name": "Perilous Paradise Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442013990,
+          "name": "Perilous Paradise Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442013991,
+          "name": "Perilous Paradise Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442013999,
+          "name": "Perilous Paradise Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 140,
+      "pop_file": "mvm_hideout_b3_exp_autonomous_annihilation",
+      "name": "Autonomous Annihilation",
+      "map_id": 111,
+      "difficulty": "expert",
+      "waves": 5,
+      "has_tank": true,
+      "has_giant": true,
+      "community": true,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442014001,
+          "name": "Autonomous Annihilation Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442014002,
+          "name": "Autonomous Annihilation Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442014003,
+          "name": "Autonomous Annihilation Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442014004,
+          "name": "Autonomous Annihilation Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442014005,
+          "name": "Autonomous Annihilation Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442014090,
+          "name": "Autonomous Annihilation Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442014091,
+          "name": "Autonomous Annihilation Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442014099,
+          "name": "Autonomous Annihilation Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 141,
+      "pop_file": "mvm_hideout_b3_exp_interloper",
+      "name": "Interloper",
+      "map_id": 111,
+      "difficulty": "expert",
+      "waves": 5,
+      "has_tank": true,
+      "has_giant": true,
+      "community": true,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442014101,
+          "name": "Interloper Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442014102,
+          "name": "Interloper Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442014103,
+          "name": "Interloper Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442014104,
+          "name": "Interloper Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442014105,
+          "name": "Interloper Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442014190,
+          "name": "Interloper Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442014191,
+          "name": "Interloper Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442014199,
+          "name": "Interloper Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 142,
+      "pop_file": "mvm_hideout_b3_int_intermediate",
+      "name": "Intermediate",
+      "map_id": 111,
+      "difficulty": "intermediate",
+      "waves": 6,
+      "has_tank": true,
+      "has_giant": true,
+      "community": true,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442014201,
+          "name": "Intermediate Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442014202,
+          "name": "Intermediate Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442014203,
+          "name": "Intermediate Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442014204,
+          "name": "Intermediate Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442014205,
+          "name": "Intermediate Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442014206,
+          "name": "Intermediate Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442014290,
+          "name": "Intermediate Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442014291,
+          "name": "Intermediate Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442014299,
+          "name": "Intermediate Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 143,
+      "pop_file": "mvm_lotus_b6_adv_mechanical_damnation",
+      "name": "Mechanical Damnation",
+      "map_id": 112,
+      "difficulty": "advanced",
+      "waves": 6,
+      "has_tank": true,
+      "has_giant": true,
+      "community": true,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442014301,
+          "name": "Mechanical Damnation Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442014302,
+          "name": "Mechanical Damnation Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442014303,
+          "name": "Mechanical Damnation Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442014304,
+          "name": "Mechanical Damnation Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442014305,
+          "name": "Mechanical Damnation Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442014306,
+          "name": "Mechanical Damnation Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442014390,
+          "name": "Mechanical Damnation Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442014391,
+          "name": "Mechanical Damnation Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442014399,
+          "name": "Mechanical Damnation Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 144,
+      "pop_file": "mvm_oilrig_rc5d_adv_666_oilpocalypse",
+      "name": "Oilpocalypse",
+      "map_id": 114,
+      "difficulty": "haunted",
+      "waves": 1,
+      "has_tank": true,
+      "has_giant": true,
+      "community": true,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442014401,
+          "name": "Oilpocalypse Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442014490,
+          "name": "Oilpocalypse Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442014491,
+          "name": "Oilpocalypse Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442014499,
+          "name": "Oilpocalypse Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 145,
+      "pop_file": "mvm_oilrig_rc5d_adv_rescindment",
+      "name": "Rescindment",
+      "map_id": 114,
+      "difficulty": "advanced",
+      "waves": 7,
+      "has_tank": true,
+      "has_giant": true,
+      "community": true,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442014501,
+          "name": "Rescindment Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442014502,
+          "name": "Rescindment Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442014503,
+          "name": "Rescindment Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442014504,
+          "name": "Rescindment Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442014505,
+          "name": "Rescindment Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442014506,
+          "name": "Rescindment Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442014507,
+          "name": "Rescindment Wave 7",
+          "kind": "wave_cleared",
+          "wave": 7
+        },
+        {
+          "id": 7442014590,
+          "name": "Rescindment Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442014591,
+          "name": "Rescindment Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442014599,
+          "name": "Rescindment Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 146,
+      "pop_file": "mvm_oilrig_rc5d_exp_oil_overflow",
+      "name": "Oil Overflow",
+      "map_id": 114,
+      "difficulty": "expert",
+      "waves": 7,
+      "has_tank": true,
+      "has_giant": true,
+      "community": true,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442014601,
+          "name": "Oil Overflow Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442014602,
+          "name": "Oil Overflow Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442014603,
+          "name": "Oil Overflow Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442014604,
+          "name": "Oil Overflow Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442014605,
+          "name": "Oil Overflow Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442014606,
+          "name": "Oil Overflow Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442014607,
+          "name": "Oil Overflow Wave 7",
+          "kind": "wave_cleared",
+          "wave": 7
+        },
+        {
+          "id": 7442014690,
+          "name": "Oil Overflow Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442014691,
+          "name": "Oil Overflow Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442014699,
+          "name": "Oil Overflow Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 147,
+      "pop_file": "mvm_oilrig_rc5d_int_terrorist_simulation",
+      "name": "Terrorist Simulation",
+      "map_id": 114,
+      "difficulty": "intermediate",
+      "waves": 6,
+      "has_tank": true,
+      "has_giant": true,
+      "community": true,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442014701,
+          "name": "Terrorist Simulation Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442014702,
+          "name": "Terrorist Simulation Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442014703,
+          "name": "Terrorist Simulation Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442014704,
+          "name": "Terrorist Simulation Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442014705,
+          "name": "Terrorist Simulation Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442014706,
+          "name": "Terrorist Simulation Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442014790,
+          "name": "Terrorist Simulation Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442014791,
+          "name": "Terrorist Simulation Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442014799,
+          "name": "Terrorist Simulation Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 148,
+      "pop_file": "mvm_oxidize_rc3_adv_666_corroding_cadavers",
+      "name": "Corroding Cadavers",
+      "map_id": 115,
+      "difficulty": "haunted",
+      "waves": 1,
+      "has_tank": true,
+      "has_giant": true,
+      "community": true,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442014801,
+          "name": "Corroding Cadavers Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442014890,
+          "name": "Corroding Cadavers Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442014891,
+          "name": "Corroding Cadavers Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442014899,
+          "name": "Corroding Cadavers Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 149,
+      "pop_file": "mvm_oxidize_rc3_adv_frosted_furnace",
+      "name": "Frosted Furnace",
+      "map_id": 115,
+      "difficulty": "advanced",
+      "waves": 7,
+      "has_tank": true,
+      "has_giant": true,
+      "community": true,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442014901,
+          "name": "Frosted Furnace Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442014902,
+          "name": "Frosted Furnace Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442014903,
+          "name": "Frosted Furnace Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442014904,
+          "name": "Frosted Furnace Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442014905,
+          "name": "Frosted Furnace Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442014906,
+          "name": "Frosted Furnace Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442014907,
+          "name": "Frosted Furnace Wave 7",
+          "kind": "wave_cleared",
+          "wave": 7
+        },
+        {
+          "id": 7442014990,
+          "name": "Frosted Furnace Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442014991,
+          "name": "Frosted Furnace Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442014999,
+          "name": "Frosted Furnace Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 150,
+      "pop_file": "mvm_oxidize_rr18_adv_grass_run",
+      "name": "Grass Run",
+      "map_id": 116,
+      "difficulty": "advanced",
+      "waves": 6,
+      "has_tank": true,
+      "has_giant": true,
+      "community": true,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442015001,
+          "name": "Grass Run Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442015002,
+          "name": "Grass Run Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442015003,
+          "name": "Grass Run Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442015004,
+          "name": "Grass Run Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442015005,
+          "name": "Grass Run Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442015006,
+          "name": "Grass Run Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442015090,
+          "name": "Grass Run Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442015091,
+          "name": "Grass Run Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442015099,
+          "name": "Grass Run Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 151,
+      "pop_file": "mvm_oxidize_rr18_int_greenhouse_roughhousing",
+      "name": "Greenhouse Roughhousing",
+      "map_id": 116,
+      "difficulty": "intermediate",
+      "waves": 3,
+      "has_tank": true,
+      "has_giant": true,
+      "community": true,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442015101,
+          "name": "Greenhouse Roughhousing Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442015102,
+          "name": "Greenhouse Roughhousing Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442015103,
+          "name": "Greenhouse Roughhousing Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442015190,
+          "name": "Greenhouse Roughhousing Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442015191,
+          "name": "Greenhouse Roughhousing Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442015199,
+          "name": "Greenhouse Roughhousing Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 152,
+      "pop_file": "mvm_radar_b10_adv_rocky_ravage",
+      "name": "Rocky Ravage",
+      "map_id": 117,
+      "difficulty": "advanced",
+      "waves": 7,
+      "has_tank": true,
+      "has_giant": true,
+      "community": true,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442015201,
+          "name": "Rocky Ravage Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442015202,
+          "name": "Rocky Ravage Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442015203,
+          "name": "Rocky Ravage Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442015204,
+          "name": "Rocky Ravage Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442015205,
+          "name": "Rocky Ravage Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442015206,
+          "name": "Rocky Ravage Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442015207,
+          "name": "Rocky Ravage Wave 7",
+          "kind": "wave_cleared",
+          "wave": 7
+        },
+        {
+          "id": 7442015290,
+          "name": "Rocky Ravage Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442015291,
+          "name": "Rocky Ravage Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442015299,
+          "name": "Rocky Ravage Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 153,
+      "pop_file": "mvm_radar_b10_int_recruits_recognition",
+      "name": "Recruits Recognition",
+      "map_id": 117,
+      "difficulty": "intermediate",
+      "waves": 7,
+      "has_tank": true,
+      "has_giant": true,
+      "community": true,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442015301,
+          "name": "Recruits Recognition Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442015302,
+          "name": "Recruits Recognition Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442015303,
+          "name": "Recruits Recognition Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442015304,
+          "name": "Recruits Recognition Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442015305,
+          "name": "Recruits Recognition Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442015306,
+          "name": "Recruits Recognition Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442015307,
+          "name": "Recruits Recognition Wave 7",
+          "kind": "wave_cleared",
+          "wave": 7
+        },
+        {
+          "id": 7442015390,
+          "name": "Recruits Recognition Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442015391,
+          "name": "Recruits Recognition Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442015399,
+          "name": "Recruits Recognition Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 154,
+      "pop_file": "mvm_snowpine_rc4_fix1_adv_permafrost_panic",
+      "name": "Permafrost Panic",
+      "map_id": 119,
+      "difficulty": "advanced",
+      "waves": 6,
+      "has_tank": true,
+      "has_giant": true,
+      "community": true,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442015401,
+          "name": "Permafrost Panic Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442015402,
+          "name": "Permafrost Panic Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442015403,
+          "name": "Permafrost Panic Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442015404,
+          "name": "Permafrost Panic Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442015405,
+          "name": "Permafrost Panic Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442015406,
+          "name": "Permafrost Panic Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442015490,
+          "name": "Permafrost Panic Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442015491,
+          "name": "Permafrost Panic Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442015499,
+          "name": "Permafrost Panic Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 155,
+      "pop_file": "mvm_snowpine_rc4_fix1_adv_shattered_iceshard",
+      "name": "Shattered Iceshard",
+      "map_id": 119,
+      "difficulty": "advanced",
+      "waves": 6,
+      "has_tank": true,
+      "has_giant": true,
+      "community": true,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442015501,
+          "name": "Shattered Iceshard Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442015502,
+          "name": "Shattered Iceshard Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442015503,
+          "name": "Shattered Iceshard Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442015504,
+          "name": "Shattered Iceshard Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442015505,
+          "name": "Shattered Iceshard Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442015506,
+          "name": "Shattered Iceshard Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442015590,
+          "name": "Shattered Iceshard Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442015591,
+          "name": "Shattered Iceshard Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442015599,
+          "name": "Shattered Iceshard Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 156,
+      "pop_file": "mvm_snowpine_rc4_fix1_exp_raid_resort",
+      "name": "Raid Resort",
+      "map_id": 119,
+      "difficulty": "expert",
+      "waves": 3,
+      "has_tank": true,
+      "has_giant": true,
+      "community": true,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442015601,
+          "name": "Raid Resort Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442015602,
+          "name": "Raid Resort Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442015603,
+          "name": "Raid Resort Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442015690,
+          "name": "Raid Resort Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442015691,
+          "name": "Raid Resort Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442015699,
+          "name": "Raid Resort Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 157,
+      "pop_file": "mvm_teien_rc6_adv_program_seppuku",
+      "name": "Program Seppuku",
+      "map_id": 120,
+      "difficulty": "advanced",
+      "waves": 7,
+      "has_tank": true,
+      "has_giant": true,
+      "community": true,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442015701,
+          "name": "Program Seppuku Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442015702,
+          "name": "Program Seppuku Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442015703,
+          "name": "Program Seppuku Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442015704,
+          "name": "Program Seppuku Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442015705,
+          "name": "Program Seppuku Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442015706,
+          "name": "Program Seppuku Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442015707,
+          "name": "Program Seppuku Wave 7",
+          "kind": "wave_cleared",
+          "wave": 7
+        },
+        {
+          "id": 7442015790,
+          "name": "Program Seppuku Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442015791,
+          "name": "Program Seppuku Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442015799,
+          "name": "Program Seppuku Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 158,
+      "pop_file": "mvm_teien_rc6_exp_disruption",
+      "name": "Disruption",
+      "map_id": 120,
+      "difficulty": "expert",
+      "waves": 6,
+      "has_tank": true,
+      "has_giant": true,
+      "community": true,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442015801,
+          "name": "Disruption Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442015802,
+          "name": "Disruption Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442015803,
+          "name": "Disruption Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442015804,
+          "name": "Disruption Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442015805,
+          "name": "Disruption Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442015806,
+          "name": "Disruption Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442015890,
+          "name": "Disruption Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442015891,
+          "name": "Disruption Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442015899,
+          "name": "Disruption Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 159,
+      "pop_file": "mvm_transmission_rc7a_adv_signal_shutdown",
+      "name": "Signal Shutdown",
+      "map_id": 121,
+      "difficulty": "advanced",
+      "waves": 6,
+      "has_tank": true,
+      "has_giant": true,
+      "community": true,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442015901,
+          "name": "Signal Shutdown Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442015902,
+          "name": "Signal Shutdown Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442015903,
+          "name": "Signal Shutdown Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442015904,
+          "name": "Signal Shutdown Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442015905,
+          "name": "Signal Shutdown Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442015906,
+          "name": "Signal Shutdown Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442015990,
+          "name": "Signal Shutdown Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442015991,
+          "name": "Signal Shutdown Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442015999,
+          "name": "Signal Shutdown Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 160,
+      "pop_file": "mvm_decoy_int_decimal_destruction",
+      "name": "Decimal Destruction",
+      "map_id": 1,
+      "difficulty": "intermediate",
+      "waves": 6,
+      "has_tank": true,
+      "has_giant": true,
+      "community": true,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442016001,
+          "name": "Decimal Destruction Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442016002,
+          "name": "Decimal Destruction Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442016003,
+          "name": "Decimal Destruction Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442016004,
+          "name": "Decimal Destruction Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442016005,
+          "name": "Decimal Destruction Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442016006,
+          "name": "Decimal Destruction Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442016090,
+          "name": "Decimal Destruction Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442016091,
+          "name": "Decimal Destruction Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442016099,
+          "name": "Decimal Destruction Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 161,
+      "pop_file": "mvm_decoy_adv_grutesque_getaway",
+      "name": "Grutesque Getaway",
+      "map_id": 1,
+      "difficulty": "advanced",
+      "waves": 6,
+      "has_tank": true,
+      "has_giant": true,
+      "community": true,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442016101,
+          "name": "Grutesque Getaway Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442016102,
+          "name": "Grutesque Getaway Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442016103,
+          "name": "Grutesque Getaway Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442016104,
+          "name": "Grutesque Getaway Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442016105,
+          "name": "Grutesque Getaway Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442016106,
+          "name": "Grutesque Getaway Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442016190,
+          "name": "Grutesque Getaway Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442016191,
+          "name": "Grutesque Getaway Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442016199,
+          "name": "Grutesque Getaway Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 162,
+      "pop_file": "mvm_decoy_exp_dissolution",
+      "name": "Dissolution",
+      "map_id": 1,
+      "difficulty": "expert",
+      "waves": 7,
+      "has_tank": true,
+      "has_giant": true,
+      "community": true,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442016201,
+          "name": "Dissolution Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442016202,
+          "name": "Dissolution Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442016203,
+          "name": "Dissolution Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442016204,
+          "name": "Dissolution Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442016205,
+          "name": "Dissolution Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442016206,
+          "name": "Dissolution Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442016207,
+          "name": "Dissolution Wave 7",
+          "kind": "wave_cleared",
+          "wave": 7
+        },
+        {
+          "id": 7442016290,
+          "name": "Dissolution Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442016291,
+          "name": "Dissolution Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442016299,
+          "name": "Dissolution Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 163,
+      "pop_file": "mvm_coaltown_int_trouble_in_mann_town",
+      "name": "Trouble in Mann Town",
+      "map_id": 2,
+      "difficulty": "intermediate",
+      "waves": 6,
+      "has_tank": true,
+      "has_giant": true,
+      "community": true,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442016301,
+          "name": "Trouble in Mann Town Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442016302,
+          "name": "Trouble in Mann Town Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442016303,
+          "name": "Trouble in Mann Town Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442016304,
+          "name": "Trouble in Mann Town Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442016305,
+          "name": "Trouble in Mann Town Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442016306,
+          "name": "Trouble in Mann Town Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442016390,
+          "name": "Trouble in Mann Town Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442016391,
+          "name": "Trouble in Mann Town Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442016399,
+          "name": "Trouble in Mann Town Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 164,
+      "pop_file": "mvm_coaltown_exp_catastrophic_course",
+      "name": "Catastrophic Course",
+      "map_id": 2,
+      "difficulty": "expert",
+      "waves": 6,
+      "has_tank": true,
+      "has_giant": true,
+      "community": true,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442016401,
+          "name": "Catastrophic Course Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442016402,
+          "name": "Catastrophic Course Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442016403,
+          "name": "Catastrophic Course Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442016404,
+          "name": "Catastrophic Course Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442016405,
+          "name": "Catastrophic Course Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442016406,
+          "name": "Catastrophic Course Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442016490,
+          "name": "Catastrophic Course Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442016491,
+          "name": "Catastrophic Course Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442016499,
+          "name": "Catastrophic Course Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 165,
+      "pop_file": "mvm_mannworks_int_mathematical_miscalculation",
+      "name": "Mathematical Miscalculation",
+      "map_id": 3,
+      "difficulty": "intermediate",
+      "waves": 5,
+      "has_tank": true,
+      "has_giant": true,
+      "community": true,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442016501,
+          "name": "Mathematical Miscalculation Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442016502,
+          "name": "Mathematical Miscalculation Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442016503,
+          "name": "Mathematical Miscalculation Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442016504,
+          "name": "Mathematical Miscalculation Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442016505,
+          "name": "Mathematical Miscalculation Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442016590,
+          "name": "Mathematical Miscalculation Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442016591,
+          "name": "Mathematical Miscalculation Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442016599,
+          "name": "Mathematical Miscalculation Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 166,
+      "pop_file": "mvm_mannworks_int_xlr-8",
+      "name": "XLR-8",
+      "map_id": 3,
+      "difficulty": "intermediate",
+      "waves": 8,
+      "has_tank": true,
+      "has_giant": true,
+      "community": true,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442016601,
+          "name": "XLR-8 Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442016602,
+          "name": "XLR-8 Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442016603,
+          "name": "XLR-8 Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442016604,
+          "name": "XLR-8 Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442016605,
+          "name": "XLR-8 Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442016606,
+          "name": "XLR-8 Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442016607,
+          "name": "XLR-8 Wave 7",
+          "kind": "wave_cleared",
+          "wave": 7
+        },
+        {
+          "id": 7442016608,
+          "name": "XLR-8 Wave 8",
+          "kind": "wave_cleared",
+          "wave": 8
+        },
+        {
+          "id": 7442016690,
+          "name": "XLR-8 Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442016691,
+          "name": "XLR-8 Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442016699,
+          "name": "XLR-8 Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 167,
+      "pop_file": "mvm_mannworks_adv_manntenance",
+      "name": "Manntenance",
+      "map_id": 3,
+      "difficulty": "advanced",
+      "waves": 6,
+      "has_tank": true,
+      "has_giant": true,
+      "community": true,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442016701,
+          "name": "Manntenance Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442016702,
+          "name": "Manntenance Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442016703,
+          "name": "Manntenance Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442016704,
+          "name": "Manntenance Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442016705,
+          "name": "Manntenance Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442016706,
+          "name": "Manntenance Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442016790,
+          "name": "Manntenance Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442016791,
+          "name": "Manntenance Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442016799,
+          "name": "Manntenance Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 168,
+      "pop_file": "mvm_mannworks_exp_monster_maneuvers",
+      "name": "Monster Maneuvers",
+      "map_id": 3,
+      "difficulty": "expert",
+      "waves": 7,
+      "has_tank": true,
+      "has_giant": true,
+      "community": true,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442016801,
+          "name": "Monster Maneuvers Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442016802,
+          "name": "Monster Maneuvers Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442016803,
+          "name": "Monster Maneuvers Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442016804,
+          "name": "Monster Maneuvers Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442016805,
+          "name": "Monster Maneuvers Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442016806,
+          "name": "Monster Maneuvers Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442016807,
+          "name": "Monster Maneuvers Wave 7",
+          "kind": "wave_cleared",
+          "wave": 7
+        },
+        {
+          "id": 7442016890,
+          "name": "Monster Maneuvers Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442016891,
+          "name": "Monster Maneuvers Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442016899,
+          "name": "Monster Maneuvers Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 169,
+      "pop_file": "mvm_bigrock_int_bionic_breach",
+      "name": "Bionic Breach",
+      "map_id": 4,
+      "difficulty": "intermediate",
+      "waves": 7,
+      "has_tank": true,
+      "has_giant": true,
+      "community": true,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442016901,
+          "name": "Bionic Breach Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442016902,
+          "name": "Bionic Breach Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442016903,
+          "name": "Bionic Breach Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442016904,
+          "name": "Bionic Breach Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442016905,
+          "name": "Bionic Breach Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442016906,
+          "name": "Bionic Breach Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442016907,
+          "name": "Bionic Breach Wave 7",
+          "kind": "wave_cleared",
+          "wave": 7
+        },
+        {
+          "id": 7442016990,
+          "name": "Bionic Breach Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442016991,
+          "name": "Bionic Breach Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442016999,
+          "name": "Bionic Breach Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 170,
+      "pop_file": "mvm_bigrock_adv_breaking_point",
+      "name": "Breaking Point",
+      "map_id": 4,
+      "difficulty": "advanced",
+      "waves": 8,
+      "has_tank": true,
+      "has_giant": true,
+      "community": true,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442017001,
+          "name": "Breaking Point Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442017002,
+          "name": "Breaking Point Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442017003,
+          "name": "Breaking Point Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442017004,
+          "name": "Breaking Point Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442017005,
+          "name": "Breaking Point Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442017006,
+          "name": "Breaking Point Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442017007,
+          "name": "Breaking Point Wave 7",
+          "kind": "wave_cleared",
+          "wave": 7
+        },
+        {
+          "id": 7442017008,
+          "name": "Breaking Point Wave 8",
+          "kind": "wave_cleared",
+          "wave": 8
+        },
+        {
+          "id": 7442017090,
+          "name": "Breaking Point Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442017091,
+          "name": "Breaking Point Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442017099,
+          "name": "Breaking Point Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 171,
+      "pop_file": "mvm_mannhattan_adv_factory_reset",
+      "name": "Factory Reset",
+      "map_id": 5,
+      "difficulty": "advanced",
+      "waves": 6,
+      "has_tank": false,
+      "has_giant": true,
+      "community": true,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442017101,
+          "name": "Factory Reset Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442017102,
+          "name": "Factory Reset Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442017103,
+          "name": "Factory Reset Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442017104,
+          "name": "Factory Reset Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442017105,
+          "name": "Factory Reset Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442017106,
+          "name": "Factory Reset Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442017191,
+          "name": "Factory Reset Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442017199,
+          "name": "Factory Reset Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 172,
+      "pop_file": "mvm_mannhattan_adv_scorched_skies",
+      "name": "Scorched Skies",
+      "map_id": 5,
+      "difficulty": "advanced",
+      "waves": 6,
+      "has_tank": false,
+      "has_giant": true,
+      "community": true,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442017201,
+          "name": "Scorched Skies Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442017202,
+          "name": "Scorched Skies Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442017203,
+          "name": "Scorched Skies Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442017204,
+          "name": "Scorched Skies Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442017205,
+          "name": "Scorched Skies Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442017206,
+          "name": "Scorched Skies Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442017291,
+          "name": "Scorched Skies Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442017299,
+          "name": "Scorched Skies Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 173,
+      "pop_file": "mvm_mannhattan_exp_ax20",
+      "name": "AX20",
+      "map_id": 5,
+      "difficulty": "expert",
+      "waves": 6,
+      "has_tank": true,
+      "has_giant": true,
+      "community": true,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442017301,
+          "name": "AX20 Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442017302,
+          "name": "AX20 Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442017303,
+          "name": "AX20 Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442017304,
+          "name": "AX20 Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442017305,
+          "name": "AX20 Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442017306,
+          "name": "AX20 Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442017390,
+          "name": "AX20 Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442017391,
+          "name": "AX20 Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442017399,
+          "name": "AX20 Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 174,
+      "pop_file": "mvm_mannhattan_exp_discordant",
+      "name": "Discordant",
+      "map_id": 5,
+      "difficulty": "expert",
+      "waves": 6,
+      "has_tank": false,
+      "has_giant": true,
+      "community": true,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442017401,
+          "name": "Discordant Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442017402,
+          "name": "Discordant Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442017403,
+          "name": "Discordant Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442017404,
+          "name": "Discordant Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442017405,
+          "name": "Discordant Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442017406,
+          "name": "Discordant Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442017491,
+          "name": "Discordant Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442017499,
+          "name": "Discordant Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 175,
+      "pop_file": "mvm_rottenburg_int_calendartillery",
+      "name": "Calendartillery",
+      "map_id": 6,
+      "difficulty": "intermediate",
+      "waves": 6,
+      "has_tank": true,
+      "has_giant": true,
+      "community": true,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442017501,
+          "name": "Calendartillery Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442017502,
+          "name": "Calendartillery Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442017503,
+          "name": "Calendartillery Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442017504,
+          "name": "Calendartillery Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442017505,
+          "name": "Calendartillery Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442017506,
+          "name": "Calendartillery Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442017590,
+          "name": "Calendartillery Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442017591,
+          "name": "Calendartillery Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442017599,
+          "name": "Calendartillery Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 176,
+      "pop_file": "mvm_rottenburg_int_german_gears",
+      "name": "German Gears",
+      "map_id": 6,
+      "difficulty": "intermediate",
+      "waves": 7,
+      "has_tank": true,
+      "has_giant": true,
+      "community": true,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442017601,
+          "name": "German Gears Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442017602,
+          "name": "German Gears Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442017603,
+          "name": "German Gears Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442017604,
+          "name": "German Gears Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442017605,
+          "name": "German Gears Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442017606,
+          "name": "German Gears Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442017607,
+          "name": "German Gears Wave 7",
+          "kind": "wave_cleared",
+          "wave": 7
+        },
+        {
+          "id": 7442017690,
+          "name": "German Gears Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442017691,
+          "name": "German Gears Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442017699,
+          "name": "German Gears Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 177,
+      "pop_file": "mvm_rottenburg_adv_assault_and_battery",
+      "name": "Assault and Battery",
+      "map_id": 6,
+      "difficulty": "advanced",
+      "waves": 6,
+      "has_tank": true,
+      "has_giant": true,
+      "community": true,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442017701,
+          "name": "Assault and Battery Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442017702,
+          "name": "Assault and Battery Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442017703,
+          "name": "Assault and Battery Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442017704,
+          "name": "Assault and Battery Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442017705,
+          "name": "Assault and Battery Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442017706,
+          "name": "Assault and Battery Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442017790,
+          "name": "Assault and Battery Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442017791,
+          "name": "Assault and Battery Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442017799,
+          "name": "Assault and Battery Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 178,
+      "pop_file": "mvm_rottenburg_adv_cybernetic_carnage",
+      "name": "Cybernetic Carnage",
+      "map_id": 6,
+      "difficulty": "advanced",
+      "waves": 7,
+      "has_tank": true,
+      "has_giant": true,
+      "community": true,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442017801,
+          "name": "Cybernetic Carnage Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442017802,
+          "name": "Cybernetic Carnage Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442017803,
+          "name": "Cybernetic Carnage Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442017804,
+          "name": "Cybernetic Carnage Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442017805,
+          "name": "Cybernetic Carnage Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442017806,
+          "name": "Cybernetic Carnage Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442017807,
+          "name": "Cybernetic Carnage Wave 7",
+          "kind": "wave_cleared",
+          "wave": 7
+        },
+        {
+          "id": 7442017890,
+          "name": "Cybernetic Carnage Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442017891,
+          "name": "Cybernetic Carnage Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442017899,
+          "name": "Cybernetic Carnage Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 179,
+      "pop_file": "mvm_rottenburg_adv_marathon",
+      "name": "Marathon",
+      "map_id": 6,
+      "difficulty": "advanced",
+      "waves": 5,
+      "has_tank": true,
+      "has_giant": true,
+      "community": true,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442017901,
+          "name": "Marathon Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442017902,
+          "name": "Marathon Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442017903,
+          "name": "Marathon Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442017904,
+          "name": "Marathon Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442017905,
+          "name": "Marathon Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442017990,
+          "name": "Marathon Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442017991,
+          "name": "Marathon Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442017999,
+          "name": "Marathon Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 180,
+      "pop_file": "mvm_rottenburg_adv_munich_mugging",
+      "name": "Munich Mugging",
+      "map_id": 6,
+      "difficulty": "advanced",
+      "waves": 6,
+      "has_tank": true,
+      "has_giant": true,
+      "community": true,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442018001,
+          "name": "Munich Mugging Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442018002,
+          "name": "Munich Mugging Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442018003,
+          "name": "Munich Mugging Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442018004,
+          "name": "Munich Mugging Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442018005,
+          "name": "Munich Mugging Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442018006,
+          "name": "Munich Mugging Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442018090,
+          "name": "Munich Mugging Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442018091,
+          "name": "Munich Mugging Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442018099,
+          "name": "Munich Mugging Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 181,
+      "pop_file": "mvm_rottenburg_adv_township_tussle",
+      "name": "Township Tussle",
+      "map_id": 6,
+      "difficulty": "advanced",
+      "waves": 7,
+      "has_tank": true,
+      "has_giant": true,
+      "community": true,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442018101,
+          "name": "Township Tussle Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442018102,
+          "name": "Township Tussle Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442018103,
+          "name": "Township Tussle Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442018104,
+          "name": "Township Tussle Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442018105,
+          "name": "Township Tussle Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442018106,
+          "name": "Township Tussle Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442018107,
+          "name": "Township Tussle Wave 7",
+          "kind": "wave_cleared",
+          "wave": 7
+        },
+        {
+          "id": 7442018190,
+          "name": "Township Tussle Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442018191,
+          "name": "Township Tussle Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442018199,
+          "name": "Township Tussle Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 182,
+      "pop_file": "mvm_rottenburg_adv_windy_windup",
+      "name": "Windy Windup",
+      "map_id": 6,
+      "difficulty": "advanced",
+      "waves": 6,
+      "has_tank": true,
+      "has_giant": true,
+      "community": true,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442018201,
+          "name": "Windy Windup Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442018202,
+          "name": "Windy Windup Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442018203,
+          "name": "Windy Windup Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442018204,
+          "name": "Windy Windup Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442018205,
+          "name": "Windy Windup Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442018206,
+          "name": "Windy Windup Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442018290,
+          "name": "Windy Windup Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442018291,
+          "name": "Windy Windup Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442018299,
+          "name": "Windy Windup Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 183,
+      "pop_file": "mvm_rottenburg_exp_bx20",
+      "name": "BX20",
+      "map_id": 6,
+      "difficulty": "expert",
+      "waves": 7,
+      "has_tank": true,
+      "has_giant": true,
+      "community": true,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442018301,
+          "name": "BX20 Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442018302,
+          "name": "BX20 Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442018303,
+          "name": "BX20 Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442018304,
+          "name": "BX20 Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442018305,
+          "name": "BX20 Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442018306,
+          "name": "BX20 Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442018307,
+          "name": "BX20 Wave 7",
+          "kind": "wave_cleared",
+          "wave": 7
+        },
+        {
+          "id": 7442018390,
+          "name": "BX20 Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442018391,
+          "name": "BX20 Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442018399,
+          "name": "BX20 Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 184,
+      "pop_file": "mvm_rottenburg_exp_germanium_gearbox",
+      "name": "Germanium Gearbox",
+      "map_id": 6,
+      "difficulty": "expert",
+      "waves": 6,
+      "has_tank": true,
+      "has_giant": true,
+      "community": true,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442018401,
+          "name": "Germanium Gearbox Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442018402,
+          "name": "Germanium Gearbox Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442018403,
+          "name": "Germanium Gearbox Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442018404,
+          "name": "Germanium Gearbox Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442018405,
+          "name": "Germanium Gearbox Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442018406,
+          "name": "Germanium Gearbox Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442018490,
+          "name": "Germanium Gearbox Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442018491,
+          "name": "Germanium Gearbox Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442018499,
+          "name": "Germanium Gearbox Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 185,
+      "pop_file": "mvm_ghost_town_int_cpu_spookies",
+      "name": "CPU Spookies",
+      "map_id": 7,
+      "difficulty": "intermediate",
+      "waves": 6,
+      "has_tank": true,
+      "has_giant": true,
+      "community": true,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442018501,
+          "name": "CPU Spookies Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442018502,
+          "name": "CPU Spookies Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442018503,
+          "name": "CPU Spookies Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442018504,
+          "name": "CPU Spookies Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442018505,
+          "name": "CPU Spookies Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442018506,
+          "name": "CPU Spookies Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442018590,
+          "name": "CPU Spookies Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442018591,
+          "name": "CPU Spookies Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442018599,
+          "name": "CPU Spookies Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 186,
+      "pop_file": "mvm_ghost_town_int_phantasm",
+      "name": "Phantasm",
+      "map_id": 7,
+      "difficulty": "intermediate",
+      "waves": 7,
+      "has_tank": true,
+      "has_giant": true,
+      "community": true,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442018601,
+          "name": "Phantasm Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442018602,
+          "name": "Phantasm Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442018603,
+          "name": "Phantasm Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442018604,
+          "name": "Phantasm Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442018605,
+          "name": "Phantasm Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442018606,
+          "name": "Phantasm Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442018607,
+          "name": "Phantasm Wave 7",
+          "kind": "wave_cleared",
+          "wave": 7
+        },
+        {
+          "id": 7442018690,
+          "name": "Phantasm Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442018691,
+          "name": "Phantasm Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442018699,
+          "name": "Phantasm Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 187,
+      "pop_file": "mvm_ghost_town_adv_horrorsome_happenings",
+      "name": "Horrorsome Happenings",
+      "map_id": 7,
+      "difficulty": "advanced",
+      "waves": 8,
+      "has_tank": true,
+      "has_giant": true,
+      "community": true,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442018701,
+          "name": "Horrorsome Happenings Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442018702,
+          "name": "Horrorsome Happenings Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442018703,
+          "name": "Horrorsome Happenings Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442018704,
+          "name": "Horrorsome Happenings Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442018705,
+          "name": "Horrorsome Happenings Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442018706,
+          "name": "Horrorsome Happenings Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442018707,
+          "name": "Horrorsome Happenings Wave 7",
+          "kind": "wave_cleared",
+          "wave": 7
+        },
+        {
+          "id": 7442018708,
+          "name": "Horrorsome Happenings Wave 8",
+          "kind": "wave_cleared",
+          "wave": 8
+        },
+        {
+          "id": 7442018790,
+          "name": "Horrorsome Happenings Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442018791,
+          "name": "Horrorsome Happenings Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442018799,
+          "name": "Horrorsome Happenings Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 188,
+      "pop_file": "mvm_ghost_town_adv_misfortunes",
+      "name": "Misfortunes",
+      "map_id": 7,
+      "difficulty": "advanced",
+      "waves": 7,
+      "has_tank": true,
+      "has_giant": true,
+      "community": true,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442018801,
+          "name": "Misfortunes Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442018802,
+          "name": "Misfortunes Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442018803,
+          "name": "Misfortunes Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442018804,
+          "name": "Misfortunes Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442018805,
+          "name": "Misfortunes Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442018806,
+          "name": "Misfortunes Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442018807,
+          "name": "Misfortunes Wave 7",
+          "kind": "wave_cleared",
+          "wave": 7
+        },
+        {
+          "id": 7442018890,
+          "name": "Misfortunes Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442018891,
+          "name": "Misfortunes Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442018899,
+          "name": "Misfortunes Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    },
+    {
+      "id": 189,
+      "pop_file": "mvm_ghost_town_exp_deadweight",
+      "name": "Deadweight",
+      "map_id": 7,
+      "difficulty": "expert",
+      "waves": 6,
+      "has_tank": true,
+      "has_giant": true,
+      "community": true,
+      "playable": true,
+      "locations": [
+        {
+          "id": 7442018901,
+          "name": "Deadweight Wave 1",
+          "kind": "wave_cleared",
+          "wave": 1
+        },
+        {
+          "id": 7442018902,
+          "name": "Deadweight Wave 2",
+          "kind": "wave_cleared",
+          "wave": 2
+        },
+        {
+          "id": 7442018903,
+          "name": "Deadweight Wave 3",
+          "kind": "wave_cleared",
+          "wave": 3
+        },
+        {
+          "id": 7442018904,
+          "name": "Deadweight Wave 4",
+          "kind": "wave_cleared",
+          "wave": 4
+        },
+        {
+          "id": 7442018905,
+          "name": "Deadweight Wave 5",
+          "kind": "wave_cleared",
+          "wave": 5
+        },
+        {
+          "id": 7442018906,
+          "name": "Deadweight Wave 6",
+          "kind": "wave_cleared",
+          "wave": 6
+        },
+        {
+          "id": 7442018990,
+          "name": "Deadweight Tank",
+          "kind": "tank_destroyed"
+        },
+        {
+          "id": 7442018991,
+          "name": "Deadweight Giant",
+          "kind": "giant_killed"
+        },
+        {
+          "id": 7442018999,
+          "name": "Deadweight Complete",
+          "kind": "mission_cleared"
+        }
+      ]
+    }
+  ]
+}
