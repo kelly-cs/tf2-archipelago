@@ -25,4 +25,4 @@ export const mercenaryIcons: Readonly<Record<Mercenary, string>> = {
   Spy: 'assets/tf2/classes/Class_spyred.png',
 };
 
-export const grapplingHookIcon = 'assets/tf2/items/Item_icon_Grappling_Hook.png';
+export const grapplingHookIcon = 'assets/tf2/items/eadba6f0e8dc08e8e734a4454705b006.png';

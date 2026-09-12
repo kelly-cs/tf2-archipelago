@@ -1,9 +1,9 @@
 package gamedata
 
 import (
+	"crypto/md5"
 	"encoding/json"
 	"fmt"
-	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -267,5 +267,6 @@ func trackerItemIconPath(weapon string) string {
 		weapon = filename
 	}
 	filename := "Item_icon_" + strings.ReplaceAll(weapon, " ", "_") + ".png"
-	return "assets/tf2/items/" + url.PathEscape(filename)
+	hash := fmt.Sprintf("%x", md5.Sum([]byte(filename)))
+	return "assets/tf2/items/" + hash + ".png"
 }

@@ -44,11 +44,11 @@ export function sampleSource(host: string): TrackerSource {
     7_443_005_008, 7_443_007_001, 7_443_004_001, 7_443_004_001, 7_443_004_001,
   ];
   const weapons = [
-    weapon('Air Strike', ['Soldier'], 'Item_icon_Air_Strike.png'),
-    weapon('Minigun', ['Heavy'], 'Item_icon_Minigun.png'),
-    weapon('Mad Milk', ['Scout'], 'Item_icon_Mad_Milk.png'),
-    weapon("Crusader's Crossbow", ['Medic'], 'Item_icon_Crusader%27s_Crossbow.png'),
-    weapon('Grenade Launcher', ['Demoman'], 'Item_icon_Grenade_Launcher.png'),
+    weapon('Air Strike', ['Soldier'], 'f87faf790afc0d04056479f1566f09f1.png'),
+    weapon('Minigun', ['Heavy'], 'a74b4d01f56a2f93c537b4d5e8b73715.png'),
+    weapon('Mad Milk', ['Scout'], '56b94729a6e2f3fa8f0992d6fc8c1895.png'),
+    weapon("Crusader's Crossbow", ['Medic'], '9c40cbf4c4717626e8e02f0fcfbea19d.png'),
+    weapon('Grenade Launcher', ['Demoman'], 'e62935cf06f65a239f52541c2fd9472f.png'),
   ];
   return {
     mode: 'demo',

@@ -727,7 +727,7 @@ func TestWeaponClassExportCarriesWeaponClasses(t *testing.T) {
 		if !slices.Equal(weapon.Classes, []string{"Soldier"}) {
 			t.Fatalf("Air Strike export classes = %v, want Soldier", weapon.Classes)
 		}
-		if want := "assets/tf2/items/Item_icon_Air_Strike.png"; weapon.Icon != want {
+		if want := "assets/tf2/items/f87faf790afc0d04056479f1566f09f1.png"; weapon.Icon != want {
 			t.Fatalf("Air Strike icon = %q, want %q", weapon.Icon, want)
 		}
 	}
@@ -751,6 +751,10 @@ func TestWeaponClassExportIconsAreBundled(t *testing.T) {
 		if !strings.HasPrefix(icon, "assets/tf2/items/") {
 			t.Errorf("%s icon is not a bundled asset: %q", weapon.Name, weapon.Icon)
 			continue
+		}
+		name := strings.TrimSuffix(filepath.Base(icon), ".png")
+		if len(name) != 32 || strings.Trim(name, "0123456789abcdef") != "" {
+			t.Errorf("%s icon has an embed-unsafe filename: %q", weapon.Name, weapon.Icon)
 		}
 		if _, err := os.Stat(filepath.Join("../launcher/web/src", filepath.FromSlash(icon))); err != nil {
 			t.Errorf("%s icon %q is not bundled: %v", weapon.Name, weapon.Icon, err)
