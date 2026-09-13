@@ -162,6 +162,9 @@ type Settings struct {
 	MvmDifficulty       string `json:"mvm_difficulty"`
 	MvmGoal             string `json:"mvm_goal"`
 	MvmMissionsanityPct int    `json:"mvm_missionsanity_percentage"`
+	MvmMissionModifiers bool   `json:"mvm_mission_modifiers"`
+	MvmModifierMin      int    `json:"mvm_minimum_mission_modifiers"`
+	MvmModifierMax      int    `json:"mvm_maximum_mission_modifiers"`
 	// MvmMedalOnClear locks a medal onto every mission clear and makes the
 	// goal read the medals held. It costs the multiworld one check a mission.
 	MvmMedalOnClear bool `json:"mvm_medal_on_clear"`
@@ -236,6 +239,8 @@ func Defaults() Settings {
 		MvmDifficulty:              "intermediate",
 		MvmGoal:                    "final_boss",
 		MvmMissionsanityPct:        80,
+		MvmModifierMin:             1,
+		MvmModifierMax:             2,
 		MvmExcludedMissions:        defaultExcludedMissions(),
 		MvmCommunityMissions:       true,
 		MvmMissionTicketImportance: "progression",
@@ -357,6 +362,8 @@ func (s Settings) withAppearanceDefaults(data []byte) Settings {
 		WeaponBuffStackChance *int  `json:"mvm_weapon_buff_stack_chance"`
 		TrapPct               *int  `json:"mvm_trap_percentage"`
 		CommunityMissions     *bool `json:"mvm_community_missions"`
+		ModifierMin           *int  `json:"mvm_minimum_mission_modifiers"`
+		ModifierMax           *int  `json:"mvm_maximum_mission_modifiers"`
 	}
 	// A file that parsed once parses again; anything else has already been
 	// reported by the caller.
@@ -385,6 +392,12 @@ func (s Settings) withAppearanceDefaults(data []byte) Settings {
 	   player with every community mission ticked and a run of nothing. */
 	if said.CommunityMissions == nil {
 		s.MvmCommunityMissions = d.MvmCommunityMissions
+	}
+	if said.ModifierMin == nil {
+		s.MvmModifierMin = d.MvmModifierMin
+	}
+	if said.ModifierMax == nil {
+		s.MvmModifierMax = d.MvmModifierMax
 	}
 	return s
 }

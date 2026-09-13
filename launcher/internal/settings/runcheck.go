@@ -21,6 +21,13 @@ func CheckRunSelection(s Settings) (runshape.Preflight, error) {
 	if err != nil {
 		return report, fmt.Errorf("archipelago run selection: %w", err)
 	}
+	if s.MvmMissionModifiers &&
+		(s.MvmModifierMin < 0 || s.MvmModifierMax > 3 || s.MvmModifierMin > s.MvmModifierMax) {
+		return report, fmt.Errorf(
+			"archipelago run selection: mission modifier bounds %d..%d must be ordered and within 0..3",
+			s.MvmModifierMin, s.MvmModifierMax,
+		)
+	}
 	return report, nil
 }
 

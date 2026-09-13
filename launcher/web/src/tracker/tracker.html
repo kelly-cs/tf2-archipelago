@@ -147,6 +147,25 @@
                     <span class="boss-badge">Final boss</span>
                   }
                 </div>
+                @if (mission.modifiers.length) {
+                  <div class="mission-modifiers" aria-label="Mission modifiers">
+                    @for (modifier of mission.modifiers; track modifier.key) {
+                      <span
+                        class="mission-modifier"
+                        [attr.data-kind]="modifier.kind"
+                        [title]="modifier.description"
+                      >
+                        <app-modifier-icon [modifier]="modifier.key" />
+                        <span>
+                          <small>{{ modifier.kind }}</small>
+                          <strong>{{ modifier.name }}</strong>
+                        </span>
+                      </span>
+                    }
+                  </div>
+                } @else {
+                  <div class="mission-modifiers standard-modifiers">Standard issue</div>
+                }
                 <div class="objectives">
                   @for (objective of mission.locations; track objective.id) {
                     @if (objectiveLabel(objective); as label) {

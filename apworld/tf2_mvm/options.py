@@ -75,6 +75,35 @@ class CommunityMissions(Toggle):
     default = 1
 
 
+class MissionModifiers(Toggle):
+    """Give each drawn mission a persistent set of gameplay modifiers.
+
+    The seed chooses modifiers once, per mission. Returning to a mission keeps
+    the same combination, and multiple compatible modifiers may stack.
+    """
+
+    display_name = "Mission Modifiers"
+    default = 0
+
+
+class MinimumMissionModifiers(Range):
+    """Fewest modifiers assigned to each mission when Mission Modifiers is on."""
+
+    display_name = "Minimum Mission Modifiers"
+    range_start = 0
+    range_end = 3
+    default = 1
+
+
+class MaximumMissionModifiers(Range):
+    """Most modifiers assigned to each mission when Mission Modifiers is on."""
+
+    display_name = "Maximum Mission Modifiers"
+    range_start = 0
+    range_end = 3
+    default = 2
+
+
 class ServerMods(OptionSet):
     """Server-side mods the game server loads, by key.
 
@@ -300,6 +329,9 @@ class TF2MvMOptions(PerGameCommonOptions):
     difficulty_pool: DifficultyPool
     excluded_missions: ExcludedMissions
     community_missions: CommunityMissions
+    mission_modifiers: MissionModifiers
+    minimum_mission_modifiers: MinimumMissionModifiers
+    maximum_mission_modifiers: MaximumMissionModifiers
     server_mods: ServerMods
     start_mission: StartMission
     start_class: StartClass
@@ -326,6 +358,9 @@ option_groups = [
             DifficultyPool,
             ExcludedMissions,
             CommunityMissions,
+            MissionModifiers,
+            MinimumMissionModifiers,
+            MaximumMissionModifiers,
             ServerMods,
             StartMission,
             StartClass,

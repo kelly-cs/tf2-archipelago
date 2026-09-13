@@ -557,6 +557,9 @@ func installMods(ctx context.Context, modDir string, logf func(string, ...any)) 
 			return err
 		}
 	}
+	if err := disableSourceModMapRotation(modDir); err != nil {
+		return err
+	}
 
 	logf("installing ripext %s, the plugin and the defender bots", assets.RipextVersion)
 	if err := installRipextAndPlugin(modDir); err != nil {
@@ -564,6 +567,38 @@ func installMods(ctx context.Context, modDir string, logf func(string, ...any)) 
 	}
 	if err := unzipTo(assets.DefenderBotsZip(), modDir); err != nil {
 		return fmt.Errorf("cannot install the defender bots: %w", err)
+	}
+	return nil
+}
+
+// The launcher and the Archipelago plugin own mission selection. SourceMod's
+// stock nextmap plugin sees an MvM map before its population file is selected,
+// mistakes that transition for a finished round, and changes to the first
+// mapcycle entry (normally cp_dustbowl). Keep the shipped plugin available for
+// recovery, but do not let it load on this dedicated server.
+func disableSourceModMapRotation(modDir string) error {
+	pluginDir := filepath.Join(modDir, "addons", "sourcemod", "plugins")
+	active := filepath.Join(pluginDir, "nextmap.smx")
+	if _, err := os.Stat(active); errors.Is(err, os.ErrNotExist) {
+		return nil
+	} else if err != nil {
+		return fmt.Errorf("cannot inspect SourceMod nextmap plugin: %w", err)
+	}
+	disabledDir := filepath.Join(pluginDir, "disabled")
+	if err := os.MkdirAll(disabledDir, 0o755); err != nil {
+		return fmt.Errorf("cannot make SourceMod disabled plugin directory: %w", err)
+	}
+	disabled := filepath.Join(disabledDir, "nextmap.smx")
+	if _, err := os.Stat(disabled); err == nil {
+		if err := os.Remove(active); err != nil {
+			return fmt.Errorf("cannot remove the duplicate active SourceMod nextmap plugin: %w", err)
+		}
+		return nil
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return fmt.Errorf("cannot inspect disabled SourceMod nextmap plugin: %w", err)
+	}
+	if err := os.Rename(active, disabled); err != nil {
+		return fmt.Errorf("cannot disable SourceMod nextmap plugin: %w", err)
 	}
 	return nil
 }

@@ -94,7 +94,28 @@ func playerSpecs(s State, env Env) []Spec {
 			func(s State) bool { return s.Settings.MvmDeathLink },
 			func(s State, v bool) State { s.Settings.MvmDeathLink = v; return s }),
 	}
+	rows = slices.Insert(rows, len(rows)-2, missionModifierSpecs(tab)...)
 	return append(rows, runFolderSpecs(tab)...)
+}
+
+func missionModifierSpecs(tab string) []Spec {
+	return []Spec{
+		toggle("run.mission_modifiers", tab, "Mission modifiers",
+			"Give every mission a seed-generated combination of environmental, robot, player, and wave modifiers. A mission keeps the same combination when replayed.",
+			"modify missions",
+			func(s State) bool { return s.Settings.MvmMissionModifiers },
+			func(s State, v bool) State { s.Settings.MvmMissionModifiers = v; return s }),
+		boundedNumber("run.modifier_min", tab, "Minimum modifiers",
+			"Fewest modifiers assigned to each mission when mission modifiers are enabled.",
+			func(s State, _ Env) (int, int) { return 0, max(s.Settings.MvmModifierMax, 0) },
+			func(s State) int { return s.Settings.MvmModifierMin },
+			func(s State, v int) State { s.Settings.MvmModifierMin = v; return s }),
+		boundedNumber("run.modifier_max", tab, "Maximum modifiers",
+			"Most compatible modifiers that can stack on one mission.",
+			func(s State, _ Env) (int, int) { return max(s.Settings.MvmModifierMin, 0), 3 },
+			func(s State) int { return s.Settings.MvmModifierMax },
+			func(s State, v int) State { s.Settings.MvmModifierMax = v; return s }),
+	}
 }
 
 /*

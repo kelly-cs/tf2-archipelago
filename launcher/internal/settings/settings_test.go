@@ -221,6 +221,26 @@ func TestExplicitZeroRewardPercentagesSurvive(t *testing.T) {
 	}
 }
 
+func TestOldConfigGetsMissionModifierBounds(t *testing.T) {
+	s, err := parse([]byte(`{"mvm_mission_count": 8}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s.MvmModifierMin != 1 || s.MvmModifierMax != 2 {
+		t.Errorf("modifier bounds = %d..%d, want 1..2", s.MvmModifierMin, s.MvmModifierMax)
+	}
+}
+
+func TestExplicitZeroMissionModifierBoundsSurvive(t *testing.T) {
+	s, err := parse([]byte(`{"mvm_minimum_mission_modifiers": 0, "mvm_maximum_mission_modifiers": 0}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s.MvmModifierMin != 0 || s.MvmModifierMax != 0 {
+		t.Errorf("modifier bounds = %d..%d, want 0..0", s.MvmModifierMin, s.MvmModifierMax)
+	}
+}
+
 /*
 	An install folder the launcher could not act on is refused at Save.
 

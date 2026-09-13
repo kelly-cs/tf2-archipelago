@@ -54,6 +54,7 @@ export class MissionTable {
         source: pool.source,
         waves: wavesOf(pool.waves),
         loadout: '',
+        modifiers: [],
         status: pool.compatibility,
         tone: pool.compatibility === 'Ready' ? 'good' : 'warn',
         badge: true,

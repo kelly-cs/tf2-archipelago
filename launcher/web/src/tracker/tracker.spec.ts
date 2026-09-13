@@ -51,6 +51,22 @@ describe('tracker view', () => {
     expect(view.missions.at(-1)?.locked).toBe(true);
   });
 
+  it('shows the persistent modifier combination assigned to each mission', () => {
+    expect(view.missions[0]?.modifiers.map((modifier) => modifier.name)).toEqual([
+      'Low Gravity',
+      'Blast Plating',
+      'Loaded Dice',
+      'Faulty Calibration',
+    ]);
+    expect(view.missions.at(-1)?.modifiers.map((modifier) => modifier.name)).toEqual([
+      'High Gravity',
+      'Miniature Menace',
+      'Weaponized Tanks',
+    ]);
+    expect(view.missions[2]?.modifiers.map((modifier) => modifier.name)).toContain('Bot Surge');
+    expect(view.missions[1]?.modifiers.map((modifier) => modifier.name)).toContain('Loose Footing');
+  });
+
   it('groups compatible buffs by weapon', () => {
     const soldier = buffsFor('Soldier', view.owned, source.buffWeapons);
     expect(soldier).toHaveLength(2);
@@ -133,6 +149,10 @@ describe('tracker screen', () => {
     expect(element.textContent).toContain('RED Team Server');
     expect(element.textContent).toContain('Grappling Hook');
     expect(element.textContent).toContain('All-Class Melee');
+    expect(element.textContent).toContain('Low Gravity');
+    expect(element.textContent).toContain('Blast Plating');
+    expect(element.textContent).toContain('Faulty Calibration');
+    expect(element.textContent).toContain('Loose Footing');
     expect(element.querySelector('.equipment-state')?.textContent?.trim()).toBe('Unlocked');
     expect(element.querySelector('.tier')).not.toBeNull();
     expect(element.querySelector('app-badge span.accent')).not.toBeNull();

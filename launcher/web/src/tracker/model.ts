@@ -36,6 +36,7 @@ export function buildView(source: TrackerSource, player: number): TrackerView {
       locked: slotData.mission_ticket_importance !== 'useful' && !ticket,
       finalBoss: slotData.goal === 'final_boss' && mission.pop_file === slotData.goal_mission,
       progress: mission.locations.filter((location) => checked.has(location.id)).length,
+      modifiers: slotData.mission_modifiers?.[mission.pop_file] ?? [],
     };
   });
   const start = missions.find((mission) => mission.pop_file === slotData.start_mission);

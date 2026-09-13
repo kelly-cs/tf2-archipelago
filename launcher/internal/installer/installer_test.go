@@ -110,6 +110,27 @@ func TestUnzipToRejectsAnEscapingEntry(t *testing.T) {
 	}
 }
 
+func TestDisableSourceModMapRotationIsIdempotent(t *testing.T) {
+	modDir := t.TempDir()
+	active := filepath.Join(modDir, "addons", "sourcemod", "plugins", "nextmap.smx")
+	if err := os.MkdirAll(filepath.Dir(active), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(active, []byte("stock nextmap"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := disableSourceModMapRotation(modDir); err != nil {
+		t.Fatal(err)
+	}
+	disabled := filepath.Join(filepath.Dir(active), "disabled", "nextmap.smx")
+	if body, err := os.ReadFile(disabled); err != nil || string(body) != "stock nextmap" {
+		t.Fatalf("disabled nextmap = %q, %v", body, err)
+	}
+	if err := disableSourceModMapRotation(modDir); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestInstallCommunityZipStripsTFDownload(t *testing.T) {
 	root := t.TempDir()
 	archive := filepath.Join(root, "archive-assets.zip")

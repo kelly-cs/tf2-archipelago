@@ -219,7 +219,10 @@ func srcdsArgs(s settings.Settings, exeName string) []string {
 	writes debug.log on a crash when this is set, with a stack, and that file
 	does not depend on Breakpad having started. It costs nothing on a server
 	that never crashes. */
-	flags := []string{"-game", "tf", "-usercon", "-console", "-condebug", "-debug"}
+	flags := []string{
+		"-game", "tf", "-usercon", "-console", "-condebug", "-debug",
+		"-maxplayers", strconv.Itoa(s.SrcdsMaxPlayers),
+	}
 	// -ip 0.0.0.0 binds every interface. Without it srcds binds to whatever
 	// its hostname resolves to, and on Debian that is 127.0.1.1: the game
 	// answers on every address, the rcon port answers only on that one, and
@@ -269,7 +272,6 @@ func srcdsArgs(s settings.Settings, exeName string) []string {
 	}
 
 	commands := []string{
-		"+maxplayers", strconv.Itoa(s.SrcdsMaxPlayers),
 		"+map", StartMap(s),
 		"+hostport", strconv.Itoa(s.SrcdsPort),
 		"+rcon_password", s.SrcdsRconPw,

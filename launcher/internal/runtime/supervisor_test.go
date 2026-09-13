@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/m-this/tf2-archipelago/bridge/config"
+	"github.com/m-this/tf2-archipelago/fakeroom"
 	"github.com/m-this/tf2-archipelago/gamedata"
 	"github.com/m-this/tf2-archipelago/launcher/internal/settings"
 	"github.com/m-this/tf2-archipelago/launcher/internal/tailscalefastdl"
@@ -48,6 +49,25 @@ func TestTestModeLoadsEverySelectedMissionRegardlessOfSeedCount(t *testing.T) {
 	want := []string{selected[1], selected[0], selected[2]}
 	if !slices.Equal(got, want) {
 		t.Fatalf("test-mode missions = %v, want %v", got, want)
+	}
+}
+
+func TestTestModeDrawsConfiguredMissionModifiers(t *testing.T) {
+	missions := []string{"mvm_decoy", "mvm_coaltown_intermediate"}
+	got := fakeroom.DrawMissionModifiers(missions, 3, 3)
+	for _, mission := range missions {
+		if len(got[mission]) != 3 {
+			t.Fatalf("%s modifiers = %d, want 3", mission, len(got[mission]))
+		}
+		gravity := 0
+		for _, modifier := range got[mission] {
+			if modifier.Key == "low_gravity" || modifier.Key == "high_gravity" {
+				gravity++
+			}
+		}
+		if gravity > 1 {
+			t.Fatalf("%s received incompatible gravity modifiers: %+v", mission, got[mission])
+		}
 	}
 }
 

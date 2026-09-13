@@ -39,14 +39,15 @@ type Health struct {
 
 // Mission is one mission of the run, as /missions lists them.
 type Mission struct {
-	PopFile  string `json:"popfile"`
-	Name     string `json:"name"`
-	Map      string `json:"map"`
-	Waves    int    `json:"waves"`
-	Source   string `json:"source"`
-	Loadout  string `json:"loadout"`
-	Unlocked bool   `json:"unlocked"`
-	Cleared  bool   `json:"cleared"`
+	PopFile   string     `json:"popfile"`
+	Name      string     `json:"name"`
+	Map       string     `json:"map"`
+	Waves     int        `json:"waves"`
+	Source    string     `json:"source"`
+	Loadout   string     `json:"loadout"`
+	Unlocked  bool       `json:"unlocked"`
+	Cleared   bool       `json:"cleared"`
+	Modifiers []Modifier `json:"modifiers"`
 
 	// Played is this server having cleared it, where Cleared is only the room
 	// holding the check. Another world's !collect sends every check it still
@@ -57,6 +58,14 @@ type Mission struct {
 	// Resume button offers to go back to. Zero for a mission nobody has won a
 	// wave in and for one the team has beaten.
 	WaveReached int `json:"wave_reached"`
+}
+
+// Modifier is one persistent seed-generated rule attached to a mission.
+type Modifier struct {
+	Key         string `json:"key"`
+	Name        string `json:"name"`
+	Kind        string `json:"kind"`
+	Description string `json:"description"`
 }
 
 /*

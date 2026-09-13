@@ -52,6 +52,7 @@ export class MissionList {
         source: mission.source,
         waves: mission.waves,
         loadout: mission.loadout,
+        modifiers: mission.modifiers,
         status: state,
         tone,
         badge: false,

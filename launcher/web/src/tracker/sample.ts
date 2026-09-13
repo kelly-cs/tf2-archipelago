@@ -101,9 +101,57 @@ export function sampleSource(host: string): TrackerSource {
       goal: 'final_boss',
       goal_mission: catalog[3].pop_file,
       mission_ticket_importance: 'progression',
+      mission_modifiers: {
+        [catalog[0].pop_file]: [
+          modifier('low_gravity', 'Low Gravity', 'environment', 'Gravity is halved.'),
+          modifier('blast_plating', 'Blast Plating', 'robots', '50% blast resistance.'),
+          modifier('loaded_dice', 'Loaded Dice', 'robots', '33% base random-crit chance.'),
+          modifier(
+            'faulty_calibration',
+            'Faulty Calibration',
+            'players',
+            'Player weapons suffer severe spread and shot deviation.',
+          ),
+        ],
+        [catalog[1].pop_file]: [
+          modifier('thermal_shielding', 'Thermal Shielding', 'robots', '50% fire resistance.'),
+          modifier('fragile_mercenaries', 'Fragile Mercenaries', 'players', '+25% damage taken.'),
+          modifier(
+            'loose_footing',
+            'Loose Footing',
+            'environment',
+            'Icy ground momentum with triple damage, explosion, and airblast knockback.',
+          ),
+          modifier('weaponized_tanks', 'Weaponized Tanks', 'robots', 'Level 2 tank sentries.'),
+        ],
+        [catalog[2].pop_file]: [
+          modifier('ballistic_plating', 'Ballistic Plating', 'robots', '50% bullet resistance.'),
+          modifier('overclocked_servos', 'Overclocked Servos', 'robots', '+15% robot speed.'),
+          modifier(
+            'bot_surge',
+            'Bot Surge',
+            'waves',
+            'Robot groups immediately refill open enemy slots, keeping the wave under constant pressure.',
+          ),
+        ],
+        [catalog[3].pop_file]: [
+          modifier('high_gravity', 'High Gravity', 'environment', 'Gravity is increased by 50%.'),
+          modifier(
+            'miniature_menace',
+            'Miniature Menace',
+            'robots',
+            'Robots and tanks are 50% size with 33% less health and 25% more speed.',
+          ),
+          modifier('weaponized_tanks', 'Weaponized Tanks', 'robots', 'Level 2 tank sentries.'),
+        ],
+      },
       tracker: { starting_items: [] },
     },
   };
+}
+
+function modifier(key: string, name: string, kind: string, description: string) {
+  return { key, name, kind, description };
 }
 
 function mission(id: number, pop: string, name: string, difficulty: string, waves: number) {

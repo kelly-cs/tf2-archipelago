@@ -41,6 +41,30 @@ class TestDefaults(TF2MvMTestBase):
         repeated = {name for name in buffs if buffs.count(name) > 1}
         self.assertLessEqual(repeated, data.STACKABLE_WEAPON_BUFF_NAMES)
 
+    def test_mission_modifiers_are_off_by_default(self) -> None:
+        self.assertEqual({}, self.world.mission_modifiers)
+        self.assertEqual({}, self.world.fill_slot_data()["mission_modifiers"])
+
+
+class TestMissionModifiers(TF2MvMTestBase):
+    options: ClassVar[dict[str, Any]] = {
+        "mission_modifiers": True,
+        "minimum_mission_modifiers": 3,
+        "maximum_mission_modifiers": 3,
+    }
+
+    def test_every_mission_gets_the_requested_persistent_assignment(self) -> None:
+        assignments = self.world.mission_modifiers
+        self.assertEqual({mission.pop_file for mission in self.world.missions}, set(assignments))
+        self.assertTrue(all(len(modifiers) == 3 for modifiers in assignments.values()))
+        self.assertEqual(assignments, self.world.fill_slot_data()["mission_modifiers"])
+
+    def test_gravity_variants_never_stack(self) -> None:
+        gravity = {"low_gravity", "high_gravity"}
+        for modifiers in self.world.mission_modifiers.values():
+            keys = {modifier["key"] for modifier in modifiers}
+            self.assertLessEqual(len(keys & gravity), 1)
+
 
 class TestNoWeaponBuffs(TF2MvMTestBase):
     options: ClassVar[dict[str, Any]] = {

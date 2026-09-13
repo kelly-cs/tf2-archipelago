@@ -50,6 +50,17 @@ func TestTheCeilingAndThePreflightCountTheSamePool(t *testing.T) {
 	}
 }
 
+func TestCheckRunSelectionRejectsInvalidModifierBounds(t *testing.T) {
+	for _, bounds := range [][2]int{{-1, 2}, {1, 4}, {3, 2}} {
+		s := Defaults()
+		s.MvmMissionModifiers = true
+		s.MvmModifierMin, s.MvmModifierMax = bounds[0], bounds[1]
+		if _, err := CheckRunSelection(s); err == nil || !strings.Contains(err.Error(), "modifier bounds") {
+			t.Errorf("modifier bounds %v error = %v", bounds, err)
+		}
+	}
+}
+
 // Turning the community missions back on is what widens the pool, so the
 // ceiling has to move with the exclusion list rather than ignore it.
 func TestKeepingACommunityMissionRaisesTheCeiling(t *testing.T) {

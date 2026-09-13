@@ -30,8 +30,9 @@
 #include "tf2_archipelago/deathlink.inc"
 #include "tf2_archipelago/traps.inc"
 #include "tf2_archipelago/bridge.inc"
-#include "tf2_archipelago/missions.inc"
 #include "tf2_archipelago/bots.inc"
+#include "tf2_archipelago/mission_modifiers.inc"
+#include "tf2_archipelago/missions.inc"
 #include "tf2_archipelago/botswitch.inc"
 #include "tf2_archipelago/downloads.inc"
 
@@ -113,6 +114,7 @@ public void OnPluginStart()
     Bridge_Init();
     Missions_Init();
     Bots_Init();
+    MissionModifiers_Init();
 
     g_HaveBeginWave = HookEventEx("mvm_begin_wave", Event_BeginWave);
     g_HaveWaveComplete = HookEventEx("mvm_wave_complete", Event_WaveComplete);
@@ -147,6 +149,12 @@ public void OnPluginStart()
         "Ask the bridge for the unlock set again");
     RegAdminCmd("sm_ap_resume", Command_Resume, ADMFLAG_CHANGEMAP,
         "sm_ap_resume <popfile> [wave] - load a mission and start it at a wave");
+    RegConsoleCmd("sm_ap_modifiers", Command_MissionModifiers,
+        "Show the modifiers active on this mission");
+    RegAdminCmd("sm_ap_modifier", Command_MissionModifierDebug, ADMFLAG_ROOT,
+        "Change modifiers live: sm_ap_modifier <on|off|toggle> <key|all>, clear, or seed");
+    RegConsoleCmd("sm_ap_botcount", Command_BotCountHud,
+        "Toggle the live enemy robot counter: sm_ap_botcount [on|off]");
     RegAdminCmd("sm_ap_mission", Command_Mission, ADMFLAG_CHANGEMAP,
         "List the run's missions, or switch to one: sm_ap_mission [number|popfile]");
     RegConsoleCmd("sm_ap_buffs", Command_WeaponBuffs,
@@ -197,12 +205,14 @@ public void OnPluginStart()
 
 public void OnPluginEnd()
 {
+    MissionModifiers_Shutdown();
     WeaponBuffs_Shutdown();
 }
 
 public void OnClientPutInServer(int client)
 {
     WeaponBuffs_HookClient(client);
+    MissionModifiers_HookClient(client);
     // Client indexes are reused, so the previous occupant's cooldown is not
     // this player's.
     Bridge_ClearCooldown(client);
@@ -346,6 +356,7 @@ public void OnMapStart()
     g_MissionReported = false;
     g_TankReported = false;
     g_GiantReported = false;
+    MissionModifiers_OnMapStart();
     Downloads_OnMapStart();
     Bots_OnMapStart();
     MvM_OnMapStart();
@@ -375,6 +386,8 @@ public void OnConfigsExecuted()
 // The only source of the wave number: mvm_wave_complete does not carry one.
 public void Event_BeginWave(Event event, const char[] name, bool dontBroadcast)
 {
+    Bots_OnWaveBegin();
+    MissionModifiers_AnnounceWave();
     g_CurrentWave = event.GetInt("wave_index") + 1;
     g_MaxWaves = event.GetInt("max_waves");
     g_PolledWave = g_CurrentWave;
@@ -398,6 +411,7 @@ public void Event_BeginWave(Event event, const char[] name, bool dontBroadcast)
 
 public void Event_WaveComplete(Event event, const char[] name, bool dontBroadcast)
 {
+    Bots_OnWaveEnd();
     ReportWaveCleared(g_CurrentWave > 0 ? g_CurrentWave : MvM_WaveFromGame());
 }
 
@@ -411,11 +425,13 @@ public void Event_MissionComplete(Event event, const char[] name, bool dontBroad
 // mission's check is in.
 public void Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 {
+    int client = GetClientOfUserId(event.GetInt("userid"));
+    MissionModifiers_OnPlayerDeath(client);
     if (g_GiantReported || !MvM_IsActive())
     {
         return;
     }
-    if (!MvM_IsGiant(GetClientOfUserId(event.GetInt("userid"))))
+    if (!MvM_IsGiant(client))
     {
         return;
     }
@@ -459,6 +475,7 @@ public void Event_TankDestroyed(Event event, const char[] name, bool dontBroadca
 // sets it, a cleared wave and a map change clear it.
 public void Event_WaveFailed(Event event, const char[] name, bool dontBroadcast)
 {
+    Bots_OnWaveEnd();
     if (g_CurrentWave < 1)
     {
         AP_Debug("The game reported a lost wave with no wave running. The plugin ignores it.");
@@ -563,11 +580,13 @@ public void Event_InventoryApplied(Event event, const char[] name, bool dontBroa
         Unlocks_EnforceSlots(client);
     }
     WeaponBuffs_Apply(client);
+    MissionModifiers_OnInventoryApplied(client);
 }
 
 public void Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast)
 {
     int client = GetClientOfUserId(event.GetInt("userid"));
+    MissionModifiers_OnPlayerSpawn(client);
     if (MvM_IsPlayer(client))
     {
         Unlocks_EnforceClass(client);
@@ -581,6 +600,7 @@ public void Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast
 // was has to be recorded before it goes.
 public void OnClientDisconnect(int client)
 {
+    MissionModifiers_OnPlayerDeath(client);
     WeaponBuffs_Disconnect(client);
     Bots_OnClientLeaving(client);
 }

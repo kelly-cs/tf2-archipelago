@@ -36,6 +36,7 @@ type Room struct {
 	listener  net.Listener
 	log       func(string)
 	deathLink bool
+	modifiers map[string][]MissionModifier
 
 	// start is what the run holds before it clears anything. A real generator
 	// precollects it, so the plugin can enforce from the first wave; a room
@@ -94,6 +95,10 @@ type Options struct {
 	// DeathLink makes the made-up seed ask for it, so the deaths this room
 	// invents take the team down the way a real multiworld's would.
 	DeathLink bool
+
+	// MissionModifiers are the generated assignments test mode wants the
+	// bridge and plugin to exercise. Nil means the feature is disabled.
+	MissionModifiers map[string][]MissionModifier
 }
 
 // Start serves a fake room on loopback and returns it with the address the
@@ -123,6 +128,7 @@ func Start(ctx context.Context, options Options) (*Room, string, error) {
 		start:     start,
 		checked:   make(map[int64]bool),
 		deathLink: options.DeathLink,
+		modifiers: options.MissionModifiers,
 		seed:      fmt.Sprintf("test-mode-%x", rand.Uint64()),
 	}
 	goal := options.Goal
@@ -213,6 +219,7 @@ func (r *Room) handle(ctx context.Context, conn *websocket.Conn, cmd string,
 					"goal_mission":         missions[len(missions)-1],
 					"missionsanity_target": len(missions),
 					"death_link":           r.deathLink,
+					"mission_modifiers":    r.modifiers,
 				},
 			},
 			// The starting inventory, the way a generated seed precollects

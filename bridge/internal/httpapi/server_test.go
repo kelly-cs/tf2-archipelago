@@ -177,6 +177,24 @@ func TestMissionsNameTheMapAndWhatIsUnlocked(t *testing.T) {
 	}
 }
 
+func TestMissionsCarryTheirSeedModifiers(t *testing.T) {
+	modifier := apclient.MissionModifier{
+		Key: "blast_plating", Name: "Blast Plating", Kind: "robots",
+		Description: "Enemy robots have 50% blast resistance.",
+	}
+	missions, unknown := missionsFor(
+		[]string{"mvm_coaltown_intermediate"}, nil, nil, nil, false,
+		nil,
+		map[string][]apclient.MissionModifier{"mvm_coaltown_intermediate": {modifier}},
+	)
+	if len(unknown) != 0 || len(missions) != 1 {
+		t.Fatalf("missions = %+v, unknown = %v", missions, unknown)
+	}
+	if got := missions[0].Modifiers; len(got) != 1 || got[0] != modifier {
+		t.Errorf("modifiers = %+v, want %+v", got, modifier)
+	}
+}
+
 func TestMissionsSkipWhatTheTablesDoNotKnow(t *testing.T) {
 	missions, unknown := missionsFor([]string{"mvm_potato", "mvm_coaltown"}, nil, nil, nil, false, nil)
 	if len(missions) != 1 || missions[0].PopFile != "mvm_coaltown" {

@@ -17,6 +17,9 @@ func TestPlayerYAMLHoldsTheRunShape(t *testing.T) {
 	s.MvmGoal = "missionsanity"
 	s.MvmMissionsanityPct = 60
 	s.MvmDeathLink = true
+	s.MvmMissionModifiers = true
+	s.MvmModifierMin = 2
+	s.MvmModifierMax = 3
 
 	got := PlayerYAML(s, "0.6.7")
 	for _, want := range []string{
@@ -28,6 +31,9 @@ func TestPlayerYAMLHoldsTheRunShape(t *testing.T) {
 		"  goal: missionsanity",
 		"  missionsanity_percentage: 60",
 		"  death_link: true",
+		"  mission_modifiers: true",
+		"  minimum_mission_modifiers: 2",
+		"  maximum_mission_modifiers: 3",
 		"  mission_ticket_importance: progression",
 		"  class_unlock_importance: progression",
 		"  weapon_slot_importance: progression",

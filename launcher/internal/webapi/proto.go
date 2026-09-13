@@ -75,11 +75,19 @@ func lineProto(line apruntime.Line) *launcherv1.LogLine {
 func sessionProto(s session.Snapshot) *launcherv1.Session {
 	missions := make([]*launcherv1.SessionMission, 0, len(s.Missions))
 	for _, mission := range s.Missions {
+		modifiers := make([]*launcherv1.MissionModifier, 0, len(mission.Modifiers))
+		for _, modifier := range mission.Modifiers {
+			modifiers = append(modifiers, &launcherv1.MissionModifier{
+				Key: modifier.Key, Name: modifier.Name, Kind: modifier.Kind,
+				Description: modifier.Description,
+			})
+		}
 		missions = append(missions, &launcherv1.SessionMission{
 			PopFile: mission.PopFile, Name: mission.Name, Map: mission.Map,
 			Waves: int32(mission.Waves), Source: mission.Source, Loadout: mission.Loadout,
 			Unlocked: mission.Unlocked, Cleared: mission.Cleared, Played: mission.Played,
 			Tier: tierOf(mission.PopFile), WaveReached: int32(mission.WaveReached),
+			Modifiers: modifiers,
 		})
 	}
 	unlocks := make([]*launcherv1.SessionUnlock, 0, len(s.Unlocks))

@@ -4,6 +4,72 @@
 	{
 		"Signatures"
 		{
+			"CPopulationManager::Parse"
+			{
+				"library"	"server"
+				"linux"		"@_ZN18CPopulationManager5ParseEv"
+				"linux64"	"@_ZN18CPopulationManager5ParseEv"
+			}
+			"CWaveSpawnPopulator::Parse"
+			{
+				"library"	"server"
+				"linux"		"@_ZN19CWaveSpawnPopulator5ParseEP9KeyValues"
+				"linux64"	"@_ZN19CWaveSpawnPopulator5ParseEP9KeyValues"
+			}
+			"CWave::Parse"
+			{
+				"library"	"server"
+				"linux"		"@_ZN5CWave5ParseEP9KeyValues"
+				"linux64"	"@_ZN5CWave5ParseEP9KeyValues"
+			}
+			"KeyValues::MakeCopy"
+			{
+				"library"	"server"
+				"linux"		"@_ZNK9KeyValues8MakeCopyEv"
+				"linux64"	"@_ZNK9KeyValues8MakeCopyEv"
+			}
+			"KeyValues::AddSubKey"
+			{
+				"library"	"server"
+				"linux"		"@_ZN9KeyValues9AddSubKeyEPS_"
+				"linux64"	"@_ZN9KeyValues9AddSubKeyEPS_"
+			}
+			"KeyValues::SetInt"
+			{
+				"library"	"server"
+				"linux"		"@_ZN9KeyValues6SetIntEPKci"
+				"linux64"	"@_ZN9KeyValues6SetIntEPKci"
+			}
+			"KeyValues::SetFloat"
+			{
+				"library"	"server"
+				"linux"		"@_ZN9KeyValues8SetFloatEPKcf"
+				"linux64"	"@_ZN9KeyValues8SetFloatEPKcf"
+			}
+			"KeyValues::SetString"
+			{
+				"library"	"server"
+				"linux"		"@_ZN9KeyValues9SetStringEPKcS1_"
+				"linux64"	"@_ZN9KeyValues9SetStringEPKcS1_"
+			}
+			"KeyValues::FindKey"
+			{
+				"library"	"server"
+				"linux"		"@_ZN9KeyValues7FindKeyEPKcb"
+				"linux64"	"@_ZN9KeyValues7FindKeyEPKcb"
+			}
+			"KeyValues::RemoveSubKey"
+			{
+				"library"	"server"
+				"linux"		"@_ZN9KeyValues12RemoveSubKeyEPS_"
+				"linux64"	"@_ZN9KeyValues12RemoveSubKeyEPS_"
+			}
+			"KeyValues::deleteThis"
+			{
+				"library"	"server"
+				"linux"		"@_ZN9KeyValues10deleteThisEv"
+				"linux64"	"@_ZN9KeyValues10deleteThisEv"
+			}
 			"CTFPlayer::CanBuild"
 			{
 				"library"	"server"
@@ -11,6 +77,24 @@
 				"linux64"	"@_ZN9CTFPlayer8CanBuildEii"
 				"windows"	"\x55\x8B\xEC\x83\xEC\x0C\x53\x8B\x5D\x08\x57\x8B\xF9\x83\xFB\x03"
 				"windows64"	"\x40\x56\x57\x41\x54\x48\x83\xEC\x40\x45\x8B\xE0"
+			}
+			"FX_FireBullets"
+			{
+				"library"	"server"
+				"linux"		"@_Z14FX_FireBulletsP13CTFWeaponBaseiRK6VectorRK6QAngleiiiffb"
+				"linux64"	"@_Z14FX_FireBulletsP13CTFWeaponBaseiRK6VectorRK6QAngleiiiffb"
+			}
+			"CTFPlayer::MaybeDrawRailgunBeam"
+			{
+				"library"	"server"
+				"linux"		"@_ZN9CTFPlayer20MaybeDrawRailgunBeamEP16IRecipientFilterP13CTFWeaponBaseRK6VectorS6_"
+				"linux64"	"@_ZN9CTFPlayer20MaybeDrawRailgunBeamEP16IRecipientFilterP13CTFWeaponBaseRK6VectorS6_"
+			}
+			"CRecipientFilter::AddRecipient"
+			{
+				"library"	"server"
+				"linux"		"@_ZN16CRecipientFilter12AddRecipientEPK11CBasePlayer"
+				"linux64"	"@_ZN16CRecipientFilter12AddRecipientEPK11CBasePlayer"
 			}
 			"CTFProjectile_Arrow::Create"
 			{
@@ -50,6 +134,41 @@
 		}
 		"Offsets"
 		{
+			"CWaveSpawnPopulator::m_maxActive"
+			{
+				"linux"		"60"
+				"linux64"	"92"
+			}
+			"CWaveSpawnPopulator::m_spawnCount"
+			{
+				"linux"		"64"
+				"linux64"	"96"
+			}
+			"CWaveSpawnPopulator::m_bHasTFBotSpawner"
+			{
+				"linux"		"57"
+				"linux64"	"89"
+			}
+			"CWaveSpawnPopulator::m_waitBeforeStarting"
+			{
+				"linux"		"68"
+				"linux64"	"100"
+			}
+			"CWaveSpawnPopulator::m_waitBetweenSpawns"
+			{
+				"linux"		"72"
+				"linux64"	"104"
+			}
+			"CWaveSpawnPopulator::m_bSupportWave"
+			{
+				"linux"		"1228"
+				"linux64"	"1320"
+			}
+			"CWaveSpawnPopulator::m_bLimitedSupport"
+			{
+				"linux"		"1229"
+				"linux64"	"1321"
+			}
 			"CBaseProjectile::SetLauncher"
 			{
 				"windows"	"234"
@@ -58,6 +177,41 @@
 		}
 		"Functions"
 		{
+			"CPopulationManager::Parse"
+			{
+				"signature"	"CPopulationManager::Parse"
+				"callconv"	"thiscall"
+				"return"	"bool"
+				"this"		"address"
+			}
+			"CWaveSpawnPopulator::Parse"
+			{
+				"signature"	"CWaveSpawnPopulator::Parse"
+				"callconv"	"thiscall"
+				"return"	"bool"
+				"this"		"address"
+				"arguments"
+				{
+					"data"
+					{
+						"type"	"objectptr"
+					}
+				}
+			}
+			"CWave::Parse"
+			{
+				"signature"	"CWave::Parse"
+				"callconv"	"thiscall"
+				"return"	"bool"
+				"this"		"address"
+				"arguments"
+				{
+					"data"
+					{
+						"type"	"objectptr"
+					}
+				}
+			}
 			"CTFPlayer::CanBuild"
 			{
 				"signature"	"CTFPlayer::CanBuild"
@@ -73,6 +227,81 @@
 					"objectMode"
 					{
 						"type"	"int"
+					}
+				}
+			}
+			"FX_FireBullets"
+			{
+				"signature"	"FX_FireBullets"
+				"callconv"	"cdecl"
+				"return"	"void"
+				"arguments"
+				{
+					"weapon"
+					{
+						"type"	"cbaseentity"
+					}
+					"player"
+					{
+						"type"	"int"
+					}
+					"origin"
+					{
+						"type"	"vectorptr"
+					}
+					"angles"
+					{
+						"type"	"vectorptr"
+					}
+					"weaponID"
+					{
+						"type"	"int"
+					}
+					"mode"
+					{
+						"type"	"int"
+					}
+					"seed"
+					{
+						"type"	"int"
+					}
+					"spread"
+					{
+						"type"	"float"
+					}
+					"damage"
+					{
+						"type"	"float"
+					}
+					"critical"
+					{
+						"type"	"bool"
+					}
+				}
+			}
+			"CTFPlayer::MaybeDrawRailgunBeam"
+			{
+				"signature"	"CTFPlayer::MaybeDrawRailgunBeam"
+				"callconv"	"thiscall"
+				"return"	"void"
+				"this"		"entity"
+				"arguments"
+				{
+					"filter"
+					{
+						"type"	"objectptr"
+					}
+					"weapon"
+					{
+						"type"	"cbaseentity"
+					}
+					"start"
+					{
+						"type"	"vectorptr"
+					}
+					"end"
+					{
+						"type"	"vectorptr"
 					}
 				}
 			}
