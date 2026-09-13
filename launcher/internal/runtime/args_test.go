@@ -123,6 +123,19 @@ func TestFlagsComeBeforeCommands(t *testing.T) {
 	}
 }
 
+func TestSrcdsUsesTheSupportedPlayerLimit(t *testing.T) {
+	args := srcdsArgs(baseSettings(), "srcds_run")
+	if slices.Contains(args, "-unrestricted_maxplayers") {
+		t.Error("srcds starts with unsupported unrestricted slots, which reset to 101 on changelevel")
+	}
+	if got := value(args, "-maxplayers"); got != "32" {
+		t.Errorf("-maxplayers = %q, want 32", got)
+	}
+	if slices.Contains(args, "+maxplayers") {
+		t.Error("srcds uses +maxplayers, which resets to 101 on changelevel with unrestricted slots")
+	}
+}
+
 // Both platforms need -console, for reasons that look different and are not.
 // srcds.exe without it waits for a click on Start. srcds_linux without it
 // brings up an interactive text console, and the launcher gives it no terminal

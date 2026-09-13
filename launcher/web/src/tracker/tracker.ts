@@ -16,6 +16,7 @@ import { Badge } from '@app/ui/badge';
 import { Button } from '@app/ui/button';
 import { EmptyState } from '@app/ui/empty-state';
 import { Logo } from '@app/ui/logo';
+import { ModifierIcon } from '@app/ui/modifier-icon';
 import { Panel } from '@app/ui/panel';
 import { grapplingHookIcon, mercenaryIcons } from '@app/ui/tf2-art';
 import { buffsFor, buildView } from './model';
@@ -25,7 +26,7 @@ import { ClassView, TrackerSource } from './types';
 @Component({
   selector: 'app-tracker',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Badge, Button, EmptyState, Logo, Panel],
+  imports: [Badge, Button, EmptyState, Logo, ModifierIcon, Panel],
   templateUrl: './tracker.html',
 })
 export class Tracker implements OnDestroy {

@@ -41,6 +41,111 @@ IMPORTANCE_OPTION_BY_KIND = {
     "weapon_buff": "weapon_buff_importance",
 }
 
+MISSION_MODIFIERS = (
+    {
+        "key": "low_gravity",
+        "name": "Low Gravity",
+        "kind": "environment",
+        "description": "World gravity is halved, giving everyone much more airtime.",
+        "exclusive_group": "gravity",
+    },
+    {
+        "key": "high_gravity",
+        "name": "High Gravity",
+        "kind": "environment",
+        "description": "Gravity is increased by 50%, making airtime hard-earned.",
+        "exclusive_group": "gravity",
+    },
+    {
+        "key": "blast_plating",
+        "name": "Blast Plating",
+        "kind": "robots",
+        "description": "Enemy robots have 50% blast resistance.",
+        "exclusive_group": "",
+    },
+    {
+        "key": "thermal_shielding",
+        "name": "Thermal Shielding",
+        "kind": "robots",
+        "description": "Enemy robots have 50% fire resistance.",
+        "exclusive_group": "",
+    },
+    {
+        "key": "ballistic_plating",
+        "name": "Ballistic Plating",
+        "kind": "robots",
+        "description": "Enemy robots have 50% bullet resistance.",
+        "exclusive_group": "",
+    },
+    {
+        "key": "fragile_mercenaries",
+        "name": "Fragile Mercenaries",
+        "kind": "players",
+        "description": "Human defenders take 25% more damage.",
+        "exclusive_group": "",
+    },
+    {
+        "key": "overclocked_servos",
+        "name": "Overclocked Servos",
+        "kind": "robots",
+        "description": "Enemy robots move 15% faster.",
+        "exclusive_group": "",
+    },
+    {
+        "key": "loaded_dice",
+        "name": "Loaded Dice",
+        "kind": "robots",
+        "description": "Every enemy robot weapon can randomly crit, with a 33% base chance.",
+        "exclusive_group": "",
+    },
+    {
+        "key": "weaponized_tanks",
+        "name": "Weaponized Tanks",
+        "kind": "robots",
+        "description": (
+            "Each tank carries an invulnerable level 2 sentry until the tank is destroyed."
+        ),
+        "exclusive_group": "",
+    },
+    {
+        "key": "miniature_menace",
+        "name": "Miniature Menace",
+        "kind": "robots",
+        "description": "Robots and tanks are 50% size with 33% less health and 25% more speed.",
+        "exclusive_group": "",
+    },
+    {
+        "key": "bot_surge",
+        "name": "Bot Surge",
+        "kind": "waves",
+        "description": (
+            "Robot groups immediately refill open enemy slots, keeping the wave under "
+            "constant pressure."
+        ),
+        "exclusive_group": "",
+    },
+    {
+        "key": "faulty_calibration",
+        "name": "Faulty Calibration",
+        "kind": "players",
+        "description": (
+            "Player weapons suffer severe bullet and flame spread, while projectiles "
+            "and precision shots deviate from the crosshair."
+        ),
+        "exclusive_group": "",
+    },
+    {
+        "key": "loose_footing",
+        "name": "Loose Footing",
+        "kind": "environment",
+        "description": (
+            "Ground friction and acceleration are heavily reduced, giving everyone icy "
+            "momentum, while all knockback is tripled."
+        ),
+        "exclusive_group": "",
+    },
+)
+
 
 class TF2MvMItem(Item):
     game = data.GAME
@@ -97,6 +202,7 @@ class TF2MvMWorld(World):
     goal_mission: data.Mission
     start_items: list[str]
     missionsanity_target: int
+    mission_modifiers: dict[str, list[dict[str, str]]]
 
     def generate_early(self) -> None:
         available = self._available_missions()
@@ -140,6 +246,7 @@ class TF2MvMWorld(World):
         self.missions = sorted(drawn, key=self._tier_order)
         self.start_mission = asked or self.missions[0]
         self.goal_mission = self.missions[-1]
+        self.mission_modifiers = self._draw_mission_modifiers()
         # Clearing the start mission would win on the spot, which is not a run.
         if (
             self.options.goal.current_key == "final_boss"
@@ -175,6 +282,43 @@ class TF2MvMWorld(World):
             f"{self.options.difficulty_pool.current_key} pool does not hold, or "
             f"excluded_missions keeps out."
         )
+
+    def _draw_mission_modifiers(self) -> dict[str, list[dict[str, str]]]:
+        if not self.options.mission_modifiers.value:
+            return {}
+        minimum = self.options.minimum_mission_modifiers.value
+        maximum = self.options.maximum_mission_modifiers.value
+        if minimum > maximum:
+            raise OptionError(
+                f"{self.player_name}: minimum_mission_modifiers ({minimum}) is greater than "
+                f"maximum_mission_modifiers ({maximum})."
+            )
+
+        assignments: dict[str, list[dict[str, str]]] = {}
+        for mission in self.missions:
+            wanted = self.random.randint(minimum, maximum)
+            candidates = list(MISSION_MODIFIERS)
+            self.random.shuffle(candidates)
+            picked: list[dict[str, str]] = []
+            groups: set[str] = set()
+            for modifier in candidates:
+                group = modifier["exclusive_group"]
+                if group and group in groups:
+                    continue
+                picked.append(
+                    {
+                        "key": modifier["key"],
+                        "name": modifier["name"],
+                        "kind": modifier["kind"],
+                        "description": modifier["description"],
+                    }
+                )
+                if group:
+                    groups.add(group)
+                if len(picked) == wanted:
+                    break
+            assignments[mission.pop_file] = picked
+        return assignments
 
     def _draw(
         self, available: list[data.Mission], wanted: int, asked: data.Mission | None
@@ -318,6 +462,7 @@ class TF2MvMWorld(World):
             "death_link": bool(self.options.death_link.value),
             "server_mods": sorted(self.options.server_mods.value),
             "mission_ticket_importance": self.options.mission_ticket_importance.current_key,
+            "mission_modifiers": self.mission_modifiers,
             "tracker": {
                 "version": 1,
                 "starting_items": [

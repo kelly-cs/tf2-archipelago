@@ -30,7 +30,7 @@ import (
 // APIVersion is the contract with the plugin. The plugin reads it at startup
 // and says so in chat when it does not match: the two ship in one compose file,
 // so a mismatch means one image was updated and the other was not.
-const APIVersion = 3
+const APIVersion = 5
 
 // wavesObservedMax bounds what the game is believed about a mission's length.
 // The property behind it has never been seen answer, so anything past what a
@@ -104,12 +104,13 @@ type deathsResponse struct {
 // name does not contain one that can be relied on (mvm_ghost_town_666 runs on
 // mvm_ghost_town), and gamedata is where that fact already lives.
 type mission struct {
-	PopFile  string `json:"popfile"`
-	Name     string `json:"name"`
-	Map      string `json:"map"`
-	Waves    int    `json:"waves"`
-	Loadout  string `json:"loadout,omitempty"`
-	Unlocked bool   `json:"unlocked"`
+	PopFile   string                     `json:"popfile"`
+	Name      string                     `json:"name"`
+	Map       string                     `json:"map"`
+	Waves     int                        `json:"waves"`
+	Loadout   string                     `json:"loadout,omitempty"`
+	Unlocked  bool                       `json:"unlocked"`
+	Modifiers []apclient.MissionModifier `json:"modifiers,omitempty"`
 
 	// Cleared is the mission clear check being on the bridge's disk. The plugin
 	// chains from a cleared mission to the next unlocked one that is not, so
@@ -430,6 +431,7 @@ func (s *Server) getMissions(w http.ResponseWriter, r *http.Request) {
 		s.store.Played(),
 		health.MissionTicketImportance == "useful",
 		s.store.Reached(),
+		health.MissionModifiers,
 	)
 	for _, popFile := range unknown {
 		s.logger.WarnContext(r.Context(), "the seed holds a mission the tables do not",
@@ -446,8 +448,15 @@ func (s *Server) getMissions(w http.ResponseWriter, r *http.Request) {
 // and reports the ones the tables do not know. A seed from a newer gamedata is
 // the only way that happens, and skipping such a mission beats serving a name
 // and a map this binary would be guessing at.
-func missionsFor(drawn, unlocked []string, checks, own []int64, unlockAll bool, reached map[string]int) ([]mission, []string) {
+func missionsFor(drawn, unlocked []string, checks, own []int64, unlockAll bool,
+	reached map[string]int,
+	modifierSets ...map[string][]apclient.MissionModifier,
+) ([]mission, []string) {
 	missions := make([]mission, 0, len(drawn))
+	modifiers := map[string][]apclient.MissionModifier{}
+	if len(modifierSets) > 0 && modifierSets[0] != nil {
+		modifiers = modifierSets[0]
+	}
 	var unknown []string
 	for _, popFile := range drawn {
 		known, ok := gamedata.MissionByPopFile(popFile)
@@ -466,6 +475,7 @@ func missionsFor(drawn, unlocked []string, checks, own []int64, unlockAll bool, 
 			Cleared:     slices.Contains(checks, known.ClearLocationID()),
 			Played:      slices.Contains(own, known.ClearLocationID()),
 			WaveReached: reached[known.PopFile],
+			Modifiers:   modifiers[known.PopFile],
 		})
 	}
 	return missions, unknown

@@ -27,6 +27,12 @@ func TestFakeRoomServesThisClient(t *testing.T) {
 		SlotName:     "tester",
 		Goal:         "final_boss",
 		MissionCount: 3,
+		MissionModifiers: map[string][]fakeroom.MissionModifier{
+			"mvm_decoy": {{
+				Key: "low_gravity", Name: "Low Gravity", Kind: "environment",
+				Description: "World gravity is halved.",
+			}},
+		},
 		Log: func(text string) {
 			if !done.Load() {
 				t.Log(text)
@@ -55,7 +61,8 @@ func TestFakeRoomServesThisClient(t *testing.T) {
 	// bridge has no seed and records nothing.
 	waitFor(t, "the handshake", func() bool {
 		health := client.Health()
-		return health.Connected && len(health.Missions) == 3
+		return health.Connected && len(health.Missions) == 3 &&
+			len(health.MissionModifiers["mvm_decoy"]) == 1
 	})
 
 	// The starting inventory, which the plugin needs before it can enforce

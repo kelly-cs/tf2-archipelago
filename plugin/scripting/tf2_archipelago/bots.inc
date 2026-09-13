@@ -12,6 +12,7 @@ ConVar g_CvarBotsWaitForPlayers;
 ConVar g_CvarBotsBackfill;
 ConVar g_CvarRobotHealthScale;
 ConVar g_CvarDefenderRobotHealthScale;
+float g_MissionRobotHealthScale = 1.0;
 
 // Whether the hold is on, so it is said once rather than twice a second.
 bool g_Holding;
@@ -30,6 +31,8 @@ bool g_Holding;
 // Its own add is one call inside the wave-begin handler, so this only has to
 // outlast the bots landing.
 #define BotTrimDelay 3.0
+
+bool g_BotsWaveRunning;
 
 // The upgrade names, in the order scripts/items/mvm_upgrades.txt lists the
 // entries the game actually loads. That order is the index MVM_Upgrade carries:
@@ -110,19 +113,40 @@ static void Bots_ApplyRobotHealthScale()
         return;
     }
 
-    float wanted = g_CvarRobotHealthScale.FloatValue;
+    float wanted = g_CvarRobotHealthScale.FloatValue * g_MissionRobotHealthScale;
+    if (wanted > 10.0)
+    {
+        wanted = 10.0;
+    }
     g_CvarDefenderRobotHealthScale.FloatValue = wanted;
     AP_Debug("Robot health scale applied: tf2ap %.2f, defender bots %.2f.",
         wanted, g_CvarDefenderRobotHealthScale.FloatValue);
 }
 
+void Bots_SetMissionRobotHealthScale(float scale)
+{
+    g_MissionRobotHealthScale = scale;
+    Bots_ApplyRobotHealthScale();
+}
+
 void Bots_OnMapStart()
 {
+    g_BotsWaveRunning = false;
     Bots_LoadUpgradeNames();
 
     // The clock this is measured against restarts with the map, so a deadline
     // left over from a long one would hold the fill off on the next.
     g_NextFill = 0.0;
+}
+
+void Bots_OnWaveBegin()
+{
+    g_BotsWaveRunning = true;
+}
+
+void Bots_OnWaveEnd()
+{
+    g_BotsWaveRunning = false;
 }
 
 // Every "attribute" line the file means, in file order. Read through the game's
@@ -370,6 +394,11 @@ static int DefenderTeamSize()
     return DefenderTeamSizeDefault;
 }
 
+int Bots_DefenderTeamSize()
+{
+    return DefenderTeamSize();
+}
+
 // UNVERIFIED m_bPlayerReady on the game rules, which is what the F4 sets and
 // what the mod itself reads. Absent, nothing can be held, so nothing is.
 static bool IsReady(int client)
@@ -515,7 +544,7 @@ void Bots_OnClientLeft(int client)
  */
 static void Bots_Fill()
 {
-    if (!g_CvarBotsBackfill.BoolValue || !MvM_IsActive())
+    if (!g_CvarBotsBackfill.BoolValue || !MvM_IsActive() || g_BotsWaveRunning)
     {
         return;
     }

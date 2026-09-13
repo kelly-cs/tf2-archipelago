@@ -15,6 +15,13 @@ export interface Mission {
   readonly locations: readonly Objective[];
 }
 
+export interface MissionModifier {
+  readonly key: string;
+  readonly name: string;
+  readonly kind: string;
+  readonly description: string;
+}
+
 export interface Weapon {
   readonly name: string;
   readonly classes: readonly string[];
@@ -34,6 +41,7 @@ export interface SlotData {
   readonly goal_mission?: string;
   readonly missionsanity_target?: number;
   readonly mission_ticket_importance?: string;
+  readonly mission_modifiers?: Readonly<Record<string, readonly MissionModifier[]>>;
   readonly starting_items?: readonly (number | string)[];
   readonly tracker?: {
     readonly starting_items?: readonly (number | string)[];
@@ -85,6 +93,7 @@ export interface MissionView extends Mission {
   readonly locked: boolean;
   readonly finalBoss: boolean;
   readonly progress: number;
+  readonly modifiers: readonly MissionModifier[];
 }
 
 export interface ClassView {

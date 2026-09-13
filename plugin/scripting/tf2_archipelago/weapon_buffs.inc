@@ -655,6 +655,7 @@ static bool WeaponBuffs_IsSubstanceProjectile(const char[] classname)
 
 public void OnEntityCreated(int entity, const char[] classname)
 {
+    MissionModifiers_OnEntityCreated(entity, classname);
     if (entity <= MaxClients || entity >= sizeof(g_WeaponBuffNativeExtra))
     {
         return;
@@ -1281,6 +1282,7 @@ static void WeaponBuffs_AddAmmoOnHit(int attacker, int entity, int weapon)
 
 public void OnEntityDestroyed(int entity)
 {
+    MissionModifiers_OnEntityDestroyed(entity);
     if (entity > MaxClients && entity < sizeof(g_WeaponBuffNativeExtra))
     {
         int mimic = EntRefToEntIndex(g_WeaponBuffStickyMimic[entity]);

@@ -12,7 +12,7 @@
 
 // The plugin-facing contract. The bridge reports its own; a mismatch means one
 // half of the compose file was updated and the other was not.
-#define BridgeAPIVersion 3
+#define BridgeAPIVersion 5
 
 // A mission is at most nine objectives, so nearing this means the bridge has been gone a long time.
 #define PendingMax 64
@@ -31,6 +31,23 @@ enum
     Unlock_Mission,
 };
 
+enum
+{
+    MissionModifier_LowGravity = (1 << 0),
+    MissionModifier_HighGravity = (1 << 1),
+    MissionModifier_BlastPlating = (1 << 2),
+    MissionModifier_FragileMercenaries = (1 << 3),
+    MissionModifier_OverclockedServos = (1 << 4),
+    MissionModifier_BotSurge = (1 << 5),
+    MissionModifier_ThermalShielding = (1 << 6),
+    MissionModifier_BallisticPlating = (1 << 7),
+    MissionModifier_LoadedDice = (1 << 8),
+    MissionModifier_WeaponizedTanks = (1 << 9),
+    MissionModifier_MiniatureMenace = (1 << 10),
+    MissionModifier_FaultyCalibration = (1 << 11),
+    MissionModifier_LooseFooting = (1 << 12),
+};
+
 // One mission of the run, as the bridge describes it. The map is the field the
 // plugin cannot work out for itself: a popfile name does not reliably contain
 // the map it runs on.
@@ -40,6 +57,7 @@ enum struct Mission
     char name[64];
     char map[64];
     int waves;
+    int modifierFlags;
     bool unlocked;
     bool cleared;
 
@@ -446,6 +464,20 @@ static void OnMissions(HTTPResponse response, any value, const char[] error)
         entry.GetString("name", mission.name, sizeof(mission.name));
         entry.GetString("map", mission.map, sizeof(mission.map));
         mission.waves = entry.GetInt("waves");
+        mission.modifierFlags = 0;
+        if (entry.HasKey("modifiers"))
+        {
+            JSONArray modifiers = view_as<JSONArray>(entry.Get("modifiers"));
+            for (int modifierIndex = 0; modifierIndex < modifiers.Length; modifierIndex++)
+            {
+                JSONObject modifier = view_as<JSONObject>(modifiers.Get(modifierIndex));
+                char key[40];
+                modifier.GetString("key", key, sizeof(key));
+                mission.modifierFlags |= MissionModifiers_FlagForKey(key);
+                delete modifier;
+            }
+            delete modifiers;
+        }
         mission.unlocked = entry.GetBool("unlocked");
         mission.cleared = entry.GetBool("cleared");
         mission.waveReached = entry.GetInt("wave_reached");

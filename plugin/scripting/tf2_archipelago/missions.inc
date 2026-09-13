@@ -119,6 +119,15 @@ static void Missions_ApplyPopFile(const char[] popFile, const char[] map)
     ServerCommand("tf_mvm_popfile %s", commandName);
 }
 
+void Missions_ReloadCurrentForModifiers()
+{
+    char popFile[64];
+    char map[64];
+    MvM_PopFile(popFile, sizeof(popFile));
+    GetCurrentMap(map, sizeof(map));
+    Missions_ApplyPopFile(popFile, map);
+}
+
 // tf_mvm_popfile reloads the mission on the map that is already loaded, so the
 // map change goes first and this lands after it.
 static Action Timer_ApplyPendingPopFile(Handle timer)
@@ -130,6 +139,11 @@ static Action Timer_ApplyPendingPopFile(Handle timer)
     AP_Debug("The plugin names the mission %s now that the map is up.", g_PendingPopFile);
     char currentMap[64];
     GetCurrentMap(currentMap, sizeof(currentMap));
+    Mission pending;
+    if (Missions_Find(g_PendingPopFile, pending))
+    {
+        MissionModifiers_Apply(pending.popFile, pending.modifierFlags);
+    }
     Missions_ApplyPopFile(g_PendingPopFile, currentMap);
     g_PendingPopFile[0] = '\0';
     return Plugin_Stop;
@@ -238,6 +252,12 @@ void Missions_OnListUpdated()
     bool inRun = playingMvM && Missions_Find(current, loaded);
     if (inRun && Missions_Playable(loaded))
     {
+        MissionModifiers_Apply(loaded.popFile, loaded.modifierFlags);
+        if (MissionModifiers_ShouldReloadBotSurgeMission())
+        {
+            AP_Debug("Bot Surge reloads the initial mission to update its support waves.");
+            Missions_ReloadCurrentForModifiers();
+        }
         return;
     }
     char why[96];
@@ -373,6 +393,8 @@ static void Missions_Load(Mission mission)
     // yet, and the guard has to know that for as long as it takes.
     strcopy(g_SwitchingPopFile, sizeof(g_SwitchingPopFile), mission.popFile);
     g_SwitchingUntil = GetEngineTime() + SwitchGrace;
+
+    MissionModifiers_Apply(mission.popFile, mission.modifierFlags);
 
     char current[64];
     GetCurrentMap(current, sizeof(current));

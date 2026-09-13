@@ -12,7 +12,7 @@ import pkgutil
 from dataclasses import dataclass
 
 # A version mismatch is a hard stop: half-reading a moved table makes a seed wrong undetectably.
-FORMAT_VERSION = 4
+FORMAT_VERSION = 6
 
 
 class DataFormatError(Exception):

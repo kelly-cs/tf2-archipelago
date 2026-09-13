@@ -77,6 +77,14 @@ message SessionMission {
   // check. Another world's !collect sends every check it still has, so the two
   // disagree and the run list has to show what you did.
   bool played = 9;
+  repeated MissionModifier modifiers = 12;
+}
+
+message MissionModifier {
+  string key = 1;
+  string name = 2;
+  string kind = 3;
+  string description = 4;
 }
 
 // SessionUnlock is one thing the run has handed this slot, named for a person

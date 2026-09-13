@@ -375,14 +375,20 @@ func StartTestRoom(
 	if emit == nil {
 		emit = func(string) {}
 	}
+	missions := testModeMissions(s)
+	var modifiers map[string][]fakeroom.MissionModifier
+	if s.MvmMissionModifiers {
+		modifiers = fakeroom.DrawMissionModifiers(missions, s.MvmModifierMin, s.MvmModifierMax)
+	}
 	room, address, err := fakeroom.Start(ctx, fakeroom.Options{
-		SlotName:       s.APSlotName,
-		Missions:       testModeMissions(s),
-		UnlockMissions: true,
-		Goal:           s.MvmGoal,
-		StartClass:     s.MvmStartClass,
-		DeathLink:      s.MvmDeathLink,
-		Log:            emit,
+		SlotName:         s.APSlotName,
+		Missions:         missions,
+		UnlockMissions:   true,
+		Goal:             s.MvmGoal,
+		StartClass:       s.MvmStartClass,
+		DeathLink:        s.MvmDeathLink,
+		MissionModifiers: modifiers,
+		Log:              emit,
 	})
 	if err != nil {
 		return nil, err

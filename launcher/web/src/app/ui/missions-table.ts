@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, input, output, signal } f
 
 import { Badge } from '@app/ui/badge';
 import { Button } from '@app/ui/button';
+import { ModifierIcon } from '@app/ui/modifier-icon';
 import { Tier } from '@app/ui/tier';
 
 export type MissionTone = 'good' | 'info' | 'accent' | 'neutral' | 'warn';
@@ -21,6 +22,12 @@ export interface MissionRow {
   readonly waves: number;
   /** A word under the name: the loadout the mission wants, where it wants one. */
   readonly loadout: string;
+  readonly modifiers: readonly {
+    readonly key: string;
+    readonly name: string;
+    readonly kind: string;
+    readonly description: string;
+  }[];
   /** What the screen says about the mission: unlocked, played, Ready, a reason. */
   readonly status: string;
   readonly tone: MissionTone;
@@ -45,7 +52,8 @@ export interface MissionRow {
   readonly waveStart: number;
 }
 
-export type MissionColumn = 'on' | 'name' | 'map' | 'tier' | 'source' | 'waves' | 'status' | 'mods';
+export type MissionColumn =
+  'on' | 'name' | 'modifiers' | 'map' | 'tier' | 'source' | 'waves' | 'status' | 'mods';
 
 const tiers: Record<string, number> = { normal: 0, intermediate: 1, advanced: 2, expert: 3 };
 
@@ -61,7 +69,7 @@ const tiers: Record<string, number> = { normal: 0, intermediate: 1, advanced: 2,
 @Component({
   selector: 'app-missions-table',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Badge, Button, Tier],
+  imports: [Badge, Button, ModifierIcon, Tier],
   templateUrl: './missions-table.html',
   styleUrl: './missions-table.scss',
 })
@@ -82,6 +90,7 @@ export class MissionsTable {
   readonly columns = computed<{ key: MissionColumn; label: string }[]>(() => [
     ...(this.pool() ? [{ key: 'on' as const, label: 'In pool' }] : []),
     { key: 'name', label: 'Mission' },
+    ...(this.playable() ? [{ key: 'modifiers' as const, label: 'Modifiers' }] : []),
     { key: 'map', label: 'Map' },
     { key: 'tier', label: 'Tier' },
     { key: 'source', label: 'Archive' },
@@ -127,6 +136,15 @@ function compare(left: MissionRow, right: MissionRow, key: MissionColumn): numbe
   if (key === 'status') {
     // The caller handed the rows in status order; a stable sort keeps it.
     return 0;
+  }
+  if (key === 'modifiers') {
+    return (
+      left.modifiers
+        .map((modifier) => modifier.name)
+        .join(', ')
+        .localeCompare(right.modifiers.map((modifier) => modifier.name).join(', ')) ||
+      left.name.localeCompare(right.name)
+    );
   }
   return left[key].localeCompare(right[key]) || left.name.localeCompare(right.name);
 }

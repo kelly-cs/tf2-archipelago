@@ -27,7 +27,9 @@ var EnvNames = []string{
 	"SRCDS_BOT_HAT_EFFECTS",
 	"TF2AP_BOT_UPGRADES_CHAT",
 	"MVM_MISSION_COUNT", "MVM_DIFFICULTY", "MVM_GOAL",
-	"MVM_MISSIONSANITY_PERCENTAGE", "MVM_MEDAL_ON_CLEAR", "MVM_SERVER_SETTINGS", "MVM_DEATH_LINK",
+	"MVM_MISSIONSANITY_PERCENTAGE", "MVM_MISSION_MODIFIERS",
+	"MVM_MINIMUM_MISSION_MODIFIERS", "MVM_MAXIMUM_MISSION_MODIFIERS",
+	"MVM_MEDAL_ON_CLEAR", "MVM_SERVER_SETTINGS", "MVM_DEATH_LINK",
 	"MVM_EXCLUDED_MISSIONS",
 	"MVM_START_MISSION", "MVM_START_CLASS", "MVM_COMMUNITY_MISSIONS",
 	"MVM_MISSION_TICKET_IMPORTANCE", "MVM_CLASS_UNLOCK_IMPORTANCE",
@@ -118,6 +120,7 @@ func ApplyEnv(s Settings) Settings {
 	str(&s.MvmDifficulty, "MVM_DIFFICULTY")
 	str(&s.MvmGoal, "MVM_GOAL")
 	num(&s.MvmMissionsanityPct, "MVM_MISSIONSANITY_PERCENTAGE")
+	applyMissionModifierEnv(&s)
 	boolean(&s.MvmMedalOnClear, "MVM_MEDAL_ON_CLEAR")
 	boolean(&s.MvmServerSettings, "MVM_SERVER_SETTINGS")
 	boolean(&s.MvmDeathLink, "MVM_DEATH_LINK")
@@ -129,6 +132,12 @@ func ApplyEnv(s Settings) Settings {
 
 	num(&s.MetricsPort, "BRIDGE_METRICS_PORT")
 	return s
+}
+
+func applyMissionModifierEnv(s *Settings) {
+	boolean(&s.MvmMissionModifiers, "MVM_MISSION_MODIFIERS")
+	num(&s.MvmModifierMin, "MVM_MINIMUM_MISSION_MODIFIERS")
+	num(&s.MvmModifierMax, "MVM_MAXIMUM_MISSION_MODIFIERS")
 }
 
 func applyRewardEnv(s *Settings) {

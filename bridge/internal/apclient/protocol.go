@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"strconv"
 	"strings"
+
+	"github.com/m-this/tf2-archipelago/gamedata"
 )
 
 // The Archipelago wire format: a JSON array of objects, each with a "cmd". Only
@@ -185,12 +187,18 @@ func (p printJSON) text(names *nameBook) string {
 // SlotData is what the apworld put in the seed. gamedata knows every mission
 // that exists; only the seed knows which ones are in play.
 type SlotData struct {
-	FormatVersion           int      `json:"format_version"`
-	Missions                []string `json:"missions"`
-	StartMission            string   `json:"start_mission"`
-	Goal                    string   `json:"goal"`
-	GoalMission             string   `json:"goal_mission"`
-	MissionsanityTarget     int      `json:"missionsanity_target"`
-	DeathLink               bool     `json:"death_link"`
-	MissionTicketImportance string   `json:"mission_ticket_importance"`
+	FormatVersion           int                          `json:"format_version"`
+	Missions                []string                     `json:"missions"`
+	StartMission            string                       `json:"start_mission"`
+	Goal                    string                       `json:"goal"`
+	GoalMission             string                       `json:"goal_mission"`
+	MissionsanityTarget     int                          `json:"missionsanity_target"`
+	DeathLink               bool                         `json:"death_link"`
+	MissionTicketImportance string                       `json:"mission_ticket_importance"`
+	MissionModifiers        map[string][]MissionModifier `json:"mission_modifiers"`
 }
+
+// MissionModifier is a seed-assigned rule that remains attached to one
+// mission for the life of the run. Display text rides with the seed so the
+// launcher and public tracker do not need a second synchronized catalogue.
+type MissionModifier = gamedata.MissionModifier
