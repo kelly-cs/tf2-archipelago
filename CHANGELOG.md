@@ -4,10 +4,32 @@ What each release changes, for somebody who plays the game. The workflow in
 `.github/workflows/release.yml` reads the section matching the tag and puts it
 in the release notes, so this file is the only place to write it.
 
-## Unreleased
+## v1.14.0
 
-### Added
+Missions that change their own rules, a tracker your spectators can open, SigMod
+missions the launcher installs itself, and the Grappling Hook fix the last
+release left on nightly. Bots at 0.15.1.
 
+### The run
+
+- **Mission modifiers.** A `mission_modifiers` option, off by default, gives
+  every drawn mission its own rules: low or high gravity, robots plated against
+  blast, fire or bullets, robots 15% faster or half size, robots that can crit,
+  tanks carrying an invulnerable sentry, waves that refill the moment a robot
+  dies, aim that wanders off the crosshair, ground with no grip, and
+  mercenaries who take a quarter more damage. The seed chooses once per mission
+  and keeps the combination, so a mission you return to plays the same twists
+  again. One or two a mission by default, and `minimum_mission_modifiers` and
+  `maximum_mission_modifiers` set the range.
+- **A tracker for spectators.** A web page anybody with the link can open:
+  which missions are cleared, what has been checked, what the multiworld has
+  unlocked, and the weapon buffs each class carries and at what level. Viewers
+  need no room password, the page needs no server of its own, and a live
+  tracker refreshes once a minute. The room has to have tracking enabled, and
+  a seed made with an older apworld cannot show its starting inventory.
+- Test mode hands you the missions you picked. The missions you ticked into
+  the pool are unlocked from the start, so `!mission` can switch to any of
+  them straight away instead of only the one you start on.
 - A wave picker beside Play on the mission list. Pick a wave and the mission
   starts there, with the money the game gives for having won every wave
   before it. It opens on the wave your team got to, so the mission you left
@@ -21,6 +43,41 @@ in the release notes, so this file is the only place to write it.
   jump never takes, the log says so and names the wave the game is actually
   on.
 
+### Weapon buffs
+
+- Skins and decorated weapons draw from the gun they are a copy of. A buff
+  rolled for the Holy Mackerel used to belong to the Holy Mackerel alone; it
+  is a Bat buff now, and the same goes for the decorated versions of weapons
+  you already own. The Self-Aware Beauty Mark counts as Jarate.
+- Weapons that are the same gun under different names share one pool. The
+  Saxxy, the Conscientious Objector and the other all-class melees draw one
+  "All-Class Melee" buff between them instead of one each, and the Bootlegger
+  draws what Ali Baba's Wee Booties draws. Fewer duplicate rolls, and every
+  roll lands on a weapon that can use it.
+- Your own explosions no longer bleed, ignite, milk or Jarate you. The hit
+  effects were written where the game could read them on self-inflicted blast
+  damage, so rocket jumping with a bleed rocket launcher bled its owner.
+
+### The launcher
+
+- SigMod community missions install themselves. On Linux the launcher
+  downloads SigMod, loads it, and the missions that need it come off their
+  lock. The Docker image already carried it. On Windows they stay locked:
+  SigMod has no Windows build, and porting it is its own project.
+- A seed made by a different apworld version says what to do about it. The
+  refusal named two numbers and no action, and two people a week apart asked
+  what they meant. It names the two ways out now: regenerate the seed with the
+  apworld that shipped with this launcher, or run the launcher the seed was
+  made for.
+- The Rewards toggles say what they switch. "Rewards" is "Grappling Hook", and
+  the labels read "enabled" and "disabled" instead of "in the pool" and
+  "include cash filler".
+- Joining from the launcher works when Steam's relay is in use. The relay
+  address sometimes reached the launcher and sometimes only the game's own
+  console log, which the launcher reads now.
+- Community missions hand their wave icons to joining players over the HTTP
+  download. They showed on the machine running the server and nowhere else.
+
 ### Fixed
 
 - The Grappling Hook can be turned on. The launcher wrote every option the
@@ -30,6 +87,22 @@ in the release notes, so this file is the only place to write it.
 - A held Grappling Hook shows on the Unlocks screen. The screen listed four
   kinds of unlock and the hook is a fifth, so it arrived, the plugin turned
   it on, and nothing said so.
+
+### The bots
+
+The mod moves to 0.15.1.
+
+- A robot sent where the navigation mesh has no ground no longer takes the
+  wave down with it. The list of walkable tiles around a point came back
+  empty and was read as if it had entries. By kelly-cs.
+- The medic spends the break healing, so his über is full when the wave
+  starts. The charge never built: every wave opened with it empty, and a
+  mission got one über where it now gets seven. Measured on Decoy.
+- A released über keeps the beam on the player it started on, instead of
+  drifting to whoever was nearest when the button went down.
+- The medic heals the biggest body, and only a player who calls for him jumps
+  the queue. A quiet player standing in spawn used to hold the top of the
+  list for a whole wave while the beam landed on whoever was nearby.
 
 ## v1.13.0
 
