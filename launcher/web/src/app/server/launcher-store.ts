@@ -38,6 +38,7 @@ export class LauncherStore {
   readonly status = this.field((s) => s.status, ServerStatus.UNSPECIFIED);
   readonly running = this.field((s) => s.running, false);
   readonly busy = this.field((s) => s.busy, false);
+  readonly activity = this.field((s) => s.activity, '');
   readonly room = this.field((s) => s.room, '');
   readonly join = this.field((s) => s.join, '');
   readonly joinUrl = this.field((s) => s.joinUrl, '');

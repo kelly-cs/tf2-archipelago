@@ -148,6 +148,34 @@ func TestAttachedSnapshotNamesDockerAsTheLifecycleOwner(t *testing.T) {
 	}
 }
 
+func TestSettingsActivityAppearsOnTheSnapshotWhileItRuns(t *testing.T) {
+	app := New(settings.Defaults(), nil)
+	_, done, ok := app.beginSettingsActivity("Preparing community asset download…")
+	if !ok {
+		t.Fatal("the first settings activity was refused")
+	}
+	app.reportSettingsActivity("downloading %s: %d%%", "archive-assets.zip", 25)
+	if snapshot := app.Snapshot(); !snapshot.Busy || snapshot.Activity != "downloading archive-assets.zip: 25%" || snapshot.Proto().GetActivity() != snapshot.Activity {
+		t.Fatalf("running activity snapshot = %+v", snapshot)
+	}
+	done()
+	if snapshot := app.Snapshot(); snapshot.Busy || snapshot.Activity != "" {
+		t.Fatalf("finished activity snapshot = %+v", snapshot)
+	}
+}
+
+func TestAttachedServerModSetupExplainsComposeRecreate(t *testing.T) {
+	s := settings.Defaults()
+	s.InstallRoot = t.TempDir()
+	s.SrcdsMods = []string{"sigsegv-mvm"}
+	app := NewAttached(s, nil, "")
+
+	app.installSelectedMods(s)
+	if notice := app.Snapshot().Notice; !strings.Contains(notice, "docker compose up -d --force-recreate") {
+		t.Fatalf("attached server mod setup notice = %q", notice)
+	}
+}
+
 func TestAttachedSnapshotUsesConfiguredJoinHost(t *testing.T) {
 	s := settings.Defaults()
 	s.SrcdsPort = 27115

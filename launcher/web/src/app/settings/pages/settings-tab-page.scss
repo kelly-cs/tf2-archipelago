@@ -35,6 +35,21 @@ h3 {
   max-width: 70ch;
 }
 
+.activity {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gap-sm);
+}
+
+.activity-dot {
+  width: 9px;
+  height: 9px;
+  flex: none;
+  border-radius: 50%;
+  background: currentcolor;
+  animation: pulse-dot 1.2s ease-in-out infinite;
+}
+
 app-settings-row:last-of-type ::ng-deep .row {
   border-bottom: none;
 }

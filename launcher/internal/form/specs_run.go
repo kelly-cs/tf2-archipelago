@@ -275,7 +275,7 @@ func missionSpecs(s State, env Env) []Spec {
 		serverModInstallSpec(env),
 
 		press("missions.download_packs", tab, "Download Selected Community Assets",
-			"Download only the checked full-with-maps community packs. Start never downloads community content."),
+			"Download only the checked full-with-maps community packs. Live progress remains visible on this page. Start never downloads community content."),
 		press("missions.import_assets", tab, "Import local assets",
 			"Choose archive-assets.zip and/or mlarchive-assets.zip from this computer. Valid packs are selected and their missions appear below immediately."),
 		press("missions.check_selection", tab, "Check Run Selection",
@@ -342,7 +342,7 @@ func serverModSpec(key, label string, env Env) Spec {
 
 func serverModInstallSpec(env Env) Spec {
 	spec := press("missions.install_mods", "Missions", "Download / set up selected server mods",
-		"Downloads verified pinned releases and installs their SourceMod extension. On a new machine this also installs TF2 and SourceMod; Start performs the same setup automatically.")
+		"The native launcher downloads verified pinned releases and installs their SourceMod extension. Docker already includes them: Save the selection and recreate the containers. On a new native setup this also installs TF2 and SourceMod; Start performs the same setup automatically.")
 	if env.Platform == "windows" {
 		spec.Unavailable = func(State, Env) string { return "no supported Windows server mods are available" }
 	}

@@ -49,6 +49,7 @@ describe('the launcher store', () => {
         title: 'Mann vs Archipelago',
         status: ServerStatus.RUNNING,
         running: true,
+        activity: 'downloading archive-assets.zip: 25%',
         managedExternally: true,
         logs: [create(LogLineSchema, { source: 'srcds', text: 'a line from before' })],
       }),
@@ -56,6 +57,7 @@ describe('the launcher store', () => {
     expect(store.connected()).toBe(true);
     expect(store.title()).toBe('Mann vs Archipelago');
     expect(store.running()).toBe(true);
+    expect(store.activity()).toBe('downloading archive-assets.zip: 25%');
     expect(store.managedExternally()).toBe(true);
     expect(store.logs()).toHaveLength(1);
   });

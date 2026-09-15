@@ -8,6 +8,12 @@
       <p class="intro">{{ intro() }}</p>
     }
 
+    @if (store.activity()) {
+      <app-notice tone="info">
+        <span class="activity"><span class="activity-dot"></span>{{ store.activity() }}</span>
+      </app-notice>
+    }
+
     @if (tabbed() && !searching()) {
       <nav class="sections" role="tablist" [attr.aria-label]="'Sections of ' + title()">
         @for (section of sections(); track section.slug) {

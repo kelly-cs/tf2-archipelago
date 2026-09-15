@@ -30,9 +30,9 @@ RUN go mod download
 COPY --from=code /src /src
 COPY --from=web /src/launcher/internal/spa/dist /src/launcher/internal/spa/dist
 ARG LAUNCHER_VERSION=compose
-RUN CGO_ENABLED=0 go build -trimpath \
-    -ldflags="-s -w -X github.com/m-this/tf2-archipelago/launcher/internal/assets.LauncherVersion=${LAUNCHER_VERSION}" \
-    -o /composeadmin ./launcher/cmd/composeadmin
+RUN make launcher-compose-admin \
+    COMPOSE_ADMIN_OUT=/composeadmin \
+    LAUNCHER_VERSION="${LAUNCHER_VERSION}"
 
 
 FROM tailscale/tailscale:stable AS tailscale

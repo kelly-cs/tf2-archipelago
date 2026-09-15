@@ -166,6 +166,10 @@ message Snapshot {
   // attached browser can persist .env, while lifecycle buttons explain the
   // Compose command because the admin container has no Docker socket.
   bool managed_externally = 22;
+
+  // A long-running settings action and its latest progress line. Unlike a
+  // notice, this remains in place only while the action is running.
+  string activity = 23;
 }
 
 message GetSnapshotRequest {}

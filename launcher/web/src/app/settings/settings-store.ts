@@ -61,6 +61,8 @@ export class SettingsStore {
   readonly page = computed(() => this.launcher.screenPage());
   readonly missionPool = computed(() => this.launcher.missionPool());
   readonly restartNeeded = computed(() => this.launcher.restartNeeded());
+  readonly busy = this.launcher.busy;
+  readonly activity = this.launcher.activity;
 
   /** tabs are the top-level pages; a tab with `under` is a section of one. */
   /** Every row answered since the screen opened. Not the same as the pending

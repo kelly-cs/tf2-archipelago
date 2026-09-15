@@ -322,28 +322,25 @@ func (a *App) installSelectedMods(s settings.Settings) {
 		a.Notify("select a server mod first")
 		return
 	}
+	if a.attached {
+		ready := installer.ReadyServerMods(s.InstallRoot)
+		if slices.ContainsFunc(mods, func(mod string) bool { return !slices.Contains(ready, mod) }) {
+			a.Notify("Docker includes the selected server mods. Save these settings, then apply them with: docker compose up -d --force-recreate")
+			return
+		}
+		a.Notify("selected server mods are installed and verified")
+		return
+	}
 	if a.supervisor.Running() {
 		a.Notify("stop the server before installing or repairing a server mod")
 		return
 	}
-	a.mu.Lock()
-	if a.busy {
-		a.mu.Unlock()
-		a.Notify("another install is already running")
+	ctx, done, ok := a.beginSettingsActivity("Preparing selected server mods…")
+	if !ok {
 		return
 	}
-	ctx, cancel := context.WithCancel(context.Background())
-	a.busy, a.install = true, cancel
-	a.publishLocked(Event{Name: "state", Data: struct{}{}})
-	a.mu.Unlock()
-	defer func() {
-		cancel()
-		a.mu.Lock()
-		a.busy, a.install = false, nil
-		a.publishLocked(Event{Name: "state", Data: struct{}{}})
-		a.mu.Unlock()
-	}()
-	if _, err := installer.Ensure(ctx, s.InstallRoot, nil, mods, func(f string, args ...any) { a.Say(f, args...) }); err != nil {
+	defer done()
+	if _, err := installer.Ensure(ctx, s.InstallRoot, nil, mods, a.reportSettingsActivity); err != nil {
 		if ctx.Err() == nil {
 			a.Notify("server mod setup: " + err.Error())
 		}
@@ -371,13 +368,18 @@ func (a *App) downloadPacks(s settings.Settings) {
 		a.Notify("select at least one community pack first")
 		return
 	}
-	if err := installer.DownloadCommunityArchives(context.Background(), archives, func(f string, args ...any) { a.Say(f, args...) }); err != nil {
+	ctx, done, ok := a.beginSettingsActivity("Preparing community asset download…")
+	if !ok {
+		return
+	}
+	defer done()
+	if err := installer.DownloadCommunityArchives(ctx, archives, a.reportSettingsActivity); err != nil {
 		a.Notify("community assets: " + err.Error())
 		return
 	}
 	if a.attached {
 		contentTree := filepath.Join(folder, "tf")
-		if err := installer.InstallCommunityArchives(archives, contentTree, s.SrcdsMods, func(f string, args ...any) { a.Say(f, args...) }); err != nil {
+		if err := installer.InstallCommunityArchives(archives, contentTree, s.SrcdsMods, a.reportSettingsActivity); err != nil {
 			a.Notify("community assets: " + err.Error())
 			return
 		}
@@ -390,6 +392,39 @@ func (a *App) downloadPacks(s settings.Settings) {
 		return
 	}
 	a.Notify("selected community packs are ready in " + folder)
+}
+
+// beginSettingsActivity gives long-running settings actions one shared busy
+// state and a line that remains visible on the settings page. Progress updates
+// replace that line instead of making the player hunt through the server log.
+func (a *App) beginSettingsActivity(message string) (context.Context, func(), bool) {
+	a.mu.Lock()
+	if a.busy {
+		a.mu.Unlock()
+		a.Notify("another install is already running")
+		return nil, func() {}, false
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	a.busy, a.install, a.activity = true, cancel, message
+	a.publishLocked(Event{Name: "state", Data: struct{}{}})
+	a.mu.Unlock()
+	a.Say("%s", message)
+	return ctx, func() {
+		cancel()
+		a.mu.Lock()
+		a.busy, a.install, a.activity = false, nil, ""
+		a.publishLocked(Event{Name: "state", Data: struct{}{}})
+		a.mu.Unlock()
+	}, true
+}
+
+func (a *App) reportSettingsActivity(format string, args ...any) {
+	message := fmt.Sprintf(format, args...)
+	a.mu.Lock()
+	a.activity = message
+	a.publishLocked(Event{Name: "state", Data: struct{}{}})
+	a.mu.Unlock()
+	a.Say("%s", message)
 }
 
 func (a *App) repair(root string) {

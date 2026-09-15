@@ -41,6 +41,7 @@ BUILD_COMMIT := $(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)$
 # and that field has to be four numbers.
 BUILD_CHANNEL ?=
 LAUNCHER_VERSION := $(if $(BUILD_CHANNEL),$(BUILD_CHANNEL),$(RELEASE_VERSION))-$(BUILD_COMMIT)
+COMPOSE_ADMIN_OUT ?= $(DIST)/composeadmin
 
 # --project-directory pins relative paths in the compose files to the repository
 # root. --env-file replaces the default .env rather than adding to it, so both
@@ -98,7 +99,7 @@ GO_SRC := $$(find . -type f -name '*.go' -not -path './deploy/bots/build/*' -not
         integration build docs \
         docs-build docs-down dist compose-release version-check clean \
         go-version-check \
-        launcher launcher-assets launcher-assets-common \
+        launcher launcher-assets launcher-assets-common launcher-compose-admin \
         proto proto-lint proto-fmt proto-deps \
         web-ready web-install web-build tracker-data tracker-build web-lint web-test web-e2e web-e2e-real \
         web-captures web-check \
@@ -576,6 +577,16 @@ launcher-linux: launcher-assets-linux web-build
 	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath \
 		-ldflags="-s -w $(LAUNCHER_LDFLAGS)" \
 		-o $(DIST)/tf2ap-linux-amd64 ./launcher/cmd/tf2ap
+
+# The Compose admin carries placeholder install assets because SRCDS lives in a
+# different image, but it still uses installer metadata when it reports and
+# validates server-mod setup. Build it through the same version flags as the
+# native launchers so those pins can never be empty in a shipped admin image.
+launcher-compose-admin:
+	mkdir -p $(dir $(COMPOSE_ADMIN_OUT))
+	CGO_ENABLED=0 go build -trimpath \
+		-ldflags="-s -w $(LAUNCHER_LDFLAGS)" \
+		-o $(COMPOSE_ADMIN_OUT) ./launcher/cmd/composeadmin
 
 # The captures in the README and the book. They are SVG of the Linux
 # launcher's own output, so a diff says what changed in one and no machine's

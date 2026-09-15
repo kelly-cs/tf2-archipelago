@@ -59,6 +59,7 @@ type App struct {
 	supervisor      *apruntime.Supervisor
 	logs            []apruntime.Line
 	busy            bool
+	activity        string
 	install         context.CancelFunc
 	steamURL        string
 	mission         string

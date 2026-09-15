@@ -1,5 +1,14 @@
-import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  input,
+  output,
+  signal,
+} from '@angular/core';
 
+import { LauncherStore } from '@app/server/launcher-store';
 import { Button } from '@app/ui/button';
 import { Field, Kind } from '@gen/tf2ap/launcher/v1/form_pb';
 
@@ -22,7 +31,7 @@ import { Field, Kind } from '@gen/tf2ap/launcher/v1/form_pb';
     } @else {
       <app-button
         [tone]="dangerous() ? 'danger' : 'secondary'"
-        [disabled]="field().disabled"
+        [disabled]="disabled()"
         (press)="press()"
       >
         {{ field().label }}
@@ -57,11 +66,13 @@ import { Field, Kind } from '@gen/tf2ap/launcher/v1/form_pb';
   `,
 })
 export class ActionRow {
+  private readonly launcher = inject(LauncherStore);
   readonly field = input.required<Field>();
   readonly fired = output<string>();
 
   readonly asking = signal(false);
   readonly dangerous = computed(() => this.field().kind === Kind.CONFIRM);
+  readonly disabled = computed(() => this.field().disabled || this.launcher.busy());
 
   press(): void {
     if (this.dangerous()) {
