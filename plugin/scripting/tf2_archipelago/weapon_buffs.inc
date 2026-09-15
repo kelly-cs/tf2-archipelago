@@ -2966,13 +2966,15 @@ static void WeaponBuffs_ApplyDisposableSentryPrediction(int client, int provider
 /*
 The passive buffs, from every slot of the loadout rather than the held weapon.
 
-These are player attributes: the base to scale from is the player's own hooked
-value, not a weapon's, because no weapon contributes to it. Health regeneration
-is not here at all, since the timer pays it directly.
+These are player attributes: a percentage scales the player's own hooked value,
+not a weapon's, because no weapon contributes to it, and max health is a plain
+addition on top of the class. It joined the list because a bonus that came and
+went with the weapon in hand read as a glitch rather than a buff (gh-32, note
+39). Health regeneration is not here at all, since the timer pays it directly.
 */
 static void WeaponBuffs_ApplyPassives(int client, int provider)
 {
-    static const int passives[2] = { MoveSpeedEffect, JumpHeightEffect };
+    static const int passives[3] = { MoveSpeedEffect, JumpHeightEffect, MaxHealthEffect };
     for (int index = 0; index < sizeof(passives); index++)
     {
         int effect = passives[index];
@@ -2981,19 +2983,27 @@ static void WeaponBuffs_ApplyPassives(int client, int provider)
         {
             continue;
         }
-        float base = TF2Attrib_HookValueFloat(1.0,
-            g_WeaponEffectAttributeClasses[effect], client);
-        if (FloatAbs(base) < 0.0001)
+        float value;
+        if (g_WeaponEffectModes[effect] == BuffMode_Add)
         {
-            base = 1.0;
+            value = g_WeaponEffectIncrements[effect] * float(levels);
         }
-        float combined = base + g_WeaponEffectIncrements[effect] * float(levels);
-        if (combined < 0.05)
+        else
         {
-            combined = 0.05;
+            float base = TF2Attrib_HookValueFloat(1.0,
+                g_WeaponEffectAttributeClasses[effect], client);
+            if (FloatAbs(base) < 0.0001)
+            {
+                base = 1.0;
+            }
+            float combined = base + g_WeaponEffectIncrements[effect] * float(levels);
+            if (combined < 0.05)
+            {
+                combined = 0.05;
+            }
+            value = combined / base;
         }
-        if (!TF2Attrib_SetByName(provider, g_WeaponEffectAttributes[effect],
-            combined / base))
+        if (!TF2Attrib_SetByName(provider, g_WeaponEffectAttributes[effect], value))
         {
             LogError("Could not apply passive effect %s to %N.",
                 g_WeaponEffectAttributes[effect], client);
