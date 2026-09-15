@@ -2,6 +2,11 @@
 # Prepare the base TF2 installation, then start SRCDS the same way as the
 # native launcher. In particular, -condebug is the reliable source for the
 # FakeIP allocation line; 32-bit SRCDS block-buffers a redirected stdout pipe.
+#
+# Not -autoupdate, which the base image's entry.sh passes: with it, srcds_run
+# reruns SteamCMD over the game files on every crash restart, under the
+# SourceMod tree the entrypoint's loop is syncing. The one update below, at
+# container start, is the update.
 set -eu
 
 mkdir -p "${STEAMAPPDIR}"

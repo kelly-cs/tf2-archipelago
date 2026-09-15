@@ -60,8 +60,11 @@ jobs:
 
       - name: build and push the admin UI image
         run: |
+          . deploy/env/versions.env
           docker build -f deploy/Dockerfile.admin \
             --build-arg "LAUNCHER_VERSION=$GITHUB_REF_NAME" \
+            --build-arg "NODE_VERSION=$NODE_VERSION" \
+            --build-arg "TAILSCALE_VERSION=$TAILSCALE_VERSION" \
             -t "$IMAGE/admin:$GITHUB_REF_NAME" -t "$IMAGE/admin:latest" .
           deploy/push-image.sh --all-tags "$IMAGE/admin"
 

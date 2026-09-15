@@ -37,6 +37,10 @@ configs:
     content: |
       #!/bin/sh
       set -eu
+      # With FastDL off the sidecar's job is to wait, and a service doing its
+      # job is healthy. Otherwise `docker compose ps` shows it unhealthy for
+      # the life of every stack that never asked for Funnel.
+      [ "$${TAILSCALE_FASTDL:-0}" = 1 ] || exit 0
       socket=/run/tf2ap-fastdl/tailscaled.sock
       status="$$(tailscale --socket="$$socket" status --json)"
       dns_name="$$(
@@ -184,12 +188,14 @@ services:
   # loopback HTTP backends. The official image owns login, certificates and
   # Funnel; Caddy remains the only process allowed to read the game volume.
   tailscale-fastdl:
-    image: tailscale/tailscale:stable
+    image: tailscale/tailscale:${TAILSCALE_VERSION:?set it in deploy/env/versions.env}
     restart: unless-stopped
     network_mode: "service:fastdl"
     # containerboot expects an auth key before it starts. Running the daemon
     # directly lets the admin UI initiate interactive login and show its URL.
     entrypoint: ["/config/start.sh"]
+    environment:
+      TAILSCALE_FASTDL: ${TAILSCALE_FASTDL:-0}
     volumes:
       - tailscale_fastdl_state:/var/lib/tailscale
       - tailscale_fastdl_runtime:/run/tf2ap-fastdl
@@ -259,6 +265,8 @@ services:
       dockerfile: deploy/Dockerfile.admin
       args:
         LAUNCHER_VERSION: ${LAUNCHER_VERSION:-compose}
+        NODE_VERSION: ${NODE_VERSION:?set it in deploy/env/versions.env}
+        TAILSCALE_VERSION: ${TAILSCALE_VERSION:?set it in deploy/env/versions.env}
     restart: unless-stopped
     network_mode: "service:srcds"
     # This is the same file the page writes. Loading it as the container's
@@ -268,13 +276,19 @@ services:
     env_file:
       - path: ./.env
         required: false
-    # The only writable host object is .env. Root is needed because Compose
-    # bind-mounts a file owned by the host user; the root filesystem and both
-    # service-log volumes remain read-only, with every Linux capability
-    # dropped. Writing in place preserves the host file's owner and inode.
+    # Root, because the sidecar's tailscaled admits only uid 0 over its socket.
+    # Every capability is dropped and DAC_OVERRIDE alone comes back: without it
+    # uid 0 obeys the mode bits like anybody else, and .env and
+    # community-content belong to the host user, so Save and the pack downloads
+    # fail with "permission denied" on a plain Docker Engine. Docker Desktop
+    # fakes bind-mount ownership, which is what hid that. The root filesystem
+    # and both service-log volumes stay read-only. .env is written in place,
+    # which keeps the host file's owner and inode; the files a download creates
+    # are root's on the host.
     user: "0:0"
     read_only: true
     cap_drop: [ALL]
+    cap_add: [DAC_OVERRIDE]
     security_opt: [no-new-privileges:true]
     environment:
       TF2AP_ADMIN_LISTEN: 0.0.0.0:8477

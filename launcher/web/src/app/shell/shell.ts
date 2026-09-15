@@ -58,12 +58,10 @@ export class Shell {
   /** What the sections are called. The URL keeps its own words: /session and
       /log are what a bug report pastes, and renaming a route renames a link
       somebody already has. */
-  private readonly allTabs = [
+  readonly tabs = [
     { label: 'Play', link: appLink.session() },
     { label: 'Unlocks', link: appLink.unlocks() },
     { label: 'Bots', link: appLink.bots() },
     { label: 'Settings', link: appLink.settings() },
   ];
-
-  readonly tabs = computed(() => this.allTabs);
 }

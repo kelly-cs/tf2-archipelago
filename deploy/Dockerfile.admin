@@ -2,18 +2,21 @@
 # an attached backend: Docker owns process lifecycle and .env owns settings,
 # while the page observes the bridge and sends mission/RCON commands to SRCDS.
 
+ARG NODE_VERSION
+ARG TAILSCALE_VERSION
+
 FROM golang:1.27 AS code
 
 WORKDIR /src
 COPY go.mod go.sum Makefile ./
 COPY deploy/env/versions.env deploy/env/versions.env
 COPY proto proto
-RUN cd proto && go run github.com/bufbuild/buf/cmd/buf@v1.72.0 generate
+RUN make proto
 COPY . .
 RUN make embed-placeholders
 
 
-FROM node:26-slim AS web
+FROM node:${NODE_VERSION} AS web
 
 WORKDIR /src
 COPY launcher/web/package.json launcher/web/package-lock.json launcher/web/
@@ -35,7 +38,7 @@ RUN make launcher-compose-admin \
     LAUNCHER_VERSION="${LAUNCHER_VERSION}"
 
 
-FROM tailscale/tailscale:stable AS tailscale
+FROM tailscale/tailscale:${TAILSCALE_VERSION} AS tailscale
 
 
 FROM gcr.io/distroless/static-debian12:nonroot

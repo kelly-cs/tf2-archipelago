@@ -23,9 +23,13 @@ import (
 )
 
 func main() {
-	output, closeLog := logOutput()
+	health := flag.Bool("health", false,
+		"ask the running bridge for its health and exit; this is the container health check")
+	flag.Parse()
+
+	output, closeLog := logOutput(*health)
 	logger := slog.New(slog.NewTextHandler(output, nil))
-	if err := run(logger); err != nil {
+	if err := run(*health, logger); err != nil {
 		logger.Error("bridge stopped", "error", err)
 		closeLog()
 		os.Exit(1)
@@ -34,11 +38,11 @@ func main() {
 }
 
 // logOutput keeps the container's normal stderr and gives the admin sidecar a
-// read-only file to follow. Health-check processes must not truncate the live
-// bridge's log every fifteen seconds.
-func logOutput() (io.Writer, func()) {
+// read-only file to follow. The health check is its own process, and it must
+// not truncate the live bridge's log every fifteen seconds.
+func logOutput(health bool) (io.Writer, func()) {
 	path := os.Getenv("BRIDGE_LOG_FILE")
-	if path == "" || healthCheckProcess() {
+	if path == "" || health {
 		return os.Stderr, func() {}
 	}
 	file, err := os.Create(path)
@@ -48,25 +52,12 @@ func logOutput() (io.Writer, func()) {
 	return io.MultiWriter(os.Stderr, file), func() { _ = file.Close() }
 }
 
-func healthCheckProcess() bool {
-	for _, arg := range os.Args[1:] {
-		if arg == "-health" || arg == "--health" {
-			return true
-		}
-	}
-	return false
-}
-
-func run(logger *slog.Logger) error {
-	health := flag.Bool("health", false,
-		"ask the running bridge for its health and exit; this is the container health check")
-	flag.Parse()
-
+func run(health bool, logger *slog.Logger) error {
 	cfg, err := config.Load()
 	if err != nil {
 		return err
 	}
-	if *health {
+	if health {
 		return bridge.CheckHealth(cfg.Listen)
 	}
 

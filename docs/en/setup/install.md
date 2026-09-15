@@ -166,13 +166,14 @@ with the same tag, or when you explicitly want a full restart, use:
 docker compose up -d --force-recreate
 ```
 
-The admin container prints its address at startup. By default it is always:
+The admin page is on this address unless `TF2AP_ADMIN_PORT` in `.env` says
+otherwise:
 
 ```text
 http://127.0.0.1:8477
 ```
 
-To ask Compose for the actual mapping, run:
+Compose can confirm the mapping:
 
 ```sh
 docker compose port srcds 8477

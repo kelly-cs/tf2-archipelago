@@ -65,8 +65,11 @@ jobs:
 
       - name: build and push the admin UI image
         run: |
+          . deploy/env/versions.env
           docker build -f deploy/Dockerfile.admin \
             --build-arg "LAUNCHER_VERSION=nightly" \
+            --build-arg "NODE_VERSION=$NODE_VERSION" \
+            --build-arg "TAILSCALE_VERSION=$TAILSCALE_VERSION" \
             -t "$IMAGE/admin:nightly" .
           deploy/push-image.sh "$IMAGE/admin:nightly"
 

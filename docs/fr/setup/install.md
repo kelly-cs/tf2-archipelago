@@ -191,7 +191,7 @@ prochaine génération. Le conteneur d'administration n'a pas accès au socket
 Docker : Arrêter et Redémarrer affichent donc les commandes à exécuter.
 `docker compose stop` arrête la stack sans effacer ses données.
 
-Réglez **Adresse de connexion** sur la page du serveur avec l'adresse à donner
+Réglez **Join address** sur la page du serveur avec l'adresse à donner
 aux joueurs : IP publique ou nom DNS pour un port transféré. Si Docker
 s'exécute dans WSL et TF2 sous Windows, utilisez localement l'adresse WSL
 affichée par `hostname -I`. Une adresse publique exige aussi

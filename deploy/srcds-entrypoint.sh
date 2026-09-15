@@ -16,11 +16,16 @@ INTERVAL=30
 
 tailscale_fastdl_url() {
 	url_file=/run/tf2ap-fastdl/url
-	if [ ! -s "$url_file" ]; then
-		echo "[AP] waiting for Tailscale sign-in and Funnel setup in the admin UI" >&2
-	fi
+	# No upper bound, on purpose: the URL appears once a person has signed the
+	# sidecar in from the admin UI, and nothing here can hurry them. The line
+	# repeats so `docker compose logs srcds` reads as a wait, not a hang.
+	waited=0
 	while [ ! -s "$url_file" ]; do
+		if [ $((waited % 60)) -eq 0 ]; then
+			echo "[AP] waiting for Tailscale sign-in and Funnel setup in the admin UI" >&2
+		fi
 		sleep 2
+		waited=$((waited + 2))
 	done
 	url="$(sed -n '1p' "$url_file")"
 	case "$url" in

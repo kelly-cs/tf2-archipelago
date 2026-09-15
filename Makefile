@@ -678,7 +678,8 @@ compose-release:
 		echo '# https://github.com/m-this/tf2-archipelago'; \
 		$(COMPOSE_RELEASE) --profile selfhost --profile seed config --no-interpolate \
 			| awk '$$0 == "    build:" { skip = 1; next } skip { if (match($$0, /^      /)) next; skip = 0 } { print }' \
-			| sed 's|$(CURDIR)/|./|g'; \
+			| sed 's|$(CURDIR)/|./|g' \
+			| sed 's|$${TAILSCALE_VERSION:?[^}]*}|$(TAILSCALE_VERSION)|g'; \
 	} > $(DIST)/compose.yaml
 
 # A Go test keeps the plugin and the apworld manifest on one version. The tag is

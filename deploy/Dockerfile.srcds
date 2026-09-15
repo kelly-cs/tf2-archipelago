@@ -53,7 +53,7 @@ COPY deploy/sigmod-stamp.sh /usr/local/bin/tf2ap-sigmod-stamp
 
 # The staged tree mirrors the game directory, so installing it is one copy.
 RUN apt-get update \
-	&& apt-get install --yes --no-install-recommends curl ca-certificates unzip \
+	&& apt-get install --yes --no-install-recommends curl ca-certificates unzip gdb-minimal \
 	&& mkdir -p /opt/tf2-archipelago \
 	&& curl -fsSL -o /tmp/ripext.zip \
 		"https://github.com/ErikMinekus/sm-ripext/releases/download/${RIPEXT_VERSION}/sm-ripext-${RIPEXT_VERSION}-linux.zip" \
