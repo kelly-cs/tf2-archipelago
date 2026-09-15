@@ -12,6 +12,7 @@ package main
 import (
 	"context"
 	"flag"
+	"io"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -22,11 +23,38 @@ import (
 )
 
 func main() {
-	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
+	output, closeLog := logOutput()
+	logger := slog.New(slog.NewTextHandler(output, nil))
 	if err := run(logger); err != nil {
 		logger.Error("bridge stopped", "error", err)
+		closeLog()
 		os.Exit(1)
 	}
+	closeLog()
+}
+
+// logOutput keeps the container's normal stderr and gives the admin sidecar a
+// read-only file to follow. Health-check processes must not truncate the live
+// bridge's log every fifteen seconds.
+func logOutput() (io.Writer, func()) {
+	path := os.Getenv("BRIDGE_LOG_FILE")
+	if path == "" || healthCheckProcess() {
+		return os.Stderr, func() {}
+	}
+	file, err := os.Create(path)
+	if err != nil {
+		return os.Stderr, func() {}
+	}
+	return io.MultiWriter(os.Stderr, file), func() { _ = file.Close() }
+}
+
+func healthCheckProcess() bool {
+	for _, arg := range os.Args[1:] {
+		if arg == "-health" || arg == "--health" {
+			return true
+		}
+	}
+	return false
 }
 
 func run(logger *slog.Logger) error {

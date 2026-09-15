@@ -154,6 +154,44 @@ docker compose up -d
 docker compose logs -f
 ```
 
+Le conteneur d'administration affiche son adresse au démarrage. Par défaut :
+
+```text
+http://127.0.0.1:8477
+```
+
+Pour demander l'adresse réelle à Compose :
+
+```sh
+docker compose port srcds 8477
+docker compose logs admin
+```
+
+La première commande affiche le port hôte et la seconde l'URL complète. Le
+port apparaît sur la ligne `srcds` de `docker compose ps`, car l'administration
+partage l'espace réseau privé du serveur. Modifiez `TF2AP_ADMIN_PORT` dans
+`.env` si 8477 est déjà utilisé, puis relancez `docker compose up -d`. La page
+reste liée au loopback de l'hôte car elle peut envoyer des commandes RCON ;
+utilisez un tunnel SSH pour administrer un serveur distant.
+
+L'onglet Réglages écrit les changements dans ce même fichier `.env`. Les
+réglages des conteneurs s'appliquent après `docker compose up -d`; ceux de la
+seed s'appliquent à sa prochaine génération. Le conteneur d'administration n'a
+pas accès au socket Docker : Arrêter et Redémarrer affichent donc les commandes
+à exécuter. `docker compose stop` arrête la stack sans effacer ses données.
+
+Réglez **Adresse de connexion** sur la page du serveur avec l'adresse à donner
+aux joueurs : IP publique ou nom DNS pour un port transféré. Si Docker
+s'exécute dans WSL et TF2 sous Windows, utilisez localement l'adresse WSL
+affichée par `hostname -I`. Une adresse publique exige aussi
+`SRCDS_REACH=port`, un vrai jeton de serveur et le transfert du port du jeu dans
+le routeur et le pare-feu.
+
+La console de la page Jeu suit les sorties de SRCDS et du bridge grâce à des
+montages de volumes en lecture seule. Elle peut afficher et rechercher les
+logs de la stack, sans permettre au conteneur d'administration de modifier le
+jeu ou l'état du bridge.
+
 Les étapes 3 et 4 de [Créer la session](create-the-session.md) s'appliquent
 telles quelles. Envoyez le fichier de `seed/`, créez une room, et écrivez le
 port de la room dans `AP_PORT`.

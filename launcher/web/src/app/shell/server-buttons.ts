@@ -34,11 +34,20 @@ import { ServerStatus } from '@gen/tf2ap/launcher/v1/launcher_pb';
     >
       Join
     </app-button>
-    <app-button [tone]="halting() ? 'halt' : 'go'" (press)="toggle.next()">
-      {{ halting() ? 'Stop server' : 'Start server' }}
-    </app-button>
-    <app-button tone="ghost" [disabled]="!running()" (press)="restart.next()">Restart</app-button>
-    <app-button tone="ghost" hint="Close the launcher" (press)="quit.next()">Quit</app-button>
+    @if (managedExternally()) {
+      <app-button tone="halt" hint="Show the Docker Compose stop command" (press)="toggle.next()">
+        Stop server
+      </app-button>
+      <app-button tone="ghost" hint="Show how to apply saved settings" (press)="restart.next()">
+        Restart
+      </app-button>
+    } @else {
+      <app-button [tone]="halting() ? 'halt' : 'go'" (press)="toggle.next()">
+        {{ halting() ? 'Stop server' : 'Start server' }}
+      </app-button>
+      <app-button tone="ghost" [disabled]="!running()" (press)="restart.next()">Restart</app-button>
+      <app-button tone="ghost" hint="Close the launcher" (press)="quit.next()">Quit</app-button>
+    }
   `,
   styles: `
     :host {
@@ -52,6 +61,7 @@ export class ServerButtons {
   private readonly commands = inject(LauncherCommands);
 
   readonly running = computed(() => this.store.running());
+  readonly managedExternally = computed(() => this.store.managedExternally());
   readonly joinable = computed(() => this.store.running() && this.store.joinUrl() !== '');
 
   /** halting is the button meaning Stop: the server is up, or on its way up. */

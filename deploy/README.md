@@ -6,6 +6,7 @@ Compose stack. Two services by default, and two more that run on demand.
 | --- | --- | --- |
 | `compose.yml` | `srcds` | TF2 dedicated server, SourceMod plus `ripext` plus our plugin. |
 | `compose.yml` | `bridge` | Go, from `bridge/`. |
+| `compose.yml` | `admin` | The launcher web UI attached to the Compose-managed server, with read-only SRCDS and bridge logs, on host loopback. |
 | `compose.yml` | `archipelago` | The Archipelago server, unmodified, with our apworld baked in. Profile `selfhost` only. |
 | `compose.yml` | `fastdl` | Caddy serving only downloadable TF2 asset directories. |
 | `compose.yml` | `tailscale-fastdl` | Official Tailscale Funnel sidecar. Profile `tailscale-fastdl` only. |
@@ -44,9 +45,10 @@ rule exactly once:
 
 - `srcds` needs **27015/udp** reachable from the internet, or nobody can join.
   There is no way around it. A game client connects directly.
-- **Everything else stays on loopback.** The bridge's HTTP API, the Archipelago
-  server's web UI and its game port, and RCON above all. RCON is never exposed,
-  not even on loopback outside the compose network.
+- **Everything else stays on loopback.** The admin UI (8477 by default), the
+  bridge's HTTP API, the Archipelago server's web UI and its game port, and
+  RCON above all. RCON itself is never exposed, not even on loopback outside
+  the compose network; the local admin UI is its guarded front door.
 
 Consequence worth being explicit about: this puts inbound game traffic on
 whatever host runs it. `srcds` is a large C++ process parsing untrusted input

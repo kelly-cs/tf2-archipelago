@@ -64,6 +64,8 @@ shape is a setting the server reads.
 */
 func readAtStart(s settings.Settings) settings.Settings {
 	s = botlive.WithoutTeam(s)
+	// This changes only the address printed by the launcher, not SRCDS.
+	s.SrcdsJoinHost = ""
 	if s.TestMode {
 		return s
 	}

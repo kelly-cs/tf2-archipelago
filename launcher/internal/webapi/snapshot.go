@@ -2,6 +2,7 @@ package webapi
 
 import (
 	"fmt"
+	"net"
 	"slices"
 	"strings"
 
@@ -19,27 +20,28 @@ import (
 // Snapshot is everything the page needs for one draw. Passwords never cross
 // the loopback boundary; form already represents them as replacement fields.
 type Snapshot struct {
-	Title         string           `json:"title"`
-	Slot          string           `json:"slot,omitempty"`
-	Status        string           `json:"status"`
-	Running       bool             `json:"running"`
-	Busy          bool             `json:"busy"`
-	Room          string           `json:"room"`
-	Join          string           `json:"join"`
-	JoinURL       string           `json:"join_url"`
-	Mission       string           `json:"mission"`
-	Logs          []apruntime.Line `json:"logs"`
-	Session       session.Snapshot `json:"session"`
-	SessionError  string           `json:"session_error,omitempty"`
-	Bots          []botlive.Seat   `json:"bots"`
-	DrawnBots     string           `json:"drawn_bots,omitempty"`
-	Form          *form.Model      `json:"form,omitempty"`
-	FormPage      string           `json:"form_page,omitempty"`
-	Notice        string           `json:"notice,omitempty"`
-	NoticeSeq     uint64           `json:"notice_seq,omitempty"`
-	ItemServer    string           `json:"item_server,omitempty"`
-	MissionPool   []MissionPoolRow `json:"mission_pool,omitempty"`
-	RestartNeeded bool             `json:"restart_needed,omitempty"`
+	Title             string           `json:"title"`
+	Slot              string           `json:"slot,omitempty"`
+	Status            string           `json:"status"`
+	Running           bool             `json:"running"`
+	Busy              bool             `json:"busy"`
+	Room              string           `json:"room"`
+	Join              string           `json:"join"`
+	JoinURL           string           `json:"join_url"`
+	Mission           string           `json:"mission"`
+	Logs              []apruntime.Line `json:"logs"`
+	Session           session.Snapshot `json:"session"`
+	SessionError      string           `json:"session_error,omitempty"`
+	Bots              []botlive.Seat   `json:"bots"`
+	DrawnBots         string           `json:"drawn_bots,omitempty"`
+	Form              *form.Model      `json:"form,omitempty"`
+	FormPage          string           `json:"form_page,omitempty"`
+	Notice            string           `json:"notice,omitempty"`
+	NoticeSeq         uint64           `json:"notice_seq,omitempty"`
+	ItemServer        string           `json:"item_server,omitempty"`
+	MissionPool       []MissionPoolRow `json:"mission_pool,omitempty"`
+	RestartNeeded     bool             `json:"restart_needed,omitempty"`
+	ManagedExternally bool             `json:"managed_externally,omitempty"`
 }
 
 // MissionPoolRow is the domain data behind one dense row in the settings
@@ -61,6 +63,9 @@ func (a *App) Snapshot() Snapshot {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	running := a.supervisor.Running()
+	if a.attached {
+		running = a.attachedUp
+	}
 	status := "stopped"
 	if a.busy && !running {
 		status = "starting"
@@ -107,6 +112,7 @@ func (a *App) Snapshot() Snapshot {
 		Bots: botlive.Team(s), DrawnBots: botlive.Drawn(s),
 		Form: screen.Form, FormPage: screen.Page, Notice: a.notice, NoticeSeq: a.noticeSeq,
 		ItemServer: a.itemServer, MissionPool: screen.MissionPool, RestartNeeded: screen.RestartNeeded,
+		ManagedExternally: a.attached,
 	}
 	if a.fetchErr != nil {
 		result.SessionError = a.fetchErr.Error()
@@ -187,6 +193,19 @@ func missionSource(mission gamedata.Mission, importedPacks []string) string {
 }
 
 func (a *App) joinLineLocked() string {
+	if a.attached {
+		line := a.attachedJoinAddressLocked()
+		if settings.Effective(a.settings.SrcdsReach, a.settings.SrcdsToken) == settings.ReachSteam {
+			if a.steamURL == "" {
+				return "Steam relay address: waiting"
+			}
+			line = a.steamURL
+		}
+		if a.settings.SrcdsPw != "" {
+			line += "   (password " + a.settings.SrcdsPw + ")"
+		}
+		return line
+	}
 	port := fmt.Sprintf("%d", a.settings.SrcdsPort)
 	var parts []string
 	if settings.Effective(a.settings.SrcdsReach, a.settings.SrcdsToken) == settings.ReachSteam {
@@ -210,10 +229,34 @@ func (a *App) joinLineLocked() string {
 }
 
 func (a *App) joinURLLocked() string {
+	if a.attached {
+		// SteamConnectURL otherwise discovers this process's LAN address. In a
+		// sidecar that is the private container address, which the browser cannot
+		// join. Treat the known host-published address like a relay address so it
+		// is used verbatim.
+		s := a.settings
+		s.SrcdsReach = settings.ReachSteam
+		address := a.attachedJoinAddressLocked()
+		if settings.Effective(a.settings.SrcdsReach, a.settings.SrcdsToken) == settings.ReachSteam {
+			if a.steamURL == "" {
+				return ""
+			}
+			address = a.steamURL
+		}
+		return apruntime.SteamConnectURL(s, address)
+	}
 	if settings.Effective(a.settings.SrcdsReach, a.settings.SrcdsToken) == settings.ReachSteam && a.steamURL == "" {
 		return ""
 	}
 	return apruntime.SteamConnectURL(a.settings, a.steamURL)
+}
+
+func (a *App) attachedJoinAddressLocked() string {
+	host := a.settings.SrcdsJoinHost
+	if host == "" {
+		host = "127.0.0.1"
+	}
+	return net.JoinHostPort(host, fmt.Sprintf("%d", a.settings.SrcdsPort))
 }
 
 // Screen is the settings part of one draw: the rows, the page they are on, the

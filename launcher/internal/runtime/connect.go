@@ -27,6 +27,9 @@ import (
 func ConnectLines(s settings.Settings) []string {
 	port := strconv.Itoa(s.SrcdsPort)
 	lines := []string{"connect " + net.JoinHostPort("127.0.0.1", port) + "   (on this machine)"}
+	if s.SrcdsJoinHost != "" {
+		lines = append(lines, "connect "+net.JoinHostPort(s.SrcdsJoinHost, port)+"   (configured join address)")
+	}
 	for _, address := range LocalAddresses() {
 		lines = append(lines, "connect "+net.JoinHostPort(address, port)+"   (from your network)")
 	}
@@ -217,7 +220,9 @@ func SteamConnectURL(s settings.Settings, steamAddress string) string {
 	// until then.
 	if s.SrcdsReach != settings.ReachSteam || address == "" {
 		host := "127.0.0.1"
-		if local := LocalAddresses(); len(local) > 0 {
+		if s.SrcdsJoinHost != "" {
+			host = s.SrcdsJoinHost
+		} else if local := LocalAddresses(); len(local) > 0 {
 			host = local[0]
 		}
 		address = net.JoinHostPort(host, strconv.Itoa(s.SrcdsPort))

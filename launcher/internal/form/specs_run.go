@@ -563,6 +563,12 @@ func serverSpecs() []Spec {
 			func(s State) int { return s.Settings.SrcdsPort },
 			func(s State, v int) State { s.Settings.SrcdsPort = v; return s }),
 
+		text("server.join_host", tab, "Join address",
+			"What the Join button gives players. Blank discovers this machine's local address. Use your public IP or DNS name for a port-forwarded server, or the WSL address when Docker runs in WSL and TF2 runs on Windows.",
+			"discover it",
+			func(s State) string { return s.Settings.SrcdsJoinHost },
+			func(s State, v string) State { s.Settings.SrcdsJoinHost = trim(v); return s }),
+
 		text("server.admins", tab, "Admins by Steam id",
 			"Who may run the admin commands, separated by commas. The 17 digit id or SourceMod's STEAM_0:1:26975537.",
 			"none",

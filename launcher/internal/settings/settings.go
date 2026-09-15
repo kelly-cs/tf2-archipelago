@@ -46,10 +46,14 @@ type Settings struct {
 	APPassword string `json:"ap_password,omitempty"`
 
 	// Game server.
-	SrcdsHostname      string `json:"srcds_hostname"`
-	SrcdsRconPw        string `json:"srcds_rcon_pw,omitempty"`
-	SrcdsPw            string `json:"srcds_pw,omitempty"`
-	SrcdsPort          int    `json:"srcds_port"`
+	SrcdsHostname string `json:"srcds_hostname"`
+	SrcdsRconPw   string `json:"srcds_rcon_pw,omitempty"`
+	SrcdsPw       string `json:"srcds_pw,omitempty"`
+	SrcdsPort     int    `json:"srcds_port"`
+	// SrcdsJoinHost is the address printed and handed to Steam. Empty lets the
+	// launcher discover a local address; a Compose host behind WSL or NAT can
+	// name the address its players actually reach.
+	SrcdsJoinHost      string `json:"srcds_join_host,omitempty"`
 	SrcdsMaxPlayers    int    `json:"srcds_max_players"`
 	SrcdsToken         string `json:"srcds_token"`
 	SrcdsReach         Reach  `json:"srcds_reach"`

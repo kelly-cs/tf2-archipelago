@@ -11,6 +11,7 @@ import (
 	"github.com/m-this/tf2-archipelago/gamedata"
 	"github.com/m-this/tf2-archipelago/launcher/internal/assets"
 	"github.com/m-this/tf2-archipelago/launcher/internal/botlive"
+	"github.com/m-this/tf2-archipelago/launcher/internal/composeenv"
 	"github.com/m-this/tf2-archipelago/launcher/internal/form"
 	"github.com/m-this/tf2-archipelago/launcher/internal/generate"
 	"github.com/m-this/tf2-archipelago/launcher/internal/installer"
@@ -78,6 +79,7 @@ func (a *App) SaveSettings(restart bool) error {
 	}
 	draft := *a.draft
 	readyMods := slices.Clone(a.serverMods)
+	attached, envFile := a.attached, a.attachedEnvFile
 	a.mu.Unlock()
 	room, roomErr := settings.ParseRoom(draft.Draft.Room)
 	if roomErr == nil {
@@ -85,14 +87,11 @@ func (a *App) SaveSettings(restart bool) error {
 	} else if strings.TrimSpace(draft.Draft.Room) == "" {
 		draft.Settings.APHost, draft.Settings.APPort = "", 0
 	}
-	if err := settings.CheckServerModsReady(draft.Settings, readyMods); err != nil {
-		return err
-	}
-	written, err := settings.Persist(draft.Settings)
+	before := a.supervisor.Settings()
+	written, err := persistDraft(draft.Settings, before, readyMods, attached, envFile)
 	if err != nil {
 		return err
 	}
-	before := a.supervisor.Settings()
 	a.mu.Lock()
 	a.settings, a.draft = written, nil
 	a.notice = "settings saved"
@@ -101,6 +100,11 @@ func (a *App) SaveSettings(restart bool) error {
 	a.smHeld = false
 	a.mu.Unlock()
 	a.supervisor.SetSettings(written)
+	if attached {
+		a.finishAttachedSave(before, written)
+		a.publishState()
+		return nil
+	}
 	if _, err := settings.WritePlayerFile(written, assets.ArchipelagoVersion); err != nil {
 		a.Say("%v", err)
 	}
@@ -131,6 +135,31 @@ func (a *App) SaveSettings(restart bool) error {
 	go a.reportRoom(written, draft.Draft.Room, roomErr)
 	a.publishState()
 	return nil
+}
+
+func persistDraft(draft, before settings.Settings, readyMods []string, attached bool, envFile string) (settings.Settings, error) {
+	if attached {
+		if envFile == "" {
+			return settings.Settings{}, errors.New("the Compose .env file is not mounted into the admin container")
+		}
+		if err := composeenv.Write(envFile, before, draft); err != nil {
+			return settings.Settings{}, err
+		}
+		return draft, nil
+	}
+	if err := settings.CheckServerModsReady(draft, readyMods); err != nil {
+		return settings.Settings{}, err
+	}
+	return settings.Persist(draft)
+}
+
+func (a *App) finishAttachedSave(before, after settings.Settings) {
+	plan := saveplan.For(before, after)
+	if plan.Restart || plan.Team {
+		a.Notify("Settings saved to .env. Apply them with: docker compose up -d")
+		return
+	}
+	a.Notify("Settings saved to .env. Container settings apply with docker compose up -d; seed options apply on the next generation.")
 }
 
 func (a *App) reportRoom(s settings.Settings, typed string, parseErr error) {

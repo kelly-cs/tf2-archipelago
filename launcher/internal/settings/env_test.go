@@ -80,6 +80,7 @@ func TestEveryFieldHasAnEnvVar(t *testing.T) {
 		"SrcdsRconPw":                "SRCDS_RCONPW",
 		"SrcdsPw":                    "SRCDS_PW",
 		"SrcdsPort":                  "SRCDS_PORT",
+		"SrcdsJoinHost":              "TF2AP_JOIN_HOST",
 		"SrcdsMaxPlayers":            "SRCDS_MAXPLAYERS",
 		"SrcdsStartMission":          "SRCDS_START_MISSION",
 		"SrcdsStartMap":              "SRCDS_STARTMAP",

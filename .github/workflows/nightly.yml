@@ -63,6 +63,13 @@ jobs:
           docker build -f deploy/Dockerfile.bridge -t "$IMAGE/bridge:nightly" .
           deploy/push-image.sh "$IMAGE/bridge:nightly"
 
+      - name: build and push the admin UI image
+        run: |
+          docker build -f deploy/Dockerfile.admin \
+            --build-arg "LAUNCHER_VERSION=nightly" \
+            -t "$IMAGE/admin:nightly" .
+          deploy/push-image.sh "$IMAGE/admin:nightly"
+
       - name: build and push the srcds image
         run: |
           . deploy/env/versions.env

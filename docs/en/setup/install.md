@@ -158,6 +158,45 @@ docker compose up -d
 docker compose logs -f
 ```
 
+The admin container prints its address at startup. By default it is always:
+
+```text
+http://127.0.0.1:8477
+```
+
+To ask Compose for the actual mapping, run:
+
+```sh
+docker compose port srcds 8477
+docker compose logs admin
+```
+
+The first prints the host port and the second prints the complete URL. The
+mapping appears on the `srcds` row in `docker compose ps` because the admin
+shares the game server's private network namespace. Change `TF2AP_ADMIN_PORT`
+in `.env` if 8477 is already occupied, then run `docker compose up -d` again.
+The page stays on host loopback because it can send RCON commands; reach a
+remote server through an SSH port forward rather than publishing this port to
+the internet.
+
+The Settings tab writes changes back to this same `.env` file. Settings read by
+the containers apply after `docker compose up -d`; seed options apply the next
+time the seed profile runs. The admin container has no Docker socket, so Stop
+and Restart show those commands instead of silently claiming to control the
+host. `docker compose stop` stops the stack without deleting its data.
+
+Set **Join address** on the Game server settings page to the address players
+should receive. Use your public IP or DNS name for a port-forwarded server. If
+Docker runs inside WSL and TF2 runs on Windows, use the WSL address printed by
+`hostname -I` for local testing: Windows forwards the admin page's TCP listener
+from localhost, but the game also needs UDP. A public address works only with
+`SRCDS_REACH=port`, a real game-server login token, and the game port forwarded
+through the router and firewall.
+
+The console on the Play page follows SRCDS and bridge output through read-only
+volume mounts. It can display and search the stack's logs, but the admin
+container cannot change the game or bridge state through those mounts.
+
 Steps 3 and 4 of [Create the session](create-the-session.md) apply as they
 stand. Upload the file from `seed/`, create a room, and write the port of the
 room into `AP_PORT`.

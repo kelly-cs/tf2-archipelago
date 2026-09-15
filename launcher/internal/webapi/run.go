@@ -35,6 +35,30 @@ type Options struct {
 	// Serving is told the address once it answers, with what Quit does. It is
 	// how a tray icon knows what to open and what to close. Nil is fine.
 	Serving func(url string, quit func())
+
+	// Authority is the Host the browser uses when it differs from the listener.
+	// A container listens on 0.0.0.0:8477 but is intentionally published as
+	// 127.0.0.1 on a configurable host port. Keeping the exact public authority
+	// preserves the DNS-rebinding guard in that arrangement.
+	Authority string
+
+	// Attached serves a stack that Docker Compose already supervises.
+	Attached bool
+
+	// AttachedEnvFile is the host Compose .env bind-mounted into the attached
+	// admin container. Empty keeps settings read-only.
+	AttachedEnvFile string
+
+	// AttachedLogs are service logs mounted read-only into an attached admin
+	// process. An empty list disables service-log forwarding.
+	AttachedLogs []AttachedLog
+}
+
+// AttachedLog names one Compose service's log as mounted in the admin
+// container. Source is the label shown beside its lines in the browser.
+type AttachedLog struct {
+	Path   string
+	Source string
 }
 
 /*
@@ -46,6 +70,9 @@ server running, Quit in the interface stops it, and so does Ctrl-C here.
 */
 func Run(s settings.Settings, logger *slog.Logger, options Options) error {
 	app := New(s, logger)
+	if options.Attached {
+		app = NewAttached(s, logger, options.AttachedEnvFile)
+	}
 	if file, err := apruntime.CreateLogFile(s.InstallRoot); err == nil {
 		app.LogTo(file)
 		defer func() { _ = file.Close() }()
@@ -61,6 +88,13 @@ func Run(s settings.Settings, logger *slog.Logger, options Options) error {
 		return fmt.Errorf("cannot start the launcher interface: %w", err)
 	}
 	authority := listener.Addr().String()
+	if options.Authority != "" {
+		if _, _, splitErr := net.SplitHostPort(options.Authority); splitErr != nil {
+			_ = listener.Close()
+			return fmt.Errorf("invalid interface authority %q: %w", options.Authority, splitErr)
+		}
+		authority = options.Authority
+	}
 	url := "http://" + authority
 
 	server := &http.Server{Handler: app.Handler(authority), ReadHeaderTimeout: 5 * time.Second}
@@ -71,14 +105,22 @@ func Run(s settings.Settings, logger *slog.Logger, options Options) error {
 		}
 	}()
 	go app.WatchSession()
+	if options.Attached {
+		for _, log := range options.AttachedLogs {
+			go app.WatchAttachedLog(log)
+		}
+	}
 
 	announce(app, url, options.OpenBrowser)
 	if options.Serving != nil {
 		options.Serving(url, app.Quit)
 	}
-	if s.APPort != 0 || s.TestMode {
+	switch {
+	case options.Attached:
+		app.Say("Docker Compose owns this server; settings come from .env.")
+	case s.APPort != 0 || s.TestMode:
 		app.Start()
-	} else {
+	default:
 		app.OpenSettings("Archipelago room")
 	}
 

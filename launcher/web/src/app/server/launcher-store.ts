@@ -48,6 +48,7 @@ export class LauncherStore {
   readonly noticeSeq = this.field((s) => s.noticeSeq, 0n);
   readonly sessionError = this.field((s) => s.sessionError, '');
   readonly restartNeeded = this.field((s) => s.restartNeeded, false);
+  readonly managedExternally = this.field((s) => s.managedExternally, false);
 
   readonly bots = this.field((s) => s.bots, []);
   readonly missionPool = this.field((s) => s.missionPool, []);

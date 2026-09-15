@@ -58,6 +58,13 @@ jobs:
             -t "$IMAGE/bridge:$GITHUB_REF_NAME" -t "$IMAGE/bridge:latest" .
           deploy/push-image.sh --all-tags "$IMAGE/bridge"
 
+      - name: build and push the admin UI image
+        run: |
+          docker build -f deploy/Dockerfile.admin \
+            --build-arg "LAUNCHER_VERSION=$GITHUB_REF_NAME" \
+            -t "$IMAGE/admin:$GITHUB_REF_NAME" -t "$IMAGE/admin:latest" .
+          deploy/push-image.sh --all-tags "$IMAGE/admin"
+
       - name: build and push the srcds image
         run: |
           . deploy/env/versions.env

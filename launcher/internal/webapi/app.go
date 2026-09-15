@@ -17,6 +17,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net"
 	"os"
 	"slices"
 	"strings"
@@ -53,26 +54,29 @@ type Event struct {
 type App struct {
 	mu sync.Mutex
 
-	settings   settings.Settings
-	supervisor *apruntime.Supervisor
-	logs       []apruntime.Line
-	busy       bool
-	install    context.CancelFunc
-	steamURL   string
-	mission    string
-	snapshot   session.Snapshot
-	fetchErr   error
-	notice     string
-	noticeSeq  uint64
-	draft      *form.State
-	formPage   string
-	community  []string
-	imported   []string
-	serverMods []string
-	smAsked    bool
-	smHeld     bool
-	itemServer string
-	logFile    *os.File
+	settings        settings.Settings
+	supervisor      *apruntime.Supervisor
+	logs            []apruntime.Line
+	busy            bool
+	install         context.CancelFunc
+	steamURL        string
+	mission         string
+	snapshot        session.Snapshot
+	fetchErr        error
+	notice          string
+	noticeSeq       uint64
+	draft           *form.State
+	formPage        string
+	community       []string
+	imported        []string
+	serverMods      []string
+	smAsked         bool
+	smHeld          bool
+	itemServer      string
+	logFile         *os.File
+	attached        bool
+	attachedUp      bool
+	attachedEnvFile string
 
 	listeners map[*Listener]struct{}
 	quit      chan struct{}
@@ -90,6 +94,18 @@ func New(s settings.Settings, logger *slog.Logger) *App {
 		quit:       make(chan struct{}),
 	}
 	a.supervisor = apruntime.NewSupervisor(s, logger, a.append)
+	return a
+}
+
+// NewAttached observes a bridge and game server that another supervisor owns.
+// Compose is that supervisor: mounting the Docker socket just to make the
+// launcher's Start and Stop buttons work would give this page control of the
+// whole host, so the attached UI deliberately limits itself to observation,
+// mission changes and RCON.
+func NewAttached(s settings.Settings, logger *slog.Logger, envFile string) *App {
+	a := New(s, logger)
+	a.attached = true
+	a.attachedEnvFile = envFile
 	return a
 }
 
@@ -173,6 +189,11 @@ func (a *App) publishLocked(message Event) {
 //nolint:contextcheck // The server lifecycle is independent of browser requests.
 func (a *App) Start() {
 	a.mu.Lock()
+	if a.attached {
+		a.mu.Unlock()
+		a.Notify("Docker Compose owns the server lifecycle. Run: docker compose up -d")
+		return
+	}
 	if a.busy || a.supervisor.Running() {
 		a.mu.Unlock()
 		return
@@ -227,6 +248,11 @@ func (a *App) Start() {
 
 func (a *App) Stop() {
 	a.mu.Lock()
+	if a.attached {
+		a.mu.Unlock()
+		a.Notify("Docker Compose owns the server lifecycle. Run: docker compose stop")
+		return
+	}
 	cancel := a.install
 	a.mu.Unlock()
 	if cancel != nil {
@@ -237,6 +263,13 @@ func (a *App) Stop() {
 }
 
 func (a *App) Restart() {
+	a.mu.Lock()
+	attached := a.attached
+	a.mu.Unlock()
+	if attached {
+		a.Notify("Docker Compose owns the server lifecycle. Run: docker compose up -d")
+		return
+	}
 	go func() {
 		a.Stop()
 		a.Start()
@@ -283,24 +316,50 @@ func dialRCON(s settings.Settings) (*rcon.Client, error) {
 	return nil, last
 }
 
+func srcdsAvailable(s settings.Settings) bool {
+	dialer := net.Dialer{Timeout: time.Second}
+	for _, address := range apruntime.RconAddresses(s) {
+		connection, err := dialer.DialContext(context.Background(), "tcp", address)
+		if err == nil {
+			_ = connection.Close()
+			return true
+		}
+	}
+	return false
+}
+
 func (a *App) WatchSession() {
 	ticker := time.NewTicker(sessionEvery)
 	defer ticker.Stop()
 	for {
+		a.refreshSession()
 		select {
 		case <-a.quit:
 			return
 		case <-ticker.C:
-			if !a.supervisor.Running() {
-				continue
-			}
-			snapshot, err := session.Fetch(context.Background(), session.BridgeURL)
-			a.mu.Lock()
-			a.snapshot, a.fetchErr = snapshot, err
-			a.publishLocked(Event{Name: "state", Data: struct{}{}})
-			a.mu.Unlock()
 		}
 	}
+}
+
+func (a *App) refreshSession() {
+	a.mu.Lock()
+	attached := a.attached
+	a.mu.Unlock()
+	if !attached && !a.supervisor.Running() {
+		return
+	}
+	snapshot, err := session.Fetch(context.Background(), session.BridgeURL)
+	up := false
+	if attached {
+		// A TCP probe is enough to know SRCDS is up. Authenticating through RCON
+		// here made the server log an empty command every five seconds; actual
+		// browser commands still use authenticated RCON above.
+		up = srcdsAvailable(a.supervisor.Settings())
+	}
+	a.mu.Lock()
+	a.snapshot, a.fetchErr, a.attachedUp = snapshot, err, up
+	a.publishLocked(Event{Name: "state", Data: struct{}{}})
+	a.mu.Unlock()
 }
 
 // Quitting closes when the interface has been told to stop, by the Quit button

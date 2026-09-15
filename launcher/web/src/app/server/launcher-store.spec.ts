@@ -49,12 +49,14 @@ describe('the launcher store', () => {
         title: 'Mann vs Archipelago',
         status: ServerStatus.RUNNING,
         running: true,
+        managedExternally: true,
         logs: [create(LogLineSchema, { source: 'srcds', text: 'a line from before' })],
       }),
     );
     expect(store.connected()).toBe(true);
     expect(store.title()).toBe('Mann vs Archipelago');
     expect(store.running()).toBe(true);
+    expect(store.managedExternally()).toBe(true);
     expect(store.logs()).toHaveLength(1);
   });
 

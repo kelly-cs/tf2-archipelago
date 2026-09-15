@@ -353,4 +353,18 @@ fi
 
 install_plugin &
 
-exec bash "${HOMEDIR}/entry.sh"
+# Keep the same combined output Docker receives in the game volume for the
+# local admin sidecar. The base image does not pass -condebug to srcds, so no
+# console.log exists otherwise. Rotate once per container start: the admin
+# starts after the bridge is healthy and therefore sees this run's file.
+console_log="${GAME}/console.log"
+console_previous="${GAME}/console-previous.log"
+mkdir -p "${GAME}"
+if [ -f "${console_log}" ]; then
+	mv -f "${console_log}" "${console_previous}"
+fi
+
+# SRCDS changes stdout from line-buffered to block-buffered when tee sits
+# between it and Docker. Without stdbuf, the server can be ready for players
+# while the web console still appears frozen in the middle of Steam startup.
+exec stdbuf -oL -eL bash "${HOMEDIR}/entry.sh" > >(tee -a "${console_log}") 2>&1

@@ -2,6 +2,8 @@ package webapi
 
 import (
 	"encoding/json"
+	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
@@ -126,6 +128,82 @@ func TestSnapshotDoesNotExposePasswords(t *testing.T) {
 	// what the player copies to friends and what the old window showed.
 	if !strings.Contains(text, "game-secret") {
 		t.Error("the snapshot lost the join password")
+	}
+}
+
+func TestAttachedSnapshotNamesDockerAsTheLifecycleOwner(t *testing.T) {
+	s := settings.Defaults()
+	s.SrcdsPort = 27115
+	app := NewAttached(s, nil, "")
+	snapshot := app.Snapshot()
+	if !snapshot.ManagedExternally || !snapshot.Proto().GetManagedExternally() {
+		t.Fatal("an attached admin UI offers launcher-owned lifecycle controls")
+	}
+	if snapshot.Join != "127.0.0.1:27115" || !strings.Contains(snapshot.JoinURL, "127.0.0.1:27115") {
+		t.Fatalf("attached join address escaped through the container network: %q, %q", snapshot.Join, snapshot.JoinURL)
+	}
+	app.OpenSettings("")
+	if err := app.SaveSettings(false); err == nil || !strings.Contains(err.Error(), ".env") {
+		t.Fatalf("attached settings save = %v, want .env advice", err)
+	}
+}
+
+func TestAttachedSnapshotUsesConfiguredJoinHost(t *testing.T) {
+	s := settings.Defaults()
+	s.SrcdsPort = 27115
+	s.SrcdsJoinHost = "192.0.2.42"
+	app := NewAttached(s, nil, "")
+	snapshot := app.Snapshot()
+	if snapshot.Join != "192.0.2.42:27115" || !strings.Contains(snapshot.JoinURL, "192.0.2.42:27115") {
+		t.Fatalf("attached join address = %q, %q", snapshot.Join, snapshot.JoinURL)
+	}
+}
+
+func TestAttachedSteamJoinWaitsForAndUsesTheRelay(t *testing.T) {
+	s := settings.Defaults()
+	s.SrcdsToken = "real-token"
+	s.SrcdsReach = settings.ReachSteam
+	s.SrcdsJoinHost = "198.51.100.7"
+	app := NewAttached(s, nil, "")
+	if snapshot := app.Snapshot(); snapshot.JoinURL != "" || !strings.Contains(snapshot.Join, "waiting") {
+		t.Fatalf("attached relay joined before allocation: %q, %q", snapshot.Join, snapshot.JoinURL)
+	}
+	app.append(apruntime.Line{Source: "srcds", Text: "FakeIP allocation succeeded: 169.254.13.42:20232, 20233"})
+	snapshot := app.Snapshot()
+	if snapshot.Join != "169.254.13.42:20232" || !strings.Contains(snapshot.JoinURL, "169.254.13.42:20232") {
+		t.Fatalf("attached relay kept the configured host: %q, %q", snapshot.Join, snapshot.JoinURL)
+	}
+}
+
+func TestAttachedSettingsPersistToComposeEnv(t *testing.T) {
+	path := filepath.Join(t.TempDir(), ".env")
+	if err := os.WriteFile(path, []byte("SRCDS_HOSTNAME=old\nTF2AP_JOIN_HOST=127.0.0.1\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	s := settings.Defaults()
+	s.SrcdsHostname = "old"
+	s.SrcdsJoinHost = "127.0.0.1"
+	app := NewAttached(s, nil, path)
+	app.OpenSettings("Game server")
+	if err := app.Change(form.Change{Field: "server.hostname", Value: "public test"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := app.Change(form.Change{Field: "server.join_host", Value: "tf2.example.com"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := app.SaveSettings(false); err != nil {
+		t.Fatal(err)
+	}
+	body, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(body)
+	if !strings.Contains(text, "SRCDS_HOSTNAME='public test'") || !strings.Contains(text, "TF2AP_JOIN_HOST='tf2.example.com'") {
+		t.Fatalf("attached save did not update .env:\n%s", text)
+	}
+	if got := app.Snapshot().Join; got != "tf2.example.com:27015" {
+		t.Fatalf("join address did not update immediately: %q", got)
 	}
 }
 

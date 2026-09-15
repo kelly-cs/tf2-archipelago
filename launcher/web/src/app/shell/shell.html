@@ -10,7 +10,7 @@
 </header>
 
 <nav aria-label="Sections">
-  @for (tab of tabs; track tab.label) {
+  @for (tab of tabs(); track tab.label) {
     <a
       [routerLink]="tab.link"
       routerLinkActive="here"

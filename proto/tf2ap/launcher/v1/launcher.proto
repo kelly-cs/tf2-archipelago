@@ -161,6 +161,11 @@ message Snapshot {
   // string already reads well on its own; this is the other half of who you
   // are on the multiworld.
   string slot = 21;
+
+  // Docker Compose, rather than this process, owns server lifecycle. The
+  // attached browser can persist .env, while lifecycle buttons explain the
+  // Compose command because the admin container has no Docker socket.
+  bool managed_externally = 22;
 }
 
 message GetSnapshotRequest {}

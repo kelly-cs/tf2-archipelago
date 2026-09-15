@@ -151,6 +151,9 @@ services:
       # of its own: it runs in this container's namespace. Loopback unless
       # BRIDGE_METRICS_BIND says otherwise.
       - "${BRIDGE_METRICS_BIND:-127.0.0.1}:${BRIDGE_METRICS_PORT:-24681}:${BRIDGE_METRICS_PORT:-24681}/tcp"
+      # The admin service shares this network namespace too. Bind it only to
+      # host loopback: the page can send RCON commands.
+      - "127.0.0.1:${TF2AP_ADMIN_PORT:-8477}:8477/tcp"
     volumes:
       - tf2game:/home/steam/tf-dedicated
       # A normal TF2 content tree: maps/, scripts/population/, scripts/items/,
@@ -242,6 +245,7 @@ services:
       AP_PASSWORD: ${AP_PASSWORD:-}
       BRIDGE_LISTEN: 127.0.0.1:24680
       BRIDGE_STATE: /data/bridge.json
+      BRIDGE_LOG_FILE: /data/bridge.log
       # Metrics answer on every interface of the shared namespace; what decides
       # who can reach them is the published port above, not this.
       BRIDGE_METRICS_LISTEN: 0.0.0.0:${BRIDGE_METRICS_PORT:-24681}
@@ -254,6 +258,55 @@ services:
     # No depends_on. The multiworld is usually not a service in this file at
     # all, and the bridge queues and reconnects on its own either way, so boot
     # order was never what made this correct.
+
+  # The launcher's browser interface, attached to the Compose-managed bridge
+  # and game server. Docker remains the lifecycle authority and .env remains
+  # the settings authority; the page monitors the run and keeps mission and
+  # RCON controls without requiring the Docker socket.
+  admin:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.admin
+      args:
+        LAUNCHER_VERSION: ${LAUNCHER_VERSION:-compose}
+    restart: unless-stopped
+    network_mode: "service:srcds"
+    # The only writable host object is .env. Root is needed because Compose
+    # bind-mounts a file owned by the host user; the root filesystem and both
+    # service-log volumes remain read-only, with every Linux capability
+    # dropped. Writing in place preserves the host file's owner and inode.
+    user: "0:0"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    environment:
+      TF2AP_ADMIN_LISTEN: 0.0.0.0:8477
+      TF2AP_ADMIN_AUTHORITY: 127.0.0.1:${TF2AP_ADMIN_PORT:-8477}
+      TF2AP_JOIN_HOST: ${TF2AP_JOIN_HOST:-127.0.0.1}
+      TF2AP_ADMIN_SRCDS_LOG: /srv/tf-dedicated/tf/console.log
+      TF2AP_ADMIN_BRIDGE_LOG: /srv/bridge/bridge.log
+      TF2AP_ADMIN_ENV_FILE: /config/compose.env
+      TF2AP_TEST_MODE: ${TF2AP_TEST_MODE:-0}
+      AP_HOST: ${AP_HOST:?set AP_HOST in .env}
+      AP_PORT: ${AP_PORT:?set AP_PORT in .env}
+      AP_SLOT_NAME: ${AP_SLOT_NAME:-tf2}
+      SRCDS_RCONPW: ${SRCDS_RCONPW:?set SRCDS_RCONPW in .env}
+      SRCDS_PW: ${SRCDS_PW:-}
+      SRCDS_PORT: ${SRCDS_PORT:-27015}
+      SRCDS_STARTMAP: ${SRCDS_STARTMAP:-mvm_decoy}
+      SRCDS_START_MISSION: ${SRCDS_START_MISSION:-}
+      SRCDS_REACH: ${SRCDS_REACH:-}
+      SRCDS_LAN: ${SRCDS_LAN:-1}
+      SRCDS_TOKEN: ${SRCDS_TOKEN:-0}
+    volumes:
+      # -condebug writes the server console here. Read-only is enough to stream
+      # it into the page and gives the admin process no way to alter the game.
+      - tf2game:/srv/tf-dedicated:ro
+      - bridgestate:/srv/bridge:ro
+      - ./.env:/config/compose.env
+    depends_on:
+      bridge:
+        condition: service_healthy
 
 volumes:
   # 14 GB of game files. Keep it.

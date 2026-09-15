@@ -17,6 +17,9 @@ services:
   bridge:
     image: ghcr.io/m-this/tf2-archipelago/bridge:${TF2AP_VERSION:-latest}
 
+  admin:
+    image: ghcr.io/m-this/tf2-archipelago/admin:${TF2AP_VERSION:-latest}
+
   # A release ships one file, so generation comes back here as a profile rather
   # than the separate compose file the repository has.
   seed:

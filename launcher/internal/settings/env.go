@@ -14,7 +14,7 @@ var EnvNames = []string{
 	"TF2AP_COMMUNITY_CONTENT_DIR", "TF2AP_COMMUNITY_PACKS",
 	"TF2AP_TEST_MODE", "TF2AP_ARCHIPELAGO_DIR",
 	"AP_ROOM", "AP_HOST", "AP_PORT", "AP_TLS", "AP_SLOT_NAME", "AP_PASSWORD",
-	"SRCDS_HOSTNAME", "SRCDS_RCONPW", "SRCDS_PW", "SRCDS_PORT",
+	"SRCDS_HOSTNAME", "SRCDS_RCONPW", "SRCDS_PW", "SRCDS_PORT", "TF2AP_JOIN_HOST",
 	"SRCDS_MAXPLAYERS", "SRCDS_START_MISSION", "SRCDS_STARTMAP", "SRCDS_TOKEN",
 	"SRCDS_LAN", "SRCDS_REACH", "SRCDS_ADMIN_STEAMIDS", "SRCDS_MODS",
 	"SRCDS_LAN", "SRCDS_REACH", "SRCDS_ADMIN_STEAMIDS",
@@ -63,30 +63,12 @@ func applyBotEnv(s Settings) Settings {
 	return s
 }
 
-func ApplyEnv(s Settings) Settings {
-	str(&s.InstallRoot, "TF2AP_INSTALL_ROOT")
-	str(&s.CommunityContentDir, "TF2AP_COMMUNITY_CONTENT_DIR")
-	list(&s.CommunityPacks, "TF2AP_COMMUNITY_PACKS")
-	boolean(&s.TestMode, "TF2AP_TEST_MODE")
-	str(&s.ArchipelagoDir, "TF2AP_ARCHIPELAGO_DIR")
-
-	// AP_ROOM is the whole address in one variable, which is how the room page
-	// gives it. The three parts stay readable for a compose .env.
-	if value, ok := os.LookupEnv("AP_ROOM"); ok {
-		if room, err := ParseRoom(value); err == nil {
-			s.APHost, s.APPort, s.APTls = room.Host, room.Port, room.TLS
-		}
-	}
-	str(&s.APHost, "AP_HOST")
-	num(&s.APPort, "AP_PORT")
-	boolean(&s.APTls, "AP_TLS")
-	str(&s.APSlotName, "AP_SLOT_NAME")
-	str(&s.APPassword, "AP_PASSWORD")
-
+func applyServerEnv(s Settings) Settings {
 	str(&s.SrcdsHostname, "SRCDS_HOSTNAME")
 	str(&s.SrcdsRconPw, "SRCDS_RCONPW")
 	str(&s.SrcdsPw, "SRCDS_PW")
 	num(&s.SrcdsPort, "SRCDS_PORT")
+	str(&s.SrcdsJoinHost, "TF2AP_JOIN_HOST")
 	num(&s.SrcdsMaxPlayers, "SRCDS_MAXPLAYERS")
 	// The compose stack names a map; the launcher names a mission. Both work,
 	// the mission wins.
@@ -114,7 +96,30 @@ func ApplyEnv(s Settings) Settings {
 	num(&s.FastDLPort, "FASTDL_PORT")
 	str(&s.SrcdsDownloadURL, "SRCDS_DOWNLOADURL")
 	boolean(&s.TailscaleFastDL, "TAILSCALE_FASTDL")
-	s = applyBotEnv(s)
+	return applyBotEnv(s)
+}
+
+func ApplyEnv(s Settings) Settings {
+	str(&s.InstallRoot, "TF2AP_INSTALL_ROOT")
+	str(&s.CommunityContentDir, "TF2AP_COMMUNITY_CONTENT_DIR")
+	list(&s.CommunityPacks, "TF2AP_COMMUNITY_PACKS")
+	boolean(&s.TestMode, "TF2AP_TEST_MODE")
+	str(&s.ArchipelagoDir, "TF2AP_ARCHIPELAGO_DIR")
+
+	// AP_ROOM is the whole address in one variable, which is how the room page
+	// gives it. The three parts stay readable for a compose .env.
+	if value, ok := os.LookupEnv("AP_ROOM"); ok {
+		if room, err := ParseRoom(value); err == nil {
+			s.APHost, s.APPort, s.APTls = room.Host, room.Port, room.TLS
+		}
+	}
+	str(&s.APHost, "AP_HOST")
+	num(&s.APPort, "AP_PORT")
+	boolean(&s.APTls, "AP_TLS")
+	str(&s.APSlotName, "AP_SLOT_NAME")
+	str(&s.APPassword, "AP_PASSWORD")
+
+	s = applyServerEnv(s)
 
 	num(&s.MvmMissionCount, "MVM_MISSION_COUNT")
 	str(&s.MvmDifficulty, "MVM_DIFFICULTY")
