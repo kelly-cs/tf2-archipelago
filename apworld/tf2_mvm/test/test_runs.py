@@ -66,6 +66,33 @@ class TestMissionModifiers(TF2MvMTestBase):
             self.assertLessEqual(len(keys & gravity), 1)
 
 
+class TestMissionModifierRangeStartsAtZero(TF2MvMTestBase):
+    options: ClassVar[dict[str, Any]] = {
+        "mission_modifiers": True,
+        "minimum_mission_modifiers": 0,
+        "maximum_mission_modifiers": 1,
+    }
+
+    def test_no_mission_exceeds_the_maximum(self) -> None:
+        for pop_file, modifiers in self.world.mission_modifiers.items():
+            self.assertLessEqual(len(modifiers), 1, pop_file)
+
+
+class TestMissionModifiersDrawnAtZero(TF2MvMTestBase):
+    options: ClassVar[dict[str, Any]] = {
+        "mission_modifiers": True,
+        "minimum_mission_modifiers": 0,
+        "maximum_mission_modifiers": 0,
+    }
+
+    def test_a_draw_of_zero_assigns_nothing(self) -> None:
+        # A draw of zero used to match nothing, and the mission got every
+        # modifier the exclusive groups allowed (gh-85).
+        assignments = self.world.mission_modifiers
+        self.assertEqual({mission.pop_file for mission in self.world.missions}, set(assignments))
+        self.assertTrue(all(modifiers == [] for modifiers in assignments.values()))
+
+
 class TestNoWeaponBuffs(TF2MvMTestBase):
     options: ClassVar[dict[str, Any]] = {
         "cash_rewards": True,

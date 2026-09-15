@@ -302,6 +302,10 @@ class TF2MvMWorld(World):
             picked: list[dict[str, str]] = []
             groups: set[str] = set()
             for modifier in candidates:
+                # Before the append, or a draw of zero never matches and the
+                # mission gets every modifier the exclusive groups allow.
+                if len(picked) == wanted:
+                    break
                 group = modifier["exclusive_group"]
                 if group and group in groups:
                     continue
@@ -315,8 +319,6 @@ class TF2MvMWorld(World):
                 )
                 if group:
                     groups.add(group)
-                if len(picked) == wanted:
-                    break
             assignments[mission.pop_file] = picked
         return assignments
 
