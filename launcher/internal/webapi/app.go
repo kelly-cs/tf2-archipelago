@@ -267,7 +267,7 @@ func (a *App) Restart() {
 	attached := a.attached
 	a.mu.Unlock()
 	if attached {
-		a.Notify("Docker Compose owns the server lifecycle. Run: docker compose up -d")
+		a.Notify("Docker Compose owns the server lifecycle. Run: docker compose up -d --force-recreate")
 		return
 	}
 	go func() {

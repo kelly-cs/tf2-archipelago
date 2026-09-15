@@ -156,10 +156,10 @@ func persistDraft(draft, before settings.Settings, readyMods []string, attached 
 func (a *App) finishAttachedSave(before, after settings.Settings) {
 	plan := saveplan.For(before, after)
 	if plan.Restart || plan.Team {
-		a.Notify("Settings saved to .env. Apply them with: docker compose up -d")
+		a.Notify("Settings saved to .env. Apply them with: docker compose up -d --force-recreate")
 		return
 	}
-	a.Notify("Settings saved to .env. Container settings apply with docker compose up -d; seed options apply on the next generation.")
+	a.Notify("Settings saved to .env. Container settings apply with docker compose up -d --force-recreate; seed options apply on the next generation.")
 }
 
 func (a *App) reportRoom(s settings.Settings, typed string, parseErr error) {

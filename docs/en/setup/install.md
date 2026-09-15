@@ -158,6 +158,14 @@ docker compose up -d
 docker compose logs -f
 ```
 
+`docker compose up -d` starts the stack but does not restart containers that
+Compose considers unchanged. After editing `.env`, pulling a replacement image
+with the same tag, or when you explicitly want a full restart, use:
+
+```sh
+docker compose up -d --force-recreate
+```
+
 The admin container prints its address at startup. By default it is always:
 
 ```text
@@ -174,16 +182,17 @@ docker compose logs admin
 The first prints the host port and the second prints the complete URL. The
 mapping appears on the `srcds` row in `docker compose ps` because the admin
 shares the game server's private network namespace. Change `TF2AP_ADMIN_PORT`
-in `.env` if 8477 is already occupied, then run `docker compose up -d` again.
-The page stays on host loopback because it can send RCON commands; reach a
-remote server through an SSH port forward rather than publishing this port to
-the internet.
+in `.env` if 8477 is already occupied, then recreate the stack with
+`docker compose up -d --force-recreate`. The page stays on host loopback
+because it can send RCON commands; reach a remote server through an SSH port
+forward rather than publishing this port to the internet.
 
 The Settings tab writes changes back to this same `.env` file. Settings read by
-the containers apply after `docker compose up -d`; seed options apply the next
-time the seed profile runs. The admin container has no Docker socket, so Stop
-and Restart show those commands instead of silently claiming to control the
-host. `docker compose stop` stops the stack without deleting its data.
+the containers apply after `docker compose up -d --force-recreate`; seed
+options apply the next time the seed profile runs. The admin container has no
+Docker socket, so Stop and Restart show those commands instead of silently
+claiming to control the host. `docker compose stop` stops the stack without
+deleting its data.
 
 Set **Join address** on the Game server settings page to the address players
 should receive. Use your public IP or DNS name for a port-forwarded server. If
@@ -210,7 +219,8 @@ TF2AP_VERSION=v1.0.0
 ```
 
 ```sh
-docker compose pull && docker compose up -d
+docker compose pull
+docker compose up -d --force-recreate
 ```
 
 The commands in the table above are `make` targets, and they need the

@@ -154,6 +154,15 @@ docker compose up -d
 docker compose logs -f
 ```
 
+`docker compose up -d` démarre la stack, mais ne redémarre pas les conteneurs
+que Compose considère inchangés. Après avoir modifié `.env`, récupéré une image
+de remplacement portant le même tag, ou pour redémarrer volontairement toute
+la stack, utilisez :
+
+```sh
+docker compose up -d --force-recreate
+```
+
 Le conteneur d'administration affiche son adresse au démarrage. Par défaut :
 
 ```text
@@ -170,15 +179,17 @@ docker compose logs admin
 La première commande affiche le port hôte et la seconde l'URL complète. Le
 port apparaît sur la ligne `srcds` de `docker compose ps`, car l'administration
 partage l'espace réseau privé du serveur. Modifiez `TF2AP_ADMIN_PORT` dans
-`.env` si 8477 est déjà utilisé, puis relancez `docker compose up -d`. La page
-reste liée au loopback de l'hôte car elle peut envoyer des commandes RCON ;
-utilisez un tunnel SSH pour administrer un serveur distant.
+`.env` si 8477 est déjà utilisé, puis recréez la stack avec
+`docker compose up -d --force-recreate`. La page reste liée au loopback de
+l'hôte car elle peut envoyer des commandes RCON ; utilisez un tunnel SSH pour
+administrer un serveur distant.
 
 L'onglet Réglages écrit les changements dans ce même fichier `.env`. Les
-réglages des conteneurs s'appliquent après `docker compose up -d`; ceux de la
-seed s'appliquent à sa prochaine génération. Le conteneur d'administration n'a
-pas accès au socket Docker : Arrêter et Redémarrer affichent donc les commandes
-à exécuter. `docker compose stop` arrête la stack sans effacer ses données.
+réglages des conteneurs s'appliquent après
+`docker compose up -d --force-recreate`; ceux de la seed s'appliquent à sa
+prochaine génération. Le conteneur d'administration n'a pas accès au socket
+Docker : Arrêter et Redémarrer affichent donc les commandes à exécuter.
+`docker compose stop` arrête la stack sans effacer ses données.
 
 Réglez **Adresse de connexion** sur la page du serveur avec l'adresse à donner
 aux joueurs : IP publique ou nom DNS pour un port transféré. Si Docker
@@ -206,7 +217,8 @@ TF2AP_VERSION=v1.0.0
 ```
 
 ```sh
-docker compose pull && docker compose up -d
+docker compose pull
+docker compose up -d --force-recreate
 ```
 
 Les commandes du tableau ci-dessus sont des cibles `make`, et elles ont besoin

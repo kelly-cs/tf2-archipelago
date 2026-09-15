@@ -52,12 +52,21 @@ docker compose port srcds 8477
 docker compose logs admin
 ```
 
+Plain `docker compose up -d` starts stopped services, but leaves an unchanged
+running container alone. To apply saved settings, replace a same-tag image, or
+deliberately restart the whole stack, run:
+
+```sh
+docker compose up -d --force-recreate
+```
+
 The default is **http://127.0.0.1:8477**. The port appears on the `srcds` row
 because the admin UI shares the game server's private network namespace;
 `docker compose port srcds 8477` is the definitive lookup. Change
-`TF2AP_ADMIN_PORT` in `.env` if 8477 is occupied, then run `docker compose up
--d` again. Keep the admin UI on loopback. For a remote Docker host, forward it
-with `ssh -L 8477:127.0.0.1:8477 user@server` and open the same local URL.
+`TF2AP_ADMIN_PORT` in `.env` if 8477 is occupied, then recreate the stack with
+`docker compose up -d --force-recreate`. Keep the admin UI on loopback. For a
+remote Docker host, forward it with
+`ssh -L 8477:127.0.0.1:8477 user@server` and open the same local URL.
 
 The first start downloads about 14 GB of game files.
 
