@@ -14,6 +14,10 @@ type Selection struct {
 	Difficulty   string
 	MissionCount int
 	StartMission string
+	// Giantsanity and Tanksanity count the per-kill checks the way the
+	// generator will.
+	Giantsanity bool
+	Tanksanity  bool
 }
 
 // Preflight is the useful accounting behind a successful selection check.
@@ -119,7 +123,7 @@ func CheckSelection(selection Selection) (Preflight, error) {
 
 	checks := 0
 	for _, mission := range eligible {
-		checks += missionCheckCount(mission)
+		checks += missionCheckCount(mission, selection.Giantsanity, selection.Tanksanity)
 	}
 	requirement := missionRequirements[start.Difficulty]
 	unlocks := len(eligible) - 1 +
@@ -150,8 +154,17 @@ func easiestMission(missions []gamedata.Mission) gamedata.Mission {
 	})
 }
 
-func missionCheckCount(mission gamedata.Mission) int {
+func missionCheckCount(mission gamedata.Mission, giantsanity, tanksanity bool) int {
 	checks := int(mission.Waves) + 1 // waves plus mission clear
+	for wave := uint8(1); wave <= mission.Waves; wave++ {
+		counts := mission.WaveKillsAt(wave)
+		if giantsanity {
+			checks += int(counts.Giants)
+		}
+		if tanksanity {
+			checks += int(counts.Tanks)
+		}
+	}
 	if mission.HasTank {
 		checks++
 	}

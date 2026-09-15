@@ -36,6 +36,12 @@ func currentIDs() map[string]int64 {
 		if !ok {
 			continue
 		}
+		if l.Index > 0 {
+			// The nth of its wave: keyed apart from the mission's own
+			// first-of-each check, which shares the kind.
+			ids[frozenKey(l.Kind.Key()+"_n", mission.PopFile, int(l.Wave)*100+int(l.Index))] = l.ID
+			continue
+		}
 		ids[frozenKey(l.Kind.Key(), mission.PopFile, int(l.Wave))] = l.ID
 	}
 	for _, it := range Items {
@@ -181,22 +187,28 @@ func recordNewIDs(frozen, current map[string]int64) error {
 }
 
 func TestLocationsCoverEveryWaveAndMission(t *testing.T) {
-	waves, clears, tanks, giants := 0, 0, 0, 0
+	waves, clears, tanks, giants, kills := 0, 0, 0, 0, 0
 	for _, l := range Locations {
-		switch l.Kind {
-		case ObjectiveWaveCleared:
+		switch {
+		case l.Index > 0:
+			kills++
+		case l.Kind == ObjectiveWaveCleared:
 			waves++
-		case ObjectiveMissionCleared:
+		case l.Kind == ObjectiveMissionCleared:
 			clears++
-		case ObjectiveTankDestroyed:
+		case l.Kind == ObjectiveTankDestroyed:
 			tanks++
-		case ObjectiveGiantKilled:
+		case l.Kind == ObjectiveGiantKilled:
 			giants++
 		}
 	}
-	want, wantTanks, wantGiants := 0, 0, 0
+	want, wantTanks, wantGiants, wantKills := 0, 0, 0, 0
 	for _, m := range Missions {
 		want += int(m.Waves)
+		for wave := uint8(1); wave <= m.Waves; wave++ {
+			counts := m.WaveKillsAt(wave)
+			wantKills += int(counts.Giants) + int(counts.Tanks)
+		}
 		if m.HasTank {
 			wantTanks++
 		}
@@ -209,6 +221,9 @@ func TestLocationsCoverEveryWaveAndMission(t *testing.T) {
 	}
 	if clears != len(Missions) {
 		t.Errorf("%d mission clear locations, want %d", clears, len(Missions))
+	}
+	if kills != wantKills {
+		t.Errorf("%d per-kill locations, want %d", kills, wantKills)
 	}
 	// A tank check on a mission with no tank is a location nobody can reach,
 	// and a run nobody can finish.

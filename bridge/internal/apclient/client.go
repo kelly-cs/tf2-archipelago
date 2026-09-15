@@ -108,6 +108,11 @@ type Health struct {
 	MissionTicketImportance string                       `json:"mission_ticket_importance,omitempty"`
 	MissionModifiers        map[string][]MissionModifier `json:"mission_modifiers,omitempty"`
 
+	// Giantsanity and Tanksanity are the seed holding a check per giant and
+	// per tank of every wave, beside the mission's own first of each.
+	Giantsanity bool `json:"giantsanity"`
+	Tanksanity  bool `json:"tanksanity"`
+
 	DeathLink bool   `json:"death_link"`
 	LastError string `json:"last_error,omitempty"`
 }
@@ -138,6 +143,8 @@ func (c *Client) Health() Health {
 		StartMission:            c.slot.StartMission,
 		MissionTicketImportance: c.slot.MissionTicketImportance,
 		MissionModifiers:        c.slot.MissionModifiers,
+		Giantsanity:             c.slot.Giantsanity,
+		Tanksanity:              c.slot.Tanksanity,
 		DeathLink:               c.slot.DeathLink,
 		LastError:               c.lastError,
 	}

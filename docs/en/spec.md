@@ -109,10 +109,20 @@ failure stays silent, which is worse than a missing feature.
 | Money bonus | Wave completed with an A+ credit rating | one per wave | `money_checks` |
 | Shop purchase | A check bought at the upgrade station for $100 to $400, then turned in | configurable | `shop_checks` |
 | Tank / boss kill | Tank destroyed, Giant or boss robot killed | per mission, capped | `boss_checks` |
+| Every giant | The nth giant of wave W of mission M killed | per wave, from the population file | `giantsanity` |
+| Every tank | The nth tank of wave W of mission M destroyed | per wave, from the population file | `tanksanity` |
 
 Wave clear is the core location group, and the only one on by default.
 Everything else is opt-in, because a run's length has to be tunable. The
 wave count alone already gives roughly 6 to 8 checks per mission.
+
+`giantsanity` and `tanksanity` make every giant and every tank of every wave
+a check, beside the mission's own first of each. The counts are read out of
+Valve's population files by `gamedata/cmd/popcounts` and committed, so a
+giant that is there to kill is a check and one that is not is not: a wrong
+count would be a check nobody can reach. Community missions have no count yet
+and pay only their first. The plugin reports the nth kill of the wave; the
+bridge records it when the seed holds that kind.
 
 Shop checks are the most novel group, and the least certain to work.
 Roseburst's two variants:

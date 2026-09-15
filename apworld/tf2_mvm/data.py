@@ -34,12 +34,17 @@ def _load(name: str) -> dict:
 
 @dataclass(frozen=True, slots=True)
 class Location:
-    """``kind`` is the objective the plugin reports for this check."""
+    """``kind`` is the objective the plugin reports for this check.
+
+    ``index`` counts from 1 on a per-kill check, the nth giant or tank of its
+    wave, held only when the matching sanity option is on; 0 on every other.
+    """
 
     id: int
     name: str
     kind: str
     wave: int
+    index: int
 
 
 @dataclass(frozen=True, slots=True)
@@ -62,6 +67,16 @@ class Mission:
     def seedable_with(self, server_mods: set[str] | frozenset[str]) -> bool:
         """Whether a server loading these mods can play the mission."""
         return self.playable or (self.requires in SERVER_MOD_KEYS and self.requires in server_mods)
+
+    def checks(self, giantsanity: bool, tanksanity: bool) -> tuple[Location, ...]:
+        """The locations a seed holds for this mission: the per-kill ones only when asked for."""
+        return tuple(
+            location
+            for location in self.locations
+            if location.index == 0
+            or (location.kind == "giant_killed" and giantsanity)
+            or (location.kind == "tank_destroyed" and tanksanity)
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -99,6 +114,7 @@ def _read_missions() -> tuple[Mission, ...]:
                     name=location["name"],
                     kind=location["kind"],
                     wave=location.get("wave", 0),
+                    index=location.get("index", 0),
                 )
                 for location in entry["locations"]
             ),

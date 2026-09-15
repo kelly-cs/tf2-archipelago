@@ -64,6 +64,32 @@ func TestObjectiveRecordsACheck(t *testing.T) {
 	}
 }
 
+// A per-kill report is a check only when the seed holds that kind, and only
+// as far as the wave's count goes; this test server's seed holds neither.
+func TestAPerKillReportIsDroppedWhenTheSeedLacksIt(t *testing.T) {
+	store, handler := newTestServer(t, time.Second)
+	got := post(t, handler, `{"kind":"giant_killed","popfile":"mvm_coaltown_advanced","wave":3,"index":1}`)
+	if got.Code != http.StatusNoContent {
+		t.Fatalf("code = %d, body = %s", got.Code, got.Body)
+	}
+	if held := store.Checks(); len(held) != 0 {
+		t.Fatalf("a seed without giantsanity recorded %v", held)
+	}
+}
+
+func TestLocationByWaveKillFollowsTheCounts(t *testing.T) {
+	mission, _ := gamedata.MissionByPopFile("mvm_coaltown_advanced")
+	if _, ok := gamedata.LocationByWaveKill(gamedata.ObjectiveGiantKilled, mission.PopFile, 3, 3); !ok {
+		t.Fatal("Ctrl+Alt+Destruction wave 3 holds three giants and the third resolved to nothing")
+	}
+	if _, ok := gamedata.LocationByWaveKill(gamedata.ObjectiveGiantKilled, mission.PopFile, 3, 4); ok {
+		t.Fatal("a fourth giant in a wave of three resolved to a check")
+	}
+	if _, ok := gamedata.LocationByWaveKill(gamedata.ObjectiveTankDestroyed, mission.PopFile, 2, 1); !ok {
+		t.Fatal("wave 2's tank resolved to nothing")
+	}
+}
+
 func TestObjectiveIsIdempotent(t *testing.T) {
 	store, handler := newTestServer(t, time.Second)
 	body := `{"kind":"mission_cleared","popfile":"mvm_coaltown"}`

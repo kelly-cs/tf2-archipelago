@@ -28,18 +28,55 @@ var ObjectiveKinds = []ObjectiveKind{
 // Key is the string on the wire between the plugin and the bridge.
 func (k ObjectiveKind) Key() string { return objectiveKeys[k] }
 
-// Location is one check. Wave is zero for a mission clear.
+// Location is one check. Wave is zero for a mission clear. Index is zero for
+// every check but a per-kill one, the nth giant or tank of its wave, where it
+// counts from 1: those exist only when a sanity option asks for them.
 type Location struct {
 	ID      int64
 	Name    string
 	Kind    ObjectiveKind
 	Mission MissionID
 	Wave    uint8
+	Index   uint8
+}
+
+// WaveKillsAt is what wave w of this mission spawns that can be paid for,
+// out of the committed count. Nothing for a wave the count does not cover,
+// which is every community mission: their files are not scrubbed.
+func (m Mission) WaveKillsAt(wave uint8) WaveKills {
+	waves := waveKillsByPopFile[m.PopFile]
+	if wave < 1 || int(wave) > len(waves) {
+		return WaveKills{}
+	}
+	return waves[wave-1]
+}
+
+// WaveKillLocations is every per-kill check this mission can pay, wave by
+// wave: the giants of the wave, then its tanks.
+func (m Mission) WaveKillLocations() []Location {
+	var kills []Location
+	for wave := uint8(1); wave <= m.Waves; wave++ {
+		counts := m.WaveKillsAt(wave)
+		for n := uint8(1); n <= counts.Giants; n++ {
+			kills = append(kills, Location{
+				ID: m.WaveGiantLocationID(wave, n), Name: m.WaveGiantLocationName(wave, n),
+				Kind: ObjectiveGiantKilled, Mission: m.ID, Wave: wave, Index: n,
+			})
+		}
+		for n := uint8(1); n <= counts.Tanks; n++ {
+			kills = append(kills, Location{
+				ID: m.WaveTankLocationID(wave, n), Name: m.WaveTankLocationName(wave, n),
+				Kind: ObjectiveTankDestroyed, Mission: m.ID, Wave: wave, Index: n,
+			})
+		}
+	}
+	return kills
 }
 
 // Locations is every check in the game, mission by mission: the waves in
 // order, then the tank and the giant if the mission holds them, then the
-// mission clear.
+// mission clear, then every giant and tank of every wave. The apworld holds
+// the last only when giantsanity or tanksanity asks for them.
 var Locations = buildLocations()
 
 func buildLocations() []Location {
@@ -76,8 +113,40 @@ func buildLocations() []Location {
 			Kind:    ObjectiveMissionCleared,
 			Mission: m.ID,
 		})
+		all = append(all, m.WaveKillLocations()...)
 	}
 	return all
+}
+
+// LocationByWaveKill resolves the nth giant or tank of a wave, which is what
+// the plugin reports beside the mission's own first-of-each check. Nothing for
+// a mission whose file was not scrubbed, or a kill past what the wave holds:
+// the plugin sends what it sees, and the tables decide what is a check.
+func LocationByWaveKill(kind ObjectiveKind, popFile string, wave, index uint8) (Location, bool) {
+	m, ok := MissionByPopFile(popFile)
+	if !ok || index == 0 {
+		return Location{}, false
+	}
+	counts := m.WaveKillsAt(wave)
+	switch kind {
+	case ObjectiveGiantKilled:
+		if index > counts.Giants {
+			return Location{}, false
+		}
+		return Location{
+			ID: m.WaveGiantLocationID(wave, index), Name: m.WaveGiantLocationName(wave, index),
+			Kind: kind, Mission: m.ID, Wave: wave, Index: index,
+		}, true
+	case ObjectiveTankDestroyed:
+		if index > counts.Tanks {
+			return Location{}, false
+		}
+		return Location{
+			ID: m.WaveTankLocationID(wave, index), Name: m.WaveTankLocationName(wave, index),
+			Kind: kind, Mission: m.ID, Wave: wave, Index: index,
+		}, true
+	}
+	return Location{}, false
 }
 
 var locationsByID = indexLocations()

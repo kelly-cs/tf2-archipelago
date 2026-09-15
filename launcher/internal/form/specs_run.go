@@ -88,6 +88,18 @@ func playerSpecs(s State, env Env) []Spec {
 			func(s State) bool { return s.Settings.MvmMedalOnClear },
 			func(s State, v bool) State { s.Settings.MvmMedalOnClear = v; return s }),
 
+		toggle("run.giantsanity", tab, "Giantsanity",
+			"A check for every giant of every wave, beside the mission's first. The counts come out of Valve's own mission files; community missions pay only their first. Empire Escalation alone holds eighty-two.",
+			"every giant",
+			func(s State) bool { return s.Settings.MvmGiantsanity },
+			func(s State, v bool) State { s.Settings.MvmGiantsanity = v; return s }),
+
+		toggle("run.tanksanity", tab, "Tanksanity",
+			"A check for every tank of every wave, beside the mission's first. Cataclysm holds eleven.",
+			"every tank",
+			func(s State) bool { return s.Settings.MvmTanksanity },
+			func(s State, v bool) State { s.Settings.MvmTanksanity = v; return s }),
+
 		toggle("run.deathlink", tab, "Death Link",
 			"A lost wave kills every other player in the multiworld who has Death Link on, and their deaths wipe your team.",
 			"share deaths",

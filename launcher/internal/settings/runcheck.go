@@ -24,6 +24,8 @@ func CheckRunSelection(s Settings) (runshape.Preflight, error) {
 		Difficulty:   s.MvmDifficulty,
 		MissionCount: s.MvmMissionCount,
 		StartMission: start,
+		Giantsanity:  s.MvmGiantsanity,
+		Tanksanity:   s.MvmTanksanity,
 	})
 	if err != nil {
 		return report, fmt.Errorf("archipelago run selection: %w", err)

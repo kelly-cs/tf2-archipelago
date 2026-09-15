@@ -305,6 +305,30 @@ class MedalOnClear(Toggle):
     default = 0
 
 
+class Giantsanity(Toggle):
+    """A check for every giant of every wave, beside the mission's first.
+
+    The counts come out of Valve's population files, so a giant that is there
+    to kill is a check and one that is not is not; community missions have
+    no count yet and pay only their first. Empire Escalation alone holds
+    eighty-two. Off by default: on, a run is buffed out the wazoo.
+    """
+
+    display_name = "Giantsanity"
+    default = 0
+
+
+class Tanksanity(Toggle):
+    """A check for every tank of every wave, beside the mission's first.
+
+    Read out of Valve's population files like the giants. Cataclysm holds
+    eleven. Off by default.
+    """
+
+    display_name = "Tanksanity"
+    default = 0
+
+
 class TrapPercentage(Range):
     """How much of the run's spare space is traps, in percent.
 
@@ -347,6 +371,8 @@ class TF2MvMOptions(PerGameCommonOptions):
     trap_percentage: TrapPercentage
     server_settings: ServerSettings
     medal_on_clear: MedalOnClear
+    giantsanity: Giantsanity
+    tanksanity: Tanksanity
     death_link: DeathLink
 
 
@@ -366,7 +392,7 @@ option_groups = [
             StartClass,
         ],
     ),
-    OptionGroup("Goal", [Goal, MissionsanityPercentage, MedalOnClear]),
+    OptionGroup("Goal", [Goal, MissionsanityPercentage, MedalOnClear, Giantsanity, Tanksanity]),
     OptionGroup(
         "Rewards",
         [

@@ -27,6 +27,19 @@ const (
 	// namespaces separately and would let overlap.
 	itemSpaceOffset int64 = 1_000_000
 
+	// The per-kill checks, every giant and every tank of every wave, sit in
+	// a block of their own above the items: a mission's block of 100 could
+	// never hold the eighty giants of Caliginous Caper's one wave. Ten
+	// thousand per mission, a hundred per wave: giants 1 to 90, tanks 91 to
+	// 99. WaveKillsMax bound what a wave may hold before these overflow.
+	waveKillSpaceOffset int64 = 2_000_000
+	waveKillsPerMission int64 = 10_000
+	waveKillsPerWave    int64 = 100
+	waveKillSlotTank    int64 = 90
+	WaveGiantsMax       uint8 = 90
+	WaveTanksMax        uint8 = 9
+	WaveKillWavesMax    uint8 = 99
+
 	itemBlockTicket     int64 = 1_000
 	itemBlockClass      int64 = 2_000
 	itemBlockWeaponSlot int64 = 3_000
@@ -82,6 +95,34 @@ func (m Mission) WaveLocationName(wave uint8) string {
 // ClearLocationName is what the spoiler log calls the mission clear.
 func (m Mission) ClearLocationName() string {
 	return m.Name + " Complete"
+}
+
+// WaveGiantLocationID is the id of the check for the nth giant killed in
+// wave w of this mission, n counted from 1.
+func (m Mission) WaveGiantLocationID(wave, n uint8) int64 {
+	if wave < 1 || wave > WaveKillWavesMax || n < 1 || n > WaveGiantsMax {
+		panic(fmt.Sprintf("gamedata: giant %d of wave %d out of range for %s", n, wave, m.PopFile))
+	}
+	return BaseID + waveKillSpaceOffset + int64(m.ID)*waveKillsPerMission + int64(wave)*waveKillsPerWave + int64(n)
+}
+
+// WaveTankLocationID is the id of the check for the nth tank destroyed in
+// wave w of this mission, n counted from 1.
+func (m Mission) WaveTankLocationID(wave, n uint8) int64 {
+	if wave < 1 || wave > WaveKillWavesMax || n < 1 || n > WaveTanksMax {
+		panic(fmt.Sprintf("gamedata: tank %d of wave %d out of range for %s", n, wave, m.PopFile))
+	}
+	return BaseID + waveKillSpaceOffset + int64(m.ID)*waveKillsPerMission + int64(wave)*waveKillsPerWave + waveKillSlotTank + int64(n)
+}
+
+// WaveGiantLocationName and WaveTankLocationName are what the spoiler log
+// calls those checks.
+func (m Mission) WaveGiantLocationName(wave, n uint8) string {
+	return fmt.Sprintf("%s Wave %d Giant %d", m.Name, wave, n)
+}
+
+func (m Mission) WaveTankLocationName(wave, n uint8) string {
+	return fmt.Sprintf("%s Wave %d Tank %d", m.Name, wave, n)
 }
 
 // Item ids: one block per kind, keyed by entity id, so an item id is as

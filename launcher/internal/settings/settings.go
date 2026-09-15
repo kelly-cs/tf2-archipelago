@@ -172,6 +172,10 @@ type Settings struct {
 	// MvmMedalOnClear locks a medal onto every mission clear and makes the
 	// goal read the medals held. It costs the multiworld one check a mission.
 	MvmMedalOnClear bool `json:"mvm_medal_on_clear"`
+	// MvmGiantsanity and MvmTanksanity make every giant and every tank of
+	// every wave a check, beside the mission's own first of each.
+	MvmGiantsanity bool `json:"mvm_giantsanity"`
+	MvmTanksanity  bool `json:"mvm_tanksanity"`
 	// MvmServerSettings puts the server-setting items in the pool. One exists,
 	// the Grappling Hook, and it turns Mannpower's hook on for everybody for
 	// the rest of the run.

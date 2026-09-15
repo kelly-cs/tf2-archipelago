@@ -6,6 +6,8 @@ export interface Objective {
   readonly name: string;
   readonly kind: string;
   readonly wave?: number;
+  /** Counts from 1 on the nth giant or tank of a wave, which the seed holds only when asked to. */
+  readonly index?: number;
 }
 
 export interface Mission {
@@ -42,6 +44,8 @@ export interface SlotData {
   readonly missionsanity_target?: number;
   readonly mission_ticket_importance?: string;
   readonly mission_modifiers?: Readonly<Record<string, readonly MissionModifier[]>>;
+  readonly giantsanity?: boolean;
+  readonly tanksanity?: boolean;
   readonly starting_items?: readonly (number | string)[];
   readonly tracker?: {
     readonly starting_items?: readonly (number | string)[];

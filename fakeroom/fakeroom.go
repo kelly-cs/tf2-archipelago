@@ -803,6 +803,11 @@ func locationLines(checked map[int64]bool, missions []string, want bool) []strin
 			continue
 		}
 		for _, location := range gamedata.Locations {
+			// The room of one has no sanity options, so the nth giant and
+			// tank of a wave are not among its checks.
+			if location.Index > 0 {
+				continue
+			}
 			if location.Mission != mission.ID || checked[location.ID] != want {
 				continue
 			}

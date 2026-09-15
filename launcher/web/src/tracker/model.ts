@@ -23,7 +23,15 @@ const startSlots: Readonly<Record<string, number>> = {
 
 export function buildView(source: TrackerSource, player: number): TrackerView {
   const slotData = slotDataFor(source, player);
-  const missions = activeMissions(source, slotData);
+  const missions = activeMissions(source, slotData).map((mission) => ({
+    ...mission,
+    locations: mission.locations.filter(
+      (location) =>
+        location.index === undefined ||
+        (location.kind === 'giant_killed' && slotData.giantsanity === true) ||
+        (location.kind === 'tank_destroyed' && slotData.tanksanity === true),
+    ),
+  }));
   const checked = checkedFor(source, player);
   const owned = ownedNames(source, player, slotData, missions);
   const missionViews = missions.map((mission) => {

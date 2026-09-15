@@ -14,8 +14,9 @@
 // half of the compose file was updated and the other was not.
 #define BridgeAPIVersion 5
 
-// A mission is at most nine objectives, so nearing this means the bridge has been gone a long time.
-#define PendingMax 64
+// With every giant a check, one wave of Caliginous Caper queues eighty, so
+// nearing this means the bridge has been gone a long time.
+#define PendingMax 512
 
 // Slow enough not to hammer a bridge that is down, quick enough to land a wave before the next one.
 #define RetryInterval 5.0
@@ -78,6 +79,11 @@ enum struct Objective
     // The wave counts in the tables come from the wiki and none of them has
     // been checked against a running server.
     int wavesTotal;
+
+    // Which giant or tank of the wave this was, counted from 1, for the
+    // per-kill checks. Zero for the mission's own first of each and for every
+    // other kind.
+    int index;
 }
 
 ConVar g_CvarBridgeURL;
@@ -239,9 +245,34 @@ void Bridge_ReportObjective(const char[] kind, const char[] popFile, int wave, i
     strcopy(objective.popFile, sizeof(objective.popFile), popFile);
     objective.wave = wave;
     objective.wavesTotal = wavesTotal;
+    objective.index = 0;
     g_Pending.PushArray(objective);
 
     AP_Debug("The plugin queued %s %s wave %d.", kind, popFile, wave);
+    Bridge_SendObjective(objective);
+}
+
+// The nth giant or tank of a wave. Reported for every one the team kills;
+// the bridge decides which are checks, from the seed and the tables.
+void Bridge_ReportWaveKill(const char[] kind, const char[] popFile, int wave, int index, int wavesTotal)
+{
+    if (g_Pending.Length >= PendingMax)
+    {
+        AP_Error("The objective queue is full at %d. The plugin dropped %s %s wave %d #%d.",
+            PendingMax, kind, popFile, wave, index);
+        return;
+    }
+    LogMessage("objective %s %s wave %d #%d (mission length %d) queued for the bridge",
+        kind, popFile, wave, index, wavesTotal);
+
+    Objective objective;
+    objective.id = g_NextObjectiveID++;
+    strcopy(objective.kind, sizeof(objective.kind), kind);
+    strcopy(objective.popFile, sizeof(objective.popFile), popFile);
+    objective.wave = wave;
+    objective.wavesTotal = wavesTotal;
+    objective.index = index;
+    g_Pending.PushArray(objective);
     Bridge_SendObjective(objective);
 }
 
@@ -252,6 +283,7 @@ static void Bridge_SendObjective(Objective objective)
     body.SetString("popfile", objective.popFile);
     body.SetInt("wave", objective.wave);
     body.SetInt("waves_total", objective.wavesTotal);
+    body.SetInt("index", objective.index);
 
     HTTPRequest request = BridgeRequest("/objective");
     request.Timeout = 10;

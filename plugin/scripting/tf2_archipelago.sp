@@ -55,6 +55,12 @@ public Plugin myinfo =
 
 // Zero when no wave is running, or when the plugin loaded mid-mission.
 int g_CurrentWave;
+// Which giant and which tank of the running wave the next kill is. Every one
+// is reported as the nth of its wave beside the mission's own first of each;
+// with giantsanity or tanksanity on, the seed holds a check for each.
+int g_WaveGiants;
+int g_WaveTanks;
+
 int g_MaxWaves;
 
 bool g_HaveBeginWave;
@@ -391,6 +397,10 @@ public void Event_BeginWave(Event event, const char[] name, bool dontBroadcast)
     g_CurrentWave = event.GetInt("wave_index") + 1;
     g_MaxWaves = event.GetInt("max_waves");
     g_PolledWave = g_CurrentWave;
+    // A replayed wave counts its giants and tanks again from one, which the
+    // bridge takes as the same checks it already holds.
+    g_WaveGiants = 0;
+    g_WaveTanks = 0;
     // The mod adds its whole lineup at this moment whatever is already on RED,
     // and this plugin has filled the team before it. One of the two has to
     // count, and the seats belong to this one.
@@ -421,17 +431,13 @@ public void Event_MissionComplete(Event event, const char[] name, bool dontBroad
 }
 
 // A giant died, maybe. This runs on every robot death of every wave, so the
-// cheapest test comes first and the whole handler stops for good once the
-// mission's check is in.
+// cheapest test comes first; the mission's own check reports once, the wave's
+// nth on every giant.
 public void Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 {
     int client = GetClientOfUserId(event.GetInt("userid"));
     MissionModifiers_OnPlayerDeath(client);
-    if (g_GiantReported || !MvM_IsActive())
-    {
-        return;
-    }
-    if (!MvM_IsGiant(client))
+    if (!MvM_IsActive() || !MvM_IsGiant(client))
     {
         return;
     }
@@ -439,6 +445,16 @@ public void Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast
     if (!MvM_PopFile(popFile, sizeof(popFile)))
     {
         AP_Error("The team killed a giant, but the mission has no name. The plugin did not report the check.");
+        return;
+    }
+    if (g_CurrentWave > 0)
+    {
+        g_WaveGiants++;
+        Bridge_ReportWaveKill("giant_killed", popFile, g_CurrentWave, g_WaveGiants,
+            g_MaxWaves > 0 ? g_MaxWaves : MvM_MaxWavesFromGame());
+    }
+    if (g_GiantReported)
+    {
         return;
     }
     g_GiantReported = true;
@@ -452,7 +468,7 @@ public void Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast
 // eight requests for one location. g_TankReported keeps them off the wire.
 public void Event_TankDestroyed(Event event, const char[] name, bool dontBroadcast)
 {
-    if (!MvM_IsActive() || g_TankReported)
+    if (!MvM_IsActive())
     {
         return;
     }
@@ -460,6 +476,16 @@ public void Event_TankDestroyed(Event event, const char[] name, bool dontBroadca
     if (!MvM_PopFile(popFile, sizeof(popFile)))
     {
         AP_Error("The team destroyed a tank, but the mission has no name. The plugin did not report the check.");
+        return;
+    }
+    if (g_CurrentWave > 0)
+    {
+        g_WaveTanks++;
+        Bridge_ReportWaveKill("tank_destroyed", popFile, g_CurrentWave, g_WaveTanks,
+            g_MaxWaves > 0 ? g_MaxWaves : MvM_MaxWavesFromGame());
+    }
+    if (g_TankReported)
+    {
         return;
     }
     g_TankReported = true;

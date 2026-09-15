@@ -343,7 +343,7 @@ class TF2MvMWorld(World):
         for mission in self.missions:
             region = Region(mission.name, self.player, self.multiworld)
             region.add_locations(
-                {location.name: location.id for location in mission.locations}, TF2MvMLocation
+                {location.name: location.id for location in self._checks(mission)}, TF2MvMLocation
             )
             self.multiworld.regions.append(region)
             menu.connect(region, f"Deploy to {mission.name}", self._deploy_rule(mission))
@@ -463,6 +463,8 @@ class TF2MvMWorld(World):
             "server_mods": sorted(self.options.server_mods.value),
             "mission_ticket_importance": self.options.mission_ticket_importance.current_key,
             "mission_modifiers": self.mission_modifiers,
+            "giantsanity": bool(self.options.giantsanity.value),
+            "tanksanity": bool(self.options.tanksanity.value),
             "tracker": {
                 "version": 1,
                 "starting_items": [
@@ -490,12 +492,16 @@ class TF2MvMWorld(World):
     def _tier_order(mission: data.Mission) -> tuple[int, int]:
         return data.DIFFICULTIES.index(mission.difficulty), mission.id
 
-    @staticmethod
-    def _check_count(missions: list[data.Mission]) -> int:
+    def _checks(self, mission: data.Mission) -> tuple[data.Location, ...]:
+        return mission.checks(
+            bool(self.options.giantsanity.value), bool(self.options.tanksanity.value)
+        )
+
+    def _check_count(self, missions: list[data.Mission]) -> int:
         # The export decides how many checks a mission holds. Counting the
         # waves and adding one for the clear stopped being that the day a
-        # mission grew a tank check.
-        return sum(len(mission.locations) for mission in missions)
+        # mission grew a tank check, and the per-kill ones are the options'.
+        return sum(len(self._checks(mission)) for mission in missions)
 
     def _shortfall(self, missions: list[data.Mission], start: data.Mission | None) -> int:
         """Unlock items owed minus the checks there is room for; filler only closes a surplus."""
