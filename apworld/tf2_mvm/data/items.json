@@ -11516,8 +11516,7 @@
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
-      "weapon_buff_id": 12574,
-      "eligible": true
+      "weapon_buff_id": 12574
     },
     {
       "id": 7443017830,
@@ -11811,8 +11810,7 @@
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
-      "weapon_buff_id": 20766,
-      "eligible": true
+      "weapon_buff_id": 20766
     },
     {
       "id": 7443026022,
@@ -16046,8 +16044,7 @@
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
-      "weapon_buff_id": 15908,
-      "eligible": true
+      "weapon_buff_id": 15908
     },
     {
       "id": 7443021164,
@@ -26597,8 +26594,7 @@
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
-      "weapon_buff_id": 25906,
-      "eligible": true
+      "weapon_buff_id": 25906
     },
     {
       "id": 7443031162,
@@ -27353,8 +27349,7 @@
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
-      "weapon_buff_id": 26419,
-      "eligible": true
+      "weapon_buff_id": 26419
     },
     {
       "id": 7443031675,
@@ -40650,8 +40645,7 @@
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
-      "weapon_buff_id": 12614,
-      "eligible": true
+      "weapon_buff_id": 12614
     },
     {
       "id": 7443017870,
@@ -42127,8 +42121,7 @@
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
-      "weapon_buff_id": 12616,
-      "eligible": true
+      "weapon_buff_id": 12616
     },
     {
       "id": 7443017872,
@@ -43663,8 +43656,7 @@
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
-      "weapon_buff_id": 13642,
-      "eligible": true
+      "weapon_buff_id": 13642
     },
     {
       "id": 7443018898,
@@ -45830,8 +45822,7 @@
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
-      "weapon_buff_id": 12621,
-      "eligible": true
+      "weapon_buff_id": 12621
     },
     {
       "id": 7443017877,
@@ -50899,8 +50890,7 @@
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
-      "weapon_buff_id": 30547,
-      "eligible": true
+      "weapon_buff_id": 30547
     },
     {
       "id": 7443035803,
@@ -52550,8 +52540,7 @@
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
-      "weapon_buff_id": 14422,
-      "eligible": true
+      "weapon_buff_id": 14422
     },
     {
       "id": 7443019678,
@@ -52958,8 +52947,7 @@
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
-      "weapon_buff_id": 25942,
-      "eligible": true
+      "weapon_buff_id": 25942
     },
     {
       "id": 7443031198,
@@ -56153,8 +56141,7 @@
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
-      "weapon_buff_id": 12635,
-      "eligible": true
+      "weapon_buff_id": 12635
     },
     {
       "id": 7443017891,
@@ -56907,8 +56894,7 @@
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
-      "weapon_buff_id": 12636,
-      "eligible": true
+      "weapon_buff_id": 12636
     },
     {
       "id": 7443017892,
@@ -57192,8 +57178,7 @@
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
-      "weapon_buff_id": 20572,
-      "eligible": true
+      "weapon_buff_id": 20572
     },
     {
       "id": 7443025828,
@@ -72841,8 +72826,7 @@
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
-      "weapon_buff_id": 30577,
-      "eligible": true
+      "weapon_buff_id": 30577
     },
     {
       "id": 7443035833,
@@ -77417,8 +77401,7 @@
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
-      "weapon_buff_id": 14456,
-      "eligible": true
+      "weapon_buff_id": 14456
     },
     {
       "id": 7443019712,
@@ -84079,8 +84062,7 @@
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
-      "weapon_buff_id": 15489,
-      "eligible": true
+      "weapon_buff_id": 15489
     },
     {
       "id": 7443020745,
@@ -86224,8 +86206,7 @@
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
-      "weapon_buff_id": 13956,
-      "eligible": true
+      "weapon_buff_id": 13956
     },
     {
       "id": 7443019212,
@@ -86907,8 +86888,7 @@
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
-      "weapon_buff_id": 12677,
-      "eligible": true
+      "weapon_buff_id": 12677
     },
     {
       "id": 7443017933,
@@ -88394,8 +88374,7 @@
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
-      "weapon_buff_id": 13447,
-      "eligible": true
+      "weapon_buff_id": 13447
     },
     {
       "id": 7443018703,
@@ -93204,8 +93183,7 @@
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
-      "weapon_buff_id": 26765,
-      "eligible": true
+      "weapon_buff_id": 26765
     },
     {
       "id": 7443032021,
@@ -100001,8 +99979,7 @@
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
-      "weapon_buff_id": 12695,
-      "eligible": true
+      "weapon_buff_id": 12695
     },
     {
       "id": 7443017951,
@@ -111681,8 +111658,7 @@
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
-      "weapon_buff_id": 13735,
-      "eligible": true
+      "weapon_buff_id": 13735
     },
     {
       "id": 7443018991,
@@ -113220,8 +113196,7 @@
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
-      "weapon_buff_id": 15017,
-      "eligible": true
+      "weapon_buff_id": 15017
     },
     {
       "id": 7443020273,
@@ -115072,8 +115047,7 @@
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
-      "weapon_buff_id": 26283,
-      "eligible": true
+      "weapon_buff_id": 26283
     },
     {
       "id": 7443031539,
@@ -119749,8 +119723,7 @@
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
-      "weapon_buff_id": 12722,
-      "eligible": true
+      "weapon_buff_id": 12722
     },
     {
       "id": 7443017978,
@@ -119848,8 +119821,7 @@
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
-      "weapon_buff_id": 15538,
-      "eligible": true
+      "weapon_buff_id": 15538
     },
     {
       "id": 7443020794,
@@ -125574,8 +125546,7 @@
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
-      "weapon_buff_id": 12730,
-      "eligible": true
+      "weapon_buff_id": 12730
     },
     {
       "id": 7443017986,
@@ -135673,8 +135644,7 @@
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
-      "weapon_buff_id": 26311,
-      "eligible": true
+      "weapon_buff_id": 26311
     },
     {
       "id": 7443031567,
@@ -136966,8 +136936,7 @@
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
-      "weapon_buff_id": 20681,
-      "eligible": true
+      "weapon_buff_id": 20681
     },
     {
       "id": 7443025937,
@@ -137486,8 +137455,7 @@
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
-      "weapon_buff_id": 14538,
-      "eligible": true
+      "weapon_buff_id": 14538
     },
     {
       "id": 7443019794,
