@@ -85,7 +85,7 @@ func (a *App) Snapshot() Snapshot {
 	if s.TestMode {
 		room = "test mode"
 	} else if s.APPort != 0 {
-		room = "room " + (settings.Room{Host: s.APHost, Port: s.APPort}).String()
+		room = "room " + (settings.Room{Host: s.APHost, Port: s.APPort, TLS: s.APTls}).String()
 	}
 	if playing != "" {
 		room += "   " + playing

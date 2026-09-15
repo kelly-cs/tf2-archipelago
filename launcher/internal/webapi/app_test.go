@@ -203,6 +203,35 @@ func TestAttachedSteamJoinWaitsForAndUsesTheRelay(t *testing.T) {
 	}
 }
 
+// The room of a self-hosted stack is archipelago:38281 with no TLS. Saving
+// anything used to re-read that bare address as a public one, write AP_TLS=1,
+// and leave the bridge dialling wss:// at a plain ws:// room after the next
+// recreate.
+func TestAttachedSaveKeepsAPlainRoomPlain(t *testing.T) {
+	path := filepath.Join(t.TempDir(), ".env")
+	if err := os.WriteFile(path, []byte("AP_HOST=archipelago\nAP_PORT=38281\nAP_TLS=false\nSRCDS_HOSTNAME=old\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	s := settings.Defaults()
+	s.APHost, s.APPort, s.APTls = "archipelago", 38281, false
+	s.SrcdsHostname = "old"
+	app := NewAttached(s, nil, path)
+	app.OpenSettings("Game server")
+	if err := app.Change(form.Change{Field: "server.hostname", Value: "renamed"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := app.SaveSettings(false); err != nil {
+		t.Fatal(err)
+	}
+	body, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(body), "AP_TLS='1'") || app.supervisor.Settings().APTls {
+		t.Fatalf("saving the hostname turned TLS on for a plain room:\n%s", body)
+	}
+}
+
 func TestAttachedSettingsPersistToComposeEnv(t *testing.T) {
 	path := filepath.Join(t.TempDir(), ".env")
 	if err := os.WriteFile(path, []byte("SRCDS_HOSTNAME=old\nTF2AP_JOIN_HOST=127.0.0.1\n"), 0o600); err != nil {

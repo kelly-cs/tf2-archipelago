@@ -59,11 +59,24 @@ func ParseRoom(address string) (Room, error) {
 }
 
 // String renders the room the way the room page writes it.
+// String is what ParseRoom reads back to the same Room. A bare host:port
+// means TLS for a public host and none for a local one, so the scheme is
+// spelled out only where the room is the other way round: a multiworld hosted
+// in the Compose stack is reached as archipelago:38281 without TLS, and a
+// Save that rendered it bare came back with TLS on and a bridge that could
+// not connect.
 func (r Room) String() string {
 	if r.Port == 0 {
 		return ""
 	}
-	return net.JoinHostPort(r.Host, strconv.Itoa(r.Port))
+	address := net.JoinHostPort(r.Host, strconv.Itoa(r.Port))
+	if r.TLS == isLocal(r.Host) {
+		if r.TLS {
+			return "wss://" + address
+		}
+		return "ws://" + address
+	}
+	return address
 }
 
 func isLocal(host string) bool {

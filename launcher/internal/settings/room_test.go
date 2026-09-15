@@ -36,8 +36,24 @@ func TestParseRoomRejectsWhatCannotWork(t *testing.T) {
 }
 
 func TestRoomString(t *testing.T) {
-	if got := (Room{Host: "archipelago.gg", Port: 12345}).String(); got != "archipelago.gg:12345" {
-		t.Errorf("got %q", got)
+	for _, tc := range []struct {
+		room Room
+		want string
+	}{
+		{Room{"archipelago.gg", 12345, true}, "archipelago.gg:12345"},
+		{Room{"localhost", 38281, false}, "localhost:38281"},
+		{Room{"192.168.1.10", 38281, false}, "192.168.1.10:38281"},
+		// The scheme appears only where a bare address would read back wrong.
+		{Room{"archipelago", 38281, false}, "ws://archipelago:38281"},
+		{Room{"localhost", 38281, true}, "wss://localhost:38281"},
+	} {
+		if got := tc.room.String(); got != tc.want {
+			t.Errorf("%+v rendered as %q, want %q", tc.room, got, tc.want)
+		}
+		back, err := ParseRoom(tc.room.String())
+		if err != nil || back != tc.room {
+			t.Errorf("%+v did not survive String then ParseRoom: %+v, %v", tc.room, back, err)
+		}
 	}
 	if got := (Room{}).String(); got != "" {
 		t.Errorf("an unset room rendered as %q", got)
