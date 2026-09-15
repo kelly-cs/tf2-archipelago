@@ -126,56 +126,59 @@ remains enabled, so the launcher recreates `/tf` on the next Start.
 
 ## Docker Compose
 
-The Compose stack uses the existing Caddy FastDL server plus the official
-`tailscale/tailscale` sidecar. Caddy alone can read the read-only TF2 game
+The Compose stack includes the official `tailscale/tailscale` sidecar beside
+the existing Caddy FastDL server. Caddy alone can read the read-only TF2 game
 volume. Tailscale shares only Caddy's network namespace and proxies its
-loopback HTTP port.
+loopback HTTP port. Tailscale does not need to be installed on the host.
 
-First enable Funnel for the tailnet and create an auth key in the Tailscale
-[Keys page](https://login.tailscale.com/admin/settings/keys). Then set these
-values in `.env`:
+Set these values in `.env` (or turn on **Tailscale FastDL** in the admin UI and
+save):
 
 ```ini
-COMPOSE_PROFILES=tailscale-fastdl
 TAILSCALE_FASTDL=1
-TAILSCALE_AUTHKEY=tskey-auth-your-key-here
 TAILSCALE_HOSTNAME=tf2-fastdl
 FASTDL_BIND=127.0.0.1
 ```
 
-If `COMPOSE_PROFILES` already contains `selfhost`, use a comma-separated list:
+Apply the saved setting and open the admin UI:
 
-```ini
-COMPOSE_PROFILES=selfhost,tailscale-fastdl
+```sh
+docker compose up -d --force-recreate
+# open http://127.0.0.1:8477
 ```
 
-Start the stack and follow its first login:
+On **Settings → Networking**, press **Set up / check Funnel**. The first press
+provides a Tailscale sign-in link. Sign in there, return to the page, and press
+the button again. If the tailnet has not used Funnel before, that press provides
+a second link to approve Funnel; after approval, press it once more. A ready
+message means the public `/tf` route is active and SRCDS can start.
+
+Follow the startup if desired:
 
 ```sh
 make up
 make logs
 ```
 
-Compose waits for the sidecar to be connected with the `/tf` Funnel active
-before starting the game server. The srcds log then prints a line like:
+When Funnel is selected, SRCDS waits for the sidecar to be connected with the
+`/tf` route active. The srcds log then prints a line like:
 
 ```text
 [AP] using Tailscale Funnel FastDL at https://tf2-fastdl.example.ts.net/tf
 ```
 
 The `tailscale_fastdl_state` volume preserves the device identity and login.
-`TS_AUTH_ONCE` prevents needless reauthentication, so after the first
-successful start you can remove `TAILSCALE_AUTHKEY` from `.env`. Normal
-`make down`, `make up`, image upgrades and host restarts keep working. `make
-clean` deliberately deletes every volume, including this identity, and the
-next start therefore needs a new auth key.
+Normal `make down`, `make up`, image upgrades and host restarts keep working.
+`make clean` deliberately deletes every volume, including this identity, and
+the next start therefore needs another browser sign-in.
 
-If the sidecar cannot authenticate or apply Funnel, it stays unhealthy and
-Compose does not start SRCDS with an empty download URL. Inspect it with:
+If the sidecar cannot authenticate or apply Funnel, SRCDS waits rather than
+starting with an empty download URL. The admin UI remains available. Inspect
+the sidecar with:
 
 ```sh
 docker compose logs tailscale-fastdl
-docker compose exec tailscale-fastdl tailscale funnel status
+docker compose exec tailscale-fastdl tailscale --socket=/run/tf2ap-fastdl/tailscaled.sock funnel status
 ```
 
 ## What friends do

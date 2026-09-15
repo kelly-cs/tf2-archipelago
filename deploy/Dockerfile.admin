@@ -35,7 +35,11 @@ RUN CGO_ENABLED=0 go build -trimpath \
     -o /composeadmin ./launcher/cmd/composeadmin
 
 
+FROM tailscale/tailscale:stable AS tailscale
+
+
 FROM gcr.io/distroless/static-debian12:nonroot
 
 COPY --from=build /composeadmin /composeadmin
+COPY --from=tailscale /usr/local/bin/tailscale /usr/local/bin/tailscale
 ENTRYPOINT ["/composeadmin"]

@@ -13,6 +13,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 )
 
 const (
@@ -54,6 +55,7 @@ func (e *OperatorRequiredError) Error() string {
 
 type status struct {
 	BackendState string `json:"BackendState"`
+	AuthURL      string `json:"AuthURL"`
 	Self         struct {
 		DNSName string `json:"DNSName"`
 	} `json:"Self"`
@@ -62,6 +64,91 @@ type status struct {
 type runner func(context.Context, string, ...string) ([]byte, error)
 
 var funnelApprovalURL = regexp.MustCompile(`https://login\.tailscale\.com/f/funnel\?[^\s]+`)
+
+// AuthorizeContainer signs the bundled Compose sidecar in and publishes its
+// FastDL route. The sidecar deliberately runs only tailscaled: unlike
+// containerboot it can remain alive while a person follows an interactive
+// login URL, and the named state volume remembers that login afterwards.
+func AuthorizeContainer(ctx context.Context, socket, hostname string, localPort int) (Authorization, error) {
+	executable, err := executablePath()
+	if err != nil {
+		return Authorization{}, err
+	}
+	return authorizeContainer(ctx, executable, socket, hostname, localPort, run)
+}
+
+func authorizeContainer(ctx context.Context, executable, socket, hostname string, localPort int, baseCommand runner) (Authorization, error) {
+	command := socketCommand(socket, baseCommand)
+	state, err := readStatus(ctx, executable, command)
+	if err != nil {
+		return Authorization{}, err
+	}
+	if state.BackendState != "Running" {
+		if state.AuthURL == "" {
+			// A short timeout starts interactive login without holding the UI
+			// request open until the person has visited the returned page.
+			_, _ = command(ctx, executable, "up", "--json", "--timeout=4s",
+				"--hostname="+hostname, "--accept-dns=false")
+			state, err = waitForAuthURL(ctx, executable, command)
+			if err != nil {
+				return Authorization{}, err
+			}
+		}
+		if !strings.HasPrefix(state.AuthURL, "https://login.tailscale.com/") {
+			return Authorization{}, fmt.Errorf("tailscale is waiting for login but returned an invalid approval URL")
+		}
+		return Authorization{ApprovalURL: state.AuthURL}, nil
+	}
+
+	configured, err := configure(ctx, executable, localPort, command)
+	if err != nil {
+		if approval, ok := errors.AsType[*ApprovalRequiredError](err); ok {
+			return Authorization{ApprovalURL: approval.URL}, nil
+		}
+		return Authorization{}, err
+	}
+	if configured.URL == "" {
+		return Authorization{}, errors.New("tailscale Funnel did not return a FastDL URL")
+	}
+	return Authorization{Ready: true}, nil
+}
+
+func socketCommand(socket string, command runner) runner {
+	return func(ctx context.Context, executable string, args ...string) ([]byte, error) {
+		withSocket := append([]string{"--socket=" + socket}, args...)
+		return command(ctx, executable, withSocket...)
+	}
+}
+
+func readStatus(ctx context.Context, executable string, command runner) (status, error) {
+	raw, err := command(ctx, executable, "status", "--json")
+	if err != nil {
+		return status{}, fmt.Errorf("cannot reach the bundled Tailscale service: %w", err)
+	}
+	var state status
+	if err := json.Unmarshal(raw, &state); err != nil {
+		return status{}, fmt.Errorf("cannot read Tailscale status: %w", err)
+	}
+	return state, nil
+}
+
+func waitForAuthURL(ctx context.Context, executable string, command runner) (status, error) {
+	for range 20 {
+		state, err := readStatus(ctx, executable, command)
+		if err != nil {
+			return status{}, err
+		}
+		if state.AuthURL != "" || state.BackendState == "Running" {
+			return state, nil
+		}
+		select {
+		case <-ctx.Done():
+			return status{}, fmt.Errorf("tailscale did not produce a login page: %w", ctx.Err())
+		case <-time.After(150 * time.Millisecond):
+		}
+	}
+	return status{}, errors.New("tailscale is starting sign-in; wait a moment and press Set up / check Funnel again")
+}
 
 // Authorize checks whether this tailnet permits Funnel without needing an
 // installed game. When permission is already present it briefly publishes a

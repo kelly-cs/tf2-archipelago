@@ -15,6 +15,7 @@ import (
 	"github.com/m-this/tf2-archipelago/launcher/internal/browser"
 	apruntime "github.com/m-this/tf2-archipelago/launcher/internal/runtime"
 	"github.com/m-this/tf2-archipelago/launcher/internal/settings"
+	"github.com/m-this/tf2-archipelago/launcher/internal/tailscalefastdl"
 )
 
 // shutdownGrace bounds the wait for the last request when the launcher is
@@ -52,6 +53,12 @@ type Options struct {
 	// AttachedLogs are service logs mounted read-only into an attached admin
 	// process. An empty list disables service-log forwarding.
 	AttachedLogs []AttachedLog
+
+	// TailscaleSocket selects the bundled Compose sidecar instead of a
+	// Tailscale installation on the host. Hostname becomes its persistent
+	// MagicDNS and Funnel name after browser sign-in.
+	TailscaleSocket   string
+	TailscaleHostname string
 }
 
 // AttachedLog names one Compose service's log as mounted in the admin
@@ -69,15 +76,30 @@ Loopback only, and one player. This is not a daemon: closing the tab leaves the
 server running, Quit in the interface stops it, and so does Ctrl-C here.
 */
 func Run(s settings.Settings, logger *slog.Logger, options Options) error {
-	app := New(s, logger)
-	if options.Attached {
-		app = NewAttached(s, logger, options.AttachedEnvFile)
-	}
+	app := appForOptions(s, logger, options)
 	if file, err := apruntime.CreateLogFile(s.InstallRoot); err == nil {
 		app.LogTo(file)
 		defer func() { _ = file.Close() }()
 	}
 
+	return serve(app, s, options)
+}
+
+func appForOptions(s settings.Settings, logger *slog.Logger, options Options) *App {
+	app := New(s, logger)
+	if options.Attached {
+		app = NewAttached(s, logger, options.AttachedEnvFile)
+	}
+	if options.TailscaleSocket != "" {
+		app.authorizeFunnel = func(ctx context.Context) (tailscalefastdl.Authorization, error) {
+			return tailscalefastdl.AuthorizeContainer(ctx, options.TailscaleSocket, options.TailscaleHostname, 80)
+		}
+		app.funnelAdvice = containerFunnelSetupAdvice
+	}
+	return app
+}
+
+func serve(app *App, s settings.Settings, options Options) error {
 	address := options.Address
 	if address == "" {
 		address = "127.0.0.1:0"

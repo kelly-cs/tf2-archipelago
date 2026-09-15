@@ -49,7 +49,11 @@
       }
     }
 
-    @if (said()) {
+    @if (saidLink()) {
+      <app-notice tone="info">
+        <a [href]="saidLink()" target="_blank" rel="noopener">Continue setup in Tailscale</a>
+      </app-notice>
+    } @else if (said()) {
       <app-notice tone="info">{{ said() }}</app-notice>
     }
   </section>

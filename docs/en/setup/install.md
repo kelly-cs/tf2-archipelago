@@ -103,9 +103,9 @@ plugin reaches it at `127.0.0.1` and nothing outside the machine can.
 Restarting the game server restarts the bridge with it. That costs seconds, not
 progress: the bridge writes every check to disk.
 
-The optional `tailscale-fastdl` service publishes Caddy through public HTTPS
-without forwarding the HTTP port. It runs only when that Compose profile is
-enabled. See [Fast map downloads with Tailscale](tailscale-fastdl.md#docker-compose).
+The bundled `tailscale-fastdl` service can publish Caddy through public HTTPS
+without forwarding the HTTP port. Sign it in from the admin UI when you choose
+to use it. See [Fast map downloads with Tailscale](tailscale-fastdl.md#docker-compose).
 
 ## The commands
 

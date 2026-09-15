@@ -21,7 +21,7 @@ import (
 
 // funnelGrace bounds the wait for Tailscale to answer about this tailnet. The
 // player is looking at a button while it runs.
-const funnelGrace = 4 * time.Second
+const funnelGrace = 10 * time.Second
 
 // LauncherRPC is LauncherService over one App.
 type LauncherRPC struct{ App *App }
@@ -91,9 +91,9 @@ func (s LauncherRPC) ResumeMission(_ context.Context, request *connect.Request[l
 func (s LauncherRPC) ApproveFunnel(ctx context.Context, _ *connect.Request[launcherv1.ApproveFunnelRequest]) (*connect.Response[launcherv1.ApproveFunnelResponse], error) {
 	ctx, cancel := context.WithTimeout(ctx, funnelGrace)
 	defer cancel()
-	result, err := authorizeFunnel(ctx)
+	result, err := s.App.authorizeFunnel(ctx)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeUnavailable, errors.New(funnelSetupAdvice(err)))
+		return nil, connect.NewError(connect.CodeUnavailable, errors.New(s.App.funnelAdvice(err)))
 	}
 	response := &launcherv1.ApproveFunnelResponse{ApprovalUrl: result.ApprovalURL}
 	if result.ApprovalURL == "" {
@@ -153,6 +153,16 @@ func (s SettingsRPC) CancelSettings(context.Context, *connect.Request[launcherv1
 // installed. Nothing else replaces it.
 var authorizeFunnel = tailscalefastdl.Authorize
 
+func containerFunnelSetupAdvice(err error) string {
+	detail := strings.TrimSpace(strings.Split(err.Error(), "\n")[0])
+	if detail == "" {
+		detail = "The bundled Tailscale service did not answer."
+	}
+	return "The bundled Tailscale service could not finish Funnel setup.\n\n" +
+		"Tailscale said: " + detail + "\n\n" +
+		"If retrying does not help, inspect it with: docker compose logs tailscale-fastdl"
+}
+
 /*
 funnelSetupAdvice turns a Funnel failure into something the player can act on.
 
@@ -167,7 +177,6 @@ func funnelSetupAdvice(err error) string {
 		executable = "tf2ap-linux-amd64"
 	}
 	command := strconv.Quote(executable) + " -setup-funnel"
-
 	operatorRequired := &tailscalefastdl.OperatorRequiredError{}
 	if errors.As(err, &operatorRequired) {
 		return "Tailscale needs one-time permission for your user to manage Funnel.\n\n" +

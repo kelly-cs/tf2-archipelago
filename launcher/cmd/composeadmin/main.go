@@ -25,10 +25,12 @@ func run(logger *slog.Logger) error {
 	logger.Info("TF2 Archipelago admin UI", "url", "http://"+authority)
 	logger.Info("Docker Compose owns server lifecycle; the Settings tab writes .env")
 	return webapi.Run(s, logger, webapi.Options{
-		Address:         env("TF2AP_ADMIN_LISTEN", "0.0.0.0:8477"),
-		Authority:       authority,
-		Attached:        true,
-		AttachedEnvFile: env("TF2AP_ADMIN_ENV_FILE", "/config/compose.env"),
+		Address:           env("TF2AP_ADMIN_LISTEN", "0.0.0.0:8477"),
+		Authority:         authority,
+		Attached:          true,
+		AttachedEnvFile:   env("TF2AP_ADMIN_ENV_FILE", "/config/compose.env"),
+		TailscaleSocket:   env("TF2AP_TAILSCALE_SOCKET", "/run/tf2ap-fastdl/tailscaled.sock"),
+		TailscaleHostname: env("TAILSCALE_HOSTNAME", "tf2-fastdl"),
 		AttachedLogs: []webapi.AttachedLog{
 			{Path: env("TF2AP_ADMIN_SRCDS_LOG", "/srv/tf-dedicated/tf/console.log"), Source: "srcds"},
 			{Path: env("TF2AP_ADMIN_BRIDGE_LOG", "/srv/bridge/bridge.log"), Source: "bridge"},

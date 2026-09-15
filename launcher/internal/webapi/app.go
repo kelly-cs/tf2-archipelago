@@ -31,6 +31,7 @@ import (
 	apruntime "github.com/m-this/tf2-archipelago/launcher/internal/runtime"
 	"github.com/m-this/tf2-archipelago/launcher/internal/session"
 	"github.com/m-this/tf2-archipelago/launcher/internal/settings"
+	"github.com/m-this/tf2-archipelago/launcher/internal/tailscalefastdl"
 )
 
 const (
@@ -77,6 +78,8 @@ type App struct {
 	attached        bool
 	attachedUp      bool
 	attachedEnvFile string
+	authorizeFunnel func(context.Context) (tailscalefastdl.Authorization, error)
+	funnelAdvice    func(error) string
 
 	listeners map[*Listener]struct{}
 	quit      chan struct{}
@@ -92,6 +95,10 @@ func New(s settings.Settings, logger *slog.Logger) *App {
 		serverMods: installer.ReadyServerMods(s.InstallRoot),
 		listeners:  make(map[*Listener]struct{}),
 		quit:       make(chan struct{}),
+		authorizeFunnel: func(ctx context.Context) (tailscalefastdl.Authorization, error) {
+			return authorizeFunnel(ctx)
+		},
+		funnelAdvice: funnelSetupAdvice,
 	}
 	a.supervisor = apruntime.NewSupervisor(s, logger, a.append)
 	return a

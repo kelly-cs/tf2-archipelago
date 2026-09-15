@@ -122,6 +122,65 @@ func TestAuthorizeRemovesItsPublicSetupPath(t *testing.T) {
 	}
 }
 
+func TestAuthorizeContainerStartsInteractiveLogin(t *testing.T) {
+	var calls [][]string
+	statuses := [][]byte{
+		[]byte(`{"BackendState":"NeedsLogin","AuthURL":""}`),
+		[]byte(`{"BackendState":"NeedsLogin","AuthURL":"https://login.tailscale.com/a/abc123"}`),
+	}
+	run := func(_ context.Context, executable string, args ...string) ([]byte, error) {
+		calls = append(calls, append([]string{executable}, args...))
+		if args[len(args)-2] == "status" {
+			answer := statuses[0]
+			statuses = statuses[1:]
+			return answer, nil
+		}
+		return nil, errors.New("timeout waiting for login")
+	}
+
+	got, err := authorizeContainer(context.Background(), "tailscale", "/run/tailscale.sock", "tf2-fastdl", 80, run)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.ApprovalURL != "https://login.tailscale.com/a/abc123" || got.Ready {
+		t.Fatalf("authorization = %#v", got)
+	}
+	for _, call := range calls {
+		if len(call) < 2 || call[1] != "--socket=/run/tailscale.sock" {
+			t.Fatalf("call did not use the sidecar socket: %#v", call)
+		}
+	}
+	if joined := strings.Join(calls[1], " "); !strings.Contains(joined, "up --json --timeout=4s --hostname=tf2-fastdl --accept-dns=false") {
+		t.Fatalf("login call = %s", joined)
+	}
+}
+
+func TestAuthorizeContainerConfiguresFastDLWhenSignedIn(t *testing.T) {
+	var calls [][]string
+	run := func(_ context.Context, executable string, args ...string) ([]byte, error) {
+		calls = append(calls, append([]string{executable}, args...))
+		if args[len(args)-2] == "status" {
+			return []byte(`{"BackendState":"Running","Self":{"DNSName":"fastdl.example.ts.net."}}`), nil
+		}
+		return nil, nil
+	}
+
+	got, err := authorizeContainer(context.Background(), "tailscale", "/run/tailscale.sock", "tf2-fastdl", 80, run)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !got.Ready || got.ApprovalURL != "" {
+		t.Fatalf("authorization = %#v", got)
+	}
+	joined := make([]string, len(calls))
+	for i, call := range calls {
+		joined[i] = strings.Join(call, " ")
+	}
+	if !strings.Contains(strings.Join(joined, "\n"), "funnel --yes --bg --https=443 --set-path=/tf http://127.0.0.1:80/tf") {
+		t.Fatalf("calls = %#v", calls)
+	}
+}
+
 func TestDisableRemovesOnlyTheFastDLPath(t *testing.T) {
 	var calls [][]string
 	run := func(_ context.Context, _ string, args ...string) ([]byte, error) {

@@ -17,9 +17,11 @@ INTERVAL=30
 tailscale_fastdl_url() {
 	url_file=/run/tf2ap-fastdl/url
 	if [ ! -s "$url_file" ]; then
-		echo "[AP] TAILSCALE_FASTDL=1 but its verified Funnel URL is unavailable" >&2
-		return 1
+		echo "[AP] waiting for Tailscale sign-in and Funnel setup in the admin UI" >&2
 	fi
+	while [ ! -s "$url_file" ]; do
+		sleep 2
+	done
 	url="$(sed -n '1p' "$url_file")"
 	case "$url" in
 	https://*.ts.net/tf)
@@ -342,9 +344,8 @@ case "${SRCDS_TOKEN:-0}" in
 esac
 export SRCDS_LAN SRCDS_SDR_FAKEIP
 
-# With the profile enabled, Compose holds this container until the Tailscale
-# sidecar is healthy. Validate the handoff once more here so starting this
-# container by itself cannot silently lose an explicitly selected FastDL.
+# Funnel setup can happen after the stack starts. Waiting here keeps the admin
+# UI reachable while ensuring SRCDS never starts with an empty download URL.
 if [ "${TAILSCALE_FASTDL:-0}" = 1 ]; then
 	SRCDS_DOWNLOADURL="$(tailscale_fastdl_url)"
 	export SRCDS_DOWNLOADURL

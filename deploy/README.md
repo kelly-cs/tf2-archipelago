@@ -1,6 +1,6 @@
 # deploy
 
-Compose stack. Two services by default, and two more that run on demand.
+Compose stack. Five services by default, and one more that runs on demand.
 
 | File | Service | Notes |
 | --- | --- | --- |
@@ -9,7 +9,7 @@ Compose stack. Two services by default, and two more that run on demand.
 | `compose.yml` | `admin` | The launcher web UI attached to the Compose-managed server, with read-only SRCDS and bridge logs, on host loopback. |
 | `compose.yml` | `archipelago` | The Archipelago server, unmodified, with our apworld baked in. Profile `selfhost` only. |
 | `compose.yml` | `fastdl` | Caddy serving only downloadable TF2 asset directories. |
-| `compose.yml` | `tailscale-fastdl` | Official Tailscale Funnel sidecar. Profile `tailscale-fastdl` only. |
+| `compose.yml` | `tailscale-fastdl` | Official Tailscale Funnel sidecar, signed in from the admin UI. |
 | `compose.seed.yml` | `seed` | The same image, run once to generate a seed into `./seed`. |
 | `compose.release.yml` | — | An overlay, not a stack. Names a `ghcr.io` image for each service above. |
 

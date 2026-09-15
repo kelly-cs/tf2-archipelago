@@ -167,6 +167,10 @@ export class SettingsTabPage {
   /** said is the last thing a button answered with: a path opened, a page to
       visit, a file saved. The launcher says the rest on the stream. */
   readonly said = signal('');
+  readonly saidLink = computed(() => {
+    const answer = this.said();
+    return answer.startsWith('https://login.tailscale.com/') ? answer : '';
+  });
 
   readonly fired = new Subject<string>();
 
