@@ -81,9 +81,10 @@ COPY plugin/gamedata/tf2_archipelago.txt \
 COPY deploy/srcds/tf2_archipelago.cfg \
 	/opt/tf2-archipelago/cfg/sourcemod/tf2_archipelago.cfg
 COPY deploy/srcds-entrypoint.sh /usr/local/bin/entrypoint.sh
+COPY deploy/srcds-launch.sh /usr/local/bin/tf2ap-srcds-launch.sh
 
 RUN chown -R steam:steam /opt/tf2-archipelago /opt/tf2-mods \
-	&& chmod +x /usr/local/bin/entrypoint.sh
+	&& chmod +x /usr/local/bin/entrypoint.sh /usr/local/bin/tf2ap-srcds-launch.sh
 
 USER steam
 WORKDIR /home/steam

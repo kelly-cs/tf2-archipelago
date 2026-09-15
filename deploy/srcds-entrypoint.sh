@@ -353,10 +353,10 @@ fi
 
 install_plugin &
 
-# Keep the same combined output Docker receives in the game volume for the
-# local admin sidecar. The base image does not pass -condebug to srcds, so no
-# console.log exists otherwise. Rotate once per container start: the admin
-# starts after the bridge is healthy and therefore sees this run's file.
+# TF2 writes its console to this file through -condebug. It is more reliable
+# than a stdout pipe for the 32-bit server and is the same source the native
+# launcher uses for the FakeIP allocation line. Rotate once per container
+# start so the admin sidecar sees only this run.
 console_log="${GAME}/console.log"
 console_previous="${GAME}/console-previous.log"
 mkdir -p "${GAME}"
@@ -364,74 +364,4 @@ if [ -f "${console_log}" ]; then
 	mv -f "${console_log}" "${console_previous}"
 fi
 
-# SRCDS changes stdout from line-buffered to block-buffered when tee sits
-# between it and Docker. Without stdbuf, the server can be ready for players
-# while the web console still appears frozen in the middle of Steam startup.
-exec > >(tee -a "${console_log}") 2>&1
-
-# TF2 sometimes logs its GSLT in successfully after an immediate restart, then
-# sleeps forever before it asks SteamNetworkingSockets for a FakeIP. Compose
-# still sees a live process in that state, and the Join button can consequently
-# say "waiting" forever. Retry only that demonstrably incomplete relay startup.
-# Keep the container alive between attempts: the bridge and admin share its
-# network namespace, so replacing the container would strand both sidecars.
-relay_timeout=${TF2AP_STEAM_RELAY_TIMEOUT:-60}
-relay_cooldown=${TF2AP_STEAM_RELAY_COOLDOWN:-25}
-server_pid=
-stopping=0
-
-stop_server() {
-	stopping=1
-	if [ -n "${server_pid}" ] && kill -0 "${server_pid}" 2>/dev/null; then
-		# setsid gives the base entrypoint, srcds_run and srcds_linux one process
-		# group. Stopping all of it lets the Steam game-server session log off.
-		kill -TERM -- "-${server_pid}" 2>/dev/null || true
-	fi
-}
-trap stop_server TERM INT
-
-while :; do
-	attempt_offset=$(stat -c %s "${console_log}" 2>/dev/null || echo 0)
-	setsid stdbuf -oL -eL bash "${HOMEDIR}/entry.sh" &
-	server_pid=$!
-
-	if [ "${SRCDS_SDR_FAKEIP}" != 1 ]; then
-		wait "${server_pid}"
-		exit $?
-	fi
-
-	deadline=0
-	relay_ready=0
-	while kill -0 "${server_pid}" 2>/dev/null; do
-		attempt_log=$(tail -c "+$((attempt_offset + 1))" "${console_log}" 2>/dev/null || true)
-		if printf '%s\n' "${attempt_log}" | grep -q "FakeIP allocation succeeded:"; then
-			relay_ready=1
-			break
-		fi
-		# Downloading or updating TF2 can legitimately take minutes. Start the
-		# timeout only once the engine reaches the exact stage that wedged.
-		if [ "${deadline}" -eq 0 ] && printf '%s\n' "${attempt_log}" | grep -q "Initializing Steam libraries for secure Internet server"; then
-			deadline=$(( $(date +%s) + relay_timeout ))
-		fi
-		if [ "${deadline}" -ne 0 ] && [ "$(date +%s)" -ge "${deadline}" ]; then
-			break
-		fi
-		sleep 2
-	done
-
-	if [ "${relay_ready}" -eq 1 ] || [ "${stopping}" -eq 1 ]; then
-		wait "${server_pid}"
-		exit $?
-	fi
-
-	if ! kill -0 "${server_pid}" 2>/dev/null; then
-		wait "${server_pid}"
-		exit $?
-	fi
-
-	echo "[AP] Steam relay startup did not allocate a FakeIP within ${relay_timeout}s; retrying after ${relay_cooldown}s"
-	kill -TERM -- "-${server_pid}" 2>/dev/null || true
-	wait "${server_pid}" 2>/dev/null || true
-	server_pid=
-	sleep "${relay_cooldown}"
-done
+exec bash /usr/local/bin/tf2ap-srcds-launch.sh

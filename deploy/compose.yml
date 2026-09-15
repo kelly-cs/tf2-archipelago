@@ -116,6 +116,11 @@ services:
         RIPEXT_VERSION: ${RIPEXT_VERSION:?set it in deploy/env/versions.env}
         SIGSEGV_MVM_VERSION: ${SIGSEGV_MVM_VERSION:?set it in deploy/env/versions.env}
         SIGSEGV_MVM_SHA256: ${SIGSEGV_MVM_SHA256:?set it in deploy/env/versions.env}
+    # SRCDS reads its console input during startup. This also keeps its output
+    # line-buffered, matching the native launcher and the upstream image's
+    # supported Compose example.
+    stdin_open: true
+    tty: true
     restart: unless-stopped
     environment:
       SRCDS_HOSTNAME: ${SRCDS_HOSTNAME:-Mann vs Archipelago}
