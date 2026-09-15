@@ -28,6 +28,7 @@
 #define MoveSpeedEffect 24
 #define JumpHeightEffect 25
 #define ActiveHealthRegenEffect 66
+#define MaxHealthEffect 38
 #define HealOnKillEffect 6
 #define CritsOnKillEffect 7
 #define SpeedOnKillEffect 22
@@ -40,7 +41,7 @@
 bool WeaponBuffs_IsPassiveEffect(int effect)
 {
     return effect == MoveSpeedEffect || effect == JumpHeightEffect
-        || effect == ActiveHealthRegenEffect;
+        || effect == ActiveHealthRegenEffect || effect == MaxHealthEffect;
 }
 
 bool WeaponBuffs_IsOnKillEffect(int effect)

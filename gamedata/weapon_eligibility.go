@@ -229,6 +229,18 @@ var projectileWeapons = names(
 	"Stickybomb Launcher", "Syringe Gun", "Wrap Assassin",
 )
 
+// straightProjectileWeapons fire what flies until it hits: a rocket has no
+// range to lengthen, so projectile range is inert on every launcher (gh-32,
+// note 54). The arcing and expiring projectiles keep it.
+var straightProjectileWeapons = names(
+	"Air Strike", "Beggar's Bazooka", "Black Box", "Cow Mangler 5000", "Direct Hit",
+	"Liberty Launcher", "Rocket Jumper", "Rocket Launcher",
+)
+
+// spyRevolvers draw their reserve from the primary pool, whatever slot they
+// sit in, so a secondary-ammo buff has no rounds to add (gh-32, note 46).
+var spyRevolvers = names("Ambassador", "Diamondback", "Enforcer", "L'Étranger", "Revolver")
+
 var projectileCountExtras = names(
 	"Gas Passer", "Jarate", "Mad Milk", "Sandman", "Wrap Assassin",
 )
@@ -318,7 +330,9 @@ func weaponEffectEligible(weapon BuffWeapon, effect WeaponEffect) bool {
 	case "armor-piercing":
 		return spyKnives[name]
 	case "meter-recharge":
-		return meterWeapons[name] && !itemMeterWeapons[name]
+		// A banner fills on damage dealt, not on a clock, so the recharge
+		// rate reaches nothing on it (gh-32, note 69).
+		return meterWeapons[name] && !itemMeterWeapons[name] && !banners[name]
 	case "gesture-speed":
 		return consumables[name]
 	default:
@@ -356,8 +370,12 @@ func eligibilityByShape(name, key string) (decided, eligible bool) {
 	case key == "projectile-count":
 		return true, projectileCountExtras[name] ||
 			(!nonAttackingWeapons[name] && !meleeWeapons[name] && (!flamethrowers[name] || name == "Dragon's Fury"))
-	case key == "projectile-speed", key == "projectile-range":
+	case key == "projectile-speed":
 		return true, projectileWeapons[name]
+	case key == "projectile-range":
+		return true, projectileWeapons[name] && !straightProjectileWeapons[name]
+	case key == "secondary-ammo" && spyRevolvers[name]:
+		return true, false
 	case key == "projectile-penetration":
 		return true, projectileWeapons[name] && !explosiveWeapons[name]
 	case key == "destroy-projectiles":

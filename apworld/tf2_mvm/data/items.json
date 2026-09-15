@@ -2155,7 +2155,7 @@
     },
     {
       "id": 7443021401,
-      "name": "Weapon Buff: Air Strike — +5% movement speed while active",
+      "name": "Weapon Buff: Air Strike — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -2283,7 +2283,7 @@
     },
     {
       "id": 7443024985,
-      "name": "Weapon Buff: Air Strike — +15 max health while active",
+      "name": "Weapon Buff: Air Strike — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -2425,8 +2425,7 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 23825,
-      "stackable": true,
-      "eligible": true
+      "stackable": true
     },
     {
       "id": 7443029081,
@@ -2887,7 +2886,7 @@
     },
     {
       "id": 7443005002,
-      "name": "Weapon Buff: Ali Baba's Wee Booties — +5% movement speed while active",
+      "name": "Weapon Buff: Ali Baba's Wee Booties — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -3013,7 +3012,7 @@
     },
     {
       "id": 7443024986,
-      "name": "Weapon Buff: Ali Baba's Wee Booties — +15 max health while active",
+      "name": "Weapon Buff: Ali Baba's Wee Booties — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -3615,7 +3614,7 @@
     },
     {
       "id": 7443021403,
-      "name": "Weapon Buff: Ambassador — +5% movement speed while active",
+      "name": "Weapon Buff: Ambassador — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -3745,7 +3744,7 @@
     },
     {
       "id": 7443024987,
-      "name": "Weapon Buff: Ambassador — +15 max health while active",
+      "name": "Weapon Buff: Ambassador — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -3813,8 +3812,7 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 21779,
-      "stackable": true,
-      "eligible": true
+      "stackable": true
     },
     {
       "id": 7443027035,
@@ -4358,7 +4356,7 @@
     },
     {
       "id": 7443021404,
-      "name": "Weapon Buff: Amputator — +5% movement speed while active",
+      "name": "Weapon Buff: Amputator — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -4486,7 +4484,7 @@
     },
     {
       "id": 7443024988,
-      "name": "Weapon Buff: Amputator — +15 max health while active",
+      "name": "Weapon Buff: Amputator — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -5085,7 +5083,7 @@
     },
     {
       "id": 7443005005,
-      "name": "Weapon Buff: Ap-Sap — +5% movement speed while active",
+      "name": "Weapon Buff: Ap-Sap — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -5211,7 +5209,7 @@
     },
     {
       "id": 7443024989,
-      "name": "Weapon Buff: Ap-Sap — +15 max health while active",
+      "name": "Weapon Buff: Ap-Sap — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -5795,7 +5793,7 @@
     },
     {
       "id": 7443021406,
-      "name": "Weapon Buff: Apoco-Fists — +5% movement speed while active",
+      "name": "Weapon Buff: Apoco-Fists — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -5921,7 +5919,7 @@
     },
     {
       "id": 7443024990,
-      "name": "Weapon Buff: Apoco-Fists — +15 max health while active",
+      "name": "Weapon Buff: Apoco-Fists — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -6518,7 +6516,7 @@
     },
     {
       "id": 7443021407,
-      "name": "Weapon Buff: Atomizer — +5% movement speed while active",
+      "name": "Weapon Buff: Atomizer — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -6646,7 +6644,7 @@
     },
     {
       "id": 7443024991,
-      "name": "Weapon Buff: Atomizer — +15 max health while active",
+      "name": "Weapon Buff: Atomizer — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -7244,7 +7242,7 @@
     },
     {
       "id": 7443021408,
-      "name": "Weapon Buff: AWPer Hand — +5% movement speed while active",
+      "name": "Weapon Buff: AWPer Hand — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -7370,7 +7368,7 @@
     },
     {
       "id": 7443024992,
-      "name": "Weapon Buff: AWPer Hand — +15 max health while active",
+      "name": "Weapon Buff: AWPer Hand — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -7967,7 +7965,7 @@
     },
     {
       "id": 7443021409,
-      "name": "Weapon Buff: Axtinguisher — +5% movement speed while active",
+      "name": "Weapon Buff: Axtinguisher — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -8095,7 +8093,7 @@
     },
     {
       "id": 7443024993,
-      "name": "Weapon Buff: Axtinguisher — +15 max health while active",
+      "name": "Weapon Buff: Axtinguisher — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -8693,7 +8691,7 @@
     },
     {
       "id": 7443021410,
-      "name": "Weapon Buff: B.A.S.E. Jumper — +5% movement speed while active",
+      "name": "Weapon Buff: B.A.S.E. Jumper — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -8819,7 +8817,7 @@
     },
     {
       "id": 7443024994,
-      "name": "Weapon Buff: B.A.S.E. Jumper — +15 max health while active",
+      "name": "Weapon Buff: B.A.S.E. Jumper — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -9421,7 +9419,7 @@
     },
     {
       "id": 7443021411,
-      "name": "Weapon Buff: Baby Face's Blaster — +5% movement speed while active",
+      "name": "Weapon Buff: Baby Face's Blaster — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -9549,7 +9547,7 @@
     },
     {
       "id": 7443024995,
-      "name": "Weapon Buff: Baby Face's Blaster — +15 max health while active",
+      "name": "Weapon Buff: Baby Face's Blaster — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -10167,7 +10165,7 @@
     },
     {
       "id": 7443021412,
-      "name": "Weapon Buff: Back Scatter — +5% movement speed while active",
+      "name": "Weapon Buff: Back Scatter — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -10295,7 +10293,7 @@
     },
     {
       "id": 7443024996,
-      "name": "Weapon Buff: Back Scatter — +15 max health while active",
+      "name": "Weapon Buff: Back Scatter — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -10908,7 +10906,7 @@
     },
     {
       "id": 7443021413,
-      "name": "Weapon Buff: Back Scratcher — +5% movement speed while active",
+      "name": "Weapon Buff: Back Scratcher — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -11036,7 +11034,7 @@
     },
     {
       "id": 7443024997,
-      "name": "Weapon Buff: Back Scratcher — +15 max health while active",
+      "name": "Weapon Buff: Back Scratcher — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -11648,7 +11646,7 @@
     },
     {
       "id": 7443021414,
-      "name": "Weapon Buff: Backburner — +5% movement speed while active",
+      "name": "Weapon Buff: Backburner — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -11778,7 +11776,7 @@
     },
     {
       "id": 7443024998,
-      "name": "Weapon Buff: Backburner — +15 max health while active",
+      "name": "Weapon Buff: Backburner — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -12395,7 +12393,7 @@
     },
     {
       "id": 7443021415,
-      "name": "Weapon Buff: Bat — +5% movement speed while active",
+      "name": "Weapon Buff: Bat — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -12523,7 +12521,7 @@
     },
     {
       "id": 7443024999,
-      "name": "Weapon Buff: Bat — +15 max health while active",
+      "name": "Weapon Buff: Bat — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -13121,7 +13119,7 @@
     },
     {
       "id": 7443021416,
-      "name": "Weapon Buff: Bat Outta Hell — +5% movement speed while active",
+      "name": "Weapon Buff: Bat Outta Hell — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -13247,7 +13245,7 @@
     },
     {
       "id": 7443025000,
-      "name": "Weapon Buff: Bat Outta Hell — +15 max health while active",
+      "name": "Weapon Buff: Bat Outta Hell — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -13831,7 +13829,7 @@
     },
     {
       "id": 7443021417,
-      "name": "Weapon Buff: Battalion's Backup — +5% movement speed while active",
+      "name": "Weapon Buff: Battalion's Backup — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -13960,7 +13958,7 @@
     },
     {
       "id": 7443025001,
-      "name": "Weapon Buff: Battalion's Backup — +15 max health while active",
+      "name": "Weapon Buff: Battalion's Backup — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -14232,8 +14230,7 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 27681,
-      "stackable": true,
-      "eligible": true
+      "stackable": true
     },
     {
       "id": 7443032937,
@@ -14565,7 +14562,7 @@
     },
     {
       "id": 7443021418,
-      "name": "Weapon Buff: Bazaar Bargain — +5% movement speed while active",
+      "name": "Weapon Buff: Bazaar Bargain — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -14693,7 +14690,7 @@
     },
     {
       "id": 7443025002,
-      "name": "Weapon Buff: Bazaar Bargain — +15 max health while active",
+      "name": "Weapon Buff: Bazaar Bargain — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -15312,7 +15309,7 @@
     },
     {
       "id": 7443021419,
-      "name": "Weapon Buff: Beggar's Bazooka — +5% movement speed while active",
+      "name": "Weapon Buff: Beggar's Bazooka — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -15440,7 +15437,7 @@
     },
     {
       "id": 7443025003,
-      "name": "Weapon Buff: Beggar's Bazooka — +15 max health while active",
+      "name": "Weapon Buff: Beggar's Bazooka — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -15582,8 +15579,7 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 23843,
-      "stackable": true,
-      "eligible": true
+      "stackable": true
     },
     {
       "id": 7443029099,
@@ -16057,7 +16053,7 @@
     },
     {
       "id": 7443021420,
-      "name": "Weapon Buff: Big Earner — +5% movement speed while active",
+      "name": "Weapon Buff: Big Earner — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -16188,7 +16184,7 @@
     },
     {
       "id": 7443025004,
-      "name": "Weapon Buff: Big Earner — +15 max health while active",
+      "name": "Weapon Buff: Big Earner — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -16786,7 +16782,7 @@
     },
     {
       "id": 7443021421,
-      "name": "Weapon Buff: Big Kill — +5% movement speed while active",
+      "name": "Weapon Buff: Big Kill — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -16912,7 +16908,7 @@
     },
     {
       "id": 7443025005,
-      "name": "Weapon Buff: Big Kill — +15 max health while active",
+      "name": "Weapon Buff: Big Kill — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -17514,7 +17510,7 @@
     },
     {
       "id": 7443021422,
-      "name": "Weapon Buff: Black Box — +5% movement speed while active",
+      "name": "Weapon Buff: Black Box — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -17642,7 +17638,7 @@
     },
     {
       "id": 7443025006,
-      "name": "Weapon Buff: Black Box — +15 max health while active",
+      "name": "Weapon Buff: Black Box — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -17784,8 +17780,7 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 23846,
-      "stackable": true,
-      "eligible": true
+      "stackable": true
     },
     {
       "id": 7443029102,
@@ -18246,7 +18241,7 @@
     },
     {
       "id": 7443021423,
-      "name": "Weapon Buff: Black Rose — +5% movement speed while active",
+      "name": "Weapon Buff: Black Rose — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -18372,7 +18367,7 @@
     },
     {
       "id": 7443025007,
-      "name": "Weapon Buff: Black Rose — +15 max health while active",
+      "name": "Weapon Buff: Black Rose — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -18975,7 +18970,7 @@
     },
     {
       "id": 7443021424,
-      "name": "Weapon Buff: Blutsauger — +5% movement speed while active",
+      "name": "Weapon Buff: Blutsauger — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -19103,7 +19098,7 @@
     },
     {
       "id": 7443025008,
-      "name": "Weapon Buff: Blutsauger — +15 max health while active",
+      "name": "Weapon Buff: Blutsauger — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -19717,7 +19712,7 @@
     },
     {
       "id": 7443021425,
-      "name": "Weapon Buff: Bonesaw — +5% movement speed while active",
+      "name": "Weapon Buff: Bonesaw — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -19845,7 +19840,7 @@
     },
     {
       "id": 7443025009,
-      "name": "Weapon Buff: Bonesaw — +15 max health while active",
+      "name": "Weapon Buff: Bonesaw — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -20444,7 +20439,7 @@
     },
     {
       "id": 7443021426,
-      "name": "Weapon Buff: Bonk! Atomic Punch — +5% movement speed while active",
+      "name": "Weapon Buff: Bonk! Atomic Punch — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -20572,7 +20567,7 @@
     },
     {
       "id": 7443025010,
-      "name": "Weapon Buff: Bonk! Atomic Punch — +15 max health while active",
+      "name": "Weapon Buff: Bonk! Atomic Punch — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -21162,7 +21157,7 @@
     },
     {
       "id": 7443005027,
-      "name": "Weapon Buff: Bootlegger — +5% movement speed while active",
+      "name": "Weapon Buff: Bootlegger — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -21288,7 +21283,7 @@
     },
     {
       "id": 7443025011,
-      "name": "Weapon Buff: Bootlegger — +15 max health while active",
+      "name": "Weapon Buff: Bootlegger — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -21885,7 +21880,7 @@
     },
     {
       "id": 7443021428,
-      "name": "Weapon Buff: Boston Basher — +5% movement speed while active",
+      "name": "Weapon Buff: Boston Basher — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -22013,7 +22008,7 @@
     },
     {
       "id": 7443025012,
-      "name": "Weapon Buff: Boston Basher — +15 max health while active",
+      "name": "Weapon Buff: Boston Basher — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -22624,7 +22619,7 @@
     },
     {
       "id": 7443021429,
-      "name": "Weapon Buff: Bottle — +5% movement speed while active",
+      "name": "Weapon Buff: Bottle — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -22752,7 +22747,7 @@
     },
     {
       "id": 7443025013,
-      "name": "Weapon Buff: Bottle — +15 max health while active",
+      "name": "Weapon Buff: Bottle — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -23366,7 +23361,7 @@
     },
     {
       "id": 7443021430,
-      "name": "Weapon Buff: Brass Beast — +5% movement speed while active",
+      "name": "Weapon Buff: Brass Beast — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -23494,7 +23489,7 @@
     },
     {
       "id": 7443025014,
-      "name": "Weapon Buff: Brass Beast — +15 max health while active",
+      "name": "Weapon Buff: Brass Beast — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -24096,7 +24091,7 @@
     },
     {
       "id": 7443021431,
-      "name": "Weapon Buff: Bread Bite — +5% movement speed while active",
+      "name": "Weapon Buff: Bread Bite — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -24222,7 +24217,7 @@
     },
     {
       "id": 7443025015,
-      "name": "Weapon Buff: Bread Bite — +15 max health while active",
+      "name": "Weapon Buff: Bread Bite — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -24806,7 +24801,7 @@
     },
     {
       "id": 7443021432,
-      "name": "Weapon Buff: Buff Banner — +5% movement speed while active",
+      "name": "Weapon Buff: Buff Banner — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -24935,7 +24930,7 @@
     },
     {
       "id": 7443025016,
-      "name": "Weapon Buff: Buff Banner — +15 max health while active",
+      "name": "Weapon Buff: Buff Banner — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -25207,8 +25202,7 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 27696,
-      "stackable": true,
-      "eligible": true
+      "stackable": true
     },
     {
       "id": 7443032952,
@@ -25524,7 +25518,7 @@
     },
     {
       "id": 7443021433,
-      "name": "Weapon Buff: Buffalo Steak Sandvich — +5% movement speed while active",
+      "name": "Weapon Buff: Buffalo Steak Sandvich — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -25652,7 +25646,7 @@
     },
     {
       "id": 7443025017,
-      "name": "Weapon Buff: Buffalo Steak Sandvich — +15 max health while active",
+      "name": "Weapon Buff: Buffalo Steak Sandvich — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -26254,7 +26248,7 @@
     },
     {
       "id": 7443021434,
-      "name": "Weapon Buff: Bushwacka — +5% movement speed while active",
+      "name": "Weapon Buff: Bushwacka — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -26382,7 +26376,7 @@
     },
     {
       "id": 7443025018,
-      "name": "Weapon Buff: Bushwacka — +15 max health while active",
+      "name": "Weapon Buff: Bushwacka — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -26992,7 +26986,7 @@
     },
     {
       "id": 7443021435,
-      "name": "Weapon Buff: Candy Cane — +5% movement speed while active",
+      "name": "Weapon Buff: Candy Cane — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -27120,7 +27114,7 @@
     },
     {
       "id": 7443025019,
-      "name": "Weapon Buff: Candy Cane — +15 max health while active",
+      "name": "Weapon Buff: Candy Cane — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -27717,7 +27711,7 @@
     },
     {
       "id": 7443005036,
-      "name": "Weapon Buff: Chargin' Targe — +5% movement speed while active",
+      "name": "Weapon Buff: Chargin' Targe — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -27845,7 +27839,7 @@
     },
     {
       "id": 7443025020,
-      "name": "Weapon Buff: Chargin' Targe — +15 max health while active",
+      "name": "Weapon Buff: Chargin' Targe — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -28446,7 +28440,7 @@
     },
     {
       "id": 7443021437,
-      "name": "Weapon Buff: Claidheamh Mòr — +5% movement speed while active",
+      "name": "Weapon Buff: Claidheamh Mòr — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -28574,7 +28568,7 @@
     },
     {
       "id": 7443025021,
-      "name": "Weapon Buff: Claidheamh Mòr — +15 max health while active",
+      "name": "Weapon Buff: Claidheamh Mòr — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -29188,7 +29182,7 @@
     },
     {
       "id": 7443021438,
-      "name": "Weapon Buff: Classic — +5% movement speed while active",
+      "name": "Weapon Buff: Classic — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -29316,7 +29310,7 @@
     },
     {
       "id": 7443025022,
-      "name": "Weapon Buff: Classic — +15 max health while active",
+      "name": "Weapon Buff: Classic — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -29935,7 +29929,7 @@
     },
     {
       "id": 7443021439,
-      "name": "Weapon Buff: Cleaner's Carbine — +5% movement speed while active",
+      "name": "Weapon Buff: Cleaner's Carbine — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -30063,7 +30057,7 @@
     },
     {
       "id": 7443025023,
-      "name": "Weapon Buff: Cleaner's Carbine — +15 max health while active",
+      "name": "Weapon Buff: Cleaner's Carbine — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -30663,7 +30657,7 @@
     },
     {
       "id": 7443005040,
-      "name": "Weapon Buff: Cloak and Dagger — +5% movement speed while active",
+      "name": "Weapon Buff: Cloak and Dagger — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -30791,7 +30785,7 @@
     },
     {
       "id": 7443025024,
-      "name": "Weapon Buff: Cloak and Dagger — +15 max health while active",
+      "name": "Weapon Buff: Cloak and Dagger — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -31381,7 +31375,7 @@
     },
     {
       "id": 7443021441,
-      "name": "Weapon Buff: Concheror — +5% movement speed while active",
+      "name": "Weapon Buff: Concheror — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -31510,7 +31504,7 @@
     },
     {
       "id": 7443025025,
-      "name": "Weapon Buff: Concheror — +15 max health while active",
+      "name": "Weapon Buff: Concheror — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -31782,8 +31776,7 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 27705,
-      "stackable": true,
-      "eligible": true
+      "stackable": true
     },
     {
       "id": 7443032961,
@@ -32112,7 +32105,7 @@
     },
     {
       "id": 7443021442,
-      "name": "Weapon Buff: Conniver's Kunai — +5% movement speed while active",
+      "name": "Weapon Buff: Conniver's Kunai — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -32241,7 +32234,7 @@
     },
     {
       "id": 7443025026,
-      "name": "Weapon Buff: Conniver's Kunai — +15 max health while active",
+      "name": "Weapon Buff: Conniver's Kunai — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -32839,7 +32832,7 @@
     },
     {
       "id": 7443021443,
-      "name": "Weapon Buff: Conscientious Objector — +5% movement speed while active",
+      "name": "Weapon Buff: Conscientious Objector — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -32965,7 +32958,7 @@
     },
     {
       "id": 7443025027,
-      "name": "Weapon Buff: Conscientious Objector — +15 max health while active",
+      "name": "Weapon Buff: Conscientious Objector — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -33549,7 +33542,7 @@
     },
     {
       "id": 7443005044,
-      "name": "Weapon Buff: Construction PDA — +5% movement speed while active",
+      "name": "Weapon Buff: Construction PDA — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -33681,7 +33674,7 @@
     },
     {
       "id": 7443025028,
-      "name": "Weapon Buff: Construction PDA — +15 max health while active",
+      "name": "Weapon Buff: Construction PDA — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -34289,7 +34282,7 @@
     },
     {
       "id": 7443021445,
-      "name": "Weapon Buff: Cow Mangler 5000 — +5% movement speed while active",
+      "name": "Weapon Buff: Cow Mangler 5000 — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -34417,7 +34410,7 @@
     },
     {
       "id": 7443025029,
-      "name": "Weapon Buff: Cow Mangler 5000 — +15 max health while active",
+      "name": "Weapon Buff: Cow Mangler 5000 — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -34559,8 +34552,7 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 23869,
-      "stackable": true,
-      "eligible": true
+      "stackable": true
     },
     {
       "id": 7443029125,
@@ -34588,8 +34580,7 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 24637,
-      "stackable": true,
-      "eligible": true
+      "stackable": true
     },
     {
       "id": 7443029893,
@@ -34632,8 +34623,7 @@
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
-      "weapon_buff_id": 25917,
-      "eligible": true
+      "weapon_buff_id": 25917
     },
     {
       "id": 7443031173,
@@ -34707,8 +34697,7 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 27965,
-      "stackable": true,
-      "eligible": true
+      "stackable": true
     },
     {
       "id": 7443033221,
@@ -35021,7 +35010,7 @@
     },
     {
       "id": 7443005046,
-      "name": "Weapon Buff: Cozy Camper — +5% movement speed while active",
+      "name": "Weapon Buff: Cozy Camper — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -35147,7 +35136,7 @@
     },
     {
       "id": 7443025030,
-      "name": "Weapon Buff: Cozy Camper — +15 max health while active",
+      "name": "Weapon Buff: Cozy Camper — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -35731,7 +35720,7 @@
     },
     {
       "id": 7443021447,
-      "name": "Weapon Buff: Crit-a-Cola — +5% movement speed while active",
+      "name": "Weapon Buff: Crit-a-Cola — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -35859,7 +35848,7 @@
     },
     {
       "id": 7443025031,
-      "name": "Weapon Buff: Crit-a-Cola — +15 max health while active",
+      "name": "Weapon Buff: Crit-a-Cola — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -36449,7 +36438,7 @@
     },
     {
       "id": 7443021448,
-      "name": "Weapon Buff: Crossing Guard — +5% movement speed while active",
+      "name": "Weapon Buff: Crossing Guard — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -36575,7 +36564,7 @@
     },
     {
       "id": 7443025032,
-      "name": "Weapon Buff: Crossing Guard — +15 max health while active",
+      "name": "Weapon Buff: Crossing Guard — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -37178,7 +37167,7 @@
     },
     {
       "id": 7443021449,
-      "name": "Weapon Buff: Crusader's Crossbow — +5% movement speed while active",
+      "name": "Weapon Buff: Crusader's Crossbow — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -37306,7 +37295,7 @@
     },
     {
       "id": 7443025033,
-      "name": "Weapon Buff: Crusader's Crossbow — +15 max health while active",
+      "name": "Weapon Buff: Crusader's Crossbow — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -37907,7 +37896,7 @@
     },
     {
       "id": 7443021450,
-      "name": "Weapon Buff: Dalokohs Bar — +5% movement speed while active",
+      "name": "Weapon Buff: Dalokohs Bar — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -38035,7 +38024,7 @@
     },
     {
       "id": 7443025034,
-      "name": "Weapon Buff: Dalokohs Bar — +15 max health while active",
+      "name": "Weapon Buff: Dalokohs Bar — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -38625,7 +38614,7 @@
     },
     {
       "id": 7443005051,
-      "name": "Weapon Buff: Darwin's Danger Shield — +5% movement speed while active",
+      "name": "Weapon Buff: Darwin's Danger Shield — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -38751,7 +38740,7 @@
     },
     {
       "id": 7443025035,
-      "name": "Weapon Buff: Darwin's Danger Shield — +15 max health while active",
+      "name": "Weapon Buff: Darwin's Danger Shield — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -39335,7 +39324,7 @@
     },
     {
       "id": 7443005052,
-      "name": "Weapon Buff: Dead Ringer — +5% movement speed while active",
+      "name": "Weapon Buff: Dead Ringer — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -39463,7 +39452,7 @@
     },
     {
       "id": 7443025036,
-      "name": "Weapon Buff: Dead Ringer — +15 max health while active",
+      "name": "Weapon Buff: Dead Ringer — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -40053,7 +40042,7 @@
     },
     {
       "id": 7443021453,
-      "name": "Weapon Buff: Deflector — +5% movement speed while active",
+      "name": "Weapon Buff: Deflector — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -40179,7 +40168,7 @@
     },
     {
       "id": 7443025037,
-      "name": "Weapon Buff: Deflector — +15 max health while active",
+      "name": "Weapon Buff: Deflector — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -40777,7 +40766,7 @@
     },
     {
       "id": 7443021454,
-      "name": "Weapon Buff: Degreaser — +5% movement speed while active",
+      "name": "Weapon Buff: Degreaser — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -40907,7 +40896,7 @@
     },
     {
       "id": 7443025038,
-      "name": "Weapon Buff: Degreaser — +15 max health while active",
+      "name": "Weapon Buff: Degreaser — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -41512,7 +41501,7 @@
     },
     {
       "id": 7443005055,
-      "name": "Weapon Buff: Destruction PDA — +5% movement speed while active",
+      "name": "Weapon Buff: Destruction PDA — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -41644,7 +41633,7 @@
     },
     {
       "id": 7443025039,
-      "name": "Weapon Buff: Destruction PDA — +15 max health while active",
+      "name": "Weapon Buff: Destruction PDA — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -42253,7 +42242,7 @@
     },
     {
       "id": 7443021456,
-      "name": "Weapon Buff: Detonator — +5% movement speed while active",
+      "name": "Weapon Buff: Detonator — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -42381,7 +42370,7 @@
     },
     {
       "id": 7443025040,
-      "name": "Weapon Buff: Detonator — +15 max health while active",
+      "name": "Weapon Buff: Detonator — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -43003,7 +42992,7 @@
     },
     {
       "id": 7443021457,
-      "name": "Weapon Buff: Diamondback — +5% movement speed while active",
+      "name": "Weapon Buff: Diamondback — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -43133,7 +43122,7 @@
     },
     {
       "id": 7443025041,
-      "name": "Weapon Buff: Diamondback — +15 max health while active",
+      "name": "Weapon Buff: Diamondback — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -43201,8 +43190,7 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 21833,
-      "stackable": true,
-      "eligible": true
+      "stackable": true
     },
     {
       "id": 7443027089,
@@ -43750,7 +43738,7 @@
     },
     {
       "id": 7443021458,
-      "name": "Weapon Buff: Direct Hit — +5% movement speed while active",
+      "name": "Weapon Buff: Direct Hit — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -43878,7 +43866,7 @@
     },
     {
       "id": 7443025042,
-      "name": "Weapon Buff: Direct Hit — +15 max health while active",
+      "name": "Weapon Buff: Direct Hit — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -44020,8 +44008,7 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 23882,
-      "stackable": true,
-      "eligible": true
+      "stackable": true
     },
     {
       "id": 7443029138,
@@ -44495,7 +44482,7 @@
     },
     {
       "id": 7443021459,
-      "name": "Weapon Buff: Disciplinary Action — +5% movement speed while active",
+      "name": "Weapon Buff: Disciplinary Action — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -44623,7 +44610,7 @@
     },
     {
       "id": 7443025043,
-      "name": "Weapon Buff: Disciplinary Action — +15 max health while active",
+      "name": "Weapon Buff: Disciplinary Action — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -45221,7 +45208,7 @@
     },
     {
       "id": 7443005060,
-      "name": "Weapon Buff: Disguise Kit — +5% movement speed while active",
+      "name": "Weapon Buff: Disguise Kit — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -45349,7 +45336,7 @@
     },
     {
       "id": 7443025044,
-      "name": "Weapon Buff: Disguise Kit — +15 max health while active",
+      "name": "Weapon Buff: Disguise Kit — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -45773,8 +45760,7 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 11341,
-      "stackable": true,
-      "eligible": true
+      "stackable": true
     },
     {
       "id": 7443016597,
@@ -45955,7 +45941,7 @@
     },
     {
       "id": 7443021461,
-      "name": "Weapon Buff: Dragon's Fury — +5% movement speed while active",
+      "name": "Weapon Buff: Dragon's Fury — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -46085,7 +46071,7 @@
     },
     {
       "id": 7443025045,
-      "name": "Weapon Buff: Dragon's Fury — +15 max health while active",
+      "name": "Weapon Buff: Dragon's Fury — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -46708,7 +46694,7 @@
     },
     {
       "id": 7443021462,
-      "name": "Weapon Buff: Enforcer — +5% movement speed while active",
+      "name": "Weapon Buff: Enforcer — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -46838,7 +46824,7 @@
     },
     {
       "id": 7443025046,
-      "name": "Weapon Buff: Enforcer — +15 max health while active",
+      "name": "Weapon Buff: Enforcer — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -46906,8 +46892,7 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 21838,
-      "stackable": true,
-      "eligible": true
+      "stackable": true
     },
     {
       "id": 7443027094,
@@ -47438,7 +47423,7 @@
     },
     {
       "id": 7443005063,
-      "name": "Weapon Buff: Enthusiast's Timepiece — +5% movement speed while active",
+      "name": "Weapon Buff: Enthusiast's Timepiece — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -47564,7 +47549,7 @@
     },
     {
       "id": 7443025047,
-      "name": "Weapon Buff: Enthusiast's Timepiece — +15 max health while active",
+      "name": "Weapon Buff: Enthusiast's Timepiece — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -48161,7 +48146,7 @@
     },
     {
       "id": 7443021464,
-      "name": "Weapon Buff: Equalizer — +5% movement speed while active",
+      "name": "Weapon Buff: Equalizer — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -48289,7 +48274,7 @@
     },
     {
       "id": 7443025048,
-      "name": "Weapon Buff: Equalizer — +15 max health while active",
+      "name": "Weapon Buff: Equalizer — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -48900,7 +48885,7 @@
     },
     {
       "id": 7443021465,
-      "name": "Weapon Buff: Escape Plan — +5% movement speed while active",
+      "name": "Weapon Buff: Escape Plan — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -49028,7 +49013,7 @@
     },
     {
       "id": 7443025049,
-      "name": "Weapon Buff: Escape Plan — +15 max health while active",
+      "name": "Weapon Buff: Escape Plan — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -49639,7 +49624,7 @@
     },
     {
       "id": 7443021466,
-      "name": "Weapon Buff: Eureka Effect — +5% movement speed while active",
+      "name": "Weapon Buff: Eureka Effect — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -49771,7 +49756,7 @@
     },
     {
       "id": 7443025050,
-      "name": "Weapon Buff: Eureka Effect — +15 max health while active",
+      "name": "Weapon Buff: Eureka Effect — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -50385,7 +50370,7 @@
     },
     {
       "id": 7443021467,
-      "name": "Weapon Buff: Eviction Notice — +5% movement speed while active",
+      "name": "Weapon Buff: Eviction Notice — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -50513,7 +50498,7 @@
     },
     {
       "id": 7443025051,
-      "name": "Weapon Buff: Eviction Notice — +15 max health while active",
+      "name": "Weapon Buff: Eviction Notice — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -51123,7 +51108,7 @@
     },
     {
       "id": 7443021468,
-      "name": "Weapon Buff: Eyelander — +5% movement speed while active",
+      "name": "Weapon Buff: Eyelander — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -51251,7 +51236,7 @@
     },
     {
       "id": 7443025052,
-      "name": "Weapon Buff: Eyelander — +15 max health while active",
+      "name": "Weapon Buff: Eyelander — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -51867,7 +51852,7 @@
     },
     {
       "id": 7443021469,
-      "name": "Weapon Buff: Family Business — +5% movement speed while active",
+      "name": "Weapon Buff: Family Business — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -51995,7 +51980,7 @@
     },
     {
       "id": 7443025053,
-      "name": "Weapon Buff: Family Business — +15 max health while active",
+      "name": "Weapon Buff: Family Business — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -52607,7 +52592,7 @@
     },
     {
       "id": 7443021470,
-      "name": "Weapon Buff: Fan O'War — +5% movement speed while active",
+      "name": "Weapon Buff: Fan O'War — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -52735,7 +52720,7 @@
     },
     {
       "id": 7443025054,
-      "name": "Weapon Buff: Fan O'War — +15 max health while active",
+      "name": "Weapon Buff: Fan O'War — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -53345,7 +53330,7 @@
     },
     {
       "id": 7443021471,
-      "name": "Weapon Buff: Fire Axe — +5% movement speed while active",
+      "name": "Weapon Buff: Fire Axe — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -53473,7 +53458,7 @@
     },
     {
       "id": 7443025055,
-      "name": "Weapon Buff: Fire Axe — +15 max health while active",
+      "name": "Weapon Buff: Fire Axe — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -54071,7 +54056,7 @@
     },
     {
       "id": 7443021472,
-      "name": "Weapon Buff: Fishcake — +5% movement speed while active",
+      "name": "Weapon Buff: Fishcake — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -54197,7 +54182,7 @@
     },
     {
       "id": 7443025056,
-      "name": "Weapon Buff: Fishcake — +15 max health while active",
+      "name": "Weapon Buff: Fishcake — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -54794,7 +54779,7 @@
     },
     {
       "id": 7443021473,
-      "name": "Weapon Buff: Fists — +5% movement speed while active",
+      "name": "Weapon Buff: Fists — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -54922,7 +54907,7 @@
     },
     {
       "id": 7443025057,
-      "name": "Weapon Buff: Fists — +15 max health while active",
+      "name": "Weapon Buff: Fists — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -55533,7 +55518,7 @@
     },
     {
       "id": 7443021474,
-      "name": "Weapon Buff: Fists of Steel — +5% movement speed while active",
+      "name": "Weapon Buff: Fists of Steel — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -55661,7 +55646,7 @@
     },
     {
       "id": 7443025058,
-      "name": "Weapon Buff: Fists of Steel — +15 max health while active",
+      "name": "Weapon Buff: Fists of Steel — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -56273,7 +56258,7 @@
     },
     {
       "id": 7443021475,
-      "name": "Weapon Buff: Flame Thrower — +5% movement speed while active",
+      "name": "Weapon Buff: Flame Thrower — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -56403,7 +56388,7 @@
     },
     {
       "id": 7443025059,
-      "name": "Weapon Buff: Flame Thrower — +15 max health while active",
+      "name": "Weapon Buff: Flame Thrower — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -57027,7 +57012,7 @@
     },
     {
       "id": 7443021476,
-      "name": "Weapon Buff: Flare Gun — +5% movement speed while active",
+      "name": "Weapon Buff: Flare Gun — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -57155,7 +57140,7 @@
     },
     {
       "id": 7443025060,
-      "name": "Weapon Buff: Flare Gun — +15 max health while active",
+      "name": "Weapon Buff: Flare Gun — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -57562,8 +57547,7 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 10589,
-      "stackable": true,
-      "eligible": true
+      "stackable": true
     },
     {
       "id": 7443015845,
@@ -57770,7 +57754,7 @@
     },
     {
       "id": 7443021477,
-      "name": "Weapon Buff: Flying Guillotine — +5% movement speed while active",
+      "name": "Weapon Buff: Flying Guillotine — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -57898,7 +57882,7 @@
     },
     {
       "id": 7443025061,
-      "name": "Weapon Buff: Flying Guillotine — +15 max health while active",
+      "name": "Weapon Buff: Flying Guillotine — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -58515,7 +58499,7 @@
     },
     {
       "id": 7443021478,
-      "name": "Weapon Buff: Force-a-Nature — +5% movement speed while active",
+      "name": "Weapon Buff: Force-a-Nature — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -58643,7 +58627,7 @@
     },
     {
       "id": 7443025062,
-      "name": "Weapon Buff: Force-a-Nature — +15 max health while active",
+      "name": "Weapon Buff: Force-a-Nature — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -59243,7 +59227,7 @@
     },
     {
       "id": 7443021479,
-      "name": "Weapon Buff: Fortified Compound — +5% movement speed while active",
+      "name": "Weapon Buff: Fortified Compound — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -59369,7 +59353,7 @@
     },
     {
       "id": 7443025063,
-      "name": "Weapon Buff: Fortified Compound — +15 max health while active",
+      "name": "Weapon Buff: Fortified Compound — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -59953,7 +59937,7 @@
     },
     {
       "id": 7443021480,
-      "name": "Weapon Buff: Freedom Staff — +5% movement speed while active",
+      "name": "Weapon Buff: Freedom Staff — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -60079,7 +60063,7 @@
     },
     {
       "id": 7443025064,
-      "name": "Weapon Buff: Freedom Staff — +15 max health while active",
+      "name": "Weapon Buff: Freedom Staff — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -60681,7 +60665,7 @@
     },
     {
       "id": 7443021481,
-      "name": "Weapon Buff: Frontier Justice — +5% movement speed while active",
+      "name": "Weapon Buff: Frontier Justice — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -60813,7 +60797,7 @@
     },
     {
       "id": 7443025065,
-      "name": "Weapon Buff: Frontier Justice — +15 max health while active",
+      "name": "Weapon Buff: Frontier Justice — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -61416,7 +61400,7 @@
     },
     {
       "id": 7443021482,
-      "name": "Weapon Buff: Frying Pan — +5% movement speed while active",
+      "name": "Weapon Buff: Frying Pan — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -61542,7 +61526,7 @@
     },
     {
       "id": 7443025066,
-      "name": "Weapon Buff: Frying Pan — +15 max health while active",
+      "name": "Weapon Buff: Frying Pan — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -62083,8 +62067,7 @@
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
-      "weapon_buff_id": 14947,
-      "eligible": true
+      "weapon_buff_id": 14947
     },
     {
       "id": 7443020203,
@@ -62132,7 +62115,7 @@
     },
     {
       "id": 7443021483,
-      "name": "Weapon Buff: Gas Passer — +5% movement speed while active",
+      "name": "Weapon Buff: Gas Passer — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -62260,7 +62243,7 @@
     },
     {
       "id": 7443025067,
-      "name": "Weapon Buff: Gas Passer — +15 max health while active",
+      "name": "Weapon Buff: Gas Passer — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -62504,8 +62487,7 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 26979,
-      "stackable": true,
-      "eligible": true
+      "stackable": true
     },
     {
       "id": 7443032235,
@@ -62864,7 +62846,7 @@
     },
     {
       "id": 7443021484,
-      "name": "Weapon Buff: Gloves of Running Urgently — +5% movement speed while active",
+      "name": "Weapon Buff: Gloves of Running Urgently — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -62992,7 +62974,7 @@
     },
     {
       "id": 7443025068,
-      "name": "Weapon Buff: Gloves of Running Urgently — +15 max health while active",
+      "name": "Weapon Buff: Gloves of Running Urgently — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -63590,7 +63572,7 @@
     },
     {
       "id": 7443021485,
-      "name": "Weapon Buff: Golden Frying Pan — +5% movement speed while active",
+      "name": "Weapon Buff: Golden Frying Pan — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -63716,7 +63698,7 @@
     },
     {
       "id": 7443025069,
-      "name": "Weapon Buff: Golden Frying Pan — +15 max health while active",
+      "name": "Weapon Buff: Golden Frying Pan — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -64300,7 +64282,7 @@
     },
     {
       "id": 7443021486,
-      "name": "Weapon Buff: Golden Wrench — +5% movement speed while active",
+      "name": "Weapon Buff: Golden Wrench — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -64426,7 +64408,7 @@
     },
     {
       "id": 7443025070,
-      "name": "Weapon Buff: Golden Wrench — +15 max health while active",
+      "name": "Weapon Buff: Golden Wrench — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -65028,7 +65010,7 @@
     },
     {
       "id": 7443021487,
-      "name": "Weapon Buff: Grenade Launcher — +5% movement speed while active",
+      "name": "Weapon Buff: Grenade Launcher — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -65156,7 +65138,7 @@
     },
     {
       "id": 7443025071,
-      "name": "Weapon Buff: Grenade Launcher — +15 max health while active",
+      "name": "Weapon Buff: Grenade Launcher — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -65760,7 +65742,7 @@
     },
     {
       "id": 7443005088,
-      "name": "Weapon Buff: Gunboats — +5% movement speed while active",
+      "name": "Weapon Buff: Gunboats — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -65886,7 +65868,7 @@
     },
     {
       "id": 7443025072,
-      "name": "Weapon Buff: Gunboats — +15 max health while active",
+      "name": "Weapon Buff: Gunboats — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -66483,7 +66465,7 @@
     },
     {
       "id": 7443021489,
-      "name": "Weapon Buff: Gunslinger — +5% movement speed while active",
+      "name": "Weapon Buff: Gunslinger — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -66615,7 +66597,7 @@
     },
     {
       "id": 7443025073,
-      "name": "Weapon Buff: Gunslinger — +15 max health while active",
+      "name": "Weapon Buff: Gunslinger — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -67229,7 +67211,7 @@
     },
     {
       "id": 7443021490,
-      "name": "Weapon Buff: Half-Zatoichi — +5% movement speed while active",
+      "name": "Weapon Buff: Half-Zatoichi — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -67357,7 +67339,7 @@
     },
     {
       "id": 7443025074,
-      "name": "Weapon Buff: Half-Zatoichi — +15 max health while active",
+      "name": "Weapon Buff: Half-Zatoichi — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -67955,7 +67937,7 @@
     },
     {
       "id": 7443021491,
-      "name": "Weapon Buff: Ham Shank — +5% movement speed while active",
+      "name": "Weapon Buff: Ham Shank — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -68081,7 +68063,7 @@
     },
     {
       "id": 7443025075,
-      "name": "Weapon Buff: Ham Shank — +15 max health while active",
+      "name": "Weapon Buff: Ham Shank — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -68681,7 +68663,7 @@
     },
     {
       "id": 7443021492,
-      "name": "Weapon Buff: Hitman's Heatmaker — +5% movement speed while active",
+      "name": "Weapon Buff: Hitman's Heatmaker — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -68809,7 +68791,7 @@
     },
     {
       "id": 7443025076,
-      "name": "Weapon Buff: Hitman's Heatmaker — +15 max health while active",
+      "name": "Weapon Buff: Hitman's Heatmaker — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -69423,7 +69405,7 @@
     },
     {
       "id": 7443021493,
-      "name": "Weapon Buff: Holiday Punch — +5% movement speed while active",
+      "name": "Weapon Buff: Holiday Punch — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -69551,7 +69533,7 @@
     },
     {
       "id": 7443025077,
-      "name": "Weapon Buff: Holiday Punch — +15 max health while active",
+      "name": "Weapon Buff: Holiday Punch — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -70149,7 +70131,7 @@
     },
     {
       "id": 7443021494,
-      "name": "Weapon Buff: Holy Mackerel — +5% movement speed while active",
+      "name": "Weapon Buff: Holy Mackerel — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -70275,7 +70257,7 @@
     },
     {
       "id": 7443025078,
-      "name": "Weapon Buff: Holy Mackerel — +15 max health while active",
+      "name": "Weapon Buff: Holy Mackerel — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -70872,7 +70854,7 @@
     },
     {
       "id": 7443021495,
-      "name": "Weapon Buff: Homewrecker — +5% movement speed while active",
+      "name": "Weapon Buff: Homewrecker — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -71000,7 +70982,7 @@
     },
     {
       "id": 7443025079,
-      "name": "Weapon Buff: Homewrecker — +15 max health while active",
+      "name": "Weapon Buff: Homewrecker — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -71598,7 +71580,7 @@
     },
     {
       "id": 7443021496,
-      "name": "Weapon Buff: Horseless Headless Horsemann's Headtaker — +5% movement speed while active",
+      "name": "Weapon Buff: Horseless Headless Horsemann's Headtaker — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -71724,7 +71706,7 @@
     },
     {
       "id": 7443025080,
-      "name": "Weapon Buff: Horseless Headless Horsemann's Headtaker — +15 max health while active",
+      "name": "Weapon Buff: Horseless Headless Horsemann's Headtaker — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -72321,7 +72303,7 @@
     },
     {
       "id": 7443021497,
-      "name": "Weapon Buff: Hot Hand — +5% movement speed while active",
+      "name": "Weapon Buff: Hot Hand — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -72449,7 +72431,7 @@
     },
     {
       "id": 7443025081,
-      "name": "Weapon Buff: Hot Hand — +15 max health while active",
+      "name": "Weapon Buff: Hot Hand — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -73062,7 +73044,7 @@
     },
     {
       "id": 7443021498,
-      "name": "Weapon Buff: Huntsman — +5% movement speed while active",
+      "name": "Weapon Buff: Huntsman — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -73190,7 +73172,7 @@
     },
     {
       "id": 7443025082,
-      "name": "Weapon Buff: Huntsman — +15 max health while active",
+      "name": "Weapon Buff: Huntsman — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -73806,7 +73788,7 @@
     },
     {
       "id": 7443021499,
-      "name": "Weapon Buff: Huo-Long Heater — +5% movement speed while active",
+      "name": "Weapon Buff: Huo-Long Heater — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -73934,7 +73916,7 @@
     },
     {
       "id": 7443025083,
-      "name": "Weapon Buff: Huo-Long Heater — +15 max health while active",
+      "name": "Weapon Buff: Huo-Long Heater — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -74536,7 +74518,7 @@
     },
     {
       "id": 7443005100,
-      "name": "Weapon Buff: Invis Watch — +5% movement speed while active",
+      "name": "Weapon Buff: Invis Watch — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -74664,7 +74646,7 @@
     },
     {
       "id": 7443025084,
-      "name": "Weapon Buff: Invis Watch — +15 max health while active",
+      "name": "Weapon Buff: Invis Watch — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -75272,7 +75254,7 @@
     },
     {
       "id": 7443021501,
-      "name": "Weapon Buff: Iron Bomber — +5% movement speed while active",
+      "name": "Weapon Buff: Iron Bomber — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -75400,7 +75382,7 @@
     },
     {
       "id": 7443025085,
-      "name": "Weapon Buff: Iron Bomber — +15 max health while active",
+      "name": "Weapon Buff: Iron Bomber — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -76004,7 +75986,7 @@
     },
     {
       "id": 7443021502,
-      "name": "Weapon Buff: Iron Curtain — +5% movement speed while active",
+      "name": "Weapon Buff: Iron Curtain — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -76130,7 +76112,7 @@
     },
     {
       "id": 7443025086,
-      "name": "Weapon Buff: Iron Curtain — +15 max health while active",
+      "name": "Weapon Buff: Iron Curtain — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -76727,7 +76709,7 @@
     },
     {
       "id": 7443021503,
-      "name": "Weapon Buff: Jag — +5% movement speed while active",
+      "name": "Weapon Buff: Jag — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -76859,7 +76841,7 @@
     },
     {
       "id": 7443025087,
-      "name": "Weapon Buff: Jag — +15 max health while active",
+      "name": "Weapon Buff: Jag — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -77467,7 +77449,7 @@
     },
     {
       "id": 7443021504,
-      "name": "Weapon Buff: Jarate — +5% movement speed while active",
+      "name": "Weapon Buff: Jarate — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -77593,7 +77575,7 @@
     },
     {
       "id": 7443025088,
-      "name": "Weapon Buff: Jarate — +15 max health while active",
+      "name": "Weapon Buff: Jarate — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -78193,7 +78175,7 @@
     },
     {
       "id": 7443021505,
-      "name": "Weapon Buff: Killing Gloves of Boxing — +5% movement speed while active",
+      "name": "Weapon Buff: Killing Gloves of Boxing — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -78321,7 +78303,7 @@
     },
     {
       "id": 7443025089,
-      "name": "Weapon Buff: Killing Gloves of Boxing — +15 max health while active",
+      "name": "Weapon Buff: Killing Gloves of Boxing — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -78932,7 +78914,7 @@
     },
     {
       "id": 7443021506,
-      "name": "Weapon Buff: Knife — +5% movement speed while active",
+      "name": "Weapon Buff: Knife — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -79063,7 +79045,7 @@
     },
     {
       "id": 7443025090,
-      "name": "Weapon Buff: Knife — +15 max health while active",
+      "name": "Weapon Buff: Knife — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -79661,7 +79643,7 @@
     },
     {
       "id": 7443021507,
-      "name": "Weapon Buff: Kritzkrieg — +5% movement speed while active",
+      "name": "Weapon Buff: Kritzkrieg — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -79791,7 +79773,7 @@
     },
     {
       "id": 7443025091,
-      "name": "Weapon Buff: Kritzkrieg — +15 max health while active",
+      "name": "Weapon Buff: Kritzkrieg — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -80394,7 +80376,7 @@
     },
     {
       "id": 7443021508,
-      "name": "Weapon Buff: Kukri — +5% movement speed while active",
+      "name": "Weapon Buff: Kukri — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -80522,7 +80504,7 @@
     },
     {
       "id": 7443025092,
-      "name": "Weapon Buff: Kukri — +15 max health while active",
+      "name": "Weapon Buff: Kukri — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -81138,7 +81120,7 @@
     },
     {
       "id": 7443021509,
-      "name": "Weapon Buff: L'Étranger — +5% movement speed while active",
+      "name": "Weapon Buff: L'Étranger — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -81268,7 +81250,7 @@
     },
     {
       "id": 7443025093,
-      "name": "Weapon Buff: L'Étranger — +15 max health while active",
+      "name": "Weapon Buff: L'Étranger — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -81336,8 +81318,7 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 21885,
-      "stackable": true,
-      "eligible": true
+      "stackable": true
     },
     {
       "id": 7443027141,
@@ -81886,7 +81867,7 @@
     },
     {
       "id": 7443021510,
-      "name": "Weapon Buff: Liberty Launcher — +5% movement speed while active",
+      "name": "Weapon Buff: Liberty Launcher — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -82014,7 +81995,7 @@
     },
     {
       "id": 7443025094,
-      "name": "Weapon Buff: Liberty Launcher — +15 max health while active",
+      "name": "Weapon Buff: Liberty Launcher — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -82156,8 +82137,7 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 23934,
-      "stackable": true,
-      "eligible": true
+      "stackable": true
     },
     {
       "id": 7443029190,
@@ -82636,7 +82616,7 @@
     },
     {
       "id": 7443021511,
-      "name": "Weapon Buff: Loch-n-Load — +5% movement speed while active",
+      "name": "Weapon Buff: Loch-n-Load — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -82764,7 +82744,7 @@
     },
     {
       "id": 7443025095,
-      "name": "Weapon Buff: Loch-n-Load — +15 max health while active",
+      "name": "Weapon Buff: Loch-n-Load — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -83368,7 +83348,7 @@
     },
     {
       "id": 7443021512,
-      "name": "Weapon Buff: Lollichop — +5% movement speed while active",
+      "name": "Weapon Buff: Lollichop — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -83494,7 +83474,7 @@
     },
     {
       "id": 7443025096,
-      "name": "Weapon Buff: Lollichop — +15 max health while active",
+      "name": "Weapon Buff: Lollichop — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -84095,7 +84075,7 @@
     },
     {
       "id": 7443021513,
-      "name": "Weapon Buff: Loose Cannon — +5% movement speed while active",
+      "name": "Weapon Buff: Loose Cannon — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -84223,7 +84203,7 @@
     },
     {
       "id": 7443025097,
-      "name": "Weapon Buff: Loose Cannon — +15 max health while active",
+      "name": "Weapon Buff: Loose Cannon — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -84827,7 +84807,7 @@
     },
     {
       "id": 7443021514,
-      "name": "Weapon Buff: Lugermorph — +5% movement speed while active",
+      "name": "Weapon Buff: Lugermorph — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -84953,7 +84933,7 @@
     },
     {
       "id": 7443025098,
-      "name": "Weapon Buff: Lugermorph — +15 max health while active",
+      "name": "Weapon Buff: Lugermorph — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -85553,7 +85533,7 @@
     },
     {
       "id": 7443021515,
-      "name": "Weapon Buff: Machina — +5% movement speed while active",
+      "name": "Weapon Buff: Machina — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -85681,7 +85661,7 @@
     },
     {
       "id": 7443025099,
-      "name": "Weapon Buff: Machina — +15 max health while active",
+      "name": "Weapon Buff: Machina — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -86289,7 +86269,7 @@
     },
     {
       "id": 7443021516,
-      "name": "Weapon Buff: Mad Milk — +5% movement speed while active",
+      "name": "Weapon Buff: Mad Milk — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -86415,7 +86395,7 @@
     },
     {
       "id": 7443025100,
-      "name": "Weapon Buff: Mad Milk — +15 max health while active",
+      "name": "Weapon Buff: Mad Milk — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -87021,7 +87001,7 @@
     },
     {
       "id": 7443021517,
-      "name": "Weapon Buff: Manmelter — +5% movement speed while active",
+      "name": "Weapon Buff: Manmelter — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -87149,7 +87129,7 @@
     },
     {
       "id": 7443025101,
-      "name": "Weapon Buff: Manmelter — +15 max health while active",
+      "name": "Weapon Buff: Manmelter — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -87751,7 +87731,7 @@
     },
     {
       "id": 7443005118,
-      "name": "Weapon Buff: Mantreads — +5% movement speed while active",
+      "name": "Weapon Buff: Mantreads — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -87877,7 +87857,7 @@
     },
     {
       "id": 7443025102,
-      "name": "Weapon Buff: Mantreads — +15 max health while active",
+      "name": "Weapon Buff: Mantreads — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -88476,7 +88456,7 @@
     },
     {
       "id": 7443021519,
-      "name": "Weapon Buff: Market Gardener — +5% movement speed while active",
+      "name": "Weapon Buff: Market Gardener — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -88604,7 +88584,7 @@
     },
     {
       "id": 7443025103,
-      "name": "Weapon Buff: Market Gardener — +15 max health while active",
+      "name": "Weapon Buff: Market Gardener — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -89202,7 +89182,7 @@
     },
     {
       "id": 7443021520,
-      "name": "Weapon Buff: Maul — +5% movement speed while active",
+      "name": "Weapon Buff: Maul — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -89328,7 +89308,7 @@
     },
     {
       "id": 7443025104,
-      "name": "Weapon Buff: Maul — +15 max health while active",
+      "name": "Weapon Buff: Maul — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -89912,7 +89892,7 @@
     },
     {
       "id": 7443021521,
-      "name": "Weapon Buff: Medi Gun — +5% movement speed while active",
+      "name": "Weapon Buff: Medi Gun — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -90042,7 +90022,7 @@
     },
     {
       "id": 7443025105,
-      "name": "Weapon Buff: Medi Gun — +15 max health while active",
+      "name": "Weapon Buff: Medi Gun — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -90632,7 +90612,7 @@
     },
     {
       "id": 7443021522,
-      "name": "Weapon Buff: Memory Maker — +5% movement speed while active",
+      "name": "Weapon Buff: Memory Maker — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -90758,7 +90738,7 @@
     },
     {
       "id": 7443025106,
-      "name": "Weapon Buff: Memory Maker — +15 max health while active",
+      "name": "Weapon Buff: Memory Maker — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -91358,7 +91338,7 @@
     },
     {
       "id": 7443021523,
-      "name": "Weapon Buff: Minigun — +5% movement speed while active",
+      "name": "Weapon Buff: Minigun — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -91486,7 +91466,7 @@
     },
     {
       "id": 7443025107,
-      "name": "Weapon Buff: Minigun — +15 max health while active",
+      "name": "Weapon Buff: Minigun — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -92088,7 +92068,7 @@
     },
     {
       "id": 7443021524,
-      "name": "Weapon Buff: Mutated Milk — +5% movement speed while active",
+      "name": "Weapon Buff: Mutated Milk — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -92214,7 +92194,7 @@
     },
     {
       "id": 7443025108,
-      "name": "Weapon Buff: Mutated Milk — +15 max health while active",
+      "name": "Weapon Buff: Mutated Milk — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -92814,7 +92794,7 @@
     },
     {
       "id": 7443021525,
-      "name": "Weapon Buff: Natascha — +5% movement speed while active",
+      "name": "Weapon Buff: Natascha — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -92942,7 +92922,7 @@
     },
     {
       "id": 7443025109,
-      "name": "Weapon Buff: Natascha — +15 max health while active",
+      "name": "Weapon Buff: Natascha — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -93543,7 +93523,7 @@
     },
     {
       "id": 7443021526,
-      "name": "Weapon Buff: Necro Smasher — +5% movement speed while active",
+      "name": "Weapon Buff: Necro Smasher — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -93669,7 +93649,7 @@
     },
     {
       "id": 7443025110,
-      "name": "Weapon Buff: Necro Smasher — +15 max health while active",
+      "name": "Weapon Buff: Necro Smasher — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -94266,7 +94246,7 @@
     },
     {
       "id": 7443021527,
-      "name": "Weapon Buff: Neon Annihilator — +5% movement speed while active",
+      "name": "Weapon Buff: Neon Annihilator — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -94394,7 +94374,7 @@
     },
     {
       "id": 7443025111,
-      "name": "Weapon Buff: Neon Annihilator — +15 max health while active",
+      "name": "Weapon Buff: Neon Annihilator — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -94992,7 +94972,7 @@
     },
     {
       "id": 7443021528,
-      "name": "Weapon Buff: Nessie's Nine Iron — +5% movement speed while active",
+      "name": "Weapon Buff: Nessie's Nine Iron — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -95118,7 +95098,7 @@
     },
     {
       "id": 7443025112,
-      "name": "Weapon Buff: Nessie's Nine Iron — +15 max health while active",
+      "name": "Weapon Buff: Nessie's Nine Iron — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -95702,7 +95682,7 @@
     },
     {
       "id": 7443021529,
-      "name": "Weapon Buff: Original — +5% movement speed while active",
+      "name": "Weapon Buff: Original — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -95828,7 +95808,7 @@
     },
     {
       "id": 7443025113,
-      "name": "Weapon Buff: Original — +15 max health while active",
+      "name": "Weapon Buff: Original — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -96429,7 +96409,7 @@
     },
     {
       "id": 7443021530,
-      "name": "Weapon Buff: Overdose — +5% movement speed while active",
+      "name": "Weapon Buff: Overdose — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -96557,7 +96537,7 @@
     },
     {
       "id": 7443025114,
-      "name": "Weapon Buff: Overdose — +15 max health while active",
+      "name": "Weapon Buff: Overdose — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -97170,7 +97150,7 @@
     },
     {
       "id": 7443021531,
-      "name": "Weapon Buff: Pain Train — +5% movement speed while active",
+      "name": "Weapon Buff: Pain Train — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -97298,7 +97278,7 @@
     },
     {
       "id": 7443025115,
-      "name": "Weapon Buff: Pain Train — +15 max health while active",
+      "name": "Weapon Buff: Pain Train — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -97913,7 +97893,7 @@
     },
     {
       "id": 7443021532,
-      "name": "Weapon Buff: Panic Attack — +5% movement speed while active",
+      "name": "Weapon Buff: Panic Attack — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -98045,7 +98025,7 @@
     },
     {
       "id": 7443025116,
-      "name": "Weapon Buff: Panic Attack — +15 max health while active",
+      "name": "Weapon Buff: Panic Attack — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -98648,7 +98628,7 @@
     },
     {
       "id": 7443005133,
-      "name": "Weapon Buff: PDA — +5% movement speed while active",
+      "name": "Weapon Buff: PDA — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -98774,7 +98754,7 @@
     },
     {
       "id": 7443025117,
-      "name": "Weapon Buff: PDA — +15 max health while active",
+      "name": "Weapon Buff: PDA — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -99371,7 +99351,7 @@
     },
     {
       "id": 7443021534,
-      "name": "Weapon Buff: Persian Persuader — +5% movement speed while active",
+      "name": "Weapon Buff: Persian Persuader — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -99499,7 +99479,7 @@
     },
     {
       "id": 7443025118,
-      "name": "Weapon Buff: Persian Persuader — +15 max health while active",
+      "name": "Weapon Buff: Persian Persuader — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -100111,7 +100091,7 @@
     },
     {
       "id": 7443021535,
-      "name": "Weapon Buff: Phlogistinator — +5% movement speed while active",
+      "name": "Weapon Buff: Phlogistinator — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -100239,7 +100219,7 @@
     },
     {
       "id": 7443025119,
-      "name": "Weapon Buff: Phlogistinator — +15 max health while active",
+      "name": "Weapon Buff: Phlogistinator — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -100860,7 +100840,7 @@
     },
     {
       "id": 7443021536,
-      "name": "Weapon Buff: Pistol — +5% movement speed while active",
+      "name": "Weapon Buff: Pistol — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -100992,7 +100972,7 @@
     },
     {
       "id": 7443025120,
-      "name": "Weapon Buff: Pistol — +15 max health while active",
+      "name": "Weapon Buff: Pistol — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -101614,7 +101594,7 @@
     },
     {
       "id": 7443021537,
-      "name": "Weapon Buff: Pomson 6000 — +5% movement speed while active",
+      "name": "Weapon Buff: Pomson 6000 — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -101746,7 +101726,7 @@
     },
     {
       "id": 7443025121,
-      "name": "Weapon Buff: Pomson 6000 — +15 max health while active",
+      "name": "Weapon Buff: Pomson 6000 — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -102348,7 +102328,7 @@
     },
     {
       "id": 7443021538,
-      "name": "Weapon Buff: Postal Pummeler — +5% movement speed while active",
+      "name": "Weapon Buff: Postal Pummeler — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -102474,7 +102454,7 @@
     },
     {
       "id": 7443025122,
-      "name": "Weapon Buff: Postal Pummeler — +15 max health while active",
+      "name": "Weapon Buff: Postal Pummeler — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -103071,7 +103051,7 @@
     },
     {
       "id": 7443021539,
-      "name": "Weapon Buff: Powerjack — +5% movement speed while active",
+      "name": "Weapon Buff: Powerjack — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -103199,7 +103179,7 @@
     },
     {
       "id": 7443025123,
-      "name": "Weapon Buff: Powerjack — +15 max health while active",
+      "name": "Weapon Buff: Powerjack — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -103815,7 +103795,7 @@
     },
     {
       "id": 7443021540,
-      "name": "Weapon Buff: Pretty Boy's Pocket Pistol — +5% movement speed while active",
+      "name": "Weapon Buff: Pretty Boy's Pocket Pistol — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -103943,7 +103923,7 @@
     },
     {
       "id": 7443025124,
-      "name": "Weapon Buff: Pretty Boy's Pocket Pistol — +15 max health while active",
+      "name": "Weapon Buff: Pretty Boy's Pocket Pistol — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -104543,7 +104523,7 @@
     },
     {
       "id": 7443021541,
-      "name": "Weapon Buff: Quick-Fix — +5% movement speed while active",
+      "name": "Weapon Buff: Quick-Fix — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -104673,7 +104653,7 @@
     },
     {
       "id": 7443025125,
-      "name": "Weapon Buff: Quick-Fix — +15 max health while active",
+      "name": "Weapon Buff: Quick-Fix — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -105281,7 +105261,7 @@
     },
     {
       "id": 7443021542,
-      "name": "Weapon Buff: Quickiebomb Launcher — +5% movement speed while active",
+      "name": "Weapon Buff: Quickiebomb Launcher — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -105409,7 +105389,7 @@
     },
     {
       "id": 7443025126,
-      "name": "Weapon Buff: Quickiebomb Launcher — +15 max health while active",
+      "name": "Weapon Buff: Quickiebomb Launcher — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -106014,7 +105994,7 @@
     },
     {
       "id": 7443005143,
-      "name": "Weapon Buff: Quäckenbirdt — +5% movement speed while active",
+      "name": "Weapon Buff: Quäckenbirdt — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -106140,7 +106120,7 @@
     },
     {
       "id": 7443025127,
-      "name": "Weapon Buff: Quäckenbirdt — +15 max health while active",
+      "name": "Weapon Buff: Quäckenbirdt — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -106724,7 +106704,7 @@
     },
     {
       "id": 7443021544,
-      "name": "Weapon Buff: Rainblower — +5% movement speed while active",
+      "name": "Weapon Buff: Rainblower — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -106850,7 +106830,7 @@
     },
     {
       "id": 7443025128,
-      "name": "Weapon Buff: Rainblower — +15 max health while active",
+      "name": "Weapon Buff: Rainblower — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -107434,7 +107414,7 @@
     },
     {
       "id": 7443005145,
-      "name": "Weapon Buff: Razorback — +5% movement speed while active",
+      "name": "Weapon Buff: Razorback — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -107560,7 +107540,7 @@
     },
     {
       "id": 7443025129,
-      "name": "Weapon Buff: Razorback — +15 max health while active",
+      "name": "Weapon Buff: Razorback — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -108144,7 +108124,7 @@
     },
     {
       "id": 7443005146,
-      "name": "Weapon Buff: Red-Tape Recorder — +5% movement speed while active",
+      "name": "Weapon Buff: Red-Tape Recorder — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -108270,7 +108250,7 @@
     },
     {
       "id": 7443025130,
-      "name": "Weapon Buff: Red-Tape Recorder — +15 max health while active",
+      "name": "Weapon Buff: Red-Tape Recorder — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -108854,7 +108834,7 @@
     },
     {
       "id": 7443005147,
-      "name": "Weapon Buff: Reissued Enthusiast's Timepiece — +5% movement speed while active",
+      "name": "Weapon Buff: Reissued Enthusiast's Timepiece — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -108980,7 +108960,7 @@
     },
     {
       "id": 7443025131,
-      "name": "Weapon Buff: Reissued Enthusiast's Timepiece — +15 max health while active",
+      "name": "Weapon Buff: Reissued Enthusiast's Timepiece — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -109564,7 +109544,7 @@
     },
     {
       "id": 7443021548,
-      "name": "Weapon Buff: Reissued Iron Curtain — +5% movement speed while active",
+      "name": "Weapon Buff: Reissued Iron Curtain — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -109690,7 +109670,7 @@
     },
     {
       "id": 7443025132,
-      "name": "Weapon Buff: Reissued Iron Curtain — +15 max health while active",
+      "name": "Weapon Buff: Reissued Iron Curtain — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -110274,7 +110254,7 @@
     },
     {
       "id": 7443021549,
-      "name": "Weapon Buff: Reissued Lugermorph — +5% movement speed while active",
+      "name": "Weapon Buff: Reissued Lugermorph — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -110400,7 +110380,7 @@
     },
     {
       "id": 7443025133,
-      "name": "Weapon Buff: Reissued Lugermorph — +15 max health while active",
+      "name": "Weapon Buff: Reissued Lugermorph — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -111002,7 +110982,7 @@
     },
     {
       "id": 7443021550,
-      "name": "Weapon Buff: Rescue Ranger — +5% movement speed while active",
+      "name": "Weapon Buff: Rescue Ranger — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -111134,7 +111114,7 @@
     },
     {
       "id": 7443025134,
-      "name": "Weapon Buff: Rescue Ranger — +15 max health while active",
+      "name": "Weapon Buff: Rescue Ranger — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -111753,7 +111733,7 @@
     },
     {
       "id": 7443021551,
-      "name": "Weapon Buff: Reserve Shooter — +5% movement speed while active",
+      "name": "Weapon Buff: Reserve Shooter — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -111881,7 +111861,7 @@
     },
     {
       "id": 7443025135,
-      "name": "Weapon Buff: Reserve Shooter — +15 max health while active",
+      "name": "Weapon Buff: Reserve Shooter — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -112499,7 +112479,7 @@
     },
     {
       "id": 7443021552,
-      "name": "Weapon Buff: Revolver — +5% movement speed while active",
+      "name": "Weapon Buff: Revolver — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -112629,7 +112609,7 @@
     },
     {
       "id": 7443025136,
-      "name": "Weapon Buff: Revolver — +15 max health while active",
+      "name": "Weapon Buff: Revolver — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -112697,8 +112677,7 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 21928,
-      "stackable": true,
-      "eligible": true
+      "stackable": true
     },
     {
       "id": 7443027184,
@@ -113247,7 +113226,7 @@
     },
     {
       "id": 7443021553,
-      "name": "Weapon Buff: Righteous Bison — +5% movement speed while active",
+      "name": "Weapon Buff: Righteous Bison — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -113375,7 +113354,7 @@
     },
     {
       "id": 7443025137,
-      "name": "Weapon Buff: Righteous Bison — +15 max health while active",
+      "name": "Weapon Buff: Righteous Bison — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -113974,7 +113953,7 @@
     },
     {
       "id": 7443021554,
-      "name": "Weapon Buff: Robo-Sandvich — +5% movement speed while active",
+      "name": "Weapon Buff: Robo-Sandvich — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -114100,7 +114079,7 @@
     },
     {
       "id": 7443025138,
-      "name": "Weapon Buff: Robo-Sandvich — +15 max health while active",
+      "name": "Weapon Buff: Robo-Sandvich — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -114697,7 +114676,7 @@
     },
     {
       "id": 7443021555,
-      "name": "Weapon Buff: Rocket Jumper — +5% movement speed while active",
+      "name": "Weapon Buff: Rocket Jumper — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -114825,7 +114804,7 @@
     },
     {
       "id": 7443025139,
-      "name": "Weapon Buff: Rocket Jumper — +15 max health while active",
+      "name": "Weapon Buff: Rocket Jumper — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -114966,8 +114945,7 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 23979,
-      "stackable": true,
-      "eligible": true
+      "stackable": true
     },
     {
       "id": 7443029235,
@@ -115442,7 +115420,7 @@
     },
     {
       "id": 7443021556,
-      "name": "Weapon Buff: Rocket Launcher — +5% movement speed while active",
+      "name": "Weapon Buff: Rocket Launcher — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -115570,7 +115548,7 @@
     },
     {
       "id": 7443025140,
-      "name": "Weapon Buff: Rocket Launcher — +15 max health while active",
+      "name": "Weapon Buff: Rocket Launcher — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -115712,8 +115690,7 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 23980,
-      "stackable": true,
-      "eligible": true
+      "stackable": true
     },
     {
       "id": 7443029236,
@@ -116190,7 +116167,7 @@
     },
     {
       "id": 7443021557,
-      "name": "Weapon Buff: Sandman — +5% movement speed while active",
+      "name": "Weapon Buff: Sandman — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -116318,7 +116295,7 @@
     },
     {
       "id": 7443025141,
-      "name": "Weapon Buff: Sandman — +15 max health while active",
+      "name": "Weapon Buff: Sandman — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -116918,7 +116895,7 @@
     },
     {
       "id": 7443021558,
-      "name": "Weapon Buff: Sandvich — +5% movement speed while active",
+      "name": "Weapon Buff: Sandvich — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -117046,7 +117023,7 @@
     },
     {
       "id": 7443025142,
-      "name": "Weapon Buff: Sandvich — +15 max health while active",
+      "name": "Weapon Buff: Sandvich — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -117636,7 +117613,7 @@
     },
     {
       "id": 7443005159,
-      "name": "Weapon Buff: Sapper — +5% movement speed while active",
+      "name": "Weapon Buff: Sapper — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -117764,7 +117741,7 @@
     },
     {
       "id": 7443025143,
-      "name": "Weapon Buff: Sapper — +15 max health while active",
+      "name": "Weapon Buff: Sapper — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -118365,7 +118342,7 @@
     },
     {
       "id": 7443021560,
-      "name": "Weapon Buff: All-Class Melee — +5% movement speed while active",
+      "name": "Weapon Buff: All-Class Melee — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -118493,7 +118470,7 @@
     },
     {
       "id": 7443025144,
-      "name": "Weapon Buff: All-Class Melee — +15 max health while active",
+      "name": "Weapon Buff: All-Class Melee — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -119109,7 +119086,7 @@
     },
     {
       "id": 7443021561,
-      "name": "Weapon Buff: Scattergun — +5% movement speed while active",
+      "name": "Weapon Buff: Scattergun — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -119237,7 +119214,7 @@
     },
     {
       "id": 7443025145,
-      "name": "Weapon Buff: Scattergun — +15 max health while active",
+      "name": "Weapon Buff: Scattergun — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -119854,7 +119831,7 @@
     },
     {
       "id": 7443021562,
-      "name": "Weapon Buff: Scorch Shot — +5% movement speed while active",
+      "name": "Weapon Buff: Scorch Shot — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -119982,7 +119959,7 @@
     },
     {
       "id": 7443025146,
-      "name": "Weapon Buff: Scorch Shot — +15 max health while active",
+      "name": "Weapon Buff: Scorch Shot — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -120599,7 +120576,7 @@
     },
     {
       "id": 7443021563,
-      "name": "Weapon Buff: Scotsman's Skullcutter — +5% movement speed while active",
+      "name": "Weapon Buff: Scotsman's Skullcutter — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -120727,7 +120704,7 @@
     },
     {
       "id": 7443025147,
-      "name": "Weapon Buff: Scotsman's Skullcutter — +15 max health while active",
+      "name": "Weapon Buff: Scotsman's Skullcutter — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -121325,7 +121302,7 @@
     },
     {
       "id": 7443021564,
-      "name": "Weapon Buff: Scottish Handshake — +5% movement speed while active",
+      "name": "Weapon Buff: Scottish Handshake — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -121451,7 +121428,7 @@
     },
     {
       "id": 7443025148,
-      "name": "Weapon Buff: Scottish Handshake — +15 max health while active",
+      "name": "Weapon Buff: Scottish Handshake — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -122053,7 +122030,7 @@
     },
     {
       "id": 7443021565,
-      "name": "Weapon Buff: Scottish Resistance — +5% movement speed while active",
+      "name": "Weapon Buff: Scottish Resistance — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -122181,7 +122158,7 @@
     },
     {
       "id": 7443025149,
-      "name": "Weapon Buff: Scottish Resistance — +15 max health while active",
+      "name": "Weapon Buff: Scottish Resistance — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -122786,7 +122763,7 @@
     },
     {
       "id": 7443021566,
-      "name": "Weapon Buff: Second Banana — +5% movement speed while active",
+      "name": "Weapon Buff: Second Banana — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -122914,7 +122891,7 @@
     },
     {
       "id": 7443025150,
-      "name": "Weapon Buff: Second Banana — +15 max health while active",
+      "name": "Weapon Buff: Second Banana — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -123504,7 +123481,7 @@
     },
     {
       "id": 7443021567,
-      "name": "Weapon Buff: Self-Aware Beauty Mark — +5% movement speed while active",
+      "name": "Weapon Buff: Self-Aware Beauty Mark — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -123630,7 +123607,7 @@
     },
     {
       "id": 7443025151,
-      "name": "Weapon Buff: Self-Aware Beauty Mark — +15 max health while active",
+      "name": "Weapon Buff: Self-Aware Beauty Mark — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -124227,7 +124204,7 @@
     },
     {
       "id": 7443021568,
-      "name": "Weapon Buff: Shahanshah — +5% movement speed while active",
+      "name": "Weapon Buff: Shahanshah — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -124355,7 +124332,7 @@
     },
     {
       "id": 7443025152,
-      "name": "Weapon Buff: Shahanshah — +15 max health while active",
+      "name": "Weapon Buff: Shahanshah — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -124953,7 +124930,7 @@
     },
     {
       "id": 7443021569,
-      "name": "Weapon Buff: Sharp Dresser — +5% movement speed while active",
+      "name": "Weapon Buff: Sharp Dresser — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -125079,7 +125056,7 @@
     },
     {
       "id": 7443025153,
-      "name": "Weapon Buff: Sharp Dresser — +15 max health while active",
+      "name": "Weapon Buff: Sharp Dresser — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -125677,7 +125654,7 @@
     },
     {
       "id": 7443021570,
-      "name": "Weapon Buff: Sharpened Volcano Fragment — +5% movement speed while active",
+      "name": "Weapon Buff: Sharpened Volcano Fragment — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -125805,7 +125782,7 @@
     },
     {
       "id": 7443025154,
-      "name": "Weapon Buff: Sharpened Volcano Fragment — +15 max health while active",
+      "name": "Weapon Buff: Sharpened Volcano Fragment — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -126419,7 +126396,7 @@
     },
     {
       "id": 7443021571,
-      "name": "Weapon Buff: Short Circuit — +5% movement speed while active",
+      "name": "Weapon Buff: Short Circuit — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -126551,7 +126528,7 @@
     },
     {
       "id": 7443025155,
-      "name": "Weapon Buff: Short Circuit — +15 max health while active",
+      "name": "Weapon Buff: Short Circuit — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -127171,7 +127148,7 @@
     },
     {
       "id": 7443021572,
-      "name": "Weapon Buff: Shortstop — +5% movement speed while active",
+      "name": "Weapon Buff: Shortstop — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -127299,7 +127276,7 @@
     },
     {
       "id": 7443025156,
-      "name": "Weapon Buff: Shortstop — +15 max health while active",
+      "name": "Weapon Buff: Shortstop — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -127917,7 +127894,7 @@
     },
     {
       "id": 7443021573,
-      "name": "Weapon Buff: Shotgun — +5% movement speed while active",
+      "name": "Weapon Buff: Shotgun — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -128049,7 +128026,7 @@
     },
     {
       "id": 7443025157,
-      "name": "Weapon Buff: Shotgun — +15 max health while active",
+      "name": "Weapon Buff: Shotgun — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -128665,7 +128642,7 @@
     },
     {
       "id": 7443021574,
-      "name": "Weapon Buff: Shovel — +5% movement speed while active",
+      "name": "Weapon Buff: Shovel — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -128793,7 +128770,7 @@
     },
     {
       "id": 7443025158,
-      "name": "Weapon Buff: Shovel — +15 max health while active",
+      "name": "Weapon Buff: Shovel — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -129409,7 +129386,7 @@
     },
     {
       "id": 7443021575,
-      "name": "Weapon Buff: SMG — +5% movement speed while active",
+      "name": "Weapon Buff: SMG — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -129537,7 +129514,7 @@
     },
     {
       "id": 7443025159,
-      "name": "Weapon Buff: SMG — +15 max health while active",
+      "name": "Weapon Buff: SMG — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -130137,7 +130114,7 @@
     },
     {
       "id": 7443005176,
-      "name": "Weapon Buff: Snack Attack — +5% movement speed while active",
+      "name": "Weapon Buff: Snack Attack — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -130263,7 +130240,7 @@
     },
     {
       "id": 7443025160,
-      "name": "Weapon Buff: Snack Attack — +15 max health while active",
+      "name": "Weapon Buff: Snack Attack — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -130863,7 +130840,7 @@
     },
     {
       "id": 7443021577,
-      "name": "Weapon Buff: Sniper Rifle — +5% movement speed while active",
+      "name": "Weapon Buff: Sniper Rifle — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -130991,7 +130968,7 @@
     },
     {
       "id": 7443025161,
-      "name": "Weapon Buff: Sniper Rifle — +15 max health while active",
+      "name": "Weapon Buff: Sniper Rifle — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -131610,7 +131587,7 @@
     },
     {
       "id": 7443021578,
-      "name": "Weapon Buff: Soda Popper — +5% movement speed while active",
+      "name": "Weapon Buff: Soda Popper — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -131738,7 +131715,7 @@
     },
     {
       "id": 7443025162,
-      "name": "Weapon Buff: Soda Popper — +15 max health while active",
+      "name": "Weapon Buff: Soda Popper — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -132351,7 +132328,7 @@
     },
     {
       "id": 7443021579,
-      "name": "Weapon Buff: Solemn Vow — +5% movement speed while active",
+      "name": "Weapon Buff: Solemn Vow — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -132479,7 +132456,7 @@
     },
     {
       "id": 7443025163,
-      "name": "Weapon Buff: Solemn Vow — +15 max health while active",
+      "name": "Weapon Buff: Solemn Vow — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -133091,7 +133068,7 @@
     },
     {
       "id": 7443021580,
-      "name": "Weapon Buff: Southern Hospitality — +5% movement speed while active",
+      "name": "Weapon Buff: Southern Hospitality — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -133223,7 +133200,7 @@
     },
     {
       "id": 7443025164,
-      "name": "Weapon Buff: Southern Hospitality — +15 max health while active",
+      "name": "Weapon Buff: Southern Hospitality — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -133824,7 +133801,7 @@
     },
     {
       "id": 7443005181,
-      "name": "Weapon Buff: Splendid Screen — +5% movement speed while active",
+      "name": "Weapon Buff: Splendid Screen — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -133952,7 +133929,7 @@
     },
     {
       "id": 7443025165,
-      "name": "Weapon Buff: Splendid Screen — +15 max health while active",
+      "name": "Weapon Buff: Splendid Screen — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -134553,7 +134530,7 @@
     },
     {
       "id": 7443021582,
-      "name": "Weapon Buff: Spy-Cicle — +5% movement speed while active",
+      "name": "Weapon Buff: Spy-Cicle — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -134684,7 +134661,7 @@
     },
     {
       "id": 7443025166,
-      "name": "Weapon Buff: Spy-Cicle — +15 max health while active",
+      "name": "Weapon Buff: Spy-Cicle — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -135293,7 +135270,7 @@
     },
     {
       "id": 7443021583,
-      "name": "Weapon Buff: Sticky Jumper — +5% movement speed while active",
+      "name": "Weapon Buff: Sticky Jumper — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -135421,7 +135398,7 @@
     },
     {
       "id": 7443025167,
-      "name": "Weapon Buff: Sticky Jumper — +15 max health while active",
+      "name": "Weapon Buff: Sticky Jumper — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -135736,8 +135713,7 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 28871,
-      "stackable": true,
-      "eligible": true
+      "stackable": true
     },
     {
       "id": 7443034127,
@@ -136039,7 +136015,7 @@
     },
     {
       "id": 7443021584,
-      "name": "Weapon Buff: Stickybomb Launcher — +5% movement speed while active",
+      "name": "Weapon Buff: Stickybomb Launcher — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -136167,7 +136143,7 @@
     },
     {
       "id": 7443025168,
-      "name": "Weapon Buff: Stickybomb Launcher — +15 max health while active",
+      "name": "Weapon Buff: Stickybomb Launcher — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -136785,7 +136761,7 @@
     },
     {
       "id": 7443021585,
-      "name": "Weapon Buff: Sun-on-a-Stick — +5% movement speed while active",
+      "name": "Weapon Buff: Sun-on-a-Stick — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -136913,7 +136889,7 @@
     },
     {
       "id": 7443025169,
-      "name": "Weapon Buff: Sun-on-a-Stick — +15 max health while active",
+      "name": "Weapon Buff: Sun-on-a-Stick — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -137525,7 +137501,7 @@
     },
     {
       "id": 7443021586,
-      "name": "Weapon Buff: Sydney Sleeper — +5% movement speed while active",
+      "name": "Weapon Buff: Sydney Sleeper — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -137653,7 +137629,7 @@
     },
     {
       "id": 7443025170,
-      "name": "Weapon Buff: Sydney Sleeper — +15 max health while active",
+      "name": "Weapon Buff: Sydney Sleeper — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -138273,7 +138249,7 @@
     },
     {
       "id": 7443021587,
-      "name": "Weapon Buff: Syringe Gun — +5% movement speed while active",
+      "name": "Weapon Buff: Syringe Gun — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -138401,7 +138377,7 @@
     },
     {
       "id": 7443025171,
-      "name": "Weapon Buff: Syringe Gun — +15 max health while active",
+      "name": "Weapon Buff: Syringe Gun — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -139006,7 +138982,7 @@
     },
     {
       "id": 7443021588,
-      "name": "Weapon Buff: Thermal Thruster — +5% movement speed while active",
+      "name": "Weapon Buff: Thermal Thruster — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -139134,7 +139110,7 @@
     },
     {
       "id": 7443025172,
-      "name": "Weapon Buff: Thermal Thruster — +15 max health while active",
+      "name": "Weapon Buff: Thermal Thruster — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -139738,7 +139714,7 @@
     },
     {
       "id": 7443021589,
-      "name": "Weapon Buff: Third Degree — +5% movement speed while active",
+      "name": "Weapon Buff: Third Degree — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -139866,7 +139842,7 @@
     },
     {
       "id": 7443025173,
-      "name": "Weapon Buff: Third Degree — +15 max health while active",
+      "name": "Weapon Buff: Third Degree — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -140464,7 +140440,7 @@
     },
     {
       "id": 7443021590,
-      "name": "Weapon Buff: Three-Rune Blade — +5% movement speed while active",
+      "name": "Weapon Buff: Three-Rune Blade — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -140590,7 +140566,7 @@
     },
     {
       "id": 7443025174,
-      "name": "Weapon Buff: Three-Rune Blade — +15 max health while active",
+      "name": "Weapon Buff: Three-Rune Blade — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -141174,7 +141150,7 @@
     },
     {
       "id": 7443005191,
-      "name": "Weapon Buff: Tide Turner — +5% movement speed while active",
+      "name": "Weapon Buff: Tide Turner — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -141302,7 +141278,7 @@
     },
     {
       "id": 7443025175,
-      "name": "Weapon Buff: Tide Turner — +15 max health while active",
+      "name": "Weapon Buff: Tide Turner — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -141906,7 +141882,7 @@
     },
     {
       "id": 7443021592,
-      "name": "Weapon Buff: Tomislav — +5% movement speed while active",
+      "name": "Weapon Buff: Tomislav — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -142034,7 +142010,7 @@
     },
     {
       "id": 7443025176,
-      "name": "Weapon Buff: Tomislav — +15 max health while active",
+      "name": "Weapon Buff: Tomislav — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -142649,7 +142625,7 @@
     },
     {
       "id": 7443021593,
-      "name": "Weapon Buff: Tribalman's Shiv — +5% movement speed while active",
+      "name": "Weapon Buff: Tribalman's Shiv — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -142777,7 +142753,7 @@
     },
     {
       "id": 7443025177,
-      "name": "Weapon Buff: Tribalman's Shiv — +15 max health while active",
+      "name": "Weapon Buff: Tribalman's Shiv — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -143388,7 +143364,7 @@
     },
     {
       "id": 7443021594,
-      "name": "Weapon Buff: Ullapool Caber — +5% movement speed while active",
+      "name": "Weapon Buff: Ullapool Caber — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -143516,7 +143492,7 @@
     },
     {
       "id": 7443025178,
-      "name": "Weapon Buff: Ullapool Caber — +15 max health while active",
+      "name": "Weapon Buff: Ullapool Caber — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -144117,7 +144093,7 @@
     },
     {
       "id": 7443021595,
-      "name": "Weapon Buff: Unarmed Combat — +5% movement speed while active",
+      "name": "Weapon Buff: Unarmed Combat — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -144243,7 +144219,7 @@
     },
     {
       "id": 7443025179,
-      "name": "Weapon Buff: Unarmed Combat — +15 max health while active",
+      "name": "Weapon Buff: Unarmed Combat — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -144827,7 +144803,7 @@
     },
     {
       "id": 7443021596,
-      "name": "Weapon Buff: Vaccinator — +5% movement speed while active",
+      "name": "Weapon Buff: Vaccinator — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -144957,7 +144933,7 @@
     },
     {
       "id": 7443025180,
-      "name": "Weapon Buff: Vaccinator — +15 max health while active",
+      "name": "Weapon Buff: Vaccinator — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -145560,7 +145536,7 @@
     },
     {
       "id": 7443021597,
-      "name": "Weapon Buff: Vita-Saw — +5% movement speed while active",
+      "name": "Weapon Buff: Vita-Saw — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -145688,7 +145664,7 @@
     },
     {
       "id": 7443025181,
-      "name": "Weapon Buff: Vita-Saw — +15 max health while active",
+      "name": "Weapon Buff: Vita-Saw — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -146287,7 +146263,7 @@
     },
     {
       "id": 7443021598,
-      "name": "Weapon Buff: Wanga Prick — +5% movement speed while active",
+      "name": "Weapon Buff: Wanga Prick — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -146413,7 +146389,7 @@
     },
     {
       "id": 7443025182,
-      "name": "Weapon Buff: Wanga Prick — +15 max health while active",
+      "name": "Weapon Buff: Wanga Prick — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -147010,7 +146986,7 @@
     },
     {
       "id": 7443021599,
-      "name": "Weapon Buff: Warrior's Spirit — +5% movement speed while active",
+      "name": "Weapon Buff: Warrior's Spirit — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -147138,7 +147114,7 @@
     },
     {
       "id": 7443025183,
-      "name": "Weapon Buff: Warrior's Spirit — +15 max health while active",
+      "name": "Weapon Buff: Warrior's Spirit — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -147751,7 +147727,7 @@
     },
     {
       "id": 7443021600,
-      "name": "Weapon Buff: Widowmaker — +5% movement speed while active",
+      "name": "Weapon Buff: Widowmaker — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -147883,7 +147859,7 @@
     },
     {
       "id": 7443025184,
-      "name": "Weapon Buff: Widowmaker — +15 max health while active",
+      "name": "Weapon Buff: Widowmaker — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -148504,7 +148480,7 @@
     },
     {
       "id": 7443021601,
-      "name": "Weapon Buff: Winger — +5% movement speed while active",
+      "name": "Weapon Buff: Winger — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -148632,7 +148608,7 @@
     },
     {
       "id": 7443025185,
-      "name": "Weapon Buff: Winger — +15 max health while active",
+      "name": "Weapon Buff: Winger — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -149232,7 +149208,7 @@
     },
     {
       "id": 7443021602,
-      "name": "Weapon Buff: Wrangler — +5% movement speed while active",
+      "name": "Weapon Buff: Wrangler — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -149364,7 +149340,7 @@
     },
     {
       "id": 7443025186,
-      "name": "Weapon Buff: Wrangler — +15 max health while active",
+      "name": "Weapon Buff: Wrangler — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -149971,7 +149947,7 @@
     },
     {
       "id": 7443021603,
-      "name": "Weapon Buff: Wrap Assassin — +5% movement speed while active",
+      "name": "Weapon Buff: Wrap Assassin — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -150099,7 +150075,7 @@
     },
     {
       "id": 7443025187,
-      "name": "Weapon Buff: Wrap Assassin — +15 max health while active",
+      "name": "Weapon Buff: Wrap Assassin — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -150712,7 +150688,7 @@
     },
     {
       "id": 7443021604,
-      "name": "Weapon Buff: Wrench — +5% movement speed while active",
+      "name": "Weapon Buff: Wrench — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -150844,7 +150820,7 @@
     },
     {
       "id": 7443025188,
-      "name": "Weapon Buff: Wrench — +15 max health while active",
+      "name": "Weapon Buff: Wrench — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -151458,7 +151434,7 @@
     },
     {
       "id": 7443021605,
-      "name": "Weapon Buff: Your Eternal Reward — +5% movement speed while active",
+      "name": "Weapon Buff: Your Eternal Reward — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -151589,7 +151565,7 @@
     },
     {
       "id": 7443025189,
-      "name": "Weapon Buff: Your Eternal Reward — +15 max health while active",
+      "name": "Weapon Buff: Your Eternal Reward — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -152200,7 +152176,7 @@
     },
     {
       "id": 7443021606,
-      "name": "Weapon Buff: Übersaw — +5% movement speed while active",
+      "name": "Weapon Buff: Übersaw — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -152328,7 +152304,7 @@
     },
     {
       "id": 7443025190,
-      "name": "Weapon Buff: Übersaw — +15 max health while active",
+      "name": "Weapon Buff: Übersaw — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -152927,7 +152903,7 @@
     },
     {
       "id": 7443021607,
-      "name": "Weapon Buff: Batsaber — +5% movement speed while active",
+      "name": "Weapon Buff: Batsaber — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -153053,7 +153029,7 @@
     },
     {
       "id": 7443025191,
-      "name": "Weapon Buff: Batsaber — +15 max health while active",
+      "name": "Weapon Buff: Batsaber — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -153637,7 +153613,7 @@
     },
     {
       "id": 7443021608,
-      "name": "Weapon Buff: C.A.P.P.E.R — +5% movement speed while active",
+      "name": "Weapon Buff: C.A.P.P.E.R — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -153763,7 +153739,7 @@
     },
     {
       "id": 7443025192,
-      "name": "Weapon Buff: C.A.P.P.E.R — +15 max health while active",
+      "name": "Weapon Buff: C.A.P.P.E.R — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -154347,7 +154323,7 @@
     },
     {
       "id": 7443021609,
-      "name": "Weapon Buff: Giger Counter — +5% movement speed while active",
+      "name": "Weapon Buff: Giger Counter — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -154473,7 +154449,7 @@
     },
     {
       "id": 7443025193,
-      "name": "Weapon Buff: Giger Counter — +15 max health while active",
+      "name": "Weapon Buff: Giger Counter — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -155057,7 +155033,7 @@
     },
     {
       "id": 7443021610,
-      "name": "Weapon Buff: Nostromo Napalmer — +5% movement speed while active",
+      "name": "Weapon Buff: Nostromo Napalmer — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -155183,7 +155159,7 @@
     },
     {
       "id": 7443025194,
-      "name": "Weapon Buff: Nostromo Napalmer — +15 max health while active",
+      "name": "Weapon Buff: Nostromo Napalmer — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -155767,7 +155743,7 @@
     },
     {
       "id": 7443021611,
-      "name": "Weapon Buff: Prinny Machete — +5% movement speed while active",
+      "name": "Weapon Buff: Prinny Machete — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -155893,7 +155869,7 @@
     },
     {
       "id": 7443025195,
-      "name": "Weapon Buff: Prinny Machete — +15 max health while active",
+      "name": "Weapon Buff: Prinny Machete — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -156477,7 +156453,7 @@
     },
     {
       "id": 7443021612,
-      "name": "Weapon Buff: Shooting Star — +5% movement speed while active",
+      "name": "Weapon Buff: Shooting Star — +5% movement speed",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,
@@ -156603,7 +156579,7 @@
     },
     {
       "id": 7443025196,
-      "name": "Weapon Buff: Shooting Star — +15 max health while active",
+      "name": "Weapon Buff: Shooting Star — +15 max health",
       "kind": "weapon_buff",
       "classification": "useful",
       "count": 0,

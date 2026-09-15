@@ -149,7 +149,7 @@ func TestProjectileDestructionCooldownIsTheDeclaredCurve(t *testing.T) {
 }
 
 /*
-	A passive effect is the three the plugin names and nothing else.
+	A passive effect is the four the plugin names and nothing else.
 
 WeaponBuffs_IsPassiveEffect decides which effects are applied at spawn rather
 than on a hit or a kill, and getting it wrong is silent: an effect that falls
@@ -162,7 +162,7 @@ The same goes for the on-kill set below.
 */
 func TestOnlyTheNamedEffectsArePassive(t *testing.T) {
 	assertEffectSet(t, "WeaponBuffs_IsPassiveEffect",
-		"MoveSpeedEffect", "JumpHeightEffect", "ActiveHealthRegenEffect")
+		"MoveSpeedEffect", "JumpHeightEffect", "ActiveHealthRegenEffect", "MaxHealthEffect")
 }
 
 // An on-kill effect is paid when the attacker gets a kill. One that falls out of
