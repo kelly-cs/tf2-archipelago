@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"path/filepath"
 	"runtime"
 	"slices"
 	"strings"
@@ -374,9 +375,20 @@ func (a *App) downloadPacks(s settings.Settings) {
 		a.Notify("community assets: " + err.Error())
 		return
 	}
+	if a.attached {
+		contentTree := filepath.Join(folder, "tf")
+		if err := installer.InstallCommunityArchives(archives, contentTree, s.SrcdsMods, func(f string, args ...any) { a.Say(f, args...) }); err != nil {
+			a.Notify("community assets: " + err.Error())
+			return
+		}
+	}
 	a.mu.Lock()
 	a.community = availableCommunityPackNames(folder)
 	a.mu.Unlock()
+	if a.attached {
+		a.Notify("selected community packs are installed; the game server will pick them up within 30 seconds")
+		return
+	}
 	a.Notify("selected community packs are ready in " + folder)
 }
 

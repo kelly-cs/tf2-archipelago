@@ -22,6 +22,12 @@ pack checkbox is selected. They appear only after the matching ZIP exists and
 validates. Maps without a bot `.nav` then appear in red as unavailable and
 cannot be added to a seed.
 
+With Docker Compose, the admin page stores the ZIPs in the host's
+`./community-content` directory and extracts their `tf/` tree there when the
+download finishes. The running game server watches that same overlay and picks
+up the extracted files within about 30 seconds; rebuilding the image is not
+required.
+
 ### Use asset ZIPs you already have
 
 Keep the original full-with-maps ZIP intact; do not extract or rename it. Put

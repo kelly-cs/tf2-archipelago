@@ -178,6 +178,14 @@ func installCommunityArchives(archives []string, modDir string, serverMods []str
 	return nil
 }
 
+// InstallCommunityArchives extracts already-downloaded community packs into a
+// TF2 content tree. Compose uses this after its attached admin downloads a
+// pack: srcds consumes that tree as a read-only host overlay, while the native
+// launcher calls the same implementation from Ensure.
+func InstallCommunityArchives(archives []string, modDir string, serverMods []string, logf func(string, ...any)) error {
+	return installCommunityArchives(archives, modDir, serverMods, logf)
+}
+
 var (
 	popBasePattern     = regexp.MustCompile(`(?im)^\s*#base\s+"?([^"\s]+)`)
 	classIconPattern   = regexp.MustCompile(`(?im)^\s*ClassIcon\s+"?([^"\s/]+)`)

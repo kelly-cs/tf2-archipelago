@@ -283,6 +283,10 @@ services:
       TF2AP_ADMIN_SRCDS_LOG: /srv/tf-dedicated/tf/console.log
       TF2AP_ADMIN_BRIDGE_LOG: /srv/bridge/bridge.log
       TF2AP_ADMIN_ENV_FILE: /config/compose.env
+      # Downloads land in the host overlay mounted below, not in the admin
+      # image's read-only /root default. The srcds service mounts the same
+      # directory read-only and continuously syncs its tf/ tree into the game.
+      TF2AP_COMMUNITY_CONTENT_DIR: /opt/tf2-community-pack
       TF2AP_TAILSCALE_SOCKET: /run/tf2ap-fastdl/tailscaled.sock
       TAILSCALE_HOSTNAME: ${TAILSCALE_HOSTNAME:-tf2-fastdl}
       TF2AP_TEST_MODE: ${TF2AP_TEST_MODE:-0}
@@ -303,6 +307,7 @@ services:
       - tf2game:/srv/tf-dedicated:ro
       - bridgestate:/srv/bridge:ro
       - tailscale_fastdl_runtime:/run/tf2ap-fastdl
+      - ./community-content:/opt/tf2-community-pack
       - ./.env:/config/compose.env
     depends_on:
       bridge:
