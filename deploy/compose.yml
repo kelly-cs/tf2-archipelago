@@ -261,6 +261,13 @@ services:
         LAUNCHER_VERSION: ${LAUNCHER_VERSION:-compose}
     restart: unless-stopped
     network_mode: "service:srcds"
+    # This is the same file the page writes. Loading it as the container's
+    # environment means every form.Spec survives a recreation without a
+    # second hand-maintained list of settings here. The explicit values below
+    # are runtime wiring and win when a name overlaps.
+    env_file:
+      - path: ./.env
+        required: false
     # The only writable host object is .env. Root is needed because Compose
     # bind-mounts a file owned by the host user; the root filesystem and both
     # service-log volumes remain read-only, with every Linux capability
