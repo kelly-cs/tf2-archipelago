@@ -661,6 +661,10 @@ static void ApplyUnlockSet(JSONObject payload)
         return;
     }
 
+    // Which rule the slot keys are read under. Absent from a bridge that
+    // predates the option, which is a seed without it.
+    Unlocks_SetClassSlotMode(payload.HasKey("class_weapon_slots") && payload.GetBool("class_weapon_slots"));
+
     JSONObjectKeys kinds = byKind.Keys();
     // Wider than any kind the bridge can send. ReadKey truncates without
     // saying so, and reading a truncated key back out of the object is a
@@ -701,7 +705,7 @@ static char[] GrantLabel(const char[] kind)
     {
         strcopy(label, sizeof(label), "Class");
     }
-    else if (StrEqual(kind, "weapon_slot"))
+    else if (StrEqual(kind, "weapon_slot") || StrEqual(kind, "class_weapon_slot"))
     {
         strcopy(label, sizeof(label), "Weapon slot");
     }
@@ -736,6 +740,11 @@ static bool Bridge_ApplyKind(const char[] kind, const char[] key)
     if (StrEqual(kind, "weapon_slot"))
     {
         Unlocks_GrantSlot(key);
+        return true;
+    }
+    if (StrEqual(kind, "class_weapon_slot"))
+    {
+        Unlocks_GrantClassSlot(key);
         return true;
     }
     if (StrEqual(kind, "mission_ticket"))

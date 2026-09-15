@@ -13,24 +13,26 @@ const (
 	ItemTrap
 	ItemServerSetting
 	ItemTrophy
+	ItemClassWeaponSlot
 )
 
 var itemKindKeys = [...]string{
-	ItemMissionTicket: "mission_ticket",
-	ItemClass:         "class",
-	ItemWeaponSlot:    "weapon_slot",
-	ItemCredits:       "credits",
-	ItemWeaponBuff:    "weapon_buff",
-	ItemTrap:          "trap",
-	ItemServerSetting: "server_setting",
-	ItemTrophy:        "trophy",
+	ItemMissionTicket:   "mission_ticket",
+	ItemClass:           "class",
+	ItemWeaponSlot:      "weapon_slot",
+	ItemCredits:         "credits",
+	ItemWeaponBuff:      "weapon_buff",
+	ItemTrap:            "trap",
+	ItemServerSetting:   "server_setting",
+	ItemTrophy:          "trophy",
+	ItemClassWeaponSlot: "class_weapon_slot",
 }
 
 // ItemKinds is every kind that exists, in id order. The bridge walks it to
 // build the unlock set, so a kind added here needs no second list anywhere.
 var ItemKinds = []ItemKind{
 	ItemMissionTicket, ItemClass, ItemWeaponSlot, ItemCredits, ItemWeaponBuff, ItemTrap,
-	ItemServerSetting, ItemTrophy,
+	ItemServerSetting, ItemTrophy, ItemClassWeaponSlot,
 }
 
 // Key is the string on the wire between the bridge and the plugin.
@@ -139,6 +141,20 @@ func buildItems() []Item {
 		Classification: Progression,
 		Count:          uint8(len(WeaponSlots)),
 	})
+	// One progressive item per class, each copy opening the class's next slot
+	// in its own order. The first slot is free with the class, so a class earns
+	// the other two. Only a seed with class_weapon_slots on puts these in the
+	// pool, in place of the item above.
+	for _, c := range Classes {
+		all = append(all, Item{
+			ID:             c.SlotItemID(),
+			Name:           c.SlotItemName(),
+			Kind:           ItemClassWeaponSlot,
+			Classification: Progression,
+			Count:          ClassSlotsEarned,
+			Class:          c.ID,
+		})
+	}
 	all = append(all, Item{
 		ID:             cashBundleID,
 		Name:           "Cash Bundle",

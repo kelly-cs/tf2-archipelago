@@ -59,6 +59,11 @@ type Unlocks struct {
 	// and every effect it never got.
 	ResumeFrom int                 `json:"resume_from"`
 	ByKind     map[string][]string `json:"unlocks"`
+
+	// ClassWeaponSlots is the seed opening slots class by class rather than
+	// with one item for every class. The plugin reads the slot keys it holds
+	// either way; this says which rule to enforce with them.
+	ClassWeaponSlots bool `json:"class_weapon_slots"`
 }
 
 // Of is the keys held for one kind, and nothing for a kind that is not state.
@@ -71,17 +76,21 @@ func (u Unlocks) Of(kind gamedata.ItemKind) []string { return u.ByKind[kind.Key(
 func grantsFrom(itemIDs []int64) []Grant {
 	grants := make([]Grant, 0, len(itemIDs))
 	slotsGranted := 0
+	classSlotsGranted := map[gamedata.ClassID]int{}
 	for index, id := range itemIDs {
 		item, known := gamedata.ItemByID(id)
 		if !known {
 			continue
 		}
-		grant, ok := grantFor(item, slotsGranted)
+		grant, ok := grantFor(item, slotsGranted, classSlotsGranted[item.Class])
 		if !ok {
 			continue
 		}
-		if item.Kind == gamedata.ItemWeaponSlot {
+		switch item.Kind {
+		case gamedata.ItemWeaponSlot:
 			slotsGranted++
+		case gamedata.ItemClassWeaponSlot:
+			classSlotsGranted[item.Class]++
 		}
 		grant.Seq = index + 1
 		grant.OneShot = item.Kind.OneShot()
@@ -90,10 +99,22 @@ func grantsFrom(itemIDs []int64) []Grant {
 	return grants
 }
 
-// grantFor is where the progressive weapon slot stops being progressive: copy n
-// becomes the nth slot in gamedata's order.
-func grantFor(item gamedata.Item, slotsGranted int) (Grant, bool) {
+// grantFor is where a progressive weapon slot stops being progressive: copy n
+// becomes the nth slot in gamedata's order, and copy n of a class's own item
+// the nth earned slot in that class's order.
+func grantFor(item gamedata.Item, slotsGranted, classSlotsGranted int) (Grant, bool) {
 	switch item.Kind {
+	case gamedata.ItemClassWeaponSlot:
+		class, ok := gamedata.ClassByID(item.Class)
+		if !ok {
+			return Grant{}, false
+		}
+		slot, ok := class.SlotForCopy(classSlotsGranted + 1)
+		if !ok {
+			return Grant{}, false
+		}
+		return Grant{Kind: item.Kind.Key(), Key: class.Key + "/" + slot.Key, Name: class.Name + ": " + slot.Name}, true
+
 	case gamedata.ItemMissionTicket:
 		mission, ok := gamedata.MissionByID(item.Mission)
 		if !ok {

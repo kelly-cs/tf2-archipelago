@@ -98,6 +98,11 @@ func playerSpecs(s State, env Env) []Spec {
 			"count the kills",
 			func(s State) bool { return s.Settings.MvmMilestoneChecks },
 			func(s State, v bool) State { s.Settings.MvmMilestoneChecks = v; return s }),
+		toggle("run.class_slots", tab, "Weapon slots per class",
+			"Each class earns its own two slots instead of one item opening a slot for everybody. Its first slot comes free with the class: the Medigun for a Medic, the Knife for a Spy. Eighteen items in the pool where there were three, so a run with few missions may not fit them.",
+			"per class",
+			func(s State) bool { return s.Settings.MvmClassWeaponSlots },
+			func(s State, v bool) State { s.Settings.MvmClassWeaponSlots = v; return s }),
 
 		toggle("run.deathlink", tab, "Death Link",
 			"A lost wave kills every other player in the multiworld who has Death Link on, and their deaths wipe your team.",

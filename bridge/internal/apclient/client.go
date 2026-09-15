@@ -116,6 +116,8 @@ type Health struct {
 	// bridge records as the tallies cross them; a seed without them has no
 	// location to record.
 	MilestoneChecks bool `json:"milestone_checks"`
+	// ClassWeaponSlots is the seed opening loadout slots class by class.
+	ClassWeaponSlots bool `json:"class_weapon_slots"`
 
 	DeathLink bool   `json:"death_link"`
 	LastError string `json:"last_error,omitempty"`
@@ -149,6 +151,7 @@ func (c *Client) Health() Health {
 		MissionModifiers:        c.slot.MissionModifiers,
 		VictoryCaches:           c.slot.VictoryCaches,
 		MilestoneChecks:         c.slot.MilestoneChecks,
+		ClassWeaponSlots:        c.slot.ClassWeaponSlots,
 		DeathLink:               c.slot.DeathLink,
 		LastError:               c.lastError,
 	}

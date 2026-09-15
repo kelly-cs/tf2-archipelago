@@ -233,10 +233,23 @@ if len(_weapon_slot_items) != 1:
 PROGRESSIVE_WEAPON_SLOT: str = _weapon_slot_items[0].name
 WEAPON_SLOT_COUNT: int = _weapon_slot_items[0].count
 
+# With class_weapon_slots on, the slots come per class instead: the class
+# item's name to its own progressive slot item, each of CLASS_SLOT_COUNT copies.
+_class_slot_items = [item for item in ITEMS if item.kind == "class_weapon_slot"]
+CLASS_SLOT_ITEMS: dict[str, str] = {
+    CLASS_ITEM_BY_MERC[_MERC_NAMES[item.class_id]]: item.name for item in _class_slot_items
+}
+if len(CLASS_SLOT_ITEMS) != len(CLASS_NAMES):
+    raise DataFormatError("expected one class weapon slot item per class")
+CLASS_SLOT_COUNT: int = _class_slot_items[0].count
+if any(item.count != CLASS_SLOT_COUNT for item in _class_slot_items):
+    raise DataFormatError("the class weapon slot items disagree about how many slots a class earns")
+
 ITEM_NAME_GROUPS: dict[str, set[str]] = {
     "Classes": set(CLASS_NAMES),
     "Mission Tickets": set(TICKET_NAMES.values()),
     "Weapon Buffs": set(WEAPON_BUFF_NAMES),
+    "Class Weapon Slots": set(CLASS_SLOT_ITEMS.values()),
     "Traps": set(TRAP_NAMES),
     "Australium Medals": set(MEDAL_NAMES.values()),
 }

@@ -180,6 +180,10 @@ type Settings struct {
 	// robots, giants and tanks destroyed over the whole run, whatever mission
 	// they fell in. Something to grind when a wave will not fall.
 	MvmMilestoneChecks bool `json:"mvm_milestone_checks"`
+	// MvmClassWeaponSlots opens loadout slots class by class: nine progressive
+	// items of two copies in place of one of three, each class's first slot
+	// free with the class. A longer run with a much larger pool.
+	MvmClassWeaponSlots bool `json:"mvm_class_weapon_slots"`
 	// MvmServerSettings puts the server-setting items in the pool. One exists,
 	// the Grappling Hook, and it turns Mannpower's hook on for everybody for
 	// the rest of the run.

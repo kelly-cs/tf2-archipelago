@@ -20,6 +20,10 @@ type Selection struct {
 	// MilestoneChecks counts the running-total checks the way the generator
 	// will: every one of them, since any mission progresses them.
 	MilestoneChecks bool
+	// ClassWeaponSlots counts the slot items the way the generator will: two
+	// per class less what the starting tier hands out, instead of three less
+	// the tier's slots.
+	ClassWeaponSlots bool
 }
 
 // Preflight is the useful accounting behind a successful selection check.
@@ -131,9 +135,14 @@ func CheckSelection(selection Selection) (Preflight, error) {
 		checks += len(gamedata.Milestones)
 	}
 	requirement := missionRequirements[start.Difficulty]
+	slotUnlocks := len(gamedata.WeaponSlots) - requirement.slots
+	if selection.ClassWeaponSlots {
+		slotUnlocks = len(gamedata.Classes)*int(gamedata.ClassSlotsEarned) -
+			requirement.classes*(requirement.slots-1)
+	}
 	unlocks := len(eligible) - 1 +
 		len(gamedata.Classes) - requirement.classes +
-		len(gamedata.WeaponSlots) - requirement.slots
+		slotUnlocks
 	report := Preflight{
 		Eligible:        len(eligible),
 		Requested:       selection.MissionCount,

@@ -19,6 +19,12 @@ bool g_UnlocksTestOverride;
 
 bool g_ClassUnlocked[view_as<int>(TFClass_Engineer) + 1];
 bool g_SlotUnlocked[Slot_Count];
+
+// The seed opening slots class by class. The bridge says so with the unlock
+// set, and the keys then arrive as class/slot rather than as a count: a class
+// holds its first slot with the class and the ones granted here.
+bool g_ClassSlotMode;
+bool g_ClassSlotUnlocked[view_as<int>(TFClass_Engineer) + 1][Slot_Count];
 StringMap g_UnlockedMissions;
 
 /* The server settings the run has been handed, by key
@@ -132,6 +138,14 @@ void Unlocks_Clear()
     {
         g_SlotUnlocked[slot] = false;
     }
+    g_ClassSlotMode = false;
+    for (int class = 0; class < sizeof(g_ClassSlotUnlocked); class++)
+    {
+        for (int slot = 0; slot < Slot_Count; slot++)
+        {
+            g_ClassSlotUnlocked[class][slot] = false;
+        }
+    }
     g_UnlockedMissions.Clear();
     g_GrantedSettings.Clear();
     WeaponBuffs_Clear();
@@ -183,6 +197,30 @@ void Unlocks_GrantSlot(const char[] key)
     g_SlotUnlocked[slot] = true;
 }
 
+void Unlocks_SetClassSlotMode(bool on)
+{
+    g_ClassSlotMode = on;
+}
+
+// A class's own slot, spelled class/slot by the bridge.
+void Unlocks_GrantClassSlot(const char[] key)
+{
+    char parts[2][32];
+    if (ExplodeString(key, "/", parts, sizeof(parts), sizeof(parts[])) != 2)
+    {
+        LogError("The bridge granted the class weapon slot %s. This plugin cannot read it.", key);
+        return;
+    }
+    TFClassType class = Unlocks_ClassFromKey(parts[0]);
+    int slot = Unlocks_SlotFromKey(parts[1]);
+    if (class == TFClass_Unknown || slot == -1)
+    {
+        LogError("The bridge granted the class weapon slot %s. This plugin does not know it.", key);
+        return;
+    }
+    g_ClassSlotUnlocked[view_as<int>(class)][slot] = true;
+}
+
 void Unlocks_GrantMission(const char[] popFile)
 {
     g_UnlockedMissions.SetValue(popFile, true);
@@ -220,6 +258,12 @@ bool Unlocks_SlotsEnforced()
     if (!g_HaveUnlocks || g_UnlocksTestOverride)
     {
         return false;
+    }
+    // Per class, a slot is open with the class or with its own item, so the
+    // slots are enforced exactly when the classes are.
+    if (g_ClassSlotMode)
+    {
+        return Unlocks_ClassesEnforced();
     }
     for (int slot = 0; slot < Slot_Count; slot++)
     {
@@ -395,6 +439,11 @@ static int Unlocks_SlotsHeld()
 
 static bool Unlocks_SlotOpen(TFClassType class, int slot, int held)
 {
+    if (g_ClassSlotMode)
+    {
+        return slot == g_SlotOrder[view_as<int>(class)][0]
+            || g_ClassSlotUnlocked[view_as<int>(class)][slot];
+    }
     for (int position = 0; position < held; position++)
     {
         if (g_SlotOrder[view_as<int>(class)][position] == slot)
@@ -497,9 +546,14 @@ void Unlocks_EnforceSlots(int client)
 // Removing the held weapon leaves no viewmodel and no attack, and the player cannot switch back.
 static void SwitchToAnyWeapon(int client, TFClassType class, int held)
 {
-    for (int position = 0; position < held; position++)
+    for (int position = 0; position < Slot_Count; position++)
     {
-        int weapon = GetPlayerWeaponSlot(client, g_SlotOrder[view_as<int>(class)][position]);
+        int slot = g_SlotOrder[view_as<int>(class)][position];
+        if (!Unlocks_SlotOpen(class, slot, held))
+        {
+            continue;
+        }
+        int weapon = GetPlayerWeaponSlot(client, slot);
         if (weapon == -1)
         {
             continue;

@@ -117,6 +117,17 @@ func TestMilestonesReachedFollowTheLadder(t *testing.T) {
 	}
 }
 
+// The unlock set says which rule the slot keys are read under. A seed without
+// the option, which is every seed this test server has, reads as the one item
+// for every class.
+func TestTheUnlockSetSaysHowSlotsAreOpened(t *testing.T) {
+	_, handler := newTestServer(t, time.Second)
+	got := get(t, handler, "/unlocks")
+	if got.Code != http.StatusOK || !strings.Contains(got.Body.String(), `"class_weapon_slots":false`) {
+		t.Fatalf("code = %d, body = %s", got.Code, got.Body)
+	}
+}
+
 func TestObjectiveIsIdempotent(t *testing.T) {
 	store, handler := newTestServer(t, time.Second)
 	body := `{"kind":"mission_cleared","popfile":"mvm_coaltown"}`

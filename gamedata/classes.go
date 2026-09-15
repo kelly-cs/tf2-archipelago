@@ -38,6 +38,20 @@ type Class struct {
 	SlotOrder []WeaponSlotID
 }
 
+// ClassSlotsEarned is how many slots a class has to earn when the slots are
+// per class: the first in its order comes free with the class, so a Medic
+// starts with the Medigun and a Spy with the Knife.
+const ClassSlotsEarned uint8 = 2
+
+// SlotForCopy is the slot copy n of this class's progressive item opens, n
+// counted from 1: the class's order, less its free first slot.
+func (c Class) SlotForCopy(n int) (WeaponSlot, bool) {
+	if n < 1 || n > int(ClassSlotsEarned) {
+		return WeaponSlot{}, false
+	}
+	return WeaponSlotByID(c.SlotOrder[n])
+}
+
 var (
 	slotOrderDefault = []WeaponSlotID{WeaponSlotPrimary, WeaponSlotSecondary, WeaponSlotMelee}
 	slotOrderMedic   = []WeaponSlotID{WeaponSlotSecondary, WeaponSlotPrimary, WeaponSlotMelee}
