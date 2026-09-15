@@ -4,6 +4,16 @@ What each release changes, for somebody who plays the game. The workflow in
 `.github/workflows/release.yml` reads the section matching the tag and puts it
 in the release notes, so this file is the only place to write it.
 
+## v1.15.0
+
+- The mission list could vanish mid-run. Any mission nobody had cleared a
+  wave in yet, which is most of them on a normal run, threw an error the
+  plugin never recovered from, leaving "the bridge has not answered" for the
+  rest of the session.
+- Rootless Podman, the default on Bazzite, could fail to write the server's
+  admin list on start and stop picking up plugin updates until the container
+  was restarted by hand.
+
 ## v1.14.0
 
 Missions that change their own rules, a tracker your spectators can open, SigMod

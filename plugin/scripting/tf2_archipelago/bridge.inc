@@ -480,7 +480,9 @@ static void OnMissions(HTTPResponse response, any value, const char[] error)
         }
         mission.unlocked = entry.GetBool("unlocked");
         mission.cleared = entry.GetBool("cleared");
-        mission.waveReached = entry.GetInt("wave_reached");
+        // omitempty on the bridge's side: absent for a mission nobody has
+        // cleared a wave in, which is most of them on a fresh run.
+        mission.waveReached = entry.HasKey("wave_reached") ? entry.GetInt("wave_reached") : 0;
         g_Missions.PushArray(mission);
         delete entry;
     }

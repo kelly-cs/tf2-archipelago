@@ -73,7 +73,12 @@ install_admin() {
 	[ -n "${SRCDS_ADMIN_STEAMIDS:-}" ] || return 0
 	[ -d "$(dirname "$target")" ] || return 0
 
-	staged=$(mktemp)
+	# Staged next to the target rather than in /tmp: those two are separate
+	# filesystems under rootless podman, and the mv that follows falls back to
+	# a cross-device copy that needs to unlink the target, which the uid
+	# mapping there refuses. Staged beside it, the mv is a same-filesystem
+	# rename instead.
+	staged=$(mktemp "$(dirname "$target")/.admins_simple.XXXXXX")
 	{
 		echo "// Managed by the tf2-archipelago image, from SRCDS_ADMIN_STEAMIDS."
 		echo "// Edits here are replaced the next time the container starts."
