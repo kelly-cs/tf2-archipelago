@@ -4,6 +4,57 @@ What each release changes, for somebody who plays the game. The workflow in
 `.github/workflows/release.yml` reads the section matching the tag and puts it
 in the release notes, so this file is the only place to write it.
 
+## v1.16.0
+
+The Docker stack gets the launcher's browser interface, and three bugs that
+only showed up running it on a plain Docker Engine. Nothing here changes a run
+in progress.
+
+### The admin page
+
+- **A browser interface for Compose.** `docker compose up -d` now serves the
+  same page the native launcher opens, on **http://127.0.0.1:8477**: the run
+  and its missions, what the multiworld has unlocked, your bot team, and the
+  server and bridge logs with the search over them. `docker compose logs admin`
+  prints the address, and `TF2AP_ADMIN_PORT` in `.env` moves it.
+- It stays on loopback, because the page can send server commands. For a
+  server on another machine, forward it: `ssh -L 8477:127.0.0.1:8477 user@host`.
+- Docker keeps the server's lifecycle. Start, Stop and Restart print the
+  Compose command to run rather than pretending to do it themselves: the page
+  has no Docker socket, and giving it one would give it the whole host.
+- The Settings tab writes `.env`, the file Compose already reads, keeping its
+  comments and everything in it the launcher does not own. Settings the
+  containers read apply on `docker compose up -d --force-recreate`; seed
+  options apply the next time the seed runs.
+- **Join address.** A setting for the address the Join button hands to players.
+  Blank discovers a local one. Name your public IP or DNS for a forwarded
+  server, or the WSL address when Docker runs in WSL and TF2 runs on Windows.
+- Community packs download from the page, with the progress on the page rather
+  than buried in the log, and the running server picks the extracted files up
+  within about thirty seconds. Nothing to rebuild.
+- SigMod ships in the image, and the page now recognises it as installed
+  instead of offering to install what is already there.
+- **Tailscale needs no auth key.** Set up / check Funnel signs the bundled
+  service in through a link in the browser, and the login survives restarts in
+  a volume of its own. Its Compose profile and `TAILSCALE_AUTHKEY` are both
+  gone; the switch on its own is enough.
+
+### Fixed
+
+- The Docker stack finds the Steam relay address, the way the launcher started
+  doing in v1.14.0: from the server's own console file, the only place it
+  lands. Join could say "waiting" for a whole session on a relay server that
+  was working perfectly.
+- On Docker Engine the page could not save anything at all: every Save and
+  every pack download failed with a permission error. Docker Desktop hides the
+  file ownership behind it, so testing there never hit it.
+- Saving any setting, against a multiworld hosted inside the stack, turned TLS
+  on for it. The bridge then never reconnected.
+- A stack that kept the example's `MVM_START_MISSION=random` could not generate
+  a seed. It had been refusing since v1.11.0.
+- A crash in the container leaves a `debug.log` with a stack in it. The image
+  asked the server for one and had no debugger to produce it.
+
 ## v1.15.0
 
 - The mission list could vanish mid-run. Any mission nobody had cleared a
