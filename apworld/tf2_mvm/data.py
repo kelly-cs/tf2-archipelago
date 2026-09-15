@@ -76,6 +76,16 @@ class Mission:
 
 
 @dataclass(frozen=True, slots=True)
+class Milestone:
+    """A check for a running total over the whole run. ``kind`` is the tally the plugin reports."""
+
+    id: int
+    name: str
+    kind: str
+    threshold: int
+
+
+@dataclass(frozen=True, slots=True)
 class Item:
     id: int
     name: str
@@ -151,9 +161,18 @@ SERVER_MOD_KEYS: frozenset[str] = frozenset(mod["key"] for mod in _meta["server_
 MISSIONS: tuple[Mission, ...] = _read_missions()
 ITEMS: tuple[Item, ...] = _read_items()
 
+# The milestones belong to no mission: the run as a whole earns them, and only
+# a seed that asked for them holds them.
+MILESTONES: tuple[Milestone, ...] = tuple(
+    Milestone(id=entry["id"], name=entry["name"], kind=entry["kind"], threshold=entry["threshold"])
+    for entry in _meta["milestones"]
+)
+if not MILESTONES:
+    raise DataFormatError("the export has no milestones")
+
 LOCATION_NAME_TO_ID: dict[str, int] = {
     location.name: location.id for mission in MISSIONS for location in mission.locations
-}
+} | {milestone.name: milestone.id for milestone in MILESTONES}
 ITEM_NAME_TO_ID: dict[str, int] = {item.name: item.id for item in ITEMS}
 ITEMS_BY_NAME: dict[str, Item] = {item.name: item for item in ITEMS}
 

@@ -321,6 +321,22 @@ class VictoryCaches(Toggle):
     default = 0
 
 
+class MilestoneChecks(Toggle):
+    """Add checks for running totals over the whole run.
+
+    So many robots, giants and tanks destroyed, whatever mission they fell in:
+    fifteen checks on a fixed ladder, from a hundred robots to four thousand,
+    five tanks to forty, ten giants to two hundred. Any mission the run has
+    open progresses them, so they fill a run short on checks and give a team
+    stuck on a wave something to grind.
+
+    Off by default so an existing YAML keeps meaning what it meant.
+    """
+
+    display_name = "Milestone Checks"
+    default = 0
+
+
 class TrapPercentage(Range):
     """How much of the run's spare space is traps, in percent.
 
@@ -364,6 +380,7 @@ class TF2MvMOptions(PerGameCommonOptions):
     server_settings: ServerSettings
     medal_on_clear: MedalOnClear
     victory_caches: VictoryCaches
+    milestone_checks: MilestoneChecks
     death_link: DeathLink
 
 
@@ -383,7 +400,7 @@ option_groups = [
             StartClass,
         ],
     ),
-    OptionGroup("Goal", [Goal, MissionsanityPercentage, MedalOnClear, VictoryCaches]),
+    OptionGroup("Goal", [Goal, MissionsanityPercentage, MedalOnClear, VictoryCaches, MilestoneChecks]),
     OptionGroup(
         "Rewards",
         [

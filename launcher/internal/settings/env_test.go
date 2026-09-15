@@ -105,6 +105,7 @@ func TestEveryFieldHasAnEnvVar(t *testing.T) {
 		"MvmModifierMax":             "MVM_MAXIMUM_MISSION_MODIFIERS",
 		"MvmMedalOnClear":            "MVM_MEDAL_ON_CLEAR",
 		"MvmVictoryCaches":           "MVM_VICTORY_CACHES",
+		"MvmMilestoneChecks":         "MVM_MILESTONE_CHECKS",
 		"MvmServerSettings":          "MVM_SERVER_SETTINGS",
 		"MvmDeathLink":               "MVM_DEATH_LINK",
 		"MvmExcludedMissions":        "MVM_EXCLUDED_MISSIONS",

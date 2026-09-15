@@ -87,6 +87,12 @@ type snapshot struct {
 	 * to in a mission you have beaten.
 	 */
 	Reached map[string]int `json:"reached,omitempty"`
+
+	// Tallies are the running totals behind the milestones, by tally kind:
+	// robots, giants and tanks the team has destroyed over the whole run. The
+	// plugin reports increments at the end of every wave, won or lost, and a
+	// restart must not start the count over.
+	Tallies map[string]int `json:"tallies,omitempty"`
 }
 
 // Resume is the mission the team was playing and the last wave they cleared in

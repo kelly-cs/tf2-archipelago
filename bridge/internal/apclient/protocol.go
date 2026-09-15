@@ -197,6 +197,7 @@ type SlotData struct {
 	MissionTicketImportance string                       `json:"mission_ticket_importance"`
 	MissionModifiers        map[string][]MissionModifier `json:"mission_modifiers"`
 	VictoryCaches           bool                         `json:"victory_caches"`
+	MilestoneChecks         bool                         `json:"milestone_checks"`
 }
 
 // MissionModifier is a seed-assigned rule that remains attached to one

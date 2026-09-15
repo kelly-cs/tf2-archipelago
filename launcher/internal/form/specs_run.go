@@ -93,6 +93,11 @@ func playerSpecs(s State, env Env) []Spec {
 			"scale the clears",
 			func(s State) bool { return s.Settings.MvmVictoryCaches },
 			func(s State, v bool) State { s.Settings.MvmVictoryCaches = v; return s }),
+		toggle("run.milestones", tab, "Milestone checks",
+			"Checks for running totals over the whole run: robots, giants and tanks destroyed, whatever mission they fell in. Something to grind when a wave will not fall.",
+			"count the kills",
+			func(s State) bool { return s.Settings.MvmMilestoneChecks },
+			func(s State, v bool) State { s.Settings.MvmMilestoneChecks = v; return s }),
 
 		toggle("run.deathlink", tab, "Death Link",
 			"A lost wave kills every other player in the multiworld who has Death Link on, and their deaths wipe your team.",

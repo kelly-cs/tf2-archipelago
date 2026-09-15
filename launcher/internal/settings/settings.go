@@ -176,6 +176,10 @@ type Settings struct {
 	// one at normal, two at intermediate, three at advanced, five at expert
 	// and haunted. More checks without more missions.
 	MvmVictoryCaches bool `json:"mvm_victory_caches"`
+	// MvmMilestoneChecks puts the running-total checks in the seed: so many
+	// robots, giants and tanks destroyed over the whole run, whatever mission
+	// they fell in. Something to grind when a wave will not fall.
+	MvmMilestoneChecks bool `json:"mvm_milestone_checks"`
 	// MvmServerSettings puts the server-setting items in the pool. One exists,
 	// the Grappling Hook, and it turns Mannpower's hook on for everybody for
 	// the rest of the run.

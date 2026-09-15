@@ -32,6 +32,10 @@ func frozenKey(kind, owner string, index int) string {
 func currentIDs() map[string]int64 {
 	ids := make(map[string]int64, len(Locations)+len(Items))
 	for _, l := range Locations {
+		if l.Kind.IsTally() {
+			ids[frozenKey(l.Kind.Key(), "", l.Threshold)] = l.ID
+			continue
+		}
 		mission, ok := MissionByID(l.Mission)
 		if !ok {
 			continue
@@ -311,6 +315,10 @@ func TestLookupsRoundTrip(t *testing.T) {
 		got, ok := LocationByID(l.ID)
 		if !ok || got != l {
 			t.Fatalf("LocationByID(%d) = %+v, %v", l.ID, got, ok)
+		}
+		if l.Kind.IsTally() {
+			// A milestone belongs to no mission: the run as a whole earns it.
+			continue
 		}
 		if _, ok := MissionByID(l.Mission); !ok {
 			t.Fatalf("%q belongs to unknown mission %d", l.Name, l.Mission)

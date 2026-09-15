@@ -78,7 +78,15 @@ enum struct Objective
     // The wave counts in the tables come from the wiki and none of them has
     // been checked against a running server.
     int wavesTotal;
+
+    // How many fell, for a tally. Zero for every other kind.
+    int count;
 }
+
+// A tally is not idempotent the way a check is, so every report carries this
+// session and its id: the bridge answers a repeat of one it already took
+// without counting it again. Picked once per plugin load.
+int g_TallySession;
 
 ConVar g_CvarBridgeURL;
 ConVar g_CvarChat;
@@ -151,6 +159,7 @@ void Bridge_Init()
         "Write what the other players in the multiworld say to the chat.", _, true, 0.0, true, 1.0);
     g_Pending = new ArrayList(sizeof(Objective));
     g_Missions = new ArrayList(sizeof(Mission));
+    g_TallySession = GetRandomInt(1, 2147483647);
     // No TIMER_FLAG_NO_MAPCHANGE: it dies at the first map change, a queued check must survive one.
     CreateTimer(RetryInterval, Timer_DrainPending, _, TIMER_REPEAT);
 }
@@ -239,9 +248,36 @@ void Bridge_ReportObjective(const char[] kind, const char[] popFile, int wave, i
     strcopy(objective.popFile, sizeof(objective.popFile), popFile);
     objective.wave = wave;
     objective.wavesTotal = wavesTotal;
+    objective.count = 0;
     g_Pending.PushArray(objective);
 
     AP_Debug("The plugin queued %s %s wave %d.", kind, popFile, wave);
+    Bridge_SendObjective(objective);
+}
+
+// A tally rides the same queue as a check, so it survives a bridge that is
+// down the same way. What fell, and in which mission, for the log.
+void Bridge_ReportTally(const char[] kind, const char[] popFile, int count)
+{
+    if (count <= 0)
+    {
+        return;
+    }
+    if (g_Pending.Length >= PendingMax)
+    {
+        AP_Error("The objective queue is full at %d. The plugin dropped %s %d.", PendingMax, kind, count);
+        return;
+    }
+    LogMessage("tally %s %d on %s queued for the bridge", kind, count, popFile);
+
+    Objective objective;
+    objective.id = g_NextObjectiveID++;
+    strcopy(objective.kind, sizeof(objective.kind), kind);
+    strcopy(objective.popFile, sizeof(objective.popFile), popFile);
+    objective.wave = 0;
+    objective.wavesTotal = 0;
+    objective.count = count;
+    g_Pending.PushArray(objective);
     Bridge_SendObjective(objective);
 }
 
@@ -252,6 +288,9 @@ static void Bridge_SendObjective(Objective objective)
     body.SetString("popfile", objective.popFile);
     body.SetInt("wave", objective.wave);
     body.SetInt("waves_total", objective.wavesTotal);
+    body.SetInt("count", objective.count);
+    body.SetInt("session", g_TallySession);
+    body.SetInt("id", objective.id);
 
     HTTPRequest request = BridgeRequest("/objective");
     request.Timeout = 10;

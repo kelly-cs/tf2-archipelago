@@ -398,6 +398,37 @@ func (s *Store) NoteProgress(popFile string, wave int) error {
 	return s.persist()
 }
 
+// AddTally adds an increment the plugin reported to one running total and
+// returns the new total. A zero or negative increment changes nothing.
+func (s *Store) AddTally(kind string, delta int) (int, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if delta <= 0 {
+		return s.data.Tallies[kind], nil
+	}
+	if s.data.Tallies == nil {
+		s.data.Tallies = map[string]int{}
+	}
+	s.data.Tallies[kind] += delta
+	if err := s.persist(); err != nil {
+		s.data.Tallies[kind] -= delta
+		return s.data.Tallies[kind], err
+	}
+	return s.data.Tallies[kind], nil
+}
+
+// Tallies is every running total, copied so a caller cannot write the record
+// while holding no lock.
+func (s *Store) Tallies() map[string]int {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	copied := make(map[string]int, len(s.data.Tallies))
+	for kind, total := range s.data.Tallies {
+		copied[kind] = total
+	}
+	return copied
+}
+
 // Reached is the highest wave the team has cleared in each mission. The copy is
 // so a caller cannot write the record while holding no lock.
 func (s *Store) Reached() map[string]int {

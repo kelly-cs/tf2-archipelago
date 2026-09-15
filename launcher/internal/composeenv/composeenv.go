@@ -133,6 +133,7 @@ func values(s settings.Settings) map[string]string {
 		"MVM_MAXIMUM_MISSION_MODIFIERS": strconv.Itoa(s.MvmModifierMax),
 		"MVM_MEDAL_ON_CLEAR":            boolean(s.MvmMedalOnClear),
 		"MVM_VICTORY_CACHES":            boolean(s.MvmVictoryCaches),
+		"MVM_MILESTONE_CHECKS":          boolean(s.MvmMilestoneChecks),
 		"MVM_SERVER_SETTINGS":           boolean(s.MvmServerSettings),
 		"MVM_DEATH_LINK":                boolean(s.MvmDeathLink),
 		"MVM_EXCLUDED_MISSIONS":         strings.Join(s.MvmExcludedMissions, ","),

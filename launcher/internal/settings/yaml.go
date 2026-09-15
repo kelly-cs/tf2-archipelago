@@ -40,6 +40,7 @@ func PlayerYAML(s Settings, archipelagoVersion string) string {
 	fmt.Fprintf(&b, "  maximum_mission_modifiers: %d\n", s.MvmModifierMax)
 	fmt.Fprintf(&b, "  medal_on_clear: %t\n", s.MvmMedalOnClear)
 	fmt.Fprintf(&b, "  victory_caches: %t\n", s.MvmVictoryCaches)
+	fmt.Fprintf(&b, "  milestone_checks: %t\n", s.MvmMilestoneChecks)
 	fmt.Fprintf(&b, "  death_link: %t\n", s.MvmDeathLink)
 	fmt.Fprintf(&b, "  mission_ticket_importance: %s\n", s.MvmMissionTicketImportance)
 	fmt.Fprintf(&b, "  class_unlock_importance: %s\n", s.MvmClassUnlockImportance)

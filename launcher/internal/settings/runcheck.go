@@ -20,11 +20,12 @@ func CheckRunSelection(s Settings) (runshape.Preflight, error) {
 		start = ""
 	}
 	report, err := runshape.CheckSelection(runshape.Selection{
-		Pool:         MissionPool(s),
-		Difficulty:   s.MvmDifficulty,
-		MissionCount:  s.MvmMissionCount,
-		StartMission:  start,
-		VictoryCaches: s.MvmVictoryCaches,
+		Pool:            MissionPool(s),
+		Difficulty:      s.MvmDifficulty,
+		MissionCount:    s.MvmMissionCount,
+		StartMission:    start,
+		VictoryCaches:   s.MvmVictoryCaches,
+		MilestoneChecks: s.MvmMilestoneChecks,
 	})
 	if err != nil {
 		return report, fmt.Errorf("archipelago run selection: %w", err)

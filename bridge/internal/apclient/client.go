@@ -112,6 +112,10 @@ type Health struct {
 	// the bridge records when the clear comes in; the plugin never hears of
 	// them.
 	VictoryCaches bool `json:"victory_caches"`
+	// MilestoneChecks is the seed holding the running-total checks, which the
+	// bridge records as the tallies cross them; a seed without them has no
+	// location to record.
+	MilestoneChecks bool `json:"milestone_checks"`
 
 	DeathLink bool   `json:"death_link"`
 	LastError string `json:"last_error,omitempty"`
@@ -144,6 +148,7 @@ func (c *Client) Health() Health {
 		MissionTicketImportance: c.slot.MissionTicketImportance,
 		MissionModifiers:        c.slot.MissionModifiers,
 		VictoryCaches:           c.slot.VictoryCaches,
+		MilestoneChecks:         c.slot.MilestoneChecks,
 		DeathLink:               c.slot.DeathLink,
 		LastError:               c.lastError,
 	}

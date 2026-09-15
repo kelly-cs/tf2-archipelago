@@ -17,6 +17,9 @@ type Selection struct {
 	// VictoryCaches counts the extra checks a clear pays, the way the
 	// generator will.
 	VictoryCaches bool
+	// MilestoneChecks counts the running-total checks the way the generator
+	// will: every one of them, since any mission progresses them.
+	MilestoneChecks bool
 }
 
 // Preflight is the useful accounting behind a successful selection check.
@@ -123,6 +126,9 @@ func CheckSelection(selection Selection) (Preflight, error) {
 	checks := 0
 	for _, mission := range eligible {
 		checks += missionCheckCount(mission, selection.VictoryCaches)
+	}
+	if selection.MilestoneChecks {
+		checks += len(gamedata.Milestones)
 	}
 	requirement := missionRequirements[start.Difficulty]
 	unlocks := len(eligible) - 1 +

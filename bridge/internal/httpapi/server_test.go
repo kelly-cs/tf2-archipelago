@@ -82,6 +82,41 @@ func TestAClearPaysItsVictoryCachesOnlyWhenTheSeedHoldsThem(t *testing.T) {
 	}
 }
 
+// A tally adds to a running total on disk. A seed without milestones records
+// no check for it, and the same report sent twice, as a retry after a lost
+// answer would, counts once.
+func TestATallyAddsUpOnceAndPaysNoMilestoneTheSeedLacks(t *testing.T) {
+	store, handler := newTestServer(t, time.Second)
+	body := `{"kind":"tally_robots","popfile":"mvm_coaltown","count":60,"session":7,"id":1}`
+	for range 2 {
+		if got := post(t, handler, body); got.Code != http.StatusNoContent {
+			t.Fatalf("code = %d, body = %s", got.Code, got.Body)
+		}
+	}
+	if got := post(t, handler, `{"kind":"tally_robots","popfile":"mvm_coaltown","count":50,"session":7,"id":2}`); got.Code != http.StatusNoContent {
+		t.Fatalf("code = %d", got.Code)
+	}
+	if total := store.Tallies()["robots"]; total != 110 {
+		t.Fatalf("robots = %d, want 110 from one repeated 60 and a 50", total)
+	}
+	if held := store.Checks(); len(held) != 0 {
+		t.Fatalf("a seed without milestones recorded %v", held)
+	}
+	if got := post(t, handler, `{"kind":"tally_robots","popfile":"mvm_coaltown","count":5000,"session":7,"id":3}`); got.Code != http.StatusBadRequest {
+		t.Fatalf("a count no wave can hold was taken: %d", got.Code)
+	}
+}
+
+func TestMilestonesReachedFollowTheLadder(t *testing.T) {
+	if got := gamedata.MilestonesReached(gamedata.ObjectiveTallyTanks, 4); len(got) != 0 {
+		t.Fatalf("four tanks paid %+v", got)
+	}
+	got := gamedata.MilestonesReached(gamedata.ObjectiveTallyTanks, 21)
+	if len(got) != 3 || got[2].Threshold != 20 || got[2].Name != "20 Tanks Destroyed" {
+		t.Fatalf("twenty-one tanks paid %+v", got)
+	}
+}
+
 func TestObjectiveIsIdempotent(t *testing.T) {
 	store, handler := newTestServer(t, time.Second)
 	body := `{"kind":"mission_cleared","popfile":"mvm_coaltown"}`
