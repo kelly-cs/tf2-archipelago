@@ -43,6 +43,16 @@ type objectiveRequest struct {
 	PopFile string `json:"popfile"`
 	Wave    uint8  `json:"wave"`
 
+	// Count is how many fell, for a tally. Zero for every other kind.
+	Count int `json:"count"`
+
+	// Session and ID make a retried tally recognisable: the plugin picks a
+	// session at load and numbers its reports, so a report the bridge took
+	// but could not answer is not added twice. Both zero for every other
+	// kind, which never needed it because a check is idempotent by nature.
+	Session int64 `json:"session"`
+	ID      int64 `json:"id"`
+
 	// WavesTotal is how many waves the game says the mission has, zero when it
 	// would not say. Every wave count in gamedata comes from the wiki and none
 	// has been checked against a running server, so this is the one chance to
@@ -221,6 +231,11 @@ type Server struct {
 	driftMu sync.Mutex
 	drift   map[string]int
 
+	// tallySeen is the last tally report taken per kind, so a retry of it is
+	// not counted twice. See postTally.
+	tallyMu   sync.Mutex
+	tallySeen map[gamedata.ObjectiveKind]tallyReport
+
 	// failures counts the waves the team lost, keyed by mission and wave. Same
 	// nature as drift, and the reason it exists is that a lost wave used to
 	// leave no trace at all when the seed had DeathLink off.
@@ -246,6 +261,7 @@ func New(
 		pollTimeout: pollTimeout,
 		logger:      logger,
 		drift:       make(map[string]int),
+		tallySeen:   make(map[gamedata.ObjectiveKind]tallyReport),
 	}
 }
 
@@ -279,6 +295,10 @@ func (s *Server) postObjective(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "unknown objective kind "+request.Kind, http.StatusBadRequest)
 		return
 	}
+	if kind.IsTally() {
+		s.postTally(w, r, kind, request)
+		return
+	}
 	location, resolved := gamedata.LocationByObjective(kind, request.PopFile, request.Wave)
 	if !resolved {
 		http.Error(w, "no such objective", http.StatusBadRequest)
@@ -298,6 +318,63 @@ func (s *Server) postObjective(w http.ResponseWriter, r *http.Request) {
 	}
 	s.noteProgress(r.Context(), kind, request.PopFile, int(request.Wave))
 	w.WriteHeader(http.StatusNoContent)
+}
+
+/*
+postTally adds what fell in a wave to its running total and records every
+milestone the new total crosses, when the seed holds them.
+
+A tally is not idempotent the way a check is: the same report taken twice is a
+total inflated by a wave. The plugin retries a report the bridge never
+answered, so the last report of each session is remembered and a repeat of it
+is answered with the total it already produced. In memory only: a bridge
+restart between the two costs at worst one wave counted twice.
+*/
+func (s *Server) postTally(w http.ResponseWriter, r *http.Request, kind gamedata.ObjectiveKind, request objectiveRequest) {
+	if request.Count < 0 || request.Count > tallyCountMax {
+		http.Error(w, "tally count out of range", http.StatusBadRequest)
+		return
+	}
+	s.tallyMu.Lock()
+	repeat := request.ID != 0 && s.tallySeen[kind] == tallyReport{request.Session, request.ID}
+	if !repeat {
+		s.tallySeen[kind] = tallyReport{request.Session, request.ID}
+	}
+	s.tallyMu.Unlock()
+	if repeat {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+	total, err := s.store.AddTally(kind.Counter().Key(), request.Count)
+	if err != nil {
+		s.logger.ErrorContext(r.Context(), "cannot record a tally", "kind", kind.Key(), "error", err)
+		http.Error(w, "cannot record the tally", http.StatusInternalServerError)
+		return
+	}
+	if s.client.Health().MilestoneChecks {
+		for _, milestone := range gamedata.MilestonesReached(kind, total) {
+			fresh, err := s.store.AddCheck(milestone.ID)
+			if err != nil {
+				s.logger.ErrorContext(r.Context(), "cannot record a milestone",
+					"location", milestone.Name, "error", err)
+				continue
+			}
+			if fresh {
+				s.logger.InfoContext(r.Context(), "check recorded", "location", milestone.Name)
+			}
+		}
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// tallyCountMax bounds one report: a wave holds hundreds of robots, not
+// thousands, and a count past this is a bug on the wire rather than a wave.
+const tallyCountMax = 1000
+
+// tallyReport identifies one report from one plugin session.
+type tallyReport struct {
+	Session int64
+	ID      int64
 }
 
 /*

@@ -347,6 +347,15 @@ class TF2MvMWorld(World):
             )
             self.multiworld.regions.append(region)
             menu.connect(region, f"Deploy to {mission.name}", self._deploy_rule(mission))
+        # Any open mission progresses a milestone, and the start mission is
+        # always open, so the region needs no rule of its own.
+        if self.options.milestone_checks.value:
+            grind = Region("Milestones", self.player, self.multiworld)
+            grind.add_locations(
+                {milestone.name: milestone.id for milestone in data.MILESTONES}, TF2MvMLocation
+            )
+            self.multiworld.regions.append(grind)
+            menu.connect(grind, "Grind")
 
     def create_items(self) -> None:
         for name in self.start_items:
@@ -463,6 +472,7 @@ class TF2MvMWorld(World):
             "server_mods": sorted(self.options.server_mods.value),
             "mission_ticket_importance": self.options.mission_ticket_importance.current_key,
             "mission_modifiers": self.mission_modifiers,
+            "milestone_checks": bool(self.options.milestone_checks.value),
             "tracker": {
                 "version": 1,
                 "starting_items": [
@@ -490,12 +500,15 @@ class TF2MvMWorld(World):
     def _tier_order(mission: data.Mission) -> tuple[int, int]:
         return data.DIFFICULTIES.index(mission.difficulty), mission.id
 
-    @staticmethod
-    def _check_count(missions: list[data.Mission]) -> int:
+    def _check_count(self, missions: list[data.Mission]) -> int:
         # The export decides how many checks a mission holds. Counting the
         # waves and adding one for the clear stopped being that the day a
-        # mission grew a tank check.
-        return sum(len(mission.locations) for mission in missions)
+        # mission grew a tank check. The milestones belong to the run, not to
+        # a mission, and are the option's to add.
+        checks = sum(len(mission.locations) for mission in missions)
+        if self.options.milestone_checks.value:
+            checks += len(data.MILESTONES)
+        return checks
 
     def _shortfall(self, missions: list[data.Mission], start: data.Mission | None) -> int:
         """Unlock items owed minus the checks there is room for; filler only closes a surplus."""

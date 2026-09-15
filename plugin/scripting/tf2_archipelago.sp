@@ -350,6 +350,7 @@ public Action Command_Say(int client, const char[] command, int argc)
 
 public void OnMapStart()
 {
+    Tally_Flush();
     g_CurrentWave = 0;
     g_MaxWaves = 0;
     g_PolledWave = 0;
@@ -409,9 +410,50 @@ public void Event_BeginWave(Event event, const char[] name, bool dontBroadcast)
     AP_Debug("Wave %d of %d started.", g_CurrentWave, g_MaxWaves);
 }
 
+/*
+The running totals behind the milestone checks: robots, giants and tanks
+destroyed since the last report. Counted on every death, reported once a wave
+ends, won or lost, so the bridge sees one request per counter per wave rather
+than one per robot. A map change reports whatever a wave left uncounted.
+*/
+int g_TallyRobots;
+int g_TallyGiants;
+int g_TallyTanks;
+
+static void Tally_OnRobotDeath(int client)
+{
+    if (!MvM_IsActive() || client <= 0 || client > MaxClients || !IsClientInGame(client)
+        || !IsFakeClient(client) || GetClientTeam(client) != TeamBlue || MvM_IsSentryBuster(client))
+    {
+        return;
+    }
+    g_TallyRobots++;
+    if (MvM_IsGiant(client))
+    {
+        g_TallyGiants++;
+    }
+}
+
+static void Tally_Flush()
+{
+    if (g_TallyRobots == 0 && g_TallyGiants == 0 && g_TallyTanks == 0)
+    {
+        return;
+    }
+    char popFile[64];
+    MvM_PopFile(popFile, sizeof(popFile));
+    Bridge_ReportTally("tally_robots", popFile, g_TallyRobots);
+    Bridge_ReportTally("tally_giants", popFile, g_TallyGiants);
+    Bridge_ReportTally("tally_tanks", popFile, g_TallyTanks);
+    g_TallyRobots = 0;
+    g_TallyGiants = 0;
+    g_TallyTanks = 0;
+}
+
 public void Event_WaveComplete(Event event, const char[] name, bool dontBroadcast)
 {
     Bots_OnWaveEnd();
+    Tally_Flush();
     ReportWaveCleared(g_CurrentWave > 0 ? g_CurrentWave : MvM_WaveFromGame());
 }
 
@@ -427,6 +469,7 @@ public void Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast
 {
     int client = GetClientOfUserId(event.GetInt("userid"));
     MissionModifiers_OnPlayerDeath(client);
+    Tally_OnRobotDeath(client);
     if (g_GiantReported || !MvM_IsActive())
     {
         return;
@@ -452,6 +495,10 @@ public void Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast
 // eight requests for one location. g_TankReported keeps them off the wire.
 public void Event_TankDestroyed(Event event, const char[] name, bool dontBroadcast)
 {
+    if (MvM_IsActive())
+    {
+        g_TallyTanks++;
+    }
     if (!MvM_IsActive() || g_TankReported)
     {
         return;
@@ -476,6 +523,7 @@ public void Event_TankDestroyed(Event event, const char[] name, bool dontBroadca
 public void Event_WaveFailed(Event event, const char[] name, bool dontBroadcast)
 {
     Bots_OnWaveEnd();
+    Tally_Flush();
     if (g_CurrentWave < 1)
     {
         AP_Debug("The game reported a lost wave with no wave running. The plugin ignores it.");

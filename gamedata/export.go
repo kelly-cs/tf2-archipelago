@@ -31,6 +31,14 @@ type metaFile struct {
 	Classes       []classJSON      `json:"classes"`
 	WeaponSlots   []weaponSlotJSON `json:"weapon_slots"`
 	ServerMods    []serverModJSON  `json:"server_mods"`
+	Milestones    []milestoneJSON  `json:"milestones"`
+}
+
+type milestoneJSON struct {
+	ID        int64  `json:"id"`
+	Name      string `json:"name"`
+	Kind      string `json:"kind"`
+	Threshold int    `json:"threshold"`
 }
 
 type serverModJSON struct {
@@ -158,6 +166,9 @@ func buildMetaFile() metaFile {
 	}
 	for _, d := range Difficulties {
 		meta.Difficulties = append(meta.Difficulties, difficultyJSON{d, d.Key(), d.String()})
+	}
+	for _, m := range Milestones {
+		meta.Milestones = append(meta.Milestones, milestoneJSON{m.ID, m.Name, m.Kind.Key(), m.Threshold})
 	}
 	for _, m := range Maps {
 		meta.Maps = append(meta.Maps, mapJSON{m.ID, m.Name, IsCommunityMap(m.ID)})

@@ -9,6 +9,13 @@ const (
 	ObjectiveMissionCleared
 	ObjectiveTankDestroyed
 	ObjectiveGiantKilled
+
+	// The tallies are what the plugin reports at the end of a wave: how many
+	// of each fell in it. They resolve to no location of their own; the
+	// bridge adds them to a total and the milestones are what that pays.
+	ObjectiveTallyRobots
+	ObjectiveTallyGiants
+	ObjectiveTallyTanks
 )
 
 var objectiveKeys = [...]string{
@@ -16,6 +23,9 @@ var objectiveKeys = [...]string{
 	ObjectiveMissionCleared: "mission_cleared",
 	ObjectiveTankDestroyed:  "tank_destroyed",
 	ObjectiveGiantKilled:    "giant_killed",
+	ObjectiveTallyRobots:    "tally_robots",
+	ObjectiveTallyGiants:    "tally_giants",
+	ObjectiveTallyTanks:     "tally_tanks",
 }
 
 // ObjectiveKinds is every kind that exists, in id order. Whatever walks it
@@ -23,23 +33,32 @@ var objectiveKeys = [...]string{
 var ObjectiveKinds = []ObjectiveKind{
 	ObjectiveWaveCleared, ObjectiveMissionCleared,
 	ObjectiveTankDestroyed, ObjectiveGiantKilled,
+	ObjectiveTallyRobots, ObjectiveTallyGiants, ObjectiveTallyTanks,
+}
+
+// IsTally reports whether this kind counts towards a milestone rather than
+// naming a check of its own.
+func (k ObjectiveKind) IsTally() bool {
+	return k == ObjectiveTallyRobots || k == ObjectiveTallyGiants || k == ObjectiveTallyTanks
 }
 
 // Key is the string on the wire between the plugin and the bridge.
 func (k ObjectiveKind) Key() string { return objectiveKeys[k] }
 
-// Location is one check. Wave is zero for a mission clear.
+// Location is one check. Wave is zero for a mission clear. A milestone has
+// no mission and a Threshold instead: the total its tally has to reach.
 type Location struct {
-	ID      int64
-	Name    string
-	Kind    ObjectiveKind
-	Mission MissionID
-	Wave    uint8
+	ID        int64
+	Name      string
+	Kind      ObjectiveKind
+	Mission   MissionID
+	Wave      uint8
+	Threshold int
 }
 
 // Locations is every check in the game, mission by mission: the waves in
 // order, then the tank and the giant if the mission holds them, then the
-// mission clear.
+// mission clear; and after every mission, the milestones.
 var Locations = buildLocations()
 
 func buildLocations() []Location {
@@ -77,7 +96,7 @@ func buildLocations() []Location {
 			Mission: m.ID,
 		})
 	}
-	return all
+	return append(all, Milestones...)
 }
 
 var locationsByID = indexLocations()

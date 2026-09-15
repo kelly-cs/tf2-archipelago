@@ -45,6 +45,12 @@ class TestDefaults(TF2MvMTestBase):
         self.assertEqual({}, self.world.mission_modifiers)
         self.assertEqual({}, self.world.fill_slot_data()["mission_modifiers"])
 
+    def test_milestones_stay_out_by_default(self) -> None:
+        self.assertFalse(self.world.fill_slot_data()["milestone_checks"])
+        for milestone in data.MILESTONES:
+            with self.assertRaises(KeyError, msg=milestone.name):
+                self.world.get_location(milestone.name)
+
 
 class TestMissionModifiers(TF2MvMTestBase):
     options: ClassVar[dict[str, Any]] = {
@@ -64,6 +70,17 @@ class TestMissionModifiers(TF2MvMTestBase):
         for modifiers in self.world.mission_modifiers.values():
             keys = {modifier["key"] for modifier in modifiers}
             self.assertLessEqual(len(keys & gravity), 1)
+
+
+class TestMilestoneChecks(TF2MvMTestBase):
+    options: ClassVar[dict[str, Any]] = {"milestone_checks": True, "mission_count": 3}
+
+    def test_every_milestone_is_a_check_open_from_the_start(self) -> None:
+        self.assertTrue(self.world.fill_slot_data()["milestone_checks"])
+        self.assertEqual(15, len(data.MILESTONES))
+        for milestone in data.MILESTONES:
+            self.assertEqual(milestone.id, self.world.get_location(milestone.name).address)
+            self.assertTrue(self.can_reach_location(milestone.name), milestone.name)
 
 
 class TestNoWeaponBuffs(TF2MvMTestBase):

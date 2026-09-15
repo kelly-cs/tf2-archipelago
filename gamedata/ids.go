@@ -15,8 +15,11 @@ const (
 	// 8 waves, so the ceiling is a bound on the id scheme, not on the game.
 	WavesMax uint8 = 89
 
-	// MissionIDMax keeps the location space below the item space.
-	MissionIDMax MissionID = MissionID(itemSpaceOffset/locationsPerMission - 1)
+	// MissionIDMax keeps the location space below the item space, and below
+	// the block the milestones take: they are checks with no mission behind
+	// them, so they borrow the highest block a mission could have had.
+	MissionIDMax       MissionID = milestoneMissionID - 1
+	milestoneMissionID MissionID = MissionID(itemSpaceOffset/locationsPerMission - 10)
 
 	locationsPerMission int64 = 100
 	locationSlotTank    int64 = 90
@@ -82,6 +85,15 @@ func (m Mission) WaveLocationName(wave uint8) string {
 // ClearLocationName is what the spoiler log calls the mission clear.
 func (m Mission) ClearLocationName() string {
 	return m.Name + " Complete"
+}
+
+// milestoneID is where a milestone lives: the reserved mission block, a
+// hundred wide, with a row of ten per total and the ladder index down it.
+func milestoneID(kind MilestoneKind, index uint8) int64 {
+	if index < 1 || index > 9 {
+		panic(fmt.Sprintf("gamedata: milestone index %d out of range", index))
+	}
+	return BaseID + int64(milestoneMissionID)*locationsPerMission + int64(kind)*10 + int64(index)
 }
 
 // Item ids: one block per kind, keyed by entity id, so an item id is as

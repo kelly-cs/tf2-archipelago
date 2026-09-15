@@ -108,6 +108,11 @@ type Health struct {
 	MissionTicketImportance string                       `json:"mission_ticket_importance,omitempty"`
 	MissionModifiers        map[string][]MissionModifier `json:"mission_modifiers,omitempty"`
 
+	// MilestoneChecks is the seed holding the running-total checks, which the
+	// bridge records as the tallies cross them; a seed without them has no
+	// location to record.
+	MilestoneChecks bool `json:"milestone_checks"`
+
 	DeathLink bool   `json:"death_link"`
 	LastError string `json:"last_error,omitempty"`
 }
@@ -138,6 +143,7 @@ func (c *Client) Health() Health {
 		StartMission:            c.slot.StartMission,
 		MissionTicketImportance: c.slot.MissionTicketImportance,
 		MissionModifiers:        c.slot.MissionModifiers,
+		MilestoneChecks:         c.slot.MilestoneChecks,
 		DeathLink:               c.slot.DeathLink,
 		LastError:               c.lastError,
 	}

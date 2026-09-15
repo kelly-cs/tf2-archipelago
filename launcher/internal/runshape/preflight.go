@@ -14,6 +14,9 @@ type Selection struct {
 	Difficulty   string
 	MissionCount int
 	StartMission string
+	// MilestoneChecks counts the running-total checks the way the generator
+	// will: every one of them, since any mission progresses them.
+	MilestoneChecks bool
 }
 
 // Preflight is the useful accounting behind a successful selection check.
@@ -120,6 +123,9 @@ func CheckSelection(selection Selection) (Preflight, error) {
 	checks := 0
 	for _, mission := range eligible {
 		checks += missionCheckCount(mission)
+	}
+	if selection.MilestoneChecks {
+		checks += len(gamedata.Milestones)
 	}
 	requirement := missionRequirements[start.Difficulty]
 	unlocks := len(eligible) - 1 +

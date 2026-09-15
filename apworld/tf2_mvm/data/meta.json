@@ -365,5 +365,97 @@
       "key": "sigsegv-mvm",
       "name": "SigMod"
     }
+  ],
+  "milestones": [
+    {
+      "id": 7442999011,
+      "name": "100 Robots Destroyed",
+      "kind": "tally_robots",
+      "threshold": 100
+    },
+    {
+      "id": 7442999012,
+      "name": "250 Robots Destroyed",
+      "kind": "tally_robots",
+      "threshold": 250
+    },
+    {
+      "id": 7442999013,
+      "name": "500 Robots Destroyed",
+      "kind": "tally_robots",
+      "threshold": 500
+    },
+    {
+      "id": 7442999014,
+      "name": "1000 Robots Destroyed",
+      "kind": "tally_robots",
+      "threshold": 1000
+    },
+    {
+      "id": 7442999015,
+      "name": "2000 Robots Destroyed",
+      "kind": "tally_robots",
+      "threshold": 2000
+    },
+    {
+      "id": 7442999016,
+      "name": "4000 Robots Destroyed",
+      "kind": "tally_robots",
+      "threshold": 4000
+    },
+    {
+      "id": 7442999021,
+      "name": "10 Giants Killed",
+      "kind": "tally_giants",
+      "threshold": 10
+    },
+    {
+      "id": 7442999022,
+      "name": "25 Giants Killed",
+      "kind": "tally_giants",
+      "threshold": 25
+    },
+    {
+      "id": 7442999023,
+      "name": "50 Giants Killed",
+      "kind": "tally_giants",
+      "threshold": 50
+    },
+    {
+      "id": 7442999024,
+      "name": "100 Giants Killed",
+      "kind": "tally_giants",
+      "threshold": 100
+    },
+    {
+      "id": 7442999025,
+      "name": "200 Giants Killed",
+      "kind": "tally_giants",
+      "threshold": 200
+    },
+    {
+      "id": 7442999031,
+      "name": "5 Tanks Destroyed",
+      "kind": "tally_tanks",
+      "threshold": 5
+    },
+    {
+      "id": 7442999032,
+      "name": "10 Tanks Destroyed",
+      "kind": "tally_tanks",
+      "threshold": 10
+    },
+    {
+      "id": 7442999033,
+      "name": "20 Tanks Destroyed",
+      "kind": "tally_tanks",
+      "threshold": 20
+    },
+    {
+      "id": 7442999034,
+      "name": "40 Tanks Destroyed",
+      "kind": "tally_tanks",
+      "threshold": 40
+    }
   ]
 }

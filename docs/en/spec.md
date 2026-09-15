@@ -109,10 +109,18 @@ failure stays silent, which is worse than a missing feature.
 | Money bonus | Wave completed with an A+ credit rating | one per wave | `money_checks` |
 | Shop purchase | A check bought at the upgrade station for $100 to $400, then turned in | configurable | `shop_checks` |
 | Tank / boss kill | Tank destroyed, Giant or boss robot killed | per mission, capped | `boss_checks` |
+| Milestone | Robots, giants or tanks destroyed over the whole run reach a total | 15, a fixed ladder | `milestone_checks` |
 
 Wave clear is the core location group, and the only one on by default.
 Everything else is opt-in, because a run's length has to be tunable. The
 wave count alone already gives roughly 6 to 8 checks per mission.
+
+`milestone_checks` counts across the whole run, whatever mission a kill fell
+in: a hundred robots, then 250, 500, 1000, 2000, 4000; five tanks, then 10,
+20, 40; ten giants, then 25, 50, 100, 200. The plugin counts during a wave and
+reports once when it ends, won or lost; the bridge keeps the totals on disk
+and records each milestone a total crosses. A team stuck on a wave can replay
+what it has open and still find things.
 
 Shop checks are the most novel group, and the least certain to work.
 Roseburst's two variants:
