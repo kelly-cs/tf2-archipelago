@@ -34,12 +34,17 @@ def _load(name: str) -> dict:
 
 @dataclass(frozen=True, slots=True)
 class Location:
-    """``kind`` is the objective the plugin reports for this check."""
+    """``kind`` is the objective the plugin reports for this check.
+
+    ``cache`` counts from 1 on a victory cache, an extra check the mission
+    clear pays when the option is on, and is 0 on every other check.
+    """
 
     id: int
     name: str
     kind: str
     wave: int
+    cache: int
 
 
 @dataclass(frozen=True, slots=True)
@@ -62,6 +67,12 @@ class Mission:
     def seedable_with(self, server_mods: set[str] | frozenset[str]) -> bool:
         """Whether a server loading these mods can play the mission."""
         return self.playable or (self.requires in SERVER_MOD_KEYS and self.requires in server_mods)
+
+    def checks(self, victory_caches: bool) -> tuple[Location, ...]:
+        """The locations a seed holds for this mission: the caches only when asked for."""
+        if victory_caches:
+            return self.locations
+        return tuple(location for location in self.locations if location.cache == 0)
 
 
 @dataclass(frozen=True, slots=True)
@@ -99,6 +110,7 @@ def _read_missions() -> tuple[Mission, ...]:
                     name=location["name"],
                     kind=location["kind"],
                     wave=location.get("wave", 0),
+                    cache=location.get("cache", 0),
                 )
                 for location in entry["locations"]
             ),

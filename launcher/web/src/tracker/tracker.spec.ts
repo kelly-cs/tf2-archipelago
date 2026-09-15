@@ -51,6 +51,31 @@ describe('tracker view', () => {
     expect(view.missions.at(-1)?.locked).toBe(true);
   });
 
+  it('shows victory caches only when the seed holds them', () => {
+    const mission = {
+      pop_file: 'mvm_test_advanced',
+      name: 'Test',
+      difficulty: 'advanced',
+      locations: [
+        { id: 1, name: 'Test Complete', kind: 'mission_cleared' },
+        { id: 2, name: 'Test Victory Cache 1', kind: 'mission_cleared', cache: 1 },
+      ],
+    };
+    const without = buildView({ ...source, catalog: [mission] }, 1);
+    expect(without.missions[0]?.locations.map((location) => location.name)).toEqual([
+      'Test Complete',
+    ]);
+    const held = buildView(
+      {
+        ...source,
+        catalog: [mission],
+        demoSlotData: { ...source.demoSlotData, victory_caches: true },
+      },
+      1,
+    );
+    expect(held.missions[0]?.locations.length).toBe(2);
+  });
+
   it('shows the persistent modifier combination assigned to each mission', () => {
     expect(view.missions[0]?.modifiers.map((modifier) => modifier.name)).toEqual([
       'Low Gravity',

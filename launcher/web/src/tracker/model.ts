@@ -23,7 +23,12 @@ const startSlots: Readonly<Record<string, number>> = {
 
 export function buildView(source: TrackerSource, player: number): TrackerView {
   const slotData = slotDataFor(source, player);
-  const missions = activeMissions(source, slotData);
+  const missions = activeMissions(source, slotData).map((mission) => ({
+    ...mission,
+    locations: mission.locations.filter(
+      (location) => location.cache === undefined || slotData.victory_caches === true,
+    ),
+  }));
   const checked = checkedFor(source, player);
   const owned = ownedNames(source, player, slotData, missions);
   const missionViews = missions.map((mission) => {

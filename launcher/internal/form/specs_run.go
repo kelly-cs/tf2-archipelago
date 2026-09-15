@@ -88,6 +88,12 @@ func playerSpecs(s State, env Env) []Spec {
 			func(s State) bool { return s.Settings.MvmMedalOnClear },
 			func(s State, v bool) State { s.Settings.MvmMedalOnClear = v; return s }),
 
+		toggle("run.caches", tab, "Victory caches",
+			"A mission clear is worth checks scaled by its tier: one at normal, two at intermediate, three at advanced, five at expert and haunted. More checks for the multiworld without more missions.",
+			"scale the clears",
+			func(s State) bool { return s.Settings.MvmVictoryCaches },
+			func(s State, v bool) State { s.Settings.MvmVictoryCaches = v; return s }),
+
 		toggle("run.deathlink", tab, "Death Link",
 			"A lost wave kills every other player in the multiworld who has Death Link on, and their deaths wipe your team.",
 			"share deaths",

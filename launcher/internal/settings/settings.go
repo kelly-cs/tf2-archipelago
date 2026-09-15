@@ -172,6 +172,10 @@ type Settings struct {
 	// MvmMedalOnClear locks a medal onto every mission clear and makes the
 	// goal read the medals held. It costs the multiworld one check a mission.
 	MvmMedalOnClear bool `json:"mvm_medal_on_clear"`
+	// MvmVictoryCaches makes a mission clear worth checks scaled by its tier:
+	// one at normal, two at intermediate, three at advanced, five at expert
+	// and haunted. More checks without more missions.
+	MvmVictoryCaches bool `json:"mvm_victory_caches"`
 	// MvmServerSettings puts the server-setting items in the pool. One exists,
 	// the Grappling Hook, and it turns Mannpower's hook on for everybody for
 	// the rest of the run.

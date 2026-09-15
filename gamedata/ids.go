@@ -23,6 +23,11 @@ const (
 	locationSlotGiant   int64 = 91
 	locationSlotClear   int64 = 99
 
+	// The victory caches sit between the giant and the clear: slot 92 is the
+	// first, and VictoryCachesMax bounds them so 96 to 98 stay free.
+	locationSlotCacheFirst int64 = 92
+	VictoryCachesMax       uint8 = 4
+
 	// itemSpaceOffset keeps item ids clear of location ids, which Archipelago
 	// namespaces separately and would let overlap.
 	itemSpaceOffset int64 = 1_000_000
@@ -72,6 +77,21 @@ func (m Mission) GiantLocationName() string {
 // ClearLocationID is the id of the check for clearing the whole mission.
 func (m Mission) ClearLocationID() int64 {
 	return BaseID + int64(m.ID)*locationsPerMission + locationSlotClear
+}
+
+// VictoryCacheLocationID is the id of the nth extra check the mission clear
+// pays when victory caches are on, n counted from 1. Only missions whose tier
+// pays that many have one.
+func (m Mission) VictoryCacheLocationID(n uint8) int64 {
+	if n < 1 || n > VictoryCachesMax {
+		panic(fmt.Sprintf("gamedata: victory cache %d out of range for %s", n, m.PopFile))
+	}
+	return BaseID + int64(m.ID)*locationsPerMission + locationSlotCacheFirst + int64(n-1)
+}
+
+// VictoryCacheLocationName is what the spoiler log calls that check.
+func (m Mission) VictoryCacheLocationName(n uint8) string {
+	return fmt.Sprintf("%s Victory Cache %d", m.Name, n)
 }
 
 // WaveLocationName is what the spoiler log calls that wave.

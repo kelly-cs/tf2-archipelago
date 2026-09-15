@@ -14,6 +14,9 @@ type Selection struct {
 	Difficulty   string
 	MissionCount int
 	StartMission string
+	// VictoryCaches counts the extra checks a clear pays, the way the
+	// generator will.
+	VictoryCaches bool
 }
 
 // Preflight is the useful accounting behind a successful selection check.
@@ -119,7 +122,7 @@ func CheckSelection(selection Selection) (Preflight, error) {
 
 	checks := 0
 	for _, mission := range eligible {
-		checks += missionCheckCount(mission)
+		checks += missionCheckCount(mission, selection.VictoryCaches)
 	}
 	requirement := missionRequirements[start.Difficulty]
 	unlocks := len(eligible) - 1 +
@@ -150,8 +153,11 @@ func easiestMission(missions []gamedata.Mission) gamedata.Mission {
 	})
 }
 
-func missionCheckCount(mission gamedata.Mission) int {
+func missionCheckCount(mission gamedata.Mission, victoryCaches bool) int {
 	checks := int(mission.Waves) + 1 // waves plus mission clear
+	if victoryCaches {
+		checks += int(mission.Difficulty.VictoryCaches())
+	}
 	if mission.HasTank {
 		checks++
 	}

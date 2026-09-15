@@ -296,8 +296,28 @@ func (s *Server) postObjective(w http.ResponseWriter, r *http.Request) {
 	if fresh {
 		s.logger.InfoContext(r.Context(), "check recorded", "location", location.Name)
 	}
+	for _, cache := range victoryCachesPaidBy(location, s.client.Health().VictoryCaches) {
+		if _, err := s.store.AddCheck(cache.ID); err != nil {
+			s.logger.ErrorContext(r.Context(), "cannot record a victory cache",
+				"location", cache.Name, "error", err)
+		}
+	}
 	s.noteProgress(r.Context(), kind, request.PopFile, int(request.Wave))
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// victoryCachesPaidBy is every extra check a mission clear pays when the seed
+// holds victory caches: nothing for any other objective, and nothing for a
+// seed without them, since a check the room does not hold is a check refused.
+func victoryCachesPaidBy(location gamedata.Location, held bool) []gamedata.Location {
+	if !held || location.Kind != gamedata.ObjectiveMissionCleared {
+		return nil
+	}
+	mission, ok := gamedata.MissionByID(location.Mission)
+	if !ok {
+		return nil
+	}
+	return mission.VictoryCacheLocations()
 }
 
 /*
