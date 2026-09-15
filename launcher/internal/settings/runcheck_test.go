@@ -83,3 +83,18 @@ func TestKeepingACommunityMissionRaisesTheCeiling(t *testing.T) {
 		t.Fatalf("ceiling after keeping one community mission = %d, want %d", got, before+1)
 	}
 }
+
+// The example .env and the launcher's defaults both say start_mission: random.
+// A preflight that reads that as a popfile refuses every run that kept the
+// default, which is how `make seed` failed out of the box from v1.11.0 on.
+func TestCheckRunSelectionLetsTheGeneratorDrawARandomStart(t *testing.T) {
+	s := Defaults()
+	s.MvmStartMission = "random"
+	if _, err := CheckRunSelection(s); err != nil {
+		t.Fatalf("a random start mission was refused: %v", err)
+	}
+	s.MvmStartMission = "mvm_not_a_mission"
+	if _, err := CheckRunSelection(s); err == nil {
+		t.Fatal("an unknown start mission was accepted")
+	}
+}

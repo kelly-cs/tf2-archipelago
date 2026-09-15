@@ -12,11 +12,18 @@ import (
 // generates a player file. The official generator repeats this check and
 // remains the final authority.
 func CheckRunSelection(s Settings) (runshape.Preflight, error) {
+	// "random" is the apworld's own word for "draw one", the shipped default,
+	// and not a popfile. The check has to see it as no start named, or every
+	// stack that keeps the default is refused a seed.
+	start := s.MvmStartMission
+	if start == randomOption {
+		start = ""
+	}
 	report, err := runshape.CheckSelection(runshape.Selection{
 		Pool:         MissionPool(s),
 		Difficulty:   s.MvmDifficulty,
 		MissionCount: s.MvmMissionCount,
-		StartMission: s.MvmStartMission,
+		StartMission: start,
 	})
 	if err != nil {
 		return report, fmt.Errorf("archipelago run selection: %w", err)
