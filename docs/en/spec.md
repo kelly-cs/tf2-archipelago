@@ -109,10 +109,17 @@ failure stays silent, which is worse than a missing feature.
 | Money bonus | Wave completed with an A+ credit rating | one per wave | `money_checks` |
 | Shop purchase | A check bought at the upgrade station for $100 to $400, then turned in | configurable | `shop_checks` |
 | Tank / boss kill | Tank destroyed, Giant or boss robot killed | per mission, capped | `boss_checks` |
+| Victory cache | Final wave of mission M completed | 0 to 4 per mission, by tier | `victory_caches` |
 
 Wave clear is the core location group, and the only one on by default.
 Everything else is opt-in, because a run's length has to be tunable. The
 wave count alone already gives roughly 6 to 8 checks per mission.
+
+`victory_caches` scales a clear by its tier: one check at normal, two at
+intermediate, three at advanced, five at expert and haunted. The extra checks
+ride on the clear the plugin already reports, and the bridge records them, so
+the game never learns of them. It is the cheap answer to a run short on
+checks, because it adds no mission and scrubs no pop file.
 
 Shop checks are the most novel group, and the least certain to work.
 Roseburst's two variants:

@@ -45,6 +45,14 @@ class TestDefaults(TF2MvMTestBase):
         self.assertEqual({}, self.world.mission_modifiers)
         self.assertEqual({}, self.world.fill_slot_data()["mission_modifiers"])
 
+    def test_victory_caches_stay_out_by_default(self) -> None:
+        self.assertFalse(self.world.fill_slot_data()["victory_caches"])
+        for mission in self.world.missions:
+            for location in mission.locations:
+                if location.cache:
+                    with self.assertRaises(KeyError, msg=location.name):
+                        self.world.get_location(location.name)
+
 
 class TestMissionModifiers(TF2MvMTestBase):
     options: ClassVar[dict[str, Any]] = {
@@ -64,6 +72,25 @@ class TestMissionModifiers(TF2MvMTestBase):
         for modifiers in self.world.mission_modifiers.values():
             keys = {modifier["key"] for modifier in modifiers}
             self.assertLessEqual(len(keys & gravity), 1)
+
+
+CACHES_BY_TIER = {"normal": 0, "intermediate": 1, "advanced": 2, "expert": 4, "haunted": 4}
+
+
+class TestVictoryCaches(TF2MvMTestBase):
+    options: ClassVar[dict[str, Any]] = {
+        "victory_caches": True,
+        "difficulty_pool": "intermediate",
+        "mission_count": 6,
+    }
+
+    def test_a_clear_pays_its_tier(self) -> None:
+        self.assertTrue(self.world.fill_slot_data()["victory_caches"])
+        for mission in self.world.missions:
+            caches = [location for location in mission.locations if location.cache]
+            self.assertEqual(CACHES_BY_TIER[mission.difficulty], len(caches), mission.name)
+            for location in caches:
+                self.assertEqual(location.id, self.world.get_location(location.name).address)
 
 
 class TestNoWeaponBuffs(TF2MvMTestBase):
@@ -207,7 +234,8 @@ class TestShortestRun(TF2MvMTestBase):
 
     def test_unlocks_fit_the_checks(self) -> None:
         # One mission can leave fewer checks than unlocks owed; the draw widens rather than failing.
-        checks = sum(len(mission.locations) for mission in self.world.missions)
+        caches = bool(self.world.options.victory_caches.value)
+        checks = sum(len(mission.checks(caches)) for mission in self.world.missions)
         self.assertEqual(checks, len(self.multiworld.itempool))
 
 

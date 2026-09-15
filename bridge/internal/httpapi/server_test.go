@@ -64,6 +64,24 @@ func TestObjectiveRecordsACheck(t *testing.T) {
 	}
 }
 
+// A clear pays its caches only when the seed holds them: a check the room does
+// not know is a check refused. Nothing but a clear pays any.
+func TestAClearPaysItsVictoryCachesOnlyWhenTheSeedHoldsThem(t *testing.T) {
+	mission, _ := gamedata.MissionByPopFile("mvm_coaltown_advanced")
+	clear, _ := gamedata.LocationByObjective(gamedata.ObjectiveMissionCleared, mission.PopFile, 0)
+	if got := victoryCachesPaidBy(clear, false); len(got) != 0 {
+		t.Fatalf("a seed without caches paid %d", len(got))
+	}
+	got := victoryCachesPaidBy(clear, true)
+	if len(got) != 2 || got[0].ID != mission.VictoryCacheLocationID(1) || got[1].ID != mission.VictoryCacheLocationID(2) {
+		t.Fatalf("an advanced clear paid %+v", got)
+	}
+	wave, _ := gamedata.LocationByObjective(gamedata.ObjectiveWaveCleared, mission.PopFile, 1)
+	if got := victoryCachesPaidBy(wave, true); len(got) != 0 {
+		t.Fatalf("a wave paid %d caches", len(got))
+	}
+}
+
 func TestObjectiveIsIdempotent(t *testing.T) {
 	store, handler := newTestServer(t, time.Second)
 	body := `{"kind":"mission_cleared","popfile":"mvm_coaltown"}`

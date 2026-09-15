@@ -305,6 +305,22 @@ class MedalOnClear(Toggle):
     default = 0
 
 
+class VictoryCaches(Toggle):
+    """Make a mission clear worth checks scaled by its tier.
+
+    A normal clear stays one check; intermediate pays two, advanced three,
+    expert and haunted five. The extra checks are victory caches, and the
+    server hands them over with the clear, so there is nothing new to do in
+    the game.
+
+    The cheap answer to a run short on checks, because it adds no mission. Off
+    by default so an existing YAML keeps meaning what it meant.
+    """
+
+    display_name = "Victory Caches"
+    default = 0
+
+
 class TrapPercentage(Range):
     """How much of the run's spare space is traps, in percent.
 
@@ -347,6 +363,7 @@ class TF2MvMOptions(PerGameCommonOptions):
     trap_percentage: TrapPercentage
     server_settings: ServerSettings
     medal_on_clear: MedalOnClear
+    victory_caches: VictoryCaches
     death_link: DeathLink
 
 
@@ -366,7 +383,7 @@ option_groups = [
             StartClass,
         ],
     ),
-    OptionGroup("Goal", [Goal, MissionsanityPercentage, MedalOnClear]),
+    OptionGroup("Goal", [Goal, MissionsanityPercentage, MedalOnClear, VictoryCaches]),
     OptionGroup(
         "Rewards",
         [

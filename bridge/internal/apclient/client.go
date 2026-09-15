@@ -108,6 +108,11 @@ type Health struct {
 	MissionTicketImportance string                       `json:"mission_ticket_importance,omitempty"`
 	MissionModifiers        map[string][]MissionModifier `json:"mission_modifiers,omitempty"`
 
+	// VictoryCaches is the seed holding extra checks on every clear, which
+	// the bridge records when the clear comes in; the plugin never hears of
+	// them.
+	VictoryCaches bool `json:"victory_caches"`
+
 	DeathLink bool   `json:"death_link"`
 	LastError string `json:"last_error,omitempty"`
 }
@@ -138,6 +143,7 @@ func (c *Client) Health() Health {
 		StartMission:            c.slot.StartMission,
 		MissionTicketImportance: c.slot.MissionTicketImportance,
 		MissionModifiers:        c.slot.MissionModifiers,
+		VictoryCaches:           c.slot.VictoryCaches,
 		DeathLink:               c.slot.DeathLink,
 		LastError:               c.lastError,
 	}

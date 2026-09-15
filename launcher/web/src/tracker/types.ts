@@ -6,6 +6,8 @@ export interface Objective {
   readonly name: string;
   readonly kind: string;
   readonly wave?: number;
+  /** Counts from 1 on a victory cache, which the seed holds only when it asked for them. */
+  readonly cache?: number;
 }
 
 export interface Mission {
@@ -42,6 +44,7 @@ export interface SlotData {
   readonly missionsanity_target?: number;
   readonly mission_ticket_importance?: string;
   readonly mission_modifiers?: Readonly<Record<string, readonly MissionModifier[]>>;
+  readonly victory_caches?: boolean;
   readonly starting_items?: readonly (number | string)[];
   readonly tracker?: {
     readonly starting_items?: readonly (number | string)[];

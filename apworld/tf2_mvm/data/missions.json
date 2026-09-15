@@ -146,6 +146,12 @@
           "id": 7442000299,
           "name": "Doe's Doom Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442000292,
+          "name": "Doe's Doom Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
         }
       ]
     },
@@ -211,6 +217,12 @@
           "id": 7442000399,
           "name": "Day of Wreckening Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442000392,
+          "name": "Day of Wreckening Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
         }
       ]
     },
@@ -288,6 +300,18 @@
           "id": 7442000499,
           "name": "Disk Deletion Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442000492,
+          "name": "Disk Deletion Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442000493,
+          "name": "Disk Deletion Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -353,6 +377,18 @@
           "id": 7442000599,
           "name": "Data Demolition Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442000592,
+          "name": "Data Demolition Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442000593,
+          "name": "Data Demolition Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -418,6 +454,18 @@
           "id": 7442000699,
           "name": "Disintegration Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442000692,
+          "name": "Disintegration Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442000693,
+          "name": "Disintegration Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -489,6 +537,30 @@
           "id": 7442000799,
           "name": "Desperation Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442000792,
+          "name": "Desperation Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442000793,
+          "name": "Desperation Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
+        },
+        {
+          "id": 7442000794,
+          "name": "Desperation Victory Cache 3",
+          "kind": "mission_cleared",
+          "cache": 3
+        },
+        {
+          "id": 7442000795,
+          "name": "Desperation Victory Cache 4",
+          "kind": "mission_cleared",
+          "cache": 4
         }
       ]
     },
@@ -619,6 +691,12 @@
           "id": 7442000999,
           "name": "Cave-in Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442000992,
+          "name": "Cave-in Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
         }
       ]
     },
@@ -684,6 +762,12 @@
           "id": 7442001099,
           "name": "Quarry Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442001092,
+          "name": "Quarry Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
         }
       ]
     },
@@ -755,6 +839,18 @@
           "id": 7442001199,
           "name": "Ctrl+Alt+Destruction Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442001192,
+          "name": "Ctrl+Alt+Destruction Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442001193,
+          "name": "Ctrl+Alt+Destruction Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -820,6 +916,18 @@
           "id": 7442001299,
           "name": "CPU Slaughter Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442001292,
+          "name": "CPU Slaughter Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442001293,
+          "name": "CPU Slaughter Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -891,6 +999,30 @@
           "id": 7442001399,
           "name": "Cataclysm Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442001392,
+          "name": "Cataclysm Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442001393,
+          "name": "Cataclysm Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
+        },
+        {
+          "id": 7442001394,
+          "name": "Cataclysm Victory Cache 3",
+          "kind": "mission_cleared",
+          "cache": 3
+        },
+        {
+          "id": 7442001395,
+          "name": "Cataclysm Victory Cache 4",
+          "kind": "mission_cleared",
+          "cache": 4
         }
       ]
     },
@@ -1027,6 +1159,12 @@
           "id": 7442001599,
           "name": "Mean Machines Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442001592,
+          "name": "Mean Machines Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
         }
       ]
     },
@@ -1092,6 +1230,12 @@
           "id": 7442001699,
           "name": "Mannhunt Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442001692,
+          "name": "Mannhunt Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
         }
       ]
     },
@@ -1163,6 +1307,18 @@
           "id": 7442001799,
           "name": "Machine Massacre Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442001792,
+          "name": "Machine Massacre Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442001793,
+          "name": "Machine Massacre Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -1210,6 +1366,18 @@
           "id": 7442001899,
           "name": "Mech Mutilation Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442001892,
+          "name": "Mech Mutilation Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442001893,
+          "name": "Mech Mutilation Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -1269,6 +1437,30 @@
           "id": 7442001999,
           "name": "Mannslaughter Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442001992,
+          "name": "Mannslaughter Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442001993,
+          "name": "Mannslaughter Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
+        },
+        {
+          "id": 7442001994,
+          "name": "Mannslaughter Victory Cache 3",
+          "kind": "mission_cleared",
+          "cache": 3
+        },
+        {
+          "id": 7442001995,
+          "name": "Mannslaughter Victory Cache 4",
+          "kind": "mission_cleared",
+          "cache": 4
         }
       ]
     },
@@ -1405,6 +1597,18 @@
           "id": 7442002199,
           "name": "Broken Parts Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442002192,
+          "name": "Broken Parts Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442002193,
+          "name": "Broken Parts Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -1482,6 +1686,18 @@
           "id": 7442002299,
           "name": "Bone Shaker Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442002292,
+          "name": "Bone Shaker Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442002293,
+          "name": "Bone Shaker Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -1542,6 +1758,12 @@
           "id": 7442002399,
           "name": "Big Apple Barricade Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442002392,
+          "name": "Big Apple Barricade Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
         }
       ]
     },
@@ -1602,6 +1824,18 @@
           "id": 7442002499,
           "name": "Empire Escalation Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442002492,
+          "name": "Empire Escalation Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442002493,
+          "name": "Empire Escalation Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -1662,6 +1896,18 @@
           "id": 7442002599,
           "name": "Metro Malice Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442002592,
+          "name": "Metro Malice Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442002593,
+          "name": "Metro Malice Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -1733,6 +1979,12 @@
           "id": 7442002699,
           "name": "Village Vanguard Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442002692,
+          "name": "Village Vanguard Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
         }
       ]
     },
@@ -1804,6 +2056,18 @@
           "id": 7442002799,
           "name": "Hamlet Hostility Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442002792,
+          "name": "Hamlet Hostility Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442002793,
+          "name": "Hamlet Hostility Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -1875,6 +2139,18 @@
           "id": 7442002899,
           "name": "Bavarian Botbash Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442002892,
+          "name": "Bavarian Botbash Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442002893,
+          "name": "Bavarian Botbash Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -1910,6 +2186,30 @@
           "id": 7442002999,
           "name": "Caliginous Caper Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442002992,
+          "name": "Caliginous Caper Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442002993,
+          "name": "Caliginous Caper Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
+        },
+        {
+          "id": 7442002994,
+          "name": "Caliginous Caper Victory Cache 3",
+          "kind": "mission_cleared",
+          "cache": 3
+        },
+        {
+          "id": 7442002995,
+          "name": "Caliginous Caper Victory Cache 4",
+          "kind": "mission_cleared",
+          "cache": 4
         }
       ]
     },
@@ -1975,6 +2275,12 @@
           "id": 7442010599,
           "name": "Anomalous Materials Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442010592,
+          "name": "Anomalous Materials Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
         }
       ]
     },
@@ -2040,6 +2346,12 @@
           "id": 7442010699,
           "name": "Urban Uprising Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442010692,
+          "name": "Urban Uprising Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
         }
       ]
     },
@@ -2094,6 +2406,18 @@
           "id": 7442010799,
           "name": "Swamp Fever Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442010792,
+          "name": "Swamp Fever Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442010793,
+          "name": "Swamp Fever Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -2148,6 +2472,12 @@
           "id": 7442010899,
           "name": "Thriller Terror Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442010892,
+          "name": "Thriller Terror Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
         }
       ]
     },
@@ -2208,6 +2538,18 @@
           "id": 7442010999,
           "name": "Silver Snow Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442010992,
+          "name": "Silver Snow Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442010993,
+          "name": "Silver Snow Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -2279,6 +2621,12 @@
           "id": 7442011099,
           "name": "Flash Flood Flurry Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442011092,
+          "name": "Flash Flood Flurry Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
         }
       ]
     },
@@ -2350,6 +2698,12 @@
           "id": 7442011199,
           "name": "Wicked Wizardry Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442011192,
+          "name": "Wicked Wizardry Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
         }
       ]
     },
@@ -2427,6 +2781,18 @@
           "id": 7442011299,
           "name": "Heated Argument Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442011292,
+          "name": "Heated Argument Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442011293,
+          "name": "Heated Argument Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -2492,6 +2858,12 @@
           "id": 7442011399,
           "name": "Covert Compromise Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442011392,
+          "name": "Covert Compromise Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
         }
       ]
     },
@@ -2551,6 +2923,18 @@
           "id": 7442011499,
           "name": "Homestead Happenings Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442011492,
+          "name": "Homestead Happenings Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442011493,
+          "name": "Homestead Happenings Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -2616,6 +3000,18 @@
           "id": 7442011599,
           "name": "Mud Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442011592,
+          "name": "Mud Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442011593,
+          "name": "Mud Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -2681,6 +3077,18 @@
           "id": 7442011699,
           "name": "Void Voyage Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442011692,
+          "name": "Void Voyage Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442011693,
+          "name": "Void Voyage Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -2752,6 +3160,12 @@
           "id": 7442011799,
           "name": "Offshore Onslaught Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442011792,
+          "name": "Offshore Onslaught Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
         }
       ]
     },
@@ -2817,6 +3231,12 @@
           "id": 7442011899,
           "name": "Snowy Slaughter Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442011892,
+          "name": "Snowy Slaughter Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
         }
       ]
     },
@@ -2894,6 +3314,12 @@
           "id": 7442011999,
           "name": "Pollution Dilution Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442011992,
+          "name": "Pollution Dilution Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
         }
       ]
     },
@@ -2959,6 +3385,12 @@
           "id": 7442012099,
           "name": "Recursive Reinforcements Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442012092,
+          "name": "Recursive Reinforcements Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
         }
       ]
     },
@@ -3024,6 +3456,18 @@
           "id": 7442012199,
           "name": "Armored Apparatus Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442012192,
+          "name": "Armored Apparatus Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442012193,
+          "name": "Armored Apparatus Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -3095,6 +3539,12 @@
           "id": 7442012299,
           "name": "Alpine Assault Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442012292,
+          "name": "Alpine Assault Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
         }
       ]
     },
@@ -3160,6 +3610,18 @@
           "id": 7442012399,
           "name": "Onsen Onslaught Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442012392,
+          "name": "Onsen Onslaught Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442012393,
+          "name": "Onsen Onslaught Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -3231,6 +3693,12 @@
           "id": 7442012499,
           "name": "Binary Broadcast Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442012492,
+          "name": "Binary Broadcast Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
         }
       ]
     },
@@ -3302,6 +3770,12 @@
           "id": 7442012599,
           "name": "Black East Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442012592,
+          "name": "Black East Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
         }
       ]
     },
@@ -3356,6 +3830,18 @@
           "id": 7442012699,
           "name": "Unholy Undead Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442012692,
+          "name": "Unholy Undead Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442012693,
+          "name": "Unholy Undead Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -3427,6 +3913,18 @@
           "id": 7442012799,
           "name": "Australian Christmas Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442012792,
+          "name": "Australian Christmas Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442012793,
+          "name": "Australian Christmas Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -3492,6 +3990,18 @@
           "id": 7442012899,
           "name": "Complex Chaos Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442012892,
+          "name": "Complex Chaos Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442012893,
+          "name": "Complex Chaos Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -3527,6 +4037,18 @@
           "id": 7442012999,
           "name": "Extraterrestrial Epidemic Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442012992,
+          "name": "Extraterrestrial Epidemic Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442012993,
+          "name": "Extraterrestrial Epidemic Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -3592,6 +4114,18 @@
           "id": 7442013099,
           "name": "Interstellar Intervention Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442013092,
+          "name": "Interstellar Intervention Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442013093,
+          "name": "Interstellar Intervention Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -3657,6 +4191,18 @@
           "id": 7442013199,
           "name": "Tech Mechs Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442013192,
+          "name": "Tech Mechs Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442013193,
+          "name": "Tech Mechs Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -3716,6 +4262,18 @@
           "id": 7442013299,
           "name": "Unusual Onslaught Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442013292,
+          "name": "Unusual Onslaught Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442013293,
+          "name": "Unusual Onslaught Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -3770,6 +4328,12 @@
           "id": 7442013399,
           "name": "Gatebot Apocalypse Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442013392,
+          "name": "Gatebot Apocalypse Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
         }
       ]
     },
@@ -3829,6 +4393,18 @@
           "id": 7442013499,
           "name": "Steelblock Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442013492,
+          "name": "Steelblock Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442013493,
+          "name": "Steelblock Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -3894,6 +4470,18 @@
           "id": 7442013599,
           "name": "Storm Surge Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442013592,
+          "name": "Storm Surge Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442013593,
+          "name": "Storm Surge Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -3959,6 +4547,30 @@
           "id": 7442013699,
           "name": "Alluvion Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442013692,
+          "name": "Alluvion Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442013693,
+          "name": "Alluvion Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
+        },
+        {
+          "id": 7442013694,
+          "name": "Alluvion Victory Cache 3",
+          "kind": "mission_cleared",
+          "cache": 3
+        },
+        {
+          "id": 7442013695,
+          "name": "Alluvion Victory Cache 4",
+          "kind": "mission_cleared",
+          "cache": 4
         }
       ]
     },
@@ -4024,6 +4636,18 @@
           "id": 7442013799,
           "name": "Fiefdom Fiasco Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442013792,
+          "name": "Fiefdom Fiasco Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442013793,
+          "name": "Fiefdom Fiasco Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -4083,6 +4707,18 @@
           "id": 7442013899,
           "name": "Advanced Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442013892,
+          "name": "Advanced Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442013893,
+          "name": "Advanced Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -4148,6 +4784,18 @@
           "id": 7442013999,
           "name": "Perilous Paradise Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442013992,
+          "name": "Perilous Paradise Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442013993,
+          "name": "Perilous Paradise Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -4207,6 +4855,30 @@
           "id": 7442014099,
           "name": "Autonomous Annihilation Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442014092,
+          "name": "Autonomous Annihilation Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442014093,
+          "name": "Autonomous Annihilation Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
+        },
+        {
+          "id": 7442014094,
+          "name": "Autonomous Annihilation Victory Cache 3",
+          "kind": "mission_cleared",
+          "cache": 3
+        },
+        {
+          "id": 7442014095,
+          "name": "Autonomous Annihilation Victory Cache 4",
+          "kind": "mission_cleared",
+          "cache": 4
         }
       ]
     },
@@ -4266,6 +4938,30 @@
           "id": 7442014199,
           "name": "Interloper Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442014192,
+          "name": "Interloper Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442014193,
+          "name": "Interloper Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
+        },
+        {
+          "id": 7442014194,
+          "name": "Interloper Victory Cache 3",
+          "kind": "mission_cleared",
+          "cache": 3
+        },
+        {
+          "id": 7442014195,
+          "name": "Interloper Victory Cache 4",
+          "kind": "mission_cleared",
+          "cache": 4
         }
       ]
     },
@@ -4331,6 +5027,12 @@
           "id": 7442014299,
           "name": "Intermediate Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442014292,
+          "name": "Intermediate Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
         }
       ]
     },
@@ -4396,6 +5098,18 @@
           "id": 7442014399,
           "name": "Mechanical Damnation Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442014392,
+          "name": "Mechanical Damnation Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442014393,
+          "name": "Mechanical Damnation Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -4431,6 +5145,30 @@
           "id": 7442014499,
           "name": "Oilpocalypse Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442014492,
+          "name": "Oilpocalypse Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442014493,
+          "name": "Oilpocalypse Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
+        },
+        {
+          "id": 7442014494,
+          "name": "Oilpocalypse Victory Cache 3",
+          "kind": "mission_cleared",
+          "cache": 3
+        },
+        {
+          "id": 7442014495,
+          "name": "Oilpocalypse Victory Cache 4",
+          "kind": "mission_cleared",
+          "cache": 4
         }
       ]
     },
@@ -4502,6 +5240,18 @@
           "id": 7442014599,
           "name": "Rescindment Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442014592,
+          "name": "Rescindment Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442014593,
+          "name": "Rescindment Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -4573,6 +5323,30 @@
           "id": 7442014699,
           "name": "Oil Overflow Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442014692,
+          "name": "Oil Overflow Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442014693,
+          "name": "Oil Overflow Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
+        },
+        {
+          "id": 7442014694,
+          "name": "Oil Overflow Victory Cache 3",
+          "kind": "mission_cleared",
+          "cache": 3
+        },
+        {
+          "id": 7442014695,
+          "name": "Oil Overflow Victory Cache 4",
+          "kind": "mission_cleared",
+          "cache": 4
         }
       ]
     },
@@ -4638,6 +5412,12 @@
           "id": 7442014799,
           "name": "Terrorist Simulation Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442014792,
+          "name": "Terrorist Simulation Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
         }
       ]
     },
@@ -4673,6 +5453,30 @@
           "id": 7442014899,
           "name": "Corroding Cadavers Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442014892,
+          "name": "Corroding Cadavers Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442014893,
+          "name": "Corroding Cadavers Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
+        },
+        {
+          "id": 7442014894,
+          "name": "Corroding Cadavers Victory Cache 3",
+          "kind": "mission_cleared",
+          "cache": 3
+        },
+        {
+          "id": 7442014895,
+          "name": "Corroding Cadavers Victory Cache 4",
+          "kind": "mission_cleared",
+          "cache": 4
         }
       ]
     },
@@ -4744,6 +5548,18 @@
           "id": 7442014999,
           "name": "Frosted Furnace Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442014992,
+          "name": "Frosted Furnace Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442014993,
+          "name": "Frosted Furnace Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -4809,6 +5625,18 @@
           "id": 7442015099,
           "name": "Grass Run Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442015092,
+          "name": "Grass Run Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442015093,
+          "name": "Grass Run Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -4856,6 +5684,12 @@
           "id": 7442015199,
           "name": "Greenhouse Roughhousing Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442015192,
+          "name": "Greenhouse Roughhousing Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
         }
       ]
     },
@@ -4927,6 +5761,18 @@
           "id": 7442015299,
           "name": "Rocky Ravage Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442015292,
+          "name": "Rocky Ravage Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442015293,
+          "name": "Rocky Ravage Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -4998,6 +5844,12 @@
           "id": 7442015399,
           "name": "Recruits Recognition Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442015392,
+          "name": "Recruits Recognition Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
         }
       ]
     },
@@ -5063,6 +5915,18 @@
           "id": 7442015499,
           "name": "Permafrost Panic Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442015492,
+          "name": "Permafrost Panic Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442015493,
+          "name": "Permafrost Panic Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -5128,6 +5992,18 @@
           "id": 7442015599,
           "name": "Shattered Iceshard Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442015592,
+          "name": "Shattered Iceshard Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442015593,
+          "name": "Shattered Iceshard Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -5175,6 +6051,30 @@
           "id": 7442015699,
           "name": "Raid Resort Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442015692,
+          "name": "Raid Resort Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442015693,
+          "name": "Raid Resort Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
+        },
+        {
+          "id": 7442015694,
+          "name": "Raid Resort Victory Cache 3",
+          "kind": "mission_cleared",
+          "cache": 3
+        },
+        {
+          "id": 7442015695,
+          "name": "Raid Resort Victory Cache 4",
+          "kind": "mission_cleared",
+          "cache": 4
         }
       ]
     },
@@ -5246,6 +6146,18 @@
           "id": 7442015799,
           "name": "Program Seppuku Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442015792,
+          "name": "Program Seppuku Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442015793,
+          "name": "Program Seppuku Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -5311,6 +6223,30 @@
           "id": 7442015899,
           "name": "Disruption Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442015892,
+          "name": "Disruption Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442015893,
+          "name": "Disruption Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
+        },
+        {
+          "id": 7442015894,
+          "name": "Disruption Victory Cache 3",
+          "kind": "mission_cleared",
+          "cache": 3
+        },
+        {
+          "id": 7442015895,
+          "name": "Disruption Victory Cache 4",
+          "kind": "mission_cleared",
+          "cache": 4
         }
       ]
     },
@@ -5376,6 +6312,18 @@
           "id": 7442015999,
           "name": "Signal Shutdown Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442015992,
+          "name": "Signal Shutdown Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442015993,
+          "name": "Signal Shutdown Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -5441,6 +6389,12 @@
           "id": 7442016099,
           "name": "Decimal Destruction Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442016092,
+          "name": "Decimal Destruction Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
         }
       ]
     },
@@ -5506,6 +6460,18 @@
           "id": 7442016199,
           "name": "Grutesque Getaway Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442016192,
+          "name": "Grutesque Getaway Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442016193,
+          "name": "Grutesque Getaway Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -5577,6 +6543,30 @@
           "id": 7442016299,
           "name": "Dissolution Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442016292,
+          "name": "Dissolution Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442016293,
+          "name": "Dissolution Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
+        },
+        {
+          "id": 7442016294,
+          "name": "Dissolution Victory Cache 3",
+          "kind": "mission_cleared",
+          "cache": 3
+        },
+        {
+          "id": 7442016295,
+          "name": "Dissolution Victory Cache 4",
+          "kind": "mission_cleared",
+          "cache": 4
         }
       ]
     },
@@ -5642,6 +6632,12 @@
           "id": 7442016399,
           "name": "Trouble in Mann Town Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442016392,
+          "name": "Trouble in Mann Town Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
         }
       ]
     },
@@ -5707,6 +6703,30 @@
           "id": 7442016499,
           "name": "Catastrophic Course Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442016492,
+          "name": "Catastrophic Course Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442016493,
+          "name": "Catastrophic Course Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
+        },
+        {
+          "id": 7442016494,
+          "name": "Catastrophic Course Victory Cache 3",
+          "kind": "mission_cleared",
+          "cache": 3
+        },
+        {
+          "id": 7442016495,
+          "name": "Catastrophic Course Victory Cache 4",
+          "kind": "mission_cleared",
+          "cache": 4
         }
       ]
     },
@@ -5766,6 +6786,12 @@
           "id": 7442016599,
           "name": "Mathematical Miscalculation Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442016592,
+          "name": "Mathematical Miscalculation Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
         }
       ]
     },
@@ -5843,6 +6869,12 @@
           "id": 7442016699,
           "name": "XLR-8 Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442016692,
+          "name": "XLR-8 Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
         }
       ]
     },
@@ -5908,6 +6940,18 @@
           "id": 7442016799,
           "name": "Manntenance Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442016792,
+          "name": "Manntenance Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442016793,
+          "name": "Manntenance Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -5979,6 +7023,30 @@
           "id": 7442016899,
           "name": "Monster Maneuvers Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442016892,
+          "name": "Monster Maneuvers Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442016893,
+          "name": "Monster Maneuvers Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
+        },
+        {
+          "id": 7442016894,
+          "name": "Monster Maneuvers Victory Cache 3",
+          "kind": "mission_cleared",
+          "cache": 3
+        },
+        {
+          "id": 7442016895,
+          "name": "Monster Maneuvers Victory Cache 4",
+          "kind": "mission_cleared",
+          "cache": 4
         }
       ]
     },
@@ -6050,6 +7118,12 @@
           "id": 7442016999,
           "name": "Bionic Breach Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442016992,
+          "name": "Bionic Breach Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
         }
       ]
     },
@@ -6128,6 +7202,18 @@
           "id": 7442017099,
           "name": "Breaking Point Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442017092,
+          "name": "Breaking Point Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442017093,
+          "name": "Breaking Point Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -6188,6 +7274,18 @@
           "id": 7442017199,
           "name": "Factory Reset Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442017192,
+          "name": "Factory Reset Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442017193,
+          "name": "Factory Reset Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -6249,6 +7347,18 @@
           "id": 7442017299,
           "name": "Scorched Skies Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442017292,
+          "name": "Scorched Skies Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442017293,
+          "name": "Scorched Skies Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -6315,6 +7425,30 @@
           "id": 7442017399,
           "name": "AX20 Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442017392,
+          "name": "AX20 Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442017393,
+          "name": "AX20 Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
+        },
+        {
+          "id": 7442017394,
+          "name": "AX20 Victory Cache 3",
+          "kind": "mission_cleared",
+          "cache": 3
+        },
+        {
+          "id": 7442017395,
+          "name": "AX20 Victory Cache 4",
+          "kind": "mission_cleared",
+          "cache": 4
         }
       ]
     },
@@ -6375,6 +7509,30 @@
           "id": 7442017499,
           "name": "Discordant Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442017492,
+          "name": "Discordant Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442017493,
+          "name": "Discordant Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
+        },
+        {
+          "id": 7442017494,
+          "name": "Discordant Victory Cache 3",
+          "kind": "mission_cleared",
+          "cache": 3
+        },
+        {
+          "id": 7442017495,
+          "name": "Discordant Victory Cache 4",
+          "kind": "mission_cleared",
+          "cache": 4
         }
       ]
     },
@@ -6441,6 +7599,12 @@
           "id": 7442017599,
           "name": "Calendartillery Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442017592,
+          "name": "Calendartillery Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
         }
       ]
     },
@@ -6512,6 +7676,12 @@
           "id": 7442017699,
           "name": "German Gears Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442017692,
+          "name": "German Gears Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
         }
       ]
     },
@@ -6578,6 +7748,18 @@
           "id": 7442017799,
           "name": "Assault and Battery Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442017792,
+          "name": "Assault and Battery Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442017793,
+          "name": "Assault and Battery Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -6649,6 +7831,18 @@
           "id": 7442017899,
           "name": "Cybernetic Carnage Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442017892,
+          "name": "Cybernetic Carnage Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442017893,
+          "name": "Cybernetic Carnage Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -6709,6 +7903,18 @@
           "id": 7442017999,
           "name": "Marathon Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442017992,
+          "name": "Marathon Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442017993,
+          "name": "Marathon Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -6775,6 +7981,18 @@
           "id": 7442018099,
           "name": "Munich Mugging Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442018092,
+          "name": "Munich Mugging Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442018093,
+          "name": "Munich Mugging Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -6846,6 +8064,18 @@
           "id": 7442018199,
           "name": "Township Tussle Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442018192,
+          "name": "Township Tussle Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442018193,
+          "name": "Township Tussle Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -6911,6 +8141,18 @@
           "id": 7442018299,
           "name": "Windy Windup Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442018292,
+          "name": "Windy Windup Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442018293,
+          "name": "Windy Windup Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -6982,6 +8224,30 @@
           "id": 7442018399,
           "name": "BX20 Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442018392,
+          "name": "BX20 Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442018393,
+          "name": "BX20 Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
+        },
+        {
+          "id": 7442018394,
+          "name": "BX20 Victory Cache 3",
+          "kind": "mission_cleared",
+          "cache": 3
+        },
+        {
+          "id": 7442018395,
+          "name": "BX20 Victory Cache 4",
+          "kind": "mission_cleared",
+          "cache": 4
         }
       ]
     },
@@ -7047,6 +8313,30 @@
           "id": 7442018499,
           "name": "Germanium Gearbox Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442018492,
+          "name": "Germanium Gearbox Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442018493,
+          "name": "Germanium Gearbox Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
+        },
+        {
+          "id": 7442018494,
+          "name": "Germanium Gearbox Victory Cache 3",
+          "kind": "mission_cleared",
+          "cache": 3
+        },
+        {
+          "id": 7442018495,
+          "name": "Germanium Gearbox Victory Cache 4",
+          "kind": "mission_cleared",
+          "cache": 4
         }
       ]
     },
@@ -7113,6 +8403,12 @@
           "id": 7442018599,
           "name": "CPU Spookies Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442018592,
+          "name": "CPU Spookies Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
         }
       ]
     },
@@ -7184,6 +8480,12 @@
           "id": 7442018699,
           "name": "Phantasm Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442018692,
+          "name": "Phantasm Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
         }
       ]
     },
@@ -7262,6 +8564,18 @@
           "id": 7442018799,
           "name": "Horrorsome Happenings Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442018792,
+          "name": "Horrorsome Happenings Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442018793,
+          "name": "Horrorsome Happenings Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -7334,6 +8648,18 @@
           "id": 7442018899,
           "name": "Misfortunes Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442018892,
+          "name": "Misfortunes Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442018893,
+          "name": "Misfortunes Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -7400,6 +8726,30 @@
           "id": 7442018999,
           "name": "Deadweight Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442018992,
+          "name": "Deadweight Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442018993,
+          "name": "Deadweight Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
+        },
+        {
+          "id": 7442018994,
+          "name": "Deadweight Victory Cache 3",
+          "kind": "mission_cleared",
+          "cache": 3
+        },
+        {
+          "id": 7442018995,
+          "name": "Deadweight Victory Cache 4",
+          "kind": "mission_cleared",
+          "cache": 4
         }
       ]
     },
@@ -7478,6 +8828,18 @@
           "id": 7442019099,
           "name": "Gold And Grit Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442019092,
+          "name": "Gold And Grit Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442019093,
+          "name": "Gold And Grit Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -7550,6 +8912,18 @@
           "id": 7442019199,
           "name": "Reboot Rush Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442019192,
+          "name": "Reboot Rush Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442019193,
+          "name": "Reboot Rush Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -7622,6 +8996,18 @@
           "id": 7442019299,
           "name": "Thermal Thunder Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442019292,
+          "name": "Thermal Thunder Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442019293,
+          "name": "Thermal Thunder Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -7700,6 +9086,30 @@
           "id": 7442019399,
           "name": "Diamond And Dross Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442019392,
+          "name": "Diamond And Dross Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442019393,
+          "name": "Diamond And Dross Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
+        },
+        {
+          "id": 7442019394,
+          "name": "Diamond And Dross Victory Cache 3",
+          "kind": "mission_cleared",
+          "cache": 3
+        },
+        {
+          "id": 7442019395,
+          "name": "Diamond And Dross Victory Cache 4",
+          "kind": "mission_cleared",
+          "cache": 4
         }
       ]
     },
@@ -7778,6 +9188,12 @@
           "id": 7442019499,
           "name": "Bronze And Bristle Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442019492,
+          "name": "Bronze And Bristle Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
         }
       ]
     },
@@ -7843,6 +9259,12 @@
           "id": 7442019599,
           "name": "Nuclear Threat Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442019592,
+          "name": "Nuclear Threat Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
         }
       ]
     },
@@ -7885,6 +9307,18 @@
           "id": 7442019699,
           "name": "Dynamic Disaster Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442019692,
+          "name": "Dynamic Disaster Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442019693,
+          "name": "Dynamic Disaster Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -7957,6 +9391,18 @@
           "id": 7442019799,
           "name": "Tincan Termination Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442019792,
+          "name": "Tincan Termination Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442019793,
+          "name": "Tincan Termination Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -8023,6 +9469,30 @@
           "id": 7442019899,
           "name": "Codename Omega Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442019892,
+          "name": "Codename Omega Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442019893,
+          "name": "Codename Omega Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
+        },
+        {
+          "id": 7442019894,
+          "name": "Codename Omega Victory Cache 3",
+          "kind": "mission_cleared",
+          "cache": 3
+        },
+        {
+          "id": 7442019895,
+          "name": "Codename Omega Victory Cache 4",
+          "kind": "mission_cleared",
+          "cache": 4
         }
       ]
     },
@@ -8083,6 +9553,18 @@
           "id": 7442019999,
           "name": "Denominator Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442019992,
+          "name": "Denominator Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442019993,
+          "name": "Denominator Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -8143,6 +9625,18 @@
           "id": 7442020099,
           "name": "Numerator Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442020092,
+          "name": "Numerator Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442020093,
+          "name": "Numerator Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -8179,6 +9673,18 @@
           "id": 7442020199,
           "name": "Reanimation Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442020192,
+          "name": "Reanimation Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442020193,
+          "name": "Reanimation Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -8251,6 +9757,12 @@
           "id": 7442020299,
           "name": "Terminal Lucidity Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442020292,
+          "name": "Terminal Lucidity Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
         }
       ]
     },
@@ -8323,6 +9835,12 @@
           "id": 7442020399,
           "name": "Wretched Witchery Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442020392,
+          "name": "Wretched Witchery Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
         }
       ]
     },
@@ -8389,6 +9907,18 @@
           "id": 7442020499,
           "name": "Sed De Sangre Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442020492,
+          "name": "Sed De Sangre Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442020493,
+          "name": "Sed De Sangre Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -8467,6 +9997,18 @@
           "id": 7442020599,
           "name": "Spooky Spiral Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442020592,
+          "name": "Spooky Spiral Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442020593,
+          "name": "Spooky Spiral Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -8545,6 +10087,18 @@
           "id": 7442020699,
           "name": "Bog Business Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442020692,
+          "name": "Bog Business Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442020693,
+          "name": "Bog Business Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -8611,6 +10165,18 @@
           "id": 7442020799,
           "name": "Dire Mire Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442020792,
+          "name": "Dire Mire Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442020793,
+          "name": "Dire Mire Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -8683,6 +10249,18 @@
           "id": 7442020899,
           "name": "Mud Maker Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442020892,
+          "name": "Mud Maker Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442020893,
+          "name": "Mud Maker Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -8755,6 +10333,12 @@
           "id": 7442020999,
           "name": "Crocodile Operation Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442020992,
+          "name": "Crocodile Operation Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
         }
       ]
     },
@@ -8815,6 +10399,18 @@
           "id": 7442021099,
           "name": "Point Of Impact Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442021092,
+          "name": "Point Of Impact Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442021093,
+          "name": "Point Of Impact Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -8881,6 +10477,18 @@
           "id": 7442021199,
           "name": "Remedic Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442021192,
+          "name": "Remedic Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442021193,
+          "name": "Remedic Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -8942,6 +10550,18 @@
           "id": 7442021299,
           "name": "Computer Crash Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442021292,
+          "name": "Computer Crash Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442021293,
+          "name": "Computer Crash Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -8978,6 +10598,30 @@
           "id": 7442021399,
           "name": "Trespasser Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442021392,
+          "name": "Trespasser Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442021393,
+          "name": "Trespasser Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
+        },
+        {
+          "id": 7442021394,
+          "name": "Trespasser Victory Cache 3",
+          "kind": "mission_cleared",
+          "cache": 3
+        },
+        {
+          "id": 7442021395,
+          "name": "Trespasser Victory Cache 4",
+          "kind": "mission_cleared",
+          "cache": 4
         }
       ]
     },
@@ -9014,6 +10658,30 @@
           "id": 7442021499,
           "name": "Trespasser Remaster Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442021492,
+          "name": "Trespasser Remaster Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442021493,
+          "name": "Trespasser Remaster Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
+        },
+        {
+          "id": 7442021494,
+          "name": "Trespasser Remaster Victory Cache 3",
+          "kind": "mission_cleared",
+          "cache": 3
+        },
+        {
+          "id": 7442021495,
+          "name": "Trespasser Remaster Victory Cache 4",
+          "kind": "mission_cleared",
+          "cache": 4
         }
       ]
     },
@@ -9086,6 +10754,18 @@
           "id": 7442021599,
           "name": "Abyssal Atrocities Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442021592,
+          "name": "Abyssal Atrocities Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442021593,
+          "name": "Abyssal Atrocities Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -9140,6 +10820,18 @@
           "id": 7442021699,
           "name": "Catastrophic Conjuring Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442021692,
+          "name": "Catastrophic Conjuring Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442021693,
+          "name": "Catastrophic Conjuring Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -9212,6 +10904,18 @@
           "id": 7442021799,
           "name": "Dismal Devilry Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442021792,
+          "name": "Dismal Devilry Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442021793,
+          "name": "Dismal Devilry Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -9272,6 +10976,18 @@
           "id": 7442021899,
           "name": "Dust To Dust Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442021892,
+          "name": "Dust To Dust Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442021893,
+          "name": "Dust To Dust Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -9332,6 +11048,30 @@
           "id": 7442021999,
           "name": "Celestial Broken Tomb Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442021992,
+          "name": "Celestial Broken Tomb Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442021993,
+          "name": "Celestial Broken Tomb Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
+        },
+        {
+          "id": 7442021994,
+          "name": "Celestial Broken Tomb Victory Cache 3",
+          "kind": "mission_cleared",
+          "cache": 3
+        },
+        {
+          "id": 7442021995,
+          "name": "Celestial Broken Tomb Victory Cache 4",
+          "kind": "mission_cleared",
+          "cache": 4
         }
       ]
     },
@@ -9391,6 +11131,12 @@
           "id": 7442022099,
           "name": "Midnight Massacre Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442022092,
+          "name": "Midnight Massacre Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
         }
       ]
     },
@@ -9457,6 +11203,18 @@
           "id": 7442022199,
           "name": "Frozen Freaks Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442022192,
+          "name": "Frozen Freaks Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442022193,
+          "name": "Frozen Freaks Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -9523,6 +11281,18 @@
           "id": 7442022299,
           "name": "Launch Sequence Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442022292,
+          "name": "Launch Sequence Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442022293,
+          "name": "Launch Sequence Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -9559,6 +11329,18 @@
           "id": 7442022399,
           "name": "Rusty Rapture Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442022392,
+          "name": "Rusty Rapture Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442022393,
+          "name": "Rusty Rapture Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -9625,6 +11407,18 @@
           "id": 7442022499,
           "name": "Snowblitz Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442022492,
+          "name": "Snowblitz Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442022493,
+          "name": "Snowblitz Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -9685,6 +11479,30 @@
           "id": 7442022599,
           "name": "Cascading Steel Swarm Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442022592,
+          "name": "Cascading Steel Swarm Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442022593,
+          "name": "Cascading Steel Swarm Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
+        },
+        {
+          "id": 7442022594,
+          "name": "Cascading Steel Swarm Victory Cache 3",
+          "kind": "mission_cleared",
+          "cache": 3
+        },
+        {
+          "id": 7442022595,
+          "name": "Cascading Steel Swarm Victory Cache 4",
+          "kind": "mission_cleared",
+          "cache": 4
         }
       ]
     },
@@ -9751,6 +11569,30 @@
           "id": 7442022699,
           "name": "Northern Lights Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442022692,
+          "name": "Northern Lights Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442022693,
+          "name": "Northern Lights Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
+        },
+        {
+          "id": 7442022694,
+          "name": "Northern Lights Victory Cache 3",
+          "kind": "mission_cleared",
+          "cache": 3
+        },
+        {
+          "id": 7442022695,
+          "name": "Northern Lights Victory Cache 4",
+          "kind": "mission_cleared",
+          "cache": 4
         }
       ]
     },
@@ -9811,6 +11653,18 @@
           "id": 7442022799,
           "name": "Arctic Arrangement Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442022792,
+          "name": "Arctic Arrangement Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442022793,
+          "name": "Arctic Arrangement Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -9871,6 +11725,30 @@
           "id": 7442022899,
           "name": "Blackout Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442022892,
+          "name": "Blackout Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442022893,
+          "name": "Blackout Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
+        },
+        {
+          "id": 7442022894,
+          "name": "Blackout Victory Cache 3",
+          "kind": "mission_cleared",
+          "cache": 3
+        },
+        {
+          "id": 7442022895,
+          "name": "Blackout Victory Cache 4",
+          "kind": "mission_cleared",
+          "cache": 4
         }
       ]
     },
@@ -9937,6 +11815,12 @@
           "id": 7442022999,
           "name": "Bloodpour Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442022992,
+          "name": "Bloodpour Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
         }
       ]
     },
@@ -9997,6 +11881,12 @@
           "id": 7442023099,
           "name": "Technical Terror Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442023092,
+          "name": "Technical Terror Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
         }
       ]
     },
@@ -10063,6 +11953,18 @@
           "id": 7442023199,
           "name": "Deprecated Designs Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442023192,
+          "name": "Deprecated Designs Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442023193,
+          "name": "Deprecated Designs Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -10099,6 +12001,18 @@
           "id": 7442023299,
           "name": "Ghoulish Genesis Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442023292,
+          "name": "Ghoulish Genesis Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442023293,
+          "name": "Ghoulish Genesis Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -10134,6 +12048,30 @@
           "id": 7442023399,
           "name": "Last Stand Of Dead Men Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442023392,
+          "name": "Last Stand Of Dead Men Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442023393,
+          "name": "Last Stand Of Dead Men Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
+        },
+        {
+          "id": 7442023394,
+          "name": "Last Stand Of Dead Men Victory Cache 3",
+          "kind": "mission_cleared",
+          "cache": 3
+        },
+        {
+          "id": 7442023395,
+          "name": "Last Stand Of Dead Men Victory Cache 4",
+          "kind": "mission_cleared",
+          "cache": 4
         }
       ]
     },
@@ -10194,6 +12132,18 @@
           "id": 7442023499,
           "name": "Wet Wreckage Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442023492,
+          "name": "Wet Wreckage Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442023493,
+          "name": "Wet Wreckage Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -10236,6 +12186,18 @@
           "id": 7442023599,
           "name": "Backup Security Protocol Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442023592,
+          "name": "Backup Security Protocol Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442023593,
+          "name": "Backup Security Protocol Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -10290,6 +12252,18 @@
           "id": 7442023699,
           "name": "Medieval Madness Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442023692,
+          "name": "Medieval Madness Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442023693,
+          "name": "Medieval Madness Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -10344,6 +12318,18 @@
           "id": 7442023799,
           "name": "Brain Taker Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442023792,
+          "name": "Brain Taker Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442023793,
+          "name": "Brain Taker Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -10409,6 +12395,30 @@
           "id": 7442023899,
           "name": "Impending Apocalypse Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442023892,
+          "name": "Impending Apocalypse Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442023893,
+          "name": "Impending Apocalypse Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
+        },
+        {
+          "id": 7442023894,
+          "name": "Impending Apocalypse Victory Cache 3",
+          "kind": "mission_cleared",
+          "cache": 3
+        },
+        {
+          "id": 7442023895,
+          "name": "Impending Apocalypse Victory Cache 4",
+          "kind": "mission_cleared",
+          "cache": 4
         }
       ]
     },
@@ -10457,6 +12467,30 @@
           "id": 7442023999,
           "name": "Slaughterhouse Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442023992,
+          "name": "Slaughterhouse Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442023993,
+          "name": "Slaughterhouse Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
+        },
+        {
+          "id": 7442023994,
+          "name": "Slaughterhouse Victory Cache 3",
+          "kind": "mission_cleared",
+          "cache": 3
+        },
+        {
+          "id": 7442023995,
+          "name": "Slaughterhouse Victory Cache 4",
+          "kind": "mission_cleared",
+          "cache": 4
         }
       ]
     },
@@ -10517,6 +12551,18 @@
           "id": 7442024099,
           "name": "Korpoelec Invasion Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442024092,
+          "name": "Korpoelec Invasion Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442024093,
+          "name": "Korpoelec Invasion Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -10582,6 +12628,18 @@
           "id": 7442024199,
           "name": "Wet Warfare Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442024192,
+          "name": "Wet Warfare Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442024193,
+          "name": "Wet Warfare Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -10642,6 +12700,18 @@
           "id": 7442024299,
           "name": "Galois Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442024292,
+          "name": "Galois Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442024293,
+          "name": "Galois Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -10678,6 +12748,18 @@
           "id": 7442024399,
           "name": "Awakening Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442024392,
+          "name": "Awakening Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442024393,
+          "name": "Awakening Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -10750,6 +12832,18 @@
           "id": 7442024499,
           "name": "Crop Circles Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442024492,
+          "name": "Crop Circles Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442024493,
+          "name": "Crop Circles Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -10816,6 +12910,18 @@
           "id": 7442024599,
           "name": "Mobocracy Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442024592,
+          "name": "Mobocracy Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442024593,
+          "name": "Mobocracy Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -10882,6 +12988,18 @@
           "id": 7442024699,
           "name": "Ominous Outback Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442024692,
+          "name": "Ominous Outback Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442024693,
+          "name": "Ominous Outback Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -10954,6 +13072,18 @@
           "id": 7442024799,
           "name": "Midnight Patrol Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442024792,
+          "name": "Midnight Patrol Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442024793,
+          "name": "Midnight Patrol Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -11020,6 +13150,18 @@
           "id": 7442024899,
           "name": "Shrouded Shrieks Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442024892,
+          "name": "Shrouded Shrieks Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442024893,
+          "name": "Shrouded Shrieks Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -11080,6 +13222,12 @@
           "id": 7442024999,
           "name": "Legacy Heresy Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442024992,
+          "name": "Legacy Heresy Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
         }
       ]
     },
@@ -11158,6 +13306,18 @@
           "id": 7442025099,
           "name": "Castle Crush Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442025092,
+          "name": "Castle Crush Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442025093,
+          "name": "Castle Crush Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -11224,6 +13384,18 @@
           "id": 7442025199,
           "name": "Ledmotif Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442025192,
+          "name": "Ledmotif Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442025193,
+          "name": "Ledmotif Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -11302,6 +13474,18 @@
           "id": 7442025299,
           "name": "Property Inspection Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442025292,
+          "name": "Property Inspection Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442025293,
+          "name": "Property Inspection Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -11338,6 +13522,18 @@
           "id": 7442025399,
           "name": "Secret Struggle Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442025392,
+          "name": "Secret Struggle Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442025393,
+          "name": "Secret Struggle Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -11404,6 +13600,12 @@
           "id": 7442025499,
           "name": "Martian Civilizations Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442025492,
+          "name": "Martian Civilizations Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
         }
       ]
     },
@@ -11463,6 +13665,30 @@
           "id": 7442025599,
           "name": "Necropolis Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442025592,
+          "name": "Necropolis Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442025593,
+          "name": "Necropolis Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
+        },
+        {
+          "id": 7442025594,
+          "name": "Necropolis Victory Cache 3",
+          "kind": "mission_cleared",
+          "cache": 3
+        },
+        {
+          "id": 7442025595,
+          "name": "Necropolis Victory Cache 4",
+          "kind": "mission_cleared",
+          "cache": 4
         }
       ]
     },
@@ -11535,6 +13761,18 @@
           "id": 7442025699,
           "name": "Nightsky Nightmare Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442025692,
+          "name": "Nightsky Nightmare Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442025693,
+          "name": "Nightsky Nightmare Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -11595,6 +13833,30 @@
           "id": 7442025799,
           "name": "Condemned Conflict Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442025792,
+          "name": "Condemned Conflict Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442025793,
+          "name": "Condemned Conflict Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
+        },
+        {
+          "id": 7442025794,
+          "name": "Condemned Conflict Victory Cache 3",
+          "kind": "mission_cleared",
+          "cache": 3
+        },
+        {
+          "id": 7442025795,
+          "name": "Condemned Conflict Victory Cache 4",
+          "kind": "mission_cleared",
+          "cache": 4
         }
       ]
     },
@@ -11654,6 +13916,30 @@
           "id": 7442025899,
           "name": "Death Con One Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442025892,
+          "name": "Death Con One Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442025893,
+          "name": "Death Con One Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
+        },
+        {
+          "id": 7442025894,
+          "name": "Death Con One Victory Cache 3",
+          "kind": "mission_cleared",
+          "cache": 3
+        },
+        {
+          "id": 7442025895,
+          "name": "Death Con One Victory Cache 4",
+          "kind": "mission_cleared",
+          "cache": 4
         }
       ]
     },
@@ -11720,6 +14006,12 @@
           "id": 7442025999,
           "name": "Mountain Of Fear Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442025992,
+          "name": "Mountain Of Fear Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
         }
       ]
     },
@@ -11786,6 +14078,12 @@
           "id": 7442026099,
           "name": "Night Of Fire Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442026092,
+          "name": "Night Of Fire Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
         }
       ]
     },
@@ -11852,6 +14150,18 @@
           "id": 7442026199,
           "name": "Baneful Harvest Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442026192,
+          "name": "Baneful Harvest Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442026193,
+          "name": "Baneful Harvest Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -11930,6 +14240,18 @@
           "id": 7442026299,
           "name": "Distorted Reality Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442026292,
+          "name": "Distorted Reality Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442026293,
+          "name": "Distorted Reality Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -11996,6 +14318,18 @@
           "id": 7442026399,
           "name": "Syntax Error Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442026392,
+          "name": "Syntax Error Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442026393,
+          "name": "Syntax Error Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -12044,6 +14378,30 @@
           "id": 7442026499,
           "name": "0 Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442026492,
+          "name": "0 Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442026493,
+          "name": "0 Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
+        },
+        {
+          "id": 7442026494,
+          "name": "0 Victory Cache 3",
+          "kind": "mission_cleared",
+          "cache": 3
+        },
+        {
+          "id": 7442026495,
+          "name": "0 Victory Cache 4",
+          "kind": "mission_cleared",
+          "cache": 4
         }
       ]
     },
@@ -12110,6 +14468,30 @@
           "id": 7442026599,
           "name": "Call Of The Void Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442026592,
+          "name": "Call Of The Void Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442026593,
+          "name": "Call Of The Void Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
+        },
+        {
+          "id": 7442026594,
+          "name": "Call Of The Void Victory Cache 3",
+          "kind": "mission_cleared",
+          "cache": 3
+        },
+        {
+          "id": 7442026595,
+          "name": "Call Of The Void Victory Cache 4",
+          "kind": "mission_cleared",
+          "cache": 4
         }
       ]
     },
@@ -12188,6 +14570,18 @@
           "id": 7442026699,
           "name": "Waters Of Wrath Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442026692,
+          "name": "Waters Of Wrath Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442026693,
+          "name": "Waters Of Wrath Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -12253,6 +14647,12 @@
           "id": 7442026799,
           "name": "Orson Oligarchy Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442026792,
+          "name": "Orson Oligarchy Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
         }
       ]
     },
@@ -12313,6 +14713,18 @@
           "id": 7442026899,
           "name": "Inverted Incursion Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442026892,
+          "name": "Inverted Incursion Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442026893,
+          "name": "Inverted Incursion Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -12379,6 +14791,18 @@
           "id": 7442026999,
           "name": "Recollection Repression Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442026992,
+          "name": "Recollection Repression Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442026993,
+          "name": "Recollection Repression Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -12450,6 +14874,18 @@
           "id": 7442027099,
           "name": "Mannure Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442027092,
+          "name": "Mannure Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442027093,
+          "name": "Mannure Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -12515,6 +14951,18 @@
           "id": 7442027199,
           "name": "Overclock Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442027192,
+          "name": "Overclock Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442027193,
+          "name": "Overclock Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -12575,6 +15023,12 @@
           "id": 7442027299,
           "name": "Reddish Rebellion Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442027292,
+          "name": "Reddish Rebellion Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
         }
       ]
     },
@@ -12647,6 +15101,18 @@
           "id": 7442027399,
           "name": "Frantic Flood Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442027392,
+          "name": "Frantic Flood Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442027393,
+          "name": "Frantic Flood Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -12707,6 +15173,30 @@
           "id": 7442027499,
           "name": "Enduring Exceptions Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442027492,
+          "name": "Enduring Exceptions Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442027493,
+          "name": "Enduring Exceptions Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
+        },
+        {
+          "id": 7442027494,
+          "name": "Enduring Exceptions Victory Cache 3",
+          "kind": "mission_cleared",
+          "cache": 3
+        },
+        {
+          "id": 7442027495,
+          "name": "Enduring Exceptions Victory Cache 4",
+          "kind": "mission_cleared",
+          "cache": 4
         }
       ]
     },
@@ -12766,6 +15256,12 @@
           "id": 7442027599,
           "name": "Industrial Injection Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442027592,
+          "name": "Industrial Injection Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
         }
       ]
     },
@@ -12809,6 +15305,18 @@
           "id": 7442027699,
           "name": "Short Circuit Execution Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442027692,
+          "name": "Short Circuit Execution Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442027693,
+          "name": "Short Circuit Execution Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -12875,6 +15383,12 @@
           "id": 7442027799,
           "name": "Breaking Walls Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442027792,
+          "name": "Breaking Walls Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
         }
       ]
     },
@@ -12935,6 +15449,12 @@
           "id": 7442027899,
           "name": "Spanner Switchup Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442027892,
+          "name": "Spanner Switchup Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
         }
       ]
     },
@@ -12996,6 +15516,18 @@
           "id": 7442027999,
           "name": "Ocean Commotion Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442027992,
+          "name": "Ocean Commotion Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442027993,
+          "name": "Ocean Commotion Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -13027,6 +15559,18 @@
           "id": 7442028099,
           "name": "Bauernhof Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442028092,
+          "name": "Bauernhof Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442028093,
+          "name": "Bauernhof Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -13087,6 +15631,18 @@
           "id": 7442028199,
           "name": "Sudden Equinox Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442028192,
+          "name": "Sudden Equinox Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442028193,
+          "name": "Sudden Equinox Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -13147,6 +15703,30 @@
           "id": 7442028299,
           "name": "Gilead Gehenom Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442028292,
+          "name": "Gilead Gehenom Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442028293,
+          "name": "Gilead Gehenom Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
+        },
+        {
+          "id": 7442028294,
+          "name": "Gilead Gehenom Victory Cache 3",
+          "kind": "mission_cleared",
+          "cache": 3
+        },
+        {
+          "id": 7442028295,
+          "name": "Gilead Gehenom Victory Cache 4",
+          "kind": "mission_cleared",
+          "cache": 4
         }
       ]
     },
@@ -13207,6 +15787,18 @@
           "id": 7442028399,
           "name": "Vicious Delicious Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442028392,
+          "name": "Vicious Delicious Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442028393,
+          "name": "Vicious Delicious Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -13254,6 +15846,30 @@
           "id": 7442028499,
           "name": "Spooky Sprockets Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442028492,
+          "name": "Spooky Sprockets Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442028493,
+          "name": "Spooky Sprockets Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
+        },
+        {
+          "id": 7442028494,
+          "name": "Spooky Sprockets Victory Cache 3",
+          "kind": "mission_cleared",
+          "cache": 3
+        },
+        {
+          "id": 7442028495,
+          "name": "Spooky Sprockets Victory Cache 4",
+          "kind": "mission_cleared",
+          "cache": 4
         }
       ]
     },
@@ -13308,6 +15924,30 @@
           "id": 7442028599,
           "name": "When The Sun Shines Red Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442028592,
+          "name": "When The Sun Shines Red Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442028593,
+          "name": "When The Sun Shines Red Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
+        },
+        {
+          "id": 7442028594,
+          "name": "When The Sun Shines Red Victory Cache 3",
+          "kind": "mission_cleared",
+          "cache": 3
+        },
+        {
+          "id": 7442028595,
+          "name": "When The Sun Shines Red Victory Cache 4",
+          "kind": "mission_cleared",
+          "cache": 4
         }
       ]
     },
@@ -13374,6 +16014,12 @@
           "id": 7442028699,
           "name": "Crescent Calamity Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442028692,
+          "name": "Crescent Calamity Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
         }
       ]
     },
@@ -13434,6 +16080,12 @@
           "id": 7442028799,
           "name": "Sunburn Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442028792,
+          "name": "Sunburn Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
         }
       ]
     },
@@ -13505,6 +16157,12 @@
           "id": 7442028899,
           "name": "Twilight Of Terror Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442028892,
+          "name": "Twilight Of Terror Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
         }
       ]
     },
@@ -13583,6 +16241,18 @@
           "id": 7442028999,
           "name": "Claire De Lune Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442028992,
+          "name": "Claire De Lune Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442028993,
+          "name": "Claire De Lune Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -13655,6 +16325,12 @@
           "id": 7442029099,
           "name": "Logging Dreadwood Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442029092,
+          "name": "Logging Dreadwood Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
         }
       ]
     },
@@ -13721,6 +16397,18 @@
           "id": 7442029199,
           "name": "Respiration Restriction Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442029192,
+          "name": "Respiration Restriction Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442029193,
+          "name": "Respiration Restriction Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -13787,6 +16475,12 @@
           "id": 7442029299,
           "name": "Hazardous Haze Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442029292,
+          "name": "Hazardous Haze Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
         }
       ]
     },
@@ -13853,6 +16547,18 @@
           "id": 7442029399,
           "name": "Shivering Slumber Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442029392,
+          "name": "Shivering Slumber Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442029393,
+          "name": "Shivering Slumber Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -13919,6 +16625,30 @@
           "id": 7442029499,
           "name": "Waters Of A Robot Regime Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442029492,
+          "name": "Waters Of A Robot Regime Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442029493,
+          "name": "Waters Of A Robot Regime Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
+        },
+        {
+          "id": 7442029494,
+          "name": "Waters Of A Robot Regime Victory Cache 3",
+          "kind": "mission_cleared",
+          "cache": 3
+        },
+        {
+          "id": 7442029495,
+          "name": "Waters Of A Robot Regime Victory Cache 4",
+          "kind": "mission_cleared",
+          "cache": 4
         }
       ]
     },
@@ -13979,6 +16709,18 @@
           "id": 7442029599,
           "name": "Shogun Slaughter Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442029592,
+          "name": "Shogun Slaughter Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442029593,
+          "name": "Shogun Slaughter Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -14045,6 +16787,18 @@
           "id": 7442029699,
           "name": "Accursed Aggrievocation Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442029692,
+          "name": "Accursed Aggrievocation Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442029693,
+          "name": "Accursed Aggrievocation Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -14081,6 +16835,30 @@
           "id": 7442029799,
           "name": "Echoes Of A Warzone Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442029792,
+          "name": "Echoes Of A Warzone Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442029793,
+          "name": "Echoes Of A Warzone Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
+        },
+        {
+          "id": 7442029794,
+          "name": "Echoes Of A Warzone Victory Cache 3",
+          "kind": "mission_cleared",
+          "cache": 3
+        },
+        {
+          "id": 7442029795,
+          "name": "Echoes Of A Warzone Victory Cache 4",
+          "kind": "mission_cleared",
+          "cache": 4
         }
       ]
     },
@@ -14142,6 +16920,18 @@
           "id": 7442029899,
           "name": "White Noise Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442029892,
+          "name": "White Noise Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442029893,
+          "name": "White Noise Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -14190,6 +16980,18 @@
           "id": 7442029999,
           "name": "Terrorstorm Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442029992,
+          "name": "Terrorstorm Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442029993,
+          "name": "Terrorstorm Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -14256,6 +17058,12 @@
           "id": 7442030099,
           "name": "Bloodwater Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442030092,
+          "name": "Bloodwater Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
         }
       ]
     },
@@ -14322,6 +17130,12 @@
           "id": 7442030199,
           "name": "River Of Despair Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442030192,
+          "name": "River Of Despair Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
         }
       ]
     },
@@ -14394,6 +17208,18 @@
           "id": 7442030299,
           "name": "Forgotten Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442030292,
+          "name": "Forgotten Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442030293,
+          "name": "Forgotten Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -14460,6 +17286,18 @@
           "id": 7442030399,
           "name": "Recalled To Life Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442030392,
+          "name": "Recalled To Life Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442030393,
+          "name": "Recalled To Life Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -14526,6 +17364,18 @@
           "id": 7442030499,
           "name": "Mesa Malware Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442030492,
+          "name": "Mesa Malware Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442030493,
+          "name": "Mesa Malware Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     },
@@ -14592,6 +17442,18 @@
           "id": 7442030599,
           "name": "Omega Machine Complete",
           "kind": "mission_cleared"
+        },
+        {
+          "id": 7442030592,
+          "name": "Omega Machine Victory Cache 1",
+          "kind": "mission_cleared",
+          "cache": 1
+        },
+        {
+          "id": 7442030593,
+          "name": "Omega Machine Victory Cache 2",
+          "kind": "mission_cleared",
+          "cache": 2
         }
       ]
     }

@@ -28,18 +28,61 @@ var ObjectiveKinds = []ObjectiveKind{
 // Key is the string on the wire between the plugin and the bridge.
 func (k ObjectiveKind) Key() string { return objectiveKeys[k] }
 
-// Location is one check. Wave is zero for a mission clear.
+// Location is one check. Wave is zero for a mission clear. Cache is zero for
+// every check but a victory cache, where it counts from 1.
 type Location struct {
 	ID      int64
 	Name    string
 	Kind    ObjectiveKind
 	Mission MissionID
 	Wave    uint8
+	Cache   uint8
+}
+
+/*
+VictoryCaches is how many extra checks a clear at this tier pays when the
+victory_caches option is on: a normal clear stays one check, and an expert or
+haunted one is worth five.
+
+The ladder is Roseburst's (gh-83): 1, 2, 3, 5. It is the cheap answer to a run
+being short on checks, because it adds no mission, scrubs no pop file and
+needs no new event from the plugin: a clear is reported once and the bridge
+records every cache the seed holds for it.
+*/
+func (d Difficulty) VictoryCaches() uint8 {
+	switch d {
+	case DifficultyIntermediate:
+		return 1
+	case DifficultyAdvanced:
+		return 2
+	case DifficultyExpert, DifficultyHaunted:
+		return 4
+	default:
+		return 0
+	}
+}
+
+// VictoryCacheLocations is every cache this mission's clear can pay, in order.
+// Empty for a normal mission.
+func (m Mission) VictoryCacheLocations() []Location {
+	count := m.Difficulty.VictoryCaches()
+	caches := make([]Location, 0, count)
+	for n := uint8(1); n <= count; n++ {
+		caches = append(caches, Location{
+			ID:      m.VictoryCacheLocationID(n),
+			Name:    m.VictoryCacheLocationName(n),
+			Kind:    ObjectiveMissionCleared,
+			Mission: m.ID,
+			Cache:   n,
+		})
+	}
+	return caches
 }
 
 // Locations is every check in the game, mission by mission: the waves in
 // order, then the tank and the giant if the mission holds them, then the
-// mission clear.
+// mission clear, then the victory caches its tier pays. The apworld includes
+// the caches only when the option asks for them.
 var Locations = buildLocations()
 
 func buildLocations() []Location {
@@ -76,6 +119,7 @@ func buildLocations() []Location {
 			Kind:    ObjectiveMissionCleared,
 			Mission: m.ID,
 		})
+		all = append(all, m.VictoryCacheLocations()...)
 	}
 	return all
 }
