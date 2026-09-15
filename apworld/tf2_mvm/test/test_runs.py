@@ -45,6 +45,12 @@ class TestDefaults(TF2MvMTestBase):
         self.assertEqual({}, self.world.mission_modifiers)
         self.assertEqual({}, self.world.fill_slot_data()["mission_modifiers"])
 
+    def test_slots_are_one_item_for_every_class_by_default(self) -> None:
+        self.assertFalse(self.world.fill_slot_data()["class_weapon_slots"])
+        names = {item.name for item in self.multiworld.itempool} | set(self.world.start_items)
+        self.assertIn(data.PROGRESSIVE_WEAPON_SLOT, names)
+        self.assertFalse(names & set(data.CLASS_SLOT_ITEMS.values()))
+
 
 class TestMissionModifiers(TF2MvMTestBase):
     options: ClassVar[dict[str, Any]] = {
@@ -64,6 +70,39 @@ class TestMissionModifiers(TF2MvMTestBase):
         for modifiers in self.world.mission_modifiers.values():
             keys = {modifier["key"] for modifier in modifiers}
             self.assertLessEqual(len(keys & gravity), 1)
+
+
+class TestClassWeaponSlots(TF2MvMTestBase):
+    options: ClassVar[dict[str, Any]] = {
+        "class_weapon_slots": True,
+        "difficulty_pool": "advanced",
+        "mission_count": 6,
+    }
+
+    def test_each_class_earns_its_own_slots(self) -> None:
+        self.assertTrue(self.world.fill_slot_data()["class_weapon_slots"])
+        self.assertEqual(2, data.CLASS_SLOT_COUNT)
+        # Advanced asks for three classes with two slots: three classes, each
+        # holding one copy of its own item on top of the free first slot.
+        held = [name for name in self.world.start_items if name in data.CLASS_SLOT_ITEMS.values()]
+        self.assertEqual(3, len(held))
+        self.assertNotIn(data.PROGRESSIVE_WEAPON_SLOT, self.world.start_items)
+        pool = [item.name for item in self.multiworld.itempool if item.name in data.CLASS_SLOT_ITEMS.values()]
+        self.assertEqual(len(data.CLASS_SLOT_ITEMS) * data.CLASS_SLOT_COUNT - 3, len(pool))
+        self.assertFalse(
+            [item for item in self.multiworld.itempool if item.name == data.PROGRESSIVE_WEAPON_SLOT]
+        )
+        self.assertTrue(self.can_reach_region(self.world.start_mission.name))
+
+    def test_a_class_without_its_slots_does_not_deploy(self) -> None:
+        # Take every slot item away: the start mission's three classes fall
+        # back to one slot each, short of what advanced asks for.
+        self.collect_all_but(list(data.CLASS_SLOT_ITEMS.values()))
+        for name in data.CLASS_SLOT_ITEMS.values():
+            self.remove(self.get_item_by_name(name))
+        self.assertFalse(self.can_reach_region(self.world.goal_mission.name))
+        self.collect_by_name(list(data.CLASS_SLOT_ITEMS.values()))
+        self.assertTrue(self.can_reach_region(self.world.goal_mission.name))
 
 
 class TestNoWeaponBuffs(TF2MvMTestBase):

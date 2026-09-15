@@ -133,6 +133,7 @@ option, not in the default.
 | Item group | Effect | Classification |
 | --- | --- | --- |
 | Weapon slot | Unlocks Primary, Secondary or Melee | progression |
+| Class weapon slot | With `class_weapon_slots`: opens one class's next slot, its first being free with the class | progression |
 | Weapon | Unlocks one specific weapon for one class | progression |
 | Upgrade package | Unlocks one upgrade line across every weapon that has it | progression |
 | Class | Unlocks a mercenary class | progression |

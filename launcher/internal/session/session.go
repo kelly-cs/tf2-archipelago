@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"net/http"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/m-this/tf2-archipelago/gamedata"
@@ -124,12 +125,12 @@ exists. The Grappling Hook was missing exactly that way: it arrived, the plugin
 turned it on, and the screen never mentioned it. TestEveryUnlockKindIsListed
 walks gamedata and fails when the two disagree.
 */
-var kindOrder = []string{"class", "weapon_slot", "mission_ticket", "weapon_buff", "server_setting"}
+var kindOrder = []string{"class", "weapon_slot", "class_weapon_slot", "mission_ticket", "weapon_buff", "server_setting"}
 
 // kindLabels is what each kind reads as on the tab.
 var kindLabels = map[string]string{
-	"class": "Class", "weapon_slot": "Weapon slot", "mission_ticket": "Mission",
-	"weapon_buff": "Weapon buff", "server_setting": "Server lever",
+	"class": "Class", "weapon_slot": "Weapon slot", "class_weapon_slot": "Weapon slot",
+	"mission_ticket": "Mission", "weapon_buff": "Weapon buff", "server_setting": "Server lever",
 }
 
 // Describe turns the bridge's unlock set into rows: one per distinct key, in a
@@ -171,6 +172,21 @@ func nameOf(kind, key string, buffs map[string]string) string {
 				return slot.Name
 			}
 		}
+	case "class_weapon_slot":
+		// The bridge spells a class's slot as class/slot.
+		classKey, slotKey, _ := strings.Cut(key, "/")
+		className, slotName := classKey, slotKey
+		for _, class := range gamedata.Classes {
+			if class.Key == classKey {
+				className = class.Name
+			}
+		}
+		for _, slot := range gamedata.WeaponSlots {
+			if slot.Key == slotKey {
+				slotName = slot.Name
+			}
+		}
+		return className + ": " + slotName
 	case "mission_ticket":
 		if mission, ok := gamedata.MissionByPopFile(key); ok {
 			return mission.Name

@@ -161,6 +161,25 @@ class StartClass(FreeText):
         )
 
 
+class ClassWeaponSlots(Toggle):
+    """Open loadout slots class by class rather than for everybody at once.
+
+    Each class gets a progressive item of its own, two copies, and earns its
+    second and third slots with them; its first slot comes free with the
+    class, and it is the slot that class is played with: the Medigun for a
+    Medic, the Knife for a Spy, the Wrench for an Engineer. A mission at a
+    tier still needs that tier's count of classes with that tier's count of
+    slots, so the logic is the same shape with more items behind it.
+
+    Eighteen items in the pool where there were three, and a longer run for
+    it. A run with few missions may not have the checks to hold them, and
+    generation says so. Off by default.
+    """
+
+    display_name = "Weapon Slots per Class"
+    default = 0
+
+
 class Goal(Choice):
     """What ends the run.
 
@@ -335,6 +354,7 @@ class TF2MvMOptions(PerGameCommonOptions):
     server_mods: ServerMods
     start_mission: StartMission
     start_class: StartClass
+    class_weapon_slots: ClassWeaponSlots
     goal: Goal
     missionsanity_percentage: MissionsanityPercentage
     mission_ticket_importance: MissionTicketImportance
@@ -364,6 +384,7 @@ option_groups = [
             ServerMods,
             StartMission,
             StartClass,
+            ClassWeaponSlots,
         ],
     ),
     OptionGroup("Goal", [Goal, MissionsanityPercentage, MedalOnClear]),

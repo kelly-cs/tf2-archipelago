@@ -1921,6 +1921,78 @@
       "count": 3
     },
     {
+      "id": 7443009001,
+      "name": "Progressive Weapon Slot: Scout",
+      "kind": "class_weapon_slot",
+      "classification": "progression",
+      "count": 2,
+      "class_id": 1
+    },
+    {
+      "id": 7443009002,
+      "name": "Progressive Weapon Slot: Soldier",
+      "kind": "class_weapon_slot",
+      "classification": "progression",
+      "count": 2,
+      "class_id": 2
+    },
+    {
+      "id": 7443009003,
+      "name": "Progressive Weapon Slot: Pyro",
+      "kind": "class_weapon_slot",
+      "classification": "progression",
+      "count": 2,
+      "class_id": 3
+    },
+    {
+      "id": 7443009004,
+      "name": "Progressive Weapon Slot: Demoman",
+      "kind": "class_weapon_slot",
+      "classification": "progression",
+      "count": 2,
+      "class_id": 4
+    },
+    {
+      "id": 7443009005,
+      "name": "Progressive Weapon Slot: Heavy",
+      "kind": "class_weapon_slot",
+      "classification": "progression",
+      "count": 2,
+      "class_id": 5
+    },
+    {
+      "id": 7443009006,
+      "name": "Progressive Weapon Slot: Engineer",
+      "kind": "class_weapon_slot",
+      "classification": "progression",
+      "count": 2,
+      "class_id": 6
+    },
+    {
+      "id": 7443009007,
+      "name": "Progressive Weapon Slot: Medic",
+      "kind": "class_weapon_slot",
+      "classification": "progression",
+      "count": 2,
+      "class_id": 7
+    },
+    {
+      "id": 7443009008,
+      "name": "Progressive Weapon Slot: Sniper",
+      "kind": "class_weapon_slot",
+      "classification": "progression",
+      "count": 2,
+      "class_id": 8
+    },
+    {
+      "id": 7443009009,
+      "name": "Progressive Weapon Slot: Spy",
+      "kind": "class_weapon_slot",
+      "classification": "progression",
+      "count": 2,
+      "class_id": 9
+    },
+    {
       "id": 7443004001,
       "name": "Cash Bundle",
       "kind": "credits",

@@ -96,6 +96,33 @@ func TestProgressiveWeaponSlotsGrantInTableOrder(t *testing.T) {
 	}
 }
 
+// A class's own progressive item opens that class's slots in its own order,
+// less the first, which comes with the class: a Medic's copies open the
+// Syringe Gun and then the Bonesaw, the Medigun being his from the start.
+func TestClassWeaponSlotsGrantInTheClassOrder(t *testing.T) {
+	store := openTemp(t)
+	var medic gamedata.Class
+	for _, class := range gamedata.Classes {
+		if class.Key == "medic" {
+			medic = class
+		}
+	}
+	item := medic.SlotItemID()
+	if err := store.ApplyItems(0, []int64{item, item, item}); err != nil {
+		t.Fatal(err)
+	}
+	grants, _ := store.GrantsSince(0)
+	if len(grants) != int(gamedata.ClassSlotsEarned) {
+		t.Fatalf("%d grants for %d earned slots plus a spare copy", len(grants), gamedata.ClassSlotsEarned)
+	}
+	if grants[0].Key != "medic/primary" || grants[1].Key != "medic/melee" {
+		t.Fatalf("grants = %q, %q", grants[0].Key, grants[1].Key)
+	}
+	if held := store.Unlocks().Of(gamedata.ItemClassWeaponSlot); len(held) != 2 {
+		t.Fatalf("unlock set holds %v", held)
+	}
+}
+
 func TestApplyItemsContinuesAndResets(t *testing.T) {
 	store := openTemp(t)
 	mission := firstMission(t)

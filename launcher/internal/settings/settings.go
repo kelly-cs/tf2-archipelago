@@ -172,6 +172,10 @@ type Settings struct {
 	// MvmMedalOnClear locks a medal onto every mission clear and makes the
 	// goal read the medals held. It costs the multiworld one check a mission.
 	MvmMedalOnClear bool `json:"mvm_medal_on_clear"`
+	// MvmClassWeaponSlots opens loadout slots class by class: nine progressive
+	// items of two copies in place of one of three, each class's first slot
+	// free with the class. A longer run with a much larger pool.
+	MvmClassWeaponSlots bool `json:"mvm_class_weapon_slots"`
 	// MvmServerSettings puts the server-setting items in the pool. One exists,
 	// the Grappling Hook, and it turns Mannpower's hook on for everybody for
 	// the rest of the run.

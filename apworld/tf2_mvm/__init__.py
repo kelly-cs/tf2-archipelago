@@ -38,6 +38,7 @@ IMPORTANCE_OPTION_BY_KIND = {
     "mission_ticket": "mission_ticket_importance",
     "class": "class_unlock_importance",
     "weapon_slot": "weapon_slot_importance",
+    "class_weapon_slot": "weapon_slot_importance",
     "weapon_buff": "weapon_buff_importance",
 }
 
@@ -263,11 +264,16 @@ class TF2MvMWorld(World):
         self.missionsanity_target = max(1, math.ceil(len(self.missions) * share))
 
         requirement = REQUIREMENTS[self.start_mission.difficulty]
-        self.start_items = [
-            data.TICKET_NAMES[self.start_mission.id],
-            *self._start_classes(requirement.classes),
-            *[data.PROGRESSIVE_WEAPON_SLOT] * requirement.slots,
-        ]
+        classes = self._start_classes(requirement.classes)
+        if self.options.class_weapon_slots.value:
+            # Each starting class holds its free first slot and earns the rest
+            # of what the tier asks for.
+            slots = [
+                data.CLASS_SLOT_ITEMS[name] for name in classes for _ in range(requirement.slots - 1)
+            ]
+        else:
+            slots = [data.PROGRESSIVE_WEAPON_SLOT] * requirement.slots
+        self.start_items = [data.TICKET_NAMES[self.start_mission.id], *classes, *slots]
 
     def _asked_start_mission(self, available: list[data.Mission]) -> data.Mission | None:
         """The mission start_mission names, or None for the easiest one drawn."""
@@ -362,11 +368,16 @@ class TF2MvMWorld(World):
         pool += [
             self.create_item(name) for name in data.CLASS_NAMES if name not in self.start_items
         ]
-        slots_held = self.start_items.count(data.PROGRESSIVE_WEAPON_SLOT)
-        pool += [
-            self.create_item(data.PROGRESSIVE_WEAPON_SLOT)
-            for _ in range(data.WEAPON_SLOT_COUNT - slots_held)
-        ]
+        if self.options.class_weapon_slots.value:
+            for slot_item in data.CLASS_SLOT_ITEMS.values():
+                held = self.start_items.count(slot_item)
+                pool += [self.create_item(slot_item) for _ in range(data.CLASS_SLOT_COUNT - held)]
+        else:
+            slots_held = self.start_items.count(data.PROGRESSIVE_WEAPON_SLOT)
+            pool += [
+                self.create_item(data.PROGRESSIVE_WEAPON_SLOT)
+                for _ in range(data.WEAPON_SLOT_COUNT - slots_held)
+            ]
 
         # A server setting is one copy and takes one check, like a trap: the
         # run gains a lever and loses a reward, which is the trade for it.
@@ -463,6 +474,7 @@ class TF2MvMWorld(World):
             "server_mods": sorted(self.options.server_mods.value),
             "mission_ticket_importance": self.options.mission_ticket_importance.current_key,
             "mission_modifiers": self.mission_modifiers,
+            "class_weapon_slots": bool(self.options.class_weapon_slots.value),
             "tracker": {
                 "version": 1,
                 "starting_items": [
@@ -502,14 +514,13 @@ class TF2MvMWorld(World):
         if start is None:
             start = min(missions, key=self._tier_order)
         requirement = REQUIREMENTS[start.difficulty]
-        unlocks = (
-            len(missions)
-            - 1
-            + len(data.CLASS_NAMES)
-            - requirement.classes
-            + data.WEAPON_SLOT_COUNT
-            - requirement.slots
-        )
+        if self.options.class_weapon_slots.value:
+            slot_unlocks = len(data.CLASS_SLOT_ITEMS) * data.CLASS_SLOT_COUNT - requirement.classes * (
+                requirement.slots - 1
+            )
+        else:
+            slot_unlocks = data.WEAPON_SLOT_COUNT - requirement.slots
+        unlocks = len(missions) - 1 + len(data.CLASS_NAMES) - requirement.classes + slot_unlocks
         if self.options.weapon_buff_importance.current_key == "progression":
             unlocks += max(BUFF_REQUIREMENTS.values())
         return unlocks - self._check_count(missions)
@@ -518,19 +529,36 @@ class TF2MvMWorld(World):
         ticket = data.TICKET_NAMES[mission.id]
         requirement: Requirement = REQUIREMENTS[mission.difficulty]
         player = self.player
+        per_class = bool(self.options.class_weapon_slots.value)
+
+        def deployable_classes(state: CollectionState) -> int:
+            # A class counts once it is held with the slots the tier asks
+            # for: its free first slot, plus the copies of its own item.
+            return sum(
+                1
+                for class_name, slot_item in data.CLASS_SLOT_ITEMS.items()
+                if state.has(class_name, player) and state.has(slot_item, player, requirement.slots - 1)
+            )
 
         def can_deploy(state: CollectionState) -> bool:
             ticket_ready = (
                 self.options.mission_ticket_importance.current_key == "useful"
                 or state.has(ticket, player)
             )
-            classes_ready = (
-                self.options.class_unlock_importance.current_key == "useful"
-                or state.has_group("Classes", player, requirement.classes)
-            )
-            slots_ready = self.options.weapon_slot_importance.current_key == "useful" or state.has(
-                data.PROGRESSIVE_WEAPON_SLOT, player, requirement.slots
-            )
+            if per_class:
+                ready = (
+                    self.options.class_unlock_importance.current_key == "useful"
+                    and self.options.weapon_slot_importance.current_key == "useful"
+                ) or deployable_classes(state) >= requirement.classes
+                classes_ready = slots_ready = ready
+            else:
+                classes_ready = (
+                    self.options.class_unlock_importance.current_key == "useful"
+                    or state.has_group("Classes", player, requirement.classes)
+                )
+                slots_ready = self.options.weapon_slot_importance.current_key == "useful" or state.has(
+                    data.PROGRESSIVE_WEAPON_SLOT, player, requirement.slots
+                )
             buffs_ready = (
                 mission is self.start_mission
                 or self.options.weapon_buff_importance.current_key == "useful"

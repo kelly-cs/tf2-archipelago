@@ -108,6 +108,9 @@ type Health struct {
 	MissionTicketImportance string                       `json:"mission_ticket_importance,omitempty"`
 	MissionModifiers        map[string][]MissionModifier `json:"mission_modifiers,omitempty"`
 
+	// ClassWeaponSlots is the seed opening loadout slots class by class.
+	ClassWeaponSlots bool `json:"class_weapon_slots"`
+
 	DeathLink bool   `json:"death_link"`
 	LastError string `json:"last_error,omitempty"`
 }
@@ -138,6 +141,7 @@ func (c *Client) Health() Health {
 		StartMission:            c.slot.StartMission,
 		MissionTicketImportance: c.slot.MissionTicketImportance,
 		MissionModifiers:        c.slot.MissionModifiers,
+		ClassWeaponSlots:        c.slot.ClassWeaponSlots,
 		DeathLink:               c.slot.DeathLink,
 		LastError:               c.lastError,
 	}

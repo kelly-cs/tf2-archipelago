@@ -415,7 +415,9 @@ func (s *Server) waveFailures() []waveFailure {
 // getUnlocks serves everything that should be true right now. The plugin asks
 // on load and on every map change rather than remembering it.
 func (s *Server) getUnlocks(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, s.logger, s.store.Unlocks())
+	unlocks := s.store.Unlocks()
+	unlocks.ClassWeaponSlots = s.client.Health().ClassWeaponSlots
+	writeJSON(w, s.logger, unlocks)
 }
 
 // getMissions serves the run's missions, in the order the seed drew them, each

@@ -35,6 +35,7 @@ const (
 	itemBlockTrap       int64 = 6_000
 	itemBlockSetting    int64 = 7_000
 	itemBlockTrophy     int64 = 8_000
+	itemBlockClassSlot  int64 = 9_000
 )
 
 // Location ids: base + mission*100 + wave, or + 99 for the mission clear.
@@ -105,6 +106,17 @@ func (c Class) ItemID() int64 {
 // ItemName is what the multiworld calls that item.
 func (c Class) ItemName() string {
 	return "Class: " + c.Name
+}
+
+// SlotItemID is the id of the progressive item that opens this class's own
+// loadout slots, in a block of its own so nothing shipped moves.
+func (c Class) SlotItemID() int64 {
+	return BaseID + itemSpaceOffset + itemBlockClassSlot + int64(c.ID)
+}
+
+// SlotItemName is what the multiworld calls that item.
+func (c Class) SlotItemName() string {
+	return "Progressive Weapon Slot: " + c.Name
 }
 
 // ItemID is the id of the item that fires this trap.
