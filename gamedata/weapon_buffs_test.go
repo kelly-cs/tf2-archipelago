@@ -369,18 +369,26 @@ func TestThrownMetersAndProjectileMeleesKeepProjectileUpgrades(t *testing.T) {
 	}
 }
 
+// Less what the jar already does to whoever it lands on: Mad Milk milks, and
+// a Jarated robot already takes mini-crits, which is all a mark would add.
 func TestJarateAndMadMilkOnlyDrawProjectileRechargeAndSubstanceBuffs(t *testing.T) {
 	for _, name := range []string{"Jarate", "Mad Milk"} {
 		for _, effect := range WeaponEffects {
-			want := jarProjectileEffects[effect.Key] || substanceEffects[effect.Key] || effect.Key == "meter-recharge"
+			want := (jarProjectileEffects[effect.Key] || substanceEffects[effect.Key] || effect.Key == "meter-recharge") &&
+				!cutByNative(name, effect.Key)
 			if got := buffNamed(t, name, effect.Key).Eligible; got != want {
 				t.Errorf("%s/%s eligible = %t, want %t", name, effect.Key, got, want)
 			}
 		}
-		for _, effect := range []string{"bleed", "mad-milk", "mark-for-death", "jarate"} {
-			if !buffNamed(t, name, effect).Eligible {
-				t.Errorf("%s lost substance effect %s", name, effect)
-			}
+	}
+	for _, effect := range []string{"bleed", "mad-milk", "jarate"} {
+		if !buffNamed(t, "Jarate", effect).Eligible {
+			t.Errorf("Jarate lost substance effect %s", effect)
+		}
+	}
+	for _, effect := range []string{"bleed", "mark-for-death", "jarate"} {
+		if !buffNamed(t, "Mad Milk", effect).Eligible {
+			t.Errorf("Mad Milk lost substance effect %s", effect)
 		}
 	}
 }

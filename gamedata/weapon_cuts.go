@@ -5,7 +5,7 @@ sheetCuts are the weapon and effect pairs Cowser's sheet marks N: the buff is
 offered and does nothing on that weapon (gh-20). The sheet is the source, one
 row per effect and one column per weapon, and this is its N cells where the
 rules here still said yes. A cell that says Native is a buff the weapon already
-carries, which still works and stays.
+carries: a number stacks and stays, and a flag is out, in weapon_natives.go.
 
 Three of its columns are not taken, because the plugin implements what the
 attribute alone would not: the jars' substances and projectile buffs, which
