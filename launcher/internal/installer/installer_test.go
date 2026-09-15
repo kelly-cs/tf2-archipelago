@@ -12,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"testing"
 
 	"github.com/m-this/tf2-archipelago/launcher/internal/assets"
@@ -142,8 +143,14 @@ func TestInstallCommunityZipStripsTFDownload(t *testing.T) {
 		t.Fatal(err)
 	}
 	modDir := filepath.Join(root, "server", "tf")
-	if err := installCommunityZip(archive, modDir, nil); err != nil {
+	completed := false
+	if err := installCommunityZip(archive, modDir, nil, func(format string, args ...any) {
+		completed = completed || strings.Contains(fmt.Sprintf(format, args...), "100%")
+	}); err != nil {
 		t.Fatal(err)
+	}
+	if !completed {
+		t.Error("community archive extraction did not report completion progress")
 	}
 	for _, name := range []string{"maps/mvm_example.bsp", "scripts/population/mvm_example_adv_test.pop"} {
 		if _, err := os.Stat(filepath.Join(modDir, filepath.FromSlash(name))); err != nil {
@@ -204,7 +211,7 @@ func TestCommunityInstallSkipsUnsupportedMissionsButKeepsSharedPopulationFiles(t
 		t.Fatal(err)
 	}
 	modDir := filepath.Join(root, "server", "tf")
-	if err := installCommunityZip(archive, modDir, nil); err != nil {
+	if err := installCommunityZip(archive, modDir, nil, func(string, ...any) {}); err != nil {
 		t.Fatal(err)
 	}
 	for _, name := range []string{
@@ -231,10 +238,10 @@ func TestCommunityInstallIncludesSigmodMissionsOnlyWithVerifiedMod(t *testing.T)
 	}
 	without := filepath.Join(root, "without", "tf")
 	with := filepath.Join(root, "with", "tf")
-	if err := installCommunityZip(archive, without, nil); err != nil {
+	if err := installCommunityZip(archive, without, nil, func(string, ...any) {}); err != nil {
 		t.Fatal(err)
 	}
-	if err := installCommunityZip(archive, with, []string{sigmodKey}); err != nil {
+	if err := installCommunityZip(archive, with, []string{sigmodKey}, func(string, ...any) {}); err != nil {
 		t.Fatal(err)
 	}
 	relative := filepath.Join("scripts", "population", "mvm_lotus_b6_adv_ledmotif.pop")

@@ -368,7 +368,7 @@ func (a *App) downloadPacks(s settings.Settings) {
 		a.Notify("select at least one community pack first")
 		return
 	}
-	ctx, done, ok := a.beginSettingsActivity("Preparing community asset download…")
+	ctx, done, ok := a.beginSettingsActivity("Checking cached community assets…")
 	if !ok {
 		return
 	}

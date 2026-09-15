@@ -150,7 +150,7 @@ func TestAttachedSnapshotNamesDockerAsTheLifecycleOwner(t *testing.T) {
 
 func TestSettingsActivityAppearsOnTheSnapshotWhileItRuns(t *testing.T) {
 	app := New(settings.Defaults(), nil)
-	_, done, ok := app.beginSettingsActivity("Preparing community asset download…")
+	_, done, ok := app.beginSettingsActivity("Checking cached community assets…")
 	if !ok {
 		t.Fatal("the first settings activity was refused")
 	}

@@ -162,9 +162,10 @@ func installCommunityArchives(archives []string, modDir string, serverMods []str
 			continue
 		}
 		logf("installing community pack %s (this can take a minute)", filepath.Base(path))
-		if err := installCommunityZip(path, modDir, serverMods); err != nil {
+		if err := installCommunityZip(path, modDir, serverMods, logf); err != nil {
 			return fmt.Errorf("cannot install community pack %s: %w", path, err)
 		}
+		logf("installed community pack: %s", filepath.Base(path))
 		if err := os.MkdirAll(stampDir, 0o755); err != nil {
 			return err
 		}
@@ -435,7 +436,7 @@ func (w *communityDownloadWriter) Write(body []byte) (int, error) {
 // installCommunityZip streams a Potato-style tf/download tree into SRCDS's
 // tf directory. The archives are several gigabytes, so they are never read
 // into memory as the small embedded mod archives are.
-func installCommunityZip(path, modDir string, serverMods []string) error {
+func installCommunityZip(path, modDir string, serverMods []string, logf func(string, ...any)) error {
 	file, err := os.Open(path)
 	if err != nil {
 		return err
@@ -449,24 +450,17 @@ func installCommunityZip(path, modDir string, serverMods []string) error {
 	if err != nil {
 		return err
 	}
+	var total int64
 	for _, entry := range reader.File {
-		name := filepath.ToSlash(entry.Name)
-		var relative string
-		switch {
-		case strings.HasPrefix(name, "tf/download/"):
-			relative = strings.TrimPrefix(name, "tf/download/")
-		case strings.HasPrefix(name, "tf/"):
-			relative = strings.TrimPrefix(name, "tf/")
-		default:
-			continue
+		if relativeCommunityPath(entry.Name, serverMods) != "" && !entry.FileInfo().IsDir() {
+			total += int64(entry.UncompressedSize64)
 		}
+	}
+	written, next := int64(0), int64(communityProgressInterval)
+	archiveName := filepath.Base(path)
+	for _, entry := range reader.File {
+		relative := relativeCommunityPath(entry.Name, serverMods)
 		if relative == "" {
-			continue
-		}
-		// Full Potato packs contain missions for server mods we do not ship.
-		// Keep their maps and shared assets, but do not let stock TF2 discover
-		// and select an incompatible mission as that map's default.
-		if unsupportedCommunityPopfile(relative, serverMods) {
 			continue
 		}
 		target, err := safeJoin(modDir, relative)
@@ -485,8 +479,31 @@ func installCommunityZip(path, modDir string, serverMods []string) error {
 		if err := extractFile(entry, target); err != nil {
 			return err
 		}
+		written += int64(entry.UncompressedSize64)
+		if written >= next || written == total {
+			logf("installing %s: %.0f%% (%.1f of %.1f GB)", archiveName,
+				100*float64(written)/float64(total), float64(written)/float64(gigabyte), float64(total)/float64(gigabyte))
+			for next <= written {
+				next += communityProgressInterval
+			}
+		}
 	}
 	return nil
+}
+
+func relativeCommunityPath(path string, serverMods []string) string {
+	name := filepath.ToSlash(path)
+	var relative string
+	switch {
+	case strings.HasPrefix(name, "tf/download/"):
+		relative = strings.TrimPrefix(name, "tf/download/")
+	case strings.HasPrefix(name, "tf/"):
+		relative = strings.TrimPrefix(name, "tf/")
+	}
+	if relative == "" || unsupportedCommunityPopfile(relative, serverMods) {
+		return ""
+	}
+	return relative
 }
 
 var communityMapNames = communityMapPolicy()
