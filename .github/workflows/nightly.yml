@@ -96,7 +96,9 @@ jobs:
         run: make dist BUILD_CHANNEL=nightly
 
       - name: pin the compose file to nightly
-        run: sed -i "s/:-latest}/:-nightly}/g" dist/compose.yaml
+        run: |
+          sed -i "s/:-latest}/:-nightly}/g" dist/compose.yaml
+          sed -i "s|ghcr.io/m-this/tf2-archipelago|ghcr.io/${{ github.repository }}|g" dist/compose.yaml
 
       # The notes are the commit list since the last real tag, which is the thing
       # a CHANGELOG.md section gets written from. `git describe` finds that tag;
