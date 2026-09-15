@@ -49,6 +49,8 @@ ARG SIGSEGV_MVM_SHA256
 
 USER root
 
+COPY deploy/sigmod-stamp.sh /usr/local/bin/tf2ap-sigmod-stamp
+
 # The staged tree mirrors the game directory, so installing it is one copy.
 RUN apt-get update \
 	&& apt-get install --yes --no-install-recommends curl ca-certificates unzip \
@@ -64,6 +66,8 @@ RUN apt-get update \
 		"https://github.com/rafradek/sigsegv-mvm/releases/download/${SIGSEGV_MVM_VERSION}/package-linux.zip" \
 	&& echo "${SIGSEGV_MVM_SHA256}  /tmp/sigsegv.zip" | sha256sum -c - \
 	&& unzip -oq /tmp/sigsegv.zip -d /opt/tf2-mods/sigsegv-mvm \
+	&& sh /usr/local/bin/tf2ap-sigmod-stamp /opt/tf2-mods/sigsegv-mvm \
+		"${SIGSEGV_MVM_VERSION}" "${SIGSEGV_MVM_SHA256}" \
 	&& rm -f /tmp/sigsegv.zip \
 	&& apt-get purge --yes unzip curl \
 	&& apt-get autoremove --yes \

@@ -10,6 +10,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -277,6 +278,38 @@ func TestInstallServerModsUsesVerifiedCacheAndDetectsTheInstall(t *testing.T) {
 	}
 	if got := ReadyServerMods(root); len(got) != 0 {
 		t.Fatalf("incomplete SigMod reported ready: %v", got)
+	}
+}
+
+func TestComposeSigmodStampMatchesLauncherReceipt(t *testing.T) {
+	root := t.TempDir()
+	for _, relative := range sigmodFiles {
+		path := filepath.Join(root, filepath.FromSlash(relative))
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, []byte("contents of "+relative), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	version, archiveSHA := "compose-test-version", strings.Repeat("a", 64)
+	script := filepath.Join("..", "..", "..", "deploy", "sigmod-stamp.sh")
+	if output, err := exec.Command("sh", script, root, version, archiveSHA).CombinedOutput(); err != nil {
+		t.Fatalf("write Compose SigMod stamp: %v\n%s", err, output)
+	}
+	oldVersion, oldSHA := assets.SigsegvMVMVersion, assets.SigsegvMVMSHA256
+	assets.SigsegvMVMVersion, assets.SigsegvMVMSHA256 = version, archiveSHA
+	t.Cleanup(func() { assets.SigsegvMVMVersion, assets.SigsegvMVMSHA256 = oldVersion, oldSHA })
+	want, err := sigmodStamp(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := os.ReadFile(filepath.Join(root, "addons", ".tf2ap-sigsegv-mvm.stamp"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != want {
+		t.Errorf("Compose SigMod stamp differs from launcher receipt\ngot:\n%s\nwant:\n%s", got, want)
 	}
 }
 
