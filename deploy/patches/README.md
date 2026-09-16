@@ -22,13 +22,16 @@ generated-code check failed on it.
 
 | Patch | Why |
 | --- | --- |
+| `cbasenpc/0001-refresh-tools-nav-cache-on-map-start.patch` | Only for a from-source build of the extension. Rebuilds CBaseNPC's tools-side navigation cache after every map activates, so Defender Bots do not receive an empty area list on community-map changelevels. |
 | `tf2attributes/0001-drop-pragma-unused-before-declaration.patch` | `#pragma unused` sits above the function it names, and spcomp 1.12 resolves it before the declaration exists. Nothing compiles without this. |
 | `actions/0001-drop-libudis86-and-asm-sources.patch` | Only for a from-source build of the extension. SourceMod removed `public/libudis86` and `public/asm` in commit `e07c120c`; the AMBuilder still lists them. |
 | `actions/0002-do-not-treat-sdk-warnings-as-errors.patch` | Only for a from-source build. `-Werror` against the current hl2sdk fails on `#pragma warning` blocks in `vstdlib/random.h`. |
 | `actions/0003-terminate-handle-instead-of-assigning-index.patch` | Only for a from-source build. `CBaseHandle::operator=` takes an `IHandleEntity*`, not an index. |
 
-The three Actions patches matter only with `BOTS_BUILD_EXTENSIONS=1`. The
-normal build downloads the two extensions from their releases.
+The CBaseNPC and three Actions patches matter only with
+`BOTS_BUILD_EXTENSIONS=1`. The Docker image uses that path for the CBaseNPC
+map-lifecycle fix. The normal build downloads the two extensions from their
+releases.
 
 Two more facts the build depends on, explained in the scripts. The defender
 mod compiles with SourceMod 1.12.0-git7164's `spcomp`, and git7246's segfaults
