@@ -121,8 +121,10 @@ func values(s settings.Settings) map[string]string {
 		"SRCDS_BOT_CLASS_BLACKLIST":     strings.Join(s.SrcdsBotClassBlacklist, ","),
 		"SRCDS_BOT_LOADOUTS":            pairs(s.SrcdsBotLoadouts),
 		"SRCDS_BOT_CUSTOM_LOADOUTS":     builtLoadouts(s.SrcdsBotCustomLoadouts),
+		"SRCDS_BOT_TEAM_PRESETS":        asJSON(s.SrcdsBotTeamPresets),
 		"SRCDS_BOT_NAMES_EXCLUDED":      strings.Join(s.SrcdsBotNamesExcluded, ","),
 		"SRCDS_BOT_NAMES_ADDED":         strings.Join(s.SrcdsBotNamesAdded, ","),
+		"SRCDS_BOT_SEAT_NAMES":          strings.Join(s.SrcdsBotSeatNames, ","),
 		"SRCDS_BLU_HEALTH_PCT":          strconv.Itoa(s.SrcdsBluHealthPct),
 		"SRCDS_BOT_TEAM_COMP":           strings.Join(s.SrcdsBotTeamComp, ","),
 		"SRCDS_BOT_SEAT_LOADOUTS":       strings.Join(s.SrcdsBotSeatLoadouts, ","),
@@ -179,14 +181,22 @@ Empty is empty rather than "{}": a stack that has built none should not have a
 line of punctuation in its .env explaining that.
 */
 func builtLoadouts(built map[string]botloadout.Built) string {
-	if len(built) == 0 {
+	return asJSON(built)
+}
+
+// asJSON is one of the tables somebody built in front of the page. Empty is
+// empty rather than "{}": a stack that has built none should not have a line of
+// punctuation in its .env explaining that.
+func asJSON[T any](table map[string]T) string {
+	if len(table) == 0 {
 		return ""
 	}
-	body, err := json.Marshal(built)
+	body, err := json.Marshal(table)
 	if err != nil {
-		// Five ints and two strings; there is no value of this that cannot be
-		// marshalled, and dropping it silently would lose the player's work.
-		panic("composeenv: cannot encode the built loadouts: " + err.Error())
+		// Strings, ints and slices of them: there is no value of these that
+		// cannot be marshalled, and dropping one silently would lose work
+		// somebody did by hand.
+		panic("composeenv: cannot encode " + fmt.Sprintf("%T", table) + ": " + err.Error())
 	}
 	return string(body)
 }

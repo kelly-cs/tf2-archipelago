@@ -5,8 +5,6 @@ import (
 	"os"
 	"strconv"
 	"strings"
-
-	"github.com/m-this/tf2-archipelago/launcher/internal/botloadout"
 )
 
 // EnvNames lists every variable ApplyEnv reads, in the order the help prints
@@ -22,8 +20,8 @@ var EnvNames = []string{
 	"SRCDS_LAN", "SRCDS_REACH", "SRCDS_ADMIN_STEAMIDS", "SRCDS_MODS",
 	"FASTDL_PORT", "SRCDS_DOWNLOADURL", "TAILSCALE_FASTDL",
 	"SRCDS_BOTS", "SRCDS_BOT_TEAM_SIZE", "SRCDS_BOT_CLASS_BLACKLIST", "SRCDS_BOT_LOADOUTS",
-	"SRCDS_BOT_CUSTOM_LOADOUTS",
-	"SRCDS_BOT_NAMES_EXCLUDED", "SRCDS_BOT_NAMES_ADDED",
+	"SRCDS_BOT_CUSTOM_LOADOUTS", "SRCDS_BOT_TEAM_PRESETS",
+	"SRCDS_BOT_NAMES_EXCLUDED", "SRCDS_BOT_NAMES_ADDED", "SRCDS_BOT_SEAT_NAMES",
 	"SRCDS_BLU_HEALTH_PCT",
 	"SRCDS_BOT_TEAM_COMP",
 	"SRCDS_BOT_SEAT_LOADOUTS",
@@ -61,9 +59,11 @@ func applyBotEnv(s Settings) Settings {
 	num(&s.SrcdsBluHealthPct, "SRCDS_BLU_HEALTH_PCT")
 	list(&s.SrcdsBotClassBlacklist, "SRCDS_BOT_CLASS_BLACKLIST")
 	pairs(&s.SrcdsBotLoadouts, "SRCDS_BOT_LOADOUTS")
-	builtLoadouts(&s.SrcdsBotCustomLoadouts, "SRCDS_BOT_CUSTOM_LOADOUTS")
+	fromJSON(&s.SrcdsBotCustomLoadouts, "SRCDS_BOT_CUSTOM_LOADOUTS")
+	fromJSON(&s.SrcdsBotTeamPresets, "SRCDS_BOT_TEAM_PRESETS")
 	list(&s.SrcdsBotNamesExcluded, "SRCDS_BOT_NAMES_EXCLUDED")
 	list(&s.SrcdsBotNamesAdded, "SRCDS_BOT_NAMES_ADDED")
+	seatList(&s.SrcdsBotSeatNames, "SRCDS_BOT_SEAT_NAMES")
 	seatList(&s.SrcdsBotTeamComp, "SRCDS_BOT_TEAM_COMP")
 	seatList(&s.SrcdsBotSeatLoadouts, "SRCDS_BOT_SEAT_LOADOUTS")
 	boolean(&s.SrcdsBotHats, "SRCDS_BOT_HATS")
@@ -252,14 +252,14 @@ func seatList(target *[]string, name string) {
 
 // pairs reads "key=value,key=value".
 /*
-builtLoadouts reads the loadouts a player built, which the Compose stack carries
-as JSON because they are records rather than words.
+fromJSON reads one of the tables somebody built in front of the page, which the
+Compose stack carries as JSON because they are records rather than words.
 
 A value that will not parse is left alone rather than emptied. The alternative
-is a stack that loses every loadout somebody built to one bad edit of .env, and
-the file is edited by hand.
+is a stack that loses every loadout or team somebody built to one bad edit of
+.env, and the file is edited by hand.
 */
-func builtLoadouts(target *map[string]botloadout.Built, name string) {
+func fromJSON[T any](target *map[string]T, name string) {
 	value, ok := os.LookupEnv(name)
 	if !ok {
 		return
@@ -268,7 +268,7 @@ func builtLoadouts(target *map[string]botloadout.Built, name string) {
 		*target = nil
 		return
 	}
-	parsed := make(map[string]botloadout.Built)
+	parsed := make(map[string]T)
 	if err := json.Unmarshal([]byte(value), &parsed); err != nil {
 		return
 	}

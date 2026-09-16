@@ -14,8 +14,14 @@ in the release notes, so this file is the only place to write it.
   than as a copy, so names added in a later release still reach you.
 - It works the same in the Docker stack, through `SRCDS_BOT_NAMES_EXCLUDED` and
   `SRCDS_BOT_NAMES_ADDED` in `.env`.
-- The mod reads the pool when a map starts, so a change reaches the bots on the
-  next mission.
+- **A name for a seat.** Seat 3 can be called Gravel Pit Gary every run: the bot
+  that sits there is given the name instead of drawing one. The rest of the
+  seats keep drawing.
+- Renaming a seat costs the team nothing. The bots are renamed where they stand,
+  rather than rebuilt: a new team would lose the upgrades it had bought, which
+  is a steep price for a change of name. Bots at 0.16.0.
+- The pool itself is read when a map starts, so adding or removing a name
+  reaches the bots on the next mission.
 
 ### Fixed
 
@@ -25,6 +31,8 @@ in the release notes, so this file is the only place to write it.
   loadout built on the Loadouts page was also forgotten at the next restart,
   because `.env` is the whole of what the page remembers and the built ones
   were never written to it.
+- A team saved on the admin page was forgotten the same way, for the same
+  reason.
 
 ## v1.16.0
 

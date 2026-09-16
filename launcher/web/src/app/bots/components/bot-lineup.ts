@@ -13,6 +13,7 @@ interface Seat {
   readonly label: string;
   readonly playedBy: Field;
   readonly carries: Field | undefined;
+  readonly called: Field | undefined;
 }
 
 /**
@@ -56,6 +57,7 @@ export class BotLineup {
         label: `Seat ${number}`,
         playedBy: played,
         carries: classes.find((one) => one.id === played.id.replace('.class', '.loadout')),
+        called: classes.find((one) => one.id === played.id.replace('.class', '.name')),
       });
     }
     return seats;
@@ -126,6 +128,14 @@ export class BotLineup {
 
   setSeatLoadout(seat: Seat, value: string): void {
     this.set(seat.carries, value, `${seat.label} carries ${labelOf(seat.carries, value)}.`);
+  }
+
+  setSeatName(seat: Seat, value: string): void {
+    const said =
+      value === ''
+        ? `${seat.label} draws its name from the pool.`
+        : `${seat.label} is called ${value}.`;
+    this.set(seat.called, value, said);
   }
 
   loadTeam(value: string): void {

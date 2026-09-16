@@ -100,7 +100,8 @@ h3 {
   grid-template-areas:
     'number label'
     'number class'
-    'number carries';
+    'number carries'
+    'number called';
   gap: 6px 10px;
   align-items: center;
   padding: 10px 12px;
@@ -133,6 +134,11 @@ h3 {
 
 .seat .carries {
   grid-area: carries;
+  font-size: var(--text-sm);
+}
+
+.seat .called {
+  grid-area: called;
   font-size: var(--text-sm);
 }
 

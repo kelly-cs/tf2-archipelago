@@ -176,23 +176,28 @@ func (l Library) Render(picks map[string]string, seats []Seat) string {
 	return b.String()
 }
 
-// Seat is one place on RED: the class it plays and the loadout it carries.
-// An empty class is a seat the mod draws for itself.
+// Seat is one place on RED: the class it plays, the loadout it carries and the
+// name it is given. An empty class is a seat the mod draws for itself, and an
+// empty name one whose bot draws from the name pool.
 type Seat struct {
 	Class   string
 	Loadout string
+	Name    string
 }
 
 // Seats pairs the team's classes with the loadouts chosen for each place. The
 // two lists are stored apart because the classes are also what the mod's
 // team_composition convar carries, and a seat with no loadout of its own is
 // not the same as a seat playing stock: it falls back to the class's pick.
-func Seats(comp, loadouts []string) []Seat {
+func Seats(comp, loadouts, names []string) []Seat {
 	seats := make([]Seat, 0, len(comp))
 	for index, class := range comp {
 		seat := Seat{Class: class}
 		if index < len(loadouts) {
 			seat.Loadout = loadouts[index]
+		}
+		if index < len(names) {
+			seat.Name = names[index]
 		}
 		seats = append(seats, seat)
 	}
@@ -231,6 +236,9 @@ func (l Library) writeSeats(b *strings.Builder, seats []Seat) {
 		}
 		fmt.Fprintf(b, "\t\t\"%d\"\n\t\t{\n", index+1)
 		fmt.Fprintf(b, "\t\t\t\"class\"\t\"%s\"\n", class.Key)
+		if seat.Name != "" {
+			fmt.Fprintf(b, "\t\t\t\"name\"\t\"%s\"\n", seat.Name)
+		}
 		writeSlots(b, "\t\t\t", l.Loadout(class, seat.Loadout))
 		b.WriteString("\t\t}\n")
 	}

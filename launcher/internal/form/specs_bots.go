@@ -77,7 +77,7 @@ func botSpecs(s State) []Spec {
 	// carries. Two engineers are only worth naming separately if they can hold
 	// different weapons.
 	for seat := range Seats {
-		specs = append(specs, inGroup("Team", seatClassSpec(seat), seatLoadoutSpec(seat))...)
+		specs = append(specs, inGroup("Team", seatClassSpec(seat), seatLoadoutSpec(seat), seatNameSpec(seat))...)
 	}
 
 	// What a class falls back on when the mod draws it rather than a seat
@@ -208,6 +208,32 @@ func seatLoadoutSpec(seat int) Spec {
 		func(s State) string { return at(s.Settings.SrcdsBotSeatLoadouts, seat) },
 		func(s State, v string) State {
 			s.Settings.SrcdsBotSeatLoadouts = withAt(s.Settings.SrcdsBotSeatLoadouts, seat, v, Seats)
+			return s
+		})
+}
+
+/*
+	seatNameSpec is the name one seat is given
+
+A choice rather than a box, out of the pool the Names section holds, because a
+name the pool does not carry is one the bots could never have drawn: two places
+to type a name is two places for it to be spelled differently. The empty option
+leaves the seat drawing, which is what every seat does until somebody names one.
+*/
+func seatNameSpec(seat int) Spec {
+	return openChoice(fmt.Sprintf("bots.seat.%d.name", seat), "Bots",
+		fmt.Sprintf("  Seat %d is called", seat+1),
+		"The name the bot in this seat is given, out of the pool on the Names section. Left to the pool, it draws one as it sits down and keeps it.",
+		func(s State, _ Env) []Option {
+			out := []Option{{Value: "", Label: "draw from the pool"}}
+			for _, name := range botnames.Pool(s.Settings.SrcdsBotNamesExcluded, s.Settings.SrcdsBotNamesAdded) {
+				out = append(out, Option{Value: name, Label: name})
+			}
+			return out
+		},
+		func(s State) string { return at(s.Settings.SrcdsBotSeatNames, seat) },
+		func(s State, v string) State {
+			s.Settings.SrcdsBotSeatNames = withAt(s.Settings.SrcdsBotSeatNames, seat, v, Seats)
 			return s
 		})
 }

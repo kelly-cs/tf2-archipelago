@@ -140,6 +140,11 @@ type Settings struct {
 	// A seat with no entry falls back to the class's own pick.
 	SrcdsBotSeatLoadouts []string `json:"srcds_bot_seat_loadouts,omitempty"`
 
+	// SrcdsBotSeatNames is the name each seat is given, in the same order. A
+	// seat with no entry draws from the pool as it always did, which is every
+	// seat until somebody names one.
+	SrcdsBotSeatNames []string `json:"srcds_bot_seat_names,omitempty"`
+
 	/* SrcdsBotCustomLoadouts is the loadouts the player has built, keyed by the
 	 * name they gave. A seat or a class names one with the custom: prefix, so a
 	 * built loadout is a loadout key like any other and nothing downstream has
@@ -298,6 +303,7 @@ const (
 type BotTeam struct {
 	Comp          []string          `json:"comp,omitempty"`
 	SeatLoadouts  []string          `json:"seat_loadouts,omitempty"`
+	SeatNames     []string          `json:"seat_names,omitempty"`
 	ClassLoadouts map[string]string `json:"class_loadouts,omitempty"`
 	Blacklist     []string          `json:"blacklist,omitempty"`
 }
@@ -307,6 +313,7 @@ func BotTeamOf(s Settings) BotTeam {
 	return BotTeam{
 		Comp:          slices.Clone(s.SrcdsBotTeamComp),
 		SeatLoadouts:  slices.Clone(s.SrcdsBotSeatLoadouts),
+		SeatNames:     slices.Clone(s.SrcdsBotSeatNames),
 		ClassLoadouts: maps.Clone(s.SrcdsBotLoadouts),
 		Blacklist:     slices.Clone(s.SrcdsBotClassBlacklist),
 	}
@@ -316,6 +323,7 @@ func BotTeamOf(s Settings) BotTeam {
 func WithBotTeam(s Settings, team BotTeam) Settings {
 	s.SrcdsBotTeamComp = slices.Clone(team.Comp)
 	s.SrcdsBotSeatLoadouts = slices.Clone(team.SeatLoadouts)
+	s.SrcdsBotSeatNames = slices.Clone(team.SeatNames)
 	s.SrcdsBotLoadouts = maps.Clone(team.ClassLoadouts)
 	s.SrcdsBotClassBlacklist = slices.Clone(team.Blacklist)
 	return s

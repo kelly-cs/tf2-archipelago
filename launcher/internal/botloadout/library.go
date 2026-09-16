@@ -101,6 +101,23 @@ func (l Library) weapons(built Built) string {
 }
 
 /*
+Named reports whether any seat was given a name.
+
+Apart from Anything because the two ask for different things. A name means the
+file has to exist, since the mod reads a seat's name out of it whatever the
+weapons say; it does not mean the mod should hand out weapons, which is what
+sm_redbots_manager_use_custom_loadouts turns on.
+*/
+func Named(seats []Seat) bool {
+	for _, seat := range seats {
+		if seat.Name != "" && seat.Class != "" {
+			return true
+		}
+	}
+	return false
+}
+
+/*
 Anything reports whether this team asks for weapons at all, which is what
 decides whether the loadout file is written and the mod told to read it.
 

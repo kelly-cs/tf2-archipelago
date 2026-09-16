@@ -35,7 +35,7 @@ func Install(s settings.Settings) error {
 		return err
 	}
 	if err := installBotLoadout(gameDir, botlive.LibraryOf(s), s.SrcdsBotLoadouts,
-		botloadout.Seats(s.SrcdsBotTeamComp, s.SrcdsBotSeatLoadouts)); err != nil {
+		botloadout.Seats(s.SrcdsBotTeamComp, s.SrcdsBotSeatLoadouts, s.SrcdsBotSeatNames)); err != nil {
 		return err
 	}
 	if err := installBotNames(gameDir, s); err != nil {
@@ -75,7 +75,7 @@ func RenderServerCfg(s settings.Settings) (string, error) {
 		"BotClassBlacklist": botloadout.Blacklist(s.SrcdsBotClassBlacklist),
 		"BotTeamComp":       botloadout.Composition(s.SrcdsBotTeamComp, s.SrcdsBotClassBlacklist),
 		"BotCustomLoadouts": boolToInt(botlive.LibraryOf(s).Anything(s.SrcdsBotLoadouts,
-			botloadout.Seats(s.SrcdsBotTeamComp, s.SrcdsBotSeatLoadouts))),
+			botloadout.Seats(s.SrcdsBotTeamComp, s.SrcdsBotSeatLoadouts, s.SrcdsBotSeatNames))),
 		"BotUpgradesChat": boolToInt(s.BotUpgradesChat),
 		"BluHealth":       scaleOf(s.SrcdsBluHealthPct),
 		"BotHats":         boolToInt(s.SrcdsBotHats),
@@ -137,7 +137,7 @@ func installAdmins(gameDir, list string) error {
 // decides", and stock everywhere is the mod's own default.
 func installBotLoadout(gameDir string, library botloadout.Library, picks map[string]string, seats []botloadout.Seat) error {
 	target := filepath.Join(gameDir, "addons", "sourcemod", "configs", "defenderbots", "loadout.cfg")
-	if !library.Anything(picks, seats) {
+	if !library.Anything(picks, seats) && !botloadout.Named(seats) {
 		if err := os.Remove(target); err != nil && !os.IsNotExist(err) {
 			return fmt.Errorf("cannot remove %s: %w", target, err)
 		}

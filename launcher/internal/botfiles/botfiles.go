@@ -45,15 +45,20 @@ func Install(root string, s settings.Settings) (bool, error) {
 	}
 
 	library := botlive.LibraryOf(s)
-	seats := botloadout.Seats(s.SrcdsBotTeamComp, s.SrcdsBotSeatLoadouts)
-	if !library.Anything(s.SrcdsBotLoadouts, seats) {
+	seats := botloadout.Seats(s.SrcdsBotTeamComp, s.SrcdsBotSeatLoadouts, s.SrcdsBotSeatNames)
+
+	// Weapons decide the convar; a name only decides that the file has to be
+	// there, because the mod reads a seat's name out of it whatever the convar
+	// says.
+	weapons := library.Anything(s.SrcdsBotLoadouts, seats)
+	if !weapons && !botloadout.Named(seats) {
 		return false, nil
 	}
 
 	if err := write(LoadoutPath(root), []byte(library.Render(s.SrcdsBotLoadouts, seats))); err != nil {
 		return false, err
 	}
-	return true, nil
+	return weapons, nil
 }
 
 // LoadoutPath and NamesPath are where the mod looks for them, under a game tree

@@ -92,8 +92,10 @@ func TestEveryFieldHasAnEnvVar(t *testing.T) {
 		"SrcdsBotClassBlacklist":     "SRCDS_BOT_CLASS_BLACKLIST",
 		"SrcdsBotLoadouts":           "SRCDS_BOT_LOADOUTS",
 		"SrcdsBotCustomLoadouts":     "SRCDS_BOT_CUSTOM_LOADOUTS",
+		"SrcdsBotTeamPresets":        "SRCDS_BOT_TEAM_PRESETS",
 		"SrcdsBotNamesExcluded":      "SRCDS_BOT_NAMES_EXCLUDED",
 		"SrcdsBotNamesAdded":         "SRCDS_BOT_NAMES_ADDED",
+		"SrcdsBotSeatNames":          "SRCDS_BOT_SEAT_NAMES",
 		"SrcdsBotTeamComp":           "SRCDS_BOT_TEAM_COMP",
 		"SrcdsBotSeatLoadouts":       "SRCDS_BOT_SEAT_LOADOUTS",
 		"SrcdsBotHats":               "SRCDS_BOT_HATS",
@@ -137,18 +139,15 @@ func TestEveryFieldHasAnEnvVar(t *testing.T) {
 	// are never saved and never asked for, so there is nothing to set.
 	legacy := map[string]bool{"SrcdsLanLegacy": true}
 
-	// Fields the config file holds and the environment does not. A saved team
-	// is something somebody named in front of the window, and a stack names
-	// the team it is playing rather than a shelf of them.
+	// Fields the config file holds and the environment does not.
 	//
-	// A built loadout used to be here on the same reasoning, and it was wrong
-	// from the day the stack grew a browser interface: .env is the whole of
-	// what a Compose admin remembers, so a loadout built there was gone at the
-	// next restart, and the container had no way to resolve the custom: key a
-	// seat was naming.
-	windowOnly := map[string]bool{
-		"SrcdsBotTeamPresets": true,
-	}
+	// Both of the shelves a player builds in front of the page used to be here,
+	// on the reasoning that a stack has nowhere to click. That was wrong from
+	// the day the stack grew a browser interface: .env is the whole of what a
+	// Compose admin remembers, so a loadout or a team built there was gone at
+	// the next restart, and the container had no way to resolve the custom: key
+	// a seat was naming.
+	windowOnly := map[string]bool{}
 
 	known := map[string]bool{}
 	for _, name := range EnvNames {

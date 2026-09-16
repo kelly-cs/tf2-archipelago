@@ -219,3 +219,56 @@ func TestTheTeamChangeIsAnnouncedFirst(t *testing.T) {
 		t.Errorf("a save that changed no bot setting announced a new team: %v", got)
 	}
 }
+
+/*
+Renaming a seat costs the team nothing.
+
+A reseat rebuilds every bot and loses the upgrades they bought, which is the
+right price for a weapon that is handed out on the way in and the wrong one for
+a string on a player. The mod grew sm_redbots_reload_names for this in v0.16.0.
+*/
+func TestANameChangeRenamesRatherThanRecycles(t *testing.T) {
+	before := settings.Defaults()
+	before.SrcdsBotTeamComp = []string{"pyro", "engineer"}
+
+	after := before
+	after.SrcdsBotSeatNames = []string{"Gravel Pit Gary", ""}
+
+	got := Commands(before, after)
+	if slices.Contains(got, "sm_redbots_reseat") {
+		t.Errorf("a rename recycled the team: %v", got)
+	}
+	if !slices.Contains(got, "sm_redbots_reload_names") {
+		t.Errorf("nothing told the mod to read the names: %v", got)
+	}
+}
+
+// A weapon that moved still costs a reseat, and covers the name that moved with
+// it: a rebuilt bot is named on the way in.
+func TestAWeaponChangeStillRecyclesAndCarriesTheNames(t *testing.T) {
+	before := settings.Defaults()
+	before.SrcdsBotTeamComp = []string{"pyro", "engineer"}
+
+	after := before
+	after.SrcdsBotSeatLoadouts = []string{"phlog", ""}
+	after.SrcdsBotSeatNames = []string{"Gravel Pit Gary", ""}
+
+	got := Commands(before, after)
+	if !slices.Contains(got, "sm_redbots_reseat") {
+		t.Errorf("a weapon change did not recycle: %v", got)
+	}
+	if slices.Contains(got, "sm_redbots_reload_names") {
+		t.Errorf("the reseat was followed by a rename it already did: %v", got)
+	}
+}
+
+// A pool somebody edited reaches the bots too: the file they draw from changed.
+func TestChangingThePoolAsksTheModToReadItAgain(t *testing.T) {
+	before := settings.Defaults()
+	after := before
+	after.SrcdsBotNamesAdded = []string{"Gravel Pit Gary"}
+
+	if got := Commands(before, after); !slices.Contains(got, "sm_redbots_reload_names") {
+		t.Errorf("an edited pool sent %v", got)
+	}
+}

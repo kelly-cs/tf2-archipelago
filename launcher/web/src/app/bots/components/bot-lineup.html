@@ -73,6 +73,21 @@
             </option>
           }
         </select>
+        @if (seat.called; as called) {
+          <select
+            class="called"
+            [attr.aria-label]="'Name for ' + seat.label"
+            [value]="value(called)"
+            [disabled]="value(seat.playedBy) === ''"
+            (change)="setSeatName(seat, $any($event.target).value)"
+          >
+            @for (option of called.options; track option.value) {
+              <option [value]="option.value" [selected]="option.value === value(called)">
+                {{ option.label }}
+              </option>
+            }
+          </select>
+        }
         @if (seat.carries; as carries) {
           <select
             class="carries"

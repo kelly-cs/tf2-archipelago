@@ -14,6 +14,8 @@ package botlive
 import (
 	"fmt"
 	"reflect"
+	"slices"
+	"strings"
 
 	"github.com/m-this/tf2-archipelago/launcher/internal/botloadout"
 	"github.com/m-this/tf2-archipelago/launcher/internal/settings"
@@ -47,10 +49,37 @@ func Commands(before, after settings.Settings) []string {
 		out = append(out, "say "+Announcement)
 	}
 	out = append(out, convars(after)...)
-	if loadoutFile(before) != loadoutFile(after) {
+	switch {
+	case weaponsFile(before) != weaponsFile(after):
+		// A reseat reads both files on the way and names every bot it builds,
+		// so it covers a name that moved with the weapons.
 		out = append(out, "sm_redbots_reseat")
+	case namesMoved(before, after):
+		out = append(out, "sm_redbots_reload_names")
 	}
 	return out
+}
+
+/*
+namesMoved is whether the bots would be called anything different.
+
+Kept apart from the weapons because the answers cost different things. A weapon
+is handed out on the way in and never again, so changing one means recycling the
+team and losing the upgrades it bought. A name is a string on a player, and
+sm_redbots_reload_names sets it in place: renaming a seat between waves should
+not cost the wave.
+*/
+func namesMoved(before, after settings.Settings) bool {
+	return !slices.Equal(before.SrcdsBotSeatNames, after.SrcdsBotSeatNames) ||
+		!slices.Equal(before.SrcdsBotNamesExcluded, after.SrcdsBotNamesExcluded) ||
+		!slices.Equal(before.SrcdsBotNamesAdded, after.SrcdsBotNamesAdded)
+}
+
+// weaponsFile is the loadout file with the names taken out of it, which is what
+// decides whether the team has to be rebuilt.
+func weaponsFile(s settings.Settings) string {
+	s.SrcdsBotSeatNames = nil
+	return loadoutFile(s)
 }
 
 // TeamMoved is whether these two settings ask for a different team at all. A
@@ -63,7 +92,8 @@ func TeamMoved(before, after settings.Settings) bool {
 // teamOf is the part of the settings Commands sends, so a save that left the
 // bots alone compares equal.
 func teamOf(s settings.Settings) []string {
-	return append(convars(s), loadoutFile(s))
+	return append(convars(s), loadoutFile(s),
+		strings.Join(s.SrcdsBotNamesExcluded, ","), strings.Join(s.SrcdsBotNamesAdded, ","))
 }
 
 // convars is the lineup as the mod holds it, which is everything Commands has
@@ -80,7 +110,7 @@ func convars(s settings.Settings) []string {
 // loadoutFile is what the mod would read off disk for these settings, which is
 // the only thing sm_redbots_reseat exists to pick up.
 func loadoutFile(s settings.Settings) string {
-	return LibraryOf(s).Render(s.SrcdsBotLoadouts, botloadout.Seats(s.SrcdsBotTeamComp, s.SrcdsBotSeatLoadouts))
+	return LibraryOf(s).Render(s.SrcdsBotLoadouts, botloadout.Seats(s.SrcdsBotTeamComp, s.SrcdsBotSeatLoadouts, s.SrcdsBotSeatNames))
 }
 
 // LibraryOf is the loadouts these settings can offer: the built-in presets and
@@ -94,7 +124,7 @@ func LibraryOf(s settings.Settings) botloadout.Library {
 // same terms the file is written on: it is removed when nothing is custom, and
 // the convar has to agree or the mod looks for a file that is not there.
 func customLoadouts(s settings.Settings) int {
-	seats := botloadout.Seats(s.SrcdsBotTeamComp, s.SrcdsBotSeatLoadouts)
+	seats := botloadout.Seats(s.SrcdsBotTeamComp, s.SrcdsBotSeatLoadouts, s.SrcdsBotSeatNames)
 	if LibraryOf(s).Anything(s.SrcdsBotLoadouts, seats) {
 		return 1
 	}
