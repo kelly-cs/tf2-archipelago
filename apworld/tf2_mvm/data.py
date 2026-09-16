@@ -71,8 +71,13 @@ class Mission:
         """Whether a server loading these mods can play the mission."""
         return self.playable or (self.requires in SERVER_MOD_KEYS and self.requires in server_mods)
 
-    def checks(self, victory_caches: bool, giantsanity: bool, tanksanity: bool) -> tuple[Location, ...]:
-        """The locations a seed holds for this mission: the caches and per-kill ones only when asked for."""
+    def checks(
+        self, victory_caches: bool, giantsanity: bool, tanksanity: bool
+    ) -> tuple[Location, ...]:
+        """The locations a seed holds for this mission.
+
+        Caches and per-kill checks are included only when requested.
+        """
         return tuple(
             location
             for location in self.locations
