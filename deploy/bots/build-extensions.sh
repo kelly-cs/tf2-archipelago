@@ -61,12 +61,17 @@ submodules cbasenpc
 submodules actions
 # Already applied is not a failure: the checkout survives between runs, so a
 # second run finds its own work. See apply_patches in build.sh.
-for patch in "$patches/actions"/*.patch; do
-	[ -e "$patch" ] || break
-	git -C "$src/actions" apply --reverse --check "$patch" 2>/dev/null && continue
-	echo "applying $(basename "$patch")"
-	git -C "$src/actions" apply --whitespace=nowarn "$patch"
-done
+apply_extension_patches() {
+	tree=$1
+	for patch in "$patches/$tree"/*.patch; do
+		[ -e "$patch" ] || break
+		git -C "$src/$tree" apply --reverse --check "$patch" 2>/dev/null && continue
+		echo "applying $tree/$(basename "$patch")"
+		git -C "$src/$tree" apply --whitespace=nowarn "$patch"
+	done
+}
+apply_extension_patches cbasenpc
+apply_extension_patches actions
 
 # The tf2 manifest points the linker at lib/linux; the 32-bit libraries it
 # actually links against live in lib/public/linux. CBaseNPC resolves the real
