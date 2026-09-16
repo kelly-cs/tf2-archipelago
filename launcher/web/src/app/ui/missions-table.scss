@@ -192,10 +192,6 @@ tbody tr {
   color: var(--text-faint);
 }
 
-.play {
-  text-align: right;
-}
-
 /* Keep the td a table cell so its bottom border is laid out with the whole
    row. Making the td itself flex left empty action cells only padding-high,
    which drew their border above the rest of the row. */

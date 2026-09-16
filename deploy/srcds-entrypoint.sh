@@ -77,10 +77,19 @@ steam_id_for_sourcemod() {
 reload_admin_cache() {
 	attempt=1
 	while [ "$attempt" -le "$ADMIN_RELOAD_ATTEMPTS" ]; do
-		if "$RCON" sm_reloadadmins >/dev/null 2>&1; then
+		"$RCON" sm_reloadadmins >/dev/null 2>&1
+		case $? in
+		0)
 			echo "[AP] refreshed the SourceMod admin cache"
 			return 0
-		fi
+			;;
+		2)
+			# The client refuses before it dials: no password to dial with,
+			# and no amount of waiting grows one.
+			echo "[AP] wrote the admin list, but SRCDS_RCONPW is unset, so the cache was not refreshed" >&2
+			return 1
+			;;
+		esac
 		attempt=$((attempt + 1))
 		sleep "$ADMIN_RELOAD_INTERVAL"
 	done
@@ -334,7 +343,9 @@ install_plugin() {
 }
 
 # Tests source the functions above without starting SteamCMD or srcds.
-if [ "${TF2AP_ENTRYPOINT_LIBRARY:-0}" != 1 ]; then
+if [ "${TF2AP_ENTRYPOINT_LIBRARY:-0}" = 1 ]; then
+	return 0
+fi
 
 # SRCDS_REACH says in one word where players come from. The game understands
 # two separate things instead: sv_lan in server.cfg, and -enablefakeip on the
@@ -401,5 +412,3 @@ if [ -f "${console_log}" ]; then
 fi
 
 exec bash /usr/local/bin/tf2ap-srcds-launch.sh
-
-fi
