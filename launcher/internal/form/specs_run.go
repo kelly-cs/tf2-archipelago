@@ -95,7 +95,7 @@ func playerSpecs(s State, env Env) []Spec {
 			func(s State, v bool) State { s.Settings.MvmDeathLink = v; return s }),
 	}
 	rows = slices.Insert(rows, len(rows)-2, missionModifierSpecs(tab)...)
-	return append(rows, runFolderSpecs(tab)...)
+	return append(rows, runFolderSpecs(tab, env)...)
 }
 
 func missionModifierSpecs(tab string) []Spec {
@@ -125,7 +125,18 @@ Separate from the run's own options above because they answer a different
 question. Those say what the seed holds; these say where it lands and what to
 press once it does.
 */
-func runFolderSpecs(tab string) []Spec {
+func runFolderSpecs(tab string, env Env) []Spec {
+	appDir := folder("run.app_dir", tab, "Archipelago app",
+		"Where the Archipelago app is installed. On Linux this may be the AppImage itself. Blank searches PATH and common install, application and download locations.",
+		"",
+		func(s State) string { return s.Settings.ArchipelagoDir },
+		func(s State, v string) State { s.Settings.ArchipelagoDir = trim(v); return s })
+	appDir.Unavailable = func(State, Env) string {
+		if env.Attached {
+			return "Docker includes the compatible Archipelago generator; no app folder is needed"
+		}
+		return ""
+	}
 	return []Spec{
 		/* The 14 GB lives here, and until now nothing on any page said where
 		   that was or let anybody move it. A player on Discord went looking
@@ -141,16 +152,12 @@ func runFolderSpecs(tab string) []Spec {
 			func(s State) string { return s.Settings.InstallRoot },
 			func(s State, v string) State { s.Settings.InstallRoot = trim(v); return s }),
 
-		folder("run.app_dir", tab, "Archipelago app",
-			"Where the Archipelago app is installed. On Linux this may be the AppImage itself. Blank searches PATH and common install, application and download locations.",
-			"",
-			func(s State) string { return s.Settings.ArchipelagoDir },
-			func(s State, v string) State { s.Settings.ArchipelagoDir = trim(v); return s }),
+		appDir,
 
 		press("run.generate", tab, "Generate seed",
 			"Make and download the seed archive through the browser. Upload that archive at archipelago.gg/uploads to open a room."),
-		press("run.open_player_file", tab, "Open tf2.yaml",
-			"Write the player file from what is on screen, then show it in the browser."),
+		press("run.open_player_file", tab, "Download tf2.yaml",
+			"Make and download the player file from what is on screen."),
 		press("run.open_folder", tab, "Browse install files",
 			"Browse the folder above through this private launcher page: the game files, player file, log and run state."),
 

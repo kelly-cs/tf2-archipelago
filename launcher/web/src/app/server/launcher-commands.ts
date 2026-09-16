@@ -67,6 +67,11 @@ export class LauncherCommands {
     return from(this.files.showFile({ target }));
   }
 
+  /** downloadFile streams a player YAML or generated seed to the browser. */
+  downloadFile(target: FileTarget): Observable<{ filename: string; chunk: Uint8Array }> {
+    return from(this.files.downloadFile({ target }));
+  }
+
   /** debugBundle is a stream of chunks: the first message names the file and
       the ones after it carry bytes. */
   debugBundle(): Observable<{ filename: string; chunk: Uint8Array }> {

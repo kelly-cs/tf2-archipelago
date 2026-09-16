@@ -148,6 +148,15 @@ test.describe('the settings screen', () => {
     await expect(page.getByText('opened /home/player/.config/tf2ap/settings.json')).toBeVisible();
   });
 
+  test('the player file is downloaded instead of written beside the launcher', async ({ page }) => {
+    await settingsPages(page).getByRole('link', { name: 'Player options', exact: true }).click();
+    const waiting = page.waitForEvent('download');
+    await page.getByRole('button', { name: 'Download tf2.yaml' }).click();
+    const download = await waiting;
+    expect(download.suggestedFilename()).toBe('tf2.yaml');
+    await expect(page.getByText('saved tf2.yaml')).toBeVisible();
+  });
+
   // The footer is the only thing that says whether there is anything to save.
   // It went quiet once when the store lost track of what had been answered, and
   // Save sat disabled over a screen full of changes.

@@ -29,6 +29,7 @@ func run(logger *slog.Logger) error {
 		Authority:         authority,
 		Attached:          true,
 		AttachedEnvFile:   env("TF2AP_ADMIN_ENV_FILE", "/config/compose.env"),
+		GeneratorURL:      env("TF2AP_GENERATOR_URL", "http://generator:38282"),
 		TailscaleSocket:   env("TF2AP_TAILSCALE_SOCKET", "/run/tf2ap-fastdl/tailscaled.sock"),
 		TailscaleHostname: env("TAILSCALE_HOSTNAME", "tf2-fastdl"),
 		AttachedLogs: []webapi.AttachedLog{

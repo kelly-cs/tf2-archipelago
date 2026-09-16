@@ -182,6 +182,17 @@ func (s filesRPC) ShowFile(_ context.Context, request *connect.Request[launcherv
 	return connect.NewResponse(&launcherv1.ShowFileResponse{Path: path}), nil
 }
 
+func (s filesRPC) DownloadFile(_ context.Context, request *connect.Request[launcherv1.DownloadFileRequest], stream *connect.ServerStream[launcherv1.DownloadFileResponse]) error {
+	name, body := "tf2.yaml", []byte("name: Scout\ngame: Team Fortress 2 Mann vs Machine\n")
+	if request.Msg.GetTarget() == launcherv1.FileTarget_FILE_TARGET_GENERATED_SEED {
+		name, body = "AP_fake.zip", []byte("not a real zip")
+	}
+	if err := stream.Send(&launcherv1.DownloadFileResponse{Filename: name}); err != nil {
+		return err
+	}
+	return stream.Send(&launcherv1.DownloadFileResponse{Chunk: body})
+}
+
 func (s filesRPC) DownloadDebugBundle(_ context.Context, _ *connect.Request[launcherv1.DownloadDebugBundleRequest], stream *connect.ServerStream[launcherv1.DownloadDebugBundleResponse]) error {
 	if err := stream.Send(&launcherv1.DownloadDebugBundleResponse{Filename: "tf2ap-debug.zip"}); err != nil {
 		return err

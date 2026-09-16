@@ -1,6 +1,7 @@
 package webapi
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -40,6 +41,10 @@ func (a *App) FilePath(ctx context.Context, target launcherv1.FileTarget) (strin
 	s, err := a.DraftSettings()
 	if err != nil {
 		return "", err
+	}
+	if a.attached && (target == launcherv1.FileTarget_FILE_TARGET_PLAYER_FILE ||
+		target == launcherv1.FileTarget_FILE_TARGET_GENERATED_SEED) {
+		return "", errors.New("docker-managed files are downloaded through the browser")
 	}
 	switch target {
 	case launcherv1.FileTarget_FILE_TARGET_PLAYER_FILE:
@@ -90,6 +95,82 @@ func (s FilesRPC) ShowFile(ctx context.Context, request *connect.Request[launche
 		s.App.Say("could not open %s: %v", path, err)
 	}
 	return connect.NewResponse(&launcherv1.ShowFileResponse{Path: path}), nil
+}
+
+// DownloadFile streams a file derived from the settings currently on screen.
+// Unlike ShowFile it needs no shared filesystem between the browser and the
+// launcher, which is what makes both buttons work in a read-only container.
+func (s FilesRPC) DownloadFile(ctx context.Context, request *connect.Request[launcherv1.DownloadFileRequest], stream *connect.ServerStream[launcherv1.DownloadFileResponse]) error {
+	name, body, err := s.download(ctx, request.Msg.GetTarget())
+	if err != nil {
+		return connect.NewError(connect.CodeFailedPrecondition, err)
+	}
+	defer func() { _ = body.Close() }()
+	if err := stream.Send(&launcherv1.DownloadFileResponse{Filename: name}); err != nil {
+		return err
+	}
+	buffer := make([]byte, bundleChunk)
+	for {
+		read, readErr := body.Read(buffer)
+		if read > 0 {
+			if err := stream.Send(&launcherv1.DownloadFileResponse{Chunk: buffer[:read]}); err != nil {
+				return err
+			}
+		}
+		if errors.Is(readErr, io.EOF) {
+			return nil
+		}
+		if readErr != nil {
+			return connect.NewError(connect.CodeInternal, readErr)
+		}
+	}
+}
+
+func (s FilesRPC) download(ctx context.Context, target launcherv1.FileTarget) (string, io.ReadCloser, error) {
+	settingsNow, err := s.App.DraftSettings()
+	if err != nil {
+		return "", nil, err
+	}
+	if err := settings.CheckServerModsReady(settingsNow, s.App.readyServerMods()); err != nil {
+		return "", nil, err
+	}
+	switch target {
+	case launcherv1.FileTarget_FILE_TARGET_PLAYER_FILE:
+		if _, err := settings.CheckRunSelection(settingsNow); err != nil {
+			return "", nil, err
+		}
+		body := settings.PlayerYAML(settingsNow, assets.ArchipelagoVersion)
+		return settings.PlayerFileName, io.NopCloser(bytes.NewReader([]byte(body))), nil
+	case launcherv1.FileTarget_FILE_TARGET_GENERATED_SEED:
+		if s.App.generatorURL != "" {
+			if _, err := settings.CheckRunSelection(settingsNow); err != nil {
+				return "", nil, err
+			}
+			player := settings.PlayerYAML(settingsNow, assets.ArchipelagoVersion)
+			result, err := generate.Remote(ctx, s.App.generatorURL, []byte(player))
+			if err != nil {
+				return "", nil, err
+			}
+			return result.Name, result.Body, nil
+		}
+		result, err := generate.Run(ctx, generate.Options{
+			Settings: settingsNow, AppDir: settingsNow.ArchipelagoDir,
+			Apworld: assets.Apworld(), ArchipelagoVersion: assets.ArchipelagoVersion,
+		})
+		if err != nil {
+			return "", nil, err
+		}
+		file, err := os.Open(result.Archive) //nolint:gosec // generated under the launcher's own install root
+		if err != nil {
+			return "", nil, err
+		}
+		return filepath.Base(result.Archive), file, nil
+	case launcherv1.FileTarget_FILE_TARGET_UNSPECIFIED,
+		launcherv1.FileTarget_FILE_TARGET_SETTINGS_FILE,
+		launcherv1.FileTarget_FILE_TARGET_INSTALL_ROOT:
+		return "", nil, fmt.Errorf("%s is opened rather than downloaded", target)
+	}
+	return "", nil, fmt.Errorf("no file target %d", target)
 }
 
 // DownloadDebugBundle streams the zip. The first message names it and carries

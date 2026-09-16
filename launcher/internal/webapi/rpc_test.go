@@ -3,6 +3,7 @@ package webapi
 import (
 	"context"
 	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -249,6 +250,26 @@ func TestFilesThatNeedTheScreenSayWhenItIsClosed(t *testing.T) {
 	}))
 	if connect.CodeOf(err) != connect.CodeFailedPrecondition {
 		t.Fatalf("a closed screen answered %v, want failed_precondition", connect.CodeOf(err))
+	}
+}
+
+func TestPlayerFileDownloadsWithoutWritingTheInstallRoot(t *testing.T) {
+	s := settings.Defaults()
+	s.InstallRoot = "/a/read-only-container-path"
+	app := NewAttached(s, nil, "")
+	app.OpenSettings("Player options")
+
+	name, body, err := NewFilesRPC(app).download(context.Background(), launcherv1.FileTarget_FILE_TARGET_PLAYER_FILE)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = body.Close() }()
+	contents, err := io.ReadAll(body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if name != "tf2.yaml" || !strings.Contains(string(contents), "Team Fortress 2 Mann vs Machine") {
+		t.Fatalf("download = %q, %q", name, contents)
 	}
 }
 

@@ -197,7 +197,7 @@ func (a *App) formEnvLocked() form.Env {
 	}
 	return form.Env{
 		CommunityAvailable: slices.Clone(a.community), ServerModsReady: slices.Clone(a.serverMods),
-		Platform: runtime.GOOS, AppDirDefault: appDir,
+		Platform: runtime.GOOS, AppDirDefault: appDir, Attached: a.attached,
 	}
 }
 

@@ -112,6 +112,9 @@ type Env struct {
 	// normal platform-neutral form.
 	ServerModsReady []string
 	Platform        string
+	// Attached means Docker Compose supplies the runtime. Host application
+	// paths do not cross that container boundary.
+	Attached bool
 
 	// AppDirDefault is where the Archipelago app is looked for when the setting
 	// is blank. Shown as the placeholder, never written to the settings.

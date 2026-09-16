@@ -8,6 +8,9 @@
 name: tf2-archipelago
 
 services:
+  generator:
+    image: ghcr.io/m-this/tf2-archipelago/archipelago:${TF2AP_VERSION:-latest}
+
   archipelago:
     image: ghcr.io/m-this/tf2-archipelago/archipelago:${TF2AP_VERSION:-latest}
 

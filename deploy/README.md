@@ -1,12 +1,13 @@
 # deploy
 
-Compose stack. Five services by default, and one more that runs on demand.
+Compose stack. Five services by default, and three more enabled on demand.
 
 | File | Service | Notes |
 | --- | --- | --- |
 | `compose.yml` | `srcds` | TF2 dedicated server, SourceMod plus `ripext` plus our plugin. |
 | `compose.yml` | `bridge` | Go, from `bridge/`. |
 | `compose.yml` | `admin` | The launcher web UI attached to the Compose-managed server, with read-only SRCDS and bridge logs, on host loopback. |
+| `compose.yml` | `generator` | Private seed-generation API using the pinned Archipelago image. |
 | `compose.yml` | `archipelago` | The Archipelago server, unmodified, with our apworld baked in. Profile `selfhost` only. |
 | `compose.yml` | `fastdl` | Caddy serving only downloadable TF2 asset directories. |
 | `compose.yml` | `tailscale-fastdl` | Official Tailscale Funnel sidecar, signed in from the admin UI. |
@@ -21,6 +22,11 @@ the operator uploads it there and opens a room, and the bridge dials that room.
 Generation lives in a compose file of its own because it comes first. The stack
 refuses to load without the address of a room, and there is no room before a
 seed exists.
+
+The browser admin uses the private `generator` service instead. It sends the
+current Player Options as `tf2.yaml` and downloads the resulting archive in the
+browser. The service is the same version-pinned Archipelago image used by
+`make seed`; it publishes no host port and needs no host Archipelago install.
 
 ## The released compose file
 

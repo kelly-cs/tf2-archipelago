@@ -50,6 +50,10 @@ type Options struct {
 	// admin container. Empty keeps settings read-only.
 	AttachedEnvFile string
 
+	// GeneratorURL is the private Compose-network Archipelago generator. Empty
+	// keeps generation on the desktop's locally installed Archipelago app.
+	GeneratorURL string
+
 	// AttachedLogs are service logs mounted read-only into an attached admin
 	// process. An empty list disables service-log forwarding.
 	AttachedLogs []AttachedLog
@@ -90,6 +94,7 @@ func appForOptions(s settings.Settings, logger *slog.Logger, options Options) *A
 	if options.Attached {
 		app = NewAttached(s, logger, options.AttachedEnvFile)
 	}
+	app.generatorURL = options.GeneratorURL
 	if options.TailscaleSocket != "" {
 		app.authorizeFunnel = func(ctx context.Context) (tailscalefastdl.Authorization, error) {
 			return tailscalefastdl.AuthorizeContainer(ctx, options.TailscaleSocket, options.TailscaleHostname, 80)

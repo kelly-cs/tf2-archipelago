@@ -79,6 +79,7 @@ type App struct {
 	attached        bool
 	attachedUp      bool
 	attachedEnvFile string
+	generatorURL    string
 	authorizeFunnel func(context.Context) (tailscalefastdl.Authorization, error)
 	funnelAdvice    func(error) string
 

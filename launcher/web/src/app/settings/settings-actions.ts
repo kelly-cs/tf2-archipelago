@@ -20,8 +20,11 @@ import { FileTarget } from '@gen/tf2ap/launcher/v1/files_pb';
  */
 const shows: Record<string, FileTarget> = {
   'run.open_settings_file': FileTarget.SETTINGS_FILE,
-  'run.open_player_file': FileTarget.PLAYER_FILE,
   'run.open_folder': FileTarget.INSTALL_ROOT,
+};
+
+const downloads: Record<string, FileTarget> = {
+  'run.open_player_file': FileTarget.PLAYER_FILE,
   'run.generate': FileTarget.GENERATED_SEED,
 };
 
@@ -44,6 +47,10 @@ export class SettingsActions {
     const target = shows[id];
     if (target !== undefined) {
       return this.commands.showFile(target).pipe(map((answer) => `opened ${answer.path}`));
+    }
+    const download = downloads[id];
+    if (download !== undefined) {
+      return this.downloadFile(download);
     }
     if (id === 'net.check_funnel') {
       return this.commands
@@ -75,6 +82,20 @@ export class SettingsActions {
       map((bundle) => save(bundle)),
     );
   }
+
+  private downloadFile(target: FileTarget): Observable<string> {
+    return this.commands.downloadFile(target).pipe(
+      reduce(
+        (collected: Bundle, message) => ({
+          name: message.filename || collected.name,
+          chunks:
+            message.chunk.length > 0 ? [...collected.chunks, message.chunk] : collected.chunks,
+        }),
+        { name: target === FileTarget.PLAYER_FILE ? 'tf2.yaml' : 'tf2-seed.zip', chunks: [] },
+      ),
+      map((bundle) => save(bundle)),
+    );
+  }
 }
 
 interface Bundle {
@@ -85,7 +106,8 @@ interface Bundle {
 function save(bundle: Bundle): string {
   // Each chunk is a view on its own buffer, so the copies are what Blob takes.
   const parts = bundle.chunks.map((chunk) => chunk.slice().buffer);
-  const blob = new Blob(parts, { type: 'application/zip' });
+  const type = bundle.name.endsWith('.yaml') ? 'application/yaml' : 'application/zip';
+  const blob = new Blob(parts, { type });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;

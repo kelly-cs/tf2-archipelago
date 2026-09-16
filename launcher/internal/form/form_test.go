@@ -100,6 +100,22 @@ func TestGetAndSetAreTheSameField(t *testing.T) {
 	}
 }
 
+func TestDockerDoesNotAskForAHostArchipelagoApp(t *testing.T) {
+	model := Build(base(), Env{Attached: true})
+	page, ok := Page(model, "Player options")
+	if !ok {
+		t.Fatal("Player options page is missing")
+	}
+	i := slices.IndexFunc(page.Fields, func(field Field) bool { return field.ID == "run.app_dir" })
+	if i < 0 {
+		t.Fatal("Archipelago app row is missing")
+	}
+	field := page.Fields[i]
+	if !field.Disabled || !strings.Contains(field.Reason, "Docker includes") {
+		t.Fatalf("Docker Archipelago app row = disabled %t, reason %q", field.Disabled, field.Reason)
+	}
+}
+
 // A number takes its own bounds and refuses a step past either. The floor and
 // the ceiling are the two values most likely to be off by one, so both are
 // tried rather than a value from the middle.

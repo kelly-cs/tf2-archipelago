@@ -6,11 +6,13 @@ import "buf/validate/validate.proto";
 
 option go_package = "github.com/m-this/tf2-archipelago/launcher/internal/gen/tf2ap/launcher/v1;launcherv1";
 
-// FilesService is the four Show buttons and the debug bundle. Showing a file is
-// Go-side work because a browser cannot open a folder; the bundle is a download
-// because the player has to attach it somewhere.
+// FilesService is the four file buttons and the debug bundle. Existing folders
+// and settings files are opened by the launcher. Files made from the settings
+// on screen are downloads, which also works when the launcher is in a
+// read-only container and the browser is on the host.
 service FilesService {
   rpc ShowFile(ShowFileRequest) returns (ShowFileResponse);
+  rpc DownloadFile(DownloadFileRequest) returns (stream DownloadFileResponse);
   rpc DownloadDebugBundle(DownloadDebugBundleRequest) returns (stream DownloadDebugBundleResponse);
   rpc ListFolder(ListFolderRequest) returns (ListFolderResponse);
 }
@@ -36,6 +38,23 @@ message ShowFileRequest {
 // the desktop has no handler for it.
 message ShowFileResponse {
   string path = 1;
+}
+
+message DownloadFileRequest {
+  FileTarget target = 1 [(buf.validate.field).enum = {
+    defined_only: true
+    in: [
+      2,
+      4
+    ]
+  }];
+}
+
+// DownloadFileResponse uses the same first-message metadata shape as the
+// debug bundle: the first message names the file and later messages carry it.
+message DownloadFileResponse {
+  string filename = 1;
+  bytes chunk = 2;
 }
 
 message DownloadDebugBundleRequest {}

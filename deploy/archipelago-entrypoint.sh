@@ -45,9 +45,12 @@ generate)
 	echo "upload it at https://archipelago.gg/uploads, then create a room"
 	exit 0
 	;;
+generator)
+	exec python /usr/local/bin/archipelago-generator.py
+	;;
 host) ;;
 *)
-	echo "unknown mode $mode, expected generate or host" >&2
+	echo "unknown mode $mode, expected generate, generator or host" >&2
 	exit 1
 	;;
 esac

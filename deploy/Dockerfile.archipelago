@@ -71,6 +71,7 @@ COPY --from=build /usr/local/lib/python3.13/site-packages /usr/local/lib/python3
 COPY --from=build /usr/local/bin /usr/local/bin
 COPY --from=build --chown=archipelago:archipelago /ap /ap
 COPY --chown=archipelago:archipelago deploy/archipelago-entrypoint.sh /usr/local/bin/entrypoint.sh
+COPY --chown=archipelago:archipelago deploy/archipelago-generator.py /usr/local/bin/archipelago-generator.py
 COPY --from=playeryaml /out/playeryaml /usr/local/bin/playeryaml
 
 # A named volume takes its ownership from the directory it covers, so this must

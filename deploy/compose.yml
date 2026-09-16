@@ -73,6 +73,26 @@ configs:
         --socket=/run/tf2ap-fastdl/tailscaled.sock
 
 services:
+  # Seed generation for the browser UI. It is the same pinned Archipelago
+  # image as self-hosting, but exposes only a private Compose-network adapter:
+  # no host installation, host path or Docker socket is involved.
+  generator:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.archipelago
+      args:
+        ARCHIPELAGO_VERSION: ${ARCHIPELAGO_VERSION:?set it in deploy/env/versions.env}
+    command: ["generator"]
+    restart: unless-stopped
+    environment:
+      AP_GENERATOR_PORT: 38282
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:38282/healthz', timeout=2).read()"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 5s
+
   # The multiworld, hosted here rather than on archipelago.gg. Off unless
   # COMPOSE_PROFILES=selfhost, and it wants AP_HOST=archipelago with
   # AP_PORT=38281 and AP_TLS=false in .env.
@@ -297,6 +317,9 @@ services:
       TF2AP_ADMIN_SRCDS_LOG: /srv/tf-dedicated/tf/console.log
       TF2AP_ADMIN_BRIDGE_LOG: /srv/bridge/bridge.log
       TF2AP_ADMIN_ENV_FILE: /config/compose.env
+      # The pinned Archipelago image generates from the current settings. It
+      # is private to this Compose network and needs no host app directory.
+      TF2AP_GENERATOR_URL: http://generator:38282
       # ReadyServerMods resolves tf-dedicated/tf beneath the install root. The
       # named volume is mounted at exactly that path under /srv.
       TF2AP_INSTALL_ROOT: /srv
@@ -328,6 +351,8 @@ services:
       - ./.env:/config/compose.env
     depends_on:
       bridge:
+        condition: service_healthy
+      generator:
         condition: service_healthy
       tailscale-fastdl:
         condition: service_started
