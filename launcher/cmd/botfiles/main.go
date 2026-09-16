@@ -23,8 +23,8 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/m-this/tf2-archipelago/launcher/internal/settings"
 	"github.com/m-this/tf2-archipelago/launcher/internal/botfiles"
+	"github.com/m-this/tf2-archipelago/launcher/internal/settings"
 )
 
 func main() {

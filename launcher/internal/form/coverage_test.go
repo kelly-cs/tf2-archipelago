@@ -38,9 +38,9 @@ var notOnAPage = map[string]string{
 	"SrcdsBotTeamPresets": "written by the save and remove team buttons, not by a row",
 	"SrcdsBotNamesAdded": "written by the add name button, and then by a row per name added: " +
 		"a page built from settings nobody has added a name to has no such row to find",
-	"APHost":              "written by the room address row, which parses one line into three fields",
-	"APPort":              "written by the room address row",
-	"APTls":               "written by the room address row",
+	"APHost": "written by the room address row, which parses one line into three fields",
+	"APPort": "written by the room address row",
+	"APTls":  "written by the room address row",
 	"MetricsPort": "the launcher's own metrics listener, on a fixed port. No interface has ever " +
 		"offered it and nothing has asked for one; it is here to be changed in the file.",
 }
