@@ -13,7 +13,10 @@ export function loadoutView(
   const classes = mercenaries.map((name) => {
     const unlocked = owned.has(`Class: ${name}`);
     const order = source.classLoadouts.get(name) ?? weaponSlots;
-    const copies = Math.min(2, owned.get(`Progressive Weapon Slot: ${name}`) ?? 0);
+    // The class's first slot comes free with the class, so the rest is what its
+    // own item can earn: the order the export gives, less that first one.
+    const earned = order.length - 1;
+    const copies = Math.min(earned, owned.get(`Progressive Weapon Slot: ${name}`) ?? 0);
     const unlockedSlots = classWeaponSlots
       ? new Set(order.filter((_, index) => (index === 0 ? unlocked : index <= copies)))
       : new Set(weaponSlots.slice(0, sharedSlotCount));
