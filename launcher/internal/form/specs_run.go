@@ -127,7 +127,8 @@ func checkSpecs(tab string) []Spec {
 			"A check for every tank of every wave, beside the mission's first. Cataclysm holds eleven.",
 			"every tank",
 			func(s State) bool { return s.Settings.MvmTanksanity },
-			func(s State, v bool) State { s.Settings.MvmTanksanity = v; return s })}
+			func(s State, v bool) State { s.Settings.MvmTanksanity = v; return s }),
+	}
 }
 
 func missionModifierSpecs(tab string) []Spec {

@@ -39,6 +39,7 @@ export interface Player {
 }
 
 export interface SlotData {
+  readonly class_weapon_slots?: boolean;
   readonly missions?: readonly string[];
   readonly start_mission?: string;
   readonly goal?: string;
@@ -87,6 +88,7 @@ export interface TrackerSource {
   readonly names: ReadonlyMap<number, string>;
   readonly catalog: readonly Mission[];
   readonly buffWeapons: ReadonlyMap<string, Weapon>;
+  readonly classLoadouts: ReadonlyMap<string, readonly string[]>;
   readonly itemNames: ReadonlyMap<number, string>;
   readonly slots: readonly SlotRow[];
   readonly totals: readonly TotalRow[];
@@ -105,6 +107,13 @@ export interface MissionView extends Mission {
 
 export interface ClassView {
   readonly name: Mercenary;
+  readonly unlocked: boolean;
+  readonly slots: readonly LoadoutSlotView[];
+  readonly slotCount: number;
+}
+
+export interface LoadoutSlotView {
+  readonly name: string;
   readonly unlocked: boolean;
 }
 
@@ -138,6 +147,8 @@ export interface TrackerView {
   readonly classCount: number;
   readonly unlocks: readonly UnlockView[];
   readonly slotCount: number;
+  readonly slotTotal: number;
+  readonly classWeaponSlots: boolean;
   readonly grapplingHook: boolean;
   readonly completed: number;
   readonly total: number;

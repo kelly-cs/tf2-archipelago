@@ -44,7 +44,9 @@ describe('tracker view', () => {
 
   it('combines starting state and received inventory', () => {
     expect(view.playerName).toBe('RED Team Server');
-    expect(view.slotCount).toBe(2);
+    expect(view.classWeaponSlots).toBe(true);
+    expect(view.slotCount).toBe(14);
+    expect(view.slotTotal).toBe(27);
     expect(view.classCount).toBe(5);
     expect(view.grapplingHook).toBe(true);
     expect(view.missions[0]?.locked).toBe(false);
@@ -200,6 +202,15 @@ describe('tracker screen', () => {
     expect(element.textContent).toContain('Faulty Calibration');
     expect(element.textContent).toContain('Loose Footing');
     expect(element.querySelector('.equipment-state')?.textContent?.trim()).toBe('Unlocked');
+    expect(element.querySelectorAll('.slot-track > .weapon-slot')).toHaveLength(0);
+    expect(element.textContent).toContain('14 / 27');
+
+    const component = fixture.componentInstance;
+    const engineerView = component.view()?.classes.find((entry) => entry.name === 'Engineer');
+    component.selectedClass.set(engineerView);
+    fixture.detectChanges();
+    expect(element.querySelector('.class-loadout')?.textContent).toContain('2 / 3 available');
+    expect(element.querySelectorAll('.class-slot-track .weapon-slot.owned')).toHaveLength(2);
     expect(element.querySelector('.tier')).not.toBeNull();
     expect(element.querySelector('app-badge span.accent')).not.toBeNull();
   });

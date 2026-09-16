@@ -104,8 +104,10 @@
         </article>
         <article class="stat">
           <span class="stat-label">Loadout</span>
-          <strong class="stat-value">{{ run.slotCount }} / 3</strong>
-          <span class="stat-detail">weapon slots available</span>
+          <strong class="stat-value">{{ run.slotCount }} / {{ run.slotTotal }}</strong>
+          <span class="stat-detail">
+            {{ run.classWeaponSlots ? 'class weapon slots available' : 'weapon slots available' }}
+          </span>
         </article>
       </section>
 
@@ -229,11 +231,13 @@
 
           <app-panel heading="Loadout & equipment">
             <div class="slot-track">
-              @for (slot of slots; track slot; let index = $index) {
-                <div class="weapon-slot" [class.owned]="index < run.slotCount">
-                  <strong>0{{ index + 1 }}</strong>
-                  <small>{{ slot }}</small>
-                </div>
+              @if (!run.classWeaponSlots) {
+                @for (slot of slots; track slot; let index = $index) {
+                  <div class="weapon-slot" [class.owned]="index < run.slotCount">
+                    <strong>0{{ index + 1 }}</strong>
+                    <small>{{ slot }}</small>
+                  </div>
+                }
               }
               <div
                 class="server-equipment"
@@ -301,6 +305,28 @@
       </button>
     </header>
     <div class="buff-dialog-body">
+      <section class="class-loadout" aria-label="Class loadout">
+        <div class="class-loadout-heading">
+          <div>
+            <div class="kicker">Loadout</div>
+            <h3>Weapon slots</h3>
+          </div>
+          <span>{{ chosen.slotCount }} / {{ chosen.slots.length }} available</span>
+        </div>
+        <div class="class-slot-track">
+          @for (slot of chosen.slots; track slot.name; let index = $index) {
+            <div
+              class="weapon-slot"
+              [class.owned]="slot.unlocked"
+              [attr.aria-label]="slot.name + ', ' + (slot.unlocked ? 'unlocked' : 'locked')"
+            >
+              <strong>0{{ index + 1 }}</strong>
+              <small>{{ slot.name }}</small>
+              <span>{{ slot.unlocked ? 'Unlocked' : 'Locked' }}</span>
+            </div>
+          }
+        </div>
+      </section>
       <div class="buff-summary">
         <span>Only weapons {{ chosen.name }} can equip are shown.</span>
         <strong>

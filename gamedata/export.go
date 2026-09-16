@@ -20,6 +20,7 @@ const (
 	FileMissions      = "missions.json"
 	FileItems         = "items.json"
 	FileWeaponClasses = "weapon_classes.json"
+	FileClassLoadouts = "class_loadouts.json"
 )
 
 type metaFile struct {
@@ -130,6 +131,16 @@ type weaponClassesJSON struct {
 	Aliases []string `json:"aliases,omitempty"`
 }
 
+type classLoadoutsFile struct {
+	FormatVersion int                `json:"format_version"`
+	Classes       []classLoadoutJSON `json:"classes"`
+}
+
+type classLoadoutJSON struct {
+	Name  string   `json:"name"`
+	Slots []string `json:"slots"`
+}
+
 // Export writes the generated data files into dir, replacing what is there.
 func Export(dir string) error {
 	if err := Validate(); err != nil {
@@ -143,6 +154,7 @@ func Export(dir string) error {
 		FileMissions:      buildMissionsFile(),
 		FileItems:         buildItemsFile(),
 		FileWeaponClasses: buildWeaponClassesFile(),
+		FileClassLoadouts: buildClassLoadoutsFile(),
 	}
 	for name, content := range files {
 		body, err := json.MarshalIndent(content, "", "  ")
@@ -154,6 +166,25 @@ func Export(dir string) error {
 		}
 	}
 	return nil
+}
+
+func buildClassLoadoutsFile() classLoadoutsFile {
+	file := classLoadoutsFile{
+		FormatVersion: FormatVersion,
+		Classes:       make([]classLoadoutJSON, 0, len(Classes)),
+	}
+	for _, class := range Classes {
+		slots := make([]string, 0, len(class.SlotOrder))
+		for _, id := range class.SlotOrder {
+			slot, ok := WeaponSlotByID(id)
+			if !ok {
+				continue
+			}
+			slots = append(slots, slot.Name)
+		}
+		file.Classes = append(file.Classes, classLoadoutJSON{Name: class.Name, Slots: slots})
+	}
+	return file
 }
 
 func buildMetaFile() metaFile {
