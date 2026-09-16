@@ -41,7 +41,7 @@ func PlayerYAML(s Settings, archipelagoVersion string) string {
 	fmt.Fprintf(&b, "  medal_on_clear: %t\n", s.MvmMedalOnClear)
 	fmt.Fprintf(&b, "  victory_caches: %t\n", s.MvmVictoryCaches)
 	fmt.Fprintf(&b, "  milestone_checks: %t\n", s.MvmMilestoneChecks)
-	fmt.Fprintf(&b, "  class_weapon_slots: %t\n", s.MvmClassWeaponSlots)
+	fmt.Fprintf(&b, "  class_weapon_slots: %s\n", s.MvmClassWeaponSlots.OrOff())
 	fmt.Fprintf(&b, "  giantsanity: %t\n", s.MvmGiantsanity)
 	fmt.Fprintf(&b, "  tanksanity: %t\n", s.MvmTanksanity)
 	fmt.Fprintf(&b, "  death_link: %t\n", s.MvmDeathLink)

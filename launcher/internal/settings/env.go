@@ -138,7 +138,7 @@ func ApplyEnv(s Settings) Settings {
 	boolean(&s.MvmMedalOnClear, "MVM_MEDAL_ON_CLEAR")
 	boolean(&s.MvmVictoryCaches, "MVM_VICTORY_CACHES")
 	boolean(&s.MvmMilestoneChecks, "MVM_MILESTONE_CHECKS")
-	boolean(&s.MvmClassWeaponSlots, "MVM_CLASS_WEAPON_SLOTS")
+	classSlots(&s.MvmClassWeaponSlots, "MVM_CLASS_WEAPON_SLOTS")
 	boolean(&s.MvmGiantsanity, "MVM_GIANTSANITY")
 	boolean(&s.MvmTanksanity, "MVM_TANKSANITY")
 	boolean(&s.MvmServerSettings, "MVM_SERVER_SETTINGS")
@@ -314,4 +314,22 @@ func SplitList(value string) []string {
 		}
 	}
 	return out
+}
+
+// classSlots reads the three-way one, which was a boolean before 1.16.1 and
+// still reads as one: a compose file that says 1 or true gets the progressive
+// slots it was asking for.
+func classSlots(target *ClassSlots, name string) {
+	value, ok := os.LookupEnv(name)
+	if !ok {
+		return
+	}
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "1", "true", "yes", "on":
+		*target = ClassSlotsProgressive
+	case "0", "false", "no", "off", "":
+		*target = ClassSlotsOff
+	default:
+		*target = ClassSlots(strings.ToLower(strings.TrimSpace(value))).OrOff()
+	}
 }

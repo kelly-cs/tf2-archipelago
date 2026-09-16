@@ -36,4 +36,25 @@ describe('tracker loadouts', () => {
       { name: 'Melee', unlocked: false },
     ]);
   });
+  it('opens exactly the slots a named-slot seed handed out, in no order', () => {
+    const view = buildView(
+      {
+        ...source,
+        demoSlotData: { ...source.demoSlotData, class_weapon_slots_any_order: true },
+        itemNames: new Map([
+          ...source.itemNames,
+          [9_900_001, 'Scout Melee Slot'],
+          [9_900_002, 'Class: Scout'],
+        ]),
+        received: [{ player: 1, items: [[9_900_002], [9_900_001]] }],
+      },
+      1,
+    );
+
+    // The Scout's melee, found without his secondary: progressive could not
+    // have produced this state at all.
+    expect(
+      view.classes.find((one) => one.name === 'Scout')?.slots.map((s) => `${s.name}:${s.unlocked}`),
+    ).toEqual(['Primary:true', 'Secondary:false', 'Melee:true']);
+  });
 });

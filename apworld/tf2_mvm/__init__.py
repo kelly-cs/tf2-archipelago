@@ -26,6 +26,11 @@ CLASSIFICATIONS = {
     "trap": ItemClassification.trap,
 }
 
+# The class_weapon_slots value that hands the slots out by name instead of in
+# the class's own order. Not spelled "random", which Archipelago keeps for
+# "roll this option for me" on every option there is.
+ANY_ORDER = 2
+
 BUFF_REQUIREMENTS = {
     "normal": 1,
     "intermediate": 2,
@@ -265,7 +270,16 @@ class TF2MvMWorld(World):
 
         requirement = REQUIREMENTS[self.start_mission.difficulty]
         classes = self._start_classes(requirement.classes)
-        if self.options.class_weapon_slots.value:
+        if self.options.class_weapon_slots.value == ANY_ORDER:
+            # Named slots are still handed out in the class's own order to
+            # start with: the tier says how many, and the first of a class's
+            # order is the one it is played with.
+            slots = [
+                name
+                for class_item in classes
+                for name in data.CLASS_NAMED_SLOT_ITEMS[class_item][: requirement.slots - 1]
+            ]
+        elif self.options.class_weapon_slots.value:
             # Each starting class holds its free first slot and earns the rest
             # of what the tier asks for.
             slots = [
@@ -381,7 +395,10 @@ class TF2MvMWorld(World):
         pool += [
             self.create_item(name) for name in data.CLASS_NAMES if name not in self.start_items
         ]
-        if self.options.class_weapon_slots.value:
+        if self.options.class_weapon_slots.value == ANY_ORDER:
+            for names in data.CLASS_NAMED_SLOT_ITEMS.values():
+                pool += [self.create_item(name) for name in names if name not in self.start_items]
+        elif self.options.class_weapon_slots.value:
             for slot_item in data.CLASS_SLOT_ITEMS.values():
                 held = self.start_items.count(slot_item)
                 pool += [self.create_item(slot_item) for _ in range(data.CLASS_SLOT_COUNT - held)]
@@ -490,6 +507,7 @@ class TF2MvMWorld(World):
             "victory_caches": bool(self.options.victory_caches.value),
             "milestone_checks": bool(self.options.milestone_checks.value),
             "class_weapon_slots": bool(self.options.class_weapon_slots.value),
+            "class_weapon_slots_any_order": self.options.class_weapon_slots.value == ANY_ORDER,
             "giantsanity": bool(self.options.giantsanity.value),
             "tanksanity": bool(self.options.tanksanity.value),
             "tracker": {
@@ -558,10 +576,19 @@ class TF2MvMWorld(World):
         requirement: Requirement = REQUIREMENTS[mission.difficulty]
         player = self.player
         per_class = bool(self.options.class_weapon_slots.value)
+        any_order = self.options.class_weapon_slots.value == ANY_ORDER
 
         def deployable_classes(state: CollectionState) -> int:
             # A class counts once it is held with the slots the tier asks
-            # for: its free first slot, plus the copies of its own item.
+            # for: its free first slot, plus the ones it has earned. Which is
+            # copies of one item, or that many of its named slots.
+            if any_order:
+                return sum(
+                    1
+                    for class_name, names in data.CLASS_NAMED_SLOT_ITEMS.items()
+                    if state.has(class_name, player)
+                    and sum(state.has(name, player) for name in names) >= requirement.slots - 1
+                )
             return sum(
                 1
                 for class_name, slot_item in data.CLASS_SLOT_ITEMS.items()

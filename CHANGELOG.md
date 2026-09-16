@@ -6,6 +6,21 @@ in the release notes, so this file is the only place to write it.
 
 ## Unreleased
 
+### Weapon slots, found in any order
+
+- **Weapon slots per class is now three ways, not two.** Off is one progressive
+  item for everybody. Progressive is what v1.16.0 shipped: an item per class,
+  opening that class's slots in its own order. **Any order** is the same
+  eighteen slots as items that name them, found in whatever order the
+  multiworld puts them in, so a Scout can find his melee before his secondary.
+- Safe because the slot a class is played with still comes free with the class:
+  the Medigun for a Medic, the Knife for a Spy. Nobody is left holding only
+  their worst weapon.
+- The items read as what they are: "Spy Revolver Slot" in somebody else's
+  spoiler log, rather than a progressive item nobody outside the run can place.
+- Same eighteen items either way, so a run needs no more room for them than it
+  did. A yaml saying `true` still means progressive.
+
 ### Fixed
 
 - A mission whose file this server does not have is said so and skipped, rather

@@ -43,6 +43,18 @@ type Class struct {
 // starts with the Medigun and a Spy with the Knife.
 const ClassSlotsEarned uint8 = 2
 
+// EarnedSlots is the slots this class has to earn, in its own order: everything
+// after the free first one. The named items are one of these each.
+func (c Class) EarnedSlots() []WeaponSlot {
+	out := make([]WeaponSlot, 0, ClassSlotsEarned)
+	for n := 1; n <= int(ClassSlotsEarned); n++ {
+		if slot, ok := c.SlotForCopy(n); ok {
+			out = append(out, slot)
+		}
+	}
+	return out
+}
+
 // SlotForCopy is the slot copy n of this class's progressive item opens, n
 // counted from 1: the class's order, less its free first slot.
 func (c Class) SlotForCopy(n int) (WeaponSlot, bool) {

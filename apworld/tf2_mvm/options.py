@@ -161,22 +161,34 @@ class StartClass(FreeText):
         )
 
 
-class ClassWeaponSlots(Toggle):
+class ClassWeaponSlots(Choice):
     """Open loadout slots class by class rather than for everybody at once.
 
-    Each class gets a progressive item of its own, two copies, and earns its
-    second and third slots with them; its first slot comes free with the
-    class, and it is the slot that class is played with: the Medigun for a
-    Medic, the Knife for a Spy, the Wrench for an Engineer. A mission at a
-    tier still needs that tier's count of classes with that tier's count of
-    slots, so the logic is the same shape with more items behind it.
+    Off is one Progressive Weapon Slot for everybody, three copies.
 
-    Eighteen items in the pool where there were three, and a longer run for
-    it. A run with few missions may not have the checks to hold them, and
-    generation says so. Off by default.
+    Progressive gives each class an item of its own, two copies, and it earns
+    its second and third slots with them in its own order. Its first slot
+    comes free with the class, and it is the slot that class is played with:
+    the Medigun for a Medic, the Knife for a Spy, the Wrench for an Engineer.
+
+    Any order is the same eighteen items, each naming the slot it opens, found
+    in whatever order the multiworld puts them in: a Scout can find his melee
+    before his secondary. Safe because the free first slot is the one that
+    class is played with, so no class is ever left holding only its worst
+    weapon, and the items read as what they are in somebody else's spoiler log.
+
+    Either way it is eighteen items in the pool where there were three, and a
+    longer run for it. A run with few missions may not have the checks to hold
+    them, and generation says so. A mission at a tier still needs that tier's
+    count of classes with that tier's count of slots.
     """
 
     display_name = "Weapon Slots per Class"
+    option_off = 0
+    option_progressive = 1
+    option_any_order = 2
+    alias_false = 0
+    alias_true = 1
     default = 0
 
 

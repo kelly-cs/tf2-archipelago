@@ -112,11 +112,24 @@ func checkSpecs(tab string) []Spec {
 			"count the kills",
 			func(s State) bool { return s.Settings.MvmMilestoneChecks },
 			func(s State, v bool) State { s.Settings.MvmMilestoneChecks = v; return s }),
-		toggle("run.class_slots", tab, "Weapon slots per class",
+		choice("run.class_slots", tab, "Weapon slots per class",
 			"Each class earns its own two slots instead of one item opening a slot for everybody. Its first slot comes free with the class: the Medigun for a Medic, the Knife for a Spy. Eighteen items in the pool where there were three, so a run with few missions may not fit them.",
-			"per class",
-			func(s State) bool { return s.Settings.MvmClassWeaponSlots },
-			func(s State, v bool) State { s.Settings.MvmClassWeaponSlots = v; return s }),
+			options(
+				[]string{
+					string(settings.ClassSlotsOff),
+					string(settings.ClassSlotsProgressive),
+					string(settings.ClassSlotsAnyOrder),
+				},
+				[]string{
+					"off: one slot for everybody",
+					"per class, in the class's own order",
+					"per class, found in any order",
+				}),
+			func(s State) string { return string(s.Settings.MvmClassWeaponSlots.OrOff()) },
+			func(s State, v string) State {
+				s.Settings.MvmClassWeaponSlots = settings.ClassSlots(v).OrOff()
+				return s
+			}),
 		toggle("run.giantsanity", tab, "Giantsanity",
 			"A check for every giant of every wave, beside the mission's first. The counts come out of Valve's own mission files; community missions pay only their first. Empire Escalation alone holds eighty-two.",
 			"every giant",

@@ -113,6 +113,7 @@ class Item:
     weapon_buff_id: int
     stackable: bool
     eligible: bool
+    slot: str
 
 
 def _read_missions() -> tuple[Mission, ...]:
@@ -159,6 +160,7 @@ def _read_items() -> tuple[Item, ...]:
             weapon_buff_id=entry.get("weapon_buff_id", 0),
             stackable=entry.get("stackable", False),
             eligible=entry.get("eligible", False),
+            slot=entry.get("slot", ""),
         )
         for entry in _load("items.json")["items"]
     )
@@ -251,7 +253,9 @@ WEAPON_SLOT_COUNT: int = _weapon_slot_items[0].count
 
 # With class_weapon_slots on, the slots come per class instead: the class
 # item's name to its own progressive slot item, each of CLASS_SLOT_COUNT copies.
-_class_slot_items = [item for item in ITEMS if item.kind == "class_weapon_slot"]
+_all_class_slot_items = [item for item in ITEMS if item.kind == "class_weapon_slot"]
+_class_slot_items = [item for item in _all_class_slot_items if not item.slot]
+_named_slot_items = [item for item in _all_class_slot_items if item.slot]
 CLASS_SLOT_ITEMS: dict[str, str] = {
     CLASS_ITEM_BY_MERC[_MERC_NAMES[item.class_id]]: item.name for item in _class_slot_items
 }
@@ -261,11 +265,23 @@ CLASS_SLOT_COUNT: int = _class_slot_items[0].count
 if any(item.count != CLASS_SLOT_COUNT for item in _class_slot_items):
     raise DataFormatError("the class weapon slot items disagree about how many slots a class earns")
 
+# And the same slots as items that name them, for class_weapon_slots: any_order.
+# In the class's own order, which is what a starting class is given first.
+CLASS_NAMED_SLOT_ITEMS: dict[str, tuple[str, ...]] = {}
+for _named in _named_slot_items:
+    _class_item = CLASS_ITEM_BY_MERC[_MERC_NAMES[_named.class_id]]
+    CLASS_NAMED_SLOT_ITEMS[_class_item] = (*CLASS_NAMED_SLOT_ITEMS.get(_class_item, ()), _named.name)
+if len(CLASS_NAMED_SLOT_ITEMS) != len(CLASS_NAMES):
+    raise DataFormatError("expected named weapon slot items for every class")
+if any(len(names) != CLASS_SLOT_COUNT for names in CLASS_NAMED_SLOT_ITEMS.values()):
+    raise DataFormatError("a class has named slot items for a different count of slots")
+
 ITEM_NAME_GROUPS: dict[str, set[str]] = {
     "Classes": set(CLASS_NAMES),
     "Mission Tickets": set(TICKET_NAMES.values()),
     "Weapon Buffs": set(WEAPON_BUFF_NAMES),
-    "Class Weapon Slots": set(CLASS_SLOT_ITEMS.values()),
+    "Class Weapon Slots": set(CLASS_SLOT_ITEMS.values())
+    | {name for names in CLASS_NAMED_SLOT_ITEMS.values() for name in names},
     "Traps": set(TRAP_NAMES),
     "Australium Medals": set(MEDAL_NAMES.values()),
 }

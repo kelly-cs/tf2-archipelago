@@ -57,6 +57,10 @@ const (
 	itemBlockSetting    int64 = 7_000
 	itemBlockTrophy     int64 = 8_000
 	itemBlockClassSlot  int64 = 9_000
+
+	// Ten ids per class, so a class's named slots sit together and a slot id
+	// picks one. Past the progressive block above, which holds one per class.
+	itemBlockClassSlotNamed int64 = 9_100
 )
 
 // Location ids: base + mission*100 + wave, or + 99 for the mission clear.
@@ -190,6 +194,25 @@ func (c Class) SlotItemID() int64 {
 // SlotItemName is what the multiworld calls that item.
 func (c Class) SlotItemName() string {
 	return "Progressive Weapon Slot: " + c.Name
+}
+
+/*
+NamedSlotItemID is the id of the item that opens one named slot of this class,
+for a seed whose slots are found in any order rather than in the class's own.
+
+Its own row inside the class slot block: ten ids per class, the slot's own id
+picking one of them. A progressive copy and a named slot are different items
+and a seed holds one kind or the other, so neither may take the other's id.
+*/
+func (c Class) NamedSlotItemID(slot WeaponSlotID) int64 {
+	return BaseID + itemSpaceOffset + itemBlockClassSlotNamed + int64(c.ID)*10 + int64(slot)
+}
+
+// NamedSlotItemName is what the multiworld calls it. The slot rather than the
+// count, because that is the whole difference: finding this one opens the
+// Scout's melee whether or not his secondary ever turned up.
+func (c Class) NamedSlotItemName(slot WeaponSlot) string {
+	return c.Name + " " + slot.Name + " Slot"
 }
 
 // ItemID is the id of the item that fires this trap.

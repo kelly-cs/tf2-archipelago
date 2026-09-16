@@ -75,6 +75,11 @@ type Item struct {
 	WeaponBuff     uint16
 	Trap           TrapID
 	ServerSetting  ServerSettingID
+
+	// Slot is the loadout slot a named class slot item opens, and zero on
+	// every other item, progressive ones included: a progressive copy opens
+	// whichever slot is next, which is not a thing an item can carry.
+	Slot WeaponSlotID
 }
 
 // ProgressiveWeaponSlotName is the one item that unlocks loadout slots: copy n
@@ -134,6 +139,19 @@ func slotItems() []Item {
 			Count:          ClassSlotsEarned,
 			Class:          c.ID,
 		})
+		// And the same two slots as items that name them, for a seed that
+		// hands them out in any order. A seed holds one kind or the other.
+		for _, slot := range c.EarnedSlots() {
+			items = append(items, Item{
+				ID:             c.NamedSlotItemID(slot.ID),
+				Name:           c.NamedSlotItemName(slot),
+				Kind:           ItemClassWeaponSlot,
+				Classification: Progression,
+				Count:          1,
+				Class:          c.ID,
+				Slot:           slot.ID,
+			})
+		}
 	}
 	return items
 }

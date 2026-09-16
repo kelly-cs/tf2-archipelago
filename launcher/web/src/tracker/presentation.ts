@@ -17,7 +17,7 @@ export function itemKind(name: string): string {
   if (name.startsWith('Class:')) return 'Class';
   if (name.startsWith('Australium Medal:')) return 'Medal';
   if (name.startsWith('Trap:')) return 'Trap';
-  if (name.startsWith('Progressive Weapon Slot')) return 'Loadout';
+  if (name.startsWith('Progressive Weapon Slot') || name.endsWith(' Slot')) return 'Loadout';
   if (name === 'Grappling Hook') return 'Server';
   if (name === 'Cash Bundle') return 'Cash';
   return 'Unlock';

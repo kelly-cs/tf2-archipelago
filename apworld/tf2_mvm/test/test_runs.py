@@ -10,7 +10,7 @@ below attack it from the corners: shortest run, longest, hardest starting tier.
 import math
 from typing import Any, ClassVar
 
-from BaseClasses import ItemClassification
+from BaseClasses import CollectionState, ItemClassification
 
 from .. import data
 from ..rules import REQUIREMENTS
@@ -187,6 +187,70 @@ class TestClassWeaponSlots(TF2MvMTestBase):
         self.assertFalse(self.can_reach_region(self.world.goal_mission.name))
         self.collect_by_name(list(data.CLASS_SLOT_ITEMS.values()))
         self.assertTrue(self.can_reach_region(self.world.goal_mission.name))
+
+
+class TestClassWeaponSlotsInAnyOrder(TF2MvMTestBase):
+    options: ClassVar[dict[str, Any]] = {
+        "class_weapon_slots": "any_order",
+        "difficulty_pool": "advanced",
+        "mission_count": 6,
+    }
+
+    def test_every_slot_is_its_own_item(self) -> None:
+        """The pool holds each class's slots by name, one copy each, and no progressive one."""
+        slot_data = self.world.fill_slot_data()
+        self.assertTrue(slot_data["class_weapon_slots"])
+        self.assertTrue(slot_data["class_weapon_slots_any_order"])
+
+        named = {name for names in data.CLASS_NAMED_SLOT_ITEMS.values() for name in names}
+        pool = [item.name for item in self.multiworld.itempool if item.name in named]
+        self.assertEqual(sorted(pool), sorted(set(pool)), "a named slot is in the pool twice")
+
+        held = [name for name in self.world.start_items if name in named]
+        self.assertEqual(3, len(held), "advanced starts three classes with one earned slot each")
+        self.assertEqual(len(named) - len(held), len(pool))
+
+        progressive = set(data.CLASS_SLOT_ITEMS.values()) | {data.PROGRESSIVE_WEAPON_SLOT}
+        self.assertFalse([item for item in self.multiworld.itempool if item.name in progressive])
+        self.assertFalse([name for name in self.world.start_items if name in progressive])
+
+    def test_a_starting_class_is_given_the_slot_it_is_played_with(self) -> None:
+        """The free first slot is the class's own, so nobody starts on their worst weapon."""
+        named = {name for names in data.CLASS_NAMED_SLOT_ITEMS.values() for name in names}
+        for name in self.world.start_items:
+            if name in named:
+                owner = next(
+                    class_item
+                    for class_item, names in data.CLASS_NAMED_SLOT_ITEMS.items()
+                    if name in names
+                )
+                self.assertIn(owner, self.world.start_items)
+                self.assertEqual(
+                    data.CLASS_NAMED_SLOT_ITEMS[owner][0],
+                    name,
+                    "a starting class was given a slot out of its own order",
+                )
+
+    def test_a_class_can_earn_either_of_its_slots(self) -> None:
+        """No slot is the required one: the rule counts how many, not which."""
+        mission = self.world.start_mission
+        requirement = REQUIREMENTS[mission.difficulty]
+        rule = self.world._deploy_rule(mission)
+
+        # The state starts from the run's own precollected inventory, so the
+        # claim to make here is that the two slots of a class are worth the
+        # same, not that either is worth nothing on its own.
+        for index in range(data.CLASS_SLOT_COUNT):
+            state = CollectionState(self.multiworld)
+            for class_item, names in data.CLASS_NAMED_SLOT_ITEMS.items():
+                state.collect(self.world.create_item(class_item), prevent_sweep=True)
+                state.collect(self.world.create_item(names[index]), prevent_sweep=True)
+            state.collect(self.world.create_item(data.TICKET_NAMES[mission.id]), prevent_sweep=True)
+            self.assertTrue(
+                rule(state),
+                f"a team holding slot {index} of every class could not deploy, "
+                f"though {requirement.classes} classes held what the tier asks",
+            )
 
 
 class TestGiantsanityAndTanksanity(TF2MvMTestBase):

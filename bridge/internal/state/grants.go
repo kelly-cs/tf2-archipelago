@@ -90,7 +90,9 @@ func grantsFrom(itemIDs []int64) []Grant {
 		case gamedata.ItemWeaponSlot:
 			slotsGranted++
 		case gamedata.ItemClassWeaponSlot:
-			classSlotsGranted[item.Class]++
+			if item.Slot == 0 {
+				classSlotsGranted[item.Class]++
+			}
 		default:
 			// Nothing else is progressive, so nothing else is counted.
 		}
@@ -111,7 +113,12 @@ func grantFor(item gamedata.Item, slotsGranted, classSlotsGranted int) (Grant, b
 		if !ok {
 			return Grant{}, false
 		}
-		slot, ok := class.SlotForCopy(classSlotsGranted + 1)
+		// An item that names its slot is not progressive: which slot it opens
+		// is the item, not how many came before it.
+		slot, ok := gamedata.WeaponSlotByID(item.Slot)
+		if item.Slot == 0 {
+			slot, ok = class.SlotForCopy(classSlotsGranted + 1)
+		}
 		if !ok {
 			return Grant{}, false
 		}

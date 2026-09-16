@@ -1,6 +1,7 @@
 package settings
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -298,5 +299,37 @@ func TestPersistWritesAndReturnsWhatItWrote(t *testing.T) {
 	}
 	if !strings.Contains(string(body), written.SrcdsRconPw) {
 		t.Error("the file on disk does not hold the password Persist handed back")
+	}
+}
+
+// A settings file written by 1.16.0 holds a boolean here, and losing the file
+// over it would take the room and the bots with it.
+func TestClassSlotsReadsTheBooleanItUsedToBe(t *testing.T) {
+	for _, one := range []struct {
+		body string
+		want ClassSlots
+	}{
+		{`{"mvm_class_weapon_slots": true}`, ClassSlotsProgressive},
+		{`{"mvm_class_weapon_slots": false}`, ClassSlotsOff},
+		{`{"mvm_class_weapon_slots": "any_order"}`, ClassSlotsAnyOrder},
+		{`{"mvm_class_weapon_slots": "nonsense"}`, ClassSlotsOff},
+		{`{}`, ""},
+	} {
+		var s Settings
+		if err := json.Unmarshal([]byte(one.body), &s); err != nil {
+			t.Fatalf("%s: %v", one.body, err)
+		}
+		if s.MvmClassWeaponSlots != one.want {
+			t.Errorf("%s read as %q, want %q", one.body, s.MvmClassWeaponSlots, one.want)
+		}
+	}
+}
+
+func TestClassSlotsOnCoversBothPerClassModes(t *testing.T) {
+	if !ClassSlotsProgressive.On() || !ClassSlotsAnyOrder.On() {
+		t.Error("a per-class mode did not count as per class")
+	}
+	if ClassSlotsOff.On() || ClassSlots("").On() {
+		t.Error("off counted as per class")
 	}
 }

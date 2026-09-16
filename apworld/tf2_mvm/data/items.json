@@ -1929,12 +1929,48 @@
       "class_id": 1
     },
     {
+      "id": 7443009112,
+      "name": "Scout Secondary Slot",
+      "kind": "class_weapon_slot",
+      "classification": "progression",
+      "count": 1,
+      "class_id": 1,
+      "slot": "secondary"
+    },
+    {
+      "id": 7443009113,
+      "name": "Scout Melee Slot",
+      "kind": "class_weapon_slot",
+      "classification": "progression",
+      "count": 1,
+      "class_id": 1,
+      "slot": "melee"
+    },
+    {
       "id": 7443009002,
       "name": "Progressive Weapon Slot: Soldier",
       "kind": "class_weapon_slot",
       "classification": "progression",
       "count": 2,
       "class_id": 2
+    },
+    {
+      "id": 7443009122,
+      "name": "Soldier Secondary Slot",
+      "kind": "class_weapon_slot",
+      "classification": "progression",
+      "count": 1,
+      "class_id": 2,
+      "slot": "secondary"
+    },
+    {
+      "id": 7443009123,
+      "name": "Soldier Melee Slot",
+      "kind": "class_weapon_slot",
+      "classification": "progression",
+      "count": 1,
+      "class_id": 2,
+      "slot": "melee"
     },
     {
       "id": 7443009003,
@@ -1945,12 +1981,48 @@
       "class_id": 3
     },
     {
+      "id": 7443009132,
+      "name": "Pyro Secondary Slot",
+      "kind": "class_weapon_slot",
+      "classification": "progression",
+      "count": 1,
+      "class_id": 3,
+      "slot": "secondary"
+    },
+    {
+      "id": 7443009133,
+      "name": "Pyro Melee Slot",
+      "kind": "class_weapon_slot",
+      "classification": "progression",
+      "count": 1,
+      "class_id": 3,
+      "slot": "melee"
+    },
+    {
       "id": 7443009004,
       "name": "Progressive Weapon Slot: Demoman",
       "kind": "class_weapon_slot",
       "classification": "progression",
       "count": 2,
       "class_id": 4
+    },
+    {
+      "id": 7443009142,
+      "name": "Demoman Secondary Slot",
+      "kind": "class_weapon_slot",
+      "classification": "progression",
+      "count": 1,
+      "class_id": 4,
+      "slot": "secondary"
+    },
+    {
+      "id": 7443009143,
+      "name": "Demoman Melee Slot",
+      "kind": "class_weapon_slot",
+      "classification": "progression",
+      "count": 1,
+      "class_id": 4,
+      "slot": "melee"
     },
     {
       "id": 7443009005,
@@ -1961,12 +2033,48 @@
       "class_id": 5
     },
     {
+      "id": 7443009152,
+      "name": "Heavy Secondary Slot",
+      "kind": "class_weapon_slot",
+      "classification": "progression",
+      "count": 1,
+      "class_id": 5,
+      "slot": "secondary"
+    },
+    {
+      "id": 7443009153,
+      "name": "Heavy Melee Slot",
+      "kind": "class_weapon_slot",
+      "classification": "progression",
+      "count": 1,
+      "class_id": 5,
+      "slot": "melee"
+    },
+    {
       "id": 7443009006,
       "name": "Progressive Weapon Slot: Engineer",
       "kind": "class_weapon_slot",
       "classification": "progression",
       "count": 2,
       "class_id": 6
+    },
+    {
+      "id": 7443009161,
+      "name": "Engineer Primary Slot",
+      "kind": "class_weapon_slot",
+      "classification": "progression",
+      "count": 1,
+      "class_id": 6,
+      "slot": "primary"
+    },
+    {
+      "id": 7443009162,
+      "name": "Engineer Secondary Slot",
+      "kind": "class_weapon_slot",
+      "classification": "progression",
+      "count": 1,
+      "class_id": 6,
+      "slot": "secondary"
     },
     {
       "id": 7443009007,
@@ -1977,6 +2085,24 @@
       "class_id": 7
     },
     {
+      "id": 7443009171,
+      "name": "Medic Primary Slot",
+      "kind": "class_weapon_slot",
+      "classification": "progression",
+      "count": 1,
+      "class_id": 7,
+      "slot": "primary"
+    },
+    {
+      "id": 7443009173,
+      "name": "Medic Melee Slot",
+      "kind": "class_weapon_slot",
+      "classification": "progression",
+      "count": 1,
+      "class_id": 7,
+      "slot": "melee"
+    },
+    {
       "id": 7443009008,
       "name": "Progressive Weapon Slot: Sniper",
       "kind": "class_weapon_slot",
@@ -1985,12 +2111,48 @@
       "class_id": 8
     },
     {
+      "id": 7443009182,
+      "name": "Sniper Secondary Slot",
+      "kind": "class_weapon_slot",
+      "classification": "progression",
+      "count": 1,
+      "class_id": 8,
+      "slot": "secondary"
+    },
+    {
+      "id": 7443009183,
+      "name": "Sniper Melee Slot",
+      "kind": "class_weapon_slot",
+      "classification": "progression",
+      "count": 1,
+      "class_id": 8,
+      "slot": "melee"
+    },
+    {
       "id": 7443009009,
       "name": "Progressive Weapon Slot: Spy",
       "kind": "class_weapon_slot",
       "classification": "progression",
       "count": 2,
       "class_id": 9
+    },
+    {
+      "id": 7443009192,
+      "name": "Spy Secondary Slot",
+      "kind": "class_weapon_slot",
+      "classification": "progression",
+      "count": 1,
+      "class_id": 9,
+      "slot": "secondary"
+    },
+    {
+      "id": 7443009191,
+      "name": "Spy Primary Slot",
+      "kind": "class_weapon_slot",
+      "classification": "progression",
+      "count": 1,
+      "class_id": 9,
+      "slot": "primary"
     },
     {
       "id": 7443004001,

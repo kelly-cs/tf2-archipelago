@@ -199,7 +199,7 @@ type Settings struct {
 	// MvmClassWeaponSlots opens loadout slots class by class: nine progressive
 	// items of two copies in place of one of three, each class's first slot
 	// free with the class. A longer run with a much larger pool.
-	MvmClassWeaponSlots bool `json:"mvm_class_weapon_slots"`
+	MvmClassWeaponSlots ClassSlots `json:"mvm_class_weapon_slots"`
 	// MvmGiantsanity and MvmTanksanity make every giant and every tank of
 	// every wave a check, beside the mission's own first of each.
 	MvmGiantsanity bool `json:"mvm_giantsanity"`
@@ -271,6 +271,7 @@ func Defaults() Settings {
 		SrcdsBotTeamSize:           6,
 		SrcdsBotHats:               true,
 		SrcdsBotHatEffects:         true,
+		MvmClassWeaponSlots:        ClassSlotsOff,
 		MvmMissionCount:            8,
 		MvmDifficulty:              "intermediate",
 		MvmGoal:                    "final_boss",
@@ -709,3 +710,64 @@ func startMissionFor(mapName, fallback string) string {
 	}
 	return fallback
 }
+
+/*
+How the loadout slots are handed out, as the apworld spells it.
+
+Three answers rather than two since 1.16.1: off is one progressive item for
+everybody, progressive is one per class opening that class's slots in its own
+order, and any order is the same slots as items that name them, found in
+whatever order the multiworld puts them in.
+
+A settings file written before this held a boolean, and "true" and "false" are
+what it reads as: the apworld takes both as aliases, and so does ClassSlotsOn.
+*/
+type ClassSlots string
+
+const (
+	ClassSlotsOff         ClassSlots = "off"
+	ClassSlotsProgressive ClassSlots = "progressive"
+	ClassSlotsAnyOrder    ClassSlots = "any_order"
+)
+
+/*
+UnmarshalJSON takes the boolean this used to be as well as the word it is now.
+
+v1.16.0 shipped it as a toggle, so every settings file written by it holds
+true or false here. Refusing those would lose the whole file: one unreadable
+field and the launcher would fall back to defaults for the room, the bots and
+everything else somebody had set.
+*/
+func (c *ClassSlots) UnmarshalJSON(body []byte) error {
+	var word string
+	if err := json.Unmarshal(body, &word); err == nil {
+		*c = ClassSlots(word).OrOff()
+		return nil
+	}
+	var on bool
+	if err := json.Unmarshal(body, &on); err != nil {
+		return fmt.Errorf("mvm_class_weapon_slots is neither a word nor a yes or no: %s", body)
+	}
+	*c = ClassSlotsOff
+	if on {
+		*c = ClassSlotsProgressive
+	}
+	return nil
+}
+
+// OrOff is the value to act on, and off for anything unset or unknown: a seed
+// refusing to generate over a typo is worse than one played with the default.
+func (c ClassSlots) OrOff() ClassSlots {
+	switch c {
+	case ClassSlotsProgressive, "true":
+		return ClassSlotsProgressive
+	case ClassSlotsAnyOrder:
+		return ClassSlotsAnyOrder
+	default:
+		return ClassSlotsOff
+	}
+}
+
+// On is whether the slots come per class at all, which is the only thing the
+// item count depends on: both modes hand out the same eighteen items.
+func (c ClassSlots) On() bool { return c.OrOff() != ClassSlotsOff }

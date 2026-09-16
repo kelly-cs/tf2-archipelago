@@ -60,7 +60,13 @@ export function buildView(source: TrackerSource, player: number): TrackerView {
   const inferred = startSlots[start?.difficulty ?? ''] ?? 0;
   const sharedSlotCount = Math.min(3, (owned.get('Progressive Weapon Slot') ?? 0) + inferred);
   const classWeaponSlots = slotData.class_weapon_slots === true;
-  const loadout = loadoutView(source, owned, sharedSlotCount, classWeaponSlots);
+  const loadout = loadoutView(
+    source,
+    owned,
+    sharedSlotCount,
+    classWeaponSlots,
+    slotData.class_weapon_slots_any_order === true,
+  );
   const completed = missionViews.filter((mission) => mission.complete).length;
   const total =
     source.mode === 'demo'

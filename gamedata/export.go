@@ -117,6 +117,10 @@ type itemJSON struct {
 	WeaponBuffID   uint16    `json:"weapon_buff_id,omitempty"`
 	Stackable      bool      `json:"stackable,omitempty"`
 	Eligible       bool      `json:"eligible,omitempty"`
+
+	// Slot names the loadout slot a class slot item opens, for the seeds that
+	// hand them out by name rather than in order. Absent on every other item.
+	Slot string `json:"slot,omitempty"`
 }
 
 type weaponClassesFile struct {
@@ -185,6 +189,19 @@ func buildClassLoadoutsFile() classLoadoutsFile {
 		file.Classes = append(file.Classes, classLoadoutJSON{Name: class.Name, Slots: slots})
 	}
 	return file
+}
+
+// slotKey is the slot a named class slot item opens, and empty for every item
+// that opens none.
+func slotKey(id WeaponSlotID) string {
+	if id == 0 {
+		return ""
+	}
+	slot, ok := WeaponSlotByID(id)
+	if !ok {
+		return ""
+	}
+	return slot.Key
 }
 
 func buildMetaFile() metaFile {
@@ -274,6 +291,7 @@ func buildItemsFile() itemsFile {
 			WeaponBuffID:   it.WeaponBuff,
 			Stackable:      stackable,
 			Eligible:       eligible,
+			Slot:           slotKey(it.Slot),
 		})
 	}
 	return file

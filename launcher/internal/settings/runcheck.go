@@ -26,7 +26,7 @@ func CheckRunSelection(s Settings) (runshape.Preflight, error) {
 		StartMission:     start,
 		VictoryCaches:    s.MvmVictoryCaches,
 		MilestoneChecks:  s.MvmMilestoneChecks,
-		ClassWeaponSlots: s.MvmClassWeaponSlots,
+		ClassWeaponSlots: s.MvmClassWeaponSlots.On(),
 		Giantsanity:      s.MvmGiantsanity,
 		Tanksanity:       s.MvmTanksanity,
 	})

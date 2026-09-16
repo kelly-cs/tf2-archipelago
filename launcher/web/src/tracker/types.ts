@@ -40,6 +40,7 @@ export interface Player {
 
 export interface SlotData {
   readonly class_weapon_slots?: boolean;
+  readonly class_weapon_slots_any_order?: boolean;
   readonly missions?: readonly string[];
   readonly start_mission?: string;
   readonly goal?: string;

@@ -67,8 +67,12 @@ func currentIDs() map[string]int64 {
 		case ItemWeaponSlot, ItemCredits:
 			ids[frozenKey(it.Kind.Key(), "", 0)] = it.ID
 		case ItemClassWeaponSlot:
+			// Keyed by the slot as well as the class: the progressive item and
+			// the named ones share a kind and a class, and only the slot tells
+			// them apart. Progressive is slot zero, which is the key every
+			// seed shipped so far was frozen under.
 			if class, ok := ClassByID(it.Class); ok {
-				ids[frozenKey(it.Kind.Key(), class.Key, 0)] = it.ID
+				ids[frozenKey(it.Kind.Key(), class.Key, int(it.Slot))] = it.ID
 			}
 		case ItemWeaponBuff:
 			buff, ok := WeaponBuffByID(it.WeaponBuff)
@@ -378,7 +382,7 @@ func TestCommittedExportIsCurrent(t *testing.T) {
 }
 
 func TestItemPoolCoversEveryGate(t *testing.T) {
-	tickets, classes, slots, classSlots := 0, 0, 0, 0
+	tickets, classes, slots, classSlots, namedSlots := 0, 0, 0, 0, 0
 	for _, it := range Items {
 		switch it.Kind {
 		case ItemMissionTicket:
@@ -388,7 +392,13 @@ func TestItemPoolCoversEveryGate(t *testing.T) {
 		case ItemWeaponSlot:
 			slots += int(it.Count)
 		case ItemClassWeaponSlot:
-			classSlots += int(it.Count)
+			// Two shapes of the same kind: one progressive item per class with
+			// a copy per slot it earns, and one item per named slot.
+			if it.Slot == 0 {
+				classSlots += int(it.Count)
+			} else {
+				namedSlots += int(it.Count)
+			}
 		case ItemCredits:
 			// Filler, counted by the pool builder rather than here.
 		case ItemWeaponBuff:
@@ -415,5 +425,8 @@ func TestItemPoolCoversEveryGate(t *testing.T) {
 	}
 	if want := len(Classes) * int(ClassSlotsEarned); classSlots != want {
 		t.Errorf("%d class weapon slot copies, want %d", classSlots, want)
+	}
+	if want := len(Classes) * int(ClassSlotsEarned); namedSlots != want {
+		t.Errorf("%d named class slot items, want %d", namedSlots, want)
 	}
 }
