@@ -9,7 +9,7 @@ in the release notes, so this file is the only place to write it.
 The Docker stack gets the launcher's browser interface, five new ways to pay
 checks, and the bugs that came with running the stack on a plain Docker Engine.
 Nothing here changes a run in progress: a seed keeps the options it was made
-with.
+with. Bots at 0.15.2.
 
 ### The admin page
 
@@ -66,6 +66,18 @@ run has something to fill it and a long one has more to find.
   <https://m-this.github.io/tf2-archipelago/tracker/>. Paste a room or tracker
   link and share the page; nobody has to host it.
 
+### The bots
+
+The mod moves to 0.15.2.
+
+- The mercenaries stopped shouting over each other in the break. A bot pressed
+  ready on every frame the game refused one, which is every frame for the first
+  seconds after a wave ends, and every press spoke its Ready line. It presses
+  once a second now.
+- In the Docker stack they stopped moving after a map change. The navigation
+  they read was emptied by the changelevel and nothing filled it again, so only
+  a restart brought them back. By kelly-cs.
+
 ### Fixed
 
 - The Docker stack finds the Steam relay address, the way the launcher started
@@ -85,9 +97,6 @@ run has something to fill it and a long one has more to find.
   cache by hand. The server is told about the list as soon as it is written.
 - Test mode left missions locked until the starting inventory arrived, so the
   first map change could be refused.
-- In the Docker stack the defender bots stopped moving after a map change: the
-  navigation they read was left empty by the changelevel and only a restart
-  brought them back.
 - A mission drawn with zero modifiers still drew one.
 - Weapon buffs offered flags the weapon already carries, and five weapons were
   offered buffs that do nothing on them. A buff in the pool now changes
