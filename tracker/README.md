@@ -6,6 +6,9 @@ Archipelago's public tracker APIs instead of the launcher's loopback API.
 Viewers do not need the room password and the built page needs no server
 application.
 
+Use the copy hosted by this repository at
+<https://m-this.github.io/tf2-archipelago/tracker/>.
+
 ## Try it locally
 
 Build it and serve the generated static directory:
@@ -39,6 +42,12 @@ uses relative asset URLs, so the directory works at any static URL. The page
 falls back to the catalogues on this repository's `main` branch when the local
 copies are unavailable. TF2 class and item icons load from the Official Team
 Fortress Wiki.
+
+The `pages` job in `.github/workflows/ci.yml` builds the tracker after every
+successful push to `main`, puts it at `tracker/` beside the documentation, and
+deploys both as one GitHub Pages artifact. A fork using the same workflow gets
+its own copy at `https://OWNER.github.io/REPOSITORY/tracker/` after selecting
+**GitHub Actions** as its Pages source.
 
 Rooms must have tracking enabled. Seeds made with an older apworld do not put
 their precollected inventory in public slot data, so randomly selected starting

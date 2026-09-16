@@ -12,6 +12,9 @@ the same unlocks.
   <a href="https://github.com/m-this/tf2-archipelago/releases/latest/download/tf2ap-linux-amd64">
     <img alt="Download tf2ap-linux-amd64 for Linux" src="https://img.shields.io/badge/Download-tf2ap--linux--amd64-1b1f27?style=for-the-badge&logo=linux&logoColor=white">
   </a>
+  <a href="https://m-this.github.io/tf2-archipelago/tracker/">
+    <img alt="Open the visual campaign tracker" src="https://img.shields.io/badge/Track-a%20campaign-c44f24?style=for-the-badge&logo=githubpages&logoColor=white">
+  </a>
 </p>
 
 > [!NOTE]
@@ -49,10 +52,12 @@ and `docker compose up -d --force-recreate` is what applies a changed `.env`.
 
 The first start downloads about 14 GB of game files.
 
-To share a visual overview of the campaign, use the static [visual campaign
-tracker](./tracker/README.md). It reads an `archipelago.gg` room or tracker link
-and shows mission progress, class access, loadout slots and compatible weapon
-buffs for the whole TF2 server.
+To share a visual overview of the campaign, open the hosted [visual campaign
+tracker](https://m-this.github.io/tf2-archipelago/tracker/). It reads an
+`archipelago.gg` room or tracker link and shows mission progress, class access,
+loadout slots and compatible weapon buffs for the whole TF2 server. It is a
+static page: nobody in the multiworld needs to host it. [Build and data
+details](./tracker/README.md) live with its source.
 
 Custom MvM packs can be overlaid without modifying the container image. The
 [community content guide](./community-content/README.md) covers custom BSPs,

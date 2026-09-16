@@ -250,7 +250,9 @@ jobs:
       id-token: write
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      # The root remains the documentation book. Make the repository's Pages
+      # deployment button open the player-facing tracker directly.
+      url: ${{ steps.deployment.outputs.page_url }}tracker/
     steps:
       - uses: actions/checkout@v7
         with:
@@ -259,12 +261,19 @@ jobs:
       # Same image the `book` step already validated, so the build has one
       # definition. No CNAME file in the artifact: the book stays on the
       # github.io address Pages gives it, under no domain of mine.
-      - name: build the book
+      - name: build the Pages sites
         run: |
           make docs-build
           id=$(docker create tf2-archipelago-docs)
           docker cp "$id:/usr/share/nginx/html" book
           docker rm "$id"
+
+          # The tracker is a standalone Angular entry point. Keep it below the
+          # book so one Pages deployment serves both sites without making the
+          # documentation image carry a browser toolchain.
+          make tracker-build
+          mkdir -p book/tracker
+          cp -a dist/tracker/. book/tracker/
 
       # Artifacts are immutable and stay attached to the run, so a re-run adds
       # a second one under the same name and deploy-pages refuses to guess:
