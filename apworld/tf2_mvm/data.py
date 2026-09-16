@@ -270,7 +270,10 @@ if any(item.count != CLASS_SLOT_COUNT for item in _class_slot_items):
 CLASS_NAMED_SLOT_ITEMS: dict[str, tuple[str, ...]] = {}
 for _named in _named_slot_items:
     _class_item = CLASS_ITEM_BY_MERC[_MERC_NAMES[_named.class_id]]
-    CLASS_NAMED_SLOT_ITEMS[_class_item] = (*CLASS_NAMED_SLOT_ITEMS.get(_class_item, ()), _named.name)
+    CLASS_NAMED_SLOT_ITEMS[_class_item] = (
+        *CLASS_NAMED_SLOT_ITEMS.get(_class_item, ()),
+        _named.name,
+    )
 if len(CLASS_NAMED_SLOT_ITEMS) != len(CLASS_NAMES):
     raise DataFormatError("expected named weapon slot items for every class")
 if any(len(names) != CLASS_SLOT_COUNT for names in CLASS_NAMED_SLOT_ITEMS.values()):
