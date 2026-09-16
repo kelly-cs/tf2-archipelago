@@ -57,3 +57,28 @@ func TestRobotHealthScaleIsRelayedAfterConfigs(t *testing.T) {
 		t.Fatal("robot health is not reasserted after SourceMod configs execute")
 	}
 }
+
+func TestDefenderBotReadyCommandsSkipTheReadyVoice(t *testing.T) {
+	bots := "../plugin/scripting/tf2_archipelago/bots.inc"
+	init := pluginSourceFunction(t, bots, "void Bots_Init()")
+	if !strings.Contains(init,
+		`AddCommandListener(Bots_SetReadySilently, "tournament_player_readystate")`) {
+		t.Fatal("defender bot ready commands are not intercepted")
+	}
+
+	listener := pluginSourceFunction(t, bots,
+		"public Action Bots_SetReadySilently")
+	for _, required := range []string{
+		"IsFakeClient(client)",
+		"GetClientTeam(client) != TeamRed",
+		`GameRules_SetProp("m_bPlayerReady"`,
+		"return Plugin_Handled",
+	} {
+		if !strings.Contains(listener, required) {
+			t.Fatalf("silent defender readiness has no %s", required)
+		}
+	}
+	if strings.Contains(listener, "FakeClientCommand") {
+		t.Fatal("silent defender readiness recurses through TF2's voiced command")
+	}
+}

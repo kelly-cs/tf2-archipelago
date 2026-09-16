@@ -85,9 +85,41 @@ void Bots_Init()
     g_CvarRobotHealthScale.AddChangeHook(Bots_RobotHealthScaleChanged);
     g_UpgradeNames = new ArrayList(ByteCountToCells(64));
 
+    // TF2 plays a class response every time a client sends this command with
+    // state 1, even when that client was ready already. The defender mod and
+    // the hold below can disagree about when the bots may ready, making the
+    // mod send it again every frame and turning that response into a chorus.
+    // Bots need the ready flag, not the sound: the game's command handler does
+    // nothing else after its guards except write m_bPlayerReady and play it.
+    AddCommandListener(Bots_SetReadySilently, "tournament_player_readystate");
+
     // No TIMER_FLAG_NO_MAPCHANGE on either: they must outlive every map change.
     CreateTimer(BotReadyInterval, Timer_HoldBotsReady, _, TIMER_REPEAT);
     CreateTimer(BotFillInterval, Timer_FillTeam, _, TIMER_REPEAT);
+}
+
+/**
+ * Apply defender-bot readiness without TF2's automatic "Ready" response.
+ *
+ * Human F4 presses and non-MvM commands still go through the game unchanged.
+ * The round and property guards mirror the ones in TF2's command handler; if
+ * either is unavailable, leaving the command alone is safer than swallowing
+ * it without changing the ready panel.
+ */
+public Action Bots_SetReadySilently(int client, const char[] command, int argc)
+{
+    if (client < 1 || client > MaxClients || !IsClientInGame(client)
+        || !IsFakeClient(client) || GetClientTeam(client) != TeamRed
+        || !MvM_IsActive() || GameRules_GetRoundState() != RoundState_BetweenRounds
+        || argc < 1 || FindSendPropInfo("CTFGameRulesProxy", "m_bPlayerReady") == -1)
+    {
+        return Plugin_Continue;
+    }
+
+    char state[4];
+    GetCmdArg(1, state, sizeof(state));
+    GameRules_SetProp("m_bPlayerReady", StringToInt(state) == 1 ? 1 : 0, 1, client, true);
+    return Plugin_Handled;
 }
 
 void Bots_OnConfigsExecuted()
@@ -460,7 +492,7 @@ public Action Timer_HoldBotsReady(Handle timer)
         {
             continue;
         }
-        // The same command the F4 sends, so the game does its own bookkeeping.
+        // The listener above applies this without the bot's ready response.
         FakeClientCommand(client, "tournament_player_readystate 0");
     }
     return Plugin_Continue;
