@@ -52,16 +52,19 @@ class TestDefaults(TF2MvMTestBase):
                 if location.cache:
                     with self.assertRaises(KeyError, msg=location.name):
                         self.world.get_location(location.name)
+
     def test_milestones_stay_out_by_default(self) -> None:
         self.assertFalse(self.world.fill_slot_data()["milestone_checks"])
         for milestone in data.MILESTONES:
             with self.assertRaises(KeyError, msg=milestone.name):
                 self.world.get_location(milestone.name)
+
     def test_slots_are_one_item_for_every_class_by_default(self) -> None:
         self.assertFalse(self.world.fill_slot_data()["class_weapon_slots"])
         names = {item.name for item in self.multiworld.itempool} | set(self.world.start_items)
         self.assertIn(data.PROGRESSIVE_WEAPON_SLOT, names)
         self.assertFalse(names & set(data.CLASS_SLOT_ITEMS.values()))
+
     def test_per_kill_checks_stay_out_by_default(self) -> None:
         slot_data = self.world.fill_slot_data()
         self.assertFalse(slot_data["giantsanity"] or slot_data["tanksanity"])
@@ -117,6 +120,8 @@ class TestMissionModifiersDrawnAtZero(TF2MvMTestBase):
         assignments = self.world.mission_modifiers
         self.assertEqual({mission.pop_file for mission in self.world.missions}, set(assignments))
         self.assertTrue(all(modifiers == [] for modifiers in assignments.values()))
+
+
 CACHES_BY_TIER = {"normal": 0, "intermediate": 1, "advanced": 2, "expert": 4, "haunted": 4}
 
 
@@ -134,6 +139,8 @@ class TestVictoryCaches(TF2MvMTestBase):
             self.assertEqual(CACHES_BY_TIER[mission.difficulty], len(caches), mission.name)
             for location in caches:
                 self.assertEqual(location.id, self.world.get_location(location.name).address)
+
+
 class TestMilestoneChecks(TF2MvMTestBase):
     options: ClassVar[dict[str, Any]] = {"milestone_checks": True, "mission_count": 3}
 
@@ -143,6 +150,8 @@ class TestMilestoneChecks(TF2MvMTestBase):
         for milestone in data.MILESTONES:
             self.assertEqual(milestone.id, self.world.get_location(milestone.name).address)
             self.assertTrue(self.can_reach_location(milestone.name), milestone.name)
+
+
 class TestClassWeaponSlots(TF2MvMTestBase):
     options: ClassVar[dict[str, Any]] = {
         "class_weapon_slots": True,
@@ -158,7 +167,11 @@ class TestClassWeaponSlots(TF2MvMTestBase):
         held = [name for name in self.world.start_items if name in data.CLASS_SLOT_ITEMS.values()]
         self.assertEqual(3, len(held))
         self.assertNotIn(data.PROGRESSIVE_WEAPON_SLOT, self.world.start_items)
-        pool = [item.name for item in self.multiworld.itempool if item.name in data.CLASS_SLOT_ITEMS.values()]
+        pool = [
+            item.name
+            for item in self.multiworld.itempool
+            if item.name in data.CLASS_SLOT_ITEMS.values()
+        ]
         self.assertEqual(len(data.CLASS_SLOT_ITEMS) * data.CLASS_SLOT_COUNT - 3, len(pool))
         self.assertFalse(
             [item for item in self.multiworld.itempool if item.name == data.PROGRESSIVE_WEAPON_SLOT]
@@ -174,6 +187,8 @@ class TestClassWeaponSlots(TF2MvMTestBase):
         self.assertFalse(self.can_reach_region(self.world.goal_mission.name))
         self.collect_by_name(list(data.CLASS_SLOT_ITEMS.values()))
         self.assertTrue(self.can_reach_region(self.world.goal_mission.name))
+
+
 class TestGiantsanityAndTanksanity(TF2MvMTestBase):
     options: ClassVar[dict[str, Any]] = {
         "giantsanity": True,
@@ -469,13 +484,17 @@ class TestTankChecks(TF2MvMTestBase):
 
     def test_every_tank_check_belongs_to_a_mission_that_has_one(self) -> None:
         for mission in data.MISSIONS:
-            tanks = [loc for loc in mission.locations if loc.kind == "tank_destroyed" and not loc.index]
+            tanks = [
+                loc for loc in mission.locations if loc.kind == "tank_destroyed" and not loc.index
+            ]
             self.assertEqual(1 if mission.has_tank else 0, len(tanks))
 
     def test_every_mission_has_a_giant_check(self) -> None:
         # Every catalogued mission has a giant, and every playable one gets the check.
         for mission in data.MISSIONS:
-            giants = [loc for loc in mission.locations if loc.kind == "giant_killed" and not loc.index]
+            giants = [
+                loc for loc in mission.locations if loc.kind == "giant_killed" and not loc.index
+            ]
             self.assertTrue(mission.has_giant)
             self.assertEqual(1, len(giants))
             if mission.playable:

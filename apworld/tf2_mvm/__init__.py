@@ -269,7 +269,9 @@ class TF2MvMWorld(World):
             # Each starting class holds its free first slot and earns the rest
             # of what the tier asks for.
             slots = [
-                data.CLASS_SLOT_ITEMS[name] for name in classes for _ in range(requirement.slots - 1)
+                data.CLASS_SLOT_ITEMS[name]
+                for name in classes
+                for _ in range(requirement.slots - 1)
             ]
         else:
             slots = [data.PROGRESSIVE_WEAPON_SLOT] * requirement.slots
@@ -541,9 +543,9 @@ class TF2MvMWorld(World):
             start = min(missions, key=self._tier_order)
         requirement = REQUIREMENTS[start.difficulty]
         if self.options.class_weapon_slots.value:
-            slot_unlocks = len(data.CLASS_SLOT_ITEMS) * data.CLASS_SLOT_COUNT - requirement.classes * (
-                requirement.slots - 1
-            )
+            slot_unlocks = len(
+                data.CLASS_SLOT_ITEMS
+            ) * data.CLASS_SLOT_COUNT - requirement.classes * (requirement.slots - 1)
         else:
             slot_unlocks = data.WEAPON_SLOT_COUNT - requirement.slots
         unlocks = len(missions) - 1 + len(data.CLASS_NAMES) - requirement.classes + slot_unlocks
@@ -563,7 +565,8 @@ class TF2MvMWorld(World):
             return sum(
                 1
                 for class_name, slot_item in data.CLASS_SLOT_ITEMS.items()
-                if state.has(class_name, player) and state.has(slot_item, player, requirement.slots - 1)
+                if state.has(class_name, player)
+                and state.has(slot_item, player, requirement.slots - 1)
             )
 
         def can_deploy(state: CollectionState) -> bool:
@@ -582,8 +585,9 @@ class TF2MvMWorld(World):
                     self.options.class_unlock_importance.current_key == "useful"
                     or state.has_group("Classes", player, requirement.classes)
                 )
-                slots_ready = self.options.weapon_slot_importance.current_key == "useful" or state.has(
-                    data.PROGRESSIVE_WEAPON_SLOT, player, requirement.slots
+                slots_ready = (
+                    self.options.weapon_slot_importance.current_key == "useful"
+                    or state.has(data.PROGRESSIVE_WEAPON_SLOT, player, requirement.slots)
                 )
             buffs_ready = (
                 mission is self.start_mission

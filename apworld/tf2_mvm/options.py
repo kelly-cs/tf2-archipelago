@@ -353,6 +353,8 @@ class MilestoneChecks(Toggle):
     """
 
     display_name = "Milestone Checks"
+
+
 class Giantsanity(Toggle):
     """A check for every giant of every wave, beside the mission's first.
 
