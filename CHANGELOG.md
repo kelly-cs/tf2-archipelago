@@ -6,9 +6,10 @@ in the release notes, so this file is the only place to write it.
 
 ## v1.16.0
 
-The Docker stack gets the launcher's browser interface, and three bugs that
-only showed up running it on a plain Docker Engine. Nothing here changes a run
-in progress.
+The Docker stack gets the launcher's browser interface, five new ways to pay
+checks, and the bugs that came with running the stack on a plain Docker Engine.
+Nothing here changes a run in progress: a seed keeps the options it was made
+with.
 
 ### The admin page
 
@@ -39,6 +40,32 @@ in progress.
   a volume of its own. Its Compose profile and `TAILSCALE_AUTHKEY` are both
   gone; the switch on its own is enough.
 
+### More checks, without more missions
+
+Five options, all off by default. Each one adds checks to a seed, so a short
+run has something to fill it and a long one has more to find.
+
+- **Victory caches.** A mission clear is worth checks scaled by its tier: one
+  at normal, two at intermediate, three at advanced, five at expert and
+  haunted.
+- **Milestone checks.** Running totals over the whole run, whatever mission
+  they happened in: robots, giants and tanks destroyed. Something to grind when
+  a wave will not fall.
+- **Giantsanity** and **Tanksanity.** A check for every giant, and for every
+  tank, of every wave, beside the mission's own first of each. The counts come
+  out of Valve's own mission files, so community missions pay only their first.
+  Empire Escalation alone holds eighty-two giants, Cataclysm eleven tanks.
+- **Weapon slots per class.** Each class earns its own two slots instead of one
+  item opening a slot for everybody, and its first slot comes free with the
+  class: the Medigun for a Medic, the Knife for a Spy. Eighteen items in the
+  pool where there were three, so a run with few missions may not fit them.
+
+### The tracker has an address
+
+- The visual campaign tracker is published at
+  <https://m-this.github.io/tf2-archipelago/tracker/>. Paste a room or tracker
+  link and share the page; nobody has to host it.
+
 ### Fixed
 
 - The Docker stack finds the Steam relay address, the way the launcher started
@@ -54,6 +81,15 @@ in progress.
   a seed. It had been refusing since v1.11.0.
 - A crash in the container leaves a `debug.log` with a stack in it. The image
   asked the server for one and had no debugger to produce it.
+- Admins listed in `.env` got no permissions until somebody reloaded the admin
+  cache by hand. The server is told about the list as soon as it is written.
+- Test mode left missions locked until the starting inventory arrived, so the
+  first map change could be refused.
+- A mission drawn with zero modifiers still drew one.
+- Weapon buffs offered flags the weapon already carries, and five weapons were
+  offered buffs that do nothing on them. A buff in the pool now changes
+  something on the weapon it names.
+- Max health buffs followed the class rather than the player holding them.
 
 ## v1.15.0
 
