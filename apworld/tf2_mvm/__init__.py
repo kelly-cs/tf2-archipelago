@@ -351,11 +351,7 @@ class TF2MvMWorld(World):
         for mission in self.missions:
             region = Region(mission.name, self.player, self.multiworld)
             region.add_locations(
-                {
-                    location.name: location.id
-                    for location in mission.checks(self.options.victory_caches.value)
-                },
-                TF2MvMLocation,
+                {location.name: location.id for location in self._checks(mission)}, TF2MvMLocation
             )
             self.multiworld.regions.append(region)
             menu.connect(region, f"Deploy to {mission.name}", self._deploy_rule(mission))
@@ -492,6 +488,8 @@ class TF2MvMWorld(World):
             "victory_caches": bool(self.options.victory_caches.value),
             "milestone_checks": bool(self.options.milestone_checks.value),
             "class_weapon_slots": bool(self.options.class_weapon_slots.value),
+            "giantsanity": bool(self.options.giantsanity.value),
+            "tanksanity": bool(self.options.tanksanity.value),
             "tracker": {
                 "version": 1,
                 "starting_items": [
@@ -519,13 +517,20 @@ class TF2MvMWorld(World):
     def _tier_order(mission: data.Mission) -> tuple[int, int]:
         return data.DIFFICULTIES.index(mission.difficulty), mission.id
 
+    def _checks(self, mission: data.Mission) -> tuple[data.Location, ...]:
+        return mission.checks(
+            bool(self.options.victory_caches.value),
+            bool(self.options.giantsanity.value),
+            bool(self.options.tanksanity.value),
+        )
+
     def _check_count(self, missions: list[data.Mission]) -> int:
         # The export decides how many checks a mission holds. Counting the
         # waves and adding one for the clear stopped being that the day a
-        # mission grew a tank check. The caches are the option's to add, and the
-        # milestones belong to the run rather than to a mission.
-        caches = bool(self.options.victory_caches.value)
-        checks = sum(len(mission.checks(caches)) for mission in missions)
+        # mission grew a tank check. The caches and per-kill checks are the
+        # options' to add, and the milestones belong to the run rather than to
+        # a mission.
+        checks = sum(len(self._checks(mission)) for mission in missions)
         if self.options.milestone_checks.value:
             checks += len(data.MILESTONES)
         return checks

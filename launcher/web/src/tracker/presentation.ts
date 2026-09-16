@@ -1,7 +1,7 @@
 import { BadgeTone } from '@app/ui/badge';
 
 import { defaultHost } from './source-address';
-import { Objective, TrackerSource } from './types';
+import { Objective, TrackerSource, Weapon } from './types';
 
 export function objectiveLabel(objective: Objective): string {
   if (objective.kind === 'wave_cleared') return String(objective.wave);
@@ -51,4 +51,30 @@ export function rememberSource(source: TrackerSource): void {
   params.set(source.kind, source.id);
   if (source.host !== defaultHost) params.set('host', source.host);
   history.replaceState(null, '', `${location.pathname}?${params}`);
+}
+
+export function buffParts(itemName: string): { weapon: string; effect: string } {
+  const label = displayItemName(itemName).replace(/^Weapon Buff: /, '');
+  const separator = label.indexOf(' — ');
+  return separator < 0
+    ? { weapon: label, effect: 'Weapon upgrade unlocked' }
+    : { weapon: label.slice(0, separator), effect: label.slice(separator + 3) };
+}
+
+export function displayItemName(name: string): string {
+  return name.replace(/^Weapon Buff: Saxxy(?= —|$)/, 'Weapon Buff: All-Class Melee');
+}
+
+export function weaponDisplayName(name: string): string {
+  return name === 'Saxxy' ? 'All-Class Melee' : name;
+}
+
+export function trackerWeapon(
+  weapons: ReadonlyMap<string, Weapon>,
+  name: string,
+): Weapon | undefined {
+  const direct =
+    weapons.get(name) ?? (name === 'All-Class Melee' ? weapons.get('Saxxy') : undefined);
+  if (direct !== undefined) return direct;
+  return [...weapons.values()].find((weapon) => weapon.aliases?.includes(name));
 }

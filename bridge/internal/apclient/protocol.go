@@ -199,6 +199,8 @@ type SlotData struct {
 	VictoryCaches           bool                         `json:"victory_caches"`
 	MilestoneChecks         bool                         `json:"milestone_checks"`
 	ClassWeaponSlots        bool                         `json:"class_weapon_slots"`
+	Giantsanity             bool                         `json:"giantsanity"`
+	Tanksanity              bool                         `json:"tanksanity"`
 }
 
 // MissionModifier is a seed-assigned rule that remains attached to one

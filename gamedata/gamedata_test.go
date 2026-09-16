@@ -40,10 +40,16 @@ func currentIDs() map[string]int64 {
 		if !ok {
 			continue
 		}
-		if l.Cache > 0 {
+		switch {
+		case l.Cache > 0:
 			// A cache shares the clear's kind and wave, so it is keyed as its
 			// own thing: a clear's id must not read as moved when one appears.
 			ids[frozenKey("victory_cache", mission.PopFile, int(l.Cache))] = l.ID
+			continue
+		case l.Index > 0:
+			// The nth of its wave: keyed apart from the mission's own
+			// first-of-each check, which shares the kind.
+			ids[frozenKey(l.Kind.Key()+"_n", mission.PopFile, int(l.Wave)*100+int(l.Index))] = l.ID
 			continue
 		}
 		ids[frozenKey(l.Kind.Key(), mission.PopFile, int(l.Wave))] = l.ID
@@ -60,6 +66,10 @@ func currentIDs() map[string]int64 {
 			}
 		case ItemWeaponSlot, ItemCredits:
 			ids[frozenKey(it.Kind.Key(), "", 0)] = it.ID
+		case ItemClassWeaponSlot:
+			if class, ok := ClassByID(it.Class); ok {
+				ids[frozenKey(it.Kind.Key(), class.Key, 0)] = it.ID
+			}
 		case ItemWeaponBuff:
 			buff, ok := WeaponBuffByID(it.WeaponBuff)
 			if ok {
@@ -191,11 +201,13 @@ func recordNewIDs(frozen, current map[string]int64) error {
 }
 
 func TestLocationsCoverEveryWaveAndMission(t *testing.T) {
-	waves, clears, tanks, giants, caches := 0, 0, 0, 0, 0
+	waves, clears, tanks, giants, caches, kills := 0, 0, 0, 0, 0, 0
 	for _, l := range Locations {
 		switch {
 		case l.Cache > 0:
 			caches++
+		case l.Index > 0:
+			kills++
 		case l.Kind == ObjectiveWaveCleared:
 			waves++
 		case l.Kind == ObjectiveMissionCleared:
@@ -206,10 +218,14 @@ func TestLocationsCoverEveryWaveAndMission(t *testing.T) {
 			giants++
 		}
 	}
-	want, wantTanks, wantGiants, wantCaches := 0, 0, 0, 0
+	want, wantTanks, wantGiants, wantCaches, wantKills := 0, 0, 0, 0, 0
 	for _, m := range Missions {
 		want += int(m.Waves)
 		wantCaches += int(m.Difficulty.VictoryCaches())
+		for wave := uint8(1); wave <= m.Waves; wave++ {
+			counts := m.WaveKillsAt(wave)
+			wantKills += int(counts.Giants) + int(counts.Tanks)
+		}
 		if m.HasTank {
 			wantTanks++
 		}
@@ -225,6 +241,9 @@ func TestLocationsCoverEveryWaveAndMission(t *testing.T) {
 	}
 	if caches != wantCaches {
 		t.Errorf("%d victory cache locations, want %d", caches, wantCaches)
+	}
+	if kills != wantKills {
+		t.Errorf("%d per-kill locations, want %d", kills, wantKills)
 	}
 	// A tank check on a mission with no tank is a location nobody can reach,
 	// and a run nobody can finish.
@@ -359,7 +378,7 @@ func TestCommittedExportIsCurrent(t *testing.T) {
 }
 
 func TestItemPoolCoversEveryGate(t *testing.T) {
-	tickets, classes, slots := 0, 0, 0
+	tickets, classes, slots, classSlots := 0, 0, 0, 0
 	for _, it := range Items {
 		switch it.Kind {
 		case ItemMissionTicket:
@@ -368,6 +387,8 @@ func TestItemPoolCoversEveryGate(t *testing.T) {
 			classes++
 		case ItemWeaponSlot:
 			slots += int(it.Count)
+		case ItemClassWeaponSlot:
+			classSlots += int(it.Count)
 		case ItemCredits:
 			// Filler, counted by the pool builder rather than here.
 		case ItemWeaponBuff:
@@ -391,5 +412,8 @@ func TestItemPoolCoversEveryGate(t *testing.T) {
 	}
 	if slots != len(WeaponSlots) {
 		t.Errorf("%d weapon slot copies, want %d", slots, len(WeaponSlots))
+	}
+	if want := len(Classes) * int(ClassSlotsEarned); classSlots != want {
+		t.Errorf("%d class weapon slot copies, want %d", classSlots, want)
 	}
 }

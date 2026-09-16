@@ -62,6 +62,14 @@ class TestDefaults(TF2MvMTestBase):
         names = {item.name for item in self.multiworld.itempool} | set(self.world.start_items)
         self.assertIn(data.PROGRESSIVE_WEAPON_SLOT, names)
         self.assertFalse(names & set(data.CLASS_SLOT_ITEMS.values()))
+    def test_per_kill_checks_stay_out_by_default(self) -> None:
+        slot_data = self.world.fill_slot_data()
+        self.assertFalse(slot_data["giantsanity"] or slot_data["tanksanity"])
+        for mission in self.world.missions:
+            for location in mission.locations:
+                if location.index:
+                    with self.assertRaises(KeyError, msg=location.name):
+                        self.world.get_location(location.name)
 
 
 class TestMissionModifiers(TF2MvMTestBase):
@@ -166,6 +174,26 @@ class TestClassWeaponSlots(TF2MvMTestBase):
         self.assertFalse(self.can_reach_region(self.world.goal_mission.name))
         self.collect_by_name(list(data.CLASS_SLOT_ITEMS.values()))
         self.assertTrue(self.can_reach_region(self.world.goal_mission.name))
+class TestGiantsanityAndTanksanity(TF2MvMTestBase):
+    options: ClassVar[dict[str, Any]] = {
+        "giantsanity": True,
+        "tanksanity": True,
+        "excluded_missions": [],
+        "community_missions": False,
+        "mission_count": 6,
+    }
+
+    def test_every_giant_and_tank_of_every_wave_is_a_check(self) -> None:
+        slot_data = self.world.fill_slot_data()
+        self.assertTrue(slot_data["giantsanity"] and slot_data["tanksanity"])
+        kills = 0
+        for mission in self.world.missions:
+            for location in mission.locations:
+                if location.index:
+                    kills += 1
+                    self.assertEqual(location.id, self.world.get_location(location.name).address)
+        # Every Valve mission holds a giant somewhere, and the seed drew six.
+        self.assertGreater(kills, 6)
 
 
 class TestNoWeaponBuffs(TF2MvMTestBase):
@@ -309,8 +337,7 @@ class TestShortestRun(TF2MvMTestBase):
 
     def test_unlocks_fit_the_checks(self) -> None:
         # One mission can leave fewer checks than unlocks owed; the draw widens rather than failing.
-        caches = bool(self.world.options.victory_caches.value)
-        checks = sum(len(mission.checks(caches)) for mission in self.world.missions)
+        checks = sum(len(self.world._checks(mission)) for mission in self.world.missions)
         self.assertEqual(checks, len(self.multiworld.itempool))
 
 
@@ -442,13 +469,13 @@ class TestTankChecks(TF2MvMTestBase):
 
     def test_every_tank_check_belongs_to_a_mission_that_has_one(self) -> None:
         for mission in data.MISSIONS:
-            tanks = [loc for loc in mission.locations if loc.kind == "tank_destroyed"]
+            tanks = [loc for loc in mission.locations if loc.kind == "tank_destroyed" and not loc.index]
             self.assertEqual(1 if mission.has_tank else 0, len(tanks))
 
     def test_every_mission_has_a_giant_check(self) -> None:
         # Every catalogued mission has a giant, and every playable one gets the check.
         for mission in data.MISSIONS:
-            giants = [loc for loc in mission.locations if loc.kind == "giant_killed"]
+            giants = [loc for loc in mission.locations if loc.kind == "giant_killed" and not loc.index]
             self.assertTrue(mission.has_giant)
             self.assertEqual(1, len(giants))
             if mission.playable:

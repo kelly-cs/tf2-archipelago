@@ -36,6 +36,9 @@ func listening(t *testing.T) (*App, *websocket.Conn) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	// The first snapshot carries every form row and is past the 32 KiB this
+	// client defaults to. The browser reads a stream and has no such limit.
+	socket.SetReadLimit(4 << 20)
 	t.Cleanup(func() { _ = socket.CloseNow() })
 	return app, socket
 }

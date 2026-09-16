@@ -91,6 +91,8 @@ func grantsFrom(itemIDs []int64) []Grant {
 			slotsGranted++
 		case gamedata.ItemClassWeaponSlot:
 			classSlotsGranted[item.Class]++
+		default:
+			// Nothing else is progressive, so nothing else is counted.
 		}
 		grant.Seq = index + 1
 		grant.OneShot = item.Kind.OneShot()

@@ -184,6 +184,10 @@ type Settings struct {
 	// items of two copies in place of one of three, each class's first slot
 	// free with the class. A longer run with a much larger pool.
 	MvmClassWeaponSlots bool `json:"mvm_class_weapon_slots"`
+	// MvmGiantsanity and MvmTanksanity make every giant and every tank of
+	// every wave a check, beside the mission's own first of each.
+	MvmGiantsanity bool `json:"mvm_giantsanity"`
+	MvmTanksanity  bool `json:"mvm_tanksanity"`
 	// MvmServerSettings puts the server-setting items in the pool. One exists,
 	// the Grappling Hook, and it turns Mannpower's hook on for everybody for
 	// the rest of the run.

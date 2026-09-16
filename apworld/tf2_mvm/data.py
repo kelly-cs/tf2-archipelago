@@ -38,6 +38,8 @@ class Location:
 
     ``cache`` counts from 1 on a victory cache, an extra check the mission
     clear pays when the option is on, and is 0 on every other check.
+    ``index`` counts from 1 on a per-kill check, the nth giant or tank of its
+    wave, held only when the matching sanity option is on; 0 on every other.
     """
 
     id: int
@@ -45,6 +47,7 @@ class Location:
     kind: str
     wave: int
     cache: int
+    index: int
 
 
 @dataclass(frozen=True, slots=True)
@@ -68,11 +71,18 @@ class Mission:
         """Whether a server loading these mods can play the mission."""
         return self.playable or (self.requires in SERVER_MOD_KEYS and self.requires in server_mods)
 
-    def checks(self, victory_caches: bool) -> tuple[Location, ...]:
-        """The locations a seed holds for this mission: the caches only when asked for."""
-        if victory_caches:
-            return self.locations
-        return tuple(location for location in self.locations if location.cache == 0)
+    def checks(self, victory_caches: bool, giantsanity: bool, tanksanity: bool) -> tuple[Location, ...]:
+        """The locations a seed holds for this mission: the caches and per-kill ones only when asked for."""
+        return tuple(
+            location
+            for location in self.locations
+            if (location.cache == 0 or victory_caches)
+            and (
+                location.index == 0
+                or (location.kind == "giant_killed" and giantsanity)
+                or (location.kind == "tank_destroyed" and tanksanity)
+            )
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -121,6 +131,7 @@ def _read_missions() -> tuple[Mission, ...]:
                     kind=location["kind"],
                     wave=location.get("wave", 0),
                     cache=location.get("cache", 0),
+                    index=location.get("index", 0),
                 )
                 for location in entry["locations"]
             ),

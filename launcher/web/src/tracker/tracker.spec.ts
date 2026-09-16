@@ -76,6 +76,27 @@ describe('tracker view', () => {
     expect(held.missions[0]?.locations.length).toBe(2);
   });
 
+  it('shows per-kill checks only for the kinds the seed holds', () => {
+    const mission = {
+      pop_file: 'mvm_test',
+      name: 'Test',
+      difficulty: 'advanced',
+      locations: [
+        { id: 1, name: 'Test Giant', kind: 'giant_killed' },
+        { id: 2, name: 'Test Wave 1 Giant 1', kind: 'giant_killed', wave: 1, index: 1 },
+        { id: 3, name: 'Test Wave 1 Tank 1', kind: 'tank_destroyed', wave: 1, index: 1 },
+      ],
+    };
+    const names = (slot: object) =>
+      buildView(
+        { ...source, catalog: [mission], demoSlotData: { ...source.demoSlotData, ...slot } },
+        1,
+      ).missions[0]?.locations.map((location) => location.name);
+    expect(names({})).toEqual(['Test Giant']);
+    expect(names({ giantsanity: true })).toEqual(['Test Giant', 'Test Wave 1 Giant 1']);
+    expect(names({ tanksanity: true })).toEqual(['Test Giant', 'Test Wave 1 Tank 1']);
+  });
+
   it('shows the persistent modifier combination assigned to each mission', () => {
     expect(view.missions[0]?.modifiers.map((modifier) => modifier.name)).toEqual([
       'Low Gravity',

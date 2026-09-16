@@ -107,6 +107,8 @@ func TestEveryFieldHasAnEnvVar(t *testing.T) {
 		"MvmVictoryCaches":           "MVM_VICTORY_CACHES",
 		"MvmMilestoneChecks":         "MVM_MILESTONE_CHECKS",
 		"MvmClassWeaponSlots":        "MVM_CLASS_WEAPON_SLOTS",
+		"MvmGiantsanity":             "MVM_GIANTSANITY",
+		"MvmTanksanity":              "MVM_TANKSANITY",
 		"MvmServerSettings":          "MVM_SERVER_SETTINGS",
 		"MvmDeathLink":               "MVM_DEATH_LINK",
 		"MvmExcludedMissions":        "MVM_EXCLUDED_MISSIONS",

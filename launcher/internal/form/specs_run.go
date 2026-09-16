@@ -81,7 +81,21 @@ func playerSpecs(s State, env Env) []Spec {
 			10, 100,
 			func(s State) int { return s.Settings.MvmMissionsanityPct },
 			func(s State, v int) State { s.Settings.MvmMissionsanityPct = v; return s }),
+	}
+	rows = append(rows, missionModifierSpecs(tab)...)
+	rows = append(rows, checkSpecs(tab)...)
+	rows = append(rows, toggle("run.deathlink", tab, "Death Link",
+		"A lost wave kills every other player in the multiworld who has Death Link on, and their deaths wipe your team.",
+		"share deaths",
+		func(s State) bool { return s.Settings.MvmDeathLink },
+		func(s State, v bool) State { s.Settings.MvmDeathLink = v; return s }))
+	return append(rows, runFolderSpecs(tab)...)
+}
 
+// checkSpecs are the rows that decide what pays a check besides the waves: the
+// clears, the running totals, and the giants and tanks of every wave.
+func checkSpecs(tab string) []Spec {
+	return []Spec{
 		toggle("run.medal", tab, "Australium Medal on clear",
 			"Lock a medal of your own onto every mission clear, and read the goal off the medals you hold. It costs the multiworld one check a mission.",
 			"lock the clears",
@@ -103,15 +117,17 @@ func playerSpecs(s State, env Env) []Spec {
 			"per class",
 			func(s State) bool { return s.Settings.MvmClassWeaponSlots },
 			func(s State, v bool) State { s.Settings.MvmClassWeaponSlots = v; return s }),
+		toggle("run.giantsanity", tab, "Giantsanity",
+			"A check for every giant of every wave, beside the mission's first. The counts come out of Valve's own mission files; community missions pay only their first. Empire Escalation alone holds eighty-two.",
+			"every giant",
+			func(s State) bool { return s.Settings.MvmGiantsanity },
+			func(s State, v bool) State { s.Settings.MvmGiantsanity = v; return s }),
 
-		toggle("run.deathlink", tab, "Death Link",
-			"A lost wave kills every other player in the multiworld who has Death Link on, and their deaths wipe your team.",
-			"share deaths",
-			func(s State) bool { return s.Settings.MvmDeathLink },
-			func(s State, v bool) State { s.Settings.MvmDeathLink = v; return s }),
-	}
-	rows = slices.Insert(rows, len(rows)-2, missionModifierSpecs(tab)...)
-	return append(rows, runFolderSpecs(tab)...)
+		toggle("run.tanksanity", tab, "Tanksanity",
+			"A check for every tank of every wave, beside the mission's first. Cataclysm holds eleven.",
+			"every tank",
+			func(s State) bool { return s.Settings.MvmTanksanity },
+			func(s State, v bool) State { s.Settings.MvmTanksanity = v; return s })}
 }
 
 func missionModifierSpecs(tab string) []Spec {

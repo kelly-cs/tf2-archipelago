@@ -96,6 +96,7 @@ type locationJSON struct {
 	Kind  string `json:"kind"`
 	Wave  uint8  `json:"wave,omitempty"`
 	Cache uint8  `json:"cache,omitempty"`
+	Index uint8  `json:"index,omitempty"`
 }
 
 type itemsFile struct {
@@ -191,7 +192,7 @@ func buildMetaFile() metaFile {
 func buildMissionsFile() missionsFile {
 	byMission := make(map[MissionID][]locationJSON, len(Missions))
 	for _, l := range Locations {
-		byMission[l.Mission] = append(byMission[l.Mission], locationJSON{l.ID, l.Name, l.Kind.Key(), l.Wave, l.Cache})
+		byMission[l.Mission] = append(byMission[l.Mission], locationJSON{l.ID, l.Name, l.Kind.Key(), l.Wave, l.Cache, l.Index})
 	}
 	file := missionsFile{
 		FormatVersion: FormatVersion,

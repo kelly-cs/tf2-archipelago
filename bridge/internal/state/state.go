@@ -423,9 +423,7 @@ func (s *Store) Tallies() map[string]int {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	copied := make(map[string]int, len(s.data.Tallies))
-	for kind, total := range s.data.Tallies {
-		copied[kind] = total
-	}
+	maps.Copy(copied, s.data.Tallies)
 	return copied
 }
 

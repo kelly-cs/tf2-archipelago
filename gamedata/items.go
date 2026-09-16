@@ -112,6 +112,32 @@ func ItemByID(id int64) (Item, bool) {
 	return it, ok
 }
 
+// slotItems is the one progressive weapon slot for everybody, then the one per
+// class each copy of which opens that class's next slot in its own order. The
+// class's first slot is free with the class, so a class earns the other two.
+// A seed holds one set or the other: class_weapon_slots decides which.
+func slotItems() []Item {
+	items := make([]Item, 0, len(Classes)+1)
+	items = append(items, Item{
+		ID:             progressiveWeaponSlotID,
+		Name:           ProgressiveWeaponSlotName,
+		Kind:           ItemWeaponSlot,
+		Classification: Progression,
+		Count:          uint8(len(WeaponSlots)),
+	})
+	for _, c := range Classes {
+		items = append(items, Item{
+			ID:             c.SlotItemID(),
+			Name:           c.SlotItemName(),
+			Kind:           ItemClassWeaponSlot,
+			Classification: Progression,
+			Count:          ClassSlotsEarned,
+			Class:          c.ID,
+		})
+	}
+	return items
+}
+
 func buildItems() []Item {
 	all := make([]Item, 0, len(Missions)+len(Classes)+len(WeaponBuffs)+len(Traps)+2)
 	for _, m := range Missions {
@@ -134,27 +160,7 @@ func buildItems() []Item {
 			Class:          c.ID,
 		})
 	}
-	all = append(all, Item{
-		ID:             progressiveWeaponSlotID,
-		Name:           ProgressiveWeaponSlotName,
-		Kind:           ItemWeaponSlot,
-		Classification: Progression,
-		Count:          uint8(len(WeaponSlots)),
-	})
-	// One progressive item per class, each copy opening the class's next slot
-	// in its own order. The first slot is free with the class, so a class earns
-	// the other two. Only a seed with class_weapon_slots on puts these in the
-	// pool, in place of the item above.
-	for _, c := range Classes {
-		all = append(all, Item{
-			ID:             c.SlotItemID(),
-			Name:           c.SlotItemName(),
-			Kind:           ItemClassWeaponSlot,
-			Classification: Progression,
-			Count:          ClassSlotsEarned,
-			Class:          c.ID,
-		})
-	}
+	all = append(all, slotItems()...)
 	all = append(all, Item{
 		ID:             cashBundleID,
 		Name:           "Cash Bundle",

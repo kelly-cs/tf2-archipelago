@@ -68,11 +68,11 @@ func TestObjectiveRecordsACheck(t *testing.T) {
 // not know is a check refused. Nothing but a clear pays any.
 func TestAClearPaysItsVictoryCachesOnlyWhenTheSeedHoldsThem(t *testing.T) {
 	mission, _ := gamedata.MissionByPopFile("mvm_coaltown_advanced")
-	clear, _ := gamedata.LocationByObjective(gamedata.ObjectiveMissionCleared, mission.PopFile, 0)
-	if got := victoryCachesPaidBy(clear, false); len(got) != 0 {
+	cleared, _ := gamedata.LocationByObjective(gamedata.ObjectiveMissionCleared, mission.PopFile, 0)
+	if got := victoryCachesPaidBy(cleared, false); len(got) != 0 {
 		t.Fatalf("a seed without caches paid %d", len(got))
 	}
-	got := victoryCachesPaidBy(clear, true)
+	got := victoryCachesPaidBy(cleared, true)
 	if len(got) != 2 || got[0].ID != mission.VictoryCacheLocationID(1) || got[1].ID != mission.VictoryCacheLocationID(2) {
 		t.Fatalf("an advanced clear paid %+v", got)
 	}
@@ -125,6 +125,32 @@ func TestTheUnlockSetSaysHowSlotsAreOpened(t *testing.T) {
 	got := get(t, handler, "/unlocks")
 	if got.Code != http.StatusOK || !strings.Contains(got.Body.String(), `"class_weapon_slots":false`) {
 		t.Fatalf("code = %d, body = %s", got.Code, got.Body)
+	}
+}
+
+// A per-kill report is a check only when the seed holds that kind, and only
+// as far as the wave's count goes; this test server's seed holds neither.
+func TestAPerKillReportIsDroppedWhenTheSeedLacksIt(t *testing.T) {
+	store, handler := newTestServer(t, time.Second)
+	got := post(t, handler, `{"kind":"giant_killed","popfile":"mvm_coaltown_advanced","wave":3,"index":1}`)
+	if got.Code != http.StatusNoContent {
+		t.Fatalf("code = %d, body = %s", got.Code, got.Body)
+	}
+	if held := store.Checks(); len(held) != 0 {
+		t.Fatalf("a seed without giantsanity recorded %v", held)
+	}
+}
+
+func TestLocationByWaveKillFollowsTheCounts(t *testing.T) {
+	mission, _ := gamedata.MissionByPopFile("mvm_coaltown_advanced")
+	if _, ok := gamedata.LocationByWaveKill(gamedata.ObjectiveGiantKilled, mission.PopFile, 3, 3); !ok {
+		t.Fatal("Ctrl+Alt+Destruction wave 3 holds three giants and the third resolved to nothing")
+	}
+	if _, ok := gamedata.LocationByWaveKill(gamedata.ObjectiveGiantKilled, mission.PopFile, 3, 4); ok {
+		t.Fatal("a fourth giant in a wave of three resolved to a check")
+	}
+	if _, ok := gamedata.LocationByWaveKill(gamedata.ObjectiveTankDestroyed, mission.PopFile, 2, 1); !ok {
+		t.Fatal("wave 2's tank resolved to nothing")
 	}
 }
 

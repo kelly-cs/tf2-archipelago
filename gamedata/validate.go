@@ -102,6 +102,15 @@ func validateMissions() error {
 		if m.ID < 1 || m.ID > MissionIDMax {
 			return fmt.Errorf("mission %q: id %d outside 1..%d", m.PopFile, m.ID, MissionIDMax)
 		}
+		if waves := waveKillsByPopFile[m.PopFile]; len(waves) > 0 && len(waves) != int(m.Waves) {
+			return fmt.Errorf("mission %q: the tables say %d waves and its population file %d", m.PopFile, m.Waves, len(waves))
+		}
+		for wave := uint8(1); wave <= m.Waves; wave++ {
+			counts := m.WaveKillsAt(wave)
+			if counts.Giants > WaveGiantsMax || counts.Tanks > WaveTanksMax || wave > WaveKillWavesMax {
+				return fmt.Errorf("mission %q wave %d: %d giants and %d tanks do not fit the id scheme", m.PopFile, wave, counts.Giants, counts.Tanks)
+			}
+		}
 		if m.Waves < 1 || m.Waves > WavesMax {
 			return fmt.Errorf("mission %q: %d waves, outside 1..%d", m.PopFile, m.Waves, WavesMax)
 		}

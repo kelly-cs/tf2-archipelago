@@ -11,7 +11,14 @@ import {
   TrackerView,
   Weapon,
 } from './types';
-import { itemKind, itemTone } from './presentation';
+import {
+  buffParts,
+  displayItemName,
+  itemKind,
+  itemTone,
+  trackerWeapon,
+  weaponDisplayName,
+} from './presentation';
 
 const startSlots: Readonly<Record<string, number>> = {
   normal: 1,
@@ -26,7 +33,11 @@ export function buildView(source: TrackerSource, player: number): TrackerView {
   const missions = activeMissions(source, slotData).map((mission) => ({
     ...mission,
     locations: mission.locations.filter(
-      (location) => location.cache === undefined || slotData.victory_caches === true,
+      (location) =>
+        (location.cache === undefined || slotData.victory_caches === true) &&
+        (location.index === undefined ||
+          (location.kind === 'giant_killed' && slotData.giantsanity === true) ||
+          (location.kind === 'tank_destroyed' && slotData.tanksanity === true)),
     ),
   }));
   const checked = checkedFor(source, player);
@@ -187,27 +198,4 @@ function describeGoal(
         : `Clear ${goal.name}, the marked final mission, to finish the run.`,
     goalPercent: progress * 100,
   };
-}
-
-function buffParts(itemName: string): { weapon: string; effect: string } {
-  const label = displayItemName(itemName).replace(/^Weapon Buff: /, '');
-  const separator = label.indexOf(' — ');
-  return separator < 0
-    ? { weapon: label, effect: 'Weapon upgrade unlocked' }
-    : { weapon: label.slice(0, separator), effect: label.slice(separator + 3) };
-}
-
-function displayItemName(name: string): string {
-  return name.replace(/^Weapon Buff: Saxxy(?= —|$)/, 'Weapon Buff: All-Class Melee');
-}
-
-function weaponDisplayName(name: string): string {
-  return name === 'Saxxy' ? 'All-Class Melee' : name;
-}
-
-function trackerWeapon(weapons: ReadonlyMap<string, Weapon>, name: string): Weapon | undefined {
-  const direct =
-    weapons.get(name) ?? (name === 'All-Class Melee' ? weapons.get('Saxxy') : undefined);
-  if (direct !== undefined) return direct;
-  return [...weapons.values()].find((weapon) => weapon.aliases?.includes(name));
 }

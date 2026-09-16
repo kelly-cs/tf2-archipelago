@@ -111,6 +111,8 @@ failure stays silent, which is worse than a missing feature.
 | Tank / boss kill | Tank destroyed, Giant or boss robot killed | per mission, capped | `boss_checks` |
 | Victory cache | Final wave of mission M completed | 0 to 4 per mission, by tier | `victory_caches` |
 | Milestone | Robots, giants or tanks destroyed over the whole run reach a total | 15, a fixed ladder | `milestone_checks` |
+| Every giant | The nth giant of wave W of mission M killed | per wave, from the population file | `giantsanity` |
+| Every tank | The nth tank of wave W of mission M destroyed | per wave, from the population file | `tanksanity` |
 
 Wave clear is the core location group, and the only one on by default.
 Everything else is opt-in, because a run's length has to be tunable. The
@@ -127,6 +129,13 @@ in: a hundred robots, then 250, 500, 1000, 2000, 4000; five tanks, then 10,
 reports once when it ends, won or lost; the bridge keeps the totals on disk
 and records each milestone a total crosses. A team stuck on a wave can replay
 what it has open and still find things.
+`giantsanity` and `tanksanity` make every giant and every tank of every wave
+a check, beside the mission's own first of each. The counts are read out of
+Valve's population files by `gamedata/cmd/popcounts` and committed, so a
+giant that is there to kill is a check and one that is not is not: a wrong
+count would be a check nobody can reach. Community missions have no count yet
+and pay only their first. The plugin reports the nth kill of the wave; the
+bridge records it when the seed holds that kind.
 
 Shop checks are the most novel group, and the least certain to work.
 Roseburst's two variants:

@@ -53,6 +53,11 @@ type objectiveRequest struct {
 	Session int64 `json:"session"`
 	ID      int64 `json:"id"`
 
+	// Index is which giant or tank of the wave this one was, counted from 1,
+	// for a per-kill check. Zero for the mission's own first-of-each check
+	// and for every other kind.
+	Index uint8 `json:"index"`
+
 	// WavesTotal is how many waves the game says the mission has, zero when it
 	// would not say. Every wave count in gamedata comes from the wiki and none
 	// has been checked against a running server, so this is the one chance to
@@ -299,6 +304,10 @@ func (s *Server) postObjective(w http.ResponseWriter, r *http.Request) {
 		s.postTally(w, r, kind, request)
 		return
 	}
+	if request.Index > 0 {
+		s.postWaveKill(w, r, kind, request)
+		return
+	}
 	location, resolved := gamedata.LocationByObjective(kind, request.PopFile, request.Wave)
 	if !resolved {
 		http.Error(w, "no such objective", http.StatusBadRequest)
@@ -387,6 +396,36 @@ func (s *Server) postTally(w http.ResponseWriter, r *http.Request, kind gamedata
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// postWaveKill records the nth giant or tank of a wave, when the seed holds
+// per-kill checks of that kind. A kill past what the tables say the wave
+// holds, or in a mission nobody scrubbed, is answered and dropped: the plugin
+// reports what it sees, and only the tables know what is a check.
+func (s *Server) postWaveKill(w http.ResponseWriter, r *http.Request, kind gamedata.ObjectiveKind, request objectiveRequest) {
+	health := s.client.Health()
+	held := (kind == gamedata.ObjectiveGiantKilled && health.Giantsanity) ||
+		(kind == gamedata.ObjectiveTankDestroyed && health.Tanksanity)
+	if !held {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+	location, resolved := gamedata.LocationByWaveKill(kind, request.PopFile, request.Wave, request.Index)
+	if !resolved {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+	fresh, err := s.store.AddCheck(location.ID)
+	if err != nil {
+		s.logger.ErrorContext(r.Context(), "cannot record a check",
+			"location", location.Name, "error", err)
+		http.Error(w, "cannot record the check", http.StatusInternalServerError)
+		return
+	}
+	if fresh {
+		s.logger.InfoContext(r.Context(), "check recorded", "location", location.Name)
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
 // tallyCountMax bounds one report: a wave holds hundreds of robots, not
 // thousands, and a count past this is a bug on the wire rather than a wave.
 const tallyCountMax = 1000
@@ -414,8 +453,8 @@ func (s *Server) noteProgress(ctx context.Context, kind gamedata.ObjectiveKind, 
 		err = s.store.NoteProgress(popFile, wave)
 	case gamedata.ObjectiveMissionCleared:
 		err = s.store.ClearProgress(popFile)
-	case gamedata.ObjectiveTankDestroyed, gamedata.ObjectiveGiantKilled:
-		// Neither says a wave was won, so neither moves the record.
+	default:
+		// Nothing else says a wave was won, so nothing else moves the record.
 		return
 	}
 	if err != nil {
