@@ -203,6 +203,34 @@ func TestEveryNamedMissionCanStartUnlocked(t *testing.T) {
 	}
 }
 
+func TestUnlockingEveryMissionIsPartOfTheSlotData(t *testing.T) {
+	room, address, err := Start(t.Context(), Options{
+		SlotName:       "tester",
+		Missions:       []string{"mvm_decoy", "mvm_coaltown_intermediate"},
+		UnlockMissions: true,
+	})
+	if err != nil {
+		t.Fatalf("Start: %v", err)
+	}
+	t.Cleanup(func() { _ = room.Close(context.Background()) })
+
+	c := dial(t, address)
+	c.await("RoomInfo")
+	c.send(map[string]any{"cmd": "Connect"})
+	connected := c.await("Connected")
+	var payload struct {
+		SlotData struct {
+			MissionTicketImportance string `json:"mission_ticket_importance"`
+		} `json:"slot_data"`
+	}
+	if err := json.Unmarshal(mustRaw(connected), &payload); err != nil {
+		t.Fatal(err)
+	}
+	if got := payload.SlotData.MissionTicketImportance; got != "useful" {
+		t.Errorf("mission ticket importance = %q, want useful", got)
+	}
+}
+
 // Eight missions in the order of the settings list, and the next eight once
 // those were unticked, read from a player's chair as a randomiser that does
 // not randomise. The draw is a draw.

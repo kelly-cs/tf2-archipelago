@@ -136,8 +136,9 @@ func Run(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 	// somebody's actual game.
 	if cfg.TestMode {
 		room, address, err := fakeroom.Start(ctx, fakeroom.Options{
-			SlotName: cfg.SlotName,
-			Log:      func(text string) { logger.InfoContext(ctx, "test mode", "message", text) },
+			SlotName:       cfg.SlotName,
+			UnlockMissions: true,
+			Log:            func(text string) { logger.InfoContext(ctx, "test mode", "message", text) },
 		})
 		if err != nil {
 			return err

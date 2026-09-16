@@ -37,6 +37,10 @@ type Room struct {
 	log       func(string)
 	deathLink bool
 	modifiers map[string][]MissionModifier
+	// unlockMissions is also announced in slot data. That makes the bridge's
+	// mission list immediately playable instead of depending on the starting
+	// inventory having crossed the websocket and reached its state store first.
+	unlockMissions bool
 
 	// start is what the run holds before it clears anything. A real generator
 	// precollects it, so the plugin can enforce from the first wave; a room
@@ -122,14 +126,15 @@ func Start(ctx context.Context, options Options) (*Room, string, error) {
 	}
 	start := roomStartingInventory(missions, options.StartClass, options.UnlockMissions)
 	room := &Room{
-		listener:  listener,
-		log:       logf,
-		items:     unlockOrder(start),
-		start:     start,
-		checked:   make(map[int64]bool),
-		deathLink: options.DeathLink,
-		modifiers: options.MissionModifiers,
-		seed:      fmt.Sprintf("test-mode-%x", rand.Uint64()),
+		listener:       listener,
+		log:            logf,
+		items:          unlockOrder(start),
+		start:          start,
+		checked:        make(map[int64]bool),
+		deathLink:      options.DeathLink,
+		modifiers:      options.MissionModifiers,
+		unlockMissions: options.UnlockMissions,
+		seed:           fmt.Sprintf("test-mode-%x", rand.Uint64()),
 	}
 	goal := options.Goal
 	if goal == "" {
@@ -213,13 +218,14 @@ func (r *Room) handle(ctx context.Context, conn *websocket.Conn, cmd string,
 				"slot":              1,
 				"checked_locations": []int64{},
 				"slot_data": map[string]any{
-					"format_version":       gamedata.FormatVersion,
-					"missions":             missions,
-					"goal":                 goal,
-					"goal_mission":         missions[len(missions)-1],
-					"missionsanity_target": len(missions),
-					"death_link":           r.deathLink,
-					"mission_modifiers":    r.modifiers,
+					"format_version":            gamedata.FormatVersion,
+					"missions":                  missions,
+					"mission_ticket_importance": missionTicketImportance(r.unlockMissions),
+					"goal":                      goal,
+					"goal_mission":              missions[len(missions)-1],
+					"missionsanity_target":      len(missions),
+					"death_link":                r.deathLink,
+					"mission_modifiers":         r.modifiers,
 				},
 			},
 			// The starting inventory, the way a generated seed precollects
@@ -251,6 +257,17 @@ func (r *Room) handle(ctx context.Context, conn *websocket.Conn, cmd string,
 		return r.answer(ctx, conn, message, missions)
 	}
 	return nil
+}
+
+// Useful mission tickets mean the bridge deliberately exposes every mission
+// in the run as playable. Test mode asks for that behavior so switching maps
+// remains available during startup and reconnects; the ordinary fake room
+// retains progression-ticket behavior.
+func missionTicketImportance(unlockMissions bool) string {
+	if unlockMissions {
+		return "useful"
+	}
+	return "progression"
 }
 
 // reward hands out one unlock per newly checked location, in a fixed order, so
