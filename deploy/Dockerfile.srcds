@@ -19,6 +19,18 @@ COPY plugin/scripting ./scripting
 RUN ./build.sh
 
 
+# The entrypoint writes SourceMod's admin file after SourceMod appears in the
+# runtime volume. The server can already have built its admin cache by then, so
+# keep the launcher's small RCON client in the image to refresh that cache.
+FROM golang:1.27 AS rcon
+
+WORKDIR /repo
+COPY go.mod go.sum ./
+COPY launcher/cmd/rcon launcher/cmd/rcon
+COPY launcher/internal/rcon launcher/internal/rcon
+RUN CGO_ENABLED=0 go build -trimpath -o /rcon ./launcher/cmd/rcon
+
+
 # The MvM defender bots: the mod that fills RED so a wave tuned for six players
 # is winnable alone. Its own stage so a plugin edit does not refetch it, and so
 # the tree it stages can be copied whole.
@@ -86,6 +98,7 @@ COPY deploy/srcds/tf2_archipelago.cfg \
 	/opt/tf2-archipelago/cfg/sourcemod/tf2_archipelago.cfg
 COPY deploy/srcds-entrypoint.sh /usr/local/bin/entrypoint.sh
 COPY deploy/srcds-launch.sh /usr/local/bin/tf2ap-srcds-launch.sh
+COPY --from=rcon /rcon /usr/local/bin/rcon
 
 RUN chown -R steam:steam /opt/tf2-archipelago /opt/tf2-mods \
 	&& chmod +x /usr/local/bin/entrypoint.sh /usr/local/bin/tf2ap-srcds-launch.sh

@@ -13,6 +13,9 @@ MODS=/opt/tf2-mods
 COMMUNITY=/opt/tf2-community-pack/tf
 GAME="${STEAMAPPDIR}/${STEAMAPP}"
 INTERVAL=30
+RCON=${TF2AP_RCON:-/usr/local/bin/rcon}
+ADMIN_RELOAD_ATTEMPTS=${TF2AP_ADMIN_RELOAD_ATTEMPTS:-120}
+ADMIN_RELOAD_INTERVAL=${TF2AP_ADMIN_RELOAD_INTERVAL:-1}
 
 tailscale_fastdl_url() {
 	url_file=/run/tf2ap-fastdl/url
@@ -66,6 +69,24 @@ steam_id_for_sourcemod() {
 	printf '%s' "$value"
 }
 
+# SourceMod reads admins_simple.ini into a cache. On a fresh volume its own
+# runtime installer creates SourceMod immediately before starting srcds, so our
+# supervisor can only write the admin file after that cache was built. The same
+# race happens when a changed .env meets an existing file on restart. Retry the
+# reload in the background: the first attempts normally precede the RCON socket.
+reload_admin_cache() {
+	attempt=1
+	while [ "$attempt" -le "$ADMIN_RELOAD_ATTEMPTS" ]; do
+		if "$RCON" sm_reloadadmins >/dev/null 2>&1; then
+			echo "[AP] refreshed the SourceMod admin cache"
+			return 0
+		fi
+		attempt=$((attempt + 1))
+		sleep "$ADMIN_RELOAD_INTERVAL"
+	done
+	echo "[AP] wrote the admin list, but SourceMod did not answer sm_reloadadmins" >&2
+}
+
 # SourceMod identifies an admin by Steam id, so the operator's list is the whole
 # configuration. Written rather than shipped: an admin list committed to the
 # image would be one more place a Steam id lives.
@@ -104,6 +125,7 @@ install_admin() {
 	mv "$staged" "$target"
 	chmod 0644 "$target"
 	echo "[AP] installed $(grep -c '^"' "$target") admin(s)"
+	reload_admin_cache &
 }
 
 # Copies a staged tree over the game's, file by file, and only the files whose
@@ -311,6 +333,9 @@ install_plugin() {
 	done
 }
 
+# Tests source the functions above without starting SteamCMD or srcds.
+if [ "${TF2AP_ENTRYPOINT_LIBRARY:-0}" != 1 ]; then
+
 # SRCDS_REACH says in one word where players come from. The game understands
 # two separate things instead: sv_lan in server.cfg, and -enablefakeip on the
 # command line, which the image's own entrypoint adds for SRCDS_SDR_FAKEIP=1.
@@ -376,3 +401,5 @@ if [ -f "${console_log}" ]; then
 fi
 
 exec bash /usr/local/bin/tf2ap-srcds-launch.sh
+
+fi
