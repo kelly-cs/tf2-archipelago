@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/m-this/tf2-archipelago/launcher/internal/botnames"
 	"github.com/m-this/tf2-archipelago/launcher/internal/settings"
 )
 
@@ -148,6 +149,41 @@ func TestInstallAdminsSkipsWithoutSourcemod(t *testing.T) {
 	_, err := os.Stat(filepath.Join(gameDir(installRoot), "addons", "sourcemod", "configs", "admins_simple.ini"))
 	if err == nil {
 		t.Error("admins_simple.ini was written without a SourceMod install")
+	}
+}
+
+/*
+The pool the bots draw their names from reaches the game, and says what the
+settings asked for rather than the shipped list.
+
+Written on every start, unlike the loadout file: the mod reads this one
+whatever the settings say, and a server without it calls every bot "You forgot
+to give me a name!".
+*/
+func TestInstallWritesTheNamePool(t *testing.T) {
+	installRoot := t.TempDir()
+	configs := filepath.Join(gameDir(installRoot), "addons", "sourcemod", "configs", "defenderbots")
+	if err := os.MkdirAll(configs, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	s := settings.Settings{
+		InstallRoot:           installRoot,
+		SrcdsBotNamesAdded:    []string{"Gravel Pit Gary"},
+		SrcdsBotNamesExcluded: botnames.Shipped()[:1],
+	}
+	if err := Install(s); err != nil {
+		t.Fatalf("Install: %v", err)
+	}
+
+	body, err := os.ReadFile(filepath.Join(configs, "bot_names.txt"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(body), "Gravel Pit Gary") {
+		t.Errorf("the added name is not in the pool:\n%s", body)
+	}
+	if strings.Contains(string(body), botnames.Shipped()[0]) {
+		t.Errorf("%s was left out and is still in the pool", botnames.Shipped()[0])
 	}
 }
 

@@ -1,0 +1,54 @@
+@if (!open()) {
+  <p class="lead">Opening the names.</p>
+} @else {
+  <p class="lead">
+    The names the bots draw from as they take their seats. {{ drawn() }} in the pool. A change
+    reaches the bots on the next mission, because the mod reads the list when a map starts.
+  </p>
+
+  @if (typed(); as box) {
+    <div class="bar">
+      <label [attr.for]="box.id">{{ box.label }}</label>
+      <input
+        [id]="box.id"
+        [attr.placeholder]="box.placeholder"
+        [value]="value(box)"
+        (input)="type($any($event.target).value)"
+        (keydown.enter)="added.next()"
+      />
+      <app-button size="small" tone="primary" (press)="added.next()">Add</app-button>
+    </div>
+  }
+
+  <div class="feedback">{{ feedback() }}</div>
+
+  @if (mine().length > 0) {
+    <h3>Yours</h3>
+    <div class="names" role="group" aria-label="Names you added">
+      @for (name of mine(); track name.id) {
+        <app-chip
+          tone="allow"
+          [pressed]="on(name.field)"
+          [hint]="name.name + ': off forgets it'"
+          (press)="flip(name)"
+        >
+          {{ name.name }}
+        </app-chip>
+      }
+    </div>
+  }
+
+  <h3>Shipped</h3>
+  <div class="names" role="group" aria-label="Names this launcher ships">
+    @for (name of shipped(); track name.id) {
+      <app-chip
+        tone="allow"
+        [pressed]="on(name.field)"
+        [hint]="on(name.field) ? name.name + ' is drawn' : name.name + ' is left out'"
+        (press)="flip(name)"
+      >
+        {{ name.name }}
+      </app-chip>
+    }
+  </div>
+}

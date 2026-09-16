@@ -115,6 +115,17 @@ type Settings struct {
 	// A team named here beats the blacklist.
 	SrcdsBotTeamComp []string `json:"srcds_bot_team_comp,omitempty"`
 
+	/* The pool the bots draw their names from, as the difference from the
+	   list this launcher ships.
+
+	   What is out and what was added, rather than the whole list: a name added
+	   to the shipped file in a later release then reaches a settings file
+	   written before it existed, which a stored copy of the list never would.
+	   People get attached to their teams, and a name is most of what a bot is
+	   to the person playing beside it. */
+	SrcdsBotNamesExcluded []string `json:"srcds_bot_names_excluded,omitempty"`
+	SrcdsBotNamesAdded    []string `json:"srcds_bot_names_added,omitempty"`
+
 	// SrcdsBotTeamPresets are teams somebody named and kept: the seats, their
 	// loadouts, and the classes the mod may draw from. Naming a team is the
 	// point of the Bots tab, and naming it twice because the last one was

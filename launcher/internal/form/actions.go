@@ -1,10 +1,13 @@
 package form
 
 import (
+	"fmt"
 	"maps"
+	"slices"
 	"strings"
 
 	"github.com/m-this/tf2-archipelago/launcher/internal/botloadout"
+	"github.com/m-this/tf2-archipelago/launcher/internal/botnames"
 	"github.com/m-this/tf2-archipelago/launcher/internal/settings"
 )
 
@@ -25,12 +28,52 @@ func Act(s State, id string) (next State, said string, ok bool) {
 		next, said = saveTeam(s)
 	case "bots.remove_team":
 		next, said = removeTeam(s)
+	case "bots.name_add":
+		next, said = addBotName(s)
 	case "loadout.save":
 		next, said = saveLoadout(s)
 	default:
 		return s, "", false
 	}
 	return next, said, true
+}
+
+/*
+addBotName puts the name in the box into the pool the bots draw from.
+
+Every refusal here is a name that would have gone in and come out looking like
+something else: the game cuts a long one, the mod draws by index so a duplicate
+comes up twice as often, and a comma is what the Compose stack separates the
+list with.
+*/
+func addBotName(s State) (State, string) {
+	name := strings.TrimSpace(s.Draft.BotName)
+	switch {
+	case name == "":
+		return s, "type a name first"
+	case len(name) > botnames.NameMax:
+		return s, fmt.Sprintf("%q is longer than the %d characters the game keeps", name, botnames.NameMax)
+	case strings.Contains(name, ","):
+		return s, "a name cannot hold a comma, which is what separates them in a Compose .env"
+	case len(s.Settings.SrcdsBotNamesAdded) >= botnames.AddedMax:
+		return s, fmt.Sprintf("that is %d names of your own, which is all this page can show", botnames.AddedMax)
+	case slices.Contains(botnames.Pool(s.Settings.SrcdsBotNamesExcluded, s.Settings.SrcdsBotNamesAdded), name):
+		return s, name + " is already in the pool"
+	}
+
+	// A name that was shipped and taken out comes back rather than being added
+	// beside itself, so the tick above it says what the pool holds.
+	if slices.Contains(botnames.Shipped(), name) {
+		s.Settings.SrcdsBotNamesExcluded = slices.DeleteFunc(
+			slices.Clone(s.Settings.SrcdsBotNamesExcluded),
+			func(one string) bool { return one == name })
+		s.Draft.BotName = ""
+		return s, "put " + name + " back in the pool"
+	}
+
+	s.Settings.SrcdsBotNamesAdded = append(slices.Clone(s.Settings.SrcdsBotNamesAdded), name)
+	s.Draft.BotName = ""
+	return s, "added " + name
 }
 
 func saveTeam(s State) (State, string) {

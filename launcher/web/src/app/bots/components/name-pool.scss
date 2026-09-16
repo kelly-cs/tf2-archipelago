@@ -1,0 +1,45 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+}
+
+.lead {
+  color: var(--text-dim);
+}
+
+.bar {
+  display: flex;
+  gap: var(--gap-sm);
+  align-items: center;
+  margin: var(--gap) 0;
+}
+
+.bar input {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 8px;
+  color: var(--text);
+  background: var(--surface-raised);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+}
+
+.feedback {
+  min-height: 1.2em;
+  color: var(--text-dim);
+  font: var(--text-xs) / 1.4 var(--font-mono);
+}
+
+h3 {
+  margin: var(--gap) 0 var(--gap-sm);
+  font: var(--text-lg) / 1 var(--font-display);
+}
+
+/* A wrap rather than a column: the shipped list is long, and eighty names down
+   the page is a scroll nobody reads to the end of. */
+.names {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gap-sm);
+}

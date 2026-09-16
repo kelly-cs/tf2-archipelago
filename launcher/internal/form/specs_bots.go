@@ -8,6 +8,7 @@ import (
 
 	"github.com/m-this/tf2-archipelago/gamedata"
 	"github.com/m-this/tf2-archipelago/launcher/internal/botloadout"
+	"github.com/m-this/tf2-archipelago/launcher/internal/botnames"
 	"github.com/m-this/tf2-archipelago/launcher/internal/settings"
 )
 
@@ -85,6 +86,8 @@ func botSpecs(s State) []Spec {
 		specs = append(specs, inGroup("Classes", classAllowedSpec(class), classLoadoutSpec(class))...)
 	}
 
+	specs = append(specs, nameSpecs(s)...)
+
 	// Last, because none of it changes a wave.
 	specs = append(specs, inGroup("Looks",
 		toggle("bots.hats", tab, "Cosmetic items",
@@ -101,6 +104,76 @@ func botSpecs(s State) []Spec {
 	)...)
 
 	return append(specs, loadoutSpecs(s)...)
+}
+
+/*
+	nameSpecs is the pool the bots draw their names from
+
+A tick per name this launcher ships, then a row per name somebody added, then
+the box that adds one. Stored as the difference from the shipped list rather
+than as a copy of it, the same way the mission pool is stored: a name added to
+the shipped file in a later release then reaches a settings file written before
+it existed.
+
+The mod reads the pool at map start, so a change here reaches the bots on the
+next mission rather than the next wave.
+*/
+func nameSpecs(s State) []Spec {
+	const tab = "Bots"
+	specs := []Spec{
+		text("bots.name_new", tab, "Add a name",
+			fmt.Sprintf("A name to put in the pool, %d characters at most. The bots draw from it as they take their seats, and each one keeps what it drew until it leaves.", botnames.NameMax),
+			"Gravel Pit Gary",
+			func(s State) string { return s.Draft.BotName },
+			func(s State, v string) State { s.Draft.BotName = v; return s }),
+
+		press("bots.name_add", tab, "Add this name",
+			"Puts the name in the box into the pool."),
+	}
+
+	for _, name := range s.Settings.SrcdsBotNamesAdded {
+		specs = append(specs, addedNameSpec(name))
+	}
+	for _, name := range botnames.Shipped() {
+		specs = append(specs, shippedNameSpec(name))
+	}
+	return inGroup("Names", specs...)
+}
+
+// addedNameSpec is one name somebody typed. Off removes it outright rather
+// than holding it aside: it was never shipped, so there is nothing to go back
+// to, and a list of names somebody turned off is a list nobody reads.
+func addedNameSpec(name string) Spec {
+	return twoWayToggle("bots.name.added."+name, "Bots", name,
+		"A name you added. Off takes it out of the pool and forgets it.",
+		"in the pool", "removed",
+		func(s State) bool { return slices.Contains(s.Settings.SrcdsBotNamesAdded, name) },
+		func(s State, in bool) State {
+			if in {
+				return s
+			}
+			s.Settings.SrcdsBotNamesAdded = slices.DeleteFunc(
+				slices.Clone(s.Settings.SrcdsBotNamesAdded),
+				func(one string) bool { return one == name })
+			return s
+		})
+}
+
+// shippedNameSpec is one of the names this launcher ships.
+func shippedNameSpec(name string) Spec {
+	return twoWayToggle("bots.name.shipped."+name, "Bots", name,
+		"A name this launcher ships. Off leaves it out of the pool.",
+		"in the pool", "left out",
+		func(s State) bool { return !slices.Contains(s.Settings.SrcdsBotNamesExcluded, name) },
+		func(s State, in bool) State {
+			excluded := slices.DeleteFunc(slices.Clone(s.Settings.SrcdsBotNamesExcluded),
+				func(one string) bool { return one == name })
+			if !in {
+				excluded = append(excluded, name)
+			}
+			s.Settings.SrcdsBotNamesExcluded = excluded
+			return s
+		})
 }
 
 // seatClassSpec is which class sits in one seat. The draw is what the mod does

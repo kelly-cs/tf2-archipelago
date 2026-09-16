@@ -4,6 +4,28 @@ What each release changes, for somebody who plays the game. The workflow in
 `.github/workflows/release.yml` reads the section matching the tag and puts it
 in the release notes, so this file is the only place to write it.
 
+## Unreleased
+
+### The bots have names you choose
+
+- **A Names section on the Bots page.** The bots draw from a pool of names as
+  they take their seats, and the pool is yours: add your own, and leave out any
+  of the ones this launcher ships. The list is kept as what you changed rather
+  than as a copy, so names added in a later release still reach you.
+- It works the same in the Docker stack, through `SRCDS_BOT_NAMES_EXCLUDED` and
+  `SRCDS_BOT_NAMES_ADDED` in `.env`.
+- The mod reads the pool when a map starts, so a change reaches the bots on the
+  next mission.
+
+### Fixed
+
+- In the Docker stack the bots played stock weapons whatever the admin page
+  said. The loadouts reached `.env` and stopped there: nothing wrote the file
+  the mod reads, and nothing turned on the setting that makes it read one. A
+  loadout built on the Loadouts page was also forgotten at the next restart,
+  because `.env` is the whole of what the page remembers and the built ones
+  were never written to it.
+
 ## v1.16.0
 
 The Docker stack gets the launcher's browser interface, five new ways to pay

@@ -258,7 +258,7 @@ var wiredActions = []string{
 	"missions.install_mods",
 	"missions.pool_all", "missions.pool_none",
 	"server.debug_bundle", "server.repair", "server.reset",
-	"net.check_funnel", "bots.save_team", "bots.remove_team", "loadout.save",
+	"net.check_funnel", "bots.save_team", "bots.remove_team", "bots.name_add", "loadout.save",
 }
 
 func (a *App) mutateDraft(change func(*form.State)) {

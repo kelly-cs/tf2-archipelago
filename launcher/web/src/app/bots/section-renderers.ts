@@ -12,6 +12,10 @@ const sections: SectionRenderer[] = [
     load: () => import('@app/bots/components/class-table').then((m) => m.ClassTable),
   },
   {
+    key: 'bots/names',
+    load: () => import('@app/bots/components/name-pool').then((m) => m.NamePool),
+  },
+  {
     key: 'bots/loadouts',
     load: () => import('@app/bots/components/loadout-editor').then((m) => m.LoadoutEditor),
   },

@@ -42,6 +42,11 @@ type Draft struct {
 	LoadoutName string
 	Loadout     botloadout.Built
 
+	// BotName is the name being typed into the bots' name pool. Like the two
+	// above it is scratch: nothing in the config file holds it, and leaving
+	// the page throws it away.
+	BotName string
+
 	// Room is the Archipelago room address as it has been typed. It is held as
 	// text rather than as a host and a port because it is parsed, and a row
 	// that refused every incomplete address could never be typed into: reaching

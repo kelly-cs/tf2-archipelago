@@ -1,9 +1,12 @@
 package form
 
 import (
+	"slices"
+	"strings"
 	"testing"
 
 	"github.com/m-this/tf2-archipelago/launcher/internal/botloadout"
+	"github.com/m-this/tf2-archipelago/launcher/internal/botnames"
 	"github.com/m-this/tf2-archipelago/launcher/internal/settings"
 )
 
@@ -61,5 +64,58 @@ func TestATeamIsKeptAndForgottenByName(t *testing.T) {
 	}
 	if _, _, ok := Act(s, "server.repair"); ok {
 		t.Fatal("a button that is not the draft's was answered here")
+	}
+}
+
+// A name goes in the pool once, at a length the game keeps, without a comma
+// for the Compose list to split on.
+func TestAddingABotNameRefusesWhatWouldNotSurvive(t *testing.T) {
+	base := State{Settings: settings.Defaults()}
+
+	for _, refusal := range []struct {
+		name string
+		said string
+	}{
+		{"", "type a name first"},
+		{strings.Repeat("x", botnames.NameMax+1), "longer than"},
+		{"Bob, the builder", "comma"},
+		{botnames.Shipped()[0], "already in the pool"},
+	} {
+		s := base
+		s.Draft.BotName = refusal.name
+		after, said, ok := Act(s, "bots.name_add")
+		if !ok || !strings.Contains(said, refusal.said) {
+			t.Errorf("%q was answered %q, want %q", refusal.name, said, refusal.said)
+		}
+		if len(after.Settings.SrcdsBotNamesAdded) != 0 {
+			t.Errorf("%q went into the pool anyway", refusal.name)
+		}
+	}
+
+	s := base
+	s.Draft.BotName = "  Gravel Pit Gary  "
+	after, said, _ := Act(s, "bots.name_add")
+	if !slices.Contains(after.Settings.SrcdsBotNamesAdded, "Gravel Pit Gary") {
+		t.Fatalf("the name was not added: %v, said %q", after.Settings.SrcdsBotNamesAdded, said)
+	}
+	if after.Draft.BotName != "" {
+		t.Errorf("the box still holds %q", after.Draft.BotName)
+	}
+}
+
+// Adding a shipped name that was ticked off puts it back rather than adding a
+// second copy of it, so the tick above says what the pool holds.
+func TestAddingAShippedNameThatWasTakenOutPutsItBack(t *testing.T) {
+	shipped := botnames.Shipped()[0]
+	s := State{Settings: settings.Defaults()}
+	s.Settings.SrcdsBotNamesExcluded = []string{shipped}
+	s.Draft.BotName = shipped
+
+	after, said, _ := Act(s, "bots.name_add")
+	if slices.Contains(after.Settings.SrcdsBotNamesExcluded, shipped) {
+		t.Errorf("%s is still left out: %q", shipped, said)
+	}
+	if len(after.Settings.SrcdsBotNamesAdded) != 0 {
+		t.Errorf("it was added beside itself: %v", after.Settings.SrcdsBotNamesAdded)
 	}
 }

@@ -36,6 +36,8 @@ var notOnAPage = map[string]string{
 	"SrcdsStartMap":       "read from files written before 1.3 and never written again",
 	"SrcdsLanLegacy":      "the srcds_lan boolean SrcdsReach replaced, read once and never written",
 	"SrcdsBotTeamPresets": "written by the save and remove team buttons, not by a row",
+	"SrcdsBotNamesAdded": "written by the add name button, and then by a row per name added: " +
+		"a page built from settings nobody has added a name to has no such row to find",
 	"APHost":              "written by the room address row, which parses one line into three fields",
 	"APPort":              "written by the room address row",
 	"APTls":               "written by the room address row",
