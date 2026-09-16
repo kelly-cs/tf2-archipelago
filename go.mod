@@ -28,3 +28,5 @@ require (
 )
 
 tool github.com/m-this/tf2-mvm-bots-go/cmd/gen
+
+replace github.com/m-this/tf2-mvm-bots-go => github.com/kelly-cs/tf2-mvm-bots-go v0.11.1-0.20260916053802-6587f49cb6f1
