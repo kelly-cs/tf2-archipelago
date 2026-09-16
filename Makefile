@@ -265,11 +265,11 @@ web-build: web-ready
 # The public tracker is a second entry into the same Angular source tree. It
 # shares the launcher's components and theme, but its output needs no launcher
 # or game server and can be served by any static host.
-# Angular will not reach outside its workspace for assets. Stage the two
-# generated catalogues rather than commit a second copy of either one.
+# Angular will not reach outside its workspace for assets. Stage the generated
+# catalogues rather than commit a second copy of any of them.
 tracker-data:
 	mkdir -p $(WEB)/src/tracker/data
-	cp apworld/tf2_mvm/data/missions.json apworld/tf2_mvm/data/weapon_classes.json $(WEB)/src/tracker/data/
+	cp apworld/tf2_mvm/data/missions.json apworld/tf2_mvm/data/weapon_classes.json apworld/tf2_mvm/data/class_loadouts.json $(WEB)/src/tracker/data/
 
 tracker-build: web-ready tracker-data
 	$(NPM) run build:tracker

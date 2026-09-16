@@ -19,6 +19,7 @@ import {
   trackerWeapon,
   weaponDisplayName,
 } from './presentation';
+import { loadoutView } from './loadout';
 
 const startSlots: Readonly<Record<string, number>> = {
   normal: 1,
@@ -57,7 +58,9 @@ export function buildView(source: TrackerSource, player: number): TrackerView {
   });
   const start = missions.find((mission) => mission.pop_file === slotData.start_mission);
   const inferred = startSlots[start?.difficulty ?? ''] ?? 0;
-  const slotCount = Math.min(3, (owned.get('Progressive Weapon Slot') ?? 0) + inferred);
+  const sharedSlotCount = Math.min(3, (owned.get('Progressive Weapon Slot') ?? 0) + inferred);
+  const classWeaponSlots = slotData.class_weapon_slots === true;
+  const loadout = loadoutView(source, owned, sharedSlotCount, classWeaponSlots);
   const completed = missionViews.filter((mission) => mission.complete).length;
   const total =
     source.mode === 'demo'
@@ -74,7 +77,7 @@ export function buildView(source: TrackerSource, player: number): TrackerView {
     missions: missionViews,
     checked,
     owned,
-    classes: mercenaries.map((name) => ({ name, unlocked: owned.has(`Class: ${name}`) })),
+    classes: loadout.classes,
     classCount: mercenaries.filter((name) => owned.has(`Class: ${name}`)).length,
     unlocks: [...owned.entries()]
       .map(([name, count]) => {
@@ -82,7 +85,9 @@ export function buildView(source: TrackerSource, player: number): TrackerView {
         return { kind, name: name.replace(/^Weapon Buff: /, ''), count, tone: itemTone(kind) };
       })
       .sort((left, right) => left.name.localeCompare(right.name)),
-    slotCount,
+    slotCount: loadout.slotCount,
+    slotTotal: loadout.slotTotal,
+    classWeaponSlots,
     grapplingHook: owned.has('Grappling Hook'),
     completed,
     total,

@@ -1,0 +1,77 @@
+{
+  "format_version": 6,
+  "classes": [
+    {
+      "name": "Scout",
+      "slots": [
+        "Primary",
+        "Secondary",
+        "Melee"
+      ]
+    },
+    {
+      "name": "Soldier",
+      "slots": [
+        "Primary",
+        "Secondary",
+        "Melee"
+      ]
+    },
+    {
+      "name": "Pyro",
+      "slots": [
+        "Primary",
+        "Secondary",
+        "Melee"
+      ]
+    },
+    {
+      "name": "Demoman",
+      "slots": [
+        "Primary",
+        "Secondary",
+        "Melee"
+      ]
+    },
+    {
+      "name": "Heavy",
+      "slots": [
+        "Primary",
+        "Secondary",
+        "Melee"
+      ]
+    },
+    {
+      "name": "Engineer",
+      "slots": [
+        "Melee",
+        "Primary",
+        "Secondary"
+      ]
+    },
+    {
+      "name": "Medic",
+      "slots": [
+        "Secondary",
+        "Primary",
+        "Melee"
+      ]
+    },
+    {
+      "name": "Sniper",
+      "slots": [
+        "Primary",
+        "Secondary",
+        "Melee"
+      ]
+    },
+    {
+      "name": "Spy",
+      "slots": [
+        "Melee",
+        "Secondary",
+        "Primary"
+      ]
+    }
+  ]
+}

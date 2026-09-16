@@ -1,5 +1,5 @@
 import { Objective, TrackerSource, Weapon } from './types';
-
+import { sampleClassLoadouts } from './sample-loadouts';
 const game = 'Team Fortress 2 Mann vs Machine';
 
 export function sampleSource(host: string): TrackerSource {
@@ -23,7 +23,15 @@ export function sampleSource(host: string): TrackerSource {
     [7_443_002_005, 'Class: Heavy'],
     [7_443_002_006, 'Class: Engineer'],
     [7_443_002_007, 'Class: Medic'],
-    [7_443_003_000, 'Progressive Weapon Slot'],
+    [7_443_009_001, 'Progressive Weapon Slot: Scout'],
+    [7_443_009_002, 'Progressive Weapon Slot: Soldier'],
+    [7_443_009_003, 'Progressive Weapon Slot: Pyro'],
+    [7_443_009_004, 'Progressive Weapon Slot: Demoman'],
+    [7_443_009_005, 'Progressive Weapon Slot: Heavy'],
+    [7_443_009_006, 'Progressive Weapon Slot: Engineer'],
+    [7_443_009_007, 'Progressive Weapon Slot: Medic'],
+    [7_443_009_008, 'Progressive Weapon Slot: Sniper'],
+    [7_443_009_009, 'Progressive Weapon Slot: Spy'],
     [7_443_005_001, 'Weapon Buff: Air Strike — +10% firing speed'],
     [7_443_005_002, 'Weapon Buff: Minigun — +10% damage'],
     [7_443_005_003, 'Weapon Buff: Mad Milk — +15% slow duration'],
@@ -41,12 +49,14 @@ export function sampleSource(host: string): TrackerSource {
   ]);
   const receivedIds = [
     7_443_001_002, 7_443_001_015, 7_443_001_024, 7_443_002_001, 7_443_002_002, 7_443_002_005,
-    7_443_002_006, 7_443_002_007, 7_443_003_000, 7_443_005_001, 7_443_005_001, 7_443_005_002,
-    7_443_005_002, 7_443_005_002, 7_443_005_002, 7_443_005_003, 7_443_005_004, 7_443_005_004,
-    7_443_005_004, 7_443_005_005, 7_443_005_005, 7_443_005_005, 7_443_005_005, 7_443_005_005,
-    7_443_005_005, 7_443_005_006, 7_443_005_006, 7_443_005_006, 7_443_005_007, 7_443_005_008,
-    7_443_005_008, 7_443_005_009, 7_443_005_009, 7_443_005_010, 7_443_005_011, 7_443_005_011,
-    7_443_005_012, 7_443_007_001, 7_443_004_001, 7_443_004_001, 7_443_004_001,
+    7_443_002_006, 7_443_002_007, 7_443_009_001, 7_443_009_001, 7_443_009_002, 7_443_009_005,
+    7_443_009_005, 7_443_009_006, 7_443_009_007, 7_443_009_007, 7_443_009_009, 7_443_005_001,
+    7_443_005_001, 7_443_005_002, 7_443_005_002, 7_443_005_002, 7_443_005_002, 7_443_005_003,
+    7_443_005_004, 7_443_005_004, 7_443_005_004, 7_443_005_005, 7_443_005_005, 7_443_005_005,
+    7_443_005_005, 7_443_005_005, 7_443_005_005, 7_443_005_006, 7_443_005_006, 7_443_005_006,
+    7_443_005_007, 7_443_005_008, 7_443_005_008, 7_443_005_009, 7_443_005_009, 7_443_005_010,
+    7_443_005_011, 7_443_005_011, 7_443_005_012, 7_443_007_001, 7_443_004_001, 7_443_004_001,
+    7_443_004_001,
   ];
   const weapons = [
     weapon('Air Strike', ['Soldier'], 'f87faf790afc0d04056479f1566f09f1.png'),
@@ -90,12 +100,14 @@ export function sampleSource(host: string): TrackerSource {
     names: new Map([[1, 'RED Team Server']]),
     catalog,
     buffWeapons: new Map(weapons.map((entry) => [entry.name, entry])),
+    classLoadouts: sampleClassLoadouts,
     itemNames,
     slots: [],
     totals: [],
     received: [{ player: 1, items: receivedIds.map((id) => [id]) }],
     checks: [{ player: 1, locations: checked }],
     demoSlotData: {
+      class_weapon_slots: true,
       missions: catalog.map((entry) => entry.pop_file),
       start_mission: catalog[0].pop_file,
       goal: 'final_boss',

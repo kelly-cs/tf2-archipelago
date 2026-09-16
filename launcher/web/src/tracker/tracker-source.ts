@@ -56,6 +56,10 @@ interface WeaponCatalog {
   readonly weapons?: readonly Weapon[];
 }
 
+interface ClassLoadoutCatalog {
+  readonly classes?: readonly { readonly name: string; readonly slots: readonly string[] }[];
+}
+
 @Injectable({ providedIn: 'root' })
 export class TrackerSourceClient {
   private readonly http = inject(HttpClient);
@@ -122,7 +126,11 @@ export class TrackerSourceClient {
     );
   }
 
-  private catalog(): Observable<{ missions: readonly Mission[]; weapons: readonly Weapon[] }> {
+  private catalog(): Observable<{
+    missions: readonly Mission[];
+    weapons: readonly Weapon[];
+    classLoadouts: ReadonlyMap<string, readonly string[]>;
+  }> {
     const at = (base: string) =>
       forkJoin({
         missions: this.http
@@ -131,6 +139,14 @@ export class TrackerSourceClient {
         weapons: this.http
           .get<WeaponCatalog>(`${base}/weapon_classes.json`)
           .pipe(map((catalog) => catalog.weapons ?? [])),
+        classLoadouts: this.http
+          .get<ClassLoadoutCatalog>(`${base}/class_loadouts.json`)
+          .pipe(
+            map(
+              (catalog) =>
+                new Map((catalog.classes ?? []).map((entry) => [entry.name, entry.slots])),
+            ),
+          ),
       });
     return at('./data').pipe(
       catchError(() =>
@@ -145,7 +161,11 @@ export class TrackerSourceClient {
       staticData: StaticTracker;
       slots: readonly SlotRow[];
       live: LiveTracker;
-      catalog: { missions: readonly Mission[]; weapons: readonly Weapon[] };
+      catalog: {
+        missions: readonly Mission[];
+        weapons: readonly Weapon[];
+        classLoadouts: ReadonlyMap<string, readonly string[]>;
+      };
     },
     envelope: DataPackage,
   ): TrackerSource {
@@ -169,6 +189,7 @@ export class TrackerSourceClient {
       names,
       catalog: loaded.catalog.missions,
       buffWeapons: new Map(loaded.catalog.weapons.map((weapon) => [weapon.name, weapon])),
+      classLoadouts: loaded.catalog.classLoadouts,
       itemNames: new Map(
         Object.entries(gamePackage.item_name_to_id ?? {}).map(([name, id]) => [Number(id), name]),
       ),

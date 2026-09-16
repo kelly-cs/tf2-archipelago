@@ -362,7 +362,7 @@ func TestCommittedExportIsCurrent(t *testing.T) {
 	if err := Export(fresh); err != nil {
 		t.Fatal(err)
 	}
-	for _, name := range []string{FileMeta, FileMissions, FileItems, FileWeaponClasses} {
+	for _, name := range []string{FileMeta, FileMissions, FileItems, FileWeaponClasses, FileClassLoadouts} {
 		want, err := os.ReadFile(filepath.Join(fresh, name))
 		if err != nil {
 			t.Fatal(err)
