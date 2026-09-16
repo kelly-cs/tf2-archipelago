@@ -85,6 +85,9 @@ run has something to fill it and a long one has more to find.
   cache by hand. The server is told about the list as soon as it is written.
 - Test mode left missions locked until the starting inventory arrived, so the
   first map change could be refused.
+- In the Docker stack the defender bots stopped moving after a map change: the
+  navigation they read was left empty by the changelevel and only a restart
+  brought them back.
 - A mission drawn with zero modifiers still drew one.
 - Weapon buffs offered flags the weapon already carries, and five weapons were
   offered buffs that do nothing on them. A buff in the pool now changes
