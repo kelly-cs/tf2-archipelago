@@ -4,12 +4,14 @@
 package composeenv
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"sort"
 	"strconv"
 	"strings"
 
+	"github.com/m-this/tf2-archipelago/launcher/internal/botloadout"
 	"github.com/m-this/tf2-archipelago/launcher/internal/settings"
 )
 
@@ -118,6 +120,9 @@ func values(s settings.Settings) map[string]string {
 		"SRCDS_BOT_TEAM_SIZE":           strconv.Itoa(s.SrcdsBotTeamSize),
 		"SRCDS_BOT_CLASS_BLACKLIST":     strings.Join(s.SrcdsBotClassBlacklist, ","),
 		"SRCDS_BOT_LOADOUTS":            pairs(s.SrcdsBotLoadouts),
+		"SRCDS_BOT_CUSTOM_LOADOUTS":     builtLoadouts(s.SrcdsBotCustomLoadouts),
+		"SRCDS_BOT_NAMES_EXCLUDED":      strings.Join(s.SrcdsBotNamesExcluded, ","),
+		"SRCDS_BOT_NAMES_ADDED":         strings.Join(s.SrcdsBotNamesAdded, ","),
 		"SRCDS_BLU_HEALTH_PCT":          strconv.Itoa(s.SrcdsBluHealthPct),
 		"SRCDS_BOT_TEAM_COMP":           strings.Join(s.SrcdsBotTeamComp, ","),
 		"SRCDS_BOT_SEAT_LOADOUTS":       strings.Join(s.SrcdsBotSeatLoadouts, ","),
@@ -160,6 +165,30 @@ func boolean(value bool) string {
 		return "1"
 	}
 	return "0"
+}
+
+/*
+builtLoadouts is the loadouts the player has built, as JSON.
+
+Every other list here is flat because its parts are words. This one is five
+fields a menu put together, and a colon-separated row of weapon indexes would
+be unreadable in a file people edit by hand. It is the same shape the config
+file holds, so a stack and a launcher carry the built loadouts identically.
+
+Empty is empty rather than "{}": a stack that has built none should not have a
+line of punctuation in its .env explaining that.
+*/
+func builtLoadouts(built map[string]botloadout.Built) string {
+	if len(built) == 0 {
+		return ""
+	}
+	body, err := json.Marshal(built)
+	if err != nil {
+		// Five ints and two strings; there is no value of this that cannot be
+		// marshalled, and dropping it silently would lose the player's work.
+		panic("composeenv: cannot encode the built loadouts: " + err.Error())
+	}
+	return string(body)
 }
 
 func pairs(values map[string]string) string {

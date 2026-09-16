@@ -96,6 +96,34 @@ reload_admin_cache() {
 	echo "[AP] wrote the admin list, but SourceMod did not answer sm_reloadadmins" >&2
 }
 
+# BOT_FILES renders the bots' loadout file; bot_custom_loadouts is what it said
+# the mod should do with it, read by install_server_cfg below.
+BOT_FILES=${TF2AP_BOT_FILES:-/usr/local/bin/tf2ap-botfiles}
+bot_custom_loadouts=0
+
+# install_bot_files writes what the bots carry, from the SRCDS_BOT_* variables.
+#
+# Into the staged tree rather than the game: sync_tree copies a staged file over
+# whenever its size differs, so a file written straight into the game would be
+# replaced by the one the image shipped within thirty seconds. Staging it keeps
+# one delivery path for every file the image owns.
+#
+# The rendering is a Go command sharing the launcher's own packages. A shell
+# version would be a second copy of the weapon catalogue, and the first TF2
+# update to move an index would move only one of the two.
+install_bot_files() {
+	[ -x "$BOT_FILES" ] || return 0
+	said=$("$BOT_FILES" -root "$STAGE") || {
+		echo "[AP] could not write the bots' loadout file" >&2
+		return 0
+	}
+	bot_custom_loadouts=$(printf '%s' "$said" | tail -n 1)
+	case $bot_custom_loadouts in
+	0 | 1) ;;
+	*) bot_custom_loadouts=0 ;;
+	esac
+}
+
 # SourceMod identifies an admin by Steam id, so the operator's list is the whole
 # configuration. Written rather than shipped: an admin list committed to the
 # image would be one more place a Steam id lives.
@@ -251,6 +279,10 @@ install_server_cfg() {
 	// order. A team named in the second beats the first.
 	sm_redbots_manager_class_blacklist "${SRCDS_BOT_CLASS_BLACKLIST:-}"
 	sm_redbots_manager_team_composition "${SRCDS_BOT_TEAM_COMP:-}"
+	// Whether the bots are handed what configs/defenderbots/loadout.cfg says.
+	// The image ships an example file there, so this is the whole of the
+	// question: 1 only when the settings named a loadout for a seat or a class.
+	sm_redbots_manager_use_custom_loadouts ${bot_custom_loadouts}
 	// What the bots look like, none of which changes how they play: a hat
 	// each, and an unusual effect on that hat.
 	sm_redbots_manager_bot_hats ${SRCDS_BOT_HATS:-1}
@@ -317,6 +349,9 @@ install_plugin() {
 	installed=0
 	while true; do
 		if [ -d "$GAME/addons/sourcemod/plugins" ]; then
+			# Before the sync, because what it writes is one of the files the
+			# sync carries over, and server.cfg below reads what it decided.
+			install_bot_files
 			sync_tree "$STAGE/addons" "$GAME/addons"
 			# -n for the config: it belongs to whoever runs the server once it
 			# exists, and an operator who turns on tf2ap_debug should not find

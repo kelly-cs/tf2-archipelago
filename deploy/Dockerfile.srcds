@@ -19,16 +19,38 @@ COPY plugin/scripting ./scripting
 RUN ./build.sh
 
 
-# The entrypoint writes SourceMod's admin file after SourceMod appears in the
-# runtime volume. The server can already have built its admin cache by then, so
-# keep the launcher's small RCON client in the image to refresh that cache.
-FROM golang:1.27 AS rcon
+# Two small commands from the launcher, because this container is the only one
+# that may write into the game tree.
+#
+# rcon: the entrypoint writes SourceMod's admin file after SourceMod appears in
+# the runtime volume, by which time the server can already have built its admin
+# cache, so the cache is refreshed over rcon.
+#
+# botfiles: renders the bots' loadouts and the pool they draw their names from,
+# out of the same environment the admin page writes. The admin container mounts
+# the game read-only on purpose, so the rendering has to happen here, and it
+# uses the launcher's own packages rather than a second copy of the weapon
+# catalogue in shell.
+#
+# The tree is listed rather than taken whole because the launcher's embedded
+# assets are .dockerignored: a COPY of everything would not compile. A test in
+# deploy keeps this list and what the two commands import in step.
+FROM golang:1.27 AS tools
 
 WORKDIR /repo
 COPY go.mod go.sum ./
+COPY gamedata gamedata
 COPY launcher/cmd/rcon launcher/cmd/rcon
+COPY launcher/cmd/botfiles launcher/cmd/botfiles
 COPY launcher/internal/rcon launcher/internal/rcon
-RUN CGO_ENABLED=0 go build -trimpath -o /rcon ./launcher/cmd/rcon
+COPY launcher/internal/botfiles launcher/internal/botfiles
+COPY launcher/internal/botlive launcher/internal/botlive
+COPY launcher/internal/botloadout launcher/internal/botloadout
+COPY launcher/internal/botnames launcher/internal/botnames
+COPY launcher/internal/runshape launcher/internal/runshape
+COPY launcher/internal/settings launcher/internal/settings
+RUN CGO_ENABLED=0 go build -trimpath -o /rcon ./launcher/cmd/rcon \
+	&& CGO_ENABLED=0 go build -trimpath -o /botfiles ./launcher/cmd/botfiles
 
 
 # The MvM defender bots: the mod that fills RED so a wave tuned for six players
@@ -50,6 +72,10 @@ COPY go.mod go.sum ./
 COPY deploy/env/versions.env deploy/env/versions.env
 COPY deploy/patches deploy/patches
 COPY deploy/bots deploy/bots
+# The pool the bots draw their names from. The launcher writes this file too,
+# every start, but the package carries it so a server it has never configured
+# still has names rather than six bots called "You forgot to give me a name!".
+COPY launcher/internal/botnames launcher/internal/botnames
 # CBaseNPC's released binary can leave its tools-side navigation cache empty
 # after a changelevel. Build the Linux extensions here so the in-tree lifecycle
 # patch is present in Docker instead of hot-reloading a live extension.
@@ -101,7 +127,8 @@ COPY deploy/srcds/tf2_archipelago.cfg \
 	/opt/tf2-archipelago/cfg/sourcemod/tf2_archipelago.cfg
 COPY deploy/srcds-entrypoint.sh /usr/local/bin/entrypoint.sh
 COPY deploy/srcds-launch.sh /usr/local/bin/tf2ap-srcds-launch.sh
-COPY --from=rcon /rcon /usr/local/bin/rcon
+COPY --from=tools /rcon /usr/local/bin/rcon
+COPY --from=tools /botfiles /usr/local/bin/tf2ap-botfiles
 
 RUN chown -R steam:steam /opt/tf2-archipelago /opt/tf2-mods \
 	&& chmod +x /usr/local/bin/entrypoint.sh /usr/local/bin/tf2ap-srcds-launch.sh

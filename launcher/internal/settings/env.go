@@ -1,9 +1,12 @@
 package settings
 
 import (
+	"encoding/json"
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/m-this/tf2-archipelago/launcher/internal/botloadout"
 )
 
 // EnvNames lists every variable ApplyEnv reads, in the order the help prints
@@ -17,9 +20,10 @@ var EnvNames = []string{
 	"SRCDS_HOSTNAME", "SRCDS_RCONPW", "SRCDS_PW", "SRCDS_PORT", "TF2AP_JOIN_HOST",
 	"SRCDS_MAXPLAYERS", "SRCDS_START_MISSION", "SRCDS_STARTMAP", "SRCDS_TOKEN",
 	"SRCDS_LAN", "SRCDS_REACH", "SRCDS_ADMIN_STEAMIDS", "SRCDS_MODS",
-	"SRCDS_LAN", "SRCDS_REACH", "SRCDS_ADMIN_STEAMIDS",
 	"FASTDL_PORT", "SRCDS_DOWNLOADURL", "TAILSCALE_FASTDL",
 	"SRCDS_BOTS", "SRCDS_BOT_TEAM_SIZE", "SRCDS_BOT_CLASS_BLACKLIST", "SRCDS_BOT_LOADOUTS",
+	"SRCDS_BOT_CUSTOM_LOADOUTS",
+	"SRCDS_BOT_NAMES_EXCLUDED", "SRCDS_BOT_NAMES_ADDED",
 	"SRCDS_BLU_HEALTH_PCT",
 	"SRCDS_BOT_TEAM_COMP",
 	"SRCDS_BOT_SEAT_LOADOUTS",
@@ -29,10 +33,9 @@ var EnvNames = []string{
 	"MVM_MISSION_COUNT", "MVM_DIFFICULTY", "MVM_GOAL",
 	"MVM_MISSIONSANITY_PERCENTAGE", "MVM_MISSION_MODIFIERS",
 	"MVM_MINIMUM_MISSION_MODIFIERS", "MVM_MAXIMUM_MISSION_MODIFIERS",
-	"MVM_MEDAL_ON_CLEAR", "MVM_VICTORY_CACHES", "MVM_SERVER_SETTINGS", "MVM_DEATH_LINK",
-	"MVM_MEDAL_ON_CLEAR", "MVM_MILESTONE_CHECKS", "MVM_SERVER_SETTINGS", "MVM_DEATH_LINK",
-	"MVM_MEDAL_ON_CLEAR", "MVM_CLASS_WEAPON_SLOTS", "MVM_SERVER_SETTINGS", "MVM_DEATH_LINK",
-	"MVM_MEDAL_ON_CLEAR", "MVM_GIANTSANITY", "MVM_TANKSANITY", "MVM_SERVER_SETTINGS", "MVM_DEATH_LINK",
+	"MVM_MEDAL_ON_CLEAR", "MVM_VICTORY_CACHES", "MVM_MILESTONE_CHECKS",
+	"MVM_CLASS_WEAPON_SLOTS", "MVM_GIANTSANITY", "MVM_TANKSANITY",
+	"MVM_SERVER_SETTINGS", "MVM_DEATH_LINK",
 	"MVM_EXCLUDED_MISSIONS",
 	"MVM_START_MISSION", "MVM_START_CLASS", "MVM_COMMUNITY_MISSIONS",
 	"MVM_MISSION_TICKET_IMPORTANCE", "MVM_CLASS_UNLOCK_IMPORTANCE",
@@ -58,6 +61,9 @@ func applyBotEnv(s Settings) Settings {
 	num(&s.SrcdsBluHealthPct, "SRCDS_BLU_HEALTH_PCT")
 	list(&s.SrcdsBotClassBlacklist, "SRCDS_BOT_CLASS_BLACKLIST")
 	pairs(&s.SrcdsBotLoadouts, "SRCDS_BOT_LOADOUTS")
+	builtLoadouts(&s.SrcdsBotCustomLoadouts, "SRCDS_BOT_CUSTOM_LOADOUTS")
+	list(&s.SrcdsBotNamesExcluded, "SRCDS_BOT_NAMES_EXCLUDED")
+	list(&s.SrcdsBotNamesAdded, "SRCDS_BOT_NAMES_ADDED")
 	seatList(&s.SrcdsBotTeamComp, "SRCDS_BOT_TEAM_COMP")
 	seatList(&s.SrcdsBotSeatLoadouts, "SRCDS_BOT_SEAT_LOADOUTS")
 	boolean(&s.SrcdsBotHats, "SRCDS_BOT_HATS")
@@ -245,6 +251,30 @@ func seatList(target *[]string, name string) {
 }
 
 // pairs reads "key=value,key=value".
+/*
+builtLoadouts reads the loadouts a player built, which the Compose stack carries
+as JSON because they are records rather than words.
+
+A value that will not parse is left alone rather than emptied. The alternative
+is a stack that loses every loadout somebody built to one bad edit of .env, and
+the file is edited by hand.
+*/
+func builtLoadouts(target *map[string]botloadout.Built, name string) {
+	value, ok := os.LookupEnv(name)
+	if !ok {
+		return
+	}
+	if strings.TrimSpace(value) == "" {
+		*target = nil
+		return
+	}
+	parsed := make(map[string]botloadout.Built)
+	if err := json.Unmarshal([]byte(value), &parsed); err != nil {
+		return
+	}
+	*target = parsed
+}
+
 func pairs(target *map[string]string, name string) {
 	value, ok := os.LookupEnv(name)
 	if !ok {

@@ -91,6 +91,9 @@ func TestEveryFieldHasAnEnvVar(t *testing.T) {
 		"SrcdsBotTeamSize":           "SRCDS_BOT_TEAM_SIZE",
 		"SrcdsBotClassBlacklist":     "SRCDS_BOT_CLASS_BLACKLIST",
 		"SrcdsBotLoadouts":           "SRCDS_BOT_LOADOUTS",
+		"SrcdsBotCustomLoadouts":     "SRCDS_BOT_CUSTOM_LOADOUTS",
+		"SrcdsBotNamesExcluded":      "SRCDS_BOT_NAMES_EXCLUDED",
+		"SrcdsBotNamesAdded":         "SRCDS_BOT_NAMES_ADDED",
 		"SrcdsBotTeamComp":           "SRCDS_BOT_TEAM_COMP",
 		"SrcdsBotSeatLoadouts":       "SRCDS_BOT_SEAT_LOADOUTS",
 		"SrcdsBotHats":               "SRCDS_BOT_HATS",
@@ -135,14 +138,16 @@ func TestEveryFieldHasAnEnvVar(t *testing.T) {
 	legacy := map[string]bool{"SrcdsLanLegacy": true}
 
 	// Fields the config file holds and the environment does not. A saved team
-	// is something somebody named in front of the window; a compose stack
-	// names its team in SRCDS_BOT_TEAM_COMP and has nowhere to click. A built
-	// loadout is the same: four item indexes and a name, put together in a
-	// menu, and a seat names one with the custom: prefix in the team it is
-	// already setting.
+	// is something somebody named in front of the window, and a stack names
+	// the team it is playing rather than a shelf of them.
+	//
+	// A built loadout used to be here on the same reasoning, and it was wrong
+	// from the day the stack grew a browser interface: .env is the whole of
+	// what a Compose admin remembers, so a loadout built there was gone at the
+	// next restart, and the container had no way to resolve the custom: key a
+	// seat was naming.
 	windowOnly := map[string]bool{
-		"SrcdsBotTeamPresets":    true,
-		"SrcdsBotCustomLoadouts": true,
+		"SrcdsBotTeamPresets": true,
 	}
 
 	known := map[string]bool{}

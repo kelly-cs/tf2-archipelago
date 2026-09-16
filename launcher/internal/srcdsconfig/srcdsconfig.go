@@ -13,8 +13,10 @@ import (
 	"text/template"
 
 	"github.com/m-this/tf2-archipelago/launcher/internal/assets"
+	"github.com/m-this/tf2-archipelago/launcher/internal/botfiles"
 	"github.com/m-this/tf2-archipelago/launcher/internal/botlive"
 	"github.com/m-this/tf2-archipelago/launcher/internal/botloadout"
+	"github.com/m-this/tf2-archipelago/launcher/internal/botnames"
 	"github.com/m-this/tf2-archipelago/launcher/internal/fastdl"
 	"github.com/m-this/tf2-archipelago/launcher/internal/lanaddr"
 	"github.com/m-this/tf2-archipelago/launcher/internal/settings"
@@ -34,6 +36,9 @@ func Install(s settings.Settings) error {
 	}
 	if err := installBotLoadout(gameDir, botlive.LibraryOf(s), s.SrcdsBotLoadouts,
 		botloadout.Seats(s.SrcdsBotTeamComp, s.SrcdsBotSeatLoadouts)); err != nil {
+		return err
+	}
+	if err := installBotNames(gameDir, s); err != nil {
 		return err
 	}
 	return installPluginCfg(gameDir)
@@ -142,6 +147,22 @@ func installBotLoadout(gameDir string, library botloadout.Library, picks map[str
 		return nil
 	}
 	return writeIfChanged(target, []byte(library.Render(picks, seats)))
+}
+
+/*
+installBotNames writes the pool the bots draw their names from.
+
+Unlike the loadout file this one is always written, because the mod reads it
+whatever the settings say and a missing one leaves every bot called "You forgot
+to give me a name!". The mod's package ships the same list, so a server the
+launcher has never configured still has one.
+*/
+func installBotNames(gameDir string, s settings.Settings) error {
+	target := botfiles.NamesPath(gameDir)
+	if _, err := os.Stat(filepath.Dir(target)); os.IsNotExist(err) {
+		return nil
+	}
+	return writeIfChanged(target, []byte(botnames.Render(s.SrcdsBotNamesExcluded, s.SrcdsBotNamesAdded)))
 }
 
 // installPluginCfg drops the plugin's config once. After that the file belongs
