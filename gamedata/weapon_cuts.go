@@ -7,12 +7,13 @@ row per effect and one column per weapon, and this is its N cells where the
 rules here still said yes. A cell that says Native is a buff the weapon already
 carries: a number stacks and stays, and a flag is out, in weapon_natives.go.
 
-Three of its columns are not taken, because the plugin implements what the
+Four of its columns are not taken, because the plugin implements what the
 attribute alone would not: the jars' substances and projectile buffs, which
 PlayerJarated and the projectile fanout carry; projectile count and speed on the
-Sandman and the Wrap Assassin, the same fanout; and the engineer's building
-buffs on his shotgun and pistol, which the player's attribute walk reads off
-any held item.
+Sandman and the Wrap Assassin, the same fanout; the engineer's building buffs on
+his shotgun and pistol, which the player's attribute walk reads off any held
+item; and ammo on hit for the energy weapons, where the plugin pays the hit into
+m_flEnergy because add_onhit_addammo has no reserve to fill.
 
 Data rather than rules on purpose. The rules in weapon_eligibility.go say what
 a mechanic needs; this says what one person checked in game, weapon by weapon,
@@ -28,7 +29,7 @@ var sheetCuts = map[string]map[string]bool{
 	"Blutsauger":           names("secondary-ammo"),
 	"Chargin' Targe":       names("deploy-speed"),
 	"Classic":              names("accuracy", "fire-rate"),
-	"Cow Mangler 5000":     names("accuracy", "ammo-on-hit", "ammo-regen", "max-ammo", "minicrits-to-crits"),
+	"Cow Mangler 5000":     names("accuracy", "ammo-regen", "max-ammo", "minicrits-to-crits"),
 	"Crusader's Crossbow":  names("secondary-ammo"),
 	"Degreaser":            names("fire-rate"),
 	"Detonator":            names("accuracy", "clip-size"),

@@ -34769,7 +34769,8 @@
       "classification": "useful",
       "count": 0,
       "weapon_buff_id": 27965,
-      "stackable": true
+      "stackable": true,
+      "eligible": true
     },
     {
       "id": 7443033221,

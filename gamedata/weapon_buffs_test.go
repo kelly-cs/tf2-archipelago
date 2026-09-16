@@ -99,6 +99,14 @@ func TestAmmoOnHitEligibilityIncludesShieldsButNotManmelter(t *testing.T) {
 			t.Errorf("%s/ammo-on-hit is not eligible", weapon)
 		}
 	}
+	// An energy weapon has no reserve for add_onhit_addammo to fill, so the
+	// sheet marks the cell N. WeaponBuffs_AddAmmoOnHit pays the hit into
+	// m_flEnergy instead, which is a fifth of a Cow Mangler clip a hit.
+	for _, weapon := range []string{"Cow Mangler 5000", "Righteous Bison", "Pomson 6000"} {
+		if !buffNamed(t, weapon, "ammo-on-hit").Eligible {
+			t.Errorf("%s/ammo-on-hit is not eligible", weapon)
+		}
+	}
 }
 
 func TestStompWeaponSpecialBuffsAreEligibleAndDescribed(t *testing.T) {
