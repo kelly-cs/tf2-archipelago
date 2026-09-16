@@ -6,6 +6,14 @@ in the release notes, so this file is the only place to write it.
 
 ## Unreleased
 
+### Fixed
+
+- A mission whose file this server does not have is said so and skipped, rather
+  than loading its map and sitting on wave 0 for ever. TF2 ignores a mission
+  file it cannot find and keeps the map's own, so a run that drew a community
+  mission without the pack that carries it stopped dead with nothing saying
+  why. `!missions` marks those `[not installed]`.
+
 ### The bots have names you choose
 
 - **A Names section on the Bots page.** The bots draw from a pool of names as

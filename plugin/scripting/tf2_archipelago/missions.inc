@@ -182,6 +182,12 @@ static bool Missions_Next(const char[] current, Mission next, bool &fresh)
         {
             continue;
         }
+        // A mission whose file this server does not have would load the map and
+        // never start a wave, so it is not a mission to move anybody to.
+        if (!Missions_PopFileInstalled(candidate.popFile))
+        {
+            continue;
+        }
         bool isCurrent = StrEqual(candidate.popFile, current, false);
         if (!candidate.cleared && !isCurrent)
         {
@@ -385,8 +391,33 @@ static Action Timer_LoadPlanned(Handle timer)
 // tf_mvm_popfile is a command, not a variable, and it acts on the map that is
 // loaded: it reloads the mission in place. So the map only changes when it has
 // to, and naming the mission waits for the new map when it does.
+/* Whether this server has the mission's file at all.
+ *
+ * TF2 ignores tf_mvm_popfile naming a file it cannot find, and keeps the map's
+ * own mission instead: the map loads, no wave ever starts, and the team sits on
+ * wave 0 with nothing saying why. Reported twice by Doctor Pyro, once with a
+ * bundle, and the log said only that the plugin was "still waiting for
+ * mvm_rottenburg_rev_int_breaking_walls" while "the game says mvm_rottenburg".
+ *
+ * A community mission is the way this happens: the seed draws one and the pack
+ * carrying its file was never installed on the server playing it.
+ */
+static bool Missions_PopFileInstalled(const char[] popFile)
+{
+    char path[PLATFORM_MAX_PATH];
+    Format(path, sizeof(path), "scripts/population/%s.pop", popFile);
+    return FileExists(path, true);
+}
+
 static void Missions_Load(Mission mission)
 {
+    if (!Missions_PopFileInstalled(mission.popFile))
+    {
+        AP_Error("%s cannot be played here: %s.pop is not on this server, so the game would keep the map's own mission and never start a wave. Install the community pack that carries it, or leave the mission out of the run.",
+            mission.name, mission.popFile);
+        return;
+    }
+
     LogMessage("mission switched to %s (%s) on %s", mission.name, mission.popFile, mission.map);
 
     // Before either branch: both are asking for a mission that is not loaded
@@ -431,7 +462,7 @@ void Missions_List(int client)
         }
         AP_PrintToClient(client, "%d. %s (%s), %d waves%s%s%s",
             index + 1, mission.name, mission.popFile, mission.waves,
-            Missions_Playable(mission) ? "" : " [locked]",
+            Missions_PopFileInstalled(mission.popFile) ? (Missions_Playable(mission) ? "" : " [locked]") : " [not installed]",
             mission.cleared ? " [cleared]" : "",
             StrEqual(mission.popFile, current) ? " [playing]" : "");
     }
