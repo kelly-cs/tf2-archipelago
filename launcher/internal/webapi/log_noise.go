@@ -8,13 +8,15 @@ import (
 	apruntime "github.com/m-this/tf2-archipelago/launcher/internal/runtime"
 )
 
-var consoleColor = regexp.MustCompile(`\x1b\[[0-9;]*m`)
-var qhullWarning = [...]string{
-	"qhull precision error: Only 4 facets remain.  Can not merge another",
-	"pair.  The convexity constraints may be too strong.  Reduce the",
-	"magnitude of 'Cn' or increase the magnitude of 'An'.  For example,",
-	"try 'C-0.001' instead of 'C-0.1' or",
-}
+var (
+	consoleColor = regexp.MustCompile(`\x1b\[[0-9;]*m`)
+	qhullWarning = [...]string{
+		"qhull precision error: Only 4 facets remain.  Can not merge another",
+		"pair.  The convexity constraints may be too strong.  Reduce the",
+		"magnitude of 'Cn' or increase the magnitude of 'An'.  For example,",
+		"try 'C-0.001' instead of 'C-0.1' or",
+	}
+)
 
 // Collapse only complete copies of this known multiline warning. Unexpected
 // output is preserved, including engine messages appended to its final line.
