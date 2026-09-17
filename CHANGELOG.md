@@ -4,6 +4,20 @@ What each release changes, for somebody who plays the game. The workflow in
 `.github/workflows/release.yml` reads the section matching the tag and puts it
 in the release notes, so this file is the only place to write it.
 
+## v1.16.2
+
+### Fixed
+
+- Turning off SigMod or Community missions on the Missions page now takes their
+  missions out of the pool. Before, they stayed ticked: the pool looked full,
+  and Check Run Selection still asked for SigMod after you had turned it off.
+  If the start mission was one of them, the start goes back to Any and the
+  server boots on its default map again. By kelly-cs.
+- A mission that stayed ticked after its requirement went away can be unticked.
+  Its row used to be locked, so it could not be taken out of the pool.
+- All in the pool no longer puts community missions back while Community
+  missions is off.
+
 ## v1.16.1
 
 ### Weapon slots, found in any order
