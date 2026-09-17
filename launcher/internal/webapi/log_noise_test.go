@@ -10,7 +10,7 @@ import (
 func TestQhullWarningBurst(t *testing.T) {
 	var n logNoise
 	var got []apruntime.Line
-	for copy := 0; copy < 303; copy++ {
+	for copy := range 303 {
 		for i, text := range qhullWarning {
 			text += "\x1b[38;2;255;255;255m"
 			if copy == 302 && i == 3 {
