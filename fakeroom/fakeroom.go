@@ -551,6 +551,20 @@ func unlockOrder(held []int64) []int64 {
 		if item.Classification == gamedata.Filler {
 			continue
 		}
+		switch item.Kind {
+		case gamedata.ItemMissionTicket, gamedata.ItemClass, gamedata.ItemWeaponSlot,
+			gamedata.ItemWeaponBuff, gamedata.ItemTrap:
+		default:
+			// The generator only grants trophies on their own mission clears;
+			// class slots and server settings require options this room lacks.
+			continue
+		}
+		if item.Kind == gamedata.ItemWeaponBuff {
+			buff, known := gamedata.WeaponBuffByID(item.WeaponBuff)
+			if !known || !buff.Eligible {
+				continue
+			}
+		}
 		copies := max(int(item.Count), 1)
 		for range copies {
 			// One copy per item already held: the progressive weapon slot has

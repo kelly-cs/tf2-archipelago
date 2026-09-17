@@ -18,7 +18,10 @@
 #define MissionModifier_LooseFootingFriction 0.25
 #define MissionModifier_LooseFootingAcceleration 2.5
 #define MissionModifier_LooseFootingForceScale 3.0
-#define MissionModifier_SurgeMaxInvaders 26
+// Six RED seats and four spare client slots let defender bots turn over mid-wave
+// on a 32-slot server without fighting the population manager for BLU slots.
+#define MissionModifier_SurgeMaxInvaders 22
+#define MissionModifier_SurgeSupportBudget 10
 #define MissionModifier_SurgeSupportStartDelay 0.0
 #define MissionModifier_SurgeSupportSpawnInterval 0.10
 #define MissionModifier_MaxWaves 64
@@ -30,6 +33,7 @@
 enum struct MissionModifierSupportSpawner
 {
     Address address;
+    int wave;
     int maxActive;
     int waitBeforeBits;
     int waitBits;
@@ -545,6 +549,10 @@ public MRESReturn MissionModifiers_WaveParsing(Address waveObject,
 public MRESReturn MissionModifiers_WaveParsed(Address waveObject,
     DHookReturn result, DHookParam params)
 {
+    if (g_ActiveMissionModifiers & MissionModifier_BotSurge)
+    {
+        MissionModifiers_ExpandWaveSupportSpawners(g_BotSurgeParsingWave);
+    }
     if (!(g_ActiveMissionModifiers & MissionModifier_BotSurge)
         && g_BotSurgeParsingWave + 1 > g_BotSurgeCapturedWaves)
     {
@@ -637,15 +645,12 @@ public MRESReturn MissionModifiers_WaveSpawnParsed(Address waveSpawn,
 
     MissionModifierSupportSpawner spawner;
     spawner.address = waveSpawn;
+    spawner.wave = wave;
     spawner.maxActive = maxActive;
     spawner.waitBeforeBits = waitBeforeBits;
     spawner.waitBits = waitBits;
     spawner.synthetic = synthetic;
     g_BotSurgeSupportSpawners.PushArray(spawner);
-    if (g_ActiveMissionModifiers & MissionModifier_BotSurge)
-    {
-        MissionModifiers_ExpandSupportSpawner(spawner);
-    }
     return MRES_Ignored;
 }
 
@@ -692,9 +697,9 @@ static void MissionModifiers_RestoreSpawnerTimings()
     }
 }
 
-static void MissionModifiers_ExpandSupportSpawner(MissionModifierSupportSpawner spawner)
+static void MissionModifiers_ExpandSupportSpawner(MissionModifierSupportSpawner spawner,
+    int boostedMax)
 {
-    int boostedMax = MissionModifier_SurgeMaxInvaders;
     StoreToAddress(spawner.address + view_as<Address>(g_WaveSpawnMaxActiveOffset),
         boostedMax, NumberType_Int32);
 
@@ -721,11 +726,47 @@ static void MissionModifiers_ExpandSupportSpawner(MissionModifierSupportSpawner 
 
 static void MissionModifiers_ExpandRecordedSupportSpawners()
 {
+    for (int wave = 0; wave <= g_BotSurgeParsingWave; wave++)
+    {
+        MissionModifiers_ExpandWaveSupportSpawners(wave);
+    }
+}
+
+static void MissionModifiers_ExpandWaveSupportSpawners(int wave)
+{
+    if (wave < 0)
+    {
+        return;
+    }
+    int supportGroups;
     MissionModifierSupportSpawner spawner;
     for (int index = 0; index < g_BotSurgeSupportSpawners.Length; index++)
     {
         g_BotSurgeSupportSpawners.GetArray(index, spawner);
-        MissionModifiers_ExpandSupportSpawner(spawner);
+        if (spawner.wave == wave)
+        {
+            supportGroups++;
+        }
+    }
+    if (supportGroups == 0)
+    {
+        return;
+    }
+    // Endless support must leave invader slots for the finite WaveSpawns.
+    // Otherwise a support group can refill every BLU slot forever and block
+    // the wave's remaining progression groups from spawning.
+    int boostedMax = MissionModifier_SurgeSupportBudget / supportGroups;
+    if (boostedMax < 1)
+    {
+        boostedMax = 1;
+    }
+    for (int index = 0; index < g_BotSurgeSupportSpawners.Length; index++)
+    {
+        g_BotSurgeSupportSpawners.GetArray(index, spawner);
+        if (spawner.wave == wave)
+        {
+            MissionModifiers_ExpandSupportSpawner(spawner, boostedMax);
+        }
     }
 }
 

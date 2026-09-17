@@ -171,6 +171,25 @@ func TestTheUnlockOrderDropsWhatTheRunAlreadyHolds(t *testing.T) {
 	}
 }
 
+func TestTestRewardsUseOnlySeedEligibleWeaponBuffs(t *testing.T) {
+	order := unlockOrder(startingInventory("mvm_decoy", ""))
+	buffs := 0
+	for _, id := range order {
+		item, known := gamedata.ItemByID(id)
+		if !known || item.Kind != gamedata.ItemWeaponBuff {
+			continue
+		}
+		buff, known := gamedata.WeaponBuffByID(item.WeaponBuff)
+		if !known || !buff.Eligible {
+			t.Errorf("test reward includes ineligible buff %q", item.Name)
+		}
+		buffs++
+	}
+	if buffs == 0 {
+		t.Fatal("test reward pool has no eligible weapon buffs")
+	}
+}
+
 func TestDefaultMissionsSkipTheExcluded(t *testing.T) {
 	for range 20 {
 		got := defaultMissions(2, []string{"mvm_decoy"}, "", "")
