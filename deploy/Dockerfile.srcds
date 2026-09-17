@@ -57,10 +57,11 @@ RUN CGO_ENABLED=0 go build -trimpath -o /rcon ./launcher/cmd/rcon \
 # is winnable alone. Its own stage so a plugin edit does not refetch it, and so
 # the tree it stages can be copied whole.
 #
-# On the Go image rather than plain Debian: the mod is a Go module dependency
-# and go.mod is the pin, so staging it needs a toolchain. Everything else the
-# script fetches is still a checkout or a release download.
-FROM golang:1.27 AS bots
+# The mod is a Go module dependency, so staging it needs a Go toolchain. Build
+# the native extensions on Bookworm, the same Debian release as the TF2 image
+# below: binaries built on the default Go image require a newer glibc and
+# SourceMod cannot load them in the server.
+FROM golang:1.27-bookworm AS bots
 
 RUN apt-get update \
 	&& apt-get install --yes --no-install-recommends \
@@ -116,6 +117,17 @@ RUN apt-get update \
 
 COPY --from=bots /repo/deploy/bots/build/package/addons \
 	/opt/tf2-archipelago/addons
+# Keep the native extensions checked against the image that actually runs
+# them. A future build-image update must fail here instead of shipping bots
+# that SourceMod cannot load.
+RUN set -eu; \
+	for name in actions cbasenpc; do \
+		file="/opt/tf2-archipelago/addons/sourcemod/extensions/$name.ext.2.tf2.so"; \
+		if ldd "$file" 2>&1 | grep -q 'version .* not found'; then \
+			echo "$file needs a library version absent from the TF2 image" >&2; \
+			exit 1; \
+		fi; \
+	done
 COPY --from=build /plugin/build/tf2_archipelago.smx \
 	/opt/tf2-archipelago/addons/sourcemod/plugins/tf2_archipelago.smx
 # The plugin refuses to load without its gamedata, and a server without the
