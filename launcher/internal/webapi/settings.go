@@ -286,6 +286,7 @@ func (a *App) setPool(all bool) {
 		visible := runshape.VisibleMissions(a.community)
 		for _, mission := range gamedata.Missions {
 			if !gamedata.IsMissionPlayableWith(mission.ID, activeMods) ||
+				gamedata.IsCommunityMission(mission.ID) && !a.draft.Settings.MvmCommunityMissions ||
 				gamedata.MissionPack(mission.ID) != "" && !slices.ContainsFunc(visible, func(candidate gamedata.Mission) bool { return candidate.ID == mission.ID }) {
 				excluded = append(excluded, mission.PopFile)
 			}

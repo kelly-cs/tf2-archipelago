@@ -125,7 +125,7 @@ func restartNeeded(running bool, before settings.Settings, draft *form.State) bo
 	return running && draft != nil && saveplan.For(before, draft.Settings).Restart
 }
 
-func missionPoolRows(s form.State, availablePacks, importedPacks, readyMods []string) []MissionPoolRow {
+func missionPoolRows(s form.State, built form.Model, availablePacks, importedPacks, readyMods []string) []MissionPoolRow {
 	floor, hasFloor := gamedata.DifficultyByKey(s.Settings.MvmDifficulty)
 	activeMods := activeReadyServerMods(s.Settings, readyMods)
 	missions := runshape.VisibleMissions(availablePacks)
@@ -134,7 +134,8 @@ func missionPoolRows(s form.State, availablePacks, importedPacks, readyMods []st
 		played, _ := gamedata.MapByID(mission.Map)
 		compatibility := gamedata.RequirementLabel(gamedata.MissionRequirement(mission.ID))
 		playable := gamedata.IsMissionPlayableWith(mission.ID, activeMods)
-		disabled := !playable
+		fieldID := "missions.pool." + mission.PopFile
+		field, found := built.Field(fieldID)
 		if nav := gamedata.MissingNavigationMesh(mission.ID); nav != "" {
 			compatibility = "Missing " + nav
 		}
@@ -151,7 +152,6 @@ func missionPoolRows(s form.State, availablePacks, importedPacks, readyMods []st
 			compatibility = "Ready"
 			if gamedata.IsCommunityMission(mission.ID) && !s.Settings.MvmCommunityMissions {
 				compatibility = "Community missions are off"
-				disabled = true
 			} else if hasFloor && mission.Difficulty < floor {
 				compatibility = "Below " + floor.String() + " floor"
 			}
@@ -165,7 +165,7 @@ func missionPoolRows(s form.State, availablePacks, importedPacks, readyMods []st
 			}
 		}
 		rows = append(rows, MissionPoolRow{
-			Field:         "missions.pool." + mission.PopFile,
+			Field:         fieldID,
 			Source:        missionSource(mission, importedPacks),
 			Map:           played.Name,
 			Name:          mission.Name,
@@ -173,7 +173,7 @@ func missionPoolRows(s form.State, availablePacks, importedPacks, readyMods []st
 			Tier:          mission.Difficulty.String(),
 			Compatibility: compatibility,
 			Mods:          mods,
-			Disabled:      disabled,
+			Disabled:      !found || field.Disabled,
 		})
 	}
 	return rows
@@ -297,7 +297,7 @@ func (a *App) screenLocked(running bool) Screen {
 	return Screen{
 		Form:          &built,
 		Page:          a.formPage,
-		MissionPool:   missionPoolRows(*a.draft, a.community, a.imported, a.serverMods),
+		MissionPool:   missionPoolRows(*a.draft, built, a.community, a.imported, a.serverMods),
 		RestartNeeded: restartNeeded(running, a.settings, a.draft),
 	}
 }
