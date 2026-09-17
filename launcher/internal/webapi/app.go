@@ -58,6 +58,7 @@ type App struct {
 	settings        settings.Settings
 	supervisor      *apruntime.Supervisor
 	logs            []apruntime.Line
+	logNoise        logNoise
 	busy            bool
 	activity        string
 	install         context.CancelFunc
@@ -119,10 +120,6 @@ func NewAttached(s settings.Settings, logger *slog.Logger, envFile string) *App 
 
 func (a *App) append(line apruntime.Line) {
 	a.mu.Lock()
-	a.logs = append(a.logs, line)
-	if len(a.logs) > linesMax {
-		a.logs = a.logs[len(a.logs)-linesMax:]
-	}
 	restart := false
 	addressChanged := false
 	if a.logFile != nil {
@@ -145,7 +142,13 @@ func (a *App) append(line apruntime.Line) {
 			restart = !a.smHeld
 		}
 	}
-	a.publishLocked(Event{Name: "log", Data: line})
+	for _, visible := range a.logNoise.filter(line) {
+		a.logs = append(a.logs, visible)
+		a.publishLocked(Event{Name: "log", Data: visible})
+	}
+	if len(a.logs) > linesMax {
+		a.logs = a.logs[len(a.logs)-linesMax:]
+	}
 	if addressChanged {
 		a.publishLocked(Event{Name: "state", Data: struct{}{}})
 	}
