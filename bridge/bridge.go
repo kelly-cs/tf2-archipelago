@@ -135,11 +135,7 @@ func Run(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 	// say. A test run that quietly reached a real room would send checks into
 	// somebody's actual game.
 	if cfg.TestMode {
-		room, address, err := fakeroom.Start(ctx, fakeroom.Options{
-			SlotName:       cfg.SlotName,
-			UnlockMissions: true,
-			Log:            func(text string) { logger.InfoContext(ctx, "test mode", "message", text) },
-		})
+		room, address, err := fakeroom.Start(ctx, dockerTestOptions(ctx, cfg, logger))
 		if err != nil {
 			return err
 		}
@@ -203,4 +199,18 @@ func Run(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 		runErr = closeErr
 	}
 	return runErr
+}
+
+func dockerTestOptions(ctx context.Context, cfg config.Config, logger *slog.Logger) fakeroom.Options {
+	run := cfg.TestRun
+	return fakeroom.Options{
+		SlotName: cfg.SlotName, UnlockMissions: true,
+		MissionCount: run.MissionCount, Difficulty: run.Difficulty, Goal: run.Goal,
+		StartMission: run.StartMission, StartClass: run.StartClass, Excluded: run.Excluded,
+		DeathLink: run.DeathLink, DrawModifiers: run.MissionModifiers,
+		ModifierMin: run.ModifierMin, ModifierMax: run.ModifierMax,
+		VictoryCaches: run.VictoryCaches, MilestoneChecks: run.MilestoneChecks,
+		Giantsanity: run.Giantsanity, Tanksanity: run.Tanksanity, RandomRewards: true,
+		Log: func(text string) { logger.InfoContext(ctx, "test mode", "message", text) },
+	}
 }
