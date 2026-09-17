@@ -307,15 +307,18 @@ func missionSpecs(s State, env Env) []Spec {
 
 		/* The generator's own switch for community missions, which is a
 		   different question from which packs to install: the packs put the
-		   files on disk, this decides whether a seed may draw one at all. It
-		   had no row, so a settings file that said no could not be talked out
-		   of it, and the pool it emptied looked full because the table below
-		   reads only the ticks. */
+		   files on disk, this decides whether a seed may draw one at all. */
 		toggle("missions.community", tab, "Community missions",
-			"Whether a seed may draw a community mission at all. Off, the run is Valve's missions however many are ticked below.",
+			"Whether a seed may draw a community mission at all. Turning this off removes every community mission from the pool.",
 			"let the seed draw them",
 			func(s State) bool { return s.Settings.MvmCommunityMissions },
-			func(s State, v bool) State { s.Settings.MvmCommunityMissions = v; return s }),
+			func(s State, v bool) State {
+				s.Settings.MvmCommunityMissions = v
+				if !v {
+					s = excludePoolMissions(s, func(m gamedata.Mission) bool { return gamedata.IsCommunityMission(m.ID) })
+				}
+				return clearIneligibleStart(s)
+			}),
 
 		serverModSpec("sigsegv-mvm", "SigMod", env),
 		serverModInstallSpec(env),
@@ -368,13 +371,15 @@ func activeServerMods(s State, env Env) []string {
 
 func serverModSpec(key, label string, env Env) Spec {
 	spec := toggle("missions.mod."+key, "Missions", label+" (Linux server only)",
-		"Required by missions that use SigMod population extensions. Start downloads, verifies and installs the pinned release automatically when this is selected.",
+		"Required by missions that use SigMod population extensions. Turning this off removes those missions from the pool. Start downloads, verifies and installs the pinned release automatically when this is selected.",
 		"selected for this server",
 		func(s State) bool { return slices.Contains(s.Settings.SrcdsMods, key) },
 		func(s State, v bool) State {
 			s.Settings.SrcdsMods = slices.DeleteFunc(slices.Clone(s.Settings.SrcdsMods), func(one string) bool { return one == key })
 			if v {
 				s.Settings.SrcdsMods = append(s.Settings.SrcdsMods, key)
+			} else {
+				s = excludePoolMissions(s, func(m gamedata.Mission) bool { return gamedata.MissionServerMod(m.ID) == key })
 			}
 			return clearIneligibleStart(s)
 		})
@@ -384,6 +389,20 @@ func serverModSpec(key, label string, env Env) Spec {
 		}
 	}
 	return spec
+}
+
+func excludePoolMissions(s State, match func(gamedata.Mission) bool) State {
+	excluded := slices.Clone(s.Settings.MvmExcludedMissions)
+	for _, mission := range gamedata.Missions {
+		if match(mission) && !slices.Contains(excluded, mission.PopFile) {
+			excluded = append(excluded, mission.PopFile)
+		}
+	}
+	s.Settings.MvmExcludedMissions = excluded
+	if start, ok := gamedata.MissionByPopFile(s.Settings.SrcdsStartMission); ok && match(start) {
+		s.Settings.SrcdsStartMission = settings.Defaults().SrcdsStartMission
+	}
+	return s
 }
 
 func serverModInstallSpec(env Env) Spec {
@@ -462,7 +481,7 @@ func poolSpec(mission gamedata.Mission) Spec {
 	   switch is in the way rather than being hidden or quietly refused. */
 	if gamedata.IsCommunityMission(mission.ID) {
 		spec.Unavailable = func(s State, _ Env) string {
-			if s.Settings.MvmCommunityMissions {
+			if s.Settings.MvmCommunityMissions || !slices.Contains(s.Settings.MvmExcludedMissions, mission.PopFile) {
 				return ""
 			}
 			return "community missions are off"
@@ -484,6 +503,11 @@ func missionRequirementSpec(spec Spec, mission gamedata.Mission, help string) Sp
 	if key := gamedata.MissionServerMod(mission.ID); key != "" {
 		spec.Help = gamedata.RequirementLabel(key) + ". " + help
 		spec.Unavailable = func(s State, env Env) string {
+			// An already selected mission must remain editable so it can be
+			// removed even when the mod or community switch is unavailable.
+			if !slices.Contains(s.Settings.MvmExcludedMissions, mission.PopFile) {
+				return ""
+			}
 			mod, _ := gamedata.ServerModByKey(key)
 			if env.Platform == "windows" {
 				return mod.Name + " has no Windows server build; use Linux for this mission"
