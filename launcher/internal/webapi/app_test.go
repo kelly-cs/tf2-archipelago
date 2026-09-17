@@ -14,7 +14,7 @@ import (
 )
 
 func TestMissionPoolRowsCarryTableMetadata(t *testing.T) {
-	rows := testMissionPoolRows(form.NewState(settings.Defaults()), nil, nil, nil)
+	rows := testMissionPoolRows(form.NewState(settings.Defaults()), nil, nil)
 	if len(rows) == 0 {
 		t.Fatal("the mission pool table is empty")
 	}
@@ -34,7 +34,7 @@ func TestMissionPoolRowsNameRequiredServerMods(t *testing.T) {
 	rows := testMissionPoolRows(state, []string{
 		settings.CommunityPackPotato,
 		settings.CommunityPackMoonlight,
-	}, nil, []string{"sigsegv-mvm"})
+	}, []string{"sigsegv-mvm"})
 	for _, row := range rows {
 		if row.Field != "missions.pool.mvm_bronx_rc2_adv_point_of_impact" {
 			continue
@@ -49,7 +49,7 @@ func TestMissionPoolRowsNameRequiredServerMods(t *testing.T) {
 
 func TestMissionPoolRowsNameTheExactMissingNavigationMesh(t *testing.T) {
 	rows := testMissionPoolRows(form.NewState(settings.Defaults()),
-		[]string{settings.CommunityPackPotato}, nil, nil)
+		[]string{settings.CommunityPackPotato}, nil)
 	for _, row := range rows {
 		if row.Field != "missions.pool.mvm_bogland_rc12_adv_swamp_fever" {
 			continue
@@ -65,7 +65,7 @@ func TestMissionPoolRowsNameTheExactMissingNavigationMesh(t *testing.T) {
 func TestMissionPoolRowsExplainDifficultyFloor(t *testing.T) {
 	state := form.NewState(settings.Defaults())
 	state.Settings.MvmDifficulty = "advanced"
-	rows := testMissionPoolRows(state, nil, nil, nil)
+	rows := testMissionPoolRows(state, nil, nil)
 	if !slices.ContainsFunc(rows, func(row MissionPoolRow) bool {
 		return strings.HasPrefix(row.Compatibility, "Below Advanced")
 	}) {
@@ -78,7 +78,7 @@ func TestSelectedSigModMissionCanBeUntickedInTable(t *testing.T) {
 	state := form.NewState(settings.Defaults())
 	state.Settings.MvmExcludedMissions = slices.DeleteFunc(state.Settings.MvmExcludedMissions,
 		func(one string) bool { return one == pop })
-	rows := testMissionPoolRows(state, []string{settings.CommunityPackPotato}, nil, nil)
+	rows := testMissionPoolRows(state, []string{settings.CommunityPackPotato}, nil)
 	for _, row := range rows {
 		if row.Field == "missions.pool."+pop {
 			if row.Disabled || row.Compatibility != "Turn on SigMod above" {
@@ -90,9 +90,9 @@ func TestSelectedSigModMissionCanBeUntickedInTable(t *testing.T) {
 	t.Fatal("SigMod mission is missing from the table")
 }
 
-func testMissionPoolRows(state form.State, available, imported, ready []string) []MissionPoolRow {
+func testMissionPoolRows(state form.State, available, ready []string) []MissionPoolRow {
 	built := form.Build(state, form.Env{CommunityAvailable: available, ServerModsReady: ready, Platform: "linux"})
-	return missionPoolRows(state, built, available, imported, ready)
+	return missionPoolRows(state, built, available, nil, ready)
 }
 
 func TestPoolNoneClearsTheNamedStartMission(t *testing.T) {
