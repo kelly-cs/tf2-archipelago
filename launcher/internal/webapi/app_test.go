@@ -105,6 +105,21 @@ func TestPoolNoneClearsTheNamedStartMission(t *testing.T) {
 	}
 }
 
+func TestPoolAllLeavesCommunityMissionsOutWhileTheSwitchIsOff(t *testing.T) {
+	const community = "mvm_kelly_rc1b_adv_homestead_happenings"
+	app := New(settings.Defaults(), nil)
+	app.OpenSettings("Missions")
+	app.community = []string{settings.CommunityPackPotato}
+	app.draft.Settings.MvmCommunityMissions = false
+	app.setPool(true)
+	if !slices.Contains(app.draft.Settings.MvmExcludedMissions, community) {
+		t.Error("pool all ticked a community mission while community missions are off")
+	}
+	if slices.Contains(app.draft.Settings.MvmExcludedMissions, "mvm_decoy") {
+		t.Error("pool all left a Valve mission out")
+	}
+}
+
 func TestSettingsAreTheFormModelAndChangesGoThroughApply(t *testing.T) {
 	app := New(settings.Defaults(), nil)
 	app.OpenSettings("Rewards")
