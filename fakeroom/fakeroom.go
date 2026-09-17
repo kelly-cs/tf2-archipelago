@@ -32,11 +32,13 @@ import (
 
 // Room is a running fake multiworld. Close it to stop it.
 type Room struct {
-	server    *http.Server
-	listener  net.Listener
-	log       func(string)
-	deathLink bool
-	modifiers map[string][]MissionModifier
+	server                                                  *http.Server
+	listener                                                net.Listener
+	log                                                     func(string)
+	deathLink                                               bool
+	modifiers                                               map[string][]MissionModifier
+	victoryCaches, milestoneChecks, giantsanity, tanksanity bool
+	repeatRewards                                           bool
 	// unlockMissions is also announced in slot data. That makes the bridge's
 	// mission list immediately playable instead of depending on the starting
 	// inventory having crossed the websocket and reached its state store first.
@@ -103,6 +105,12 @@ type Options struct {
 	// MissionModifiers are the generated assignments test mode wants the
 	// bridge and plugin to exercise. Nil means the feature is disabled.
 	MissionModifiers map[string][]MissionModifier
+	// DrawModifiers uses the run's bounds when no assignment was supplied.
+	DrawModifiers                                           bool
+	ModifierMin, ModifierMax                                int
+	VictoryCaches, MilestoneChecks, Giantsanity, Tanksanity bool
+	// RandomRewards draws the normal item pool in a random order for Docker test mode.
+	RandomRewards bool
 }
 
 // Start serves a fake room on loopback and returns it with the address the
@@ -125,16 +133,29 @@ func Start(ctx context.Context, options Options) (*Room, string, error) {
 			options.Difficulty, options.StartMission)
 	}
 	start := roomStartingInventory(missions, options.StartClass, options.UnlockMissions)
+	modifiers := options.MissionModifiers
+	if modifiers == nil && options.DrawModifiers {
+		modifiers = DrawMissionModifiers(missions, options.ModifierMin, options.ModifierMax)
+	}
+	items := unlockOrder(start)
+	if options.RandomRewards {
+		rand.Shuffle(len(items), func(i, j int) { items[i], items[j] = items[j], items[i] })
+	}
 	room := &Room{
-		listener:       listener,
-		log:            logf,
-		items:          unlockOrder(start),
-		start:          start,
-		checked:        make(map[int64]bool),
-		deathLink:      options.DeathLink,
-		modifiers:      options.MissionModifiers,
-		unlockMissions: options.UnlockMissions,
-		seed:           fmt.Sprintf("test-mode-%x", rand.Uint64()),
+		listener:        listener,
+		log:             logf,
+		items:           items,
+		start:           start,
+		checked:         make(map[int64]bool),
+		deathLink:       options.DeathLink,
+		modifiers:       modifiers,
+		victoryCaches:   options.VictoryCaches,
+		milestoneChecks: options.MilestoneChecks,
+		giantsanity:     options.Giantsanity,
+		tanksanity:      options.Tanksanity,
+		repeatRewards:   options.RandomRewards,
+		unlockMissions:  options.UnlockMissions,
+		seed:            fmt.Sprintf("test-mode-%x", rand.Uint64()),
 	}
 	goal := options.Goal
 	if goal == "" {
@@ -226,6 +247,10 @@ func (r *Room) handle(ctx context.Context, conn *websocket.Conn, cmd string,
 					"missionsanity_target":      len(missions),
 					"death_link":                r.deathLink,
 					"mission_modifiers":         r.modifiers,
+					"victory_caches":            r.victoryCaches,
+					"milestone_checks":          r.milestoneChecks,
+					"giantsanity":               r.giantsanity,
+					"tanksanity":                r.tanksanity,
 				},
 			},
 			// The starting inventory, the way a generated seed precollects
@@ -270,8 +295,8 @@ func missionTicketImportance(unlockMissions bool) string {
 	return "progression"
 }
 
-// reward hands out one unlock per newly checked location, in a fixed order, so
-// a tester sees the classes and the weapon slots open up as they clear waves.
+// reward hands out one unlock per newly checked location. Docker test mode
+// shuffles the normal item pool before the room starts.
 //
 // The bridge resends its whole check list on every report, by design (a
 // reconnect mid-wave must be a non-event), the way a real Archipelago server's
@@ -296,12 +321,20 @@ func (r *Room) reward(ctx context.Context, conn *websocket.Conn, locations []int
 	var handed []map[string]any
 	for range fresh {
 		if r.next >= len(r.items) {
-			break
+			if !r.repeatRewards || len(r.items) == 0 {
+				break
+			}
+		}
+		var item int64
+		if r.next < len(r.items) {
+			item = r.items[r.next]
+			r.next++
+		} else {
+			item = r.items[rand.IntN(len(r.items))]
 		}
 		handed = append(handed, map[string]any{
-			"item": r.items[r.next], "location": int64(1), "player": 1, "flags": 1,
+			"item": item, "location": int64(1), "player": 1, "flags": 1,
 		})
-		r.next++
 		r.given++
 	}
 	r.mu.Unlock()
@@ -517,6 +550,20 @@ func unlockOrder(held []int64) []int64 {
 	for _, item := range gamedata.Items {
 		if item.Classification == gamedata.Filler {
 			continue
+		}
+		switch item.Kind {
+		case gamedata.ItemMissionTicket, gamedata.ItemClass, gamedata.ItemWeaponSlot,
+			gamedata.ItemWeaponBuff, gamedata.ItemTrap:
+		default:
+			// The generator only grants trophies on their own mission clears;
+			// class slots and server settings require options this room lacks.
+			continue
+		}
+		if item.Kind == gamedata.ItemWeaponBuff {
+			buff, known := gamedata.WeaponBuffByID(item.WeaponBuff)
+			if !known || !buff.Eligible {
+				continue
+			}
 		}
 		copies := max(int(item.Count), 1)
 		for range copies {

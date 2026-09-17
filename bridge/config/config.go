@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -43,6 +44,15 @@ type Config struct {
 	// on loopback and dials that instead of ArchipelagoURL. For trying the
 	// stack out, and for play-testing without a room and a seed.
 	TestMode bool
+	TestRun  TestRun
+}
+
+// TestRun is the seed shape requested by the Docker settings when test mode is on.
+type TestRun struct {
+	MissionCount, ModifierMin, ModifierMax                                               int
+	Difficulty, Goal, StartMission, StartClass                                           string
+	Excluded                                                                             []string
+	MissionModifiers, VictoryCaches, MilestoneChecks, Giantsanity, Tanksanity, DeathLink bool
 }
 
 // Load reads the environment. Every value has a default that works inside the
@@ -51,7 +61,7 @@ func Load() (Config, error) {
 	host := env("AP_HOST", "archipelago")
 	port := env("AP_PORT", "38281")
 	scheme := "ws"
-	tls, err := boolEnv("AP_TLS", false)
+	tls, err := boolEnv("AP_TLS")
 	if err != nil {
 		return Config{}, err
 	}
@@ -64,7 +74,7 @@ func Load() (Config, error) {
 		return Config{}, err
 	}
 
-	testMode, err := boolEnv("TF2AP_TEST_MODE", false)
+	testMode, err := boolEnv("TF2AP_TEST_MODE")
 	if err != nil {
 		return Config{}, err
 	}
@@ -86,7 +96,64 @@ func Load() (Config, error) {
 	if _, err := strconv.Atoi(port); err != nil {
 		return Config{}, fmt.Errorf("AP_PORT %q is not a number", port)
 	}
+	if cfg.TestMode {
+		if cfg.TestRun, err = loadTestRun(); err != nil {
+			return Config{}, err
+		}
+	}
 	return cfg, nil
+}
+
+func loadTestRun() (run TestRun, err error) {
+	if run.MissionCount, err = intEnv("MVM_MISSION_COUNT", 8); err != nil {
+		return TestRun{}, err
+	}
+	if run.ModifierMin, err = intEnv("MVM_MINIMUM_MISSION_MODIFIERS", 1); err != nil {
+		return TestRun{}, err
+	}
+	if run.ModifierMax, err = intEnv("MVM_MAXIMUM_MISSION_MODIFIERS", 2); err != nil {
+		return TestRun{}, err
+	}
+	if run.MissionModifiers, err = boolEnv("MVM_MISSION_MODIFIERS"); err != nil {
+		return TestRun{}, err
+	}
+	if run.VictoryCaches, err = boolEnv("MVM_VICTORY_CACHES"); err != nil {
+		return TestRun{}, err
+	}
+	if run.MilestoneChecks, err = boolEnv("MVM_MILESTONE_CHECKS"); err != nil {
+		return TestRun{}, err
+	}
+	if run.Giantsanity, err = boolEnv("MVM_GIANTSANITY"); err != nil {
+		return TestRun{}, err
+	}
+	if run.Tanksanity, err = boolEnv("MVM_TANKSANITY"); err != nil {
+		return TestRun{}, err
+	}
+	if run.DeathLink, err = boolEnv("MVM_DEATH_LINK"); err != nil {
+		return TestRun{}, err
+	}
+	if run.MissionModifiers && (run.ModifierMin < 0 || run.ModifierMax > 3 || run.ModifierMin > run.ModifierMax) {
+		return TestRun{}, fmt.Errorf("mission modifier bounds must be within 0..3 and minimum <= maximum")
+	}
+	run.Difficulty = env("MVM_DIFFICULTY", "intermediate")
+	run.Goal = env("MVM_GOAL", "final_boss")
+	run.StartMission = os.Getenv("MVM_START_MISSION")
+	run.StartClass = os.Getenv("MVM_START_CLASS")
+	for name := range strings.SplitSeq(os.Getenv("MVM_EXCLUDED_MISSIONS"), ",") {
+		if name = strings.TrimSpace(name); name != "" {
+			run.Excluded = append(run.Excluded, name)
+		}
+	}
+	return run, nil
+}
+
+func intEnv(key string, fallback int) (int, error) {
+	value := env(key, strconv.Itoa(fallback))
+	parsed, err := strconv.Atoi(value)
+	if err != nil {
+		return 0, fmt.Errorf("%s %q is not an integer", key, value)
+	}
+	return parsed, nil
 }
 
 func env(key, fallback string) string {
@@ -96,10 +163,10 @@ func env(key, fallback string) string {
 	return fallback
 }
 
-func boolEnv(key string, fallback bool) (bool, error) {
+func boolEnv(key string) (bool, error) {
 	value, set := os.LookupEnv(key)
 	if !set || value == "" {
-		return fallback, nil
+		return false, nil
 	}
 	parsed, err := strconv.ParseBool(value)
 	if err != nil {
