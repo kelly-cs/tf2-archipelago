@@ -123,8 +123,18 @@ COPY --from=bots /repo/deploy/bots/build/package/addons \
 RUN set -eu; \
 	for name in actions cbasenpc; do \
 		file="/opt/tf2-archipelago/addons/sourcemod/extensions/$name.ext.2.tf2.so"; \
-		if ldd "$file" 2>&1 | grep -q 'version .* not found'; then \
-			echo "$file needs a library version absent from the TF2 image" >&2; \
+		if [ ! -s "$file" ]; then \
+			echo "missing defender-bot extension: $file" >&2; \
+			exit 1; \
+		fi; \
+		if ! dependencies="$(ldd "$file" 2>&1)"; then \
+			printf '%s\n' "$dependencies" >&2; \
+			echo "cannot inspect defender-bot extension: $file" >&2; \
+			exit 1; \
+		fi; \
+		if printf '%s\n' "$dependencies" | grep -q 'not found'; then \
+			printf '%s\n' "$dependencies" >&2; \
+			echo "$file needs a library absent from the TF2 image" >&2; \
 			exit 1; \
 		fi; \
 	done
