@@ -4,7 +4,19 @@ What each release changes, for somebody who plays the game. The workflow in
 `.github/workflows/release.yml` reads the section matching the tag and puts it
 in the release notes, so this file is the only place to write it.
 
-## Unreleased
+## v1.17.0
+
+### Two new mission modifiers
+
+- **Mental.** The robots, the tanks and their buildings stay cloaked for the
+  whole wave. A normal hit makes one shimmer for a moment; a reveal-on-hit
+  weapon buff decloaks it properly for five seconds before it fades back.
+- **Make it Count.** Your non-melee weapons and your sentries hit for two and
+  a half times as much, and in exchange RED carries a quarter of the reserve
+  ammo and the Engineer a quarter of the metal. Dispensers top you up every
+  four seconds rather than continuously.
+- Both by kelly-cs, and both are drawn per mission like the rest: a mission
+  keeps the modifiers it was given for the whole run.
 
 ### SigMod missions on a Windows server
 
@@ -30,6 +42,18 @@ in the release notes, so this file is the only place to write it.
 - **Adding a bot name works again.** Typing a name on the Bots page and pressing
   Add this name answered `settings action "bots.name_add" is not wired` and
   added nothing. Reported by Cowser the Khelinace.
+- **A Windows server no longer hangs when the mission changes.** The bots walked
+  navigation areas left over from the previous map and the server never came
+  back, with nothing in the log after the last bot finished shopping. Since a
+  run changes mission by changing map, every switch could meet it.
+- **Bot Surge waves that stalled now recover.** On some wave patterns the
+  endless support robots respawned fast enough to hold every enemy slot, so the
+  wave itself stopped progressing, Cybernetic Carnage wave 1 among them. After
+  twenty seconds with no progress and no tank alive, the support is cleared for
+  four seconds to let the wave through. By kelly-cs.
+- **Docker: the defender bots load again.** The v1.16.1 server image built its
+  two native extensions against a newer C library than the image runs, so
+  SourceMod could load neither and no bots joined. By kelly-cs.
 
 ## v1.16.2
 
