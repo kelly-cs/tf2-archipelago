@@ -25,20 +25,23 @@ fi
 
 status=0
 for file in deploy/Dockerfile.bridge deploy/Dockerfile.srcds .github/workflows/ci.yml; do
-	pinned=$(grep -oE 'golang:[0-9]+\.[0-9]+(\.[0-9]+)?' "$file" | head -1 | cut -d: -f2)
-	if [ -z "$pinned" ]; then
+	pins=$(grep -oE 'golang:[0-9]+\.[0-9]+(\.[0-9]+)?' "$file" || true)
+	if [ -z "$pins" ]; then
 		echo "$file pins no golang image, so this check cannot see it" >&2
 		status=1
 		continue
 	fi
-	# A pin may be shorter than the go directive: golang:1.27 serves 1.27.0.
-	case "$want" in
-	"$pinned" | "$pinned".*) ;;
-	*)
-		echo "$file pins golang:$pinned, go.mod says $want" >&2
-		status=1
-		;;
-	esac
+	for pin in $pins; do
+		pinned=${pin#golang:}
+		# A pin may be shorter than the go directive: golang:1.27 serves 1.27.0.
+		case "$want" in
+		"$pinned" | "$pinned".*) ;;
+		*)
+			echo "$file pins $pin, go.mod says $want" >&2
+			status=1
+			;;
+		esac
+	done
 done
 
 if [ "$status" -ne 0 ]; then
