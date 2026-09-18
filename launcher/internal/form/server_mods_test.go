@@ -68,16 +68,33 @@ func TestSigmodMissionExplainsAndEnforcesSetup(t *testing.T) {
 	}
 }
 
-// The Windows build is this project's port rather than upstream's release, and
-// a player who is about to download a binary should be told whose it is.
-func TestSigmodOnWindowsOffersThePortAndSaysSo(t *testing.T) {
+/*
+SigMod has no Windows build, and the row says so rather than disappearing.
+
+v1.17.0 and v1.17.1 offered it there. The port crashed the game server with a
+corrupted heap before it finished loading, on every start, so a player who
+ticked it is owed the reason the tick is gone. apw-5g4.14.
+*/
+func TestSigmodOnWindowsIsRefusedAndSaysWhy(t *testing.T) {
 	state := NewState(settings.Defaults())
 	field, ok := Build(state, Env{Platform: "windows"}).Field("missions.mod.sigsegv-mvm")
-	if !ok || field.Disabled {
-		t.Fatalf("Windows SigMod field = %+v, found=%t", field, ok)
+	if !ok {
+		t.Fatal("the SigMod row is missing on Windows; a player who ticked it there gets no reason")
 	}
-	if !strings.Contains(field.Help, "sigsegv-mvm-win") {
-		t.Errorf("Windows SigMod help does not name the port it installs: %q", field.Help)
+	if !field.Disabled {
+		t.Fatalf("Windows SigMod field is tickable = %+v", field)
+	}
+	if !strings.Contains(field.Reason, "no windows server build") {
+		t.Errorf("Windows SigMod does not say why it is off: %q", field.Reason)
+	}
+}
+
+// Linux is where the build is, so nothing changed there.
+func TestSigmodOnLinuxIsStillOffered(t *testing.T) {
+	state := NewState(settings.Defaults())
+	field, ok := Build(state, Env{Platform: "linux"}).Field("missions.mod.sigsegv-mvm")
+	if !ok || field.Disabled {
+		t.Fatalf("Linux SigMod field = %+v, found=%t", field, ok)
 	}
 }
 

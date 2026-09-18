@@ -4,6 +4,21 @@ What each release changes, for somebody who plays the game. The workflow in
 `.github/workflows/release.yml` reads the section matching the tag and puts it
 in the release notes, so this file is the only place to write it.
 
+## Unreleased
+
+### Fixed
+
+- **SigMod is off on Windows again, and a Windows server that has it installed
+  starts.** v1.17.0 offered SigMod on the Missions page on Windows. Ticking it
+  installed a build whose game server died with a corrupted heap before it
+  finished loading, on every start, and the launcher only said the server had
+  crashed. Unticking the mod could not undo it: the extension installs a file
+  that makes the server load it whatever the launcher's settings say, so the
+  crash outlived the setting. Start now takes that installation off the disk
+  and runs without it, the row on the Missions page says there is no Windows
+  build, and a run whose missions need SigMod no longer refuses to start on a
+  machine that cannot have it. Linux is unchanged. Reported by [-SAM-].
+
 ## v1.17.1
 
 ### Fixed

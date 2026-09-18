@@ -371,8 +371,9 @@ func activeServerMods(s State, env Env) []string {
 
 func serverModSpec(key, label string, env Env) Spec {
 	help := "Required by missions that use SigMod population extensions, and used by nothing else. Turning this off removes those missions from the pool. Start downloads, verifies and installs the pinned release automatically when this is selected."
-	if env.Platform == "windows" {
-		help += " Upstream publishes no Windows server build; this installs the port in m-this/sigsegv-mvm-win."
+	mod, _ := gamedata.ServerModByKey(key)
+	if !mod.BuildsOn(env.Platform) {
+		help = label + " has no " + env.Platform + " server build, so the missions that need it stay out of the pool."
 	}
 	spec := toggle("missions.mod."+key, "Missions", label, help,
 		"selected for this server",
@@ -386,6 +387,17 @@ func serverModSpec(key, label string, env Env) Spec {
 			}
 			return clearIneligibleStart(s)
 		})
+	/*
+		A platform with no build cannot be talked into one, so the row says so
+		and refuses the tick. It stays on the page rather than disappearing:
+		v1.17.0 offered SigMod on Windows, and a player who ticked it there is
+		owed the reason it is off now. See apw-5g4.14.
+	*/
+	if !mod.BuildsOn(env.Platform) {
+		spec.Unavailable = func(State, Env) string {
+			return label + " has no " + env.Platform + " server build"
+		}
+	}
 	return spec
 }
 

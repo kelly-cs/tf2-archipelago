@@ -633,11 +633,16 @@ func disableSourceModMapRotation(modDir string) error {
 // so a stale config cannot claim that a missing extension is available.
 func ReadyServerMods(installRoot string) []string {
 	modDir := filepath.Join(installRoot, "tf-dedicated", "tf")
-	if sigmodReady(modDir) {
+	if buildsOn(sigmodKey, runtime.GOOS) && sigmodReady(modDir) {
 		return []string{sigmodKey}
 	}
 	return nil
 }
+
+// buildsOn is gamedata's answer, named here because a mod installed by an
+// earlier release that has since lost its build is not "ready": it is what has
+// to be taken off the disk.
+func buildsOn(key, goos string) bool { return gamedata.ServerModBuildsOn(key, goos) }
 
 func sigmodReady(modDir string) bool {
 	if version, checksum := assets.SigsegvMVM(); version == "" || checksum == "" {
@@ -702,8 +707,33 @@ func installServerMods(ctx context.Context, installRoot, modDir string, requeste
 		if !known {
 			return fmt.Errorf("server mod %q is not supported by this launcher", key)
 		}
-		if (runtime.GOOS == "windows" && !mod.Windows) || (runtime.GOOS == "linux" && !mod.Linux) {
-			return fmt.Errorf("%s has no %s server build; deselect it or run the server on a supported platform", mod.Name, runtime.GOOS)
+		/*
+			A mod with no build here is skipped, not refused. It used to be an
+			error, which was right while the only way to select one was to ask
+			for it. It is wrong now: v1.17.0 offered SigMod on Windows, so a
+			saved config can name a mod this build has no business installing,
+			and refusing the start leaves the player with a launcher that will
+			not run and a setting they have no reason to suspect.
+
+			Whatever an earlier release put on the disk comes off here. The
+			extension ships sigsegv.autoload, so SourceMod loads it on every
+			start whatever the launcher's settings say: unticking the mod could
+			never have been the fix, and the Windows build crashed the server
+			before it finished loading. See apw-5g4.14.
+		*/
+		if !buildsOn(key, runtime.GOOS) {
+			if key == sigmodKey {
+				removed, err := removeSigmod(modDir)
+				if err != nil {
+					return err
+				}
+				if removed {
+					logf("removed the installed %s: it has no %s server build, and the server cannot start with it", mod.Name, runtime.GOOS)
+					continue
+				}
+			}
+			logf("skipping %s: it has no %s server build", mod.Name, runtime.GOOS)
+			continue
 		}
 		if key == sigmodKey {
 			version, _ := assets.SigsegvMVM()
@@ -736,6 +766,47 @@ func installServerMods(ctx context.Context, installRoot, modDir string, requeste
 		}
 	}
 	return nil
+}
+
+/*
+removeSigmod takes a managed SigMod install off the disk and reports whether
+there was one.
+
+Everything the package writes goes, and nothing else: the extension and its
+autoload marker, SigMod's own gamedata directory, the convars file, and the
+stamp that says the install is managed. The autoload marker is the one that
+matters. SourceMod loads any extension beside it on every start, so a SigMod
+that crashes the server cannot be escaped from the launcher's settings; it has
+to leave the game directory.
+
+A file that is already gone is not an error: this runs against an install that
+may be half of one.
+*/
+func removeSigmod(modDir string) (bool, error) {
+	paths := []string{
+		"addons/sourcemod/extensions/sigsegv.ext.2.tf2.dll",
+		"addons/sourcemod/extensions/sigsegv.ext.2.tf2.so",
+		"addons/sourcemod/extensions/x64/sigsegv.ext.2.tf2.so",
+		"addons/sourcemod/extensions/sigsegv.autoload",
+		"addons/sourcemod/gamedata/sigsegv",
+		"cfg/sigsegv_convars.cfg",
+		"addons/.tf2ap-sigsegv-mvm.stamp",
+	}
+	found := false
+	for _, relative := range paths {
+		target := filepath.Join(modDir, filepath.FromSlash(relative))
+		if _, err := os.Stat(target); err != nil {
+			if errors.Is(err, os.ErrNotExist) {
+				continue
+			}
+			return found, fmt.Errorf("cannot inspect %s: %w", relative, err)
+		}
+		if err := os.RemoveAll(target); err != nil {
+			return found, fmt.Errorf("cannot remove %s: %w", relative, err)
+		}
+		found = true
+	}
+	return found, nil
 }
 
 func cachedSigmod(ctx context.Context, installRoot string) ([]byte, error) {

@@ -16,18 +16,50 @@ type ServerMod struct {
 	Windows bool
 }
 
-// ServerMods is the catalog. Versions and checksums live in
-// deploy/env/versions.env, which is where every pin of this project lives.
-//
-// SigMod's Windows build is not upstream's: rafradek publishes Linux only, and
-// m-this/sigsegv-mvm-win carries the port the Windows launcher downloads.
+/*
+ServerMods is the catalog. Versions and checksums live in
+deploy/env/versions.env, which is where every pin of this project lives.
+
+SigMod's Windows build is not upstream's: rafradek publishes Linux only, and
+m-this/sigsegv-mvm-win carries the port the Windows launcher downloads.
+
+Windows is false again. v1.17.0 and v1.17.1 shipped it true, and every Windows
+host that ticked SigMod got a game server that died with STATUS_HEAP_CORRUPTION
+before it finished loading, on every start. The port's own package is the
+reason to doubt it rather than to retry: it ships the generated windows.txt
+address table beside the per-area gamedata files it supersedes, and 780 of its
+804 names collide with them, so the server logs a duplicate for almost every
+address it loads and then dies. The epic's verification tasks were open when it
+shipped and still are. Turn this back on when apw-5g4.12 has actually played
+the missions on Windows.
+*/
 var ServerMods = []ServerMod{
-	{Key: "sigsegv-mvm", Name: "SigMod", Linux: true, Windows: true},
+	{Key: "sigsegv-mvm", Name: "SigMod", Linux: true, Windows: false},
 }
 
 // noNavRequirement marks a mission whose map ships no bot navigation mesh.
 // It is a fact about the pack, not a mod, and nothing can enable it.
 const noNavRequirement = "no_nav"
+
+// BuildsOn reports whether there is a dedicated server build of this mod for
+// a platform, named the way Go names it. A mod with no build there cannot be
+// installed, cannot be selected, and cannot hold a mission in the pool.
+func (m ServerMod) BuildsOn(goos string) bool {
+	switch goos {
+	case "windows":
+		return m.Windows
+	case "linux":
+		return m.Linux
+	}
+	return false
+}
+
+// ServerModBuildsOn is BuildsOn for a key the caller has not looked up. An
+// unknown key builds nowhere.
+func ServerModBuildsOn(key, goos string) bool {
+	mod, known := ServerModByKey(key)
+	return known && mod.BuildsOn(goos)
+}
 
 // ServerModByKey finds a mod by its manifest key.
 func ServerModByKey(key string) (ServerMod, bool) {

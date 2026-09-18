@@ -586,3 +586,66 @@ func TestSigmodPackageIsPerPlatform(t *testing.T) {
 		}
 	}
 }
+
+// A mod the catalog has no build for here is what an earlier release left
+// behind, so the question is never whether to install it. apw-5g4.14: v1.17.0
+// offered SigMod on Windows and the extension crashed the server before it
+// finished loading, on every start.
+func TestSigmodHasNoWindowsBuild(t *testing.T) {
+	if buildsOn(sigmodKey, "windows") {
+		t.Error("SigMod claims a Windows build; v1.17.0 shipped that and every Windows server died with a corrupted heap")
+	}
+	if !buildsOn(sigmodKey, "linux") {
+		t.Error("SigMod lost its Linux build")
+	}
+}
+
+// The autoload marker is why removing the files is the fix and unticking the
+// mod is not: SourceMod loads any extension beside one on every start.
+func TestRemoveSigmodTakesTheWholeInstallOffTheDisk(t *testing.T) {
+	modDir := t.TempDir()
+	written := []string{
+		"addons/sourcemod/extensions/sigsegv.ext.2.tf2.dll",
+		"addons/sourcemod/extensions/sigsegv.autoload",
+		"addons/sourcemod/gamedata/sigsegv/windows.txt",
+		"addons/sourcemod/gamedata/sigsegv/misc.txt",
+		"cfg/sigsegv_convars.cfg",
+		"addons/.tf2ap-sigsegv-mvm.stamp",
+	}
+	keep := "addons/sourcemod/gamedata/tf2_archipelago.txt"
+	for _, relative := range append(written, keep) {
+		path := filepath.Join(modDir, filepath.FromSlash(relative))
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, []byte("x"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	removed, err := removeSigmod(modDir)
+	if err != nil {
+		t.Fatalf("removeSigmod: %v", err)
+	}
+	if !removed {
+		t.Error("removeSigmod found no install to remove")
+	}
+	for _, relative := range written {
+		if _, err := os.Stat(filepath.Join(modDir, filepath.FromSlash(relative))); !errors.Is(err, os.ErrNotExist) {
+			t.Errorf("%s is still there", relative)
+		}
+	}
+	if _, err := os.Stat(filepath.Join(modDir, filepath.FromSlash(keep))); err != nil {
+		t.Errorf("removeSigmod took %s with it: %v", keep, err)
+	}
+
+	// Twice is not an error, and the second time reports nothing to remove:
+	// this runs on every start.
+	removed, err = removeSigmod(modDir)
+	if err != nil {
+		t.Fatalf("removeSigmod on a clean directory: %v", err)
+	}
+	if removed {
+		t.Error("removeSigmod reported an install it had already taken off")
+	}
+}

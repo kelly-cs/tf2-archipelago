@@ -2,6 +2,7 @@ package settings
 
 import (
 	"fmt"
+	"runtime"
 	"slices"
 
 	"github.com/m-this/tf2-archipelago/gamedata"
@@ -82,6 +83,17 @@ func CheckServerModsReady(s Settings, ready []string) error {
 			continue
 		}
 		mod, _ := gamedata.ServerModByKey(key)
+		/*
+			A mod with no build on this platform is not a thing the player can
+			press a button about, so refusing the start teaches them nothing and
+			leaves them with a launcher that will not run. Their seed keeps the
+			missions it drew; the plugin already reports a popfile the server
+			refuses. apw-5g4.14: v1.17.0 offered SigMod on Windows, so saved
+			settings out there select missions this build cannot run.
+		*/
+		if !mod.BuildsOn(runtime.GOOS) {
+			continue
+		}
 		if !slices.Contains(ServerModKeys(s), key) {
 			return fmt.Errorf("%s mission selected: turn on %s on the Missions page, then press Download / set up selected server mods", mod.Name, mod.Name)
 		}
