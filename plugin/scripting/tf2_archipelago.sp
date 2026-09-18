@@ -26,6 +26,7 @@
 #include "tf2_archipelago/unlocks.inc"
 #include "tf2_archipelago/weapon_buffs_data.inc"
 #include "tf2_archipelago/weapon_buffs_math.inc"
+#include "tf2_archipelago/mission_modifiers_math.inc"
 #include "tf2_archipelago/weapon_buffs.inc"
 #include "tf2_archipelago/deathlink.inc"
 #include "tf2_archipelago/traps.inc"

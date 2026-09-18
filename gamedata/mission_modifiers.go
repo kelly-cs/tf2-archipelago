@@ -26,4 +26,5 @@ var MissionModifiers = []MissionModifier{
 	{Key: "bot_surge", Name: "Bot Surge", Kind: "waves", Description: "Robot groups immediately refill open enemy slots, keeping the wave under constant pressure."},
 	{Key: "faulty_calibration", Name: "Faulty Calibration", Kind: "players", Description: "Player weapons suffer severe bullet and flame spread, while projectiles and precision shots deviate from the crosshair."},
 	{Key: "loose_footing", Name: "Loose Footing", Kind: "environment", Description: "Ground friction and acceleration are heavily reduced, giving everyone icy momentum, while all knockback is tripled."},
+	{Key: "mental", Name: "Mental", Kind: "robots", Description: "Enemies stay cloaked. Normal hits briefly reveal a shimmer; reveal-on-hit buffs decloak for five seconds."},
 }
