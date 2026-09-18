@@ -862,9 +862,10 @@ static void MissionModifiers_MarkSupportBots(bool supportBots[MAXPLAYERS + 1])
         }
         int count = LoadFromAddress(spawner.address
             + view_as<Address>(g_WaveSpawnActiveBotCountOffset), NumberType_Int32);
+        // One spawner with a count this cannot be says nothing about the rest.
         if (count < 0 || count > MaxClients)
         {
-            return;
+            continue;
         }
         Address handles = view_as<Address>(LoadFromAddress(spawner.address
             + view_as<Address>(g_WaveSpawnActiveBotsOffset), NumberType_Int32));
