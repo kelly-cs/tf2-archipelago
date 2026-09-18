@@ -4,7 +4,13 @@ What each release changes, for somebody who plays the game. The workflow in
 `.github/workflows/release.yml` reads the section matching the tag and puts it
 in the release notes, so this file is the only place to write it.
 
-## Unreleased
+## v1.17.2
+
+### Added
+
+- **A Documentation link in the launcher's footer.** It opens the book, which
+  now walks every tab and every settings page with a picture of each, and has a
+  page on the campaign tracker.
 
 ### Fixed
 
