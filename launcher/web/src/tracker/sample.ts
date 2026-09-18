@@ -128,7 +128,7 @@ export function sampleSource(host: string): TrackerSource {
         [catalog[1].pop_file]: [
           modifier('mental', 'Mental', 'robots', 'Cloaked enemies shimmer on hit.'),
           modifier(
-            'one_in_the_chamber',
+            'make_it_count',
             'Make it Count',
             'players',
             'Reduced ammo and metal, slower dispenser resupply, and 2.5x non-melee damage.',

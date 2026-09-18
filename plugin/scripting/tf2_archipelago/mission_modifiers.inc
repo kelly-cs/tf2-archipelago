@@ -971,7 +971,7 @@ static bool MissionModifiers_TryFlagForKey(const char[] key, int &flag)
     else if (StrEqual(key, "faulty_calibration", false)) flag = MissionModifier_FaultyCalibration;
     else if (StrEqual(key, "loose_footing", false)) flag = MissionModifier_LooseFooting;
     else if (StrEqual(key, "mental", false)) flag = MissionModifier_Mental;
-    else if (StrEqual(key, "one_in_the_chamber", false)) flag = MissionModifier_OneInTheChamber;
+    else if (StrEqual(key, "make_it_count", false)) flag = MissionModifier_OneInTheChamber;
     else return false;
     return true;
 }
@@ -1699,7 +1699,7 @@ public Action Command_MissionModifierDebug(int client, int argc)
         ReplyToCommand(client,
             "[AP] Usage: sm_ap_modifier <on|off|toggle> <key|all> | clear | seed");
         ReplyToCommand(client,
-            "[AP] Keys: low_gravity, high_gravity, blast_plating, thermal_shielding, ballistic_plating, fragile_mercenaries, overclocked_servos, loaded_dice, weaponized_tanks, miniature_menace, bot_surge, faulty_calibration, loose_footing, mental, one_in_the_chamber");
+            "[AP] Keys: low_gravity, high_gravity, blast_plating, thermal_shielding, ballistic_plating, fragile_mercenaries, overclocked_servos, loaded_dice, weaponized_tanks, miniature_menace, bot_surge, faulty_calibration, loose_footing, mental, make_it_count");
         MissionModifiers_Announce(client);
         return Plugin_Handled;
     }

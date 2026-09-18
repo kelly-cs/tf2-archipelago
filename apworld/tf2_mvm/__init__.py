@@ -161,7 +161,7 @@ MISSION_MODIFIERS = (
         "exclusive_group": "",
     },
     {
-        "key": "one_in_the_chamber",
+        "key": "make_it_count",
         "name": "Make it Count",
         "kind": "players",
         "description": (
