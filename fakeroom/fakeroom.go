@@ -32,13 +32,18 @@ import (
 
 // Room is a running fake multiworld. Close it to stop it.
 type Room struct {
-	server                                                  *http.Server
-	listener                                                net.Listener
-	log                                                     func(string)
-	deathLink                                               bool
-	modifiers                                               map[string][]MissionModifier
-	victoryCaches, milestoneChecks, giantsanity, tanksanity bool
-	repeatRewards                                           bool
+	server          *http.Server
+	listener        net.Listener
+	log             func(string)
+	deathLink       bool
+	modifiers       map[string][]MissionModifier
+	victoryCaches   bool
+	milestoneChecks bool
+	giantsanity     bool
+	tanksanity      bool
+	// repeatRewards keeps handing out items once the pool is spent, drawing
+	// at random. A test run clears more waves than a seed has unlocks.
+	repeatRewards bool
 	// unlockMissions is also announced in slot data. That makes the bridge's
 	// mission list immediately playable instead of depending on the starting
 	// inventory having crossed the websocket and reached its state store first.
@@ -106,11 +111,17 @@ type Options struct {
 	// bridge and plugin to exercise. Nil means the feature is disabled.
 	MissionModifiers map[string][]MissionModifier
 	// DrawModifiers uses the run's bounds when no assignment was supplied.
-	DrawModifiers                                           bool
-	ModifierMin, ModifierMax                                int
-	VictoryCaches, MilestoneChecks, Giantsanity, Tanksanity bool
-	// RandomRewards draws the normal item pool in a random order for Docker test mode.
-	RandomRewards bool
+	DrawModifiers   bool
+	ModifierMin     int
+	ModifierMax     int
+	VictoryCaches   bool
+	MilestoneChecks bool
+	Giantsanity     bool
+	Tanksanity      bool
+	// ShuffleRewards draws the normal item pool in a random order, and keeps
+	// drawing from it once it is spent. Docker test mode wants both: a tester
+	// clearing waves for an hour must not stop being rewarded halfway.
+	ShuffleRewards bool
 }
 
 // Start serves a fake room on loopback and returns it with the address the
@@ -138,7 +149,7 @@ func Start(ctx context.Context, options Options) (*Room, string, error) {
 		modifiers = DrawMissionModifiers(missions, options.ModifierMin, options.ModifierMax)
 	}
 	items := unlockOrder(start)
-	if options.RandomRewards {
+	if options.ShuffleRewards {
 		rand.Shuffle(len(items), func(i, j int) { items[i], items[j] = items[j], items[i] })
 	}
 	room := &Room{
@@ -153,7 +164,7 @@ func Start(ctx context.Context, options Options) (*Room, string, error) {
 		milestoneChecks: options.MilestoneChecks,
 		giantsanity:     options.Giantsanity,
 		tanksanity:      options.Tanksanity,
-		repeatRewards:   options.RandomRewards,
+		repeatRewards:   options.ShuffleRewards,
 		unlockMissions:  options.UnlockMissions,
 		seed:            fmt.Sprintf("test-mode-%x", rand.Uint64()),
 	}

@@ -255,7 +255,7 @@ func TestDockerChecksAndModifiersReachTheBridge(t *testing.T) {
 		Missions:      []string{"mvm_decoy", "mvm_mannhattan"},
 		DrawModifiers: true, ModifierMin: 2, ModifierMax: 2,
 		VictoryCaches: true, MilestoneChecks: true, Giantsanity: true, Tanksanity: true,
-		RandomRewards: true,
+		ShuffleRewards: true,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -308,7 +308,7 @@ func TestDockerChecksAndModifiersReachTheBridge(t *testing.T) {
 
 func TestDockerChecksKeepRewardingAfterPoolIsExhausted(t *testing.T) {
 	room, address, err := Start(t.Context(), Options{
-		Missions: []string{"mvm_decoy"}, RandomRewards: true,
+		Missions: []string{"mvm_decoy"}, ShuffleRewards: true,
 	})
 	if err != nil {
 		t.Fatal(err)

@@ -210,7 +210,7 @@ func dockerTestOptions(ctx context.Context, cfg config.Config, logger *slog.Logg
 		DeathLink: run.DeathLink, DrawModifiers: run.MissionModifiers,
 		ModifierMin: run.ModifierMin, ModifierMax: run.ModifierMax,
 		VictoryCaches: run.VictoryCaches, MilestoneChecks: run.MilestoneChecks,
-		Giantsanity: run.Giantsanity, Tanksanity: run.Tanksanity, RandomRewards: true,
+		Giantsanity: run.Giantsanity, Tanksanity: run.Tanksanity, ShuffleRewards: true,
 		Log: func(text string) { logger.InfoContext(ctx, "test mode", "message", text) },
 	}
 }
