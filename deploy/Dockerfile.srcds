@@ -119,22 +119,27 @@ COPY --from=bots /repo/deploy/bots/build/package/addons \
 	/opt/tf2-archipelago/addons
 # Keep the native extensions checked against the image that actually runs
 # them. A future build-image update must fail here instead of shipping bots
-# that SourceMod cannot load.
+# SourceMod cannot load, which is what a newer glibc than this image's did.
+#
+# The check is the glibc version each extension asks for, not ldd's view of
+# them: they link the engine's own libtier0_srv.so and libvstdlib_srv.so, which
+# live in the game directory and are not in this image at all, so every ldd
+# here reports two libraries missing whether the build is good or not. The
+# GLIBC_x.y symbol versions are in the object's own string table, which needs
+# nothing present to read.
 RUN set -eu; \
+	provided="$(ldd --version | head -1 | grep -oE '[0-9]+\.[0-9]+$')"; \
+	[ -n "$provided" ] || { echo "cannot read this image's glibc version" >&2; exit 1; }; \
 	for name in actions cbasenpc; do \
 		file="/opt/tf2-archipelago/addons/sourcemod/extensions/$name.ext.2.tf2.so"; \
 		if [ ! -s "$file" ]; then \
 			echo "missing defender-bot extension: $file" >&2; \
 			exit 1; \
 		fi; \
-		if ! dependencies="$(ldd "$file" 2>&1)"; then \
-			printf '%s\n' "$dependencies" >&2; \
-			echo "cannot inspect defender-bot extension: $file" >&2; \
-			exit 1; \
-		fi; \
-		if printf '%s\n' "$dependencies" | grep -q 'not found'; then \
-			printf '%s\n' "$dependencies" >&2; \
-			echo "$file needs a library absent from the TF2 image" >&2; \
+		needed="$(grep -ao 'GLIBC_[0-9][0-9.]*' "$file" | sed 's/^GLIBC_//' | sort -uV | tail -1)"; \
+		[ -n "$needed" ] || continue; \
+		if [ "$(printf '%s\n%s\n' "$needed" "$provided" | sort -V | tail -1)" != "$provided" ]; then \
+			echo "$file needs glibc $needed, this image has $provided" >&2; \
 			exit 1; \
 		fi; \
 	done
