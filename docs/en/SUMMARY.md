@@ -4,37 +4,36 @@
 
 ## Start here
 
-* [Archipelago for MvM players](archipelago-for-mvm-players.md)
+* [Archipelago words, for MvM players](archipelago-for-mvm-players.md)
 * [What the randomizer changes](what-the-randomizer-changes.md)
 
-## Set up the server
+## Install the server
 
 * [Requirements](setup/requirements.md)
 * [Install on Windows](setup/install-windows.md)
 * [Install on Linux](setup/install-linux.md)
 * [Install with Docker](setup/install.md)
-* [The shape of the run](setup/shape-of-the-run.md)
+* [The launcher, tab by tab](setup/the-launcher.md)
+
+## The Archipelago session
+
 * [Create the session](setup/create-the-session.md)
-* [Invite your friends](setup/invite-your-friends.md)
-* [Fast map downloads with Tailscale](setup/tailscale-fastdl.md)
+* [Run options](setup/shape-of-the-run.md)
+* [Start a new run](operate/start-a-new-run.md)
 
 ## Play
 
+* [Invite your friends](setup/invite-your-friends.md)
 * [The first session](play/first-session.md)
+* [The campaign tracker](play/tracker.md)
 * [Chat commands](play/chat-commands.md)
 * [The bots on your team](play/defender-bots.md)
+* [Fast map downloads with Tailscale](setup/tailscale-fastdl.md)
 
-## Run it
+## When something is wrong
 
 * [Troubleshooting](operate/troubleshooting.md)
-* [Start a new run](operate/start-a-new-run.md)
 
 ## Reference
 
-* [Design spec](spec.md)
-* [The repository](repository.md)
-* [ADR 0001: Go owns the game data](adr/0001-go-owns-the-game-data.md)
-* [ADR 0002: Server-side plugin with a Go bridge](adr/0002-server-side-plugin-with-a-go-bridge.md)
 * [Glossary](glossary.md)
-* [Code signing policy](code-signing.md)
-* [Trademarks and artwork](licences.md)

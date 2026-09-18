@@ -1,18 +1,20 @@
 # Troubleshooting
 
-Three things can be wrong: the game server does not see the game, the plugin
-cannot reach the bridge, or the bridge cannot reach the randomizer server. This
-page finds out which.
+Three things can be wrong:
+
+1. The plugin does not see the game.
+2. The plugin cannot reach the bridge.
+3. The bridge cannot reach the room.
+
+This page finds out which. If you ask for help, send the debug bundle first:
+**Settings**, then **Debug logs**, in the launcher. It holds the launcher log,
+the server console and your settings, without passwords.
 
 ## Read the logs
 
-```sh
-make logs
-```
-
-That follows every service the stack runs. For one service, use the full
-compose command.
-The stack needs two environment files, so the short form does not work:
+- **Launcher:** the log at the bottom of the **Play** tab. **Filter the log**
+  narrows it.
+- **Docker:** `make logs` follows every service. For one service:
 
 ```sh
 docker compose --project-directory . \
@@ -21,25 +23,14 @@ docker compose --project-directory . \
 ```
 
 Replace `bridge` with `srcds`, or with `archipelago` when the stack hosts the
-session itself.
-
-```sh
-make ps
-```
-
-That lists the containers. The bridge reports `healthy` when its own interface
-answers.
+session itself. `make ps` lists the containers.
 
 ## Ask the game server
 
-```
-rcon_password your-SRCDS_RCONPW
-rcon sm_ap_status
-```
+Type `sm_ap_status` in the rcon box under the log, or `rcon
+sm_ap_status` in the game console. The answer looks like this:
 
-The answer is five lines:
-
-```
+```text
 [AP] version 0.1.0, mvm yes, mission mvm_decoy, wave 3 of 8
 [AP] events: begin_wave yes, wave_complete yes, mission_complete yes
 [AP] unlocks held at sequence 6, 0 objective(s) waiting to be sent
@@ -48,69 +39,56 @@ The answer is five lines:
 [AP] Last bridge error: ...
 ```
 
-Read them in this order:
+Read it in this order:
 
-- **`mvm no`** means that the plugin does not think this is Mann vs Machine.
-  Nothing is reported on a map that is not an MvM map.
-- **`events: ... no`** is the important one. It names which of the three Mann vs
-  Machine game events this server actually sends. A `no` here means your game
-  version does not send that event; report it. `wave_complete no` makes the
-  plugin watch the wave counter instead.
-- **`unlocks NOT FETCHED`** means that the plugin has never had an answer from
-  the bridge. Until it does, it enforces nothing: a server where nobody can hold
-  a weapon is worse than a wave played with too much kit.
-- **`N objective(s) waiting to be sent`** counts the checks that the plugin
-  holds. Anything above zero means that the bridge is not answering. It retries
-  every five seconds.
-- **`Last bridge error`** is the last thing that went wrong, in the plugin's own
-  words.
+- `mvm no`: the plugin does not think this is Mann vs Machine. Nothing is
+  reported on a map that is not an MvM map.
+- `events: ... no`: your game version does not send that event. Report it.
+  With `wave_complete no`, the plugin watches the wave counter instead.
+- `unlocks NOT FETCHED`: the plugin never got an answer from the bridge. Until
+  it does, it locks nothing.
+- `N objective(s) waiting to be sent`: the bridge is not answering. The plugin
+  retries every five seconds.
+- `Last bridge error`: the last thing that went wrong.
 
-`rcon sm_ap_resync` asks the bridge for the unlock set again. It is the first
-thing to try when the unlocks in the chat look stale.
+`sm_ap_resync` asks the bridge for the unlock set again. Try it first when the
+unlocks in the chat look stale.
 
 ## Ask the bridge
 
-The bridge serves one page with everything it knows. It lives on the loopback
-interface inside the game server's network namespace, so the request has to be
-made from there:
+The bridge serves one page with everything it knows. In the launcher, the
+**Play** tab shows it. With Docker, the page is on loopback inside the
+game server's network namespace:
 
 ```sh
 docker run --rm --network container:tf2-archipelago-srcds-1 \
   curlimages/curl:latest -s 127.0.0.1:24680/healthz
 ```
 
-The container name comes from `make ps`.
-
-The answer holds:
-
 | Field | What it tells you |
 | --- | --- |
-| `api_version` | The wire version. The plugin says in the chat when it disagrees. |
-| `connected` | Whether the session with the randomizer server is up right now |
+| `connected` | Whether the session with the room is up right now |
 | `slot` | The name of your server in the session |
-| `missions` | The missions that the run drew |
-| `death_link` | Whether the seed asked for DeathLink |
+| `missions` | The missions the run drew |
 | `seed` | The identity of the current session |
 | `checks` | How many checks the run holds |
-| `items` | How many items the run has received |
-| `acked_seq` | How far the plugin has confirmed it applied |
-| `goal_sent` | Whether the run has been declared finished |
+| `items` | How many items the run received |
+| `acked_seq` | How far the plugin confirmed it applied |
+| `goal_sent` | Whether the run is finished |
 | `last_check` and `last_check_at` | The last check and when it landed |
-| `wave_drift` | Missions whose length the game disagrees with |
+| `wave_drift` | Missions whose wave count the game disagrees with |
 | `wave_failures` | Every wave the team lost, worst first |
-| `last_error` | The last failure on the randomizer side |
+| `last_error` | The last failure on the room side |
 
 `last_check` answers "did that wave count". `wave_failures` answers "which
 waves stopped us", which is the question to ask before you change the team
-size or the bots. It counts from the last restart of the randomizer server,
-and it counts whether or not the seed has DeathLink on.
+size or the bots.
 
-## Watch the run over time
+### Metrics
 
-The same numbers are served as Prometheus metrics, on their own port, so a
-dashboard can plot them instead of a person re-running the command above. That
-port **is** published on the host — `BRIDGE_METRICS_BIND` decides who can reach
-it, loopback by default:
+The bridge also serves the same numbers as Prometheus metrics on port `24681`, on
+loopback by default. `BRIDGE_METRICS_BIND` in `.env` opens it to another
+machine.
 
 ```sh
 curl -s 127.0.0.1:24681/metrics
@@ -118,140 +96,86 @@ curl -s 127.0.0.1:24681/metrics
 
 | Metric | What it tells you |
 | --- | --- |
-| `tf2ap_session_connected` | 1 while the session with the randomizer server is up |
+| `tf2ap_session_connected` | 1 while the session with the room is up |
 | `tf2ap_session_missions` | How many missions the run drew |
-| `tf2ap_run_checks_total` / `tf2ap_run_items_total` | Checks sent, items received |
-| `tf2ap_run_acked_seq` | How far the plugin confirmed it applied. Stuck behind the item count means the game server is not applying grants |
+| `tf2ap_run_checks_total`, `tf2ap_run_items_total` | Checks sent, items received |
+| `tf2ap_run_acked_seq` | How far the plugin confirmed it applied |
 | `tf2ap_run_goal_sent` | 1 once the run is finished |
-| `tf2ap_run_last_check_timestamp_seconds` | When the last check landed. Absent until one does |
-| `tf2ap_mission_wave_drift` | One series per mission the game and the tables disagree about, valued at the difference. No series is the healthy case |
-| `tf2ap_wave_lost_total` | One series per wave the team lost, by mission and wave. What says whether a team of fewer than six can win |
+| `tf2ap_run_last_check_timestamp_seconds` | When the last check landed |
+| `tf2ap_mission_wave_drift` | One series per mission the game and the tables disagree about. None is the healthy case. |
+| `tf2ap_wave_lost_total` | One series per wave the team lost |
 | `tf2ap_run_info` | The seed and slot the numbers belong to |
-| `tf2ap_game_up` | 1 when the game server answered an A2S query on that scrape |
-| `tf2ap_game_players` / `_bots` / `_players_human` | Who is on the server. MvM counts its robot waves as bots, so the people playing are players minus bots |
-| `tf2ap_game_players_max` | What the server advertises — six, the RED slots. Not the 32 it must be started with to host MvM at all |
-| `tf2ap_game_map` | The mission it is on, as a label |
+| `tf2ap_game_up` | 1 when the game server answered a query on that scrape |
+| `tf2ap_game_players`, `_bots`, `_players_human` | Who is on the server |
+| `tf2ap_game_map` | The mission it is on |
 
-The player counts come from an A2S query the bridge sends the game server, the
-same thing a server browser asks. A server that does not answer reports
-`tf2ap_game_up 0` and **no** counts, so a restarting srcds reads as missing
-rather than as an empty server.
+The player counts come from a query to the game server, cached for ten
+seconds. The game server refuses a source that queries it too often, so do not
+lower that.
 
-Two catches, both measured on a running server rather than guessed:
-
-- srcds binds `0.0.0.0:27015` and answers a query sent to any of its interface
-  addresses, but **drops** one sent to `127.0.0.1`. Address it by name
-  (`srcds:27015`), even from inside its own network namespace — that is what
-  `BRIDGE_GAME_QUERY` defaults to.
-- srcds stops answering a source that queries it more than a few times a second
-  (`sv_max_queries_sec`, over a 30 second window), and keeps refusing until that
-  window drains. So the answer is cached for ten seconds: scrape `/metrics` in a
-  loop and you still get one query every ten seconds. Without that, curling this
-  endpoint a few times in a row makes the dashboard say the server is down.
-
-`tf2ap_mission_wave_drift` is the one worth an alert: a wrong wave count on the
-goal mission is what makes a seed unwinnable, and it cannot be repaired mid-run.
-
-## When the randomizer server is down
+## When the room is down
 
 Nothing is lost. The bridge writes each check to disk before it answers the
-game server, and sends it upstream afterwards. A randomizer server that is down
-for an hour costs nothing: the checks arrive when it comes back. The bridge
-reconnects on its own, waiting longer between attempts up to thirty seconds.
+game server, and sends it upstream afterwards. The bridge reconnects on its
+own. Cleared waves keep counting. Received items arrive when the room comes
+back.
 
-Received items stop arriving while it is down. Cleared waves keep counting.
-
-A bridge that never connects once is a different problem. Check `AP_HOST`,
-`AP_PORT` and `AP_TLS`. A room on `archipelago.gg` answers `wss://` and needs
-`AP_TLS=true`; a session inside the stack answers `ws://` and needs
-`AP_TLS=false`. The wrong one fails every attempt, and the bridge logs the
-failure each time.
+A bridge that never connects once is a different problem. Check the room
+address. With Docker, also check `AP_TLS`: a room on `archipelago.gg` needs
+`AP_TLS=true`, a room hosted in the stack needs `AP_TLS=false`.
 
 ## When the bridge is down
 
 The plugin holds its checks in memory and retries every five seconds. The chat
-says that the bridge is unreachable, once, so that nobody decides that the
-randomizer is broken.
+says once that the bridge is unreachable.
 
-The bridge shares the network namespace of the game server, so restarting the
-game server restarts the bridge too. It comes back on its own within seconds.
-The checks are on disk and the unlock set is rebuilt from them.
+In the launcher, the bridge runs beside the game server. **Restart** brings
+both back. With Docker, the bridge restarts with the game server. The checks
+are on disk, and the unlock set is rebuilt from them.
 
-If the state file of the bridge is lost, the run is not lost either. The
-randomizer server holds the same list of checks and sends it at each
-connection. The bridge adopts whatever it is missing. Losing the file costs the
-item history, not the checks.
+If the bridge's state file is lost, the run is not. The room holds the same
+list of checks and sends it at each connection. Only the item history is lost.
 
 ## Recovering a check by hand
 
-There is one gap in all of that: the seconds between a cleared wave and the
-bridge taking the check. The plugin's queue is in memory and holds at most 64
-objectives. If the game server crashes while the bridge is unreachable,
-whatever is in that queue is gone.
+There is one gap: the seconds between a cleared wave and the bridge taking the
+check. The plugin's queue is in memory. If the game server crashes while the
+bridge is unreachable, that queue is gone.
 
-The plugin writes every objective to the SourceMod log twice: once when it
-queues it, and once when the bridge has it on disk.
+The plugin writes every check to the SourceMod log twice: once when it queues
+it, and once when the bridge has it on disk.
 
-```sh
-docker compose --project-directory . \
-  --env-file deploy/env/versions.env --env-file .env \
-  -f deploy/compose.yml exec srcds \
-  bash -c 'grep objective /home/steam/tf-dedicated/tf/addons/sourcemod/logs/L*.log'
-```
-
-```
+```text
 objective wave_cleared mvm_decoy wave 3 (mission length 8) queued for the bridge
 objective wave_cleared mvm_decoy wave 3 is on the bridge's disk
 ```
 
 A `queued` line with no matching `on the bridge's disk` line is a check that
-never landed. Replay it:
+never landed. Replay it, on the map the check belongs to:
 
+```text
+sm_ap_report wave_cleared 3
 ```
-rcon sm_ap_report wave_cleared 3
-```
 
-Run it on the map that the check belongs to. The plugin sends the mission that
-the game is on, so replaying a Decoy check while the server runs Coal Town
-records the wrong place.
+## Docker: never restart the game server on its own
 
-## Never restart the game server on its own
+The bridge lives inside the game server's network namespace. `docker compose
+up -d srcds` alone leaves the bridge attached to a namespace that no longer
+exists. It reports healthy and reaches nothing.
 
-The bridge lives inside the game server's network namespace, which is what puts
-its API on a loopback nothing else can reach. The cost is that the game server
-owns that namespace.
-
-So `docker compose up -d srcds` on its own leaves the bridge attached to a
-namespace that no longer exists. It keeps running, it still reports itself
-healthy, and it can reach nothing: the plugin gets a refused connection and the
-randomizer server sees the slot disconnect. `docker restart` does not fix it and
-fails with `joining network namespace: No such container`.
-
-Recreate it:
+Recreate the whole stack:
 
 ```sh
-make up            # recreates the whole stack, which is always safe
+make up
 ```
-
-Or, if only the bridge needs it:
-
-```sh
-docker compose --project-directory . \
-  --env-file deploy/env/versions.env --env-file .env \
-  -f deploy/compose.yml up -d --force-recreate bridge
-```
-
-`make up` and the Ansible role both recreate the whole project, so this only
-happens when a single service is restarted by hand.
 
 ## When the wave counts are wrong
 
-Every wave count in this project comes from the wiki, and the game is the
-authority. A wrong count makes a mission clear fire one wave early, or never.
+Every wave count comes from the wiki, and the game is the authority. A wrong
+count makes a mission clear fire one wave early, or never.
 
-The plugin sends the mission length that the game reports with each check. The
-bridge compares it with its own table and serves the disagreements as
-`wave_drift`:
+The bridge compares the length the game reports with its table and serves the
+disagreements as `wave_drift`:
 
 ```json
 "wave_drift": [
@@ -259,25 +183,31 @@ bridge compares it with its own table and serves the disagreements as
 ]
 ```
 
-An empty `wave_drift` after a full mission means that the table is right for
-that mission. A mission that appears there is a row to correct in
-`gamedata/missions.go`. The check still counts: the wave was cleared either
-way.
+A mission that appears there is a row to correct in `gamedata/missions.go`.
+Report it. The check still counts.
 
-## When a mission is not part of the run
+## Messages in the chat
 
-```
-[AP] The run did not unlock mvm_decoy. Its checks still count.
-```
+| The chat says | What it means |
+| --- | --- |
+| `[AP] The run did not unlock mvm_decoy. Its checks still count.` | The server runs a mission whose ticket the run has not found. A warning, not a refusal. |
+| `[AP] The bridge speaks API version 2 and this plugin speaks 1.` | You updated one half and not the other. **Repair** in the launcher, or `make build` and `make up` with Docker. |
+| `[AP] The bridge is unreachable.` | See [When the bridge is down](#when-the-bridge-is-down). |
 
-The server is running a mission whose ticket the run has not found. This is a
-warning, not a refusal. The map rotation belongs to you.
+## Windows: the launcher will not start
 
-## When the plugin and the bridge disagree
+- SmartScreen or Defender blocked it. See
+  [Install on Windows](../setup/install-windows.md#windows-will-warn-you).
+- The install folder is full. The game server needs about 20 GB free.
+- Something else uses the game port. Change **Game port** on the **Game
+  server** page.
 
-```
-[AP] The bridge speaks API version 2 and this plugin speaks 1. Update the one that is behind.
-```
+## Windows: Generate seed fails
 
-One half of the stack was rebuilt and the other was not. Run `make build` and
-`make up`.
+- The launcher cannot find the Archipelago app. Set **Archipelago app** on the
+  **Player options** page to the app's folder.
+- The Archipelago version does not match. `tf2ap.exe -version` prints the one
+  the launcher pins. Install that one.
+- The pool is too small for the items. Press **Check Run Selection** on the
+  **Missions** page. Add missions, or turn on victory caches. See
+  [Run options](../setup/shape-of-the-run.md#more-checks).

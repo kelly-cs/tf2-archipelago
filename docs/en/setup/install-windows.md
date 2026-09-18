@@ -1,178 +1,125 @@
 # Install on Windows
 
-The easiest way to run a Mann vs Archipelago server. One file. No Docker, no
-clone, no compiler.
+One file. No Docker, no clone, no compiler.
 
-Download `tf2ap.exe` from the
-[latest release](https://github.com/m-this/tf2-archipelago/releases/latest)
-and run it.
+## 1. Download and run
 
-## Windows will warn you
+1. Download `tf2ap.exe` from the
+   [latest release](https://github.com/m-this/tf2-archipelago/releases/latest).
+2. Double-click it. A browser tab opens with the launcher.
+
+### Windows will warn you
 
 SmartScreen blocks the first run. Click **More info**, then **Run anyway**.
-Defender sometimes quarantines the launcher instead.
+Defender sometimes quarantines the file instead. Restore it and add an
+exclusion.
 
-It is a false positive. The launcher unpacks archives into your Team Fortress 2
-folder, writes the Metamod and SourceMod DLLs, downloads a game server, and
-starts it. An installer does this. So does a virus. The launcher has no
-signature yet, so the scanner cannot see the difference.
+The warning is a false positive. The launcher unpacks archives, writes DLLs into
+a game folder, downloads a server and starts it. That is what an installer does,
+and also what a virus does. The file has no code signature yet, so the scanner
+cannot tell the difference. See [Code signing policy](https://github.com/m-this/tf2-archipelago/blob/main/design/code-signing.md).
 
-The project asked SignPath for a free open-source signature. The warning stays
-until it arrives.
+To check the file yourself:
 
-Check the launcher yourself:
+- Compare `Get-FileHash tf2ap.exe -Algorithm SHA256` with `SHA256SUMS` on the
+  release page.
+- Open the VirusTotal report linked on the release page.
+- Run `gh attestation verify tf2ap.exe --repo m-this/tf2-archipelago`.
 
-- Every release includes `SHA256SUMS`. Run
-  `Get-FileHash tf2ap.exe -Algorithm SHA256` and compare the two values.
-- Every release links its own VirusTotal report.
-- `make launcher` rebuilds it from the source in this repository. That command
-  needs Linux or WSL: the plugin compiler is a Linux binary, and the build stops
-  without it. Windows does not build the launcher. Download the released exe
-  instead.
-- `gh attestation verify tf2ap.exe --repo m-this/tf2-archipelago` names the
-  commit and the workflow that built the file you have.
+## 2. Press Start
 
-## What happens
+The first start installs SteamCMD, the TF2 dedicated server, SourceMod, the
+plugin and the bots. It downloads about 14 GB, so it takes a while. Every later
+start takes seconds.
 
-A window opens and asks for your Archipelago room address. Then it installs
-everything: SteamCMD, the TF2 dedicated server, SourceMod, the plugin, and
-the bots that fill your team. The game server is about 14 GB, and the first
-start takes a while because of it. Every later start takes seconds.
+You do not need a room address yet. Without one the server runs, and the
+**Play** tab says it is waiting for a room.
 
-The window has:
+## 3. Create the session
 
-- **Start**, **Stop**, **Restart**. A light beside them shows red, amber or
-  green.
-- **Join**, under the buttons: the addresses your friends connect to.
-  **Copy** puts one on the clipboard. The button beside them starts Team
-  Fortress 2 and joins this server. It uses this machine's own address on
-  the network: a server on the same machine does not answer on 127.0.0.1.
-- A **Log** tab and an **rcon** box, for when something looks wrong.
-- A **Session** tab: connection status, checks, items, and the missions of
-  the run. **Play this mission** loads the one you pick.
-- A **Bot Switcher** tab: what each seat on RED plays and what it carries.
-  **Apply to the running server** hands a new team over without ending the
-  mission.
-- **Settings**, for the room, the missions, the bots, who can join and the
-  shape of the run.
+The launcher runs the game server. The Archipelago session is separate, and
+the official Archipelago app generates the seed.
+
+1. Install the [Archipelago app](https://github.com/ArchipelagoMW/Archipelago/releases).
+   The launcher finds it in the usual places.
+2. Open **Settings**, then **Player options**. Choose the [run options](shape-of-the-run.md).
+3. Press **Generate seed**. The launcher writes the player file, runs the
+   generator and opens the folder with the result.
+4. Upload that file at [archipelago.gg/uploads](https://archipelago.gg/uploads)
+   and click **Create New Room**.
+5. Copy the room address, like `archipelago.gg:12345`, into **Settings**, then
+   **Archipelago room**. Save, then press **Restart**.
+
+[Create the session](create-the-session.md) explains each step, and what to do
+if **Generate seed** cannot find the Archipelago app.
+
+## 4. Invite your friends
+
+The **Join** line under the buttons shows the connect line to give out. By
+default the server is reachable from your local network only. To let friends
+join over the internet, see [Invite your friends](invite-your-friends.md).
+
+## The screen
+
+| Tab | What is on it |
+| --- | --- |
+| **Play** | The connect line, the unlocked classes, the bot team, the missions of the run, and the log with an rcon box. **Play** on a mission row loads it. |
+| **Unlocks** | Everything the multiworld has handed your server. |
+| **Bots** | The RED team: which class each seat plays and what it carries. **Apply** changes the team without ending the mission. |
+| **Settings** | The run options, the room, the missions, the bots, the network. |
+
+**Start**, **Stop**, **Restart** and **Quit** are at the top of every tab.
+Closing the browser tab leaves the server running. **Quit** stops it.
 
 ![The settings, on the mission pool](../../images/launcher-settings.png)
 
-Closing the browser tab leaves the server running. **Quit** on the screen
-stops it. Your answers are saved for next time either way.
+[The launcher, tab by tab](the-launcher.md) walks through every screen.
 
-## What you need
+Three buttons in Settings help when something is wrong:
 
-| Thing | What you need |
-| --- | --- |
-| Windows | 10 or 11, 64-bit |
-| Disk | About 20 GB free |
-| Memory | 4 GB for six players |
-| Processor | Two cores |
-| Network | Nothing, for friends on the same network or over Steam. One forwarded port only if you pick that route. |
-
-No Docker, no Steam client, no Steam account for the server itself.
-
-## The Archipelago session
-
-The launcher runs the TF2 server. The multiworld session is separate. Mann
-vs Machine is not one of the games that ship with Archipelago, so the seed
-generator stays with the official app.
-
-1. Install the official
-   [Archipelago](https://github.com/ArchipelagoMW/Archipelago/releases) app.
-   The launcher finds it on its own in the usual places.
-2. In the launcher, open **Settings**, set the player options, and press
-   **Generate seed**. It writes the player file and opens the folder with
-   the generated archive.
-3. Upload that archive at
-   [archipelago.gg/uploads](https://archipelago.gg/uploads) to open a room,
-   and paste the room address (like `archipelago.gg:12345`) into the
-   launcher.
-
-If the launcher can't find the Archipelago app, **Generate seed** says so.
-Point it at the app's folder in **Settings → Player options → Archipelago
-app**.
-
-See [Create the session](create-the-session.md) for the full detail,
-including hosting the session yourself.
-
-## Inviting friends
-
-Your friends connect from the developer console:
-
-```
-connect your.server.address:27015
-```
-
-The **Join** line under the buttons shows the addresses to give out. See
-[Invite your friends](invite-your-friends.md) for reaching people outside
-your network.
-
-## The bots on your team
-
-Valve balances every wave for six players. The server fills empty RED seats
-with bots that play: they pick classes, fight, and buy their own upgrades.
-The **Bots** tab turns them off, shrinks the team for a harder run, or shapes
-which classes they play. See
-[The bots on your team](../play/defender-bots.md).
+- **Debug logs** writes one file with the launcher log, the server console and
+  your settings, without passwords. Send it when you ask for help.
+- **Repair** reinstalls the mods. It keeps the game files and the run.
+- **Reset settings** puts every setting back to the defaults. It keeps the
+  game files.
 
 ## Try it without Archipelago
 
-**Test mode**, in Settings, runs a multiworld of one on your own machine —
-no room, no seed, nothing leaves your computer. Use it to try the server
-out or to check something before a real run.
-
-## When you need help
-
-**Debug logs**, in Settings, bundles everything useful into one file: the
-launcher log, the server console, your settings, no passwords. Send it to
-whoever is helping you.
-
-**Repair** reinstalls the mods without touching the game files or your run.
-
-**Reset settings** puts every answer back to what a fresh install has, for a
-run whose settings have drifted somewhere you cannot see. It keeps the game
-files and where they are, so nothing is downloaded again.
-
-See [Troubleshooting](../operate/troubleshooting.md) for the rest, and
-[Install with Docker](install.md) if you'd rather run this on Linux.
-
----
+**Test mode**, in **Settings**, then **Archipelago room**, runs a multiworld of
+one on your machine. No room, no seed, nothing leaves your computer. Use it to
+try the server out.
 
 ## Reference
 
-### Commands
+### Command line
 
-Run these from a terminal. Double-clicking the exe opens the browser on its own.
+Double-clicking the exe opens the browser. From a terminal:
 
 | Command | What it does |
 | --- | --- |
 | `tf2ap.exe` | Serve the interface and open a browser on it |
-| `tf2ap.exe -room <host:port>` | Set the room address, then do the same |
+| `tf2ap.exe -room <host:port>` | Set the room address first |
 | `tf2ap.exe -no-browser` | Print the address instead of opening a browser |
-| `tf2ap.exe -addr 127.0.0.1:8080` | Serve there instead of on a port Windows picks |
-| `tf2ap.exe -console` | Print the log and nothing over it |
+| `tf2ap.exe -addr 127.0.0.1:8080` | Serve on a fixed address |
+| `tf2ap.exe -console` | Print the log and nothing else |
 | `tf2ap.exe -configure` | Edit every setting in the terminal, then exit |
 | `tf2ap.exe -install` | Install or repair the server, then exit |
 | `tf2ap.exe -status` | Show the settings and the install state |
 | `tf2ap.exe -yaml <path>` | Write the Archipelago player file, then exit |
-| `tf2ap.exe -env` | List the environment variables, then exit |
+| `tf2ap.exe -env` | List the environment variables it reads, then exit |
 | `tf2ap.exe -version` | Print the version and the pinned tool versions |
 
-### Settings from the environment
+### Environment variables
 
-Every setting also reads an environment variable, named the way
-`deploy/.env.example` names it. A variable wins over the saved file for that
-run:
+Every setting also reads an environment variable, with the names in
+[Run options](shape-of-the-run.md). A variable wins over the saved settings
+for that run:
 
 ```bat
 set AP_ROOM=archipelago.gg:12345
 set SRCDS_BOT_TEAM_SIZE=4
 tf2ap.exe
 ```
-
-`tf2ap.exe -env` prints every name it reads and marks the ones already set.
 
 ### Where it keeps things
 
@@ -181,7 +128,10 @@ tf2ap.exe
 | `%USERPROFILE%\tf2-archipelago\` | The game files, SourceMod and SteamCMD |
 | `%USERPROFILE%\tf2-archipelago\tf2.yaml` | The player file |
 | `%USERPROFILE%\tf2-archipelago\bridge-state\` | The checks and unlocks of the run |
-| `%APPDATA%\tf2ap\config.json` | Your saved settings |
+| `%APPDATA%\tf2ap\config.json` | Your settings |
 | `%LOCALAPPDATA%\Programs\Archipelago\` | The Archipelago app, if installed there |
 
-`TF2AP_INSTALL_ROOT` moves the first three, for a second disk.
+**Install folder**, in **Settings**, then **Player options**, moves the first
+three to another disk.
+
+Next: [Create the session](create-the-session.md).

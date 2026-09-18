@@ -1,42 +1,51 @@
 # Install with Docker
 
-This is the Docker path. It works on any operating system with Docker. If you
-are on Windows, [Install on Windows](install-windows.md) is easier: one exe,
-no Docker.
+This is the Docker path. It works on any operating system with Docker. On
+Windows, [Install on Windows](install-windows.md) is easier: one exe, no
+Docker.
 
-Run everything from the root of the repository. [Without the
-repository](#without-the-repository), at the end of this page, does the same
-with two downloaded files.
+There are two ways to run it:
 
-The stack plays an Archipelago room. It needs the room's address and a slot,
-which is `AP_HOST`, `AP_PORT` and `AP_SLOT_NAME` in `.env`, and nothing else
-from Archipelago. `make seed` further down is for people who have no room yet;
-skip it if you already generate your own multiworlds.
+- [From a clone of the repository](#from-a-clone), with `make`.
+- [From two downloaded files](#without-the-repository), with `docker compose`
+  and the published images.
 
-## 1. Write the configuration file
+Both give the same admin page as the launcher, at `http://127.0.0.1:8477`.
+
+## From a clone
+
+Run everything from the root of the repository.
+
+### 1. Write the configuration file
 
 ```sh
 cp deploy/.env.example .env
 ```
 
-`.env` is the one file that you edit. Git ignores it.
+`.env` is the one file you edit. Git ignores it. Every setting in it is
+described in [Run options](shape-of-the-run.md).
 
-## 2. Set the console password
+### 2. Set the console password
 
-Open `.env` and set `SRCDS_RCONPW` to a password of your choice:
+Open `.env` and set `SRCDS_RCONPW`:
 
 ```sh
 SRCDS_RCONPW=pick-something-long
 ```
 
-That password unlocks the remote console of the game server. You need it for
-the admin commands. Nobody else needs it.
+The password unlocks the remote console of the game server. Only the host
+needs it.
 
-## 3. Give the stack a session to play
+### 3. Give the stack a room
 
-The stack plays a session that already exists. [Create the
-session](create-the-session.md) makes one, hosts it on `archipelago.gg`, and
-gives you the address of a room. Write that address into `.env`:
+The stack needs a room address. Two choices:
+
+- You have no room yet. Run `make seed`, upload the file it writes to
+  `archipelago.gg`, and create a room. See [Create the session](create-the-session.md).
+- You already generate your own multiworlds. Use the release's `.apworld` and
+  point the stack at your room.
+
+Then write the room address into `.env`:
 
 ```sh
 AP_HOST=archipelago.gg
@@ -44,104 +53,50 @@ AP_PORT=12345
 AP_TLS=true
 ```
 
-`SRCDS_RCONPW`, `AP_HOST` and `AP_PORT` are the three values with no default.
-The stack refuses to start without one of them, and it prints which one.
+`SRCDS_RCONPW`, `AP_HOST` and `AP_PORT` have no default. The stack refuses to
+start without them, and it prints which one is missing.
 
-## Playing without Archipelago
+To try the stack without a room, set `TF2AP_TEST_MODE=1`. The bridge then plays
+a multiworld of one on this machine and ignores `AP_HOST` and `AP_PORT`.
 
-`TF2AP_TEST_MODE=1` in `.env` drops the need for a room. The bridge serves a
-multiworld of one on loopback and makes up a seed from the mission count and
-the goal you set. It hands out an unlock for every wave the team clears.
-
-It also plays the other players: they find things, send things over and die.
-Every line of that reaches the bridge log and the game's chat.
-
-The bridge ignores `AP_HOST` and `AP_PORT` while it is on, and nothing leaves
-the machine. Use it to try the stack out, and to test when something looks
-wrong.
-
-## 4. Start the stack
+### 4. Start the stack
 
 ```sh
 make up
 make logs
 ```
 
-`make up` builds two images and starts two containers. `make logs` follows the
-output of both. Stop following with Ctrl-C. That does not stop the stack.
+`make up` builds two images and starts the containers. `make logs` follows
+their output. Ctrl-C stops following, not the stack.
 
-## What the first start looks like
+The first start does this, in order:
 
-The build compiles the game plugin and the bridge. It takes a few minutes.
+1. Builds the plugin and the bridge. A few minutes.
+2. Downloads about 14 GB of game files. This is the long part.
+3. Installs the plugin. The log says `[AP] installed the plugin and ripext`.
+4. Joins the room. The log says `connected to archipelago slot=tf2`.
 
-Then, in this order:
+Every later start takes seconds.
 
-1. The game server starts and downloads about 14 GB of game files. This is the
-   long part. How long depends on your connection.
-2. The stack installs the plugin into the game files once they arrive. The log says
-   `[AP] installed the plugin and ripext into /home/steam/tf-dedicated/tf`.
-3. The bridge joins the room. Its log says `connected to archipelago slot=tf2
-   missions=8`, and the room page says
-   `tf2 (Team #1) playing Team Fortress 2 Mann vs Machine has joined`.
-
-Every later start takes seconds. The stack downloads nothing again.
-
-## The services
-
-| Service | What it does | Ports |
-| --- | --- | --- |
-| `srcds` | Runs the Team Fortress 2 dedicated server and the plugin | `27015/udp` and `27015/tcp` |
-| `bridge` | Holds the session with the room and answers the plugin | none, loopback inside the network namespace of the game server |
-| `fastdl` | Serves the allowlisted TF2 asset directories with Caddy | `27080/tcp`, configurable or loopback-only |
-
-A third service, `archipelago`, hosts the session on this machine instead of on
-`archipelago.gg`. It starts only with `COMPOSE_PROFILES=selfhost` in `.env`. See
-[Create the session](create-the-session.md).
-
-The bridge shares the network namespace of the game server. That is how the
-plugin reaches it at `127.0.0.1` and nothing outside the machine can.
-Restarting the game server restarts the bridge with it. That costs seconds, not
-progress: the bridge writes every check to disk.
-
-The bundled `tailscale-fastdl` service can publish Caddy through public HTTPS
-without forwarding the HTTP port. Sign it in from the admin UI when you choose
-to use it. See [Fast map downloads with Tailscale](tailscale-fastdl.md#docker-compose).
-
-## The commands
+### The commands
 
 | Command | What it does |
 | --- | --- |
-| `make seed` | Make a session in `seed/`, to upload to `archipelago.gg` |
+| `make seed` | Generate a session into `seed/`, to upload to `archipelago.gg` |
 | `make up` | Start the stack |
 | `make logs` | Follow the output of the services |
 | `make ps` | List the containers and their state |
 | `make down` | Stop the stack. Keeps the game files and the run. |
-| `make restart` | `make down` then `make up` |
+| `make restart` | `make down`, then `make up` |
 | `make build` | Rebuild the images |
 | `make clean` | Stop the stack and delete every volume, including the 14 GB of game files |
-| `make check` | Run everything that the continuous integration runs |
-| `make integration` | Start a real randomizer server and a real bridge, and drive them the way the plugin does |
-| `make dist` | Build everything a release attaches into `dist/`: the `.apworld`, the plugin, the exported data, and the compose file below |
 
-`make clean` deletes the game files. Use `make down` unless you mean it.
-
-## Where the stack keeps things
-
-| Volume | Holds | Delete it to |
-| --- | --- | --- |
-| `tf2-archipelago_tf2game` | The 14 GB of game files, SourceMod and the plugin | Download everything again |
-| `tf2-archipelago_bridgestate` | The checks and the unlocks of the current run | Nothing useful. The bridge rebuilds the checks from the room. |
-| `tf2-archipelago_apoutput` | The session, with `COMPOSE_PROFILES=selfhost` only | [Start a new run](../operate/start-a-new-run.md) |
-| `tf2-archipelago_tailscale_fastdl_state` | The optional Funnel node identity | Make Docker authenticate it as a new Tailscale device |
-
-The sessions themselves are files in `seed/`, in the repository. Git ignores
-that directory, and nothing deletes it for you.
+Use `make down` to stop. `make clean` deletes the game files.
 
 ## Without the repository
 
-Every release attaches a `compose.yaml` that names published images instead of
-building them, and the `env.example` that goes with it. A machine with Docker
-needs nothing else: no clone, no Go, and no compiler.
+Every release attaches a `compose.yaml` that uses the published images, and an
+`env.example` to go with it.
 
 ```sh
 mkdir mann-vs-archipelago && cd mann-vs-archipelago
@@ -150,7 +105,7 @@ curl -fsSLO "$base/compose.yaml"
 curl -fsSL -o .env "$base/env.example"
 ```
 
-Set `SRCDS_RCONPW` in `.env`, then make a session and start:
+Set `SRCDS_RCONPW` in `.env`. Then generate a session and start:
 
 ```sh
 docker compose --profile seed run --rm seed   # writes ./seed
@@ -158,76 +113,72 @@ docker compose up -d
 docker compose logs -f
 ```
 
-`docker compose up -d` starts the stack but does not restart containers that
-Compose considers unchanged. After editing `.env`, pulling a replacement image
-with the same tag, or when you explicitly want a full restart, use:
+Upload the file from `seed/`, create a room, and write the room's port into
+`AP_PORT`. See [Create the session](create-the-session.md).
+
+After every edit of `.env`, apply it with:
 
 ```sh
 docker compose up -d --force-recreate
 ```
 
-The admin page is on this address unless `TF2AP_ADMIN_PORT` in `.env` says
-otherwise:
+`docker compose up -d` alone does not restart containers it considers
+unchanged.
 
-```text
-http://127.0.0.1:8477
-```
-
-Compose can confirm the mapping:
-
-```sh
-docker compose port srcds 8477
-docker compose logs admin
-```
-
-The first prints the host port and the second prints the complete URL. The
-mapping appears on the `srcds` row in `docker compose ps` because the admin
-shares the game server's private network namespace. Change `TF2AP_ADMIN_PORT`
-in `.env` if 8477 is already occupied, then recreate the stack with
-`docker compose up -d --force-recreate`. The page stays on host loopback
-because it can send RCON commands; reach a remote server through an SSH port
-forward rather than publishing this port to the internet.
-
-The Settings tab writes changes back to this same `.env` file. Settings read by
-the containers apply after `docker compose up -d --force-recreate`; seed
-options apply the next time the seed profile runs. The admin container has no
-Docker socket, so Stop and Restart show those commands instead of silently
-claiming to control the host. `docker compose stop` stops the stack without
-deleting its data.
-
-Set **Join address** on the Game server settings page to the address players
-should receive. Use your public IP or DNS name for a port-forwarded server. If
-Docker runs inside WSL and TF2 runs on Windows, use the WSL address printed by
-`hostname -I` for local testing: Windows forwards the admin page's TCP listener
-from localhost, but the game also needs UDP. A public address works only with
-`SRCDS_REACH=port`, a real game-server login token, and the game port forwarded
-through the router and firewall.
-
-The console on the Play page follows SRCDS and bridge output through read-only
-volume mounts. It can display and search the stack's logs, but the admin
-container cannot change the game or bridge state through those mounts.
-
-Steps 3 and 4 of [Create the session](create-the-session.md) apply as they
-stand. Upload the file from `seed/`, create a room, and write the port of the
-room into `AP_PORT`.
-
-The images come from `ghcr.io/m-this/tf2-archipelago`. The `compose.yaml` that
-you download pins them to the release it came from, so the stack keeps the
-version you installed. `TF2AP_VERSION` in `.env` picks another one:
-
-```sh
-TF2AP_VERSION=v1.0.0
-```
+The `compose.yaml` pins the images to the release it came from. To move to
+another version, set `TF2AP_VERSION` in `.env`, then:
 
 ```sh
 docker compose pull
 docker compose up -d --force-recreate
 ```
 
-The commands in the table above are `make` targets, and they need the
-repository. `docker compose` does each of them on its own: `up -d`, `logs -f`,
-`ps`, `down`, and `down -v`.
+## The admin page
 
-The [releases page](https://github.com/m-this/tf2-archipelago/releases) also
-attaches `tf2_mvm.apworld` and `tf2_archipelago.smx`, for an Archipelago install
-or a game server that this compose file does not run.
+The stack serves the same page as the launcher at:
+
+```text
+http://127.0.0.1:8477
+```
+
+`TF2AP_ADMIN_PORT` in `.env` changes the port. The page stays on loopback
+because it can send console commands. To reach a remote server, use an SSH
+port forward. Do not publish this port.
+
+- The **Settings** tab writes to `.env`. Container settings apply after
+  `docker compose up -d --force-recreate`. Seed options apply at the next
+  `make seed`.
+- **Stop** and **Restart** print the commands to run. The admin container has
+  no Docker socket, so it cannot run them itself.
+- Set **Join address** on the Game server page to the address your friends
+  connect to. If Docker runs inside WSL and TF2 runs on Windows, use the WSL
+  address from `hostname -I`.
+
+## The services
+
+| Service | What it does | Ports |
+| --- | --- | --- |
+| `srcds` | The Team Fortress 2 server and the plugin | `27015/udp` and `27015/tcp` |
+| `bridge` | Holds the session with the room and answers the plugin | none, loopback only |
+| `admin` | The admin page | `8477/tcp` on loopback |
+| `fastdl` | Serves maps to joining players over HTTP | `27080/tcp` |
+| `archipelago` | Hosts the session on this machine. Only with `COMPOSE_PROFILES=selfhost`. | see `deploy/compose.yml` |
+| `tailscale-fastdl` | Publishes the map downloads over Tailscale Funnel. Optional. | none |
+
+The bridge shares the network namespace of the game server. Restarting the game
+server restarts the bridge too. That costs seconds, not progress: the bridge
+writes every check to disk.
+
+## Where the stack keeps things
+
+| Volume | Holds | Delete it to |
+| --- | --- | --- |
+| `tf2-archipelago_tf2game` | The 14 GB of game files, SourceMod and the plugin | Download everything again |
+| `tf2-archipelago_bridgestate` | The checks and the unlocks of the run | Nothing useful. The bridge rebuilds the checks from the room. |
+| `tf2-archipelago_apoutput` | The session, with `COMPOSE_PROFILES=selfhost` only | [Start a new run](../operate/start-a-new-run.md) |
+| `tf2-archipelago_tailscale_fastdl_state` | The Tailscale identity of the Funnel node | Sign in to Tailscale again |
+
+The sessions are files in `seed/`. Git ignores that directory, and nothing
+deletes it for you.
+
+Next: [Create the session](create-the-session.md).

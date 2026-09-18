@@ -41,8 +41,8 @@ The Windows launcher runs the bridge in-process beside the game server. The
 compose stack runs them as two containers. Players connect with a stock TF2
 client and install nothing.
 
-[ADR 0001](./adr/0001-go-owns-the-game-data.md) and
-[ADR 0002](./adr/0002-server-side-plugin-with-a-go-bridge.md) say why it is
+[ADR 0001](adr/0001-go-owns-the-game-data.md) and
+[ADR 0002](adr/0002-server-side-plugin-with-a-go-bridge.md) say why it is
 split this way and what the alternatives cost.
 
 ## The directories

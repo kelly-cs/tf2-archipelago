@@ -1,26 +1,10 @@
 # La première session
 
-## Avant que quelqu'un rejoigne
-
-Le plugin écrit déjà chaque événement de jeu qu'il voit et chaque appel qu'il
-fait dans la console et le journal SourceMod : la trace de la soirée est sur le
-disque quoi que vous fassiez. Il a un mode plus bavard qui met les mêmes lignes
-dans le chat, ce qui est le moyen le plus rapide de voir ce que le serveur fait
-d'une vague pendant qu'il le fait :
-
-```
-rcon_password votre-SRCDS_RCONPW
-rcon tf2ap_debug 2
-```
-
-Tapez cela dans la console Team Fortress 2 après vous être connecté. Gardez le
-journal du lanceur, ou `make logs`, sous les yeux en même temps.
-
 ## Ce qu'un joueur voit
 
-Huit secondes après avoir rejoint, chaque joueur reçoit ceci dans le chat :
+Huit secondes après avoir rejoint, chaque joueur reçoit ceci dans le chat :
 
-```
+```text
 [AP] This server runs an Archipelago randomizer.
 [AP] The run locks the classes and the weapon slots until it finds them. All players share the unlocks.
 [AP] Mission: mvm_decoy. Each wave you clear is a check.
@@ -29,63 +13,82 @@ Huit secondes après avoir rejoint, chaque joueur reçoit ceci dans le chat :
 [AP] Type !ap to speak to the multiworld. Examples: !ap hint Class: Scout and !ap missing.
 ```
 
-Les deux lignes de déblocage sont l'état de la partie à ce moment-là. Un
-joueur qui rejoint tard voit ce que l'équipe a déjà trouvé.
+Les deux lignes de déblocage montrent l'état de la partie à ce moment. Un
+joueur qui arrive tard voit ce que l'équipe a déjà trouvé.
 
-Le délai garde le message d'accueil hors du chargement de la carte, où il
-défilerait sans être lu.
+## Pendant une vague
 
-## Ce qui se passe pendant une vague
-
-- Des bots remplissent l'équipe RED jusqu'à six au début de la vague, et la
-  gardent pleine ensuite. Voir
+- Les bots remplissent RED jusqu'à six quand la vague commence. Voir
   [Les bots de votre équipe](defender-bots.md).
-
-- Le menu de classe refuse une classe que la partie n'a pas débloquée, avec
-  une ligne dans le chat.
-- Les emplacements d'arme verrouillés restent vides à chaque spawn, au
-  casier de ravitaillement et à l'upgrade station.
-- Chaque vague que l'équipe réussit écrit `[AP] Wave 3 cleared.` dans le
+- Le menu des classes refuse une classe verrouillée, avec une ligne dans le
   chat.
-- Chaque item que la partie reçoit écrit `[AP] Unlocked: Class: Pyro` ou
+- Les emplacements d'arme verrouillés restent vides à chaque apparition et à
+  chaque réapprovisionnement.
+- La station d'amélioration affiche les bonus de votre équipement.
+  `!ap_buffs` les affiche de nouveau.
+- Chaque vague réussie écrit `[AP] Wave 3 cleared.` dans le chat.
+- Chaque objet reçu écrit `[AP] Unlocked: Class: Pyro` ou
   `[AP] The run received 200 credits for 4 player(s).`
-- Les lignes des autres joueurs de la session randomisée arrivent dans le
-  même chat.
-- Tout ce qui tourne mal est écrit en rouge, quels que soient les autres
-  réglages. Un joueur le verra avant vous.
+- Les autres joueurs du multiworld parlent dans le même chat.
+- Tout ce qui va mal est écrit en rouge.
 
 ## Qui fait quoi
 
-**L'hébergeur** se connecte comme tout le monde, et tient en plus le mot
-de passe de la console. L'hébergeur lance les commandes admin, choisit la
-carte entre les missions, et lit les logs sur la machine.
+- **L'hébergeur** se connecte comme tout le monde. Il fait aussi tourner le
+  lanceur, change de mission et lit les journaux.
+- **Les joueurs** réussissent des vagues. Ils n'ont rien à configurer. Leurs
+  commandes sont `!ap` et `!apchat`. Voir [Commandes de chat](chat-commands.md).
 
-**Les joueurs** réussissent les vagues. Il n'y a rien à configurer pour
-eux. Leurs seules commandes sont `!ap` et `!apchat`, dans
-[Commandes de chat](chat-commands.md).
+## Le premier check
 
-## La première check
-
-Le moment qui prouve toute la chaîne est la première vague réussie.
-Surveillez trois choses, dans cet ordre :
+La première vague réussie prouve que toute la chaîne marche. Guettez trois
+choses, dans cet ordre :
 
 1. `[AP] Wave 1 cleared.` dans le chat du jeu. Le plugin a vu la vague.
-2. `check recorded` dans le log du bridge, sur l'hôte. La check est sur le
-   disque.
-3. `tf2 sent <item> to <somebody>` dans le log du randomizer. Le multiworld
-   l'a.
+2. `check recorded` dans le journal du lanceur. Le check est sur le disque.
+3. `tf2 sent <objet> to <quelqu'un>` sur la page de la room. Le multiworld
+   l'a reçu. Le [tracker de campagne](tracker.md) montre le check en case
+   verte.
 
-Si l'étape 1 ne se produit pas, le plugin n'a pas vu la vague. Lancez
-`rcon sm_ap_status` et lisez la ligne `events:`. Voir
-[Dépannage](../operate/troubleshooting.md).
+Si l'étape 1 n'arrive pas, voir [Dépannage](../operate/troubleshooting.md). Si
+l'étape 1 arrive et pas l'étape 2, le chat le dit en rouge.
 
-Si l'étape 1 se produit et pas l'étape 2, le plugin ne peut pas atteindre
-le bridge. Le chat le dit en rouge.
+## Quelle mission se joue
 
-## Terminer la soirée
+C'est la partie qui décide, pas la rotation des cartes.
 
-`make down` arrête la stack et garde tout. Le prochain `make up` continue
-la même partie avec la même session, les mêmes checks et les mêmes
-déblocages.
+- Le serveur démarre sur la **Start mission** des réglages.
+- Si la mission chargée ne fait pas partie de la partie, le serveur passe à
+  la première mission débloquée et non réussie. Il fait pareil quand la
+  partie n'a pas débloqué la mission chargée.
+- Quand l'équipe réussit une mission, le serveur charge la mission débloquée
+  suivante après 30 secondes. Quand l'équipe a réussi toutes les missions
+  débloquées, il en rejoue une jusqu'à ce qu'un ticket en ouvre une autre.
+- L'hébergeur change de mission avec **Play** dans le tableau des missions de
+  l'onglet **Play**, ou avec `!mission` dans le chat.
 
-Rien n'expire. Une partie peut attendre une semaine.
+## Finir la soirée
+
+Appuyez sur **Stop**, ou `make down` avec Docker. La partie reste sur le
+disque. Le démarrage suivant continue la même partie, avec les mêmes checks
+et les mêmes déblocages. Une partie peut attendre une semaine.
+
+## Regarder ce que le serveur fait
+
+Le plugin écrit chaque événement du jeu dans la console et dans le journal
+SourceMod. Pour voir les mêmes lignes dans le chat du jeu, tapez ceci dans le
+champ rcon sous le journal de l'onglet **Play** :
+
+```text
+tf2ap_debug 2
+```
+
+Avec Docker, utilisez `make rcon`, ou le mot de passe de console de `.env`
+dans la console de développement du jeu :
+
+```text
+rcon_password votre-mot-de-passe-de-console
+rcon tf2ap_debug 2
+```
+
+Suite : [Commandes de chat](chat-commands.md).

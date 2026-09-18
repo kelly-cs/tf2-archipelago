@@ -16,7 +16,7 @@ world.
 **Slot**
 One participant in a multiworld. A name identifies each slot, and a slot
 plays exactly one game with one YAML. In this project a slot is **the TF2
-server**, not a Steam account. See `docs/en/spec.md`, "Slot model".
+server**, not a Steam account. See `design/spec.md`, "Slot model".
 
 **Seed**
 The generated multiworld, immutable once generated. Every id it references
@@ -51,7 +51,7 @@ hold M's ticket and a primary weapon slot" is an access rule.
 **Sphere 0**
 Everything reachable with no items at all. If sphere 0 contains no location,
 the seed is unplayable from the start. See the starting-state requirement in
-`docs/en/spec.md`.
+`design/spec.md`.
 
 **DeathLink**
 An opt-in convention where a death in one world kills every other DeathLink
@@ -60,7 +60,7 @@ death in MvM is routine and only a deployed bomb ends a wave. Outbound, a
 lost wave is a `Bounce`; inbound, a `Bounced` kills everyone on RED, bots
 included, and an undefended hatch is what loses the wave. The plugin does
 not send that loss back out.
-See `docs/en/spec.md`, "Traps and DeathLink".
+See `design/spec.md`, "Traps and DeathLink".
 
 **Trap**
 An item with a negative effect. A first-class classification in Archipelago,

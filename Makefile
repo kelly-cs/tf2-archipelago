@@ -305,8 +305,16 @@ web-e2e-real:
 # the same run draws the same image every time: no machine's fonts, no player's
 # home directory, no state left over from an evening of playing. Not in `check`:
 # a screenshot that differs by a pixel is not a failure.
-web-captures: web-build
-	cd $(WEB) && TF2AP_CAPTURE=1 npx playwright test e2e/screenshots.spec.ts
+#
+# The fake is started here with a plain title, because the one it gives itself
+# says "(fake)" and that would be in every picture. The tracker pictures need
+# the built tracker served somewhere, so this serves dist/tracker as well.
+web-captures: web-build tracker-build
+	go run ./launcher/cmd/fakelauncher -addr 127.0.0.1:8471 -title 'Mann vs Archipelago' & \
+	python3 -m http.server -d dist/tracker 8470 --bind 127.0.0.1 >/dev/null 2>&1 & \
+	trap 'kill $$(jobs -p) 2>/dev/null' EXIT; \
+	sleep 3; \
+	cd $(WEB) && TF2AP_CAPTURE=1 TF2AP_TRACKER_URL=http://127.0.0.1:8470/ npx playwright test e2e/screenshots.spec.ts
 
 web-check: web-lint web-test web-build tracker-build
 

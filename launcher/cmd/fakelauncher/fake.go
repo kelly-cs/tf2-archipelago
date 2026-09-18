@@ -32,6 +32,7 @@ var fakeClock = time.Date(2026, time.September, 10, 20, 15, 0, 0, time.UTC)
 // browser talks over several connections at once.
 type fake struct {
 	mu        sync.Mutex
+	title     string
 	settings  settings.Settings
 	draft     *form.State
 	running   bool
@@ -42,7 +43,7 @@ type fake struct {
 	listeners map[chan *launcherv1.StreamMessage]struct{}
 }
 
-func newFake() *fake {
+func newFake(title string) *fake {
 	base := settings.Defaults()
 	base.APHost, base.APPort, base.APSlotName = "archipelago.gg", 38281, "Scout"
 	base.InstallRoot = "/home/player/tf2-archipelago"
@@ -56,6 +57,7 @@ func newFake() *fake {
 	}
 
 	f := &fake{
+		title:     title,
 		settings:  base,
 		listeners: make(map[chan *launcherv1.StreamMessage]struct{}),
 	}
@@ -91,7 +93,7 @@ func (f *fake) register(mux *http.ServeMux, authority string) {
 // surface and no part of the launcher's contract: the browser tests use it so
 // each one begins from the same place, whatever the one before it pressed.
 func (f *fake) serveReset(w http.ResponseWriter, _ *http.Request) {
-	fresh := newFake()
+	fresh := newFake(f.title)
 	f.mu.Lock()
 	f.settings, f.draft = fresh.settings, nil
 	f.running, f.mission = false, ""
@@ -114,7 +116,7 @@ func (f *fake) snapshotLocked() webapi.Snapshot {
 		room += "   " + f.mission
 	}
 	snapshot := webapi.Snapshot{
-		Title:      "Mann vs Archipelago (fake)",
+		Title:      f.title,
 		Status:     status,
 		Running:    f.running,
 		Room:       room,

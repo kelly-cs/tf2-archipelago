@@ -35,9 +35,12 @@ import (
 
 func main() {
 	address := flag.String("addr", "127.0.0.1:8099", "where to listen")
+	// The pictures in the book come from this fake, and a title that says so
+	// would be in every one of them.
+	title := flag.String("title", "Mann vs Archipelago (fake)", "what the page calls itself")
 	flag.Parse()
 
-	fake := newFake()
+	fake := newFake(*title)
 	var config net.ListenConfig
 	listener, err := config.Listen(context.Background(), "tcp4", *address)
 	if err != nil {

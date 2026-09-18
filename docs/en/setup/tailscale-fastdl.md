@@ -1,138 +1,95 @@
 # Fast map downloads with Tailscale
 
-FastDL lets Team Fortress 2 download community maps over HTTPS instead of
-squeezing them through the game-server connection. Tailscale Funnel publishes
-those files without a webserver for you to maintain or an HTTP port to forward
-at the router. Only the server runs Tailscale. Players use an ordinary public
-HTTPS address and do not install it.
+FastDL lets a joining player download a community map over HTTPS. The game
+server's own transfer is slow and sometimes restarts the download forever. Tailscale Funnel publishes those files without a web server to run
+and without a port to forward on the router.
 
-This changes only map downloads. Keep choosing **local network**, **Steam
-relay**, or **forwarded port** for the game server exactly as before.
+- Only the server runs Tailscale. Players use a public HTTPS address and
+  install nothing.
+- This changes only the map downloads. **Who can reach it** stays what it was.
+- Funnel needs MagicDNS, HTTPS certificates and Funnel permission on your
+  tailnet. Tailscale's [Funnel page](https://tailscale.com/kb/1223/funnel)
+  explains them.
+- Funnel is public and has bandwidth limits. Test the largest map before an
+  event.
 
-Funnel requires MagicDNS, HTTPS certificates and Funnel permission on the
-tailnet. Tailscale's [Funnel setup page](https://tailscale.com/kb/1223/funnel)
-explains those prerequisites. Funnel is public and has bandwidth limits, so
-test the largest map before relying on it for an event.
+## Windows
 
-## Windows launcher
+1. [Install Tailscale](https://tailscale.com/download/windows) and sign in
+   from its tray icon.
+2. In the launcher, open **Settings**, then **Networking**.
+3. Press **Set up / check Tailscale Funnel**. If a browser page asks you to
+   approve Funnel, approve it, then press the button again.
+4. Tick **Tailscale FastDL**. Save, then press **Start**.
+5. Look for `public Tailscale Funnel FastDL ready` in the log.
 
-1. [Install Tailscale](https://tailscale.com/download/windows), open its tray
-   icon and sign in.
-2. Open the launcher's **Settings**, then **Networking**.
-3. Click **Set up / check Tailscale Funnel**. Approve Funnel in the browser if
-   asked, then click the check button again.
-4. Turn on **Publish downloads with Tailscale Funnel**, save and press
-   **Start**.
-5. Look for `public Tailscale Funnel FastDL ready` in the launcher log.
+The check is a one-time step. The launcher remembers the setting and recreates
+the route at every start. **Stop** removes the route and nothing else.
 
-The check is a one-time authorization step. The launcher remembers the setting
-and recreates the `/tf` route automatically on every later start. Stop removes
-that route, without signing the server out of Tailscale or changing any other
-Funnel and Serve routes on the machine.
+## Linux
 
-## Native Linux
-
-Install and sign in to Tailscale on the server using its
-[Linux instructions](https://tailscale.com/download/linux), then check Funnel:
+1. Install and sign in to Tailscale with its
+   [Linux instructions](https://tailscale.com/download/linux).
+2. Run the check:
 
 ```sh
 ./tf2ap-linux-amd64 -setup-funnel
 ```
 
-If it prints an approval URL, open that URL in any browser, approve Funnel and
-run the command again. This works over SSH; it does not depend on `xdg-open`.
-It is the preferred setup method because the launcher also removes its temporary
-authorization-check route once the check finishes.
+If it prints an approval URL, open it in any browser, approve Funnel, and run
+the command again. This works over SSH.
 
-If Tailscale answers `Access denied: serve config denied`, allow your normal
-user to manage Funnel with this one-time command:
+If Tailscale answers `Access denied: serve config denied`, let your user
+manage Funnel, then run the check again without `sudo`:
 
 ```sh
 sudo tailscale set --operator=$USER
 ```
 
-Then rerun `./tf2ap-linux-amd64 -setup-funnel` without `sudo`. The launcher
-itself does not need to run as root.
+Then turn it on:
 
-To perform the same authorization probe manually, quote the complete static
-text target because it contains spaces:
+- With a desktop: **Settings**, then **Networking**, tick **Tailscale FastDL**,
+  save.
+- Without: `./tf2ap-linux-amd64 -configure` and answer yes to the Funnel
+  question.
 
-```sh
-tailscale funnel --yes --bg --https=443 \
-  --set-path=/tf2ap-funnel-setup \
-  "text:TF2 Archipelago Funnel setup"
-```
-
-Without the quotes, the shell passes `text:TF2`, `Archipelago`, `Funnel`, and
-`setup` as four targets, and Tailscale reports `invalid number of arguments
-(4)`. Remove the temporary manual route after Funnel is authorized:
-
-```sh
-tailscale funnel --https=443 --set-path=/tf2ap-funnel-setup off
-```
-
-Choose either way in:
-
-- On the launcher's screen, open **Settings**, then **Networking**, run **Set up
-  / check Funnel**, tick **Tailscale FastDL**, and save.
-- With no desktop, run `./tf2ap-linux-amd64 -configure` and answer yes to
-  **Publish map downloads with Tailscale Funnel**.
-
-Then start normally. A service can override the saved setting explicitly:
+A service can force it for one run:
 
 ```sh
 TAILSCALE_FASTDL=1 FASTDL_PORT=27080 ./tf2ap-linux-amd64 -console
 ```
 
-Environment variables apply only to that invocation; put them in the systemd
-service environment if that is how the launcher starts. `-status` reports
-whether the saved or overridden FastDL uses Funnel.
-
-On every start the launcher checks that Tailscale is connected, discovers its
-MagicDNS name and applies this route for the lifetime of the server:
+At every start the launcher checks that Tailscale is connected and applies
+this route for the life of the server:
 
 ```text
-https://server-name.example-tailnet.ts.net/tf
-    -> http://127.0.0.1:27080/tf
+https://server-name.example-tailnet.ts.net/tf  ->  http://127.0.0.1:27080/tf
 ```
 
-The local HTTP listener is loopback-only. If login or Funnel authorization has
-expired, startup stops before SRCDS starts and prints the repair or approval
-instructions.
+If the login or the Funnel approval expired, the launcher stops before the
+game server starts and prints what to do.
 
-## Route cleanup
+### Route cleanup
 
-The launcher owns two narrowly scoped Funnel routes and leaves other Tailscale
-Serve and Funnel configuration alone:
+The launcher owns two routes and touches nothing else in Tailscale:
 
-- `-setup-funnel` briefly creates `/tf2ap-funnel-setup` to check authorization,
-  then removes it immediately when the check succeeds.
-- A running server uses `/tf`. The launcher removes it on **Stop**, **Restart**,
-  **Quit**, Ctrl+C or SIGTERM, normal server exit, and a later startup failure
-  after the route was created. Restart creates a fresh route for the new run.
+- `/tf2ap-funnel-setup`, created by `-setup-funnel` and removed as soon as
+  the check succeeds.
+- `/tf`, created at **Start** and removed at **Stop**, **Restart**, **Quit**,
+  Ctrl+C, and normal exit.
 
-Cleanup has its own five-second timeout, so it still runs after the server's
-shutdown signal cancels the run. A forced process kill, power loss, or Tailscale
-failure can prevent any program from cleaning up. The launcher reports a failed
-cleanup in its log; remove a stale route manually with:
+A forced kill or a power loss can leave `/tf` behind. Remove it with:
 
 ```sh
 tailscale funnel --https=443 --set-path=/tf off
 ```
 
-This command removes only the launcher's `/tf` route. It does not disable
-Tailscale, sign the machine out, or erase unrelated routes. The saved setting
-remains enabled, so the launcher recreates `/tf` on the next Start.
+## Docker
 
-## Docker Compose
+The stack includes the official `tailscale/tailscale` container beside the
+Caddy FastDL server. You do not install Tailscale on the host.
 
-The Compose stack includes the official `tailscale/tailscale` sidecar beside
-the existing Caddy FastDL server. Caddy alone can read the read-only TF2 game
-volume. Tailscale shares only Caddy's network namespace and proxies its
-loopback HTTP port. Tailscale does not need to be installed on the host.
-
-Set these values in `.env` (or turn on **Tailscale FastDL** in the admin UI and
-save):
+1. Set these in `.env`, or tick **Tailscale FastDL** on the admin page:
 
 ```ini
 TAILSCALE_FASTDL=1
@@ -140,59 +97,40 @@ TAILSCALE_HOSTNAME=tf2-fastdl
 FASTDL_BIND=127.0.0.1
 ```
 
-Apply the saved setting and open the admin UI:
+2. Apply and open the admin page:
 
 ```sh
 docker compose up -d --force-recreate
-# open http://127.0.0.1:8477
 ```
 
-On **Settings → Networking**, press **Set up / check Funnel**. The first press
-provides a Tailscale sign-in link. Sign in there, return to the page, and press
-the button again. If the tailnet has not used Funnel before, that press provides
-a second link to approve Funnel; after approval, press it once more. A ready
-message means the public `/tf` route is active and SRCDS can start.
-
-Follow the startup if desired:
-
-```sh
-make up
-make logs
-```
-
-When Funnel is selected, SRCDS waits for the sidecar to be connected with the
-`/tf` route active. The srcds log then prints a line like:
+3. On **Settings**, then **Networking**, press **Set up / check Funnel**. The
+   first press gives a Tailscale sign-in link. Sign in, come back, press
+   again. If the tailnet never used Funnel, the second press gives an approval
+   link. Approve, press once more.
+4. Wait for the ready message. The game server log then prints:
 
 ```text
 [AP] using Tailscale Funnel FastDL at https://tf2-fastdl.example.ts.net/tf
 ```
 
-The `tailscale_fastdl_state` volume preserves the device identity and login.
-Normal `make down`, `make up`, image upgrades and host restarts keep working.
-`make clean` deliberately deletes every volume, including this identity, and
-the next start therefore needs another browser sign-in.
-
-If the sidecar cannot authenticate or apply Funnel, SRCDS waits rather than
-starting with an empty download URL. The admin UI remains available. Inspect
-the sidecar with:
+The game server waits for the route before it starts. If Tailscale cannot
+sign in, the game server waits, and the admin page stays available. Inspect
+the container with:
 
 ```sh
 docker compose logs tailscale-fastdl
-docker compose exec tailscale-fastdl tailscale --socket=/run/tf2ap-fastdl/tailscaled.sock funnel status
 ```
+
+The `tailscale_fastdl_state` volume keeps the device identity. `make clean`
+deletes it, and the next start needs a new sign-in.
 
 ## What friends do
 
-Nothing Tailscale-specific. They join TF2 through the normal address or Steam
-relay printed by the launcher. TF2 reads `sv_downloadurl` and fetches each
-required asset from the public HTTPS Funnel.
-
-Opening the `/tf` address is only a health check; it intentionally does not
-list files. TF2 requests exact paths such as `/tf/maps/example.bsp`.
+Nothing. They join with the normal connect line. The game reads the download
+address from the server and fetches each missing file from it.
 
 ## What becomes public
 
-Only `maps`, `materials`, `models`, `sound`, `particles`, and `resource` are
-served. The launcher and Caddy configurations both exclude `cfg`, SourceMod
-plugins, passwords, directory listings, writes, and the rest of the server
-installation.
+The server publishes only `maps`, `materials`, `models`, `sound`, `particles`
+and `resource`. Configuration files, plugins and passwords are not. The address
+lists no files.

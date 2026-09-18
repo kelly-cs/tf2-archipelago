@@ -1,6 +1,6 @@
 # Trademarks and artwork
 
-This repository is MIT. See [LICENSE](../../LICENSE).
+This repository is MIT. See [LICENSE](../LICENSE).
 
 ## What ships under other terms
 
@@ -10,7 +10,7 @@ now. Both `tf2ap.exe` and `tf2-defender-bots.zip` carry their compiled plugins,
 and that repository is where the source lives.
 
 Every other project in the bot stack keeps its own terms.
-[The bots on your team](./play/defender-bots.md) names each one and what it is
+[The bots on your team](../docs/en/play/defender-bots.md) names each one and what it is
 for.
 
 ## The icon

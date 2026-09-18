@@ -1,90 +1,123 @@
 # Créer la session
 
-La pile joue une room qui existe déjà. Si vous en avez une, cette page ne vous
-sert pas : mettez son adresse dans `AP_HOST`, `AP_PORT` et `AP_SLOT_NAME`, puis
-passez à [Démarrer le serveur](../operate/start-a-new-run.md). `make seed` est
-une façon d'obtenir une room quand on n'en a pas, rien de plus. Générer la
-session à la manière habituelle d'Archipelago, avec l'apworld de la release, et
-pointer la pile vers la room que donne le site revient au même.
+Une session Archipelago est une **seed** hébergée dans une **room**. Le
+serveur joue une room qui existe déjà. Cette page en crée une.
 
-La session randomisée tourne sur `archipelago.gg`. Votre machine fabrique la
-session et l'écrit dans un fichier. Le site prend ce fichier, l'héberge, et
-vous donne une adresse.
+1. Choisissez les [options de la partie](shape-of-the-run.md).
+2. Générez la seed avec l'application Archipelago.
+3. Envoyez la seed sur `archipelago.gg` et créez une room.
+4. Donnez l'adresse de la room au serveur.
 
-Votre machine la fabrique parce que Mann vs Machine ne fait pas partie des jeux
-livrés avec Archipelago. Le site génère ces jeux-là seulement. Il héberge toute
-session que vous lui envoyez.
+Mann vs Machine ne fait pas partie des jeux livrés avec Archipelago. Le site
+ne peut donc pas générer la seed pour vous. Votre machine la génère, et le site
+l'héberge.
 
-## 1. Régler la forme de la partie
+## 1. Choisir les options de la partie
 
-[La forme de la partie](shape-of-the-run.md) tient la longueur, la difficulté
-et le but d'une soirée. Réglez ces valeurs dans `.env` maintenant. La session
-les garde, et un changement plus tard demande une nouvelle session.
+Les options de la partie décident de sa longueur, de sa difficulté et de ce
+qui la termine. La seed les garde. Pour en changer une plus tard, il faut une
+nouvelle seed et une nouvelle room.
 
-## 2. Fabriquer la session
+- **Lanceur :** ouvrez **Settings**, puis **Player options**, **Rewards**,
+  **Balancing** et **Missions**.
+- **Docker :** modifiez les lignes `MVM_` dans `.env`.
+- **Application Archipelago à la main :** modifiez le fichier YAML. Voir
+  [Avec l'application Archipelago](#avec-lapplication-archipelago).
+
+[Les options de la partie](shape-of-the-run.md) décrit chaque option.
+
+## 2. Générer la seed
+
+### Avec le lanceur
+
+1. Installez l'[application Archipelago](https://github.com/ArchipelagoMW/Archipelago/releases).
+   Prenez la version que le lanceur fixe. `tf2ap.exe -version` l'affiche.
+2. Dans le lanceur, ouvrez **Settings**, puis **Player options**.
+3. Appuyez sur **Generate seed**. Le lanceur écrit `tf2.yaml`, lance le
+   générateur et ouvre le dossier qui contient le résultat. Le résultat est un
+   `.zip` du type `AP_53174869021847362095.zip`.
+
+Si **Generate seed** dit qu'il ne trouve pas l'application Archipelago,
+réglez **Archipelago app** sur la même page avec le dossier de l'application.
+
+**Check Run Selection**, sur la page **Missions**, vérifie la réserve avant
+de générer. Il vous dit si les missions choisies contiennent assez de checks
+pour les objets de la partie.
+
+### Avec l'application Archipelago
+
+Utilisez cette méthode pour jouer avec des gens dans d'autres jeux, ou pour
+modifier le YAML à la main.
+
+1. Téléchargez `tf2_mvm.apworld` depuis la
+   [version](https://github.com/m-this/tf2-archipelago/releases/latest).
+2. Double-cliquez dessus, ou copiez-le dans le dossier `custom_worlds/` de
+   l'application.
+3. Obtenez un fichier joueur. Soit lancez `tf2ap.exe -yaml tf2.yaml` avec le
+   lanceur, soit appuyez sur **Generate Template Options** dans le Launcher de
+   l'application et prenez `Team Fortress 2 Mann vs Machine.yaml`.
+4. Modifiez le fichier. [Les options de la partie](shape-of-the-run.md) liste
+   les options.
+5. Mettez-le dans le dossier `Players/` de l'application, à côté des fichiers
+   des autres joueurs.
+6. Lancez **Generate**. Le résultat est dans le dossier `output/` de
+   l'application.
+
+Le `name` du fichier est le nom du slot. Le **Slot name** du lanceur, dans
+**Settings**, puis **Archipelago room**, doit être le même. La valeur par
+défaut est `tf2`.
+
+### Avec Docker
 
 ```sh
 make seed
 ```
 
-Le premier lancement construit l'image du randomizer et prend quelques minutes.
-Un lancement suivant prend moins d'une minute.
+La commande écrit la seed dans `seed/` et affiche son nom. Gardez les fichiers
+dans `seed/`. Une room perdue revient depuis son fichier.
 
-La commande écrit un fichier et en affiche le nom :
+Si l'envoi échoue à cause de la version, lisez la version d'Archipelago en bas
+du site. Réglez `ARCHIPELAGO_VERSION` dans `deploy/env/versions.env` sur cette
+version et relancez `make seed`.
 
-```
-generated /ap/output/AP_53174869021847362095.zip
-upload it at https://archipelago.gg/uploads, then create a room
-```
-
-Sur votre machine, ce fichier est dans `seed/`. Git ignore ce dossier. Gardez
-les fichiers qu'il contient. Le même fichier redonne la même session, donc une
-room perdue revient à partir de lui.
-
-## 3. Envoyer le fichier à archipelago.gg
+## 3. Envoyer la seed et créer une room
 
 1. Ouvrez [archipelago.gg/uploads](https://archipelago.gg/uploads).
-2. Envoyez le fichier qui est dans `seed/`.
-3. Choisissez **Create New Room**.
+2. Envoyez le `.zip`.
+3. Cliquez sur **Create New Room**.
 
-Le site ne demande aucun compte.
+Le site ne demande pas de compte. La page de la room affiche :
 
-La page de la room tient l'adresse de la room et un lien vers le suivi de la
-partie, que le site appelle « Tracker ». Envoyez cette page à vos joueurs. Ils
-suivent la partie depuis elle et n'installent rien.
+- l'adresse de la room, du type `archipelago.gg:12345`,
+- un lien vers le tracker, où vos joueurs suivent la partie depuis un
+  navigateur.
 
-## 4. Pointer la stack sur la room
+Chaque nouvelle room reçoit un nouveau port. Toute personne qui a l'adresse
+peut rejoindre la room. Mettez donc un mot de passe sur la page de la room si
+l'adresse sort du cercle de vos amis.
 
-La page de la room donne une adresse de la forme `archipelago.gg:12345`.
-Écrivez ses deux moitiés dans `.env` :
+## 4. Donner l'adresse de la room au serveur
+
+- **Lanceur :** collez l'adresse dans **Settings**, puis **Archipelago room**.
+  Mettez-y aussi le mot de passe de la room, si vous en avez mis un.
+  Enregistrez, puis appuyez sur **Restart**.
+- **Docker :** écrivez les deux moitiés dans `.env`, puis `make restart` :
 
 ```sh
 AP_HOST=archipelago.gg
 AP_PORT=12345
 AP_TLS=true
+AP_PASSWORD=
 ```
 
-Chaque nouvelle room prend un nouveau port. Réglez `AP_PORT` de nouveau après
-chaque nouvelle room.
-
-N'importe qui atteint une room dont il connaît l'adresse. Mettez un mot de
-passe sur la room, puis le même mot de passe dans `AP_PASSWORD`.
-
-Démarrez ensuite la stack. Voir [Installation](install.md).
-
-## La version d'Archipelago
-
-`deploy/env/versions.env` fixe la version qui fabrique le fichier.
-`archipelago.gg` fait tourner sa propre version, et il refuse un fichier que
-cette version ne sait pas lire.
-
-Si l'envoi échoue, lisez la version dans le pied de page du site. Réglez
-ensuite `ARCHIPELAGO_VERSION` sur cette version, puis relancez `make seed`.
+La ligne d'état du lanceur, ou le journal du bridge, dit ensuite `connected to
+archipelago`. La page de la room dit `tf2 (Team #1) playing Team Fortress 2
+Mann vs Machine has joined`.
 
 ## Héberger la session vous-même
 
-La stack héberge aussi la session elle-même. Cela demande quatre lignes dans
-`.env` :
+La pile Docker peut héberger la room sur votre machine. Mettez ces lignes
+dans `.env` :
 
 ```sh
 COMPOSE_PROFILES=selfhost
@@ -93,13 +126,14 @@ AP_PORT=38281
 AP_TLS=false
 ```
 
-`make up` démarre alors un troisième conteneur, fabrique la session au premier
-démarrage, et l'héberge à côté du serveur de jeu. Vous n'envoyez rien, et les
-étapes 2 à 4 ci-dessus ne s'appliquent pas.
+`make up` démarre alors un troisième conteneur qui génère la seed à son
+premier démarrage et l'héberge. Vous n'envoyez rien.
 
-Ce que cela coûte :
+Ce que cela coûte :
 
-- Vos joueurs n'ont pas de page de room, donc pas de suivi de la partie.
-- Un conteneur de plus tourne sur votre machine.
-- Un joueur dans un autre jeu demande un deuxième port public.
-  `deploy/compose.yml` dit où.
+- Vos joueurs n'ont ni page de room ni tracker.
+- Un joueur dans un autre jeu a besoin d'un deuxième port public.
+  `deploy/compose.yml` dit lequel.
+
+Suite : [Les options de la partie](shape-of-the-run.md), ou
+[Inviter vos amis](invite-your-friends.md) si la session est prête.

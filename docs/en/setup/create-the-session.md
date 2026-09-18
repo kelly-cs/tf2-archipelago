@@ -1,87 +1,114 @@
 # Create the session
 
-The stack plays a room that already exists. If you have one, you do not need
-this page: put its address in `AP_HOST`, `AP_PORT` and `AP_SLOT_NAME` and go to
-[Start the server](../operate/start-a-new-run.md). `make seed` is one way to
-get a room when you have none, and nothing more. Generating the session the
-usual Archipelago way, with the apworld from the release, and pointing the
-stack at the room the website gives you is the same thing.
+An Archipelago session is a **seed** hosted in a **room**. The server plays a
+room that already exists. This page makes one.
 
-The randomized session runs on `archipelago.gg`. Your machine makes the session
-and writes it to a file. The website takes that file, hosts it, and gives you an
-address.
+1. Choose the [run options](shape-of-the-run.md).
+2. Generate the seed with the Archipelago app.
+3. Upload the seed to `archipelago.gg` and create a room.
+4. Give the server the room address.
 
-Your machine makes it because Mann vs Machine is not one of the games that come
-with Archipelago. The website generates only those games. It hosts any session
-that somebody sends it.
+Mann vs Machine is not one of the games that ship with Archipelago. So the
+website cannot generate the seed for you. Your machine generates it, and the
+website hosts it.
 
-## 1. Set the shape of the run
+## 1. Choose the run options
 
-[The shape of the run](shape-of-the-run.md) holds the length, the difficulty and
-the goal of an evening. Set those values in `.env` now. The session keeps them,
-and a later change needs a new session.
+The run options decide how long the run is, how hard it is, and what ends it.
+The seed keeps them. To change one later, you need a new seed and a new room.
 
-## 2. Make the session
+- **Launcher:** open **Settings**, then **Player options**, **Rewards**,
+  **Balancing** and **Missions**.
+- **Docker:** edit the `MVM_` lines in `.env`.
+- **Archipelago app by hand:** edit the YAML file. See
+  [With the Archipelago app](#with-the-archipelago-app).
+
+[Run options](shape-of-the-run.md) describes every option.
+
+## 2. Generate the seed
+
+### With the launcher
+
+1. Install the [Archipelago app](https://github.com/ArchipelagoMW/Archipelago/releases).
+   Use the same version the launcher pins. `tf2ap.exe -version` prints it.
+2. In the launcher, open **Settings**, then **Player options**.
+3. Press **Generate seed**. The launcher writes `tf2.yaml`, runs the
+   generator, and opens the folder with the result. The result is a `.zip`
+   named like `AP_53174869021847362095.zip`.
+
+If **Generate seed** says it cannot find the Archipelago app, set
+**Archipelago app** on the same page to the app's folder.
+
+**Check Run Selection**, on the **Missions** page, checks the pool before you
+generate. It tells you whether the missions you picked hold enough checks for
+the items of the run.
+
+### With the Archipelago app
+
+Use this to play with people in other games, or to edit the YAML by hand.
+
+1. Download `tf2_mvm.apworld` from the
+   [release](https://github.com/m-this/tf2-archipelago/releases/latest).
+2. Double-click it, or copy it into the app's `custom_worlds/` folder.
+3. Get a player file. Either run `tf2ap.exe -yaml tf2.yaml` in the launcher,
+   or in the app's Launcher press **Generate Template Options** and take
+   `Team Fortress 2 Mann vs Machine.yaml`.
+4. Edit the file. [Run options](shape-of-the-run.md).
+5. Put it into the app's `Players/` folder, beside the files of the other
+   players.
+6. Run **Generate**. The result is in the app's `output/` folder.
+
+The `name` in the file is the slot name. The launcher's **Slot name**, in
+**Settings**, then **Archipelago room**, has to match it. The default is `tf2`.
+
+### With Docker
 
 ```sh
 make seed
 ```
 
-The first run builds the randomizer image and takes a few minutes. A later run
-takes under a minute.
+The command writes the seed into `seed/` and prints its name. Keep the files
+in `seed/`. A room you lose comes back from its file.
 
-The command writes one file and prints the name of it:
+If the upload fails because of the version, read the Archipelago version in
+the footer of the website. Set `ARCHIPELAGO_VERSION` in `deploy/env/versions.env`
+to it and run `make seed` again.
 
-```
-generated /ap/output/AP_53174869021847362095.zip
-upload it at https://archipelago.gg/uploads, then create a room
-```
-
-On your machine that file is in `seed/`. Git ignores the directory. Keep the
-files in it. The same file gives the same session again, so a room that you lose
-comes back from it.
-
-## 3. Send it to archipelago.gg
+## 3. Upload the seed and create a room
 
 1. Open [archipelago.gg/uploads](https://archipelago.gg/uploads).
-2. Upload the file from `seed/`.
-3. Select **Create New Room**.
+2. Upload the `.zip`.
+3. Click **Create New Room**.
 
-The website asks for no account.
+The website asks for no account. The room page shows:
 
-The room page holds the address of the room and a link to the tracker. Send that
-page to your players. They watch the run from it and they install nothing.
+- the room address, like `archipelago.gg:12345`,
+- a link to the tracker, where your players watch the run from a browser.
 
-## 4. Point the stack at the room
+Every new room gets a new port. Anybody with the address can join the room, so
+set a password on the room page if the address leaves your friends.
 
-The room page gives an address in the form `archipelago.gg:12345`. Write the two
-halves of it into `.env`:
+## 4. Give the server the room address
+
+- **Launcher:** paste the address into **Settings**, then **Archipelago room**.
+  Put the room password there too, if you set one. Save, then press
+  **Restart**.
+- **Docker:** write the two halves into `.env`, then `make restart`:
 
 ```sh
 AP_HOST=archipelago.gg
 AP_PORT=12345
 AP_TLS=true
+AP_PASSWORD=
 ```
 
-Every new room takes a new port, so set `AP_PORT` again after every new room.
-
-Anybody who has the address of a room reaches that room. Set a password on the
-room, then put the same password in `AP_PASSWORD`.
-
-Now start the stack. See [Install](install.md).
-
-## The version of Archipelago
-
-`deploy/env/versions.env` pins the version that makes the file.
-`archipelago.gg` runs a version of its own, and it refuses a file that this
-version cannot read.
-
-If the upload fails, read the version in the footer of the website. Then set
-`ARCHIPELAGO_VERSION` to that version and run `make seed` again.
+The status line of the launcher, or the bridge log, then says `connected to archipelago`.
+The room page says `tf2 (Team #1) playing Team Fortress 2 Mann vs Machine has
+joined`.
 
 ## Host the session yourself
 
-The stack hosts the session itself as well. This needs four lines in `.env`:
+The Docker stack can host the room on your machine. Put these lines in `.env`:
 
 ```sh
 COMPOSE_PROFILES=selfhost
@@ -90,13 +117,14 @@ AP_PORT=38281
 AP_TLS=false
 ```
 
-`make up` then starts a third container, makes the session at the first start,
-and hosts it beside the game server. You upload nothing, and steps 2 to 4 above
-do not apply.
+`make up` then starts a third container that generates the seed at its first
+start and hosts it. You upload nothing.
 
 What it costs:
 
-- Your players get no room page, so they get no tracker.
-- One more container runs on your machine.
-- A player in another game needs a second public port. `deploy/compose.yml` says
-  where.
+- Your players get no room page and no tracker.
+- A player in another game needs a second public port. `deploy/compose.yml`
+  says which.
+
+Next: [Run options](shape-of-the-run.md), or [Invite your friends](invite-your-friends.md)
+if the session is ready.

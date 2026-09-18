@@ -120,7 +120,7 @@ flowchart TD
 
 Three processes, one source of truth. The launcher runs the bridge beside the
 game server; the compose stack runs them as two containers.
-[The repository](./docs/en/repository.md) says what each directory holds and why
+[The repository](./design/repository.md) says what each directory holds and why
 Mann vs Machine is the mode this works in.
 
 ## Documentation
@@ -130,13 +130,13 @@ Mann vs Machine is the mode this works in.
 `make docs` serves the English one on `127.0.0.1:8081`.
 
 - [Table of contents](./docs/en/SUMMARY.md)
-- [Design spec](./docs/en/spec.md): scope, locations, items, goals
-- [The decisions](./docs/en/adr/), and why the alternatives lost
-- [The Discord thread](./docs/en/discord-mvm-thread.md) that designed this,
+- [Design spec](./design/spec.md): scope, locations, items, goals
+- [The decisions](./design/adr/), and why the alternatives lost
+- [The Discord thread](./design/discord-mvm-thread.md) that designed this,
   word for word. Not in the book: it is a record, not a page to read.
 - [Glossary](./CONTEXT.md): Archipelago and MvM share words but not their
   meanings
-- [Code signing policy](./docs/en/code-signing.md)
+- [Code signing policy](./design/code-signing.md)
 
 ## Licence
 
@@ -145,7 +145,7 @@ defender bots are GPL-3.0, and every other project in the bot stack keeps its ow
 terms. [Defender bots](./docs/en/play/defender-bots.md) names them one by one.
 
 This is a fan project, not affiliated with or endorsed by Valve Corporation.
-[Trademarks and artwork](./docs/en/licences.md) says what this project borrows,
+[Trademarks and artwork](./design/licences.md) says what this project borrows,
 and from where.
 
 ## Credits
