@@ -106,13 +106,12 @@ describe('tracker view', () => {
       'Loaded Dice',
       'Faulty Calibration',
     ]);
-    expect(view.missions.at(-1)?.modifiers.map((modifier) => modifier.name)).toEqual([
-      'High Gravity',
-      'Miniature Menace',
-      'Weaponized Tanks',
+    expect(view.missions[1]?.modifiers.map((modifier) => modifier.name)).toEqual([
+      'Mental',
+      'Make it Count',
+      'Loose Footing',
     ]);
     expect(view.missions[2]?.modifiers.map((modifier) => modifier.name)).toContain('Bot Surge');
-    expect(view.missions[1]?.modifiers.map((modifier) => modifier.name)).toContain('Loose Footing');
   });
 
   it('groups compatible buffs by weapon', () => {

@@ -173,6 +173,7 @@ void MissionModifiers_Init()
     }
     MissionModifiers_InitBotSurgeSupportHook();
     MissionModifiers_InitSniperInaccuracyHook();
+    Chamber_Init();
     Mental_Init();
     CreateTimer(0.05, Mental_Timer, _, TIMER_REPEAT);
     g_BotSurgeHud = CreateHudSynchronizer();
@@ -1060,6 +1061,7 @@ void MissionModifiers_Shutdown()
 {
     g_SeedMissionModifiers = 0;
     MissionModifiers_Reset();
+    Chamber_Shutdown();
     MissionModifiers_DeleteWaveCandidates();
     delete g_BotSurgeSupportSpawners;
     g_BotSurgeSupportSpawners = null;
@@ -1097,6 +1099,7 @@ void MissionModifiers_HookClient(int client)
     Mental_ReleaseClient(client);
     SDKUnhook(client, SDKHook_OnTakeDamagePost, Mental_OnTakeDamagePost);
     SDKHook(client, SDKHook_OnTakeDamagePost, Mental_OnTakeDamagePost);
+    Chamber_HookClient(client);
     g_BotSurgeHudShown[client] = false;
     g_BotCountHudEnabled[client] = false;
     g_BotSurgeCulled[client] = false;
@@ -1243,6 +1246,7 @@ static bool MissionModifiers_TryFlagForKey(const char[] key, int &flag)
     else if (StrEqual(key, "faulty_calibration", false)) flag = MissionModifier_FaultyCalibration;
     else if (StrEqual(key, "loose_footing", false)) flag = MissionModifier_LooseFooting;
     else if (StrEqual(key, "mental", false)) flag = MissionModifier_Mental;
+    else if (StrEqual(key, "make_it_count", false)) flag = MissionModifier_OneInTheChamber;
     else return false;
     return true;
 }
@@ -1250,12 +1254,13 @@ static bool MissionModifiers_TryFlagForKey(const char[] key, int &flag)
 static int MissionModifiers_AllFlags()
 {
     // "all" still means one compatible gravity rule, never both.
-    return ((1 << 14) - 1) & ~MissionModifier_HighGravity;
+    return ((1 << 15) - 1) & ~MissionModifier_HighGravity;
 }
 
 static void MissionModifiers_Reset()
 {
     Mental_Reset();
+    Chamber_Reset();
     MissionModifiers_RestoreSupportSpawners();
     MissionModifiers_RestoreSpawnerTimings();
     g_BotSurgeRecoveryUntil = 0.0;
@@ -1431,6 +1436,7 @@ static void MissionModifiers_ApplyClient(int client)
         TF2Attrib_ClearCache(client);
     }
     MissionModifiers_ApplyRobot(client);
+    Chamber_ClampClient(client);
 }
 
 static void MissionModifiers_SaveClientAttribute(int client, const char[] name,
@@ -1595,6 +1601,7 @@ static void MissionModifiers_RestoreRobot(int client)
 
 void MissionModifiers_OnEntityCreated(int entity, const char[] classname)
 {
+    Chamber_EntityCreated(entity, classname);
     if (entity > MaxClients && entity < MissionModifier_MaxEntities
         && StrEqual(classname, "tank_boss"))
     {
@@ -1969,7 +1976,7 @@ public Action Command_MissionModifierDebug(int client, int argc)
         ReplyToCommand(client,
             "[AP] Usage: sm_ap_modifier <on|off|toggle> <key|all> | clear | seed");
         ReplyToCommand(client,
-            "[AP] Keys: low_gravity, high_gravity, blast_plating, thermal_shielding, ballistic_plating, fragile_mercenaries, overclocked_servos, loaded_dice, weaponized_tanks, miniature_menace, bot_surge, faulty_calibration, loose_footing, mental");
+            "[AP] Keys: low_gravity, high_gravity, blast_plating, thermal_shielding, ballistic_plating, fragile_mercenaries, overclocked_servos, loaded_dice, weaponized_tanks, miniature_menace, bot_surge, faulty_calibration, loose_footing, mental, make_it_count");
         MissionModifiers_Announce(client);
         return Plugin_Handled;
     }
@@ -2080,6 +2087,7 @@ void MissionModifiers_Announce(int client)
     MissionModifiers_AddName(names, sizeof(names), MissionModifier_FaultyCalibration, "Faulty Calibration");
     MissionModifiers_AddName(names, sizeof(names), MissionModifier_LooseFooting, "Loose Footing");
     MissionModifiers_AddName(names, sizeof(names), MissionModifier_Mental, "Mental");
+    MissionModifiers_AddName(names, sizeof(names), MissionModifier_OneInTheChamber, "Make it Count");
     if (client == 0)
     {
         AP_Announce("Mission modifiers: %s", names);
@@ -2104,3 +2112,4 @@ static void MissionModifiers_AddName(char[] names, int maxlength, int flag, cons
 }
 
 #include "mission_mental.inc"
+#include "mission_chamber.inc"

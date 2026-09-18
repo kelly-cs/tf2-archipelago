@@ -48,6 +48,7 @@ enum
     MissionModifier_FaultyCalibration = (1 << 11),
     MissionModifier_LooseFooting = (1 << 12),
     MissionModifier_Mental = (1 << 13),
+    MissionModifier_OneInTheChamber = (1 << 14),
 };
 
 // One mission of the run, as the bridge describes it. The map is the field the
