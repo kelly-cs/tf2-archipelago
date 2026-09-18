@@ -4,6 +4,13 @@
 	{
 		"Signatures"
 		{
+			"CTFPlayer::RemoveInvisibility"
+			{
+				"library" "server"
+				"linux" "@_ZN9CTFPlayer18RemoveInvisibilityEv"
+				"linux64" "@_ZN9CTFPlayer18RemoveInvisibilityEv"
+			}
+
 			"CPopulationManager::Parse"
 			{
 				"library"	"server"
@@ -177,6 +184,14 @@
 		}
 		"Functions"
 		{
+			"CTFPlayer::RemoveInvisibility"
+			{
+				"signature" "CTFPlayer::RemoveInvisibility"
+				"callconv" "thiscall"
+				"return" "void"
+				"this" "entity"
+			}
+
 			"CPopulationManager::Parse"
 			{
 				"signature"	"CPopulationManager::Parse"

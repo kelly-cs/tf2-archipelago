@@ -14,6 +14,7 @@
 #define GasolineEffect 15
 #define MarkForDeathEffect 16
 #define JarateEffect 60
+#define RevealCloakedEffect 77
 #define HealOnHitEffect 21
 #define SpeedOnHitEffect 79
 // Measured on a server: speed_boost_on_kill lasts one second, and critboost
@@ -972,6 +973,8 @@ static bool WeaponBuffs_IsManualHitEffect(int effect)
 
 static void WeaponBuffs_ApplyHitEffects(int victim, int attacker, int weapon)
 {
+    if (g_WeaponEffectLevels[weapon][RevealCloakedEffect] > 0)
+        Mental_RevealOnHit(victim);
     int bleed = g_WeaponEffectLevels[weapon][BleedEffect];
     int ignite = g_WeaponEffectLevels[weapon][IgniteEffect];
     int milk = g_WeaponEffectLevels[weapon][MadMilkEffect];
@@ -2328,6 +2331,16 @@ static int WeaponBuffs_WeaponOfHit(int attacker, int inflictor, int weapon, int 
         weapon = GetEntPropEnt(attacker, Prop_Send, "m_hActiveWeapon");
     }
     return weapon;
+}
+
+// Resolve the launcher for projectiles, then inspect AP and native reveal buffs.
+bool WeaponBuffs_HasRevealOnHit(int attacker, int inflictor, int weapon, int damagecustom)
+{
+    weapon = WeaponBuffs_WeaponOfHit(attacker, inflictor, weapon, damagecustom);
+    int catalog = WeaponBuffs_ForEntity(weapon);
+    return (catalog >= 0 && g_WeaponEffectLevels[catalog][RevealCloakedEffect] > 0)
+        || (weapon > MaxClients && IsValidEntity(weapon)
+            && TF2Attrib_HookValueInt(0, "reveal_cloaked_victim_on_hit", weapon) > 0);
 }
 
 // Scale self-inflicted blast damage for rocket-jump protection. Do not turn

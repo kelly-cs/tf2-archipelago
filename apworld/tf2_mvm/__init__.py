@@ -150,6 +150,16 @@ MISSION_MODIFIERS = (
         ),
         "exclusive_group": "",
     },
+    {
+        "key": "mental",
+        "name": "Mental",
+        "kind": "robots",
+        "description": (
+            "Enemies stay cloaked. Normal hits briefly reveal a shimmer; "
+            "reveal-on-hit buffs decloak for five seconds."
+        ),
+        "exclusive_group": "",
+    },
 )
 
 

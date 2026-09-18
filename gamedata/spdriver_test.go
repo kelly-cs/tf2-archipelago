@@ -54,7 +54,7 @@ const (
 
 // driverIncludes are the plugin files a driver compiles against, in the order
 // they are included. Both ship; neither is written here.
-var driverIncludes = []string{"weapon_buffs_data.inc", "weapon_buffs_math.inc"}
+var driverIncludes = []string{"weapon_buffs_data.inc", "weapon_buffs_math.inc", "mission_modifiers_math.inc"}
 
 /*
 	driver is a standalone plugin built around the plugin's own math include.
