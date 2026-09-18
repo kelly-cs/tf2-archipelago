@@ -113,6 +113,7 @@ func values(s settings.Settings) map[string]string {
 		"SRCDS_REACH":                   string(s.SrcdsReach),
 		"SRCDS_ADMIN_STEAMIDS":          s.SrcdsAdminSteamIDs,
 		"SRCDS_MODS":                    strings.Join(s.SrcdsMods, ","),
+		"SRCDS_MOD_LOADING":             string(s.SrcdsModLoading.OrDefault()),
 		"FASTDL_PORT":                   strconv.Itoa(s.FastDLPort),
 		"SRCDS_DOWNLOADURL":             s.SrcdsDownloadURL,
 		"TAILSCALE_FASTDL":              boolean(s.TailscaleFastDL),

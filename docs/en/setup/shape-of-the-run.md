@@ -151,9 +151,22 @@ on the **Missions** page. Once a pack is on disk, its missions appear in the
 list. See the
 [community content guide](https://github.com/m-this/tf2-archipelago/blob/main/community-content/README.md).
 
-Some community missions need a server mod. Tick the mod on the **Missions**
-page, and the launcher installs it. The one mod so far is SigMod
-(`sigsegv-mvm`).
+Some community missions need a server mod. The one mod so far is SigMod
+(`sigsegv-mvm`). On the **Missions** page each mod has three answers:
+
+| Answer | What the server does |
+| --- | --- |
+| **off** | Never loads the mod. Its missions leave the pool. |
+| **only when a mission needs it** | Loads it while the pool holds a mission that names it. The default. |
+| **always, on every mission** | Loads it on every map. |
+
+The launcher installs the mod when it is needed. Turning it off leaves the
+files in place, so turning it back on costs no download.
+
+SigMod's Windows build is this project's own port, and it has crashed a
+server. Leave it on **only when a mission needs it** unless you are testing
+it. In `.env` the answer is `SRCDS_MOD_LOADING`, and Docker reads it as on or
+off: the image cannot tell which missions the pool holds.
 
 ## Rewards
 

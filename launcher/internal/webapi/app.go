@@ -19,6 +19,7 @@ import (
 	"log/slog"
 	"net"
 	"os"
+	"runtime"
 	"slices"
 	"strings"
 	"sync"
@@ -226,6 +227,13 @@ func (a *App) Start() {
 				a.Say("install failed: %v", err)
 				a.Say("%s.", installer.RepairAdvice)
 			}
+			return
+		}
+		// Which mods this run loads, as opposed to has installed. Off and
+		// "only when a mission needs it" are answered here, by writing or
+		// removing each one's autoload marker before srcds reads it.
+		if err := installer.SetServerModLoading(s.InstallRoot, settings.ServerModsToLoad(s, runtime.GOOS)); err != nil {
+			a.Say("%v", err)
 			return
 		}
 		a.mu.Lock()

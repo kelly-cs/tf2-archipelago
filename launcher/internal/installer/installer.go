@@ -21,6 +21,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -672,7 +673,6 @@ func sigmodFiles(goos string) []string {
 	if goos == "windows" {
 		return []string{
 			"addons/sourcemod/extensions/sigsegv.ext.2.tf2.dll",
-			"addons/sourcemod/extensions/sigsegv.autoload",
 			"addons/sourcemod/gamedata/sigsegv/population.txt",
 			"addons/sourcemod/gamedata/sigsegv/windows.txt",
 			"cfg/sigsegv_convars.cfg",
@@ -681,11 +681,16 @@ func sigmodFiles(goos string) []string {
 	return []string{
 		"addons/sourcemod/extensions/sigsegv.ext.2.tf2.so",
 		"addons/sourcemod/extensions/x64/sigsegv.ext.2.tf2.so",
-		"addons/sourcemod/extensions/sigsegv.autoload",
 		"addons/sourcemod/gamedata/sigsegv/population.txt",
 		"cfg/sigsegv_convars.cfg",
 	}
 }
+
+// sigmodAutoload is the marker SourceMod reads to decide whether to load the
+// extension beside it. It is not in sigmodFiles: an install is judged by what
+// the package wrote, and this is the launcher's own answer to a setting, put
+// there and taken away again on every start.
+const sigmodAutoload = "addons/sourcemod/extensions/sigsegv.autoload"
 
 func sigmodStamp(modDir string) (string, error) {
 	var stamp strings.Builder
@@ -764,6 +769,47 @@ func installServerMods(ctx context.Context, installRoot, modDir string, requeste
 				return errors.New("SigMod package was extracted but its extension, gamedata, or managed version stamp is incomplete")
 			}
 		}
+	}
+	return nil
+}
+
+/*
+SetServerModLoading writes or removes each managed mod's autoload marker, so
+the set of mods the game server loads is the set the caller names.
+
+This runs on every start, after the install. SourceMod loads an extension
+because a file named after it sits beside it, which is why a mod that crashed
+the server could not be turned off from the launcher's settings: installing it
+was loading it. Separating the two is the whole point, so the marker is written
+from the answer rather than left wherever the last unzip put it.
+
+The files stay. A player who turns SigMod off for an evening is not made to
+download it again.
+*/
+func SetServerModLoading(installRoot string, load []string) error {
+	modDir := filepath.Join(installRoot, "tf-dedicated", "tf")
+	marker := filepath.Join(modDir, filepath.FromSlash(sigmodAutoload))
+	if !slices.Contains(load, sigmodKey) {
+		if err := os.Remove(marker); err != nil && !errors.Is(err, os.ErrNotExist) {
+			return fmt.Errorf("cannot stop the game server loading SigMod: %w", err)
+		}
+		return nil
+	}
+	// Only when the extension is there: a marker beside nothing makes
+	// SourceMod complain about a missing extension on every start.
+	if firstMissing(modDir, sigmodFiles(runtime.GOOS)) != "" {
+		return nil
+	}
+	if _, err := os.Stat(marker); err == nil {
+		return nil
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return fmt.Errorf("cannot inspect the SigMod autoload marker: %w", err)
+	}
+	if err := os.MkdirAll(filepath.Dir(marker), 0o755); err != nil {
+		return err
+	}
+	if err := os.WriteFile(marker, nil, 0o644); err != nil {
+		return fmt.Errorf("cannot make the game server load SigMod: %w", err)
 	}
 	return nil
 }

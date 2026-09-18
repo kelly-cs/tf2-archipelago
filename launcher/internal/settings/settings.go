@@ -65,6 +65,23 @@ type Settings struct {
 	// seed and the server agree. The launcher downloads and verifies selected
 	// mods when it prepares the server; platform support comes from gamedata.
 	SrcdsMods []string `json:"srcds_mods"`
+
+	/*
+		SrcdsModLoading decides when a selected mod is actually loaded by the
+		game server, as opposed to merely installed.
+
+		A SourceMod extension loads because a file named after it sits beside
+		it, so "installed" and "loaded" used to be the same thing and a mod
+		that crashed the server could not be escaped from these settings. They
+		are separate now: the launcher writes that marker at Start and takes it
+		away again, so Off keeps a downloaded mod on the disk and out of the
+		process.
+
+		ModLoadingRequired is the default and the reason this exists. Nothing
+		loads an engine-patching extension into a run whose missions never ask
+		for it.
+	*/
+	SrcdsModLoading ModLoading `json:"srcds_mod_loading,omitempty"`
 	/*
 		FastDLPort is where the launcher serves the game's maps and other
 		content over HTTP, on this machine, so a joining client downloads

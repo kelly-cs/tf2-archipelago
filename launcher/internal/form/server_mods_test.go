@@ -75,26 +75,67 @@ v1.17.0 and v1.17.1 offered it there. The port crashed the game server with a
 corrupted heap before it finished loading, on every start, so a player who
 ticked it is owed the reason the tick is gone. apw-5g4.14.
 */
-func TestSigmodOnWindowsIsRefusedAndSaysWhy(t *testing.T) {
+/*
+The mod is three answers, not a tick, and Windows carries the warning it earned.
+
+apw-5g4.14: the port crashed a real Windows server, and "only when a mission
+needs it" is what makes offering it defensible. A player picking it is told so
+before they pick.
+*/
+func TestServerModOffersThreeAnswers(t *testing.T) {
 	state := NewState(settings.Defaults())
-	field, ok := Build(state, Env{Platform: "windows"}).Field("missions.mod.sigsegv-mvm")
-	if !ok {
-		t.Fatal("the SigMod row is missing on Windows; a player who ticked it there gets no reason")
-	}
-	if !field.Disabled {
-		t.Fatalf("Windows SigMod field is tickable = %+v", field)
-	}
-	if !strings.Contains(field.Reason, "no windows server build") {
-		t.Errorf("Windows SigMod does not say why it is off: %q", field.Reason)
+	for _, platform := range []string{"linux", "windows"} {
+		field, ok := Build(state, Env{Platform: platform}).Field("missions.mod.sigsegv-mvm")
+		if !ok || field.Disabled {
+			t.Fatalf("%s SigMod field = %+v, found=%t", platform, field, ok)
+		}
+		if field.Kind != Choice {
+			t.Errorf("%s SigMod is a %v, not a choice", platform, field.Kind)
+		}
+		var values []string
+		for _, option := range field.Options {
+			values = append(values, option.Value)
+		}
+		if want := []string{"off", "required", "always"}; !slices.Equal(values, want) {
+			t.Errorf("%s SigMod offers %v, want %v", platform, values, want)
+		}
+		// Off until somebody asks: an engine-patching extension is not a
+		// default.
+		if field.Value != "off" {
+			t.Errorf("%s SigMod defaults to %q", platform, field.Value)
+		}
 	}
 }
 
-// Linux is where the build is, so nothing changed there.
-func TestSigmodOnLinuxIsStillOffered(t *testing.T) {
+func TestSigmodWarnsOnWindowsOnly(t *testing.T) {
 	state := NewState(settings.Defaults())
-	field, ok := Build(state, Env{Platform: "linux"}).Field("missions.mod.sigsegv-mvm")
-	if !ok || field.Disabled {
-		t.Fatalf("Linux SigMod field = %+v, found=%t", field, ok)
+	windows, _ := Build(state, Env{Platform: "windows"}).Field("missions.mod.sigsegv-mvm")
+	if !strings.Contains(windows.Warning, "crashed a server") {
+		t.Errorf("Windows SigMod does not warn about the port: %q", windows.Warning)
+	}
+	linux, _ := Build(state, Env{Platform: "linux"}).Field("missions.mod.sigsegv-mvm")
+	if linux.Warning != "" {
+		t.Errorf("Linux SigMod carries a Windows warning: %q", linux.Warning)
+	}
+}
+
+// Picking a loading answer selects the mod and keeps the answer.
+func TestServerModChoiceSetsTheLoadingPolicy(t *testing.T) {
+	state := NewState(settings.Defaults())
+	env := Env{Platform: "linux"}
+	next, err := Apply(state, env, Change{Field: "missions.mod.sigsegv-mvm", Value: "always"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Contains(next.Settings.SrcdsMods, "sigsegv-mvm") {
+		t.Error("choosing a loading answer did not select the mod")
+	}
+	if next.Settings.SrcdsModLoading != settings.ModLoadingAlways {
+		t.Errorf("loading = %q, want always", next.Settings.SrcdsModLoading)
+	}
+	field, _ := Build(next, env).Field("missions.mod.sigsegv-mvm")
+	if field.Value != "always" {
+		t.Errorf("the row reads back %q", field.Value)
 	}
 }
 
@@ -153,13 +194,16 @@ func TestUnavailableSelectedMissionsCanBeRemovedFromPool(t *testing.T) {
 func TestTurningOffMissionRequirementsUnticksTheirMissions(t *testing.T) {
 	const sigmod = "mvm_bronx_rc2_adv_point_of_impact"
 	const ordinary = "mvm_kelly_rc1b_adv_homestead_happenings"
+	// The mod row is a choice with three answers and the community row is
+	// still a tick, so "off" is spelled differently in each.
 	for _, tc := range []struct {
 		name    string
 		field   string
+		off     string
 		matches func(gamedata.Mission) bool
 	}{
-		{"SigMod", "missions.mod.sigsegv-mvm", func(m gamedata.Mission) bool { return gamedata.MissionServerMod(m.ID) == "sigsegv-mvm" }},
-		{"community missions", "missions.community", func(m gamedata.Mission) bool { return gamedata.IsCommunityMission(m.ID) }},
+		{"SigMod", "missions.mod.sigsegv-mvm", "off", func(m gamedata.Mission) bool { return gamedata.MissionServerMod(m.ID) == "sigsegv-mvm" }},
+		{"community missions", "missions.community", "false", func(m gamedata.Mission) bool { return gamedata.IsCommunityMission(m.ID) }},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			state := NewState(settings.Defaults())
@@ -169,7 +213,7 @@ func TestTurningOffMissionRequirementsUnticksTheirMissions(t *testing.T) {
 			state.Settings.MvmExcludedMissions = slices.DeleteFunc(state.Settings.MvmExcludedMissions,
 				func(pop string) bool { return pop == sigmod || pop == ordinary })
 			env := Env{Platform: "linux", CommunityAvailable: []string{settings.CommunityPackPotato}}
-			next, err := Apply(state, env, Change{Field: tc.field, Value: "false"})
+			next, err := Apply(state, env, Change{Field: tc.field, Value: tc.off})
 			if err != nil {
 				t.Fatal(err)
 			}

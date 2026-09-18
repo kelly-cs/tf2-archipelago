@@ -369,30 +369,61 @@ func activeServerMods(s State, env Env) []string {
 	return active
 }
 
+/*
+serverModSpec is one mod: off, on for the missions that need it, or on always.
+
+Three answers rather than a tick, because installing a mod and loading it are
+different questions and this row used to answer both at once. SourceMod loads
+an extension because a file sits beside it, so a mod that crashed the server
+could not be turned off here at all: the launcher writes that marker from this
+answer now, on every start.
+*/
 func serverModSpec(key, label string, env Env) Spec {
-	help := "Required by missions that use SigMod population extensions, and used by nothing else. Turning this off removes those missions from the pool. Start downloads, verifies and installs the pinned release automatically when this is selected."
+	const off = "off"
 	mod, _ := gamedata.ServerModByKey(key)
+
+	help := "Required by missions that use SigMod population extensions, and used by nothing else. Off removes those missions from the pool. Start downloads, verifies and installs the pinned release when it is needed."
 	if !mod.BuildsOn(env.Platform) {
 		help = label + " has no " + env.Platform + " server build, so the missions that need it stay out of the pool."
 	}
-	spec := toggle("missions.mod."+key, "Missions", label, help,
-		"selected for this server",
-		func(s State) bool { return slices.Contains(s.Settings.SrcdsMods, key) },
-		func(s State, v bool) State {
+
+	values := []string{off}
+	labels := []string{"off"}
+	for _, loading := range settings.ModLoadings() {
+		values = append(values, string(loading))
+		labels = append(labels, loading.Label())
+	}
+
+	spec := choice("missions.mod."+key, "Missions", label, help,
+		options(values, labels),
+		func(s State) string {
+			if !slices.Contains(s.Settings.SrcdsMods, key) {
+				return off
+			}
+			return string(s.Settings.SrcdsModLoading.OrDefault())
+		},
+		func(s State, v string) State {
 			s.Settings.SrcdsMods = slices.DeleteFunc(slices.Clone(s.Settings.SrcdsMods), func(one string) bool { return one == key })
-			if v {
-				s.Settings.SrcdsMods = append(s.Settings.SrcdsMods, key)
-			} else {
+			if v == off {
 				s = excludePoolMissions(s, func(m gamedata.Mission) bool { return gamedata.MissionServerMod(m.ID) == key })
+				return clearIneligibleStart(s)
+			}
+			s.Settings.SrcdsMods = append(s.Settings.SrcdsMods, key)
+			if loading := settings.ModLoading(v); loading.Valid() {
+				s.Settings.SrcdsModLoading = loading
 			}
 			return clearIneligibleStart(s)
 		})
+
 	/*
-		A platform with no build cannot be talked into one, so the row says so
-		and refuses the tick. It stays on the page rather than disappearing:
-		v1.17.0 offered SigMod on Windows, and a player who ticked it there is
-		owed the reason it is off now. See apw-5g4.14.
+		The Windows build is this project's port rather than upstream's, and it
+		has crashed a real Windows server. A player is owed that before they
+		pick it, and "only when a mission needs it" is why the row is offered
+		at all rather than hidden.
 	*/
+	if env.Platform == "windows" && mod.BuildsOn(env.Platform) {
+		spec.Warning = "The Windows build is this project's port, and it has crashed a server on a host who ran it. Leave this on \"only when a mission needs it\" unless you are testing it."
+	}
 	if !mod.BuildsOn(env.Platform) {
 		spec.Unavailable = func(State, Env) string {
 			return label + " has no " + env.Platform + " server build"

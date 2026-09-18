@@ -187,6 +187,13 @@ sync_tree() {
 # under $MODS/<key>. A key nothing was staged for is a line in the log, and
 # the seed generated with server_mods naming it will not find its missions.
 install_mods() {
+	# SourceMod loads an extension because a file named after it sits beside
+	# it, and sync_tree only ever adds. So a mod taken out of SRCDS_MODS went
+	# on loading from the volume it was once synced into, and there was no way
+	# to stop it short of deleting the volume. Take the marker away first, then
+	# put it back for the mods that are still named.
+	rm -f "$GAME/addons/sourcemod/extensions/sigsegv.autoload"
+
 	[ -n "${SRCDS_MODS:-}" ] || return 0
 	for key in $(printf '%s' "${SRCDS_MODS}" | tr ',' ' '); do
 		if [ ! -d "$MODS/$key" ]; then

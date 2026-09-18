@@ -4,6 +4,30 @@ What each release changes, for somebody who plays the game. The workflow in
 `.github/workflows/release.yml` reads the section matching the tag and puts it
 in the release notes, so this file is the only place to write it.
 
+## Unreleased
+
+### Added
+
+- **Server mods have three answers instead of a tick: off, only when a mission
+  needs it, or always.** Installing a mod used to be the same thing as loading
+  it, because the game server loads an extension whenever its file is on the
+  disk. They are separate now. The default loads a mod only while your mission
+  pool holds a mission that names it, so a run that never asks for SigMod
+  never has it in the server. Turning a mod off leaves the download in place,
+  so turning it back on costs nothing.
+- **SigMod is offered on Windows again**, through this project's own port,
+  since upstream publishes no Windows build. It is off by default and the page
+  says what it is: the port crashed one player's server, and the new loading
+  setting is what makes it safe to offer. Leave it on **only when a mission
+  needs it** unless you are testing it.
+
+### Fixed
+
+- **A server mod can be turned off.** Whether you run the launcher or the
+  Docker stack, taking a mod out of the settings left it loading from the game
+  files it had already been installed into, with nothing on screen admitting
+  it. Both now take the marker away.
+
 ## v1.17.2
 
 ### Added

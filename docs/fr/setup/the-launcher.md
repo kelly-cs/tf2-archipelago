@@ -196,9 +196,11 @@ Les missions où la seed peut piocher, et où la partie commence.
   télécharge. **Start** ne télécharge jamais de contenu communautaire tout
   seul.
 - **Community missions** laisse la seed piocher des missions communautaires.
-- **SigMod** et les autres mods serveur : cochez-en un, et
-  **Download / set up selected server mods** l'installe. Une mission qui
-  demande un mod reste hors de la réserve tant que son mod n'est pas coché.
+- **SigMod** et les autres mods serveur : choisissez **off**,
+  **only when a mission needs it** ou **always, on every mission**. Appuyez
+  ensuite sur **Download / set up selected server mods**. Une mission qui
+  demande un mod reste hors de la réserve tant que ce mod est sur off. Voir
+  [Les options de la partie](shape-of-the-run.md#les-missions).
 - **Check Run Selection** vous dit si la réserve contient assez de checks
   pour les objets de la partie. Appuyez dessus avant de générer.
 - **Start mission** et **Start class** décident où la partie commence.

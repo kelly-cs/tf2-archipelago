@@ -588,15 +588,79 @@ func TestSigmodPackageIsPerPlatform(t *testing.T) {
 }
 
 // A mod the catalog has no build for here is what an earlier release left
-// behind, so the question is never whether to install it. apw-5g4.14: v1.17.0
-// offered SigMod on Windows and the extension crashed the server before it
-// finished loading, on every start.
-func TestSigmodHasNoWindowsBuild(t *testing.T) {
-	if buildsOn(sigmodKey, "windows") {
-		t.Error("SigMod claims a Windows build; v1.17.0 shipped that and every Windows server died with a corrupted heap")
+// behind, so the question is never whether to install it.
+func TestBuildsOnFollowsTheCatalog(t *testing.T) {
+	for _, goos := range []string{"linux", "windows"} {
+		if !buildsOn(sigmodKey, goos) {
+			t.Errorf("SigMod has no %s build", goos)
+		}
 	}
-	if !buildsOn(sigmodKey, "linux") {
-		t.Error("SigMod lost its Linux build")
+	if buildsOn("not-a-mod", "linux") {
+		t.Error("an unknown mod claims a build")
+	}
+	if buildsOn(sigmodKey, "darwin") {
+		t.Error("SigMod claims a build on a platform nothing ships for")
+	}
+}
+
+/*
+The autoload marker is launcher state, not part of the package.
+
+apw-5g4.14: SourceMod loads an extension because a file sits beside it, so
+installing SigMod was loading it and a host whose server crashed could not turn
+it off. Hashing the marker into the receipt would make turning it off read as a
+broken install and reinstall it on the next start.
+*/
+func TestTheAutoloadMarkerIsNotPartOfTheInstall(t *testing.T) {
+	for _, goos := range []string{"linux", "windows"} {
+		if slices.Contains(sigmodFiles(goos), sigmodAutoload) {
+			t.Errorf("the %s install is judged by the autoload marker", goos)
+		}
+	}
+}
+
+// Off, and on, and off again: this runs on every start.
+func TestSetServerModLoadingWritesAndRemovesTheMarker(t *testing.T) {
+	installRoot := t.TempDir()
+	modDir := filepath.Join(installRoot, "tf-dedicated", "tf")
+	for _, relative := range sigmodFiles(runtime.GOOS) {
+		path := filepath.Join(modDir, filepath.FromSlash(relative))
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, []byte("x"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	marker := filepath.Join(modDir, filepath.FromSlash(sigmodAutoload))
+
+	if err := SetServerModLoading(installRoot, []string{sigmodKey}); err != nil {
+		t.Fatalf("load: %v", err)
+	}
+	if _, err := os.Stat(marker); err != nil {
+		t.Fatalf("the marker was not written: %v", err)
+	}
+	if err := SetServerModLoading(installRoot, nil); err != nil {
+		t.Fatalf("unload: %v", err)
+	}
+	if _, err := os.Stat(marker); !errors.Is(err, os.ErrNotExist) {
+		t.Error("the marker survived being turned off")
+	}
+	// Twice, because nothing guarantees which state a start begins in.
+	if err := SetServerModLoading(installRoot, nil); err != nil {
+		t.Fatalf("unload twice: %v", err)
+	}
+}
+
+// A marker beside no extension makes SourceMod complain on every start.
+func TestSetServerModLoadingWritesNoMarkerWithoutTheExtension(t *testing.T) {
+	installRoot := t.TempDir()
+	if err := SetServerModLoading(installRoot, []string{sigmodKey}); err != nil {
+		t.Fatalf("load: %v", err)
+	}
+	marker := filepath.Join(installRoot, "tf-dedicated", "tf", filepath.FromSlash(sigmodAutoload))
+	if _, err := os.Stat(marker); !errors.Is(err, os.ErrNotExist) {
+		t.Error("a marker was written beside no extension")
 	}
 }
 

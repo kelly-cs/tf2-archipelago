@@ -23,18 +23,20 @@ deploy/env/versions.env, which is where every pin of this project lives.
 SigMod's Windows build is not upstream's: rafradek publishes Linux only, and
 m-this/sigsegv-mvm-win carries the port the Windows launcher downloads.
 
-Windows is false again. v1.17.0 and v1.17.1 shipped it true, and every Windows
-host that ticked SigMod got a game server that died with STATUS_HEAP_CORRUPTION
-before it finished loading, on every start. The port's own package is the
-reason to doubt it rather than to retry: it ships the generated windows.txt
-address table beside the per-area gamedata files it supersedes, and 780 of its
-804 names collide with them, so the server logs a duplicate for almost every
-address it loads and then dies. The epic's verification tasks were open when it
-shipped and still are. Turn this back on when apw-5g4.12 has actually played
-the missions on Windows.
+Windows is true, and what makes that safe is the loading setting rather than
+this flag. v1.17.0 shipped Windows with no such setting: installing SigMod was
+loading it, on every map, and a host whose server died with
+STATUS_HEAP_CORRUPTION could not turn it off from the launcher. The default now
+loads a mod only while the pool holds a mission that names it, so a run that
+never asks for SigMod never has it in the process.
+
+The Windows port is this project's own, from m-this/sigsegv-mvm-win: upstream
+publishes Linux only. It runs a community mission under Wine with the whole
+stack loaded, and it crashed one player's real Windows server. What is left to
+verify is apw-5g4.12 and apw-5g4.13.
 */
 var ServerMods = []ServerMod{
-	{Key: "sigsegv-mvm", Name: "SigMod", Linux: true, Windows: false},
+	{Key: "sigsegv-mvm", Name: "SigMod", Linux: true, Windows: true},
 }
 
 // noNavRequirement marks a mission whose map ships no bot navigation mesh.

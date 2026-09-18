@@ -18,6 +18,7 @@ var EnvNames = []string{
 	"SRCDS_HOSTNAME", "SRCDS_RCONPW", "SRCDS_PW", "SRCDS_PORT", "TF2AP_JOIN_HOST",
 	"SRCDS_MAXPLAYERS", "SRCDS_START_MISSION", "SRCDS_STARTMAP", "SRCDS_TOKEN",
 	"SRCDS_LAN", "SRCDS_REACH", "SRCDS_ADMIN_STEAMIDS", "SRCDS_MODS",
+	"SRCDS_MOD_LOADING",
 	"FASTDL_PORT", "SRCDS_DOWNLOADURL", "TAILSCALE_FASTDL",
 	"SRCDS_BOTS", "SRCDS_BOT_TEAM_SIZE", "SRCDS_BOT_CLASS_BLACKLIST", "SRCDS_BOT_LOADOUTS",
 	"SRCDS_BOT_CUSTOM_LOADOUTS", "SRCDS_BOT_TEAM_PRESETS",
@@ -102,6 +103,11 @@ func applyServerEnv(s Settings) Settings {
 	}
 	str(&s.SrcdsAdminSteamIDs, "SRCDS_ADMIN_STEAMIDS")
 	list(&s.SrcdsMods, "SRCDS_MODS")
+	if value, ok := os.LookupEnv("SRCDS_MOD_LOADING"); ok {
+		if loading := ModLoading(strings.ToLower(strings.TrimSpace(value))); loading.Valid() {
+			s.SrcdsModLoading = loading
+		}
+	}
 	num(&s.FastDLPort, "FASTDL_PORT")
 	str(&s.SrcdsDownloadURL, "SRCDS_DOWNLOADURL")
 	boolean(&s.TailscaleFastDL, "TAILSCALE_FASTDL")

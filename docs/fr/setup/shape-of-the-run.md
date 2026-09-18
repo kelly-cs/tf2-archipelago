@@ -165,9 +165,24 @@ le disque, ses missions apparaissent dans la liste. Voir le
 [guide du contenu communautaire](https://github.com/m-this/tf2-archipelago/blob/main/community-content/README.md),
 en anglais.
 
-Certaines missions communautaires demandent un mod serveur. Cochez le mod sur
-la page **Missions**, et le lanceur l'installe. Le seul mod pour l'instant est
-SigMod (`sigsegv-mvm`).
+Certaines missions communautaires demandent un mod serveur. Le seul mod pour
+l'instant est SigMod (`sigsegv-mvm`). Sur la page **Missions**, chaque mod a
+trois réponses :
+
+| Réponse | Ce que le serveur fait |
+| --- | --- |
+| **off** | Ne charge jamais le mod. Ses missions quittent la réserve. |
+| **only when a mission needs it** | Le charge tant que la réserve contient une mission qui le nomme. La valeur par défaut. |
+| **always, on every mission** | Le charge sur chaque carte. |
+
+Le lanceur installe le mod quand il est nécessaire. Le désactiver laisse les
+fichiers en place, donc le réactiver ne coûte aucun téléchargement.
+
+La version Windows de SigMod est le portage de ce projet, et elle a fait
+planter un serveur. Laissez-la sur **only when a mission needs it** sauf si
+vous la testez. Dans `.env` la réponse est `SRCDS_MOD_LOADING`, et Docker la
+lit comme on ou off : l'image ne peut pas savoir quelles missions la réserve
+contient.
 
 ## Récompenses
 

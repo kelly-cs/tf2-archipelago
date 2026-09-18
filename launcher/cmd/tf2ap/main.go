@@ -20,6 +20,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	goruntime "runtime"
 	"strings"
 	"syscall"
 	"time"
@@ -242,6 +243,12 @@ func ensureInstalled(s settings.Settings, logger *slog.Logger) settings.Settings
 	result, err := installer.Ensure(context.Background(), s.InstallRoot, settings.CommunityArchives(s), settings.ServerModKeys(s), logf(logger))
 	if err != nil {
 		logger.Error("install failed", "error", err, "advice", installer.RepairAdvice)
+		os.Exit(1)
+	}
+	// Which mods this run loads, as opposed to has installed. The autoload
+	// marker is written or removed from the setting before srcds reads it.
+	if err := installer.SetServerModLoading(s.InstallRoot, settings.ServerModsToLoad(s, goruntime.GOOS)); err != nil {
+		logger.Error("server mod loading", "error", err)
 		os.Exit(1)
 	}
 	if result.Done.Message != "" {

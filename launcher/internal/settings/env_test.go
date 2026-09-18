@@ -131,6 +131,7 @@ func TestEveryFieldHasAnEnvVar(t *testing.T) {
 		"MetricsPort":                "BRIDGE_METRICS_PORT",
 		"SrcdsBluHealthPct":          "SRCDS_BLU_HEALTH_PCT",
 		"SrcdsMods":                  "SRCDS_MODS",
+		"SrcdsModLoading":            "SRCDS_MOD_LOADING",
 		"FastDLPort":                 "FASTDL_PORT",
 		"SrcdsDownloadURL":           "SRCDS_DOWNLOADURL",
 		"TailscaleFastDL":            "TAILSCALE_FASTDL",
