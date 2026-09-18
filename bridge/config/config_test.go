@@ -70,3 +70,26 @@ func TestTestModeFromTheEnvironment(t *testing.T) {
 		t.Error("a value that is not a boolean was accepted")
 	}
 }
+
+func TestDockerTestRunSettings(t *testing.T) {
+	t.Setenv("TF2AP_TEST_MODE", "1")
+	t.Setenv("MVM_MISSION_MODIFIERS", "true")
+	t.Setenv("MVM_MINIMUM_MISSION_MODIFIERS", "2")
+	t.Setenv("MVM_MAXIMUM_MISSION_MODIFIERS", "3")
+	t.Setenv("MVM_VICTORY_CACHES", "true")
+	t.Setenv("MVM_MILESTONE_CHECKS", "true")
+	t.Setenv("MVM_GIANTSANITY", "true")
+	t.Setenv("MVM_TANKSANITY", "true")
+	t.Setenv("MVM_EXCLUDED_MISSIONS", "mvm_decoy, mvm_mannhattan")
+	cfg, err := Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	run := cfg.TestRun
+	if !run.MissionModifiers || run.ModifierMin != 2 || run.ModifierMax != 3 || !run.VictoryCaches || !run.MilestoneChecks || !run.Giantsanity || !run.Tanksanity {
+		t.Errorf("test run settings were lost: %+v", run)
+	}
+	if len(run.Excluded) != 2 || run.Excluded[1] != "mvm_mannhattan" {
+		t.Errorf("excluded missions = %v", run.Excluded)
+	}
+}

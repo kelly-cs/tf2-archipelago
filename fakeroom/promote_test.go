@@ -59,8 +59,8 @@ func TestThePromotedBuffsAreNotAllOneWeapon(t *testing.T) {
 	}
 }
 
-// Nothing is lost by reordering: every item the run would have handed out is
-// still in the list, once.
+// Every item a seed could grant in this mode survives reordering, with its
+// normal copy count. Ineligible permutations never enter the test pool.
 func TestPromotingKeepsEveryItem(t *testing.T) {
 	order := unlockOrder(nil)
 
@@ -70,10 +70,23 @@ func TestPromotingKeepsEveryItem(t *testing.T) {
 	}
 	var want int
 	for _, item := range gamedata.Items {
-		if item.Classification == gamedata.Filler {
-			continue
+		copies := 0
+		switch item.Kind {
+		case gamedata.ItemMissionTicket, gamedata.ItemClass,
+			gamedata.ItemWeaponSlot, gamedata.ItemTrap:
+			copies = max(int(item.Count), 1)
+		case gamedata.ItemWeaponBuff:
+			buff, known := gamedata.WeaponBuffByID(item.WeaponBuff)
+			if known && buff.Eligible {
+				copies = 1
+			}
+		default:
+			// Other kinds need options or a locked location.
 		}
-		want += max(int(item.Count), 1)
+		if got := counted[item.ID]; got != copies {
+			t.Errorf("%q has %d copies in the test pool, want %d", item.Name, got, copies)
+		}
+		want += copies
 	}
 	if len(order) != want {
 		t.Errorf("the order holds %d items, the pool has %d", len(order), want)

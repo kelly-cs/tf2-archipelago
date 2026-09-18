@@ -171,6 +171,25 @@ func TestTheUnlockOrderDropsWhatTheRunAlreadyHolds(t *testing.T) {
 	}
 }
 
+func TestTestRewardsUseOnlySeedEligibleWeaponBuffs(t *testing.T) {
+	order := unlockOrder(startingInventory("mvm_decoy", ""))
+	buffs := 0
+	for _, id := range order {
+		item, known := gamedata.ItemByID(id)
+		if !known || item.Kind != gamedata.ItemWeaponBuff {
+			continue
+		}
+		buff, known := gamedata.WeaponBuffByID(item.WeaponBuff)
+		if !known || !buff.Eligible {
+			t.Errorf("test reward includes ineligible buff %q", item.Name)
+		}
+		buffs++
+	}
+	if buffs == 0 {
+		t.Fatal("test reward pool has no eligible weapon buffs")
+	}
+}
+
 func TestDefaultMissionsSkipTheExcluded(t *testing.T) {
 	for range 20 {
 		got := defaultMissions(2, []string{"mvm_decoy"}, "", "")
@@ -228,6 +247,92 @@ func TestUnlockingEveryMissionIsPartOfTheSlotData(t *testing.T) {
 	}
 	if got := payload.SlotData.MissionTicketImportance; got != "useful" {
 		t.Errorf("mission ticket importance = %q, want useful", got)
+	}
+}
+
+func TestDockerChecksAndModifiersReachTheBridge(t *testing.T) {
+	room, address, err := Start(t.Context(), Options{
+		Missions:      []string{"mvm_decoy", "mvm_mannhattan"},
+		DrawModifiers: true, ModifierMin: 2, ModifierMax: 2,
+		VictoryCaches: true, MilestoneChecks: true, Giantsanity: true, Tanksanity: true,
+		ShuffleRewards: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = room.Close(context.Background()) })
+	c := dial(t, address)
+	c.await("RoomInfo")
+	c.send(map[string]any{"cmd": "Connect"})
+	connected := c.await("Connected")
+	var payload struct {
+		SlotData struct {
+			MissionModifiers map[string][]MissionModifier `json:"mission_modifiers"`
+			VictoryCaches    bool                         `json:"victory_caches"`
+			MilestoneChecks  bool                         `json:"milestone_checks"`
+			Giantsanity      bool                         `json:"giantsanity"`
+			Tanksanity       bool                         `json:"tanksanity"`
+		} `json:"slot_data"`
+	}
+	if err := json.Unmarshal(mustRaw(connected), &payload); err != nil {
+		t.Fatal(err)
+	}
+	for mission, modifiers := range payload.SlotData.MissionModifiers {
+		if len(modifiers) != 2 {
+			t.Errorf("%s has %d modifiers, want 2", mission, len(modifiers))
+		}
+	}
+	if len(payload.SlotData.MissionModifiers) != 2 || !payload.SlotData.VictoryCaches || !payload.SlotData.MilestoneChecks || !payload.SlotData.Giantsanity || !payload.SlotData.Tanksanity {
+		t.Errorf("extra checks were not announced: %+v", payload.SlotData)
+	}
+	c.send(map[string]any{"cmd": "LocationChecks", "locations": []int64{100, 101}})
+	received := c.await("ReceivedItems")
+	var reward struct {
+		Items []struct {
+			Item int64 `json:"item"`
+		} `json:"items"`
+	}
+	if err := json.Unmarshal(mustRaw(received), &reward); err != nil {
+		t.Fatal(err)
+	}
+	if len(reward.Items) != 2 {
+		t.Fatalf("got %d rewards for two checks", len(reward.Items))
+	}
+	for _, got := range reward.Items {
+		item, known := gamedata.ItemByID(got.Item)
+		if !known || item.Classification == gamedata.Filler {
+			t.Errorf("check rewarded invalid item %d", got.Item)
+		}
+	}
+}
+
+func TestDockerChecksKeepRewardingAfterPoolIsExhausted(t *testing.T) {
+	room, address, err := Start(t.Context(), Options{
+		Missions: []string{"mvm_decoy"}, ShuffleRewards: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = room.Close(context.Background()) })
+	room.mu.Lock()
+	room.items = room.items[:1]
+	room.mu.Unlock()
+	c := dial(t, address)
+	c.await("RoomInfo")
+	c.send(map[string]any{"cmd": "Connect"})
+	c.await("Connected")
+	c.send(map[string]any{"cmd": "LocationChecks", "locations": []int64{100, 101}})
+	received := c.await("ReceivedItems")
+	var payload struct {
+		Items []struct {
+			Item int64 `json:"item"`
+		} `json:"items"`
+	}
+	if err := json.Unmarshal(mustRaw(received), &payload); err != nil {
+		t.Fatal(err)
+	}
+	if len(payload.Items) != 2 || payload.Items[0].Item != payload.Items[1].Item {
+		t.Errorf("two fresh checks after a one-item pool gave %+v", payload.Items)
 	}
 }
 
