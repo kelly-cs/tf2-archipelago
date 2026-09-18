@@ -69,7 +69,12 @@ RUN grep -E '^(HL2SDK|SOURCEMOD_SRC|METAMOD_SRC|AMBUILD|CBASENPC|ACTIONS)_' \
 	/versions.env >/extension-pins.env
 
 
-FROM debian:stable-slim AS extensions
+# Bookworm, not stable-slim: these two .so files are loaded by the TF2 image
+# below, which is Bookworm, and Debian stable has moved on to a glibc newer than
+# it has. Built on stable the extensions ask for GLIBC_2.38, SourceMod loads
+# neither, and no defender bots join. The check at the end of the last stage is
+# what catches it, and it caught this.
+FROM debian:bookworm-slim AS extensions
 
 RUN apt-get update \
 	&& apt-get install --yes --no-install-recommends \
