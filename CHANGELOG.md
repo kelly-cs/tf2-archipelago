@@ -18,6 +18,15 @@ in the release notes, so this file is the only place to write it.
 - All in the pool no longer puts community missions back while Community
   missions is off.
 
+## Unreleased
+
+### Fixed
+
+- **Defender bots ready up again after a map change.** A per-client
+  ready-command deadline kept the previous map's game clock, so the bots
+  stopped pressing F4 until the new map's clock had caught up with it. On a
+  mission switch that could leave the team standing in the spawn room.
+
 ## v1.16.1
 
 ### Weapon slots, found in any order
