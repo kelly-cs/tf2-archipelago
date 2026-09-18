@@ -397,6 +397,7 @@ public void Event_BeginWave(Event event, const char[] name, bool dontBroadcast)
     Bots_OnWaveBegin();
     MissionModifiers_AnnounceWave();
     g_CurrentWave = event.GetInt("wave_index") + 1;
+    MissionModifiers_OnWaveBegin(g_CurrentWave);
     g_MaxWaves = event.GetInt("max_waves");
     g_PolledWave = g_CurrentWave;
     // A replayed wave counts its giants and tanks again from one, which the
@@ -480,6 +481,10 @@ public void Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast
 {
     int client = GetClientOfUserId(event.GetInt("userid"));
     MissionModifiers_OnPlayerDeath(client);
+    if (MissionModifiers_IsCulledSupport(client))
+    {
+        return;
+    }
     Tally_OnRobotDeath(client);
     if (!MvM_IsActive() || !MvM_IsGiant(client))
     {
@@ -547,6 +552,7 @@ public void Event_TankDestroyed(Event event, const char[] name, bool dontBroadca
 public void Event_WaveFailed(Event event, const char[] name, bool dontBroadcast)
 {
     Bots_OnWaveEnd();
+    MissionModifiers_OnWaveEnd();
     Tally_Flush();
     if (g_CurrentWave < 1)
     {
@@ -578,6 +584,7 @@ static void ReportWaveCleared(int wave)
     {
         return;
     }
+    MissionModifiers_OnWaveEnd();
     char popFile[64];
     if (!MvM_PopFile(popFile, sizeof(popFile)))
     {

@@ -176,6 +176,16 @@
 				"linux"		"1229"
 				"linux64"	"1321"
 			}
+			// CUtlVector<CHandle<CTFBot>>; verified against
+			// CWaveSpawnPopulator::OnPlayerKilled in the 32-bit server binary.
+			"CWaveSpawnPopulator::m_activeBots"
+			{
+				"linux"		"1200"
+			}
+			"CWaveSpawnPopulator::m_activeBotsCount"
+			{
+				"linux"		"1212"
+			}
 			"CBaseProjectile::SetLauncher"
 			{
 				"windows"	"234"

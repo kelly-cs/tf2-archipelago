@@ -18,7 +18,12 @@
 #define MissionModifier_LooseFootingFriction 0.25
 #define MissionModifier_LooseFootingAcceleration 2.5
 #define MissionModifier_LooseFootingForceScale 3.0
-#define MissionModifier_SurgeMaxInvaders 26
+// Six RED seats and four spare client slots let defender bots turn over mid-wave
+// on a 32-slot server without fighting the population manager for BLU slots.
+#define MissionModifier_SurgeMaxInvaders 22
+#define MissionModifier_SurgeSupportBudget 22
+#define MissionModifier_SurgeStallSeconds 20.0
+#define MissionModifier_SurgeRecoverySeconds 4.0
 #define MissionModifier_SurgeSupportStartDelay 0.0
 #define MissionModifier_SurgeSupportSpawnInterval 0.10
 #define MissionModifier_MaxWaves 64
@@ -30,6 +35,7 @@
 enum struct MissionModifierSupportSpawner
 {
     Address address;
+    int wave;
     int maxActive;
     int waitBeforeBits;
     int waitBits;
@@ -98,6 +104,13 @@ int g_WaveSpawnWaitBeforeOffset = -1;
 int g_WaveSpawnWaitOffset = -1;
 int g_WaveSpawnSupportOffset = -1;
 int g_WaveSpawnLimitedSupportOffset = -1;
+int g_WaveSpawnActiveBotsOffset = -1;
+int g_WaveSpawnActiveBotCountOffset = -1;
+float g_BotSurgeLastProgress;
+float g_BotSurgeRecoveryUntil;
+int g_BotSurgeMainRemaining = -1;
+int g_BotSurgeWave;
+bool g_BotSurgeCulled[MAXPLAYERS + 1];
 ArrayList g_BotSurgeSupportSpawners;
 ArrayList g_BotSurgeTimedSpawners;
 bool g_BotSurgeReloadQueued;
@@ -165,6 +178,7 @@ void MissionModifiers_Init()
     g_BotSurgeHud = CreateHudSynchronizer();
     CreateTimer(MissionModifier_BotSurgeHudInterval,
         Timer_MissionModifiersBotSurgeHud, _, TIMER_REPEAT);
+    CreateTimer(1.0, Timer_MissionModifiersBotSurgeRecovery, _, TIMER_REPEAT);
     for (int client = 1; client <= MaxClients; client++)
     {
         if (IsClientInGame(client))
@@ -302,6 +316,8 @@ static void MissionModifiers_InitBotSurgeSupportHook()
     g_WaveSpawnWaitOffset = config.GetOffset("CWaveSpawnPopulator::m_waitBetweenSpawns");
     g_WaveSpawnSupportOffset = config.GetOffset("CWaveSpawnPopulator::m_bSupportWave");
     g_WaveSpawnLimitedSupportOffset = config.GetOffset("CWaveSpawnPopulator::m_bLimitedSupport");
+    g_WaveSpawnActiveBotsOffset = config.GetOffset("CWaveSpawnPopulator::m_activeBots");
+    g_WaveSpawnActiveBotCountOffset = config.GetOffset("CWaveSpawnPopulator::m_activeBotsCount");
     DynamicDetour populationHook = DynamicDetour.FromConf(config, "CPopulationManager::Parse");
     DynamicDetour waveHook = DynamicDetour.FromConf(config, "CWave::Parse");
     DynamicDetour waveSpawnHook = DynamicDetour.FromConf(config, "CWaveSpawnPopulator::Parse");
@@ -373,6 +389,10 @@ static void MissionModifiers_InitBotSurgeSupportHook()
         || !waveSpawnHook.Enable(Hook_Post, MissionModifiers_WaveSpawnParsed))
     {
         LogError("Bot Surge support fillers disabled: CWaveSpawnPopulator layout could not be hooked.");
+    }
+    if (g_WaveSpawnActiveBotsOffset < 0 || g_WaveSpawnActiveBotCountOffset < 0)
+    {
+        LogError("Bot Surge stall recovery disabled: support bot handles are unavailable on this server.");
     }
     if (g_KVMakeCopy == null || g_KVAddSubKey == null || g_KVSetInt == null
         || g_KVSetFloat == null || g_KVSetString == null || g_KVFindKey == null
@@ -469,6 +489,9 @@ public MRESReturn MissionModifiers_PopulationParsing(Address populationManager,
     g_BotSurgeTimedSpawners.Clear();
     g_BotSurgeReloadQueued = false;
     g_BotSurgeMissionStarted = false;
+    g_BotSurgeRecoveryUntil = 0.0;
+    g_BotSurgeMainRemaining = -1;
+    g_BotSurgeWave = 0;
     g_BotSurgeParsingWave = -1;
     for (int wave = 0; wave < MissionModifier_MaxWaves; wave++)
     {
@@ -547,6 +570,10 @@ public MRESReturn MissionModifiers_WaveParsing(Address waveObject,
 public MRESReturn MissionModifiers_WaveParsed(Address waveObject,
     DHookReturn result, DHookParam params)
 {
+    if (g_ActiveMissionModifiers & MissionModifier_BotSurge)
+    {
+        MissionModifiers_ExpandWaveSupportSpawners(g_BotSurgeParsingWave);
+    }
     if (!(g_ActiveMissionModifiers & MissionModifier_BotSurge)
         && g_BotSurgeParsingWave + 1 > g_BotSurgeCapturedWaves)
     {
@@ -639,15 +666,12 @@ public MRESReturn MissionModifiers_WaveSpawnParsed(Address waveSpawn,
 
     MissionModifierSupportSpawner spawner;
     spawner.address = waveSpawn;
+    spawner.wave = wave;
     spawner.maxActive = maxActive;
     spawner.waitBeforeBits = waitBeforeBits;
     spawner.waitBits = waitBits;
     spawner.synthetic = synthetic;
     g_BotSurgeSupportSpawners.PushArray(spawner);
-    if (g_ActiveMissionModifiers & MissionModifier_BotSurge)
-    {
-        MissionModifiers_ExpandSupportSpawner(spawner);
-    }
     return MRES_Ignored;
 }
 
@@ -694,9 +718,9 @@ static void MissionModifiers_RestoreSpawnerTimings()
     }
 }
 
-static void MissionModifiers_ExpandSupportSpawner(MissionModifierSupportSpawner spawner)
+static void MissionModifiers_ExpandSupportSpawner(MissionModifierSupportSpawner spawner,
+    int boostedMax)
 {
-    int boostedMax = MissionModifier_SurgeMaxInvaders;
     StoreToAddress(spawner.address + view_as<Address>(g_WaveSpawnMaxActiveOffset),
         boostedMax, NumberType_Int32);
 
@@ -723,12 +747,258 @@ static void MissionModifiers_ExpandSupportSpawner(MissionModifierSupportSpawner 
 
 static void MissionModifiers_ExpandRecordedSupportSpawners()
 {
+    for (int wave = 0; wave <= g_BotSurgeParsingWave; wave++)
+    {
+        MissionModifiers_ExpandWaveSupportSpawners(wave);
+    }
+}
+
+static void MissionModifiers_ExpandWaveSupportSpawners(int wave)
+{
+    if (wave < 0)
+    {
+        return;
+    }
+    int supportGroups;
     MissionModifierSupportSpawner spawner;
     for (int index = 0; index < g_BotSurgeSupportSpawners.Length; index++)
     {
         g_BotSurgeSupportSpawners.GetArray(index, spawner);
-        MissionModifiers_ExpandSupportSpawner(spawner);
+        if (spawner.wave == wave)
+        {
+            supportGroups++;
+        }
     }
+    if (supportGroups == 0)
+    {
+        return;
+    }
+    // Keep the fast, crowded support behavior. The stall monitor below gives
+    // finite WaveSpawns a short opening if support occupies every BLU slot.
+    int boostedMax = MissionModifier_SurgeSupportBudget / supportGroups;
+    if (boostedMax < 1)
+    {
+        boostedMax = 1;
+    }
+    for (int index = 0; index < g_BotSurgeSupportSpawners.Length; index++)
+    {
+        g_BotSurgeSupportSpawners.GetArray(index, spawner);
+        if (spawner.wave == wave)
+        {
+            MissionModifiers_ExpandSupportSpawner(spawner, boostedMax);
+        }
+    }
+}
+
+static void MissionModifiers_PauseSupportSpawners(bool paused)
+{
+    MissionModifierSupportSpawner spawner;
+    for (int index = 0; index < g_BotSurgeSupportSpawners.Length; index++)
+    {
+        g_BotSurgeSupportSpawners.GetArray(index, spawner);
+        if (spawner.wave != g_BotSurgeWave - 1)
+        {
+            continue;
+        }
+        // Restore the fast population limit after the finite groups get a turn.
+        int maxActive = MissionModifier_SurgeSupportBudget;
+        int groups = 0;
+        for (int other = 0; other < g_BotSurgeSupportSpawners.Length; other++)
+        {
+            MissionModifierSupportSpawner candidate;
+            g_BotSurgeSupportSpawners.GetArray(other, candidate);
+            if (candidate.wave == spawner.wave)
+            {
+                groups++;
+            }
+        }
+        if (groups > 0)
+        {
+            maxActive /= groups;
+        }
+        if (maxActive < 1)
+        {
+            maxActive = 1;
+        }
+        StoreToAddress(spawner.address + view_as<Address>(g_WaveSpawnMaxActiveOffset),
+            paused ? 0 : maxActive, NumberType_Int32);
+    }
+}
+
+void MissionModifiers_OnWaveBegin(int wave)
+{
+    g_BotSurgeWave = wave;
+    g_BotSurgeLastProgress = GetGameTime();
+    g_BotSurgeRecoveryUntil = 0.0;
+    g_BotSurgeMainRemaining = -1;
+}
+
+void MissionModifiers_OnWaveEnd()
+{
+    if (g_BotSurgeRecoveryUntil > 0.0)
+    {
+        MissionModifiers_PauseSupportSpawners(false);
+    }
+    g_BotSurgeRecoveryUntil = 0.0;
+    g_BotSurgeWave = 0;
+}
+
+bool MissionModifiers_IsCulledSupport(int client)
+{
+    return client > 0 && client <= MaxClients && g_BotSurgeCulled[client];
+}
+
+static void MissionModifiers_MarkSupportBots(bool supportBots[MAXPLAYERS + 1])
+{
+    if (g_WaveSpawnActiveBotsOffset < 0 || g_WaveSpawnActiveBotCountOffset < 0)
+    {
+        return;
+    }
+    MissionModifierSupportSpawner spawner;
+    for (int index = 0; index < g_BotSurgeSupportSpawners.Length; index++)
+    {
+        g_BotSurgeSupportSpawners.GetArray(index, spawner);
+        if (spawner.wave != g_BotSurgeWave - 1)
+        {
+            continue;
+        }
+        int count = LoadFromAddress(spawner.address
+            + view_as<Address>(g_WaveSpawnActiveBotCountOffset), NumberType_Int32);
+        // One spawner with a count this cannot be says nothing about the rest.
+        if (count < 0 || count > MaxClients)
+        {
+            continue;
+        }
+        Address handles = view_as<Address>(LoadFromAddress(spawner.address
+            + view_as<Address>(g_WaveSpawnActiveBotsOffset), NumberType_Int32));
+        if (handles == Address_Null)
+        {
+            continue;
+        }
+        for (int bot = 0; bot < count; bot++)
+        {
+            int client = LoadEntityFromHandleAddress(handles + view_as<Address>(bot * 4));
+            if (client > 0 && client <= MaxClients && MissionModifiers_IsRobot(client))
+            {
+                supportBots[client] = true;
+            }
+        }
+    }
+}
+
+static int MissionModifiers_MainEnemiesRemaining(int resource)
+{
+    // The wave enemy count is a fixed total. Main-wave icon counts fall when
+    // robots die, while endless support deaths do not change this sum.
+    static const char counts[][] = {
+        "m_nMannVsMachineWaveClassCounts", "m_nMannVsMachineWaveClassCounts2"
+    };
+    static const char flags[][] = {
+        "m_nMannVsMachineWaveClassFlags", "m_nMannVsMachineWaveClassFlags2"
+    };
+    int remaining;
+    for (int part = 0; part < 2; part++)
+    {
+        if (!HasEntProp(resource, Prop_Send, counts[part])
+            || !HasEntProp(resource, Prop_Send, flags[part]))
+        {
+            return -1;
+        }
+        int length = GetEntPropArraySize(resource, Prop_Send, counts[part]);
+        if (length <= 0 || length != GetEntPropArraySize(resource, Prop_Send, flags[part]))
+        {
+            return -1;
+        }
+        for (int icon = 0; icon < length; icon++)
+        {
+            int iconFlags = GetEntProp(resource, Prop_Send, flags[part], _, icon);
+            if ((iconFlags & 1) && !(iconFlags & 2))
+            {
+                remaining += GetEntProp(resource, Prop_Send, counts[part], _, icon);
+            }
+        }
+    }
+    return remaining;
+}
+
+public Action Timer_MissionModifiersBotSurgeRecovery(Handle timer)
+{
+    if (!(g_ActiveMissionModifiers & MissionModifier_BotSurge) || g_BotSurgeWave < 1)
+    {
+        return Plugin_Continue;
+    }
+    float now = GetGameTime();
+    if (g_BotSurgeRecoveryUntil > 0.0)
+    {
+        if (now >= g_BotSurgeRecoveryUntil)
+        {
+            MissionModifiers_PauseSupportSpawners(false);
+            g_BotSurgeRecoveryUntil = 0.0;
+            g_BotSurgeLastProgress = now;
+        }
+        return Plugin_Continue;
+    }
+    int resource = FindEntityByClassname(-1, "tf_objective_resource");
+    if (resource == -1)
+    {
+        return Plugin_Continue;
+    }
+    int enemies = MissionModifiers_MainEnemiesRemaining(resource);
+    if (enemies <= 0)
+    {
+        return Plugin_Continue;
+    }
+    if (g_BotSurgeMainRemaining < 0 || enemies < g_BotSurgeMainRemaining)
+    {
+        g_BotSurgeLastProgress = now;
+    }
+    g_BotSurgeMainRemaining = enemies;
+    if (now - g_BotSurgeLastProgress < MissionModifier_SurgeStallSeconds)
+    {
+        return Plugin_Continue;
+    }
+    // Tanks and finite robots still fighting are progress, not a support stall.
+    if (FindEntityByClassname(-1, "tank_boss") != -1)
+    {
+        return Plugin_Continue;
+    }
+    bool supportBots[MAXPLAYERS + 1];
+    for (int client = 1; client <= MaxClients; client++)
+    {
+        supportBots[client] = false;
+    }
+    MissionModifiers_MarkSupportBots(supportBots);
+    int alive;
+    int support;
+    for (int client = 1; client <= MaxClients; client++)
+    {
+        if (MissionModifiers_IsRobot(client) && IsPlayerAlive(client))
+        {
+            alive++;
+            if (supportBots[client])
+            {
+                support++;
+            }
+        }
+    }
+    if (alive == 0 || support != alive)
+    {
+        return Plugin_Continue;
+    }
+    MissionModifiers_PauseSupportSpawners(true);
+    g_BotSurgeRecoveryUntil = now + MissionModifier_SurgeRecoverySeconds;
+    g_BotSurgeLastProgress = now;
+    AP_Debug("Bot Surge recovery: wave %d held at %d main enemies with only %d endless support robots for 20 seconds; clearing BLU support for 4 seconds.",
+        g_BotSurgeWave, enemies, support);
+    for (int client = 1; client <= MaxClients; client++)
+    {
+        if (supportBots[client] && IsPlayerAlive(client))
+        {
+            g_BotSurgeCulled[client] = true;
+            ForcePlayerSuicide(client);
+        }
+    }
+    return Plugin_Continue;
 }
 
 static void MissionModifiers_RestoreSupportSpawners()
@@ -815,6 +1085,9 @@ void MissionModifiers_OnMapStart()
     g_BotSurgeTimedSpawners.Clear();
     g_BotSurgeReloadQueued = false;
     g_BotSurgeMissionStarted = false;
+    g_BotSurgeRecoveryUntil = 0.0;
+    g_BotSurgeMainRemaining = -1;
+    g_BotSurgeWave = 0;
     MissionModifiers_Reset();
     MissionModifiers_DeleteWaveCandidates();
 }
@@ -826,6 +1099,7 @@ void MissionModifiers_HookClient(int client)
     SDKHook(client, SDKHook_OnTakeDamagePost, Mental_OnTakeDamagePost);
     g_BotSurgeHudShown[client] = false;
     g_BotCountHudEnabled[client] = false;
+    g_BotSurgeCulled[client] = false;
     SDKUnhook(client, SDKHook_OnTakeDamage, MissionModifiers_OnTakeDamage);
     SDKHook(client, SDKHook_OnTakeDamage, MissionModifiers_OnTakeDamage);
 }
@@ -912,6 +1186,7 @@ void MissionModifiers_OnPlayerSpawn(int client)
 {
     if (client > 0)
     {
+        g_BotSurgeCulled[client] = false;
         RequestFrame(MissionModifiers_ApplyClientFrame, GetClientUserId(client));
     }
 }
@@ -983,6 +1258,8 @@ static void MissionModifiers_Reset()
     Mental_Reset();
     MissionModifiers_RestoreSupportSpawners();
     MissionModifiers_RestoreSpawnerTimings();
+    g_BotSurgeRecoveryUntil = 0.0;
+    g_BotSurgeLastProgress = GetGameTime();
     for (int client = 1; client <= MaxClients; client++)
     {
         MissionModifiers_RestorePlayerInaccuracy(client);
