@@ -160,6 +160,17 @@ MISSION_MODIFIERS = (
         ),
         "exclusive_group": "",
     },
+    {
+        "key": "one_in_the_chamber",
+        "name": "Make it Count",
+        "kind": "players",
+        "description": (
+            "RED non-melee weapons and sentries deal 2.5x damage. RED reserve ammo and "
+            "Engineer metal capacity are reduced by 75%; dispensers supply ammo and metal "
+            "every four seconds."
+        ),
+        "exclusive_group": "",
+    },
 )
 
 

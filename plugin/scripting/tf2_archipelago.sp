@@ -160,6 +160,8 @@ public void OnPluginStart()
         "Show the modifiers active on this mission");
     RegAdminCmd("sm_ap_modifier", Command_MissionModifierDebug, ADMFLAG_ROOT,
         "Change modifiers live: sm_ap_modifier <on|off|toggle> <key|all>, clear, or seed");
+    RegAdminCmd("sm_ap_count_damage", Command_ChamberDamage, ADMFLAG_ROOT,
+        "Test Make it Count damage: sm_ap_count_damage [bonus percent|reset]");
     RegConsoleCmd("sm_ap_botcount", Command_BotCountHud,
         "Toggle the live enemy robot counter: sm_ap_botcount [on|off]");
     RegAdminCmd("sm_ap_mission", Command_Mission, ADMFLAG_CHANGEMAP,

@@ -70,6 +70,10 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
           <circle cx="14" cy="15.5" r="1" />
           <circle cx="18" cy="15.5" r="1" />
         }
+        @case ('one_in_the_chamber') {
+          <path d="M12 27V12l4-7 4 7v15zM12 20h8M10 29h12" />
+          <path d="M9 9 6 6m20 0-3 3M8 16H4m20 0h4M9 23l-3 3m20 0-3-3" />
+        }
         @default {
           <path d="M16 3l13 23H3zM16 11v7M16 23v1" />
         }

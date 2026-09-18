@@ -11,6 +11,27 @@
 				"linux64" "@_ZN9CTFPlayer18RemoveInvisibilityEv"
 			}
 
+			"CTFPlayer::GetMaxAmmo"
+			{
+				"library" "server"
+				"linux" "@_ZN9CTFPlayer10GetMaxAmmoEii"
+				"linux64" "@_ZN9CTFPlayer10GetMaxAmmoEii"
+			}
+
+			"CObjectDispenser::DispenseAmmo"
+			{
+				"library" "server"
+				"linux" "@_ZN16CObjectDispenser12DispenseAmmoEP9CTFPlayer"
+				"linux64" "@_ZN16CObjectDispenser12DispenseAmmoEP9CTFPlayer"
+			}
+
+			"CRobotDispenser::DispenseAmmo"
+			{
+				"library" "server"
+				"linux" "@_ZN15CRobotDispenser12DispenseAmmoEP9CTFPlayer"
+				"linux64" "@_ZN15CRobotDispenser12DispenseAmmoEP9CTFPlayer"
+			}
+
 			"CPopulationManager::Parse"
 			{
 				"library"	"server"
@@ -190,6 +211,55 @@
 				"callconv" "thiscall"
 				"return" "void"
 				"this" "entity"
+			}
+
+			"CTFPlayer::GetMaxAmmo"
+			{
+				"signature" "CTFPlayer::GetMaxAmmo"
+				"callconv" "thiscall"
+				"return" "int"
+				"this" "entity"
+				"arguments"
+				{
+					"ammo"
+					{
+						"type" "int"
+					}
+					"class"
+					{
+						"type" "int"
+					}
+				}
+			}
+
+			"CObjectDispenser::DispenseAmmo"
+			{
+				"signature" "CObjectDispenser::DispenseAmmo"
+				"callconv" "thiscall"
+				"return" "bool"
+				"this" "entity"
+				"arguments"
+				{
+					"player"
+					{
+						"type" "cbaseentity"
+					}
+				}
+			}
+
+			"CRobotDispenser::DispenseAmmo"
+			{
+				"signature" "CRobotDispenser::DispenseAmmo"
+				"callconv" "thiscall"
+				"return" "bool"
+				"this" "entity"
+				"arguments"
+				{
+					"player"
+					{
+						"type" "cbaseentity"
+					}
+				}
 			}
 
 			"CPopulationManager::Parse"

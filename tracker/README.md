@@ -29,6 +29,10 @@ to see the weapon buffs that class can equip, their individual stack counts,
 and the combined level for each weapon. A live tracker refreshes once a minute;
 **Refresh** updates it immediately.
 
+The sample run puts Mental and Make it Count together on Mean Machines:
+
+![Mental and Make it Count in the tracker sample](examples/mental-make-it-count.png)
+
 ## Publish it as a static page
 
 Publish the contents of this directory:

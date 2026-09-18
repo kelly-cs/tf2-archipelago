@@ -126,15 +126,19 @@ export function sampleSource(host: string): TrackerSource {
           ),
         ],
         [catalog[1].pop_file]: [
-          modifier('thermal_shielding', 'Thermal Shielding', 'robots', '50% fire resistance.'),
-          modifier('fragile_mercenaries', 'Fragile Mercenaries', 'players', '+25% damage taken.'),
+          modifier('mental', 'Mental', 'robots', 'Cloaked enemies shimmer on hit.'),
+          modifier(
+            'one_in_the_chamber',
+            'Make it Count',
+            'players',
+            'Reduced ammo and metal, slower dispenser resupply, and 2.5x non-melee damage.',
+          ),
           modifier(
             'loose_footing',
             'Loose Footing',
             'environment',
             'Icy ground momentum with triple damage, explosion, and airblast knockback.',
           ),
-          modifier('weaponized_tanks', 'Weaponized Tanks', 'robots', 'Level 2 tank sentries.'),
         ],
         [catalog[2].pop_file]: [
           modifier('ballistic_plating', 'Ballistic Plating', 'robots', '50% bullet resistance.'),
