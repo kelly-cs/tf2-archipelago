@@ -103,6 +103,7 @@ footer {
   display: flex;
   align-items: center;
   justify-content: flex-end;
+  gap: var(--gap-xl);
   height: var(--footer-height);
   padding: 0 20px;
   box-sizing: border-box;

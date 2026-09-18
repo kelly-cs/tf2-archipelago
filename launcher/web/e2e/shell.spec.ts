@@ -48,6 +48,10 @@ test.describe('the shell', () => {
       'href',
       'https://github.com/m-this/tf2-archipelago',
     );
+    await expect(page.getByRole('link', { name: 'Documentation' })).toHaveAttribute(
+      'href',
+      'https://m-this.github.io/tf2-archipelago/',
+    );
 
     await page.getByRole('button', { name: 'Start server' }).click();
 
