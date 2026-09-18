@@ -57,10 +57,11 @@ RUN CGO_ENABLED=0 go build -trimpath -o /rcon ./launcher/cmd/rcon \
 # is winnable alone. Its own stage so a plugin edit does not refetch it, and so
 # the tree it stages can be copied whole.
 #
-# On the Go image rather than plain Debian: the mod is a Go module dependency
-# and go.mod is the pin, so staging it needs a toolchain. Everything else the
-# script fetches is still a checkout or a release download.
-FROM golang:1.27 AS bots
+# The mod is a Go module dependency, so staging it needs a Go toolchain. Build
+# the native extensions on Bookworm, the same Debian release as the TF2 image
+# below: binaries built on the default Go image require a newer glibc and
+# SourceMod cannot load them in the server.
+FROM golang:1.27-bookworm AS bots
 
 RUN apt-get update \
 	&& apt-get install --yes --no-install-recommends \
@@ -116,6 +117,32 @@ RUN apt-get update \
 
 COPY --from=bots /repo/deploy/bots/build/package/addons \
 	/opt/tf2-archipelago/addons
+# Keep the native extensions checked against the image that actually runs
+# them. A future build-image update must fail here instead of shipping bots
+# SourceMod cannot load, which is what a newer glibc than this image's did.
+#
+# The check is the glibc version each extension asks for, not ldd's view of
+# them: they link the engine's own libtier0_srv.so and libvstdlib_srv.so, which
+# live in the game directory and are not in this image at all, so every ldd
+# here reports two libraries missing whether the build is good or not. The
+# GLIBC_x.y symbol versions are in the object's own string table, which needs
+# nothing present to read.
+RUN set -eu; \
+	provided="$(ldd --version | head -1 | grep -oE '[0-9]+\.[0-9]+$')"; \
+	[ -n "$provided" ] || { echo "cannot read this image's glibc version" >&2; exit 1; }; \
+	for name in actions cbasenpc; do \
+		file="/opt/tf2-archipelago/addons/sourcemod/extensions/$name.ext.2.tf2.so"; \
+		if [ ! -s "$file" ]; then \
+			echo "missing defender-bot extension: $file" >&2; \
+			exit 1; \
+		fi; \
+		needed="$(grep -ao 'GLIBC_[0-9][0-9.]*' "$file" | sed 's/^GLIBC_//' | sort -uV | tail -1)"; \
+		[ -n "$needed" ] || continue; \
+		if [ "$(printf '%s\n%s\n' "$needed" "$provided" | sort -V | tail -1)" != "$provided" ]; then \
+			echo "$file needs glibc $needed, this image has $provided" >&2; \
+			exit 1; \
+		fi; \
+	done
 COPY --from=build /plugin/build/tf2_archipelago.smx \
 	/opt/tf2-archipelago/addons/sourcemod/plugins/tf2_archipelago.smx
 # The plugin refuses to load without its gamedata, and a server without the
