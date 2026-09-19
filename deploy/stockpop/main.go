@@ -54,7 +54,7 @@ func install(tfDir, destination string) error {
 	if old, err := os.ReadFile(destination); err == nil && bytes.Equal(old, body) {
 		return nil
 	}
-	if err := os.MkdirAll(filepath.Dir(destination), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(destination), 0o755); err != nil {
 		return err
 	}
 	tmp, err := os.CreateTemp(filepath.Dir(destination), ".caliginous-*.pop")
@@ -66,7 +66,7 @@ func install(tfDir, destination string) error {
 		tmp.Close()
 		return err
 	}
-	if err = tmp.Chmod(0644); err != nil {
+	if err = tmp.Chmod(0o644); err != nil {
 		tmp.Close()
 		return err
 	}
