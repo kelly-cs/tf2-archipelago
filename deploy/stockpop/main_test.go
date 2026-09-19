@@ -14,8 +14,10 @@ func TestInstallExtractsAndChecksStockPopfile(t *testing.T) {
 	content := []byte("WaveSchedule\r\n{\r\n\tCanBotsAttackWhileInSpawnRoom no\r\n\tWave { Tank { StartingPathTrackNode \"boss_path_a1\" } }\r\n}")
 	var tree bytes.Buffer
 	tree.WriteString("pop\x00" + targetPath + "\x00" + targetName + "\x00")
-	entry := vpkEntry{CRC: crc32.ChecksumIEEE(content), Archive: 22, Offset: 3,
-		Length: uint32(len(content)), Sentinel: 0xffff}
+	entry := vpkEntry{
+		CRC: crc32.ChecksumIEEE(content), Archive: 22, Offset: 3,
+		Length: uint32(len(content)), Sentinel: 0xffff,
+	}
 	if err := binary.Write(&tree, binary.LittleEndian, entry); err != nil {
 		t.Fatal(err)
 	}
@@ -27,11 +29,11 @@ func TestInstallExtractsAndChecksStockPopfile(t *testing.T) {
 		}
 	}
 	index.Write(tree.Bytes())
-	if err := os.WriteFile(filepath.Join(dir, "tf2_misc_dir.vpk"), index.Bytes(), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "tf2_misc_dir.vpk"), index.Bytes(), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	archive := append([]byte{0, 0, 0}, content...)
-	if err := os.WriteFile(filepath.Join(dir, "tf2_misc_022.vpk"), archive, 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "tf2_misc_022.vpk"), archive, 0o644); err != nil {
 		t.Fatal(err)
 	}
 	destination := filepath.Join(dir, "scripts", "population", "mvm_ghost_town_ap_caliginous_caper.pop")
@@ -44,7 +46,7 @@ func TestInstallExtractsAndChecksStockPopfile(t *testing.T) {
 		t.Fatalf("installed popfile = %q, %v", got, err)
 	}
 	archive[len(archive)-1] ^= 1
-	if err := os.WriteFile(filepath.Join(dir, "tf2_misc_022.vpk"), archive, 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "tf2_misc_022.vpk"), archive, 0o644); err != nil {
 		t.Fatal(err)
 	}
 	if err := install(dir, destination); err == nil {
