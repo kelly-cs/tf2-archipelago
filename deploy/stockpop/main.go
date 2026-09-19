@@ -61,13 +61,13 @@ func install(tfDir, destination string) error {
 	if err != nil {
 		return err
 	}
-	defer os.Remove(tmp.Name())
+	defer func() { _ = os.Remove(tmp.Name()) }()
 	if _, err = tmp.Write(body); err != nil {
-		tmp.Close()
+		_ = tmp.Close()
 		return err
 	}
 	if err = tmp.Chmod(0o644); err != nil {
-		tmp.Close()
+		_ = tmp.Close()
 		return err
 	}
 	if err = tmp.Close(); err != nil {
@@ -197,7 +197,7 @@ func entryBytes(tfDir string, index []byte, dataStart int, tree *bufio.Reader, e
 		if err != nil {
 			return nil, err
 		}
-		defer file.Close()
+		defer func() { _ = file.Close() }()
 		if _, err := file.ReadAt(body[entry.Preload:], int64(entry.Offset)); err != nil {
 			return nil, err
 		}
