@@ -9,6 +9,7 @@
 				"library" "server"
 				"linux" "@_ZN9CTFPlayer18RemoveInvisibilityEv"
 				"linux64" "@_ZN9CTFPlayer18RemoveInvisibilityEv"
+				"windows" "\x55\x8B\xEC\x51\x53\x8B\xD9\x57\x8D\xBB\x2A\x2A\x2A\x2A\x8B\xCF\xE8\x2A\x2A\x2A\x2A"
 			}
 
 			"CTFPlayer::GetMaxAmmo"
@@ -16,6 +17,7 @@
 				"library" "server"
 				"linux" "@_ZN9CTFPlayer10GetMaxAmmoEii"
 				"linux64" "@_ZN9CTFPlayer10GetMaxAmmoEii"
+				"windows" "\x55\x8B\xEC\x8B\x45\x2A\x53\x8B\xD9\x56\x57\x8B\x7D\x2A\x83\xF8\x2A\x75\x2A\xFF\xB3\x2A\x2A\x2A\x2A"
 			}
 
 			"CObjectDispenser::DispenseAmmo"
@@ -37,24 +39,28 @@
 				"library"	"server"
 				"linux"		"@_ZN18CPopulationManager5ParseEv"
 				"linux64"	"@_ZN18CPopulationManager5ParseEv"
+				"windows" "\x55\x8B\xEC\x83\xEC\x2A\x53\x8B\xD9\x80\xBB\x2A\x2A\x2A\x2A\x2A\x56\x8D\xB3\x2A\x2A\x2A\x2A\x89\x5D\x2A"
 			}
 			"CWaveSpawnPopulator::Parse"
 			{
 				"library"	"server"
 				"linux"		"@_ZN19CWaveSpawnPopulator5ParseEP9KeyValues"
 				"linux64"	"@_ZN19CWaveSpawnPopulator5ParseEP9KeyValues"
+				"windows" "\x55\x8B\xEC\x53\x56\x57\x6A\x2A\x8B\xF9\x8B\x4D\x2A\x68\x2A\x2A\x2A\x2A\xE8\x2A\x2A\x2A\x2A"
 			}
 			"CWave::Parse"
 			{
 				"library"	"server"
 				"linux"		"@_ZN5CWave5ParseEP9KeyValues"
 				"linux64"	"@_ZN5CWave5ParseEP9KeyValues"
+				"windows" "\x55\x8B\xEC\x83\xEC\x2A\x8B\x45\x2A\x53\x8B\xD9\x56\x57\x89\x5D\x2A\xC7\x43\x2A\x2A\x2A\x2A\x2A"
 			}
 			"KeyValues::MakeCopy"
 			{
 				"library"	"server"
 				"linux"		"@_ZNK9KeyValues8MakeCopyEv"
 				"linux64"	"@_ZNK9KeyValues8MakeCopyEv"
+				"windows" "\x53\x56\x57\x8B\xD9\xFF\x2A\x2A\x2A\x2A\x2A\x6A\x2A\x8B\xC8\x8B\x10\xFF\x2A\x2A"
 			}
 			"KeyValues::AddSubKey"
 			{
@@ -67,36 +73,42 @@
 				"library"	"server"
 				"linux"		"@_ZN9KeyValues6SetIntEPKci"
 				"linux64"	"@_ZN9KeyValues6SetIntEPKci"
+				"windows" "\x55\x8B\xEC\x6A\x2A\xFF\x75\x2A\xE8\x2A\x2A\x2A\x2A\x85\xC0\x74\x2A\x8B\x4D\x2A"
 			}
 			"KeyValues::SetFloat"
 			{
 				"library"	"server"
 				"linux"		"@_ZN9KeyValues8SetFloatEPKcf"
 				"linux64"	"@_ZN9KeyValues8SetFloatEPKcf"
+				"windows" "\x55\x8B\xEC\x6A\x2A\xFF\x75\x2A\xE8\x2A\x2A\x2A\x2A\x85\xC0\x74\x2A\xF3\x0F\x10\x45\x2A"
 			}
 			"KeyValues::SetString"
 			{
 				"library"	"server"
 				"linux"		"@_ZN9KeyValues9SetStringEPKcS1_"
 				"linux64"	"@_ZN9KeyValues9SetStringEPKcS1_"
+				"windows" "\x55\x8B\xEC\x53\x56\x8B\x75\x2A\x6A\x2A\xFF\x75\x2A\xE8\x2A\x2A\x2A\x2A\x8B\xD8"
 			}
 			"KeyValues::FindKey"
 			{
 				"library"	"server"
 				"linux"		"@_ZN9KeyValues7FindKeyEPKcb"
 				"linux64"	"@_ZN9KeyValues7FindKeyEPKcb"
+				"windows" "\x55\x8B\xEC\x81\xEC\x2A\x2A\x2A\x2A\x56\x57\x8B\x7D\x2A\x8B\xF1\x85\xFF\x0F\x2A\x2A\x2A\x2A\x2A\x80\x3F\x2A"
 			}
 			"KeyValues::RemoveSubKey"
 			{
 				"library"	"server"
 				"linux"		"@_ZN9KeyValues12RemoveSubKeyEPS_"
 				"linux64"	"@_ZN9KeyValues12RemoveSubKeyEPS_"
+				"windows" "\x55\x8B\xEC\x8B\x55\x2A\x85\xD2\x74\x2A\x8B\x41\x2A\x3B\xC2\x75\x2A\x8B\x42\x2A"
 			}
 			"KeyValues::deleteThis"
 			{
 				"library"	"server"
 				"linux"		"@_ZN9KeyValues10deleteThisEv"
 				"linux64"	"@_ZN9KeyValues10deleteThisEv"
+				"windows" "\x56\x8B\xF1\x85\xF6\x74\x2A\xE8\x2A\x2A\x2A\x2A\x80\x7E\x2A\x2A\x74\x2A\x57\x8B\x7E\x2A"
 			}
 			"CTFPlayer::CanBuild"
 			{
@@ -111,6 +123,7 @@
 				"library"	"server"
 				"linux"		"@_Z14FX_FireBulletsP13CTFWeaponBaseiRK6VectorRK6QAngleiiiffb"
 				"linux64"	"@_Z14FX_FireBulletsP13CTFWeaponBaseiRK6VectorRK6QAngleiiiffb"
+				"windows" "\x53\x8B\xDC\x83\xEC\x2A\x83\xE4\x2A\x83\xC4\x2A\x55\x8B\x6B\x2A\x89\x6C\x24\x2A\x8B\xEC\x81\xEC\x2A\x2A\x2A\x2A\x56\x8B\x73\x2A\x57\x56\xE8\x2A\x2A\x2A\x2A"
 			}
 			"CTFPlayer::MaybeDrawRailgunBeam"
 			{
