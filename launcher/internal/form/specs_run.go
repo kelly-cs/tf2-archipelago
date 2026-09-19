@@ -394,7 +394,19 @@ func serverModSpec(key, label string, env Env) Spec {
 		labels = append(labels, loading.Label())
 	}
 
-	spec := choice("missions.mod."+key, "Missions", label, help,
+	/*
+		Beta is the Windows row only. Linux and Docker run upstream's own
+		release, which has been played for years; Windows runs this project's
+		port, which has crashed a real server. The word belongs where the
+		difference is, and a Linux host reading "beta" would be misled about
+		the build they actually have.
+	*/
+	shown := label
+	if env.Platform == "windows" && mod.BuildsOn(env.Platform) {
+		shown = label + " (beta)"
+	}
+
+	spec := choice("missions.mod."+key, "Missions", shown, help,
 		options(values, labels),
 		func(s State) string {
 			if !slices.Contains(s.Settings.SrcdsMods, key) {

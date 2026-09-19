@@ -178,11 +178,15 @@ trois réponses :
 Le lanceur installe le mod quand il est nécessaire. Le désactiver laisse les
 fichiers en place, donc le réactiver ne coûte aucun téléchargement.
 
-La version Windows de SigMod est le portage de ce projet, et elle a fait
-planter un serveur. Laissez-la sur **only when a mission needs it** sauf si
-vous la testez. Dans `.env` la réponse est `SRCDS_MOD_LOADING`, et Docker la
-lit comme on ou off : l'image ne peut pas savoir quelles missions la réserve
-contient.
+Sur Windows la ligne affiche **SigMod (beta)**. Linux et Docker téléchargent
+la version publiée par le mod lui-même, que des joueurs font tourner tous les
+jours. Windows n'a pas cette version : il télécharge le portage de ce projet.
+Ce portage a fait planter le serveur d'un joueur. Laissez-le sur **only when a
+mission needs it** sauf si vous le testez. Pour jouer aujourd'hui les missions qui le demandent,
+lancez le serveur sur Linux, dans Docker, ou sous WSL.
+
+Dans `.env` la réponse est `SRCDS_MOD_LOADING`, et Docker la lit comme on ou
+off : l'image ne peut pas savoir quelles missions la réserve contient.
 
 ## Récompenses
 

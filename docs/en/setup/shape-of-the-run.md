@@ -163,10 +163,15 @@ Some community missions need a server mod. The one mod so far is SigMod
 The launcher installs the mod when it is needed. Turning it off leaves the
 files in place, so turning it back on costs no download.
 
-SigMod's Windows build is this project's own port, and it has crashed a
-server. Leave it on **only when a mission needs it** unless you are testing
-it. In `.env` the answer is `SRCDS_MOD_LOADING`, and Docker reads it as on or
-off: the image cannot tell which missions the pool holds.
+On Windows the row reads **SigMod (beta)**. Linux and Docker download the
+mod's own release, which players run every day. Windows has no such release,
+so it downloads this project's port instead. That port crashed one player's
+server. Leave it on **only when a mission needs it** unless you test it. To
+play the missions that need it today, run the server on Linux, in Docker, or
+under WSL.
+
+In `.env` the answer is `SRCDS_MOD_LOADING`, and Docker reads it as on or off:
+the image cannot tell which missions the pool holds.
 
 ## Rewards
 

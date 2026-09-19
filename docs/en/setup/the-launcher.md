@@ -188,8 +188,9 @@ Which missions the seed can draw from, and where the run starts.
 - **SigMod** and the other server mods: choose **off**, **only when a mission
   needs it**, or **always, on every mission**. Then press
   **Download / set up selected server mods**. A mission that needs a mod stays
-  out of the pool while that mod is off. See
-  [Run options](shape-of-the-run.md#the-missions).
+  out of the pool while that mod is off. On Windows the row reads
+  **SigMod (beta)**, because Windows runs this project's port rather than the
+  mod's own release. See [Run options](shape-of-the-run.md#the-missions).
 - **Check Run Selection** tells you whether the pool holds enough checks for
   the items of the run. Press it before you generate.
 - **Start mission** and **Start class** decide where the run begins.
