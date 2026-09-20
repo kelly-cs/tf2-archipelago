@@ -81,8 +81,8 @@ func validateCommunityArchive(path string) (bool, error) {
 // the usable path. The user can inspect and explicitly approve the held bytes.
 func HoldMismatchedCommunityArchive(path string) error {
 	_, err := validateCommunityArchive(path)
-	var mismatch *CommunityArchiveHashMismatchError
-	if !errors.As(err, &mismatch) {
+	mismatch, ok := errors.AsType[*CommunityArchiveHashMismatchError](err)
+	if !ok {
 		return err
 	}
 	if err := os.Rename(path, path+communityMismatchSuffix); err != nil {

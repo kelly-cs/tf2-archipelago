@@ -77,11 +77,14 @@ func importCommunityArchive(folder, name string, source io.Reader) (string, erro
 			return "", fmt.Errorf("cannot keep %s: %w", name, err)
 		}
 	}
-	if err := os.WriteFile(target+".imported", nil, 0o644); err != nil {
-		return "", fmt.Errorf("cannot mark %s as imported: %w", name, err)
+	if err := os.Remove(target + ".imported"); err != nil && !errors.Is(err, os.ErrNotExist) {
+		return "", fmt.Errorf("cannot clear previous import marker for %s: %w", name, err)
 	}
 	if err := installer.HoldMismatchedCommunityArchive(target); err != nil {
 		return "", err
+	}
+	if err := os.WriteFile(target+".imported", nil, 0o644); err != nil {
+		return "", fmt.Errorf("cannot mark %s as imported: %w", name, err)
 	}
 	return name, nil
 }

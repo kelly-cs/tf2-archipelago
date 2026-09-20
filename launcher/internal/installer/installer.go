@@ -325,12 +325,17 @@ func ValidateCommunityArchives(archives []string, logf func(string, ...any)) err
 	return nil
 }
 
-// AvailableCommunityArchives returns the valid files from archives. It is the
-// launchers' source of truth for which community mission rows may be shown.
+// AvailableCommunityArchives finds usable local ZIP paths without reading all
+// their bytes while the settings page holds its state lock. Downloads, imports
+// and installation perform the full SHA-256 check before accepting content.
 func AvailableCommunityArchives(archives []string) []string {
 	available := make([]string, 0, len(archives))
 	for _, path := range archives {
-		if _, err := validateCommunityArchive(path); err == nil {
+		reader, err := zip.OpenReader(path)
+		if err != nil {
+			continue
+		}
+		if err := reader.Close(); err == nil {
 			available = append(available, path)
 		}
 	}
