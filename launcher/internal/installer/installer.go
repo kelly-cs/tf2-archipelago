@@ -28,6 +28,7 @@ import (
 
 	"github.com/m-this/tf2-archipelago/gamedata"
 	"github.com/m-this/tf2-archipelago/launcher/internal/assets"
+	"github.com/m-this/tf2-archipelago/launcher/internal/sigmodpatch"
 	"github.com/m-this/tf2-archipelago/launcher/internal/winproc"
 )
 
@@ -652,7 +653,7 @@ func sigmodReady(modDir string) bool {
 	if firstMissing(modDir, sourcemodFiles(runtime.GOOS)) != "" {
 		return false
 	}
-	if !sigmodLoadoutMenuPatched(modDir, runtime.GOOS) {
+	if !sigmodpatch.Ready(modDir, runtime.GOOS) {
 		return false
 	}
 	want, err := sigmodStamp(modDir)
@@ -757,7 +758,7 @@ func installServerMods(ctx context.Context, installRoot, modDir string, requeste
 			if err := unzipTo(data, modDir); err != nil {
 				return fmt.Errorf("cannot install SigMod: %w", err)
 			}
-			if err := patchSigmodLoadoutMenu(modDir, runtime.GOOS); err != nil {
+			if err := sigmodpatch.Patch(modDir, runtime.GOOS); err != nil {
 				return err
 			}
 			stampDir := filepath.Join(modDir, "addons")

@@ -1,4 +1,4 @@
-package installer
+package sigmodpatch
 
 import (
 	"bytes"
@@ -9,7 +9,7 @@ import (
 
 func TestPatchSigmodLoadoutMenu(t *testing.T) {
 	root := t.TempDir()
-	for _, relative := range sigmodExtensionPaths("linux") {
+	for _, relative := range ExtensionPaths("linux") {
 		path := filepath.Join(root, filepath.FromSlash(relative))
 		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 			t.Fatal(err)
@@ -28,16 +28,16 @@ func TestPatchSigmodLoadoutMenu(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	if err := patchSigmodLoadoutMenu(root, "linux"); err != nil {
+	if err := Patch(root, "linux"); err != nil {
 		t.Fatal(err)
 	}
-	if err := patchSigmodLoadoutMenu(root, "linux"); err != nil {
+	if err := Patch(root, "linux"); err != nil {
 		t.Fatalf("second patch should be harmless: %v", err)
 	}
-	if !sigmodLoadoutMenuPatched(root, "linux") {
+	if !Ready(root, "linux") {
 		t.Fatal("patched extensions were not recognized")
 	}
-	for _, relative := range sigmodExtensionPaths("linux") {
+	for _, relative := range ExtensionPaths("linux") {
 		arch := "x86"
 		if filepath.Dir(relative) == "addons/sourcemod/extensions/x64" {
 			arch = "x64"
@@ -60,31 +60,31 @@ func TestPatchSigmodLoadoutMenu(t *testing.T) {
 
 func TestPatchSigmodLoadoutMenuRefusesUnknownBinary(t *testing.T) {
 	root := t.TempDir()
-	path := filepath.Join(root, filepath.FromSlash(sigmodExtensionPaths("windows")[0]))
+	path := filepath.Join(root, filepath.FromSlash(ExtensionPaths("windows")[0]))
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(path, []byte("unknown binary"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if err := patchSigmodLoadoutMenu(root, "windows"); err == nil {
+	if err := Patch(root, "windows"); err == nil {
 		t.Fatal("unknown SigMod binary should require a new patch assessment")
 	}
 }
 
 func TestPatchSigmodLoadoutMenuWindows(t *testing.T) {
 	root := t.TempDir()
-	path := filepath.Join(root, filepath.FromSlash(sigmodExtensionPaths("windows")[0]))
+	path := filepath.Join(root, filepath.FromSlash(ExtensionPaths("windows")[0]))
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(path, sigmodLoadoutMenuBroken, 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if err := patchSigmodLoadoutMenu(root, "windows"); err != nil {
+	if err := Patch(root, "windows"); err != nil {
 		t.Fatal(err)
 	}
-	if !sigmodLoadoutMenuPatched(root, "windows") {
+	if !Ready(root, "windows") {
 		t.Fatal("patched Windows extension was not recognized")
 	}
 }

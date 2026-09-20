@@ -32,7 +32,7 @@ func TestTheToolsStageCopiesWhatItsCommandsImport(t *testing.T) {
 		t.Fatal("Dockerfile.srcds has no runtime stage to read up to")
 	}
 
-	for _, command := range []string{"./launcher/cmd/rcon", "./launcher/cmd/botfiles"} {
+	for _, command := range []string{"./launcher/cmd/rcon", "./launcher/cmd/botfiles", "./launcher/cmd/sigmodpatch"} {
 		// From the repository root: the package paths are relative to it, and
 		// this test lives a directory down.
 		list := exec.Command("go", "list", "-deps", command)
