@@ -106,6 +106,9 @@ type Env struct {
 	// the ones checked. A mission row for a pack that cannot be used is a row
 	// that fails at run time instead of at the tick.
 	CommunityAvailable []string
+	// CommunityHashMismatches names downloaded ZIPs held until the player
+	// explicitly approves their unexpected bytes.
+	CommunityHashMismatches []string
 
 	// ServerModsReady names managed server mods whose pinned files and install
 	// stamp were found. Platform is GOOS; tests may leave it blank for the

@@ -196,7 +196,9 @@ func ValidateCommunitySources(sources ...string) error {
 		if needsSigMod != (MissionRequirement(mission.ID) == "sigsegv-mvm") {
 			return fmt.Errorf("community mission %s SigMod requirement is %t in its population file but %q in community.json", popFile, needsSigMod, MissionRequirement(mission.ID))
 		}
-		medicOnly := slices.ContainsFunc(bodies, CommunityPopulationMedicOnly)
+		medicOnly := slices.ContainsFunc(bodies, func(body sourcedPopulation) bool {
+			return CommunityPopulationMedicOnly(body.body)
+		})
 		if medicOnly != (MissionLoadout(mission.ID) == "medic_only") {
 			return fmt.Errorf("community mission %s Medic-only restriction is %t in its population file but loadout is %q in community.json", popFile, medicOnly, MissionLoadout(mission.ID))
 		}
