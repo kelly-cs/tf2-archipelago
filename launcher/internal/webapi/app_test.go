@@ -52,10 +52,10 @@ func TestAttachedMissionPoolExplainsMissingSigmodFiles(t *testing.T) {
 	state.Settings.SrcdsMods = []string{"sigsegv-mvm"}
 	available := []string{settings.CommunityPackPotato}
 	built := form.Build(state, form.Env{CommunityAvailable: available, Platform: "linux", ManagedExternally: true})
-	rows := missionPoolRows(state, built, available, nil, nil, true)
+	rows := missionPoolRows(state, built, missionPoolSources{availablePacks: available, managedExternally: true})
 	for _, row := range rows {
 		if row.Field == "missions.pool.mvm_bronx_rc2_adv_point_of_impact" {
-			if row.Compatibility != "SigMod files missing; recreate the server container" {
+			if row.Compatibility != form.MissingServerModReason("SigMod", true) {
 				t.Fatalf("attached SigMod compatibility = %q", row.Compatibility)
 			}
 			return
@@ -109,7 +109,7 @@ func TestSelectedSigModMissionCanBeUntickedInTable(t *testing.T) {
 
 func testMissionPoolRows(state form.State, available, ready []string) []MissionPoolRow {
 	built := form.Build(state, form.Env{CommunityAvailable: available, ServerModsReady: ready, Platform: "linux"})
-	return missionPoolRows(state, built, available, nil, ready, false)
+	return missionPoolRows(state, built, missionPoolSources{availablePacks: available, readyMods: ready})
 }
 
 func TestPoolNoneClearsTheNamedStartMission(t *testing.T) {

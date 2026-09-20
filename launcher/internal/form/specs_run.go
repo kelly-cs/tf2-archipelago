@@ -581,10 +581,7 @@ func missionRequirementSpec(spec Spec, mission gamedata.Mission, help string) Sp
 				return "turn on " + mod.Name + " above, then press Download / set up selected server mods"
 			}
 			if !slices.Contains(env.ServerModsReady, key) {
-				if env.ManagedExternally {
-					return mod.Name + " files are missing or incomplete in the server volume; recreate the container"
-				}
-				return mod.Name + " is selected but its installation is missing or incomplete; press Download / set up selected server mods"
+				return MissingServerModReason(mod.Name, env.ManagedExternally)
 			}
 			if !s.Settings.MvmCommunityMissions {
 				return "community missions are off"
@@ -774,4 +771,13 @@ func networkingSpecs() []Spec {
 		press("net.check_funnel", tab, "Set up / check Funnel",
 			"Checks Funnel and provides the approval page when needed. Docker includes its own Tailscale service and remembers the login. With the native launcher, install Tailscale first; headless Linux can run this launcher with -setup-funnel."),
 	}
+}
+
+// MissingServerModReason is shared by the setting and mission table so both
+// explain the same unavailable state in the same words.
+func MissingServerModReason(name string, managedExternally bool) string {
+	if managedExternally {
+		return name + " files are missing or incomplete in the server volume; recreate the container"
+	}
+	return name + " is selected but its installation is missing or incomplete; press Download / set up selected server mods"
 }
