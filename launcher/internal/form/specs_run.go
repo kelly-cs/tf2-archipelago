@@ -3,6 +3,7 @@ package form
 import (
 	"fmt"
 	"slices"
+	"strings"
 
 	"github.com/m-this/tf2-archipelago/gamedata"
 	"github.com/m-this/tf2-archipelago/launcher/internal/runshape"
@@ -325,6 +326,7 @@ func missionSpecs(s State, env Env) []Spec {
 
 		press("missions.download_packs", tab, "Download Selected Community Assets",
 			"Download only the checked full-with-maps community packs. Live progress remains visible on this page. Start never downloads community content."),
+		communityHashMismatchSpec(env),
 		press("missions.import_assets", tab, "Import local assets",
 			"Choose archive-assets.zip and/or mlarchive-assets.zip from this computer. Valid packs are selected and their missions appear below immediately."),
 		press("missions.check_selection", tab, "Check Run Selection",
@@ -357,6 +359,18 @@ func missionSpecs(s State, env Env) []Spec {
 		specs = append(specs, poolSpec(mission))
 	}
 	return specs
+}
+
+func communityHashMismatchSpec(env Env) Spec {
+	spec := confirm("missions.ignore_hash_mismatch", "Missions", "Ignore hash mismatch",
+		"Approve only the downloaded ZIPs currently held for a hash mismatch. Approval applies to these exact bytes; a later change requires another approval.",
+		"This archive differs from the version used to build the mission catalog. It may cause missing missions, wave 0, or server instability. Approve this exact downloaded file anyway?")
+	if len(env.CommunityHashMismatches) == 0 {
+		spec.Unavailable = func(State, Env) string { return "download an archive with a hash mismatch before approving it" }
+	} else {
+		spec.Help += " Awaiting approval: " + strings.Join(env.CommunityHashMismatches, ", ") + "."
+	}
+	return spec
 }
 
 func activeServerMods(s State, env Env) []string {
