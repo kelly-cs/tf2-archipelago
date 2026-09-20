@@ -140,8 +140,10 @@ func writePlan(missions []gamedata.Mission, modes []string) error {
 				if strings.Contains(mission.PopFile, "_rev_") {
 					state = "unsupported_reverse"
 				}
-				writeResult(result{Mission: mission.PopFile, Map: played.Name,
-					Mode: mode, Wave: wave, State: state})
+				writeResult(result{
+					Mission: mission.PopFile, Map: played.Name,
+					Mode: mode, Wave: wave, State: state,
+				})
 			}
 		}
 	}
@@ -183,8 +185,10 @@ func runMissions(s server, opt options, missions []gamedata.Mission, modes []str
 		}
 		for _, mode := range modes {
 			if err := s.load(played.Name, mission, mode, opt.loadWait); err != nil {
-				writeResult(result{Mission: mission.PopFile, Map: played.Name, Mode: mode,
-					State: "load_failed", Error: err.Error()})
+				writeResult(result{
+					Mission: mission.PopFile, Map: played.Name, Mode: mode,
+					State: "load_failed", Error: err.Error(),
+				})
 				failures++
 				if opt.failFast {
 					return fmt.Errorf("%d wave tests failed", failures)
@@ -230,14 +234,18 @@ func (s server) runWaves(opt options, mapName string, mission gamedata.Mission, 
 		// The failed wave may still be running. Reload the mission and jump
 		// ahead so later waves are tested independently too.
 		if err := s.load(mapName, mission, mode, opt.loadWait); err != nil {
-			writeResult(result{Mission: mission.PopFile, Map: mapName, Mode: mode,
-				State: "load_failed", Error: err.Error()})
+			writeResult(result{
+				Mission: mission.PopFile, Map: mapName, Mode: mode,
+				State: "load_failed", Error: err.Error(),
+			})
 			failures++
 			break
 		}
 		if _, err := s.exec(fmt.Sprintf("tf_mvm_jump_to_wave %d 1", wave+1)); err != nil {
-			writeResult(result{Mission: mission.PopFile, Map: mapName, Mode: mode,
-				State: "load_failed", Error: err.Error()})
+			writeResult(result{
+				Mission: mission.PopFile, Map: mapName, Mode: mode,
+				State: "load_failed", Error: err.Error(),
+			})
 			failures++
 			break
 		}
@@ -248,9 +256,11 @@ func (s server) runWaves(opt options, mapName string, mission gamedata.Mission, 
 func (s server) recordWave(opt options, mapName string, mission gamedata.Mission, mode string, wave int) error {
 	started := time.Now()
 	status, err := s.testWave(mission, wave, opt.seed, opt.timeout, opt.gameTimeout)
-	row := result{Mission: mission.PopFile, Map: mapName, Mode: mode,
+	row := result{
+		Mission: mission.PopFile, Map: mapName, Mode: mode,
 		Wave: wave, Seed: opt.seed, State: status.State, Bots: status.Bots,
-		Tanks: status.Tanks, Seconds: time.Since(started).Seconds(), GameSeconds: status.Elapsed}
+		Tanks: status.Tanks, Seconds: time.Since(started).Seconds(), GameSeconds: status.Elapsed,
+	}
 	if err != nil {
 		row.State = "failed"
 		if errors.Is(err, errWallTimeout) {
@@ -347,11 +357,17 @@ func parseStatus(reply string) (probeStatus, error) {
 	for _, field := range []struct {
 		name string
 		dest *int
-	}{{"max", &status.Max}, {"gamewave", &status.GameWave},
-		{"expected", &status.Expected}, {"observed", &status.Observed},
-		{"bots", &status.Bots}, {"tanks", &status.Tanks},
-		{"defteam", &status.DefTeam}, {"playerteam", &status.PlayerTeam},
-		{"enemyteam", &status.EnemyTeam}} {
+	}{
+		{"max", &status.Max},
+		{"gamewave", &status.GameWave},
+		{"expected", &status.Expected},
+		{"observed", &status.Observed},
+		{"bots", &status.Bots},
+		{"tanks", &status.Tanks},
+		{"defteam", &status.DefTeam},
+		{"playerteam", &status.PlayerTeam},
+		{"enemyteam", &status.EnemyTeam},
+	} {
 		*field.dest, err = strconv.Atoi(fields[field.name])
 		if err != nil {
 			return probeStatus{}, fmt.Errorf("invalid %s in probe reply %q: %w", field.name, reply, err)
