@@ -2,6 +2,25 @@ package main
 
 import "testing"
 
+func TestMissionRowResolvesIncludesOnlyFromSelectedArchive(t *testing.T) {
+	popFile := "mvm_bronx_rc2_adv_point_of_impact"
+	mapIDs := map[string]uint8{"mvm_bronx_rc2": 150}
+	nav := map[string]bool{"mvm_bronx_rc2": true}
+	body := []byte("#base shared.pop\nWaveSchedule { Wave { } }")
+	all := map[string]map[string][][]byte{
+		"archive-assets.zip":   {"shared.pop": {[]byte("LuaScriptFile example.lua")}},
+		"mlarchive-assets.zip": {"shared.pop": {[]byte("WaveSchedule { }")}},
+	}
+	_, requirement, ok, err := missionRow(popFile, mapIDs, nav, population{body: body, pack: "mlarchive-assets.zip"}, all, 200, map[string]bool{})
+	if err != nil || !ok || requirement != "" {
+		t.Fatalf("Moonlight row inherited Potato requirement: %q, ok=%t, err=%v", requirement, ok, err)
+	}
+	_, requirement, ok, err = missionRow(popFile, mapIDs, nav, population{body: body, pack: "archive-assets.zip"}, all, 200, map[string]bool{})
+	if err != nil || !ok || requirement != "sigsegv-mvm" {
+		t.Fatalf("Potato row lost its requirement: %q, ok=%t, err=%v", requirement, ok, err)
+	}
+}
+
 func TestMissionIdentityUsesWholeFilenameSegments(t *testing.T) {
 	tests := []struct {
 		popFile, mapName, difficulty, title string
