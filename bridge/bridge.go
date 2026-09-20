@@ -161,7 +161,7 @@ func Run(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 		Deaths:   deaths,
 		Logger:   logger,
 	})
-	api := httpapi.New(store, client, messages, deaths, cfg.PollTimeout, logger)
+	api := httpapi.New(store, client, messages, deaths, cfg.PollTimeout, cfg.TestMode, logger)
 	server, metrics := servers(cfg, api)
 
 	logger.InfoContext(ctx, "bridge starting",
@@ -207,6 +207,7 @@ func dockerTestOptions(ctx context.Context, cfg config.Config, logger *slog.Logg
 		SlotName: cfg.SlotName, UnlockMissions: true,
 		MissionCount: run.MissionCount, Difficulty: run.Difficulty, Goal: run.Goal,
 		StartMission: run.StartMission, StartClass: run.StartClass, Excluded: run.Excluded,
+		ServerMods: run.ServerMods, ExcludeCommunity: !run.CommunityMissions,
 		DeathLink: run.DeathLink, DrawModifiers: run.MissionModifiers,
 		ModifierMin: run.ModifierMin, ModifierMax: run.ModifierMax,
 		VictoryCaches: run.VictoryCaches, MilestoneChecks: run.MilestoneChecks,

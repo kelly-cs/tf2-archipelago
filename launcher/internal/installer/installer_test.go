@@ -274,7 +274,39 @@ func TestInstallServerModsUsesVerifiedCacheAndDetectsTheInstall(t *testing.T) {
 	if got := ReadyServerMods(root); len(got) != 1 || got[0] != sigmodKey {
 		t.Fatalf("ready server mods = %v", got)
 	}
-	if err := os.Remove(filepath.Join(modDir, "addons", "sourcemod", "gamedata", "sigsegv", "population.txt")); err != nil {
+	// Operators edit this shipped config to choose SigMod behavior. The
+	// extension remains installed and missions must stay available.
+	config := filepath.Join(modDir, "cfg", "sigsegv_convars.cfg")
+	if err := os.WriteFile(config, []byte("sig_mvm_robot_limit_fix_red 0\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if got := ReadyServerMods(root); len(got) != 1 || got[0] != sigmodKey {
+		t.Fatalf("edited SigMod config made the mod unavailable: %v", got)
+	}
+	if err := os.Remove(config); err != nil {
+		t.Fatal(err)
+	}
+	if got := ReadyServerMods(root); len(got) != 0 {
+		t.Fatalf("missing SigMod config reported ready: %v", got)
+	}
+	if err := os.WriteFile(config, []byte("sig_mvm_robot_limit_fix_red 0\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	population := filepath.Join(modDir, "addons", "sourcemod", "gamedata", "sigsegv", "population.txt")
+	original, err := os.ReadFile(population)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(population, []byte("changed population data"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if got := ReadyServerMods(root); len(got) != 0 {
+		t.Fatalf("changed SigMod gamedata reported ready: %v", got)
+	}
+	if err := os.WriteFile(population, original, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Remove(population); err != nil {
 		t.Fatal(err)
 	}
 	if got := ReadyServerMods(root); len(got) != 0 {
@@ -350,6 +382,7 @@ func TestDownloadCommunityArchivesDownloadsOnlyTheSelectedPack(t *testing.T) {
 	data := zipWith(t, map[string]string{
 		"tf/download/maps/mvm_example.bsp": "map",
 	})
+	withCommunityArchivePin(t, "archive-assets.zip", data)
 	requests := 0
 	oldClient := communityHTTPClient
 	communityHTTPClient = &http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
@@ -375,6 +408,49 @@ func TestDownloadCommunityArchivesDownloadsOnlyTheSelectedPack(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(root, "packs", "mlarchive-assets.zip")); !os.IsNotExist(err) {
 		t.Errorf("an unselected pack was downloaded: %v", err)
+	}
+}
+
+func withCommunityArchivePin(t *testing.T, name string, data []byte) {
+	t.Helper()
+	old := communityArchiveSHA256[name]
+	digest := sha256.Sum256(data)
+	communityArchiveSHA256[name] = fmt.Sprintf("%x", digest)
+	t.Cleanup(func() { communityArchiveSHA256[name] = old })
+}
+
+func TestCommunityArchiveMismatchNeedsExplicitApprovalForExactBytes(t *testing.T) {
+	wanted := zipWith(t, map[string]string{"tf/download/maps/map.bsp": "expected"})
+	changed := zipWith(t, map[string]string{"tf/download/maps/map.bsp": "changed"})
+	withCommunityArchivePin(t, "archive-assets.zip", wanted)
+	oldClient := communityHTTPClient
+	communityHTTPClient = &http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
+		return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(bytes.NewReader(changed)), ContentLength: int64(len(changed))}, nil
+	})}
+	t.Cleanup(func() { communityHTTPClient = oldClient })
+	path := filepath.Join(t.TempDir(), "archive-assets.zip")
+	err := DownloadCommunityArchives(context.Background(), []string{path}, func(string, ...any) {})
+	var mismatch *CommunityArchiveHashMismatchError
+	if !errors.As(err, &mismatch) {
+		t.Fatalf("download error = %v, want hash mismatch", err)
+	}
+	if _, err := os.Stat(path); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("mismatched pack became usable: %v", err)
+	}
+	if got := PendingCommunityArchiveHashMismatches([]string{path}); !slices.Equal(got, []string{"archive-assets.zip"}) {
+		t.Fatalf("pending packs = %v", got)
+	}
+	if _, err := IgnoreCommunityArchiveHashMismatch([]string{path}); err != nil {
+		t.Fatal(err)
+	}
+	if err := ValidateCommunityArchives([]string{path}, func(string, ...any) {}); err != nil {
+		t.Fatalf("approved bytes rejected: %v", err)
+	}
+	if err := os.WriteFile(path, zipWith(t, map[string]string{"tf/download/maps/map.bsp": "changed again"}), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := ValidateCommunityArchives([]string{path}, func(string, ...any) {}); !errors.As(err, &mismatch) {
+		t.Fatalf("changed bytes inherited approval: %v", err)
 	}
 }
 
@@ -432,9 +508,11 @@ func TestAvailableCommunityArchivesRequiresAValidLocalZIP(t *testing.T) {
 		t.Fatalf("unavailable archives reported as ready: %v", got)
 	}
 
-	if err := os.WriteFile(missing, zipWith(t, map[string]string{
+	data := zipWith(t, map[string]string{
 		"tf/download/maps/mvm_example.bsp": "map",
-	}), 0o644); err != nil {
+	})
+	withCommunityArchivePin(t, "archive-assets.zip", data)
+	if err := os.WriteFile(missing, data, 0o644); err != nil {
 		t.Fatal(err)
 	}
 	got := AvailableCommunityArchives([]string{missing, invalid})

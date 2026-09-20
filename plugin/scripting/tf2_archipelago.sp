@@ -23,6 +23,7 @@
 
 #include "tf2_archipelago/log.inc"
 #include "tf2_archipelago/mvm.inc"
+#include "tf2_archipelago/invader_stalls.inc"
 #include "tf2_archipelago/unlocks.inc"
 #include "tf2_archipelago/weapon_buffs_data.inc"
 #include "tf2_archipelago/weapon_buffs_math.inc"
@@ -54,7 +55,7 @@ public Plugin myinfo =
     url = "https://github.com/m-this/tf2-archipelago",
 };
 
-// Zero when no wave is running, or when the plugin loaded mid-mission.
+// Zero when no wave is running. A late plugin load recovers an active wave.
 int g_CurrentWave;
 // Which giant and which tank of the running wave the next kill is. Every one
 // is reported as the nth of its wave beside the mission's own first of each;
@@ -116,6 +117,7 @@ public void OnPluginStart()
     LoadTranslations("common.phrases");
     Log_Init();
     MvM_Init();
+    InvaderStalls_Init();
     Unlocks_Init();
     WeaponBuffs_Init();
     Bridge_Init();
@@ -153,7 +155,7 @@ public void OnPluginStart()
     RegAdminCmd("sm_ap_trap", Command_Trap, ADMFLAG_ROOT,
         "Fire a trap by hand, the way a grant from the room would: sm_ap_trap <key>");
     RegAdminCmd("sm_ap_resync", Command_Resync, ADMFLAG_GENERIC,
-        "Ask the bridge for the unlock set again");
+        "Ask the bridge for the mission list and unlock set again");
     RegAdminCmd("sm_ap_resume", Command_Resume, ADMFLAG_CHANGEMAP,
         "sm_ap_resume <popfile> [wave] - load a mission and start it at a wave");
     RegConsoleCmd("sm_ap_modifiers", Command_MissionModifiers,
@@ -210,6 +212,9 @@ public void OnPluginStart()
     Bridge_FetchMissions();
     Bridge_PollMessages();
     Bridge_PollDeaths();
+    // SourceMod can reload this plugin during a wave. The begin event has
+    // already fired, so recover the wave and arm the spawn guard in place.
+    CreateTimer(1.0, Timer_ResumeRunningWave, _, TIMER_FLAG_NO_MAPCHANGE);
 }
 
 public void OnPluginEnd()
@@ -220,6 +225,7 @@ public void OnPluginEnd()
 
 public void OnClientPutInServer(int client)
 {
+    InvaderStalls_ResetClient(client);
     WeaponBuffs_HookClient(client);
     MissionModifiers_HookClient(client);
     // Client indexes are reused, so the previous occupant's cooldown is not
@@ -359,6 +365,7 @@ public Action Command_Say(int client, const char[] command, int argc)
 
 public void OnMapStart()
 {
+    InvaderStalls_Reset();
     Tally_Flush();
     g_CurrentWave = 0;
     g_MaxWaves = 0;
@@ -394,8 +401,30 @@ public void OnConfigsExecuted()
 }
 
 // The only source of the wave number: mvm_wave_complete does not carry one.
+public Action Timer_ResumeRunningWave(Handle timer)
+{
+    if (g_CurrentWave > 0 || !MvM_IsActive()
+        || GameRules_GetRoundState() != RoundState_RoundRunning)
+    {
+        return Plugin_Stop;
+    }
+    int wave = MvM_WaveFromGame();
+    if (wave < 1)
+    {
+        return Plugin_Stop;
+    }
+    g_CurrentWave = wave;
+    g_MaxWaves = MvM_MaxWavesFromGame();
+    g_PolledWave = wave;
+    InvaderStalls_BeginWave();
+    AP_Debug("Reloaded during wave %d of %d; watching protected BLU robots.",
+        g_CurrentWave, g_MaxWaves);
+    return Plugin_Stop;
+}
+
 public void Event_BeginWave(Event event, const char[] name, bool dontBroadcast)
 {
+    InvaderStalls_BeginWave();
     Bots_OnWaveBegin();
     MissionModifiers_AnnounceWave();
     g_CurrentWave = event.GetInt("wave_index") + 1;
@@ -466,6 +495,7 @@ static void Tally_Flush()
 
 public void Event_WaveComplete(Event event, const char[] name, bool dontBroadcast)
 {
+    InvaderStalls_Reset();
     Bots_OnWaveEnd();
     Tally_Flush();
     ReportWaveCleared(g_CurrentWave > 0 ? g_CurrentWave : MvM_WaveFromGame());
@@ -473,6 +503,7 @@ public void Event_WaveComplete(Event event, const char[] name, bool dontBroadcas
 
 public void Event_MissionComplete(Event event, const char[] name, bool dontBroadcast)
 {
+    InvaderStalls_Reset();
     ReportMissionCleared();
 }
 
@@ -482,6 +513,7 @@ public void Event_MissionComplete(Event event, const char[] name, bool dontBroad
 public void Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 {
     int client = GetClientOfUserId(event.GetInt("userid"));
+    InvaderStalls_ResetClient(client);
     MissionModifiers_OnPlayerDeath(client);
     if (MissionModifiers_IsCulledSupport(client))
     {
@@ -553,6 +585,7 @@ public void Event_TankDestroyed(Event event, const char[] name, bool dontBroadca
 // sets it, a cleared wave and a map change clear it.
 public void Event_WaveFailed(Event event, const char[] name, bool dontBroadcast)
 {
+    InvaderStalls_Reset();
     Bots_OnWaveEnd();
     MissionModifiers_OnWaveEnd();
     Tally_Flush();
@@ -667,6 +700,7 @@ public void Event_InventoryApplied(Event event, const char[] name, bool dontBroa
 public void Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast)
 {
     int client = GetClientOfUserId(event.GetInt("userid"));
+    InvaderStalls_ResetClient(client);
     MissionModifiers_OnPlayerSpawn(client);
     if (MvM_IsPlayer(client))
     {
@@ -681,6 +715,7 @@ public void Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast
 // was has to be recorded before it goes.
 public void OnClientDisconnect(int client)
 {
+    InvaderStalls_ResetClient(client);
     MissionModifiers_OnPlayerDeath(client);
     WeaponBuffs_Disconnect(client);
     Bots_OnClientLeaving(client);
@@ -1006,6 +1041,7 @@ public Action Command_Report(int client, int argc)
 public Action Command_Resync(int client, int argc)
 {
     Bridge_FetchUnlocks();
-    ReplyToCommand(client, "[AP] The plugin asked the bridge for the unlock set.");
+    Bridge_FetchMissions();
+    ReplyToCommand(client, "[AP] The plugin asked the bridge for the mission list and unlock set.");
     return Plugin_Handled;
 }

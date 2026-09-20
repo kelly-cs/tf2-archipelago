@@ -22,6 +22,11 @@ import (
 
 func newTestServer(t *testing.T, pollTimeout time.Duration) (*state.Store, http.Handler) {
 	t.Helper()
+	return newTestServerWithMode(t, pollTimeout, false)
+}
+
+func newTestServerWithMode(t *testing.T, pollTimeout time.Duration, testMode bool) (*state.Store, http.Handler) {
+	t.Helper()
 	store, err := state.Open(filepath.Join(t.TempDir(), "bridge.json"))
 	if err != nil {
 		t.Fatal(err)
@@ -32,7 +37,7 @@ func newTestServer(t *testing.T, pollTimeout time.Duration) (*state.Store, http.
 	client := apclient.New(apclient.Options{
 		SlotName: "tf2", Store: store, Chat: messages, Deaths: deaths, Logger: logger,
 	})
-	return store, New(store, client, messages, deaths, pollTimeout, logger).Handler()
+	return store, New(store, client, messages, deaths, pollTimeout, testMode, logger).Handler()
 }
 
 func post(t *testing.T, handler http.Handler, body string) *httptest.ResponseRecorder {
@@ -798,6 +803,17 @@ func TestTheMissionListSaysWhereEachMissionCanBeResumed(t *testing.T) {
 		}
 		if got.WaveReached != want {
 			t.Errorf("%s offers wave %d, want %d", got.PopFile, got.WaveReached, want)
+		}
+	}
+}
+
+func TestHealthReportsTestModeForSeedWatcher(t *testing.T) {
+	for _, enabled := range []bool{false, true} {
+		_, handler := newTestServerWithMode(t, time.Second, enabled)
+		var health healthResponse
+		decode(t, get(t, handler, "/healthz"), &health)
+		if health.TestMode != enabled {
+			t.Fatalf("health test_mode = %t, want %t", health.TestMode, enabled)
 		}
 	}
 }
