@@ -242,7 +242,10 @@ install_server_cfg() {
 	fi
 	sigmod_red_limit_cfg=""
 	case " $(printf '%s' "${SRCDS_MODS:-}" | tr ',' ' ') " in
-	*' sigsegv-mvm '*) sigmod_red_limit_cfg="sig_mvm_robot_limit_fix_red 0" ;;
+	*' sigsegv-mvm '*) sigmod_red_limit_cfg="// SigMod's RED robot-limit fix treats defender TFBots as invaders and
+// repeatedly kicks the last defender during crowded waves. Its BLU
+// robot limit remains enabled.
+sig_mvm_robot_limit_fix_red 0" ;;
 	esac
 
 	staged=$(mktemp)
@@ -266,9 +269,6 @@ install_server_cfg() {
 	// late is not a reason for the evening to stall, and it is what lets one
 	// player start a wave alone.
 	tf_mvm_min_players_to_start 1
-	// SigMod's RED robot-limit fix treats defender TFBots as invaders and
-	// repeatedly kicks the last defender during crowded waves. Its BLU
-	// robot limit remains enabled.
 	${sigmod_red_limit_cfg}
 
 	// Team Fortress 2 moves an idle player to spectator after

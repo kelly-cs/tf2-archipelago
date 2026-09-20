@@ -171,3 +171,32 @@ install_server_cfg`)
 		t.Fatalf("RED defenders still count toward the invader limit:\n%s", config)
 	}
 }
+
+func TestServerCfgWithoutSigModOmitsREDRobotLimit(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	cfgDir := filepath.Join(root, "tf", "cfg")
+	if err := os.MkdirAll(cfgDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	command := exec.Command("bash", "-c", `. deploy/srcds-entrypoint.sh
+install_server_cfg`)
+	command.Dir = ".."
+	command.Env = append(os.Environ(),
+		"TF2AP_ENTRYPOINT_LIBRARY=1",
+		"STEAMAPPDIR="+root,
+		"STEAMAPP=tf",
+		"SRCDS_RCONPW=test",
+		"SRCDS_MODS=",
+	)
+	if output, err := command.CombinedOutput(); err != nil {
+		t.Fatalf("entrypoint test: %v\n%s", err, output)
+	}
+	config, err := os.ReadFile(filepath.Join(cfgDir, "server.cfg"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(config), "sig_mvm_robot_limit_fix_red") || strings.Contains(string(config), "SigMod's RED robot-limit fix") {
+		t.Fatalf("server.cfg contains SigMod-only settings with SigMod disabled:\n%s", config)
+	}
+}
