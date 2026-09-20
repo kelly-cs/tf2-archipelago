@@ -608,13 +608,6 @@ public MRESReturn MissionModifiers_WaveSpawnParsed(Address waveSpawn,
         + view_as<Address>(g_WaveSpawnLimitedSupportOffset), NumberType_Int8) != 0;
     Address maxActiveAddress = waveSpawn + view_as<Address>(g_WaveSpawnMaxActiveOffset);
     int maxActive = LoadFromAddress(maxActiveAddress, NumberType_Int32);
-    // Zero-count WaveSpawns can be scripted timers with outputs instead of
-    // enemies. Homestead Happenings uses one to deploy the bomb after 381s.
-    // Bot Surge must leave those timers and every authored start delay alone.
-    if (maxActive < 1 || maxActive > 256)
-    {
-        return MRES_Ignored;
-    }
     int spawnCount = LoadFromAddress(waveSpawn
         + view_as<Address>(g_WaveSpawnSpawnCountOffset), NumberType_Int32);
     bool hasTFBot = LoadFromAddress(waveSpawn
@@ -634,6 +627,15 @@ public MRESReturn MissionModifiers_WaveSpawnParsed(Address waveSpawn,
         {
             MissionModifiers_AccelerateSpawner(timedSpawner);
         }
+    }
+
+    // Only a real TFBot spawn with a positive count has its refill interval
+    // accelerated. This also covers endless spawns whose MaxActive is 999.
+    // The capacity bound below applies only to filler-candidate selection;
+    // zero-count scripted WaveSpawns must keep their authored timers.
+    if (maxActive < 1 || maxActive > 256)
+    {
+        return MRES_Ignored;
     }
 
     int wave = g_BotSurgeParsingWave;
