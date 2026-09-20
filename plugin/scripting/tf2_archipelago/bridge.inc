@@ -109,6 +109,7 @@ ArrayList g_Pending;
 ArrayList g_Missions;
 bool g_FetchingMissions;
 bool g_CheckingRun;
+bool g_TestRunCanChange;
 bool g_RunRefreshPending;
 int g_RunGeneration;
 char g_RunSeed[96];
@@ -182,7 +183,10 @@ void Bridge_Init()
 
 static Action Timer_CheckRun(Handle timer)
 {
-    Bridge_CheckRun();
+    if (g_TestRunCanChange)
+    {
+        Bridge_CheckRun();
+    }
     return Plugin_Continue;
 }
 
@@ -245,6 +249,7 @@ static void OnVersionChecked(HTTPResponse response, any value, const char[] erro
         return;
     }
     AP_Debug("The bridge answered, API version %d.", version);
+    g_TestRunCanChange = health.GetBool("test_mode");
     Bridge_NoteRunSeed(health);
 }
 

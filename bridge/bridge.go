@@ -161,7 +161,7 @@ func Run(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 		Deaths:   deaths,
 		Logger:   logger,
 	})
-	api := httpapi.New(store, client, messages, deaths, cfg.PollTimeout, logger)
+	api := httpapi.New(store, client, messages, deaths, cfg.PollTimeout, cfg.TestMode, logger)
 	server, metrics := servers(cfg, api)
 
 	logger.InfoContext(ctx, "bridge starting",

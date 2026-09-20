@@ -4,7 +4,6 @@ import (
 	"context"
 	"log/slog"
 	"path/filepath"
-	"slices"
 	"strconv"
 	"testing"
 	"time"
@@ -69,7 +68,7 @@ func TestDockerTestModeServesEverySigModMission(t *testing.T) {
 		health := client.Health()
 		if health.Connected && len(health.Missions) == len(eligible) &&
 			len(store.Unlocks().Of(gamedata.ItemMissionTicket)) == len(eligible) {
-			if health.Missions[0] != sigmodMission || !slices.Contains(health.Missions, sigmodMission) {
+			if health.Missions[0] != sigmodMission {
 				t.Fatalf("SigMod start mission missing from room: %v", health.Missions)
 			}
 			return
