@@ -8,7 +8,8 @@
  */
 
 #define InvaderStallPollInterval 1.0
-#define InvaderStallTimeout 120.0
+
+ConVar g_InvaderStallTimeout;
 
 bool g_InvaderStallWaveRunning;
 int g_InvaderStallUserId[MAXPLAYERS + 1];
@@ -16,6 +17,9 @@ float g_InvaderStallSince[MAXPLAYERS + 1];
 
 void InvaderStalls_Init()
 {
+    g_InvaderStallTimeout = CreateConVar("tf2ap_invader_stall_timeout", "120",
+        "Seconds a BLU robot may remain protected in spawn during a wave; 0 disables the guard.",
+        _, true, 0.0);
     CreateTimer(InvaderStallPollInterval, Timer_InvaderStalls, _, TIMER_REPEAT);
 }
 
@@ -46,7 +50,8 @@ void InvaderStalls_ResetClient(int client)
 
 public Action Timer_InvaderStalls(Handle timer)
 {
-    if (!g_InvaderStallWaveRunning || !MvM_IsActive()
+    float timeout = g_InvaderStallTimeout.FloatValue;
+    if (timeout <= 0.0 || !g_InvaderStallWaveRunning || !MvM_IsActive()
         || GameRules_GetRoundState() != RoundState_RoundRunning)
     {
         return Plugin_Continue;
@@ -70,7 +75,7 @@ public Action Timer_InvaderStalls(Handle timer)
             g_InvaderStallSince[client] = now;
             continue;
         }
-        if (now - g_InvaderStallSince[client] < InvaderStallTimeout)
+        if (now - g_InvaderStallSince[client] < timeout)
         {
             continue;
         }
@@ -79,7 +84,7 @@ public Action Timer_InvaderStalls(Handle timer)
         float position[3];
         GetClientName(client, name, sizeof(name));
         GetClientAbsOrigin(client, position);
-        AP_Debug("Removed BLU robot %s after %.0fs protected in spawn at %.0f %.0f %.0f.",
+        LogMessage("Removed BLU robot %s after %.0fs protected in spawn at %.0f %.0f %.0f.",
             name, now - g_InvaderStallSince[client], position[0], position[1], position[2]);
         // A normal death lets the population manager account for this bot and
         // continue its WaveSpawn. A failed suicide can be retried after another
