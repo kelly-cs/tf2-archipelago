@@ -295,7 +295,7 @@ func DownloadCommunityArchives(ctx context.Context, archives []string, logf func
 				if hashErr != nil {
 					return hashErr
 				}
-				return &CommunityArchiveHashMismatch{filepath.Base(path), communityArchiveSHA256[filepath.Base(path)], actual}
+				return &CommunityArchiveHashMismatchError{filepath.Base(path), communityArchiveSHA256[filepath.Base(path)], actual}
 			}
 			if err := downloadCommunityArchive(ctx, path, logf); err != nil {
 				return fmt.Errorf("cannot download community pack %s: %w", filepath.Base(path), err)
@@ -366,7 +366,11 @@ func downloadCommunityArchive(ctx context.Context, path string, logf func(string
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("%s answered %d", url, resp.StatusCode)
 	}
+	return saveCommunityArchiveResponse(path, resp.Body, resp.ContentLength, logf)
+}
 
+func saveCommunityArchiveResponse(path string, body io.Reader, contentLength int64, logf func(string, ...any)) error {
+	name := filepath.Base(path)
 	tmp, err := os.CreateTemp(filepath.Dir(path), "."+name+"-*.partial")
 	if err != nil {
 		return err
@@ -383,19 +387,19 @@ func downloadCommunityArchive(ctx context.Context, path string, logf func(string
 	progress := &communityDownloadWriter{
 		Writer: io.MultiWriter(tmp, hash),
 		name:   name,
-		total:  resp.ContentLength,
+		total:  contentLength,
 		next:   communityProgressInterval,
 		logf:   logf,
 	}
-	written, copyErr := io.Copy(progress, resp.Body)
+	written, copyErr := io.Copy(progress, body)
 	if closeErr := tmp.Close(); copyErr == nil {
 		copyErr = closeErr
 	}
 	if copyErr != nil {
 		return copyErr
 	}
-	if resp.ContentLength >= 0 && written != resp.ContentLength {
-		return fmt.Errorf("downloaded %d bytes, expected %d", written, resp.ContentLength)
+	if contentLength >= 0 && written != contentLength {
+		return fmt.Errorf("downloaded %d bytes, expected %d", written, contentLength)
 	}
 	reader, err := zip.OpenReader(tmpPath)
 	if err != nil {
@@ -410,7 +414,7 @@ func downloadCommunityArchive(ctx context.Context, path string, logf func(string
 			return fmt.Errorf("cannot hold mismatched %s: %w", name, err)
 		}
 		keep = true
-		return &CommunityArchiveHashMismatch{name, expected, actual}
+		return &CommunityArchiveHashMismatchError{name, expected, actual}
 	}
 	if err := os.Rename(tmpPath, path); err != nil {
 		return err

@@ -25,16 +25,16 @@ const (
 	communityIgnoreSuffix   = ".ignore-hash-mismatch"
 )
 
-// CommunityArchiveHashMismatch names the exact file whose bytes differ from
+// CommunityArchiveHashMismatchError names the exact file whose bytes differ from
 // the catalog snapshot. A valid ZIP is not enough: its maps and missions may
 // have changed since the catalog was reviewed.
-type CommunityArchiveHashMismatch struct {
+type CommunityArchiveHashMismatchError struct {
 	Name     string
 	Expected string
 	Actual   string
 }
 
-func (e *CommunityArchiveHashMismatch) Error() string {
+func (e *CommunityArchiveHashMismatchError) Error() string {
 	return fmt.Sprintf("%s SHA-256 mismatch: expected %s, downloaded %s. This archive may cause missing or unstable missions. Review the hashes, then use Ignore hash mismatch on the Missions page to approve this exact downloaded file", e.Name, e.Expected, e.Actual)
 }
 
@@ -74,14 +74,14 @@ func validateCommunityArchive(path string) (bool, error) {
 	if err == nil && strings.TrimSpace(string(approved)) == actual {
 		return true, nil
 	}
-	return false, &CommunityArchiveHashMismatch{filepath.Base(path), expected, actual}
+	return false, &CommunityArchiveHashMismatchError{filepath.Base(path), expected, actual}
 }
 
 // HoldMismatchedCommunityArchive moves an already cached or imported ZIP out of
 // the usable path. The user can inspect and explicitly approve the held bytes.
 func HoldMismatchedCommunityArchive(path string) error {
 	_, err := validateCommunityArchive(path)
-	var mismatch *CommunityArchiveHashMismatch
+	var mismatch *CommunityArchiveHashMismatchError
 	if !errors.As(err, &mismatch) {
 		return err
 	}
