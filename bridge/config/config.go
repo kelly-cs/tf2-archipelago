@@ -51,7 +51,8 @@ type Config struct {
 type TestRun struct {
 	MissionCount, ModifierMin, ModifierMax                                               int
 	Difficulty, Goal, StartMission, StartClass                                           string
-	Excluded                                                                             []string
+	Excluded, ServerMods                                                                 []string
+	CommunityMissions                                                                    bool
 	MissionModifiers, VictoryCaches, MilestoneChecks, Giantsanity, Tanksanity, DeathLink bool
 }
 
@@ -132,6 +133,9 @@ func loadTestRun() (run TestRun, err error) {
 	if run.DeathLink, err = boolEnv("MVM_DEATH_LINK"); err != nil {
 		return TestRun{}, err
 	}
+	if run.CommunityMissions, err = boolEnvDefault("MVM_COMMUNITY_MISSIONS", true); err != nil {
+		return TestRun{}, err
+	}
 	if run.MissionModifiers && (run.ModifierMin < 0 || run.ModifierMax > 3 || run.ModifierMin > run.ModifierMax) {
 		return TestRun{}, fmt.Errorf("mission modifier bounds must be within 0..3 and minimum <= maximum")
 	}
@@ -139,12 +143,19 @@ func loadTestRun() (run TestRun, err error) {
 	run.Goal = env("MVM_GOAL", "final_boss")
 	run.StartMission = os.Getenv("MVM_START_MISSION")
 	run.StartClass = os.Getenv("MVM_START_CLASS")
-	for name := range strings.SplitSeq(os.Getenv("MVM_EXCLUDED_MISSIONS"), ",") {
+	run.Excluded = csvEnv("MVM_EXCLUDED_MISSIONS")
+	run.ServerMods = csvEnv("SRCDS_MODS")
+	return run, nil
+}
+
+func csvEnv(key string) []string {
+	var values []string
+	for name := range strings.SplitSeq(os.Getenv(key), ",") {
 		if name = strings.TrimSpace(name); name != "" {
-			run.Excluded = append(run.Excluded, name)
+			values = append(values, name)
 		}
 	}
-	return run, nil
+	return values
 }
 
 func intEnv(key string, fallback int) (int, error) {
@@ -167,6 +178,18 @@ func boolEnv(key string) (bool, error) {
 	value, set := os.LookupEnv(key)
 	if !set || value == "" {
 		return false, nil
+	}
+	parsed, err := strconv.ParseBool(value)
+	if err != nil {
+		return false, fmt.Errorf("%s %q is not a boolean", key, value)
+	}
+	return parsed, nil
+}
+
+func boolEnvDefault(key string, fallback bool) (bool, error) {
+	value, set := os.LookupEnv(key)
+	if !set || value == "" {
+		return fallback, nil
 	}
 	parsed, err := strconv.ParseBool(value)
 	if err != nil {

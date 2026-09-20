@@ -201,7 +201,8 @@ type waveFailure struct {
 // embedded structs that ever grow the same json tag lose both fields silently,
 // with nothing to fail a build or a test.
 type healthResponse struct {
-	APIVersion int `json:"api_version"`
+	APIVersion int  `json:"api_version"`
+	TestMode   bool `json:"test_mode"`
 
 	Connected    bool     `json:"connected"`
 	Slot         string   `json:"slot"`
@@ -229,6 +230,7 @@ type Server struct {
 	chat        *chat.Log
 	deaths      *deathlink.Feed
 	pollTimeout time.Duration
+	testMode    bool
 	logger      *slog.Logger
 
 	// drift is what the game said about missions the tables disagree with. It
@@ -256,7 +258,7 @@ type waveKey struct {
 
 func New(
 	store *state.Store, client *apclient.Client, messages *chat.Log, deaths *deathlink.Feed,
-	pollTimeout time.Duration, logger *slog.Logger,
+	pollTimeout time.Duration, testMode bool, logger *slog.Logger,
 ) *Server {
 	return &Server{
 		store:       store,
@@ -264,6 +266,7 @@ func New(
 		chat:        messages,
 		deaths:      deaths,
 		pollTimeout: pollTimeout,
+		testMode:    testMode,
 		logger:      logger,
 		drift:       make(map[string]int),
 		tallySeen:   make(map[gamedata.ObjectiveKind]tallyReport),
@@ -826,6 +829,7 @@ func (s *Server) getHealth(w http.ResponseWriter, r *http.Request) {
 	session, run := s.client.Health(), s.store.Stats()
 	writeJSON(w, s.logger, healthResponse{
 		APIVersion: APIVersion,
+		TestMode:   s.testMode,
 
 		Connected:    session.Connected,
 		Slot:         session.Slot,
