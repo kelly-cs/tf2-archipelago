@@ -53,6 +53,7 @@ type MissionPoolRow struct {
 	Source        string `json:"source"`
 	Map           string `json:"map"`
 	Name          string `json:"name"`
+	Loadout       string `json:"loadout"`
 	Waves         string `json:"waves"`
 	Compatibility string `json:"compatibility"`
 	Mods          string `json:"mods"`
@@ -169,6 +170,7 @@ func missionPoolRows(s form.State, built form.Model, availablePacks, importedPac
 			Source:        missionSource(mission, importedPacks),
 			Map:           played.Name,
 			Name:          mission.Name,
+			Loadout:       runshape.MissionLoadoutLabel(mission),
 			Waves:         fmt.Sprintf("1–%d", mission.Waves),
 			Tier:          mission.Difficulty.String(),
 			Compatibility: compatibility,

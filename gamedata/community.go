@@ -107,7 +107,7 @@ func loadCommunity(body []byte) (loadedCommunity, error) {
 		if entry.Pack != "" && entry.Pack != "mlarchive-assets.zip" {
 			return loadedCommunity{}, fmt.Errorf("community mission %q: unknown pack %q", entry.PopFile, entry.Pack)
 		}
-		if entry.Loadout != "" && entry.Loadout != "medieval" {
+		if entry.Loadout != "" && entry.Loadout != "medieval" && entry.Loadout != "medic_only" {
 			return loadedCommunity{}, fmt.Errorf("community mission %q: unknown loadout %q", entry.PopFile, entry.Loadout)
 		}
 		content.Missions = append(content.Missions, Mission{
@@ -491,10 +491,11 @@ func MissionRequirement(id MissionID) string {
 	return communityContent.Requirements[id]
 }
 
-// MissionLoadout reports a special loadout the mission is designed around.
+// MissionLoadout reports a special class or loadout restriction.
 // Blank means the usual unrestricted MvM loadout. "medieval" describes the
 // mission's weapon roster and player-facing recommendation; it does not assert
-// that the map enables TF2's engine-level Medieval Mode.
+// that the map enables TF2's engine-level Medieval Mode. "medic_only" means
+// the mission's population file excludes every other player class.
 func MissionLoadout(id MissionID) string {
 	return communityContent.Loadouts[id]
 }

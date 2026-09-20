@@ -68,17 +68,18 @@ func TestCommunityManifestRejectsTyposAndReservedIDs(t *testing.T) {
 	}
 }
 
-func TestFrostwyndMissionsNameTheirMedievalLoadout(t *testing.T) {
-	want := map[string]bool{
-		"mvm_frostwynd_rc1_int_wicked_wizardry":  true,
-		"mvm_frostwynd_rc1_adv_fiefdom_fiasco":   true,
-		"mvm_frostwynd_rc1_adv_medieval_madness": true,
+func TestCommunityMissionsNameTheirSpecialRestrictions(t *testing.T) {
+	want := map[string]string{
+		"mvm_frostwynd_rc1_int_wicked_wizardry":  "medieval",
+		"mvm_frostwynd_rc1_adv_fiefdom_fiasco":   "medieval",
+		"mvm_frostwynd_rc1_adv_medieval_madness": "medieval",
+		"mvm_chateau_rc3_adv_remedic":            "medic_only",
 	}
 	for _, mission := range communityMissions {
 		got := MissionLoadout(mission.ID)
-		if want[mission.PopFile] {
-			if got != "medieval" {
-				t.Errorf("%s loadout = %q, want medieval", mission.PopFile, got)
+		if restriction, expected := want[mission.PopFile]; expected {
+			if got != restriction {
+				t.Errorf("%s loadout = %q, want %q", mission.PopFile, got, restriction)
 			}
 			delete(want, mission.PopFile)
 		} else if got != "" {
@@ -86,7 +87,7 @@ func TestFrostwyndMissionsNameTheirMedievalLoadout(t *testing.T) {
 		}
 	}
 	if len(want) != 0 {
-		t.Fatalf("catalog is missing medieval missions: %v", want)
+		t.Fatalf("catalog is missing restricted missions: %v", want)
 	}
 }
 
