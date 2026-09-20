@@ -153,7 +153,7 @@ public void OnPluginStart()
     RegAdminCmd("sm_ap_trap", Command_Trap, ADMFLAG_ROOT,
         "Fire a trap by hand, the way a grant from the room would: sm_ap_trap <key>");
     RegAdminCmd("sm_ap_resync", Command_Resync, ADMFLAG_GENERIC,
-        "Ask the bridge for the unlock set again");
+        "Ask the bridge for the mission list and unlock set again");
     RegAdminCmd("sm_ap_resume", Command_Resume, ADMFLAG_CHANGEMAP,
         "sm_ap_resume <popfile> [wave] - load a mission and start it at a wave");
     RegConsoleCmd("sm_ap_modifiers", Command_MissionModifiers,
@@ -1006,6 +1006,7 @@ public Action Command_Report(int client, int argc)
 public Action Command_Resync(int client, int argc)
 {
     Bridge_FetchUnlocks();
-    ReplyToCommand(client, "[AP] The plugin asked the bridge for the unlock set.");
+    Bridge_FetchMissions();
+    ReplyToCommand(client, "[AP] The plugin asked the bridge for the mission list and unlock set.");
     return Plugin_Handled;
 }
