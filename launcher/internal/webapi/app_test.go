@@ -47,6 +47,23 @@ func TestMissionPoolRowsNameRequiredServerMods(t *testing.T) {
 	t.Fatal("expanded Potato mission is missing from the mission table")
 }
 
+func TestAttachedMissionPoolExplainsMissingSigmodFiles(t *testing.T) {
+	state := form.NewState(settings.Defaults())
+	state.Settings.SrcdsMods = []string{"sigsegv-mvm"}
+	available := []string{settings.CommunityPackPotato}
+	built := form.Build(state, form.Env{CommunityAvailable: available, Platform: "linux", ManagedExternally: true})
+	rows := missionPoolRows(state, built, missionPoolSources{availablePacks: available, managedExternally: true})
+	for _, row := range rows {
+		if row.Field == "missions.pool.mvm_bronx_rc2_adv_point_of_impact" {
+			if row.Compatibility != form.MissingServerModReason("SigMod", true) {
+				t.Fatalf("attached SigMod compatibility = %q", row.Compatibility)
+			}
+			return
+		}
+	}
+	t.Fatal("SigMod mission is missing from the attached mission pool")
+}
+
 func TestMissionPoolRowsNameTheExactMissingNavigationMesh(t *testing.T) {
 	rows := testMissionPoolRows(form.NewState(settings.Defaults()),
 		[]string{settings.CommunityPackPotato}, nil)
@@ -92,7 +109,7 @@ func TestSelectedSigModMissionCanBeUntickedInTable(t *testing.T) {
 
 func testMissionPoolRows(state form.State, available, ready []string) []MissionPoolRow {
 	built := form.Build(state, form.Env{CommunityAvailable: available, ServerModsReady: ready, Platform: "linux"})
-	return missionPoolRows(state, built, available, nil, ready)
+	return missionPoolRows(state, built, missionPoolSources{availablePacks: available, readyMods: ready})
 }
 
 func TestPoolNoneClearsTheNamedStartMission(t *testing.T) {

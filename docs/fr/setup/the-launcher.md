@@ -197,11 +197,13 @@ Les missions où la seed peut piocher, et où la partie commence.
   seul.
 - **Community missions** laisse la seed piocher des missions communautaires.
 - **SigMod** et les autres mods serveur : choisissez **off**,
-  **only when a mission needs it** ou **always, on every mission**. Appuyez
-  ensuite sur **Download / set up selected server mods**. Une mission qui
-  demande un mod reste hors de la réserve tant que ce mod est sur off. Sur
-  Windows la ligne affiche **SigMod (beta)**, parce que Windows fait tourner
-  le portage de ce projet et non la version publiée par le mod. Voir
+  **only when a mission needs it** ou **always, on every mission**. Dans le
+  lanceur natif, appuyez ensuite sur **Download / set up selected server mods**.
+  Dans Docker, l'image contient déjà le mod : enregistrez le choix et recréez
+  les conteneurs. Une mission qui demande un mod reste hors de la réserve tant
+  que ce mod est sur off. Sur Windows, la ligne affiche **SigMod (beta)** :
+  Windows fait tourner le portage de ce projet et non la version publiée par le
+  mod. Voir
   [Les options de la partie](shape-of-the-run.md#les-missions).
 - **Check Run Selection** vous dit si la réserve contient assez de checks
   pour les objets de la partie. Appuyez dessus avant de générer.
