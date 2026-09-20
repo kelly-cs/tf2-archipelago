@@ -66,3 +66,17 @@ inspection; the time limit alone does not prove a deadlock.
 An optional fourth argument is a comma-separated list of source shard IDs.
 Use it to move unfinished cases onto any free worker servers after their
 original shard runners finish.
+
+Each sweep writes its unique Compose project names to `projects.txt` in the run
+folder. The runner stops those containers on completion or interruption, but
+keeps their copied game volumes for retests. After retesting, remove every
+shard container and volume from that run with:
+
+```sh
+while IFS= read -r project; do
+  docker compose -p "$project" -f deploy/compose.waveprobe.yml down -v
+done < docs/audits/waveprobe-YYYYMMDD-HHMMSS/projects.txt
+```
+
+Keep the pristine `tf2-archipelago-waveprobe_tf2game_waveprobe` source volume
+until you no longer need new sweeps. It is never used as a shard volume.

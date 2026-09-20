@@ -60,6 +60,7 @@ type result struct {
 	Wave        int     `json:"wave"`
 	Seed        int     `json:"seed"`
 	State       string  `json:"state"`
+	Outcome     string  `json:"outcome,omitempty"`
 	Bots        int     `json:"bots"`
 	Tanks       int     `json:"tanks"`
 	Seconds     float64 `json:"wall_seconds"`
@@ -121,7 +122,8 @@ func run(opt options) error {
 	if password == "" {
 		return errors.New("WAVEPROBE_RCONPW is empty")
 	}
-	server := server{address: opt.address, password: password}
+	server := &server{address: opt.address, password: password}
+	defer server.close()
 	if err := server.prepare(opt); err != nil {
 		return err
 	}
@@ -150,7 +152,7 @@ func writePlan(missions []gamedata.Mission, modes []string) error {
 	return nil
 }
 
-func (s server) prepare(opt options) error {
+func (s *server) prepare(opt options) error {
 	if err := s.await(3*time.Minute, func(probeStatus) bool { return true }); err != nil {
 		return fmt.Errorf("test plugin is unavailable at %s: %w", opt.address, err)
 	}
@@ -173,7 +175,7 @@ func (s server) prepare(opt options) error {
 	return nil
 }
 
-func runMissions(s server, opt options, missions []gamedata.Mission, modes []string) error {
+func runMissions(s *server, opt options, missions []gamedata.Mission, modes []string) error {
 	failures := 0
 	for _, mission := range missions {
 		if strings.Contains(mission.PopFile, "_rev_") {
@@ -211,7 +213,7 @@ func runMissions(s server, opt options, missions []gamedata.Mission, modes []str
 	return nil
 }
 
-func (s server) runWaves(opt options, mapName string, mission gamedata.Mission, mode string) (int, error) {
+func (s *server) runWaves(opt options, mapName string, mission gamedata.Mission, mode string) (int, error) {
 	first := opt.startWave
 	last := int(mission.Waves)
 	if opt.endWave > 0 {
@@ -253,7 +255,7 @@ func (s server) runWaves(opt options, mapName string, mission gamedata.Mission, 
 	return failures, nil
 }
 
-func (s server) recordWave(opt options, mapName string, mission gamedata.Mission, mode string, wave int) error {
+func (s *server) recordWave(opt options, mapName string, mission gamedata.Mission, mode string, wave int) error {
 	started := time.Now()
 	status, err := s.testWave(mission, wave, opt.seed, opt.timeout, opt.gameTimeout)
 	row := result{
@@ -261,10 +263,23 @@ func (s server) recordWave(opt options, mapName string, mission gamedata.Mission
 		Wave: wave, Seed: opt.seed, State: status.State, Bots: status.Bots,
 		Tanks: status.Tanks, Seconds: time.Since(started).Seconds(), GameSeconds: status.Elapsed,
 	}
-	if err != nil {
+	if err == nil {
+		row.Outcome = "passed"
+	} else {
 		row.State = "failed"
-		if errors.Is(err, errWallTimeout) {
+		row.Outcome = "failed"
+		switch {
+		case errors.Is(err, errWallTimeout):
 			row.State = "inconclusive"
+			row.Outcome = "inconclusive"
+		case status.State == "failed":
+			row.Outcome = "wave lost"
+		case status.State == "running" && status.Elapsed >= opt.gameTimeout.Seconds():
+			if status.Bots == 0 && status.Tanks == 0 {
+				row.Outcome = "no enemies observed"
+			} else {
+				row.Outcome = "active at limit"
+			}
 		}
 		row.Error = err.Error()
 	}
@@ -290,7 +305,7 @@ func selectMissions(opt options) ([]gamedata.Mission, error) {
 		if requirement == "no_nav" || (requirement == "sigsegv-mvm" && !opt.includeSig) {
 			continue
 		}
-		if int(crc32.ChecksumIEEE([]byte(mission.PopFile)))%opt.shards != opt.shard {
+		if crc32.ChecksumIEEE([]byte(mission.PopFile))%uint32(opt.shards) != uint32(opt.shard) {
 			continue
 		}
 		selected = append(selected, mission)
@@ -318,18 +333,33 @@ func writeResult(row result) {
 type server struct {
 	address  string
 	password string
+	client   *rcon.Client
 }
 
-func (s server) exec(command string) (string, error) {
-	client, err := rcon.Dial(s.address, s.password)
-	if err != nil {
-		return "", err
+func (s *server) close() {
+	if s.client != nil {
+		_ = s.client.Close()
+		s.client = nil
 	}
-	defer func() { _ = client.Close() }()
-	return client.Exec(command)
 }
 
-func (s server) status() (probeStatus, error) {
+func (s *server) exec(command string) (string, error) {
+	if s.client == nil {
+		client, err := rcon.Dial(s.address, s.password)
+		if err != nil {
+			return "", err
+		}
+		s.client = client
+	}
+	reply, err := s.client.Exec(command)
+	if err != nil {
+		// changelevel can close the connection; the next command reconnects.
+		s.close()
+	}
+	return reply, err
+}
+
+func (s *server) status() (probeStatus, error) {
 	reply, err := s.exec("sm_waveprobe_status")
 	if err != nil {
 		return probeStatus{}, err
@@ -398,7 +428,7 @@ func timescaleMatches(reply string, speed int) bool {
 	return err == nil && value == float64(speed)
 }
 
-func (s server) await(timeout time.Duration, predicate func(probeStatus) bool) error {
+func (s *server) await(timeout time.Duration, predicate func(probeStatus) bool) error {
 	deadline := time.Now().Add(timeout)
 	var last probeStatus
 	var lastErr error
@@ -407,7 +437,7 @@ func (s server) await(timeout time.Duration, predicate func(probeStatus) bool) e
 		if lastErr == nil && predicate(last) {
 			return nil
 		}
-		time.Sleep(250 * time.Millisecond)
+		time.Sleep(time.Second)
 	}
 	if lastErr != nil {
 		return fmt.Errorf("timed out after %s (last status %+v): %w", timeout, last, lastErr)
@@ -415,7 +445,7 @@ func (s server) await(timeout time.Duration, predicate func(probeStatus) bool) e
 	return fmt.Errorf("timed out after %s (last status %+v)", timeout, last)
 }
 
-func (s server) load(mapName string, mission gamedata.Mission, mode string, timeout time.Duration) error {
+func (s *server) load(mapName string, mission gamedata.Mission, mode string, timeout time.Duration) error {
 	status, err := s.status()
 	if err != nil {
 		return err
@@ -427,17 +457,19 @@ func (s server) load(mapName string, mission gamedata.Mission, mode string, time
 		if err := s.await(timeout, func(st probeStatus) bool { return st.Map == mapName }); err != nil {
 			return err
 		}
-		// The map name becomes visible before the population manager finishes
-		// initializing. A popfile lookup in that window can reject a valid file.
-		time.Sleep(time.Second)
+		// Wait until the new population manager has reported a mission.
+		if err := s.await(timeout, func(st probeStatus) bool {
+			return st.Map == mapName && st.Pop != "" && st.Max > 0
+		}); err != nil {
+			return err
+		}
 	}
 	teamName, playerTeam, err := s.configureMode(mission, mode)
 	if err != nil {
 		return err
 	}
-	// The modifier command can queue a popfile reload. Let that command run,
-	// then explicitly load the full name so the observed wave uses this mode.
-	time.Sleep(500 * time.Millisecond)
+	// The modifier query in configureMode confirms the chosen mode before
+	// explicitly loading the full population file.
 	var popReply string
 	popDeadline := time.Now().Add(min(timeout, 15*time.Second))
 	for {
@@ -475,7 +507,7 @@ func (s server) load(mapName string, mission gamedata.Mission, mode string, time
 	return nil
 }
 
-func (s server) configureMode(mission gamedata.Mission, mode string) (string, int, error) {
+func (s *server) configureMode(mission gamedata.Mission, mode string) (string, int, error) {
 	if _, err := s.exec("sm_waveprobe_reset"); err != nil {
 		return "", 0, err
 	}
@@ -522,7 +554,7 @@ func (s server) configureMode(mission gamedata.Mission, mode string) (string, in
 
 var errWallTimeout = errors.New("wall-clock timeout before game-time limit")
 
-func (s server) testWave(mission gamedata.Mission, wave, seed int, timeout, gameTimeout time.Duration) (probeStatus, error) {
+func (s *server) testWave(mission gamedata.Mission, wave, seed int, timeout, gameTimeout time.Duration) (probeStatus, error) {
 	if err := s.await(timeout, func(st probeStatus) bool {
 		return st.Pop == mission.PopFile && st.GameWave == wave
 	}); err != nil {
@@ -551,14 +583,14 @@ func (s server) testWave(mission gamedata.Mission, wave, seed int, timeout, game
 				return status, fmt.Errorf("wave %d remained active for %.1f game seconds: %+v", wave, status.Elapsed, status)
 			}
 		}
-		time.Sleep(250 * time.Millisecond)
+		time.Sleep(time.Second)
 	}
 	s.stopWave(mission)
 	return last, fmt.Errorf("%w: wave %d did not complete within %s, %.1f game seconds: %+v",
 		errWallTimeout, wave, timeout, last.Elapsed, last)
 }
 
-func (s server) stopWave(mission gamedata.Mission) {
+func (s *server) stopWave(mission gamedata.Mission) {
 	// An active Bot Surge wave can keep creating bots and projectiles during
 	// a queued map change. Reset the population manager before leaving it.
 	_, _ = s.exec("tf_mvm_popfile " + mission.PopFile)

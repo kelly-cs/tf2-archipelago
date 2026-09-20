@@ -3,7 +3,6 @@
 import collections
 import json
 import pathlib
-import re
 import sys
 
 
@@ -15,20 +14,13 @@ def rows(path):
 
 
 def evidence_rank(row):
-    if row["state"] == "passed":
-        return 4
-    if row["state"] == "failed":
-        error = row.get("error", "")
-        if "remained active for" in error:
-            return 3
-        if "did not complete within" in error:
-            match = re.search(r"Elapsed:([0-9.]+)", error)
-            elapsed = row.get("game_seconds", 0) or (float(match.group(1)) if match else 0)
-            if elapsed >= 900:
-                return 3
-        if "game or probe failed wave" in error:
-            return 2
-    return 1
+    return {"passed": 4, "active at limit": 3, "no enemies observed": 3,
+            "wave lost": 2}.get(row.get("outcome", row["state"]), 1)
+
+
+def classify(row):
+    # The probe writes this code. Error prose is only for human diagnosis.
+    return row.get("outcome", row["state"])
 
 
 def main(run_dir):
@@ -51,27 +43,7 @@ def main(run_dir):
         if plan[key]["state"] == "unsupported_reverse":
             return "reverse objective"
         if key in observed:
-            row = observed[key]
-            if (row["state"] == "inconclusive"
-                    and "retest runner produced no wave result" in row.get("error", "")
-                    and (key[:2] in load_errors or "did not load" in row["error"]
-                         or "population file" in row["error"])):
-                return "load blocked"
-            if row["state"] == "failed" and "game or probe failed wave" in row.get("error", ""):
-                return "wave lost"
-            if row["state"] == "failed" and "remained active for" in row.get("error", ""):
-                return ("no enemies observed" if not row.get("bots") and not row.get("tanks")
-                        else "active at limit")
-            if row["state"] == "failed" and "did not complete within" in row.get("error", ""):
-                elapsed = row.get("game_seconds", 0)
-                if not elapsed:
-                    match = re.search(r"Elapsed:([0-9.]+)", row["error"])
-                    elapsed = float(match.group(1)) if match else 0
-                if elapsed < 900:
-                    return "inconclusive"
-                return ("no enemies observed" if not row.get("bots") and not row.get("tanks")
-                        else "active at limit")
-            return row["state"]
+            return classify(observed[key])
         if key[:2] in load_errors:
             return "load blocked"
         return "not run"

@@ -1,6 +1,10 @@
 package main
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/m-this/tf2-archipelago/gamedata"
+)
 
 func TestParseStatus(t *testing.T) {
 	got, err := parseStatus("[SM] WAVEPROBE state=passed map=mvm_decoy pop=mvm_decoy_advanced3 max=6 gamewave=2 expected=1 observed=1 bots=42 tanks=1 defender=3 defteam=2 playerteam=2 enemyteam=3 elapsed=70.5")
@@ -25,5 +29,29 @@ func TestTimescaleMatches(t *testing.T) {
 	}
 	if timescaleMatches(`host_timescale = "1" ( def. "1" )`, 10) {
 		t.Fatal("accepted unchanged clock")
+	}
+}
+
+func TestShardsPartitionCatalog(t *testing.T) {
+	for _, shards := range []int{1, 2, 6, 17} {
+		seen := make(map[string]int)
+		for shard := range shards {
+			missions, err := selectMissions(options{mission: "all", shards: shards, shard: shard, includeSig: true})
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, mission := range missions {
+				seen[mission.PopFile]++
+			}
+		}
+		for _, mission := range gamedata.Missions {
+			want := 1
+			if gamedata.MissionRequirement(mission.ID) == "no_nav" {
+				want = 0
+			}
+			if seen[mission.PopFile] != want {
+				t.Errorf("%d shards: %s occurs %d times, want %d", shards, mission.PopFile, seen[mission.PopFile], want)
+			}
+		}
 	}
 }

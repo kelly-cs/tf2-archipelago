@@ -87,7 +87,7 @@ def main(run_dir, binary, worker_ids, source_shards=None):
                     if output:
                         reason = output[-1].get("error", reason)
                     row = {"mission": mission, "map": map_name, "mode": mode,
-                           "wave": wave, "seed": 1, "state": "inconclusive",
+                           "wave": wave, "seed": 1, "state": "inconclusive", "outcome": "inconclusive",
                            "error": f"retest runner produced no wave result: {reason[:300]}"}
                 stream.write(json.dumps(row) + "\n")
                 stream.flush()

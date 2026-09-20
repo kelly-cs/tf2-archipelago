@@ -30,10 +30,26 @@ compiler="$root/plugin/build/sourcemod-$SOURCEMOD_VERSION/addons/sourcemod/scrip
 (cd "$root" && go build -o "$run_dir/waveprobe" ./launcher/cmd/waveprobe)
 "$run_dir/waveprobe" -plan -mode both > "$run_dir/plan.jsonl"
 
-declare -a pids=()
+declare -a pids=() projects=()
+run_id="$(date -u +%Y%m%d%H%M%S)-$$"
+cleanup() {
+    trap - EXIT INT TERM
+    for pid in "${pids[@]}"; do
+        kill "$pid" 2>/dev/null || true
+    done
+    for ((j=0; j<${#projects[@]}; j++)); do
+        WAVEPROBE_RCON_PORT=$((base_port + j)) docker compose -p "${projects[j]}" \
+            -f "$root/deploy/compose.waveprobe.yml" stop > /dev/null 2>&1 || true
+    done
+}
+trap cleanup EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+: > "$run_dir/projects.txt"
 for ((i=0; i<shards; i++)); do
-    project=tf2-archipelago-waveprobe
-    ((i == 0)) || project+=-$i
+    project="tf2ap-waveprobe-${run_id}-${i}"
+    projects+=("$project")
+    printf '%s\n' "$project" >> "$run_dir/projects.txt"
     volume="${project}_tf2game_waveprobe"
     if ! docker volume inspect "$volume" >/dev/null 2>&1; then
         docker volume create "$volume" >/dev/null
@@ -57,10 +73,4 @@ for ((i=0; i<shards; i++)); do
 done
 python3 "$root/deploy/waveprobe-report.py" "$run_dir" > "$run_dir/REPORT.md"
 echo "Report: $run_dir/REPORT.md" >&2
-for ((i=0; i<shards; i++)); do
-    project=tf2-archipelago-waveprobe
-    ((i == 0)) || project+=-$i
-    WAVEPROBE_RCON_PORT=$((base_port + i)) docker compose -p "$project" \
-        -f "$root/deploy/compose.waveprobe.yml" stop > /dev/null
-done
 exit "$failed"
