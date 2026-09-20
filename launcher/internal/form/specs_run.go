@@ -322,15 +322,9 @@ func missionSpecs(s State, env Env) []Spec {
 			}),
 
 		serverModSpec("sigsegv-mvm", "SigMod", env),
-		serverModInstallSpec(),
-
-		communityDownloadSpec(),
-		communityHashMismatchSpec(env),
-		press("missions.import_assets", tab, "Import local assets",
-			"Choose archive-assets.zip and/or mlarchive-assets.zip from this computer. Valid packs are selected and their missions appear below immediately."),
-		press("missions.check_selection", tab, "Check Run Selection",
-			"Confirm that the eligible mission pool has enough checks to hold every mission, class, and weapon-slot unlock."),
-
+	}
+	specs = append(specs, missionSetupActions(env)...)
+	specs = append(specs,
 		/* One control for both the seed and the server: the run begins on this
 		   mission and srcds boots on it, which is the only way the two cannot
 		   disagree. Picking one also puts it back in the pool and turns on the
@@ -352,7 +346,7 @@ func missionSpecs(s State, env Env) []Spec {
 		// to a pool of three missions is 26 keystrokes down the list.
 		press("missions.pool_all", tab, "All in the pool", "Put every mission back in the pool."),
 		press("missions.pool_none", tab, "None in the pool", "Leave every mission out, to tick back the few this run is for."),
-	}
+	)
 
 	for _, mission := range runshape.VisibleMissions(env.CommunityAvailable) {
 		specs = append(specs, poolSpec(mission))
@@ -372,9 +366,21 @@ func communityHashMismatchSpec(env Env) Spec {
 	return spec
 }
 
-func communityDownloadSpec() Spec {
-	return press("missions.download_packs", "Missions", "Download Selected Community Assets",
-		"Download only the checked full-with-maps community packs. Live progress remains visible on this page. Start never downloads community content.")
+func missionSetupActions(env Env) []Spec {
+	const tab = "Missions"
+	var actions []Spec
+	if !env.ManagedExternally {
+		actions = append(actions, serverModInstallSpec())
+	}
+	return append(actions,
+		press("missions.download_packs", tab, "Download Selected Community Assets",
+			"Download only the checked full-with-maps community packs. Live progress remains visible on this page. Start never downloads community content."),
+		communityHashMismatchSpec(env),
+		press("missions.import_assets", tab, "Import local assets",
+			"Choose archive-assets.zip and/or mlarchive-assets.zip from this computer. Valid packs are selected and their missions appear below immediately."),
+		press("missions.check_selection", tab, "Check Run Selection",
+			"Confirm that the eligible mission pool has enough checks to hold every mission, class, and weapon-slot unlock."),
+	)
 }
 
 func activeServerMods(s State, env Env) []string {
@@ -401,6 +407,9 @@ func serverModSpec(key, label string, env Env) Spec {
 	mod, _ := gamedata.ServerModByKey(key)
 
 	help := "Required by missions that use SigMod population extensions, and used by nothing else. Off removes those missions from the pool. Start downloads, verifies and installs the pinned release when it is needed."
+	if env.ManagedExternally {
+		help = "The Docker image already includes SigMod. Choose off, only when a mission needs it, or always. Save and recreate the containers to apply the choice."
+	}
 	if !mod.BuildsOn(env.Platform) {
 		help = label + " has no " + env.Platform + " server build, so the missions that need it stay out of the pool."
 	}
@@ -478,7 +487,7 @@ func excludePoolMissions(s State, match func(gamedata.Mission) bool) State {
 
 func serverModInstallSpec() Spec {
 	return press("missions.install_mods", "Missions", "Download / set up selected server mods",
-		"The native launcher downloads verified pinned releases and installs their SourceMod extension. Docker already includes them: Save the selection and recreate the containers. On a new native setup this also installs TF2 and SourceMod; Start performs the same setup automatically.")
+		"Download the verified pinned release and install its SourceMod extension. On a new setup this also installs TF2 and SourceMod; Start performs the same setup automatically.")
 }
 
 // packSpec is one community asset pack, on or off. Off is not "absent": the
@@ -580,10 +589,13 @@ func missionRequirementSpec(spec Spec, mission gamedata.Mission, help string) Sp
 				return mod.Name + " has no " + env.Platform + " server build, so this mission cannot run here"
 			}
 			if !slices.Contains(settings.ServerModKeys(s.Settings), key) {
+				if env.ManagedExternally {
+					return "turn on " + mod.Name + " above, then save and recreate the containers"
+				}
 				return "turn on " + mod.Name + " above, then press Download / set up selected server mods"
 			}
 			if !slices.Contains(env.ServerModsReady, key) {
-				return mod.Name + " is selected but its installation is missing or incomplete; press Download / set up selected server mods"
+				return MissingServerModReason(mod.Name, env.ManagedExternally)
 			}
 			if !s.Settings.MvmCommunityMissions {
 				return "community missions are off"
@@ -773,4 +785,13 @@ func networkingSpecs() []Spec {
 		press("net.check_funnel", tab, "Set up / check Funnel",
 			"Checks Funnel and provides the approval page when needed. Docker includes its own Tailscale service and remembers the login. With the native launcher, install Tailscale first; headless Linux can run this launcher with -setup-funnel."),
 	}
+}
+
+// MissingServerModReason is shared by the setting and mission table so both
+// explain the same unavailable state in the same words.
+func MissingServerModReason(name string, managedExternally bool) string {
+	if managedExternally {
+		return name + " files are missing or incomplete in the server volume; recreate the container"
+	}
+	return name + " is selected but its installation is missing or incomplete; press Download / set up selected server mods"
 }

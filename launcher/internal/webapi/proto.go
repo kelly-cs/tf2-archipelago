@@ -8,6 +8,7 @@ import (
 	"github.com/m-this/tf2-archipelago/launcher/internal/botlive"
 	"github.com/m-this/tf2-archipelago/launcher/internal/form"
 	launcherv1 "github.com/m-this/tf2-archipelago/launcher/internal/gen/tf2ap/launcher/v1"
+	"github.com/m-this/tf2-archipelago/launcher/internal/runshape"
 	apruntime "github.com/m-this/tf2-archipelago/launcher/internal/runtime"
 	"github.com/m-this/tf2-archipelago/launcher/internal/session"
 )
@@ -86,7 +87,7 @@ func sessionProto(s session.Snapshot) *launcherv1.Session {
 		}
 		missions = append(missions, &launcherv1.SessionMission{
 			PopFile: mission.PopFile, Name: mission.Name, Map: mission.Map,
-			Waves: int32(mission.Waves), Source: mission.Source, Loadout: mission.Loadout,
+			Waves: int32(mission.Waves), Source: mission.Source, Loadout: runshape.LoadoutLabel(mission.Loadout),
 			Unlocked: mission.Unlocked, Cleared: mission.Cleared, Played: mission.Played,
 			Tier: tierOf(mission.PopFile), WaveReached: int32(mission.WaveReached),
 			Modifiers: modifiers,
@@ -124,7 +125,7 @@ func poolProto(rows []MissionPoolRow) []*launcherv1.MissionPoolRow {
 	out := make([]*launcherv1.MissionPoolRow, 0, len(rows))
 	for _, row := range rows {
 		out = append(out, &launcherv1.MissionPoolRow{
-			Field: row.Field, Source: row.Source, Map: row.Map, Name: row.Name,
+			Field: row.Field, Source: row.Source, Map: row.Map, Name: row.Name, Loadout: row.Loadout,
 			Waves: row.Waves, Compatibility: row.Compatibility, Mods: row.Mods, Tier: row.Tier,
 			Disabled: row.Disabled,
 		})

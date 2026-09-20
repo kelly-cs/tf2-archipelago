@@ -203,11 +203,14 @@ func MissionLoadoutLabel(mission gamedata.Mission) string {
 	return LoadoutLabel(gamedata.MissionLoadout(mission.ID))
 }
 
-// LoadoutLabel is the one word that tags a mission with a special loadout,
-// where a list has room for one word. Blank for the usual loadout.
+// LoadoutLabel tags a mission with a special class or loadout restriction.
+// Blank means the usual unrestricted mission.
 func LoadoutLabel(loadout string) string {
-	if loadout == "medieval" {
+	switch loadout {
+	case "medieval":
 		return "Medieval"
+	case "medic_only":
+		return "Medic only"
 	}
 	return ""
 }
@@ -223,8 +226,11 @@ seed draws the mission or the run switches to it, which is why the launcher
 says it in the pool, the start-mission list and the session list alike.
 */
 func LoadoutNote(loadout string) string {
-	if loadout == "medieval" {
+	switch loadout {
+	case "medieval":
 		return "Medieval: melee and medieval-era weapons only, so most slot unlocks do nothing here."
+	case "medic_only":
+		return "Medic only: this mission's population file excludes every other player class."
 	}
 	return ""
 }

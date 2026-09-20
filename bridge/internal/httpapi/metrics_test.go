@@ -31,7 +31,7 @@ func newTestMetrics(t *testing.T) (http.Handler, http.Handler) {
 	client := apclient.New(apclient.Options{
 		SlotName: "tf2", Store: store, Chat: messages, Logger: logger,
 	})
-	server := New(store, client, messages, deathlink.New(1), time.Second, logger)
+	server := New(store, client, messages, deathlink.New(1), time.Second, false, logger)
 	return server.Handler(), server.MetricsHandler("")
 }
 
@@ -48,7 +48,7 @@ func newTestMetricsWithGame(t *testing.T, gameAddr string) http.Handler {
 	client := apclient.New(apclient.Options{
 		SlotName: "tf2", Store: store, Chat: messages, Logger: logger,
 	})
-	server := New(store, client, messages, deathlink.New(1), time.Second, logger)
+	server := New(store, client, messages, deathlink.New(1), time.Second, false, logger)
 	return server.MetricsHandler(gameAddr)
 }
 

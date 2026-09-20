@@ -859,7 +859,8 @@
       "difficulty": "intermediate",
       "waves": 7,
       "has_tank": true,
-      "has_giant": true
+      "has_giant": true,
+      "requires": "sigsegv-mvm"
     },
     {
       "id": 170,
@@ -1012,7 +1013,8 @@
       "difficulty": "expert",
       "waves": 7,
       "has_tank": true,
-      "has_giant": true
+      "has_giant": true,
+      "requires": "sigsegv-mvm"
     },
     {
       "id": 184,
@@ -1318,7 +1320,8 @@
       "waves": 6,
       "has_tank": true,
       "has_giant": true,
-      "requires": "sigsegv-mvm"
+      "requires": "sigsegv-mvm",
+      "loadout": "medic_only"
     },
     {
       "id": 212,
@@ -1416,7 +1419,8 @@
       "difficulty": "intermediate",
       "waves": 5,
       "has_tank": true,
-      "has_giant": true
+      "has_giant": true,
+      "requires": "sigsegv-mvm"
     },
     {
       "id": 221,
@@ -1648,7 +1652,8 @@
       "difficulty": "advanced",
       "waves": 6,
       "has_tank": true,
-      "has_giant": true
+      "has_giant": true,
+      "requires": "sigsegv-mvm"
     },
     {
       "id": 242,
@@ -1931,7 +1936,8 @@
       "difficulty": "intermediate",
       "waves": 6,
       "has_tank": true,
-      "has_giant": true
+      "has_giant": true,
+      "requires": "sigsegv-mvm"
     },
     {
       "id": 268,
@@ -1973,7 +1979,8 @@
       "difficulty": "advanced",
       "waves": 6,
       "has_tank": true,
-      "has_giant": true
+      "has_giant": true,
+      "requires": "sigsegv-mvm"
     },
     {
       "id": 272,
@@ -2157,7 +2164,8 @@
       "difficulty": "intermediate",
       "waves": 7,
       "has_tank": true,
-      "has_giant": true
+      "has_giant": true,
+      "requires": "sigsegv-mvm"
     },
     {
       "id": 289,

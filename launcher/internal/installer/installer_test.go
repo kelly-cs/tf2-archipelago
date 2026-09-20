@@ -274,7 +274,39 @@ func TestInstallServerModsUsesVerifiedCacheAndDetectsTheInstall(t *testing.T) {
 	if got := ReadyServerMods(root); len(got) != 1 || got[0] != sigmodKey {
 		t.Fatalf("ready server mods = %v", got)
 	}
-	if err := os.Remove(filepath.Join(modDir, "addons", "sourcemod", "gamedata", "sigsegv", "population.txt")); err != nil {
+	// Operators edit this shipped config to choose SigMod behavior. The
+	// extension remains installed and missions must stay available.
+	config := filepath.Join(modDir, "cfg", "sigsegv_convars.cfg")
+	if err := os.WriteFile(config, []byte("sig_mvm_robot_limit_fix_red 0\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if got := ReadyServerMods(root); len(got) != 1 || got[0] != sigmodKey {
+		t.Fatalf("edited SigMod config made the mod unavailable: %v", got)
+	}
+	if err := os.Remove(config); err != nil {
+		t.Fatal(err)
+	}
+	if got := ReadyServerMods(root); len(got) != 0 {
+		t.Fatalf("missing SigMod config reported ready: %v", got)
+	}
+	if err := os.WriteFile(config, []byte("sig_mvm_robot_limit_fix_red 0\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	population := filepath.Join(modDir, "addons", "sourcemod", "gamedata", "sigsegv", "population.txt")
+	original, err := os.ReadFile(population)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(population, []byte("changed population data"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if got := ReadyServerMods(root); len(got) != 0 {
+		t.Fatalf("changed SigMod gamedata reported ready: %v", got)
+	}
+	if err := os.WriteFile(population, original, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Remove(population); err != nil {
 		t.Fatal(err)
 	}
 	if got := ReadyServerMods(root); len(got) != 0 {

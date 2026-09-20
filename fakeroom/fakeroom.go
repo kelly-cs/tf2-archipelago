@@ -81,6 +81,10 @@ type Options struct {
 	Goal           string
 	Log            func(string)
 	MissionCount   int
+	// ServerMods and ExcludeCommunity keep the Docker test pool aligned with
+	// the missions the configured game server can actually play.
+	ServerMods       []string
+	ExcludeCommunity bool
 
 	// Excluded is the popfiles a test run leaves out, the way the real
 	// generator's excluded_missions does.
@@ -141,7 +145,7 @@ func Start(ctx context.Context, options Options) (*Room, string, error) {
 	missions := options.Missions
 	if len(missions) == 0 {
 		missions = defaultMissions(options.MissionCount, options.Excluded,
-			options.Difficulty, options.StartMission)
+			options.Difficulty, options.StartMission, options.ServerMods, options.ExcludeCommunity)
 	}
 	start := roomStartingInventory(missions, options.StartClass, options.UnlockMissions)
 	modifiers := options.MissionModifiers
@@ -682,12 +686,15 @@ const buffsUpFront = 8
 //
 // The floor is a floor, not a filter: picking intermediate draws intermediate
 // and everything harder, which is what difficulty_pool means.
-func defaultMissions(count int, excluded []string, difficulty, startMission string) []string {
+func defaultMissions(count int, excluded []string, difficulty, startMission string, mods []string, excludeCommunity bool) []string {
 	floor, known := gamedata.DifficultyByKey(difficulty)
 
-	playable := gamedata.PlayableMissions()
+	playable := gamedata.MissionsPlayableWith(mods)
 	pool := make([]string, 0, len(playable))
 	for _, mission := range playable {
+		if excludeCommunity && gamedata.IsCommunityMission(mission.ID) {
+			continue
+		}
 		if known && mission.Difficulty < floor {
 			continue
 		}
@@ -710,14 +717,18 @@ func defaultMissions(count int, excluded []string, difficulty, startMission stri
 		if at := slices.Index(pool, startMission); at > 0 {
 			pool = slices.Insert(slices.Delete(slices.Clone(pool), at, at+1), 0, startMission)
 		} else if at == -1 {
-			if mission, known := gamedata.MissionByPopFile(startMission); known && gamedata.IsPlayableMission(mission.ID) {
+			if mission, known := gamedata.MissionByPopFile(startMission); known &&
+				gamedata.IsMissionPlayableWith(mission.ID, mods) &&
+				(!excludeCommunity || !gamedata.IsCommunityMission(mission.ID)) {
 				pool = append([]string{startMission}, pool...)
 			}
 		}
 	}
 
-	if count <= 0 || count > len(pool) {
+	if count <= 0 {
 		count = min(8, len(pool))
+	} else {
+		count = min(count, len(pool))
 	}
 	return pool[:count]
 }

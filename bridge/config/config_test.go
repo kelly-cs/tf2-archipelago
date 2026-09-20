@@ -73,6 +73,9 @@ func TestTestModeFromTheEnvironment(t *testing.T) {
 
 func TestDockerTestRunSettings(t *testing.T) {
 	t.Setenv("TF2AP_TEST_MODE", "1")
+	t.Setenv("MVM_MISSION_COUNT", "214")
+	t.Setenv("MVM_COMMUNITY_MISSIONS", "true")
+	t.Setenv("SRCDS_MODS", "sigsegv-mvm")
 	t.Setenv("MVM_MISSION_MODIFIERS", "true")
 	t.Setenv("MVM_MINIMUM_MISSION_MODIFIERS", "2")
 	t.Setenv("MVM_MAXIMUM_MISSION_MODIFIERS", "3")
@@ -86,6 +89,9 @@ func TestDockerTestRunSettings(t *testing.T) {
 		t.Fatal(err)
 	}
 	run := cfg.TestRun
+	if run.MissionCount != 214 || !run.CommunityMissions || len(run.ServerMods) != 1 || run.ServerMods[0] != "sigsegv-mvm" {
+		t.Errorf("mission pool settings were lost: %+v", run)
+	}
 	if !run.MissionModifiers || run.ModifierMin != 2 || run.ModifierMax != 3 || !run.VictoryCaches || !run.MilestoneChecks || !run.Giantsanity || !run.Tanksanity {
 		t.Errorf("test run settings were lost: %+v", run)
 	}

@@ -115,6 +115,9 @@ type Env struct {
 	// normal platform-neutral form.
 	ServerModsReady []string
 	Platform        string
+	// ManagedExternally means Docker Compose owns installation and server
+	// restart; the browser only edits the selected mod and loading mode.
+	ManagedExternally bool
 
 	// AppDirDefault is where the Archipelago app is looked for when the setting
 	// is blank. Shown as the placeholder, never written to the settings.

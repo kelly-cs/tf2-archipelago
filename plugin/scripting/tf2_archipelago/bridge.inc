@@ -21,6 +21,10 @@
 // Slow enough not to hammer a bridge that is down, quick enough to land a wave before the next one.
 #define RetryInterval 5.0
 
+// A bridge restart can replace the test room without changing the map. The
+// plugin must notice the new seed before its cached mission list goes stale.
+#define RunCheckInterval 15.0
+
 // A player may speak to the multiworld this often. The bridge has its own
 // guard; this one exists to tell the player which of them it was.
 #define SayCooldown 3.0
@@ -104,6 +108,11 @@ ArrayList g_Pending;
 // answers, which is why the switcher says so rather than showing an empty list.
 ArrayList g_Missions;
 bool g_FetchingMissions;
+bool g_CheckingRun;
+bool g_TestRunCanChange;
+bool g_RunRefreshPending;
+int g_RunGeneration;
+char g_RunSeed[96];
 
 /* When a loop has already booked its own next request
  *
@@ -169,6 +178,16 @@ void Bridge_Init()
     g_TallySession = GetRandomInt(1, 2147483647);
     // No TIMER_FLAG_NO_MAPCHANGE: it dies at the first map change, a queued check must survive one.
     CreateTimer(RetryInterval, Timer_DrainPending, _, TIMER_REPEAT);
+    CreateTimer(RunCheckInterval, Timer_CheckRun, _, TIMER_REPEAT);
+}
+
+static Action Timer_CheckRun(Handle timer)
+{
+    if (g_TestRunCanChange)
+    {
+        Bridge_CheckRun();
+    }
+    return Plugin_Continue;
 }
 
 static HTTPRequest BridgeRequest(const char[] path)
@@ -230,6 +249,68 @@ static void OnVersionChecked(HTTPResponse response, any value, const char[] erro
         return;
     }
     AP_Debug("The bridge answered, API version %d.", version);
+    g_TestRunCanChange = health.GetBool("test_mode");
+    Bridge_NoteRunSeed(health);
+}
+
+// The mission list and unlock set are snapshots of a seed. A Docker test room
+// gets a new seed when the bridge restarts, even if srcds keeps running.
+void Bridge_CheckRun()
+{
+    if (g_CheckingRun)
+    {
+        return;
+    }
+    HTTPRequest request = BridgeRequest("/healthz");
+    request.Timeout = 10;
+    g_CheckingRun = true;
+    request.Get(OnRunChecked);
+}
+
+static void OnRunChecked(HTTPResponse response, any value, const char[] error)
+{
+    g_CheckingRun = false;
+    if (!StrEqual(error, "") || response.Status != HTTPStatus_OK)
+    {
+        return;
+    }
+    JSONObject health = view_as<JSONObject>(response.Data);
+    if (health.GetInt("api_version") == BridgeAPIVersion)
+    {
+        Bridge_NoteRunSeed(health);
+    }
+}
+
+static void Bridge_NoteRunSeed(JSONObject health)
+{
+    if (!health.GetBool("connected") || !health.HasKey("seed"))
+    {
+        return;
+    }
+    char seed[sizeof(g_RunSeed)];
+    health.GetString("seed", seed, sizeof(seed));
+    if (seed[0] == '\0')
+    {
+        return;
+    }
+    if (StrEqual(seed, g_RunSeed))
+    {
+        if (g_RunRefreshPending)
+        {
+            Bridge_FetchMissions();
+        }
+        return;
+    }
+    bool changed = g_RunSeed[0] != '\0';
+    strcopy(g_RunSeed, sizeof(g_RunSeed), seed);
+    g_RunGeneration++;
+    g_RunRefreshPending = true;
+    if (changed)
+    {
+        AP_Debug("The bridge run changed; the plugin refreshes missions and unlocks.");
+    }
+    Bridge_FetchUnlocks();
+    Bridge_FetchMissions();
 }
 
 // Queued before it is sent, so a failed send leaves it where the retry timer will find it.
@@ -509,16 +590,24 @@ void Bridge_FetchMissions()
     HTTPRequest request = BridgeRequest("/missions");
     request.Timeout = 10;
     g_FetchingMissions = true;
-    request.Get(OnMissions);
+    request.Get(OnMissions, g_RunGeneration);
 }
 
 static void OnMissions(HTTPResponse response, any value, const char[] error)
 {
     g_FetchingMissions = false;
 
+    // A response started before a bridge restart cannot replace the new
+    // run's list, even if it arrives after the new seed was observed.
+    if (value != g_RunGeneration)
+    {
+        Bridge_FetchMissions();
+        return;
+    }
+
     if (!StrEqual(error, "") || response.Status != HTTPStatus_OK)
     {
-        AP_Debug("The plugin cannot get the mission list. It tries again at the next map.");
+        AP_Debug("The plugin cannot get the mission list. It tries again at the next run check or map.");
         return;
     }
     JSONObject payload = view_as<JSONObject>(response.Data);
@@ -561,6 +650,7 @@ static void OnMissions(HTTPResponse response, any value, const char[] error)
         delete entry;
     }
     delete missions;
+    g_RunRefreshPending = false;
 
     AP_Debug("The plugin holds %d mission(s) of the run.", g_Missions.Length);
 

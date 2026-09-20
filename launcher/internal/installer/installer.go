@@ -677,7 +677,27 @@ func sigmodReady(modDir string) bool {
 		return false
 	}
 	stamp, err := os.ReadFile(filepath.Join(modDir, "addons", ".tf2ap-sigsegv-mvm.stamp"))
-	return err == nil && string(stamp) == want
+	return err == nil && sigmodStampMatches(string(stamp), want)
+}
+
+// The shipped convar file is a starting configuration. A server may change its
+// values without changing the pinned extension or gamedata. Keep requiring the
+// file to exist, but ignore its hash in old and new install receipts.
+func sigmodStampMatches(stamp, want string) bool {
+	gotLines, wantLines := strings.Split(stamp, "\n"), strings.Split(want, "\n")
+	if len(gotLines) != len(wantLines) {
+		return false
+	}
+	for index, line := range wantLines {
+		if strings.HasPrefix(line, "cfg/sigsegv_convars.cfg ") &&
+			strings.HasPrefix(gotLines[index], "cfg/sigsegv_convars.cfg ") {
+			continue
+		}
+		if gotLines[index] != line {
+			return false
+		}
+	}
+	return true
 }
 
 /*
