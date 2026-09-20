@@ -125,7 +125,7 @@ func TestCommunityCatalogueCounts(t *testing.T) {
 	if got, want := len(communityMissions), 201; got != want {
 		t.Errorf("community missions = %d, want %d", got, want)
 	}
-	for requirement, want := range map[string]int{"ready": 76, "sigsegv-mvm": 109, "no_nav": 16} {
+	for requirement, want := range map[string]int{"ready": 79, "sigsegv-mvm": 106, "no_nav": 16} {
 		if got := counts[requirement]; got != want {
 			t.Errorf("%s missions = %d, want %d", requirement, got, want)
 		}
@@ -134,10 +134,10 @@ func TestCommunityCatalogueCounts(t *testing.T) {
 
 func TestPortableCommunityMissionCountsByMap(t *testing.T) {
 	want := map[string]int{
-		"mvm_area_52_rc3":        8,
+		"mvm_area_52_rc3":        9,
 		"mvm_autumnull_rc2":      2,
 		"mvm_condemned_b3":       2,
-		"mvm_downpour_rc3a":      3,
+		"mvm_downpour_rc3a":      4,
 		"mvm_frostwynd_rc1":      2,
 		"mvm_heatrock_rc6a":      2,
 		"mvm_hideout_b3":         6,
@@ -150,7 +150,7 @@ func TestPortableCommunityMissionCountsByMap(t *testing.T) {
 		"mvm_oxidize_rc3":        3,
 		"mvm_oxidize_rr18":       4,
 		"mvm_radar_b10":          3,
-		"mvm_redstone_ridge_rc5": 1,
+		"mvm_redstone_ridge_rc5": 2,
 		"mvm_robotfactory_b30":   1,
 		"mvm_skeleclipse_b7a":    1,
 		"mvm_snowpine_rc4_fix1":  4,
@@ -278,10 +278,11 @@ func TestCommunityPopulationRequiresSigMod(t *testing.T) {
 
 func TestCommunityPopulationRequiresSigModWithIncludes(t *testing.T) {
 	files := map[string][][]byte{
-		"extensions.pop": {[]byte("WaveSchedule\n{\nLuaScriptFile example.lua\n}")},
-		"nested.pop":     {[]byte("#base extensions.pop\nWaveSchedule { }")},
-		"optional.pop":   {[]byte("WaveSchedule [$SIGSEGV]\n{\nLuaScriptFile example.lua\n}")},
-		"cycle.pop":      {[]byte("#base cycle.pop\nWaveSchedule { }")},
+		"extensions.pop":  {[]byte("WaveSchedule\n{\nLuaScriptFile example.lua\n}")},
+		"nested.pop":      {[]byte("#base extensions.pop\nWaveSchedule { }")},
+		"optional.pop":    {[]byte("WaveSchedule [$SIGSEGV]\n{\nLuaScriptFile example.lua\n}")},
+		"later_guard.pop": {[]byte("#base robot_standard.pop\nWaveSchedule [$SIGSEGV]\n{\nLuaScriptFile example.lua\n}")},
+		"cycle.pop":       {[]byte("#base cycle.pop\nWaveSchedule { }")},
 	}
 	for name, test := range map[string]struct {
 		body string
@@ -291,6 +292,7 @@ func TestCommunityPopulationRequiresSigModWithIncludes(t *testing.T) {
 		"included":           {"#base extensions.pop\nWaveSchedule { }", true},
 		"nested":             {"#base nested.pop\nWaveSchedule { }", true},
 		"optional extension": {"#base optional.pop\nWaveSchedule { }", false},
+		"guard after base":   {"#base later_guard.pop\nWaveSchedule { }", false},
 		"missing include":    {"#base absent.pop\nWaveSchedule { }", false},
 		"cycle":              {"#base cycle.pop\nWaveSchedule { }", false},
 	} {
@@ -299,5 +301,22 @@ func TestCommunityPopulationRequiresSigModWithIncludes(t *testing.T) {
 				t.Errorf("CommunityPopulationRequiresSigModWithIncludes() = %t, want %t", got, test.want)
 			}
 		})
+	}
+}
+
+func TestSourceRequiresSigModUsesTheMissionArchive(t *testing.T) {
+	bodies := []sourcedPopulation{
+		{body: []byte("#base shared.pop\nWaveSchedule { }"), source: "potato", pack: "archive-assets.zip"},
+		{body: []byte("#base shared.pop\nWaveSchedule { }"), source: "moonlight", pack: "mlarchive-assets.zip"},
+	}
+	includes := map[string]map[string][][]byte{
+		"potato":    {"shared.pop": {[]byte("LuaScriptFile example.lua")}},
+		"moonlight": {"shared.pop": {[]byte("WaveSchedule { }")}},
+	}
+	if sourceRequiresSigMod(bodies, "mlarchive-assets.zip", includes) {
+		t.Fatal("Moonlight mission inherited a Potato-only extension")
+	}
+	if !sourceRequiresSigMod(bodies, "archive-assets.zip", includes) {
+		t.Fatal("Potato mission lost its own extension")
 	}
 }

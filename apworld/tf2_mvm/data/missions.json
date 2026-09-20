@@ -17049,8 +17049,7 @@
       "has_tank": true,
       "has_giant": true,
       "community": true,
-      "playable": false,
-      "requires": "sigsegv-mvm",
+      "playable": true,
       "locations": [
         {
           "id": 7442019501,
@@ -19870,8 +19869,7 @@
       "has_tank": true,
       "has_giant": true,
       "community": true,
-      "playable": false,
-      "requires": "sigsegv-mvm",
+      "playable": true,
       "locations": [
         {
           "id": 7442023301,
@@ -22824,8 +22822,7 @@
       "has_tank": false,
       "has_giant": true,
       "community": true,
-      "playable": false,
-      "requires": "sigsegv-mvm",
+      "playable": true,
       "locations": [
         {
           "id": 7442027201,

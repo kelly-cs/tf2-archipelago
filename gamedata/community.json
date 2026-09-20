@@ -1144,7 +1144,6 @@
       "waves": 6,
       "has_tank": true,
       "has_giant": true,
-      "requires": "sigsegv-mvm",
       "pack": "mlarchive-assets.zip"
     },
     {
@@ -1565,7 +1564,6 @@
       "waves": 1,
       "has_tank": true,
       "has_giant": true,
-      "requires": "sigsegv-mvm",
       "pack": "mlarchive-assets.zip"
     },
     {
@@ -1992,7 +1990,6 @@
       "waves": 6,
       "has_tank": false,
       "has_giant": true,
-      "requires": "sigsegv-mvm",
       "pack": "mlarchive-assets.zip"
     },
     {

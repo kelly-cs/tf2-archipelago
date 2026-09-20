@@ -142,8 +142,8 @@ func ValidateCommunityFiles(tfRoot string) error {
 func ValidateCommunitySources(sources ...string) error {
 	required := make(map[string]string)
 	populations := make(map[string][][]byte)
-	discoveredPopulations := make(map[string][][]byte)
-	allPopulations := make(map[string][][]byte)
+	discoveredPopulations := make(map[string][]sourcedPopulation)
+	allPopulations := make(map[string]map[string][][]byte)
 	for _, m := range communityMaps {
 		required[filepath.ToSlash(filepath.Join("maps", m.Name+".bsp"))] = "map " + m.Name
 	}
@@ -165,13 +165,14 @@ func ValidateCommunitySources(sources ...string) error {
 		if err != nil {
 			return err
 		}
+		allPopulations[source] = make(map[string][][]byte)
 		if info.IsDir() {
-			if err := scanCommunityDirectory(source, required, populations, discoveredPopulations, allPopulations); err != nil {
+			if err := scanCommunityDirectory(source, required, populations, discoveredPopulations, allPopulations[source]); err != nil {
 				return err
 			}
 			continue
 		}
-		if err := scanCommunityArchive(source, required, populations, discoveredPopulations, allPopulations); err != nil {
+		if err := scanCommunityArchive(source, required, populations, discoveredPopulations, allPopulations[source]); err != nil {
 			return err
 		}
 	}
@@ -190,9 +191,7 @@ func ValidateCommunitySources(sources ...string) error {
 		if MissionRequirement(mission.ID) == noNavRequirement {
 			continue
 		}
-		needsSigMod := slices.ContainsFunc(bodies, func(body []byte) bool {
-			return CommunityPopulationRequiresSigModWithIncludes(body, allPopulations)
-		})
+		needsSigMod := sourceRequiresSigMod(bodies, MissionPack(mission.ID), allPopulations)
 		if needsSigMod != (MissionRequirement(mission.ID) == "sigsegv-mvm") {
 			return fmt.Errorf("community mission %s SigMod requirement is %t in its population file but %q in community.json", popFile, needsSigMod, MissionRequirement(mission.ID))
 		}
@@ -200,7 +199,28 @@ func ValidateCommunitySources(sources ...string) error {
 	return validatePopulationFacts(populations)
 }
 
-func scanCommunityDirectory(source string, required map[string]string, populations, discovered, all map[string][][]byte) error {
+type sourcedPopulation struct {
+	body   []byte
+	source string
+	pack   string
+}
+
+func sourceRequiresSigMod(bodies []sourcedPopulation, pack string, includes map[string]map[string][][]byte) bool {
+	selected := make([]sourcedPopulation, 0, len(bodies))
+	for _, body := range bodies {
+		if body.pack == pack {
+			selected = append(selected, body)
+		}
+	}
+	if len(selected) == 0 {
+		selected = bodies // An extracted TF tree has no archive filename.
+	}
+	return slices.ContainsFunc(selected, func(body sourcedPopulation) bool {
+		return CommunityPopulationRequiresSigModWithIncludes(body.body, includes[body.source])
+	})
+}
+
+func scanCommunityDirectory(source string, required map[string]string, populations map[string][][]byte, discovered map[string][]sourcedPopulation, all map[string][][]byte) error {
 	populationRoot := filepath.Join(source, "scripts", "population")
 	err := filepath.WalkDir(populationRoot, func(path string, entry os.DirEntry, walkErr error) error {
 		if walkErr != nil {
@@ -216,7 +236,7 @@ func scanCommunityDirectory(source string, required map[string]string, populatio
 		relative := filepath.ToSlash(filepath.Join("scripts", "population", entry.Name()))
 		all[strings.ToLower(entry.Name())] = append(all[strings.ToLower(entry.Name())], body)
 		if strings.HasPrefix(entry.Name(), "mvm_") {
-			discovered[relative] = append(discovered[relative], body)
+			discovered[relative] = append(discovered[relative], sourcedPopulation{body: body, source: source})
 		}
 		return nil
 	})
@@ -237,7 +257,7 @@ func scanCommunityDirectory(source string, required map[string]string, populatio
 	return nil
 }
 
-func scanCommunityArchive(source string, required map[string]string, populations, discovered, all map[string][][]byte) error {
+func scanCommunityArchive(source string, required map[string]string, populations map[string][][]byte, discovered map[string][]sourcedPopulation, all map[string][][]byte) error {
 	reader, err := zip.OpenReader(source)
 	if err != nil {
 		return fmt.Errorf("cannot read community archive %s: %w", source, err)
@@ -258,7 +278,7 @@ func scanCommunityArchive(source string, required map[string]string, populations
 			}
 			all[strings.ToLower(filepath.Base(name))] = append(all[strings.ToLower(filepath.Base(name))], body)
 			if strings.HasPrefix(filepath.Base(name), "mvm_") {
-				discovered[name] = append(discovered[name], body)
+				discovered[name] = append(discovered[name], sourcedPopulation{body: body, source: source, pack: filepath.Base(source)})
 				if _, wanted := required[name]; wanted {
 					populations[name] = append(populations[name], body)
 				}
@@ -413,8 +433,9 @@ func sigModGuardedRoot(body []byte) bool {
 		if len(fields) == 0 {
 			continue
 		}
-		return strings.EqualFold(fields[0], "WaveSchedule") &&
-			len(fields) > 1 && strings.EqualFold(fields[1], "[$SIGSEGV]")
+		if strings.EqualFold(fields[0], "WaveSchedule") {
+			return len(fields) > 1 && strings.EqualFold(fields[1], "[$SIGSEGV]")
+		}
 	}
 	return false
 }
