@@ -167,6 +167,9 @@ func addMissions(catalog *manifest, mapIDs map[string]uint8, nav map[string]bool
 				(requirement == "" || requirement == "sigsegv-mvm") {
 				catalog.Missions[at].Requires, marked = requirement, marked+1
 			}
+			if row.Loadout == "medic_only" || catalog.Missions[at].Loadout == "medic_only" {
+				catalog.Missions[at].Loadout = row.Loadout
+			}
 			continue
 		}
 		nextID++
@@ -210,7 +213,9 @@ func missionRow(popFile string, mapIDs map[string]uint8, nav map[string]bool, po
 	if pop.pack == "mlarchive-assets.zip" {
 		row.Pack = pop.pack
 	}
-	if strings.Contains(strings.ToLower(popFile), "medieval") {
+	if gamedata.CommunityPopulationMedicOnly(pop.body) {
+		row.Loadout = "medic_only"
+	} else if strings.Contains(strings.ToLower(popFile), "medieval") {
 		row.Loadout = "medieval"
 	}
 	return row, requirement, true, nil

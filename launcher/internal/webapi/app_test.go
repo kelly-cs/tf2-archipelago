@@ -10,6 +10,7 @@ import (
 
 	"github.com/m-this/tf2-archipelago/launcher/internal/form"
 	apruntime "github.com/m-this/tf2-archipelago/launcher/internal/runtime"
+	"github.com/m-this/tf2-archipelago/launcher/internal/session"
 	"github.com/m-this/tf2-archipelago/launcher/internal/settings"
 )
 
@@ -25,6 +26,27 @@ func TestMissionPoolRowsCarryTableMetadata(t *testing.T) {
 	}
 	if !strings.HasPrefix(row.Field, "missions.pool.") {
 		t.Errorf("mission pool field = %q", row.Field)
+	}
+}
+
+func TestMissionPoolRowsShowSpecialClassRestriction(t *testing.T) {
+	rows := testMissionPoolRows(form.NewState(settings.Defaults()),
+		[]string{settings.CommunityPackPotato}, nil)
+	for _, row := range rows {
+		if row.Field == "missions.pool.mvm_chateau_rc3_adv_remedic" {
+			if row.Loadout != "Medic only" {
+				t.Fatalf("Remedic loadout label = %q", row.Loadout)
+			}
+			return
+		}
+	}
+	t.Fatal("Remedic is missing from the mission pool")
+}
+
+func TestSessionMissionShowsReadableRestriction(t *testing.T) {
+	got := sessionProto(session.Snapshot{Missions: []session.Mission{{Loadout: "medic_only"}}})
+	if label := got.GetMissions()[0].GetLoadout(); label != "Medic only" {
+		t.Fatalf("session mission restriction = %q", label)
 	}
 }
 

@@ -12,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 )
 
@@ -107,7 +108,7 @@ func loadCommunity(body []byte) (loadedCommunity, error) {
 		if entry.Pack != "" && entry.Pack != "mlarchive-assets.zip" {
 			return loadedCommunity{}, fmt.Errorf("community mission %q: unknown pack %q", entry.PopFile, entry.Pack)
 		}
-		if entry.Loadout != "" && entry.Loadout != "medieval" {
+		if entry.Loadout != "" && entry.Loadout != "medieval" && entry.Loadout != "medic_only" {
 			return loadedCommunity{}, fmt.Errorf("community mission %q: unknown loadout %q", entry.PopFile, entry.Loadout)
 		}
 		content.Missions = append(content.Missions, Mission{
@@ -194,6 +195,10 @@ func ValidateCommunitySources(sources ...string) error {
 		needsSigMod := sourceRequiresSigMod(bodies, MissionPack(mission.ID), allPopulations)
 		if needsSigMod != (MissionRequirement(mission.ID) == "sigsegv-mvm") {
 			return fmt.Errorf("community mission %s SigMod requirement is %t in its population file but %q in community.json", popFile, needsSigMod, MissionRequirement(mission.ID))
+		}
+		medicOnly := slices.ContainsFunc(bodies, CommunityPopulationMedicOnly)
+		if medicOnly != (MissionLoadout(mission.ID) == "medic_only") {
+			return fmt.Errorf("community mission %s Medic-only restriction is %t in its population file but loadout is %q in community.json", popFile, medicOnly, MissionLoadout(mission.ID))
 		}
 	}
 	return validatePopulationFacts(populations)
@@ -364,6 +369,44 @@ func inspectPopulation(body []byte) populationFacts {
 func InspectCommunityPopulation(body []byte) (waves int, hasTank, hasGiant bool) {
 	facts := inspectPopulation(body)
 	return facts.Waves, facts.HasTank, facts.HasGiant
+}
+
+// CommunityPopulationMedicOnly recognizes a ClassLimit block that excludes
+// every playable class except Medic. Unknown or incomplete blocks stay
+// unrestricted rather than inventing a class restriction.
+func CommunityPopulationMedicOnly(body []byte) bool {
+	tokens := populationTokens(body)
+	for i := 0; i+1 < len(tokens); i++ {
+		if !strings.EqualFold(tokens[i], "ClassLimit") || tokens[i+1] != "{" {
+			continue
+		}
+		limits := make(map[string]int)
+		depth := 1
+		for at := i + 2; at < len(tokens) && depth > 0; at++ {
+			switch tokens[at] {
+			case "{":
+				depth++
+			case "}":
+				depth--
+			default:
+				if depth == 1 && at+1 < len(tokens) {
+					if limit, err := strconv.Atoi(tokens[at+1]); err == nil {
+						limits[strings.ToLower(tokens[at])] = limit
+						at++
+					}
+				}
+			}
+		}
+		for _, class := range []string{"scout", "soldier", "pyro", "demoman", "heavyweapons", "engineer", "sniper", "spy"} {
+			if limit, present := limits[class]; !present || limit != 0 {
+				return false
+			}
+		}
+		if limit, present := limits["medic"]; !present || limit > 0 {
+			return true
+		}
+	}
+	return false
 }
 
 // CommunityPopulationRequiresSigMod recognizes extension syntax whose absence
@@ -568,10 +611,11 @@ func MissionRequirement(id MissionID) string {
 	return communityContent.Requirements[id]
 }
 
-// MissionLoadout reports a special loadout the mission is designed around.
+// MissionLoadout reports a special class or loadout restriction.
 // Blank means the usual unrestricted MvM loadout. "medieval" describes the
 // mission's weapon roster and player-facing recommendation; it does not assert
-// that the map enables TF2's engine-level Medieval Mode.
+// that the map enables TF2's engine-level Medieval Mode. "medic_only" means
+// the mission's population file excludes every other player class.
 func MissionLoadout(id MissionID) string {
 	return communityContent.Loadouts[id]
 }

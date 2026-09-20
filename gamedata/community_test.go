@@ -50,6 +50,36 @@ func TestCommunityManifestRejectsAnUnknownVersion(t *testing.T) {
 	}
 }
 
+func TestCommunityPopulationMedicOnly(t *testing.T) {
+	const eightExcluded = `ClassLimit // players
+{
+ Scout 0
+ Soldier 0
+ Pyro 0
+ Demoman 0
+ Heavyweapons 0
+ Engineer 0
+ Sniper 0
+ Spy 0
+}`
+	for _, test := range []struct {
+		name, body string
+		want       bool
+	}{
+		{"all other classes excluded", eightExcluded, true},
+		{"Medic explicitly allowed", strings.Replace(eightExcluded, "Spy 0", "Spy 0\n Medic 1", 1), true},
+		{"Medic also excluded", strings.Replace(eightExcluded, "Spy 0", "Spy 0\n Medic 0", 1), false},
+		{"Soldier allowed", strings.Replace(eightExcluded, "Soldier 0", "Soldier 1", 1), false},
+		{"incomplete limits", strings.Replace(eightExcluded, "Sniper 0", "", 1), false},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			if got := CommunityPopulationMedicOnly([]byte(test.body)); got != test.want {
+				t.Fatalf("Medic-only restriction = %t, want %t", got, test.want)
+			}
+		})
+	}
+}
+
 func TestCommunityManifestRejectsTyposAndReservedIDs(t *testing.T) {
 	for name, body := range map[string]string{
 		"unknown field":       `{"format_version":1,"mapps":[]}`,
@@ -68,17 +98,18 @@ func TestCommunityManifestRejectsTyposAndReservedIDs(t *testing.T) {
 	}
 }
 
-func TestFrostwyndMissionsNameTheirMedievalLoadout(t *testing.T) {
-	want := map[string]bool{
-		"mvm_frostwynd_rc1_int_wicked_wizardry":  true,
-		"mvm_frostwynd_rc1_adv_fiefdom_fiasco":   true,
-		"mvm_frostwynd_rc1_adv_medieval_madness": true,
+func TestCommunityMissionsNameTheirSpecialRestrictions(t *testing.T) {
+	want := map[string]string{
+		"mvm_frostwynd_rc1_int_wicked_wizardry":  "medieval",
+		"mvm_frostwynd_rc1_adv_fiefdom_fiasco":   "medieval",
+		"mvm_frostwynd_rc1_adv_medieval_madness": "medieval",
+		"mvm_chateau_rc3_adv_remedic":            "medic_only",
 	}
 	for _, mission := range communityMissions {
 		got := MissionLoadout(mission.ID)
-		if want[mission.PopFile] {
-			if got != "medieval" {
-				t.Errorf("%s loadout = %q, want medieval", mission.PopFile, got)
+		if restriction, expected := want[mission.PopFile]; expected {
+			if got != restriction {
+				t.Errorf("%s loadout = %q, want %q", mission.PopFile, got, restriction)
 			}
 			delete(want, mission.PopFile)
 		} else if got != "" {
@@ -86,7 +117,7 @@ func TestFrostwyndMissionsNameTheirMedievalLoadout(t *testing.T) {
 		}
 	}
 	if len(want) != 0 {
-		t.Fatalf("catalog is missing medieval missions: %v", want)
+		t.Fatalf("catalog is missing restricted missions: %v", want)
 	}
 }
 
