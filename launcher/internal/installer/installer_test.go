@@ -382,7 +382,8 @@ func TestDownloadCommunityArchivesDownloadsOnlyTheSelectedPack(t *testing.T) {
 	data := zipWith(t, map[string]string{
 		"tf/download/maps/mvm_example.bsp": "map",
 	})
-	withCommunityArchivePin(t, "archive-assets.zip", data)
+	withPotatoArchivePin(t, data)
+	withoutGitHubParts(t, "archive-assets.zip")
 	requests := 0
 	oldClient := communityHTTPClient
 	communityHTTPClient = &http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
@@ -411,18 +412,19 @@ func TestDownloadCommunityArchivesDownloadsOnlyTheSelectedPack(t *testing.T) {
 	}
 }
 
-func withCommunityArchivePin(t *testing.T, name string, data []byte) {
+func withPotatoArchivePin(t *testing.T, data []byte) {
 	t.Helper()
-	old := communityArchiveSHA256[name]
+	old := communityArchiveSHA256["archive-assets.zip"]
 	digest := sha256.Sum256(data)
-	communityArchiveSHA256[name] = fmt.Sprintf("%x", digest)
-	t.Cleanup(func() { communityArchiveSHA256[name] = old })
+	communityArchiveSHA256["archive-assets.zip"] = fmt.Sprintf("%x", digest)
+	t.Cleanup(func() { communityArchiveSHA256["archive-assets.zip"] = old })
 }
 
 func TestCommunityArchiveMismatchNeedsExplicitApprovalForExactBytes(t *testing.T) {
 	wanted := zipWith(t, map[string]string{"tf/download/maps/map.bsp": "expected"})
 	changed := zipWith(t, map[string]string{"tf/download/maps/map.bsp": "changed"})
-	withCommunityArchivePin(t, "archive-assets.zip", wanted)
+	withPotatoArchivePin(t, wanted)
+	withoutGitHubParts(t, "archive-assets.zip")
 	oldClient := communityHTTPClient
 	communityHTTPClient = &http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
 		return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(bytes.NewReader(changed)), ContentLength: int64(len(changed))}, nil
@@ -451,6 +453,76 @@ func TestCommunityArchiveMismatchNeedsExplicitApprovalForExactBytes(t *testing.T
 	}
 	if err := ValidateCommunityArchives([]string{path}, func(string, ...any) {}); !errors.As(err, &mismatch) {
 		t.Fatalf("changed bytes inherited approval: %v", err)
+	}
+}
+
+func withoutGitHubParts(t *testing.T, name string) {
+	t.Helper()
+	old := communityGitHubParts[name]
+	delete(communityGitHubParts, name)
+	t.Cleanup(func() { communityGitHubParts[name] = old })
+}
+
+func TestGitHubSplitArchiveReassemblesAndFallsBackToPotato(t *testing.T) {
+	data := zipWith(t, map[string]string{"tf/download/maps/map.bsp": "map"})
+	withPotatoArchivePin(t, data)
+	cut := len(data) / 2
+	parts := [][]byte{data[:cut], data[cut:]}
+	old := communityGitHubParts["archive-assets.zip"]
+	communityGitHubParts["archive-assets.zip"] = []communityPart{
+		{URL: "https://github.test/part-0", Size: int64(len(parts[0])), SHA256: fmt.Sprintf("%x", sha256.Sum256(parts[0]))},
+		{URL: "https://github.test/part-1", Size: int64(len(parts[1])), SHA256: fmt.Sprintf("%x", sha256.Sum256(parts[1]))},
+	}
+	t.Cleanup(func() { communityGitHubParts["archive-assets.zip"] = old })
+	oldClient := communityHTTPClient
+	fallback := false
+	communityHTTPClient = &http.Client{Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
+		var body []byte
+		switch req.URL.Host {
+		case "github.test":
+			if strings.HasSuffix(req.URL.Path, "part-0") {
+				body = parts[0]
+			} else {
+				body = parts[1]
+			}
+		case "dlarchive.potato.tf":
+			fallback = true
+			body = data
+		default:
+			return nil, fmt.Errorf("unexpected URL: %s", req.URL)
+		}
+		return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(bytes.NewReader(body)), ContentLength: int64(len(body))}, nil
+	})}
+	t.Cleanup(func() { communityHTTPClient = oldClient })
+	path := filepath.Join(t.TempDir(), "archive-assets.zip")
+	if err := downloadCommunityArchive(context.Background(), path, func(string, ...any) {}); err != nil {
+		t.Fatal(err)
+	}
+	got, err := os.ReadFile(path)
+	if err != nil || !bytes.Equal(got, data) || fallback {
+		t.Fatalf("GitHub reconstruction failed: read error %v, fallback %t", err, fallback)
+	}
+	// Corrupt the first part. The mirror must be tried and must reconstruct
+	// exactly the same archive, without accepting the bad GitHub bytes.
+	if err := os.Remove(path); err != nil {
+		t.Fatal(err)
+	}
+	parts[0] = bytes.Clone(parts[0])
+	parts[0][0] ^= 1
+	var warnings []string
+	if err := downloadCommunityArchive(context.Background(), path, func(format string, args ...any) {
+		warnings = append(warnings, fmt.Sprintf(format, args...))
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if !slices.ContainsFunc(warnings, func(line string) bool {
+		return strings.Contains(line, "SHA-256 mismatch") && strings.Contains(line, "trying Potato mirror")
+	}) {
+		t.Fatalf("missing fallback reason in log: %v", warnings)
+	}
+	got, err = os.ReadFile(path)
+	if err != nil || !bytes.Equal(got, data) || !fallback {
+		t.Fatalf("Potato fallback failed: read error %v, fallback %t", err, fallback)
 	}
 }
 
@@ -511,7 +583,7 @@ func TestAvailableCommunityArchivesRequiresAValidLocalZIP(t *testing.T) {
 	data := zipWith(t, map[string]string{
 		"tf/download/maps/mvm_example.bsp": "map",
 	})
-	withCommunityArchivePin(t, "archive-assets.zip", data)
+	withPotatoArchivePin(t, data)
 	if err := os.WriteFile(missing, data, 0o644); err != nil {
 		t.Fatal(err)
 	}
