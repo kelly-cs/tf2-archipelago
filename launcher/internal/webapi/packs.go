@@ -80,6 +80,9 @@ func importCommunityArchive(folder, name string, source io.Reader) (string, erro
 	if err := os.WriteFile(target+".imported", nil, 0o644); err != nil {
 		return "", fmt.Errorf("cannot mark %s as imported: %w", name, err)
 	}
+	if err := installer.HoldMismatchedCommunityArchive(target); err != nil {
+		return "", err
+	}
 	return name, nil
 }
 

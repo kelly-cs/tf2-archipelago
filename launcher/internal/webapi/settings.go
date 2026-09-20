@@ -197,7 +197,8 @@ func (a *App) formEnvLocked() form.Env {
 	}
 	return form.Env{
 		CommunityAvailable: slices.Clone(a.community), ServerModsReady: slices.Clone(a.serverMods),
-		Platform: runtime.GOOS, AppDirDefault: appDir,
+		CommunityHashMismatches: installer.PendingCommunityArchiveHashMismatches(settings.KnownCommunityArchives(a.draft.Settings.CommunityContentDir)),
+		Platform:                runtime.GOOS, AppDirDefault: appDir,
 	}
 }
 
@@ -233,6 +234,8 @@ func (a *App) Dispatch(id string) error {
 		a.checkMissionSelection(s.Settings)
 	case "missions.download_packs":
 		go a.downloadPacks(s.Settings)
+	case "missions.ignore_hash_mismatch":
+		go a.ignoreCommunityArchiveHashMismatch(s.Settings)
 	case "missions.import_assets":
 		return a.useLocalPacks(s.Settings.CommunityContentDir)
 	case "missions.install_mods":
@@ -263,6 +266,7 @@ func (a *App) checkMissionSelection(s settings.Settings) {
 var wiredActions = []string{
 	"run.generate", "run.open_player_file", "run.open_folder", "run.open_settings_file",
 	"missions.download_packs", "missions.import_assets", "missions.check_selection",
+	"missions.ignore_hash_mismatch",
 	"missions.install_mods",
 	"missions.pool_all", "missions.pool_none",
 	"server.debug_bundle", "server.repair", "server.reset",
@@ -401,6 +405,23 @@ func (a *App) downloadPacks(s settings.Settings) {
 		return
 	}
 	a.Notify("selected community packs are ready in " + folder)
+}
+
+func (a *App) ignoreCommunityArchiveHashMismatch(s settings.Settings) {
+	folder := strings.TrimSpace(s.CommunityContentDir)
+	if folder == "" {
+		a.Notify("choose an asset pack folder first")
+		return
+	}
+	approved, err := installer.IgnoreCommunityArchiveHashMismatch(settings.KnownCommunityArchives(folder))
+	if err != nil {
+		a.Notify("community assets: " + err.Error())
+		return
+	}
+	a.mu.Lock()
+	a.community = availableCommunityPackNames(folder)
+	a.mu.Unlock()
+	a.Notify("ignored hash mismatch for " + strings.Join(approved, ", ") + "; these missions may be unstable")
 }
 
 // beginSettingsActivity gives long-running settings actions one shared busy

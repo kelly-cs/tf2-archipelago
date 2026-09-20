@@ -290,11 +290,20 @@ func DownloadCommunityArchives(ctx context.Context, archives []string, logf func
 	for _, path := range archives {
 		_, err := os.Stat(path)
 		if errors.Is(err, fs.ErrNotExist) {
+			if _, pendingErr := os.Stat(path + communityMismatchSuffix); pendingErr == nil {
+				actual, hashErr := communityArchiveDigest(path + communityMismatchSuffix)
+				if hashErr != nil {
+					return hashErr
+				}
+				return &CommunityArchiveHashMismatch{filepath.Base(path), communityArchiveSHA256[filepath.Base(path)], actual}
+			}
 			if err := downloadCommunityArchive(ctx, path, logf); err != nil {
 				return fmt.Errorf("cannot download community pack %s: %w", filepath.Base(path), err)
 			}
 		} else if err != nil {
 			return fmt.Errorf("cannot use community pack %s: %w", path, err)
+		} else if err := HoldMismatchedCommunityArchive(path); err != nil {
+			return err
 		}
 	}
 	return ValidateCommunityArchives(archives, logf)
@@ -304,8 +313,12 @@ func DownloadCommunityArchives(ctx context.Context, archives []string, logf func
 // no network access. Ensure uses this before installing selected local packs.
 func ValidateCommunityArchives(archives []string, logf func(string, ...any)) error {
 	for _, path := range archives {
-		if err := validateCommunityArchive(path); err != nil {
+		ignored, err := validateCommunityArchive(path)
+		if err != nil {
 			return err
+		}
+		if ignored {
+			logf("WARNING: ignoring SHA-256 mismatch for %s after explicit approval; its missions may be unstable", filepath.Base(path))
 		}
 		logf("community pack ready: %s", filepath.Base(path))
 	}
@@ -317,22 +330,11 @@ func ValidateCommunityArchives(archives []string, logf func(string, ...any)) err
 func AvailableCommunityArchives(archives []string) []string {
 	available := make([]string, 0, len(archives))
 	for _, path := range archives {
-		if validateCommunityArchive(path) == nil {
+		if _, err := validateCommunityArchive(path); err == nil {
 			available = append(available, path)
 		}
 	}
 	return available
-}
-
-func validateCommunityArchive(path string) error {
-	reader, err := zip.OpenReader(path)
-	if err != nil {
-		return fmt.Errorf("community pack %s is not a valid ZIP: %w", path, err)
-	}
-	if err := reader.Close(); err != nil {
-		return fmt.Errorf("cannot close community pack %s: %w", path, err)
-	}
-	return nil
 }
 
 // downloadCommunityArchive caches a recognized full asset pack next to the
@@ -377,8 +379,9 @@ func downloadCommunityArchive(ctx context.Context, path string, logf func(string
 			_ = os.Remove(tmpPath)
 		}
 	}()
+	hash := sha256.New()
 	progress := &communityDownloadWriter{
-		Writer: tmp,
+		Writer: io.MultiWriter(tmp, hash),
 		name:   name,
 		total:  resp.ContentLength,
 		next:   communityProgressInterval,
@@ -400,6 +403,14 @@ func downloadCommunityArchive(ctx context.Context, path string, logf func(string
 	}
 	if err := reader.Close(); err != nil {
 		return err
+	}
+	actual := fmt.Sprintf("%x", hash.Sum(nil))
+	if expected := communityArchiveSHA256[name]; actual != expected {
+		if err := os.Rename(tmpPath, path+communityMismatchSuffix); err != nil {
+			return fmt.Errorf("cannot hold mismatched %s: %w", name, err)
+		}
+		keep = true
+		return &CommunityArchiveHashMismatch{name, expected, actual}
 	}
 	if err := os.Rename(tmpPath, path); err != nil {
 		return err
