@@ -354,6 +354,7 @@ install_server_cfg() {
 
 install_plugin() {
 	installed=0
+	stockpop_attempts=0
 	while true; do
 		if [ -d "$GAME/addons/sourcemod/plugins" ]; then
 			if [ "$installed" -eq 0 ]; then
@@ -362,9 +363,13 @@ install_plugin() {
 				# popfile in our image. The plugin maps the runtime name back
 				# to the seed's stable _666 ID.
 				if ! tf2ap-stockpop "$GAME" "$GAME/scripts/population/mvm_ghost_town_ap_caliginous_caper.pop"; then
-					echo "[AP] Caliginous Caper's stock mission is unavailable; retrying" >&2
-					sleep "$INTERVAL"
-					continue
+					stockpop_attempts=$((stockpop_attempts + 1))
+					if [ "$stockpop_attempts" -lt 5 ]; then
+						echo "[AP] Caliginous Caper's stock mission is unavailable; retrying ($stockpop_attempts/5)" >&2
+						sleep "$INTERVAL"
+						continue
+					fi
+					echo "[AP] Caliginous Caper is unavailable after 5 attempts; installing the rest of the server" >&2
 				fi
 			fi
 			# Before the sync, because what it writes is one of the files the
