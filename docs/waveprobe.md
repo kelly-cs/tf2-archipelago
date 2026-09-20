@@ -74,7 +74,7 @@ shard container and volume from that run with:
 
 ```sh
 while IFS= read -r project; do
-  docker compose -p "$project" -f deploy/compose.waveprobe.yml down -v
+  WAVEPROBE_RCONPW=cleanup docker compose -p "$project" -f deploy/compose.waveprobe.yml down -v
 done < docs/audits/waveprobe-YYYYMMDD-HHMMSS/projects.txt
 ```
 
