@@ -50,6 +50,36 @@ func TestCommunityManifestRejectsAnUnknownVersion(t *testing.T) {
 	}
 }
 
+func TestCommunityPopulationMedicOnly(t *testing.T) {
+	const eightExcluded = `ClassLimit // players
+{
+ Scout 0
+ Soldier 0
+ Pyro 0
+ Demoman 0
+ Heavyweapons 0
+ Engineer 0
+ Sniper 0
+ Spy 0
+}`
+	for _, test := range []struct {
+		name, body string
+		want       bool
+	}{
+		{"all other classes excluded", eightExcluded, true},
+		{"Medic explicitly allowed", strings.Replace(eightExcluded, "Spy 0", "Spy 0\n Medic 1", 1), true},
+		{"Medic also excluded", strings.Replace(eightExcluded, "Spy 0", "Spy 0\n Medic 0", 1), false},
+		{"Soldier allowed", strings.Replace(eightExcluded, "Soldier 0", "Soldier 1", 1), false},
+		{"incomplete limits", strings.Replace(eightExcluded, "Sniper 0", "", 1), false},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			if got := CommunityPopulationMedicOnly([]byte(test.body)); got != test.want {
+				t.Fatalf("Medic-only restriction = %t, want %t", got, test.want)
+			}
+		})
+	}
+}
+
 func TestCommunityManifestRejectsTyposAndReservedIDs(t *testing.T) {
 	for name, body := range map[string]string{
 		"unknown field":       `{"format_version":1,"mapps":[]}`,
