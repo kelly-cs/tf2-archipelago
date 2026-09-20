@@ -606,28 +606,34 @@ public MRESReturn MissionModifiers_WaveSpawnParsed(Address waveSpawn,
         + view_as<Address>(g_WaveSpawnSupportOffset), NumberType_Int8) != 0;
     bool limited = LoadFromAddress(waveSpawn
         + view_as<Address>(g_WaveSpawnLimitedSupportOffset), NumberType_Int8) != 0;
+    Address maxActiveAddress = waveSpawn + view_as<Address>(g_WaveSpawnMaxActiveOffset);
+    int maxActive = LoadFromAddress(maxActiveAddress, NumberType_Int32);
+    // Zero-count WaveSpawns can be scripted timers with outputs instead of
+    // enemies. Homestead Happenings uses one to deploy the bomb after 381s.
+    // Bot Surge must leave those timers and every authored start delay alone.
+    if (maxActive < 1 || maxActive > 256)
+    {
+        return MRES_Ignored;
+    }
+    int spawnCount = LoadFromAddress(waveSpawn
+        + view_as<Address>(g_WaveSpawnSpawnCountOffset), NumberType_Int32);
+    bool hasTFBot = LoadFromAddress(waveSpawn
+        + view_as<Address>(g_WaveSpawnHasTFBotOffset), NumberType_Int8) != 0;
     Address waitBeforeAddress = waveSpawn + view_as<Address>(g_WaveSpawnWaitBeforeOffset);
     Address waitAddress = waveSpawn + view_as<Address>(g_WaveSpawnWaitOffset);
     int waitBeforeBits = LoadFromAddress(waitBeforeAddress, NumberType_Int32);
     int waitBits = LoadFromAddress(waitAddress, NumberType_Int32);
-    MissionModifierTimedSpawner timedSpawner;
-    timedSpawner.address = waveSpawn;
-    timedSpawner.waitBeforeBits = waitBeforeBits;
-    timedSpawner.waitBits = waitBits;
-    g_BotSurgeTimedSpawners.PushArray(timedSpawner);
-    if (g_ActiveMissionModifiers & MissionModifier_BotSurge)
+    if (hasTFBot && spawnCount > 0)
     {
-        MissionModifiers_AccelerateSpawner(timedSpawner);
-    }
-
-    Address maxActiveAddress = waveSpawn + view_as<Address>(g_WaveSpawnMaxActiveOffset);
-    int maxActive = LoadFromAddress(maxActiveAddress, NumberType_Int32);
-    // Zero and 999 are sentinel-style values used by real missions. Their
-    // timing was accelerated above, but they need no MaxActive expansion and
-    // are unsuitable as templates for a ten-bot filler group.
-    if (maxActive < 1 || maxActive > 256)
-    {
-        return MRES_Ignored;
+        MissionModifierTimedSpawner timedSpawner;
+        timedSpawner.address = waveSpawn;
+        timedSpawner.waitBeforeBits = waitBeforeBits;
+        timedSpawner.waitBits = waitBits;
+        g_BotSurgeTimedSpawners.PushArray(timedSpawner);
+        if (g_ActiveMissionModifiers & MissionModifier_BotSurge)
+        {
+            MissionModifiers_AccelerateSpawner(timedSpawner);
+        }
     }
 
     int wave = g_BotSurgeParsingWave;
@@ -643,12 +649,9 @@ public MRESReturn MissionModifiers_WaveSpawnParsed(Address waveSpawn,
         && MissionModifiers_CanSynthesizeSupport()
         && wave >= 0 && wave < MissionModifier_MaxWaves
         && waveSpawnKV != Address_Null
-        && LoadFromAddress(waveSpawn + view_as<Address>(g_WaveSpawnHasTFBotOffset),
-            NumberType_Int8) != 0
+        && hasTFBot
         && maxActive > g_BotSurgeWaveCandidateMax[wave])
     {
-        int spawnCount = LoadFromAddress(waveSpawn
-            + view_as<Address>(g_WaveSpawnSpawnCountOffset), NumberType_Int32);
         if (spawnCount >= 1 && spawnCount <= MissionModifier_SurgeMaxInvaders)
         {
             // This callback is nested inside CWave::Parse. Calling MakeCopy or
@@ -678,14 +681,6 @@ public MRESReturn MissionModifiers_WaveSpawnParsed(Address waveSpawn,
 
 static void MissionModifiers_AccelerateSpawner(MissionModifierTimedSpawner spawner)
 {
-    float waitBefore = view_as<float>(spawner.waitBeforeBits);
-    if (waitBefore > 0.0 && waitBefore < 3600.0)
-    {
-        StoreToAddress(spawner.address
-            + view_as<Address>(g_WaveSpawnWaitBeforeOffset),
-            view_as<int>(MissionModifier_SurgeSupportStartDelay),
-            NumberType_Int32);
-    }
     float wait = view_as<float>(spawner.waitBits);
     if (wait > MissionModifier_SurgeSupportSpawnInterval && wait < 3600.0)
     {
@@ -702,7 +697,7 @@ static void MissionModifiers_AccelerateRecordedSpawners()
         g_BotSurgeTimedSpawners.GetArray(index, spawner);
         MissionModifiers_AccelerateSpawner(spawner);
     }
-    AP_Debug("Bot Surge removes spawn delays from %d recorded wave spawners.",
+    AP_Debug("Bot Surge shortens refill intervals for %d recorded robot spawners.",
         g_BotSurgeTimedSpawners.Length);
 }
 
@@ -725,14 +720,6 @@ static void MissionModifiers_ExpandSupportSpawner(MissionModifierSupportSpawner 
     StoreToAddress(spawner.address + view_as<Address>(g_WaveSpawnMaxActiveOffset),
         boostedMax, NumberType_Int32);
 
-    Address waitBeforeAddress = spawner.address
-        + view_as<Address>(g_WaveSpawnWaitBeforeOffset);
-    float waitBefore = view_as<float>(spawner.waitBeforeBits);
-    if (waitBefore > MissionModifier_SurgeSupportStartDelay && waitBefore < 3600.0)
-    {
-        StoreToAddress(waitBeforeAddress,
-            view_as<int>(MissionModifier_SurgeSupportStartDelay), NumberType_Int32);
-    }
     Address waitAddress = spawner.address + view_as<Address>(g_WaveSpawnWaitOffset);
     float wait = view_as<float>(spawner.waitBits);
     if (wait > MissionModifier_SurgeSupportSpawnInterval && wait < 3600.0)
@@ -742,7 +729,7 @@ static void MissionModifiers_ExpandSupportSpawner(MissionModifierSupportSpawner 
     }
     AP_Debug("Bot Surge expanded an endless support spawner from %d to %d active "
         ... "(start %.1fs, refill %.1fs -> %.1fs).",
-        spawner.maxActive, boostedMax, waitBefore, wait,
+        spawner.maxActive, boostedMax, view_as<float>(spawner.waitBeforeBits), wait,
         MissionModifier_SurgeSupportSpawnInterval);
 }
 
