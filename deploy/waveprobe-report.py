@@ -18,8 +18,11 @@ def evidence_rank(row):
             "wave lost": 2}.get(row.get("outcome", row["state"]), 1)
 
 
-def classify(row):
-    # The probe writes this code. Error prose is only for human diagnosis.
+def classify(row, prior_load_failure=False):
+    # The probe writes the outcome code. A retest with no wave result can also
+    # inherit a structured load failure; error prose is only for diagnosis.
+    if row.get("retest_no_wave_result") and prior_load_failure:
+        return "load blocked"
     return row.get("outcome", row["state"])
 
 
@@ -43,7 +46,7 @@ def main(run_dir):
         if plan[key]["state"] == "unsupported_reverse":
             return "reverse objective"
         if key in observed:
-            return classify(observed[key])
+            return classify(observed[key], key[:2] in load_errors)
         if key[:2] in load_errors:
             return "load blocked"
         return "not run"

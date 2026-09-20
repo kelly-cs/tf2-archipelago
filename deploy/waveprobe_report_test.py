@@ -20,3 +20,10 @@ class ReportOutcomeTest(unittest.TestCase):
         stalled = {"state": "failed", "outcome": "active at limit", "error": "new wording"}
         lost = {"state": "failed", "outcome": "wave lost", "error": "new wording"}
         self.assertGreater(report.evidence_rank(stalled), report.evidence_rank(lost))
+
+    def test_missing_retest_wave_inherits_structured_load_failure(self):
+        row = {"state": "inconclusive", "outcome": "inconclusive",
+               "retest_no_wave_result": True,
+               "error": "any text at all"}
+        self.assertEqual(report.classify(row, prior_load_failure=True), "load blocked")
+        self.assertEqual(report.classify(row, prior_load_failure=False), "inconclusive")
