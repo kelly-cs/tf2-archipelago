@@ -859,7 +859,8 @@
       "difficulty": "intermediate",
       "waves": 7,
       "has_tank": true,
-      "has_giant": true
+      "has_giant": true,
+      "requires": "sigsegv-mvm"
     },
     {
       "id": 170,
@@ -1012,7 +1013,8 @@
       "difficulty": "expert",
       "waves": 7,
       "has_tank": true,
-      "has_giant": true
+      "has_giant": true,
+      "requires": "sigsegv-mvm"
     },
     {
       "id": 184,
@@ -1142,6 +1144,7 @@
       "waves": 6,
       "has_tank": true,
       "has_giant": true,
+      "requires": "sigsegv-mvm",
       "pack": "mlarchive-assets.zip"
     },
     {
@@ -1416,7 +1419,8 @@
       "difficulty": "intermediate",
       "waves": 5,
       "has_tank": true,
-      "has_giant": true
+      "has_giant": true,
+      "requires": "sigsegv-mvm"
     },
     {
       "id": 221,
@@ -1561,6 +1565,7 @@
       "waves": 1,
       "has_tank": true,
       "has_giant": true,
+      "requires": "sigsegv-mvm",
       "pack": "mlarchive-assets.zip"
     },
     {
@@ -1648,7 +1653,8 @@
       "difficulty": "advanced",
       "waves": 6,
       "has_tank": true,
-      "has_giant": true
+      "has_giant": true,
+      "requires": "sigsegv-mvm"
     },
     {
       "id": 242,
@@ -1931,7 +1937,8 @@
       "difficulty": "intermediate",
       "waves": 6,
       "has_tank": true,
-      "has_giant": true
+      "has_giant": true,
+      "requires": "sigsegv-mvm"
     },
     {
       "id": 268,
@@ -1973,7 +1980,8 @@
       "difficulty": "advanced",
       "waves": 6,
       "has_tank": true,
-      "has_giant": true
+      "has_giant": true,
+      "requires": "sigsegv-mvm"
     },
     {
       "id": 272,
@@ -1984,6 +1992,7 @@
       "waves": 6,
       "has_tank": false,
       "has_giant": true,
+      "requires": "sigsegv-mvm",
       "pack": "mlarchive-assets.zip"
     },
     {
@@ -2157,7 +2166,8 @@
       "difficulty": "intermediate",
       "waves": 7,
       "has_tank": true,
-      "has_giant": true
+      "has_giant": true,
+      "requires": "sigsegv-mvm"
     },
     {
       "id": 289,

@@ -125,7 +125,7 @@ func TestCommunityCatalogueCounts(t *testing.T) {
 	if got, want := len(communityMissions), 201; got != want {
 		t.Errorf("community missions = %d, want %d", got, want)
 	}
-	for requirement, want := range map[string]int{"ready": 86, "sigsegv-mvm": 99, "no_nav": 16} {
+	for requirement, want := range map[string]int{"ready": 76, "sigsegv-mvm": 109, "no_nav": 16} {
 		if got := counts[requirement]; got != want {
 			t.Errorf("%s missions = %d, want %d", requirement, got, want)
 		}
@@ -134,26 +134,25 @@ func TestCommunityCatalogueCounts(t *testing.T) {
 
 func TestPortableCommunityMissionCountsByMap(t *testing.T) {
 	want := map[string]int{
-		"mvm_area_52_rc3":        9,
+		"mvm_area_52_rc3":        8,
 		"mvm_autumnull_rc2":      2,
 		"mvm_condemned_b3":       2,
-		"mvm_creepside_b2":       1,
-		"mvm_downpour_rc3a":      4,
+		"mvm_downpour_rc3a":      3,
 		"mvm_frostwynd_rc1":      2,
 		"mvm_heatrock_rc6a":      2,
-		"mvm_hideout_b3":         7,
+		"mvm_hideout_b3":         6,
 		"mvm_kelly_rc1b":         1,
 		"mvm_lotus_b6":           2,
 		"mvm_memorial_b1":        1,
 		"mvm_nightsky_rc4d":      1,
 		"mvm_null_b9c":           1,
-		"mvm_oilrig_rc5d":        6,
+		"mvm_oilrig_rc5d":        5,
 		"mvm_oxidize_rc3":        3,
-		"mvm_oxidize_rr18":       5,
+		"mvm_oxidize_rr18":       4,
 		"mvm_radar_b10":          3,
-		"mvm_redstone_ridge_rc5": 2,
+		"mvm_redstone_ridge_rc5": 1,
 		"mvm_robotfactory_b30":   1,
-		"mvm_skeleclipse_b7a":    2,
+		"mvm_skeleclipse_b7a":    1,
 		"mvm_snowpine_rc4_fix1":  4,
 		"mvm_teien_rc6":          3,
 		"mvm_transmission_rc7a":  2,
@@ -165,9 +164,8 @@ func TestPortableCommunityMissionCountsByMap(t *testing.T) {
 		"mvm_decoy":      3,
 		"mvm_coaltown":   2,
 		"mvm_mannworks":  4,
-		"mvm_bigrock":    1,
 		"mvm_mannhattan": 2,
-		"mvm_rottenburg": 6,
+		"mvm_rottenburg": 5,
 		"mvm_ghost_town": 1,
 	}
 
@@ -265,10 +263,40 @@ func TestCommunityPopulationRequiresSigMod(t *testing.T) {
 		"delivery hint":       {`PrecacheModel "example.mdl" [$SIGSEGV]`, false},
 		"active annotation":   {`ItemAttributes { } [$SIGSEGV]`, true},
 		"unguarded template":  {`SpawnTemplate Example`, true},
+		"LuaScriptFile":       {`LuaScriptFile "scripts/example.lua"`, true},
+		"unknown populator":   {`ItemBlacklist { }`, true},
+		"squad extension":     {`NoWaitForFormation 1`, true},
+		"random choice":       {`Shuffle 1`, true},
 	} {
 		t.Run(name, func(t *testing.T) {
 			if got := CommunityPopulationRequiresSigMod([]byte(test.body)); got != test.want {
 				t.Errorf("CommunityPopulationRequiresSigMod() = %t, want %t", got, test.want)
+			}
+		})
+	}
+}
+
+func TestCommunityPopulationRequiresSigModWithIncludes(t *testing.T) {
+	files := map[string][][]byte{
+		"extensions.pop": {[]byte("WaveSchedule\n{\nLuaScriptFile example.lua\n}")},
+		"nested.pop":     {[]byte("#base extensions.pop\nWaveSchedule { }")},
+		"optional.pop":   {[]byte("WaveSchedule [$SIGSEGV]\n{\nLuaScriptFile example.lua\n}")},
+		"cycle.pop":      {[]byte("#base cycle.pop\nWaveSchedule { }")},
+	}
+	for name, test := range map[string]struct {
+		body string
+		want bool
+	}{
+		"direct":             {"LuaScriptFile example.lua", true},
+		"included":           {"#base extensions.pop\nWaveSchedule { }", true},
+		"nested":             {"#base nested.pop\nWaveSchedule { }", true},
+		"optional extension": {"#base optional.pop\nWaveSchedule { }", false},
+		"missing include":    {"#base absent.pop\nWaveSchedule { }", false},
+		"cycle":              {"#base cycle.pop\nWaveSchedule { }", false},
+	} {
+		t.Run(name, func(t *testing.T) {
+			if got := CommunityPopulationRequiresSigModWithIncludes([]byte(test.body), files); got != test.want {
+				t.Errorf("CommunityPopulationRequiresSigModWithIncludes() = %t, want %t", got, test.want)
 			}
 		})
 	}
