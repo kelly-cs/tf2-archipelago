@@ -160,10 +160,12 @@ Some community missions need a server mod. The one mod so far is SigMod
 | **only when a mission needs it** | Loads it while the pool holds a mission that names it. The default. |
 | **always, on every mission** | Loads it on every map. |
 
-The launcher installs the mod when it is needed. Turning it off leaves the
-files in place, so turning it back on costs no download.
+The native launcher installs the mod when it is needed. Docker's server image
+already includes it; save the selection and recreate the containers to apply
+it. Turning it off leaves the files in place, so turning it back on costs no
+download.
 
-On Windows the row reads **SigMod (beta)**. Linux and Docker download the
+On Windows the row reads **SigMod (beta)**. Linux and Docker use the
 mod's own release, which players run every day. Windows has no such release,
 so it downloads this project's port instead. That port crashed one player's
 server. Leave it on **only when a mission needs it** unless you test it. To

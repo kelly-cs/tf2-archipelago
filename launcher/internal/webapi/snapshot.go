@@ -125,7 +125,7 @@ func restartNeeded(running bool, before settings.Settings, draft *form.State) bo
 	return running && draft != nil && saveplan.For(before, draft.Settings).Restart
 }
 
-func missionPoolRows(s form.State, built form.Model, availablePacks, importedPacks, readyMods []string) []MissionPoolRow {
+func missionPoolRows(s form.State, built form.Model, availablePacks, importedPacks, readyMods []string, managedExternally bool) []MissionPoolRow {
 	floor, hasFloor := gamedata.DifficultyByKey(s.Settings.MvmDifficulty)
 	activeMods := activeReadyServerMods(s.Settings, readyMods)
 	missions := runshape.VisibleMissions(availablePacks)
@@ -145,7 +145,11 @@ func missionPoolRows(s form.State, built form.Model, availablePacks, importedPac
 			case !slices.Contains(settings.ServerModKeys(s.Settings), key):
 				compatibility = "Turn on " + mod.Name + " above"
 			case !slices.Contains(readyMods, key):
-				compatibility = "Press server mod setup above"
+				if managedExternally {
+					compatibility = mod.Name + " files missing; recreate the server container"
+				} else {
+					compatibility = "Press server mod setup above"
+				}
 			}
 		}
 		if playable {
@@ -297,7 +301,7 @@ func (a *App) screenLocked(running bool) Screen {
 	return Screen{
 		Form:          &built,
 		Page:          a.formPage,
-		MissionPool:   missionPoolRows(*a.draft, built, a.community, a.imported, a.serverMods),
+		MissionPool:   missionPoolRows(*a.draft, built, a.community, a.imported, a.serverMods, a.attached),
 		RestartNeeded: restartNeeded(running, a.settings, a.draft),
 	}
 }
