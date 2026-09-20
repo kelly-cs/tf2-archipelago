@@ -398,7 +398,7 @@ func TestCommunityArchiveMismatchNeedsExplicitApprovalForExactBytes(t *testing.T
 	t.Cleanup(func() { communityHTTPClient = oldClient })
 	path := filepath.Join(t.TempDir(), "archive-assets.zip")
 	err := DownloadCommunityArchives(context.Background(), []string{path}, func(string, ...any) {})
-	var mismatch *CommunityArchiveHashMismatch
+	var mismatch *CommunityArchiveHashMismatchError
 	if !errors.As(err, &mismatch) {
 		t.Fatalf("download error = %v, want hash mismatch", err)
 	}

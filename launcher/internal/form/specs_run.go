@@ -324,8 +324,7 @@ func missionSpecs(s State, env Env) []Spec {
 		serverModSpec("sigsegv-mvm", "SigMod", env),
 		serverModInstallSpec(),
 
-		press("missions.download_packs", tab, "Download Selected Community Assets",
-			"Download only the checked full-with-maps community packs. Live progress remains visible on this page. Start never downloads community content."),
+		communityDownloadSpec(),
 		communityHashMismatchSpec(env),
 		press("missions.import_assets", tab, "Import local assets",
 			"Choose archive-assets.zip and/or mlarchive-assets.zip from this computer. Valid packs are selected and their missions appear below immediately."),
@@ -371,6 +370,11 @@ func communityHashMismatchSpec(env Env) Spec {
 		spec.Help += " Awaiting approval: " + strings.Join(env.CommunityHashMismatches, ", ") + "."
 	}
 	return spec
+}
+
+func communityDownloadSpec() Spec {
+	return press("missions.download_packs", "Missions", "Download Selected Community Assets",
+		"Download only the checked full-with-maps community packs. Live progress remains visible on this page. Start never downloads community content.")
 }
 
 func activeServerMods(s State, env Env) []string {
