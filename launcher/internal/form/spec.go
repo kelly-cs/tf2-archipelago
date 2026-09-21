@@ -285,12 +285,13 @@ func confirm(id, tab, label, help, warning string) Spec {
 	return spec
 }
 
-// importance is the same question asked of four different unlocks, so it is
-// written once. Progression gates the run; useful only widens it.
-func importance(id, label, help string, get func(State) string, set func(State, string) State) Spec {
+// importance is the same question asked of four rewards. The disabled label
+// names the different effect for unlocks and buffs.
+func importance(id, label, help, disabledLabel string, get func(State) string, set func(State, string) State) Spec {
 	return choice(id, "Rewards", label, help, []Option{
 		{Value: "useful", Label: "Useful"},
 		{Value: "progression", Label: "Required for progression"},
+		{Value: "disabled", Label: disabledLabel},
 	}, get, set)
 }
 

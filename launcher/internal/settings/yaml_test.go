@@ -48,6 +48,25 @@ func TestPlayerYAMLHoldsTheRunShape(t *testing.T) {
 	}
 }
 
+func TestPlayerYAMLWritesDisabledRewards(t *testing.T) {
+	s := Defaults()
+	s.MvmMissionTicketImportance = "disabled"
+	s.MvmClassUnlockImportance = "disabled"
+	s.MvmWeaponSlotImportance = "disabled"
+	s.MvmWeaponBuffImportance = "disabled"
+	yaml := PlayerYAML(s, "")
+	for _, key := range []string{
+		"mission_ticket_importance",
+		"class_unlock_importance",
+		"weapon_slot_importance",
+		"weapon_buff_importance",
+	} {
+		if !strings.Contains(yaml, "  "+key+": disabled\n") {
+			t.Errorf("missing disabled %s in:\n%s", key, yaml)
+		}
+	}
+}
+
 // The game name holds spaces, so both places it appears have to be quoted or
 // the generator reads the mapping key as three tokens.
 func TestPlayerYAMLQuotesTheGameKey(t *testing.T) {
