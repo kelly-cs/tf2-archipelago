@@ -13,6 +13,13 @@ spec.loader.exec_module(retest)
 
 
 class RetestRecoveryTest(unittest.TestCase):
+    def test_queue_spreads_map_loads(self):
+        cases = [("a1", "map_a"), ("a2", "map_a"),
+                 ("b1", "map_b"), ("b2", "map_b"),
+                 ("c1", "map_c"), ("c2", "map_c")]
+        self.assertEqual([case[1] for case in retest.interleave_maps(cases)],
+                         ["map_a", "map_b", "map_c", "map_a", "map_b", "map_c"])
+
     def test_screen_only_rechecks_probe_errors(self):
         with tempfile.TemporaryDirectory() as folder:
             root = pathlib.Path(folder)

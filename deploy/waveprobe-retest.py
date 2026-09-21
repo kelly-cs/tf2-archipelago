@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Retest nonpassing waveprobe cases against the same wall-time limit."""
 import concurrent.futures
+import collections
 import json
 import pathlib
 import os
@@ -24,6 +25,18 @@ def rcon_broken(row):
     return any(marker in error for marker in (
         "connection reset", "connection refused", "cannot read the reply",
         "broken pipe", "timed out while waiting for rcon"))
+
+
+def interleave_maps(cases):
+    """Avoid loading the same map on every worker at once."""
+    by_map = collections.defaultdict(collections.deque)
+    for case in cases:
+        by_map[case[1]].append(case)
+    while by_map:
+        for map_name in list(by_map):
+            yield by_map[map_name].popleft()
+            if not by_map[map_name]:
+                del by_map[map_name]
 
 
 def main(run_dir, binary, worker_ids, source_shards=None):
@@ -59,7 +72,7 @@ def main(run_dir, binary, worker_ids, source_shards=None):
                     latest[key] = row
                 if path.name.startswith(phase + "-"):
                     completed.add(key)
-    pending = queue.Queue()
+    candidates = []
     for key, planned in plan.items():
         if planned["state"] != "planned":
             continue
@@ -71,10 +84,14 @@ def main(run_dir, binary, worker_ids, source_shards=None):
             continue
         if phase == "screen" and key in latest and latest[key].get("outcome") in ("wave timed out", "wave failed"):
             continue
-        pending.put((key, planned["map"]))
+        candidates.append((key, planned["map"]))
+    pending = queue.Queue()
+    for case in interleave_maps(candidates):
+        pending.put(case)
     total = pending.qsize()
     print(f"{phase.title()}ing {total} incomplete waves with {len(worker_ids)} isolated servers.", flush=True)
     lock = threading.Lock()
+    map_gates = {map_name: threading.Semaphore(2) for _, map_name in candidates}
     finished = 0
     projects_file = run_dir / "projects.txt"
     projects = projects_file.read_text().splitlines() if projects_file.exists() else []
@@ -103,32 +120,33 @@ def main(run_dir, binary, worker_ids, source_shards=None):
                            "-start-wave", str(wave), "-end-wave", str(wave),
                            "-speed", settings.get("speed", "20"), "-timeout", wall_limit,
                            "-load-timeout", "90s"]
-                for attempt in range(2):
-                    try:
-                        result = subprocess.run(command, capture_output=True, text=True,
-                                                timeout=subprocess_limit, check=False)
-                        output = [json.loads(line) for line in result.stdout.splitlines()
-                                  if line.startswith("{")]
-                    except (subprocess.TimeoutExpired, json.JSONDecodeError) as error:
-                        output = []
-                        result = None
-                        reason = str(error)
-                    else:
-                        reason = result.stderr.strip()
-                    wave_rows = [item for item in output if item.get("wave") == wave]
-                    if wave_rows:
-                        row = wave_rows[-1]
-                    else:
-                        if output:
-                            reason = output[-1].get("error", reason)
-                        row = {"mission": mission, "map": map_name, "mode": mode,
-                               "wave": wave, "seed": 1, "state": "inconclusive", "outcome": "inconclusive",
-                               "retest_no_wave_result": phase == "retest",
-                               "error": f"retest runner produced no wave result: {reason[:300]}"}
-                    if attempt == 0 and rcon_broken(row):
-                        restart_worker(index)
-                        continue
-                    break
+                with map_gates[map_name]:
+                    for attempt in range(2):
+                        try:
+                            result = subprocess.run(command, capture_output=True, text=True,
+                                                    timeout=subprocess_limit, check=False)
+                            output = [json.loads(line) for line in result.stdout.splitlines()
+                                      if line.startswith("{")]
+                        except (subprocess.TimeoutExpired, json.JSONDecodeError) as error:
+                            output = []
+                            result = None
+                            reason = str(error)
+                        else:
+                            reason = result.stderr.strip()
+                        wave_rows = [item for item in output if item.get("wave") == wave]
+                        if wave_rows:
+                            row = wave_rows[-1]
+                        else:
+                            if output:
+                                reason = output[-1].get("error", reason)
+                            row = {"mission": mission, "map": map_name, "mode": mode,
+                                   "wave": wave, "seed": 1, "state": "inconclusive", "outcome": "inconclusive",
+                                   "retest_no_wave_result": phase == "retest",
+                                   "error": f"retest runner produced no wave result: {reason[:300]}"}
+                        if attempt == 0 and rcon_broken(row):
+                            restart_worker(index)
+                            continue
+                        break
                 stream.write(json.dumps(row) + "\n")
                 stream.flush()
                 with lock:
