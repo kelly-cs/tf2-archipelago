@@ -78,18 +78,19 @@ player strategy. Re-run timeouts at a lower speed or another seed before
 attributing them to the mission or Bot Surge.
 
 The standard sweep runs the second pass and writes `REPORT.md` and `SUMMARY.json`
-itself, including when a shard exits with a failure. For an interrupted sweep,
-start the stopped disposable Compose projects again and run
-`deploy/waveprobe-retest.py` with the run directory, the freshly built runner,
-and the comma-separated shard IDs whose servers are available. It reruns only
-cases without a pass, using the 900-second real-time wave limit and writing
-`retest-<id>.jsonl` alongside the first pass. Then regenerate `REPORT.md` with
-`deploy/waveprobe-report.py`. A wave that remains active at that limit needs
-inspection; the time limit alone does not prove a deadlock.
+itself, including when a shard exits with a failure. To resume an interrupted
+sweep, run `bash deploy/resume-waveprobe.sh <run-directory>`. It starts the
+recorded disposable containers, screens unverified cases at the first-pass
+limit, retries remaining nonpasses at the full 900-second limit, writes both
+reports, and stops the containers. Existing passes are preserved. The screening
+rows go to `screen-<id>.jsonl`; full retries go to `retest-<id>.jsonl`. A wave
+that remains active at the full limit needs inspection; the limit alone does
+not prove a deadlock.
 
-An optional fourth argument is a comma-separated list of source shard IDs.
-Use it to move unfinished cases onto any free worker servers after their
-original shard runners finish.
+For manual partial retries, `deploy/waveprobe-retest.py` accepts the run
+directory, runner binary, comma-separated worker IDs, and an optional fourth
+argument listing source shard IDs. Set `WAVEPROBE_PHASE=screen` for the short
+screening pass; omit it for full retries.
 
 Each sweep writes its unique Compose project names to `projects.txt` in the run
 folder. The runner stops those containers on completion or interruption, but

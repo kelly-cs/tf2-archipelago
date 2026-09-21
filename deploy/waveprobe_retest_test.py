@@ -13,6 +13,29 @@ spec.loader.exec_module(retest)
 
 
 class RetestRecoveryTest(unittest.TestCase):
+    def test_screen_only_rechecks_probe_errors(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = pathlib.Path(folder)
+            (root / "config.txt").write_text("shards=1\nfirst_pass_timeout=3s\nwave_timeout=900s\n")
+            base = {"mission": "mvm_decoy", "map": "mvm_decoy", "mode": "normal"}
+            (root / "plan.jsonl").write_text("".join(
+                json.dumps({**base, "wave": wave, "state": "planned"}) + "\n"
+                for wave in (1, 2, 3)))
+            (root / "shard-0.jsonl").write_text("".join(
+                json.dumps({**base, "wave": wave, "state": state, "outcome": outcome}) + "\n"
+                for wave, state, outcome in ((1, "passed", "passed"),
+                                             (2, "failed", "wave timed out"),
+                                             (3, "failed", "probe error"))))
+            runner = root / "probe"
+            runner.write_text("#!/bin/sh\n"
+                              "echo '{\"mission\":\"mvm_decoy\",\"mode\":\"normal\",\"wave\":3,\"state\":\"passed\",\"outcome\":\"passed\"}'\n")
+            runner.chmod(0o755)
+            with patch.dict(os.environ, {"WAVEPROBE_PHASE": "screen"}):
+                retest.main(root, runner, [0])
+            rows = (root / "screen-0.jsonl").read_text().splitlines()
+            self.assertEqual(len(rows), 1)
+            self.assertEqual(json.loads(rows[0])["wave"], 3)
+
     def test_rcon_failure_restarts_server_and_retries_case(self):
         with tempfile.TemporaryDirectory() as folder:
             root = pathlib.Path(folder)

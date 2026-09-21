@@ -59,7 +59,9 @@ def samples_to_show(samples, limit=12):
 def load_results(run_dir):
     plan = {(r["mission"], r["mode"], r["wave"]): r for r in rows(run_dir / "plan.jsonl")}
     observed, load_errors = {}, {}
-    files = sorted(run_dir.glob("shard-*.jsonl")) + sorted(run_dir.glob("retest-*.jsonl"))
+    files = (sorted(run_dir.glob("shard-*.jsonl")) +
+             sorted(run_dir.glob("screen-*.jsonl")) +
+             sorted(run_dir.glob("retest-*.jsonl")))
     for path in files:
         for row in rows(path):
             key = row["mission"], row["mode"], row["wave"]

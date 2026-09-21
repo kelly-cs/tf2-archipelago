@@ -29,6 +29,19 @@ class ReportOutcomeTest(unittest.TestCase):
                "timeline": [{"spawned": 3}, {"spawned": 0}]}
         self.assertEqual(report.classify(row), "probe error")
 
+    def test_resumed_screen_pass_counts_as_verified(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = pathlib.Path(folder)
+            case = {"mission": "mission", "map": "mvm_map", "mode": "normal", "wave": 1}
+            (root / "plan.jsonl").write_text(json.dumps({**case, "state": "planned"}) + "\n")
+            (root / "shard-0.jsonl").write_text(json.dumps({**case, "state": "failed", "outcome": "probe error"}) + "\n")
+            (root / "screen-0.jsonl").write_text(json.dumps({**case, "state": "passed", "outcome": "passed",
+                                                               "bot_spawns": 1}) + "\n")
+            with contextlib.redirect_stdout(io.StringIO()):
+                report.main(root)
+            summary = json.loads((root / "SUMMARY.json").read_text())
+            self.assertEqual(summary["passed_cases"], 1)
+
     def test_report_scores_modes_and_shows_timeline(self):
         with tempfile.TemporaryDirectory() as folder:
             root = pathlib.Path(folder)

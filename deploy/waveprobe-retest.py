@@ -3,6 +3,7 @@
 import concurrent.futures
 import json
 import pathlib
+import os
 import queue
 import subprocess
 import sys
@@ -28,7 +29,10 @@ def rcon_broken(row):
 def main(run_dir, binary, worker_ids, source_shards=None):
     settings = dict(line.split("=", 1) for line in
                     (run_dir / "config.txt").read_text().splitlines() if "=" in line)
-    wall_limit = settings.get("wave_timeout", "900s")
+    phase = os.environ.get("WAVEPROBE_PHASE", "retest")
+    if phase not in ("screen", "retest"):
+        raise ValueError(f"unknown waveprobe phase: {phase}")
+    wall_limit = settings.get("first_pass_timeout", "180s") if phase == "screen" else settings.get("wave_timeout", "900s")
     match = re.fullmatch(r"(\d+)(s|m)", wall_limit)
     if not match:
         raise ValueError(f"unsupported wave timeout: {wall_limit}")
@@ -43,27 +47,33 @@ def main(run_dir, binary, worker_ids, source_shards=None):
     plan = {(row["mission"], row["mode"], row["wave"]): row
             for row in rows(run_dir / "plan.jsonl")}
     latest = {}
-    retested = set()
-    for path in sorted(run_dir.glob("shard-*.jsonl")) + sorted(run_dir.glob("retest-*.jsonl")):
+    completed = set()
+    files = (sorted(run_dir.glob("shard-*.jsonl")) +
+             sorted(run_dir.glob("screen-*.jsonl")) +
+             sorted(run_dir.glob("retest-*.jsonl")))
+    for path in files:
         for row in rows(path):
             if row["wave"]:
                 key = row["mission"], row["mode"], row["wave"]
                 if key not in latest or latest[key]["state"] != "passed":
                     latest[key] = row
-                if path.name.startswith("retest-"):
-                    retested.add(key)
+                if path.name.startswith(phase + "-"):
+                    completed.add(key)
     pending = queue.Queue()
     for key, planned in plan.items():
         if planned["state"] != "planned":
             continue
         if zlib.crc32(key[0].encode()) % shards not in source_shards:
             continue
-        if key in retested and latest[key]["state"] != "inconclusive":
+        if key in completed and latest[key]["state"] != "inconclusive":
             continue
-        if key not in latest or latest[key]["state"] != "passed":
-            pending.put((key, planned["map"]))
+        if key in latest and latest[key]["state"] == "passed":
+            continue
+        if phase == "screen" and key in latest and latest[key].get("outcome") in ("wave timed out", "wave failed"):
+            continue
+        pending.put((key, planned["map"]))
     total = pending.qsize()
-    print(f"Retesting {total} incomplete waves with {len(worker_ids)} isolated servers.", flush=True)
+    print(f"{phase.title()}ing {total} incomplete waves with {len(worker_ids)} isolated servers.", flush=True)
     lock = threading.Lock()
     finished = 0
     projects_file = run_dir / "projects.txt"
@@ -80,7 +90,7 @@ def main(run_dir, binary, worker_ids, source_shards=None):
     def worker(index):
         nonlocal finished
         port = int(settings.get("base_port", "27035")) + index
-        path = run_dir / f"retest-{index}.jsonl"
+        path = run_dir / f"{phase}-{index}.jsonl"
         restart_worker(index)
         with path.open("a", encoding="utf-8") as stream:
             while True:
@@ -113,7 +123,7 @@ def main(run_dir, binary, worker_ids, source_shards=None):
                             reason = output[-1].get("error", reason)
                         row = {"mission": mission, "map": map_name, "mode": mode,
                                "wave": wave, "seed": 1, "state": "inconclusive", "outcome": "inconclusive",
-                               "retest_no_wave_result": True,
+                               "retest_no_wave_result": phase == "retest",
                                "error": f"retest runner produced no wave result: {reason[:300]}"}
                     if attempt == 0 and rcon_broken(row):
                         restart_worker(index)
@@ -124,7 +134,7 @@ def main(run_dir, binary, worker_ids, source_shards=None):
                 with lock:
                     finished += 1
                     if finished % 25 == 0 or finished == total:
-                        print(f"Retested {finished}/{total} waves.", flush=True)
+                        print(f"{phase.title()}ed {finished}/{total} waves.", flush=True)
                 pending.task_done()
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=len(worker_ids)) as pool:
