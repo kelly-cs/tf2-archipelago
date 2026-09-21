@@ -290,11 +290,20 @@ func DownloadCommunityArchives(ctx context.Context, archives []string, logf func
 	for _, path := range archives {
 		_, err := os.Stat(path)
 		if errors.Is(err, fs.ErrNotExist) {
+			if _, pendingErr := os.Stat(path + communityMismatchSuffix); pendingErr == nil {
+				actual, hashErr := communityArchiveDigest(path + communityMismatchSuffix)
+				if hashErr != nil {
+					return hashErr
+				}
+				return &CommunityArchiveHashMismatchError{filepath.Base(path), communityArchiveSHA256[filepath.Base(path)], actual}
+			}
 			if err := downloadCommunityArchive(ctx, path, logf); err != nil {
 				return fmt.Errorf("cannot download community pack %s: %w", filepath.Base(path), err)
 			}
 		} else if err != nil {
 			return fmt.Errorf("cannot use community pack %s: %w", path, err)
+		} else if err := HoldMismatchedCommunityArchive(path); err != nil {
+			return err
 		}
 	}
 	return ValidateCommunityArchives(archives, logf)
@@ -304,35 +313,33 @@ func DownloadCommunityArchives(ctx context.Context, archives []string, logf func
 // no network access. Ensure uses this before installing selected local packs.
 func ValidateCommunityArchives(archives []string, logf func(string, ...any)) error {
 	for _, path := range archives {
-		if err := validateCommunityArchive(path); err != nil {
+		ignored, err := validateCommunityArchive(path)
+		if err != nil {
 			return err
+		}
+		if ignored {
+			logf("WARNING: ignoring SHA-256 mismatch for %s after explicit approval; its missions may be unstable", filepath.Base(path))
 		}
 		logf("community pack ready: %s", filepath.Base(path))
 	}
 	return nil
 }
 
-// AvailableCommunityArchives returns the valid files from archives. It is the
-// launchers' source of truth for which community mission rows may be shown.
+// AvailableCommunityArchives finds usable local ZIP paths without reading all
+// their bytes while the settings page holds its state lock. Downloads, imports
+// and installation perform the full SHA-256 check before accepting content.
 func AvailableCommunityArchives(archives []string) []string {
 	available := make([]string, 0, len(archives))
 	for _, path := range archives {
-		if validateCommunityArchive(path) == nil {
+		reader, err := zip.OpenReader(path)
+		if err != nil {
+			continue
+		}
+		if err := reader.Close(); err == nil {
 			available = append(available, path)
 		}
 	}
 	return available
-}
-
-func validateCommunityArchive(path string) error {
-	reader, err := zip.OpenReader(path)
-	if err != nil {
-		return fmt.Errorf("community pack %s is not a valid ZIP: %w", path, err)
-	}
-	if err := reader.Close(); err != nil {
-		return fmt.Errorf("cannot close community pack %s: %w", path, err)
-	}
-	return nil
 }
 
 // downloadCommunityArchive caches a recognized full asset pack next to the
@@ -342,57 +349,67 @@ func validateCommunityArchive(path string) error {
 // download.
 func downloadCommunityArchive(ctx context.Context, path string, logf func(string, ...any)) error {
 	name := filepath.Base(path)
-	url, known := communityArchiveURLs[name]
+	backupURL, known := communityArchiveURLs[name]
 	if !known {
 		return fmt.Errorf("%s is not a recognized Potato asset pack", name)
 	}
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return err
 	}
+	sources := [][]communityPart{}
+	if parts := communityGitHubParts[name]; len(parts) > 0 {
+		sources = append(sources, parts)
+	}
+	sources = append(sources, []communityPart{{URL: backupURL}})
+	var lastErr error
+	var mismatchErr *CommunityArchiveHashMismatchError
+	for i, parts := range sources {
+		err := downloadCommunityArchiveParts(ctx, path, parts, logf)
+		if err == nil {
+			_ = os.Remove(path + communityMismatchSuffix)
+			return nil
+		}
+		lastErr = err
+		if mismatch, ok := errors.AsType[*CommunityArchiveHashMismatchError](err); ok {
+			mismatchErr = mismatch
+		}
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
+		if i == 0 && len(sources) > 1 {
+			logf("WARNING: GitHub snapshot for %s failed validation or download: %v; trying Potato mirror", name, err)
+		} else {
+			logf("WARNING: Potato mirror for %s failed: %v", name, err)
+		}
+	}
+	if mismatchErr != nil {
+		return mismatchErr
+	}
+	return lastErr
+}
 
-	logf("downloading %s from %s (the full pack includes maps)", name, url)
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-	if err != nil {
-		return err
-	}
-	req.Header.Set("User-Agent", "tf2-archipelago-launcher")
-	resp, err := communityHTTPClient.Do(req)
-	if err != nil {
-		return err
-	}
-	defer func() { _ = resp.Body.Close() }()
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("%s answered %d", url, resp.StatusCode)
-	}
-
+func downloadCommunityArchiveParts(ctx context.Context, path string, parts []communityPart, logf func(string, ...any)) error {
+	name := filepath.Base(path)
 	tmp, err := os.CreateTemp(filepath.Dir(path), "."+name+"-*.partial")
 	if err != nil {
 		return err
 	}
 	tmpPath := tmp.Name()
-	keep := false
 	defer func() {
 		_ = tmp.Close()
-		if !keep {
-			_ = os.Remove(tmpPath)
-		}
+		_ = os.Remove(tmpPath)
 	}()
-	progress := &communityDownloadWriter{
-		Writer: tmp,
-		name:   name,
-		total:  resp.ContentLength,
-		next:   communityProgressInterval,
-		logf:   logf,
+	fullHash := sha256.New()
+	var written int64
+	for _, part := range parts {
+		count, err := downloadCommunityPart(ctx, part, name, io.MultiWriter(tmp, fullHash), logf)
+		if err != nil {
+			return err
+		}
+		written += count
 	}
-	written, copyErr := io.Copy(progress, resp.Body)
-	if closeErr := tmp.Close(); copyErr == nil {
-		copyErr = closeErr
-	}
-	if copyErr != nil {
-		return copyErr
-	}
-	if resp.ContentLength >= 0 && written != resp.ContentLength {
-		return fmt.Errorf("downloaded %d bytes, expected %d", written, resp.ContentLength)
+	if err := tmp.Close(); err != nil {
+		return err
 	}
 	reader, err := zip.OpenReader(tmpPath)
 	if err != nil {
@@ -401,12 +418,54 @@ func downloadCommunityArchive(ctx context.Context, path string, logf func(string
 	if err := reader.Close(); err != nil {
 		return err
 	}
+	actual := fmt.Sprintf("%x", fullHash.Sum(nil))
+	if expected := communityArchiveSHA256[name]; actual != expected {
+		if err := os.Remove(path + communityMismatchSuffix); err != nil && !errors.Is(err, os.ErrNotExist) {
+			return err
+		}
+		if err := os.Rename(tmpPath, path+communityMismatchSuffix); err != nil {
+			return fmt.Errorf("cannot hold mismatched %s: %w", name, err)
+		}
+		return &CommunityArchiveHashMismatchError{name, expected, actual}
+	}
 	if err := os.Rename(tmpPath, path); err != nil {
 		return err
 	}
-	keep = true
 	logf("downloaded %s (%.1f GB) into %s", name, float64(written)/float64(gigabyte), filepath.Dir(path))
 	return nil
+}
+
+func downloadCommunityPart(ctx context.Context, part communityPart, name string, target io.Writer, logf func(string, ...any)) (int64, error) {
+	logf("downloading %s from %s (the full pack includes maps)", name, part.URL)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, part.URL, nil)
+	if err != nil {
+		return 0, err
+	}
+	req.Header.Set("User-Agent", "tf2-archipelago-launcher")
+	resp, err := communityHTTPClient.Do(req)
+	if err != nil {
+		return 0, fmt.Errorf("%s: %w", part.URL, err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode != http.StatusOK {
+		return 0, fmt.Errorf("%s answered %d", part.URL, resp.StatusCode)
+	}
+	partHash := sha256.New()
+	progress := &communityDownloadWriter{Writer: io.MultiWriter(target, partHash), name: name, total: resp.ContentLength, next: communityProgressInterval, logf: logf}
+	count, err := io.Copy(progress, resp.Body)
+	if err != nil {
+		return 0, err
+	}
+	if resp.ContentLength >= 0 && count != resp.ContentLength {
+		return 0, fmt.Errorf("%s: downloaded %d bytes, expected %d", part.URL, count, resp.ContentLength)
+	}
+	if part.Size > 0 && count != part.Size {
+		return 0, fmt.Errorf("%s: downloaded %d bytes, expected %d", part.URL, count, part.Size)
+	}
+	if part.SHA256 != "" && fmt.Sprintf("%x", partHash.Sum(nil)) != part.SHA256 {
+		return 0, fmt.Errorf("%s: SHA-256 mismatch", part.URL)
+	}
+	return count, nil
 }
 
 type communityDownloadWriter struct {
@@ -657,7 +716,27 @@ func sigmodReady(modDir string) bool {
 		return false
 	}
 	stamp, err := os.ReadFile(filepath.Join(modDir, "addons", ".tf2ap-sigsegv-mvm.stamp"))
-	return err == nil && string(stamp) == want
+	return err == nil && sigmodStampMatches(string(stamp), want)
+}
+
+// The shipped convar file is a starting configuration. A server may change its
+// values without changing the pinned extension or gamedata. Keep requiring the
+// file to exist, but ignore its hash in old and new install receipts.
+func sigmodStampMatches(stamp, want string) bool {
+	gotLines, wantLines := strings.Split(stamp, "\n"), strings.Split(want, "\n")
+	if len(gotLines) != len(wantLines) {
+		return false
+	}
+	for index, line := range wantLines {
+		if strings.HasPrefix(line, "cfg/sigsegv_convars.cfg ") &&
+			strings.HasPrefix(gotLines[index], "cfg/sigsegv_convars.cfg ") {
+			continue
+		}
+		if gotLines[index] != line {
+			return false
+		}
+	}
+	return true
 }
 
 /*

@@ -79,8 +79,9 @@ func run(output string, sources []string) error {
 	bsp := make(map[string]bool)
 	nav := make(map[string]bool)
 	populations := make(map[string]population)
+	allPopulations := make(map[string]map[string][][]byte)
 	for _, source := range sources {
-		if err := readArchive(source, bsp, nav, populations); err != nil {
+		if err := readArchive(source, bsp, nav, populations, allPopulations); err != nil {
 			return err
 		}
 	}
@@ -89,7 +90,7 @@ func run(output string, sources []string) error {
 	if err != nil {
 		return err
 	}
-	added, marked, err := addMissions(&catalog, mapIDs, nav, populations)
+	added, marked, err := addMissions(&catalog, mapIDs, nav, populations, allPopulations)
 	if err != nil {
 		return err
 	}
@@ -108,7 +109,7 @@ func run(output string, sources []string) error {
 	if err := os.Rename(temporary, output); err != nil {
 		return err
 	}
-	fmt.Printf("added %d maps and %d missions; marked %d existing missions as requiring SigMod\n", addedMaps, added, marked)
+	fmt.Printf("added %d maps and %d missions; updated %d existing SigMod requirements\n", addedMaps, added, marked)
 	return nil
 }
 
@@ -137,7 +138,7 @@ func addMaps(catalog *manifest, bsp map[string]bool) (map[string]uint8, int, err
 	return mapIDs, len(newMaps), nil
 }
 
-func addMissions(catalog *manifest, mapIDs map[string]uint8, nav map[string]bool, populations map[string]population) (int, int, error) {
+func addMissions(catalog *manifest, mapIDs map[string]uint8, nav map[string]bool, populations map[string]population, allPopulations map[string]map[string][][]byte) (int, int, error) {
 	existing := make(map[string]int, len(catalog.Missions))
 	names := make(map[string]bool, len(catalog.Missions))
 	var nextID uint16
@@ -153,7 +154,7 @@ func addMissions(catalog *manifest, mapIDs map[string]uint8, nav map[string]bool
 	sort.Strings(popFiles)
 	added, marked := 0, 0
 	for _, popFile := range popFiles {
-		row, requirement, ok, err := missionRow(popFile, mapIDs, nav, populations[popFile], nextID, names)
+		row, requirement, ok, err := missionRow(popFile, mapIDs, nav, populations[popFile], allPopulations, nextID, names)
 		if err != nil {
 			return 0, 0, err
 		}
@@ -161,8 +162,13 @@ func addMissions(catalog *manifest, mapIDs map[string]uint8, nav map[string]bool
 			continue
 		}
 		if at, found := existing[popFile]; found {
-			if catalog.Missions[at].Requires == "" && requirement == "sigsegv-mvm" {
+			previous := catalog.Missions[at].Requires
+			if previous != requirement && (previous == "" || previous == "sigsegv-mvm") &&
+				(requirement == "" || requirement == "sigsegv-mvm") {
 				catalog.Missions[at].Requires, marked = requirement, marked+1
+			}
+			if row.Loadout == "medic_only" || catalog.Missions[at].Loadout == "medic_only" {
+				catalog.Missions[at].Loadout = row.Loadout
 			}
 			continue
 		}
@@ -174,7 +180,7 @@ func addMissions(catalog *manifest, mapIDs map[string]uint8, nav map[string]bool
 	return added, marked, nil
 }
 
-func missionRow(popFile string, mapIDs map[string]uint8, nav map[string]bool, pop population, nextID uint16, names map[string]bool) (mission, string, bool, error) {
+func missionRow(popFile string, mapIDs map[string]uint8, nav map[string]bool, pop population, allPopulations map[string]map[string][][]byte, nextID uint16, names map[string]bool) (mission, string, bool, error) {
 	played, ok := mapFor(popFile, mapIDs)
 	if !ok {
 		return mission{}, "", false, nil
@@ -182,7 +188,7 @@ func missionRow(popFile string, mapIDs map[string]uint8, nav map[string]bool, po
 	requirement := ""
 	if mapIDs[played] >= gamedata.CommunityIDMin && !nav[played] {
 		requirement = "no_nav"
-	} else if gamedata.CommunityPopulationRequiresSigMod(pop.body) {
+	} else if gamedata.CommunityPopulationRequiresSigModWithIncludes(pop.body, allPopulations[pop.pack]) {
 		requirement = "sigsegv-mvm"
 	}
 	difficulty, title, ok := missionIdentity(popFile, played)
@@ -207,19 +213,24 @@ func missionRow(popFile string, mapIDs map[string]uint8, nav map[string]bool, po
 	if pop.pack == "mlarchive-assets.zip" {
 		row.Pack = pop.pack
 	}
-	if strings.Contains(strings.ToLower(popFile), "medieval") {
+	if gamedata.CommunityPopulationMedicOnly(pop.body) {
+		row.Loadout = "medic_only"
+	} else if strings.Contains(strings.ToLower(popFile), "medieval") {
 		row.Loadout = "medieval"
 	}
 	return row, requirement, true, nil
 }
 
-func readArchive(path string, bsp, nav map[string]bool, populations map[string]population) error {
+func readArchive(path string, bsp, nav map[string]bool, populations map[string]population, allPopulations map[string]map[string][][]byte) error {
 	reader, err := zip.OpenReader(path)
 	if err != nil {
 		return err
 	}
 	defer func() { _ = reader.Close() }()
 	pack := filepath.Base(path)
+	if allPopulations[pack] == nil {
+		allPopulations[pack] = make(map[string][][]byte)
+	}
 	for _, entry := range reader.File {
 		name := filepath.ToSlash(entry.Name)
 		name = strings.TrimPrefix(name, "tf/download/")
@@ -229,7 +240,7 @@ func readArchive(path string, bsp, nav map[string]bool, populations map[string]p
 			bsp[strings.TrimSuffix(filepath.Base(name), ".bsp")] = true
 		case strings.HasPrefix(name, "maps/mvm_") && strings.HasSuffix(name, ".nav"):
 			nav[strings.TrimSuffix(filepath.Base(name), ".nav")] = true
-		case strings.HasPrefix(name, "scripts/population/mvm_") && strings.HasSuffix(name, ".pop"):
+		case strings.HasPrefix(name, "scripts/population/") && strings.HasSuffix(strings.ToLower(name), ".pop"):
 			opened, err := entry.Open()
 			if err != nil {
 				return err
@@ -238,6 +249,11 @@ func readArchive(path string, bsp, nav map[string]bool, populations map[string]p
 			_ = opened.Close()
 			if readErr != nil {
 				return readErr
+			}
+			base := strings.ToLower(filepath.Base(name))
+			allPopulations[pack][base] = append(allPopulations[pack][base], body)
+			if !strings.HasPrefix(filepath.Base(name), "mvm_") {
+				continue
 			}
 			popFile := strings.TrimSuffix(filepath.Base(name), ".pop")
 			// Moonlight is the smaller, specific source when both packs carry a

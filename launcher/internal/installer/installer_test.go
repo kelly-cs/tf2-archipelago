@@ -274,7 +274,39 @@ func TestInstallServerModsUsesVerifiedCacheAndDetectsTheInstall(t *testing.T) {
 	if got := ReadyServerMods(root); len(got) != 1 || got[0] != sigmodKey {
 		t.Fatalf("ready server mods = %v", got)
 	}
-	if err := os.Remove(filepath.Join(modDir, "addons", "sourcemod", "gamedata", "sigsegv", "population.txt")); err != nil {
+	// Operators edit this shipped config to choose SigMod behavior. The
+	// extension remains installed and missions must stay available.
+	config := filepath.Join(modDir, "cfg", "sigsegv_convars.cfg")
+	if err := os.WriteFile(config, []byte("sig_mvm_robot_limit_fix_red 0\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if got := ReadyServerMods(root); len(got) != 1 || got[0] != sigmodKey {
+		t.Fatalf("edited SigMod config made the mod unavailable: %v", got)
+	}
+	if err := os.Remove(config); err != nil {
+		t.Fatal(err)
+	}
+	if got := ReadyServerMods(root); len(got) != 0 {
+		t.Fatalf("missing SigMod config reported ready: %v", got)
+	}
+	if err := os.WriteFile(config, []byte("sig_mvm_robot_limit_fix_red 0\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	population := filepath.Join(modDir, "addons", "sourcemod", "gamedata", "sigsegv", "population.txt")
+	original, err := os.ReadFile(population)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(population, []byte("changed population data"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if got := ReadyServerMods(root); len(got) != 0 {
+		t.Fatalf("changed SigMod gamedata reported ready: %v", got)
+	}
+	if err := os.WriteFile(population, original, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Remove(population); err != nil {
 		t.Fatal(err)
 	}
 	if got := ReadyServerMods(root); len(got) != 0 {
@@ -350,6 +382,8 @@ func TestDownloadCommunityArchivesDownloadsOnlyTheSelectedPack(t *testing.T) {
 	data := zipWith(t, map[string]string{
 		"tf/download/maps/mvm_example.bsp": "map",
 	})
+	withPotatoArchivePin(t, data)
+	withoutGitHubParts(t, "archive-assets.zip")
 	requests := 0
 	oldClient := communityHTTPClient
 	communityHTTPClient = &http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
@@ -375,6 +409,120 @@ func TestDownloadCommunityArchivesDownloadsOnlyTheSelectedPack(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(root, "packs", "mlarchive-assets.zip")); !os.IsNotExist(err) {
 		t.Errorf("an unselected pack was downloaded: %v", err)
+	}
+}
+
+func withPotatoArchivePin(t *testing.T, data []byte) {
+	t.Helper()
+	old := communityArchiveSHA256["archive-assets.zip"]
+	digest := sha256.Sum256(data)
+	communityArchiveSHA256["archive-assets.zip"] = fmt.Sprintf("%x", digest)
+	t.Cleanup(func() { communityArchiveSHA256["archive-assets.zip"] = old })
+}
+
+func TestCommunityArchiveMismatchNeedsExplicitApprovalForExactBytes(t *testing.T) {
+	wanted := zipWith(t, map[string]string{"tf/download/maps/map.bsp": "expected"})
+	changed := zipWith(t, map[string]string{"tf/download/maps/map.bsp": "changed"})
+	withPotatoArchivePin(t, wanted)
+	withoutGitHubParts(t, "archive-assets.zip")
+	oldClient := communityHTTPClient
+	communityHTTPClient = &http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
+		return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(bytes.NewReader(changed)), ContentLength: int64(len(changed))}, nil
+	})}
+	t.Cleanup(func() { communityHTTPClient = oldClient })
+	path := filepath.Join(t.TempDir(), "archive-assets.zip")
+	err := DownloadCommunityArchives(context.Background(), []string{path}, func(string, ...any) {})
+	var mismatch *CommunityArchiveHashMismatchError
+	if !errors.As(err, &mismatch) {
+		t.Fatalf("download error = %v, want hash mismatch", err)
+	}
+	if _, err := os.Stat(path); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("mismatched pack became usable: %v", err)
+	}
+	if got := PendingCommunityArchiveHashMismatches([]string{path}); !slices.Equal(got, []string{"archive-assets.zip"}) {
+		t.Fatalf("pending packs = %v", got)
+	}
+	if _, err := IgnoreCommunityArchiveHashMismatch([]string{path}); err != nil {
+		t.Fatal(err)
+	}
+	if err := ValidateCommunityArchives([]string{path}, func(string, ...any) {}); err != nil {
+		t.Fatalf("approved bytes rejected: %v", err)
+	}
+	if err := os.WriteFile(path, zipWith(t, map[string]string{"tf/download/maps/map.bsp": "changed again"}), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := ValidateCommunityArchives([]string{path}, func(string, ...any) {}); !errors.As(err, &mismatch) {
+		t.Fatalf("changed bytes inherited approval: %v", err)
+	}
+}
+
+func withoutGitHubParts(t *testing.T, name string) {
+	t.Helper()
+	old := communityGitHubParts[name]
+	delete(communityGitHubParts, name)
+	t.Cleanup(func() { communityGitHubParts[name] = old })
+}
+
+func TestGitHubSplitArchiveReassemblesAndFallsBackToPotato(t *testing.T) {
+	data := zipWith(t, map[string]string{"tf/download/maps/map.bsp": "map"})
+	withPotatoArchivePin(t, data)
+	cut := len(data) / 2
+	parts := [][]byte{data[:cut], data[cut:]}
+	old := communityGitHubParts["archive-assets.zip"]
+	communityGitHubParts["archive-assets.zip"] = []communityPart{
+		{URL: "https://github.test/part-0", Size: int64(len(parts[0])), SHA256: fmt.Sprintf("%x", sha256.Sum256(parts[0]))},
+		{URL: "https://github.test/part-1", Size: int64(len(parts[1])), SHA256: fmt.Sprintf("%x", sha256.Sum256(parts[1]))},
+	}
+	t.Cleanup(func() { communityGitHubParts["archive-assets.zip"] = old })
+	oldClient := communityHTTPClient
+	fallback := false
+	communityHTTPClient = &http.Client{Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
+		var body []byte
+		switch req.URL.Host {
+		case "github.test":
+			if strings.HasSuffix(req.URL.Path, "part-0") {
+				body = parts[0]
+			} else {
+				body = parts[1]
+			}
+		case "dlarchive.potato.tf":
+			fallback = true
+			body = data
+		default:
+			return nil, fmt.Errorf("unexpected URL: %s", req.URL)
+		}
+		return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(bytes.NewReader(body)), ContentLength: int64(len(body))}, nil
+	})}
+	t.Cleanup(func() { communityHTTPClient = oldClient })
+	path := filepath.Join(t.TempDir(), "archive-assets.zip")
+	if err := downloadCommunityArchive(context.Background(), path, func(string, ...any) {}); err != nil {
+		t.Fatal(err)
+	}
+	got, err := os.ReadFile(path)
+	if err != nil || !bytes.Equal(got, data) || fallback {
+		t.Fatalf("GitHub reconstruction failed: read error %v, fallback %t", err, fallback)
+	}
+	// Corrupt the first part. The mirror must be tried and must reconstruct
+	// exactly the same archive, without accepting the bad GitHub bytes.
+	if err := os.Remove(path); err != nil {
+		t.Fatal(err)
+	}
+	parts[0] = bytes.Clone(parts[0])
+	parts[0][0] ^= 1
+	var warnings []string
+	if err := downloadCommunityArchive(context.Background(), path, func(format string, args ...any) {
+		warnings = append(warnings, fmt.Sprintf(format, args...))
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if !slices.ContainsFunc(warnings, func(line string) bool {
+		return strings.Contains(line, "SHA-256 mismatch") && strings.Contains(line, "trying Potato mirror")
+	}) {
+		t.Fatalf("missing fallback reason in log: %v", warnings)
+	}
+	got, err = os.ReadFile(path)
+	if err != nil || !bytes.Equal(got, data) || !fallback {
+		t.Fatalf("Potato fallback failed: read error %v, fallback %t", err, fallback)
 	}
 }
 
@@ -432,9 +580,11 @@ func TestAvailableCommunityArchivesRequiresAValidLocalZIP(t *testing.T) {
 		t.Fatalf("unavailable archives reported as ready: %v", got)
 	}
 
-	if err := os.WriteFile(missing, zipWith(t, map[string]string{
+	data := zipWith(t, map[string]string{
 		"tf/download/maps/mvm_example.bsp": "map",
-	}), 0o644); err != nil {
+	})
+	withPotatoArchivePin(t, data)
+	if err := os.WriteFile(missing, data, 0o644); err != nil {
 		t.Fatal(err)
 	}
 	got := AvailableCommunityArchives([]string{missing, invalid})

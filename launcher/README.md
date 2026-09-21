@@ -23,6 +23,8 @@ ZIPs into a player-selected cache folder and install them into SRCDS. It labels 
 separately in both the pool table and start-mission menu. See the
 [community-content guide](../community-content/README.md) for the verified
 archive layout, custom-upgrade findings, build commands, and RafMod boundary.
+The [archive snapshot hashes](../docs/en/community-archives.md) document the
+exact ZIPs the launcher accepts and how to review a mismatch.
 
 ## Layout
 

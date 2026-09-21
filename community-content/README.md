@@ -59,7 +59,7 @@ BSP/NAV files required by this catalog.
 The mission table has explicit **Source** and **Mods** columns (`Valve`,
 `Potato Archive`, or `Moonlight Archive` for the source), and every
 start-mission choice has the same source prefix. The two archives contain 201
-missions whose map BSP is also present: 86 run on a stock server, 99 declare
+missions whose map BSP is also present: 79 run on a stock server, 106 declare
 SigMod (`sigsegv-mvm`), and 16 are listed but locked because the archive has no
 bot navigation mesh for their map. This is 116 more missions and 25 more maps
 than the original curated catalog. Another 363 historical population files in

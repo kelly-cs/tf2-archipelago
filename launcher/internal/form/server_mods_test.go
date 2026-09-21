@@ -107,6 +107,24 @@ func TestServerModOffersThreeAnswers(t *testing.T) {
 	}
 }
 
+func TestAttachedSigmodExplainsDockerAndHasNoInstallAction(t *testing.T) {
+	state := NewState(settings.Defaults())
+	state.Settings.SrcdsMods = []string{"sigsegv-mvm"}
+	env := Env{Platform: "linux", ManagedExternally: true, CommunityAvailable: []string{settings.CommunityPackPotato}}
+	built := Build(state, env)
+	mod, ok := built.Field("missions.mod.sigsegv-mvm")
+	if !ok || !strings.Contains(mod.Help, "Docker image already includes SigMod") {
+		t.Fatalf("attached SigMod choice = %+v, found=%t", mod, ok)
+	}
+	if _, ok := built.Field("missions.install_mods"); ok {
+		t.Fatal("Docker settings still offer a native server mod installer")
+	}
+	mission, ok := built.Field(sigmodMissionField)
+	if !ok || !strings.Contains(mission.Reason, "recreate the container") {
+		t.Fatalf("attached SigMod mission = %+v, found=%t", mission, ok)
+	}
+}
+
 func TestSigmodWarnsOnWindowsOnly(t *testing.T) {
 	state := NewState(settings.Defaults())
 	windows, _ := Build(state, Env{Platform: "windows"}).Field("missions.mod.sigsegv-mvm")

@@ -53,7 +53,7 @@ export class MissionTable {
         tier: pool.tier,
         source: pool.source,
         waves: wavesOf(pool.waves),
-        loadout: '',
+        loadout: pool.loadout,
         modifiers: [],
         status: pool.compatibility,
         tone: pool.compatibility === 'Ready' ? 'good' : 'warn',
