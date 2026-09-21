@@ -33,8 +33,8 @@ func withSigmodPin(t *testing.T, data []byte) {
 func fakeSigmodZip(t *testing.T) []byte {
 	t.Helper()
 	return zipWith(t, map[string]string{
-		"addons/sourcemod/extensions/sigsegv.ext.2.tf2.so":     "32-bit extension",
-		"addons/sourcemod/extensions/x64/sigsegv.ext.2.tf2.so": "64-bit extension",
+		"addons/sourcemod/extensions/sigsegv.ext.2.tf2.so":     "32-bit extension %t: %s %s %t\x00Extra loadout items class\x00\xe8\x5f\xc2\xd4\xff\xe8\x55\x19\xd7\xff",
+		"addons/sourcemod/extensions/x64/sigsegv.ext.2.tf2.so": "64-bit extension %t: %s %s %t\x00Extra loadout items class\x00\xe8\x4b\x85\xd2\xff\xe8\xa8\x06\xd5\xff",
 		"addons/sourcemod/extensions/sigsegv.autoload":         "",
 		"addons/sourcemod/gamedata/sigsegv/population.txt":     "gamedata",
 		"cfg/sigsegv_convars.cfg":                              "configuration",

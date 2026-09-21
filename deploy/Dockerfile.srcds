@@ -42,6 +42,7 @@ COPY go.mod go.sum ./
 COPY gamedata gamedata
 COPY launcher/cmd/rcon launcher/cmd/rcon
 COPY launcher/cmd/botfiles launcher/cmd/botfiles
+COPY launcher/cmd/sigmodpatch launcher/cmd/sigmodpatch
 COPY deploy/stockpop deploy/stockpop
 COPY launcher/internal/rcon launcher/internal/rcon
 COPY launcher/internal/botfiles launcher/internal/botfiles
@@ -50,9 +51,11 @@ COPY launcher/internal/botloadout launcher/internal/botloadout
 COPY launcher/internal/botnames launcher/internal/botnames
 COPY launcher/internal/runshape launcher/internal/runshape
 COPY launcher/internal/settings launcher/internal/settings
+COPY launcher/internal/sigmodpatch launcher/internal/sigmodpatch
 RUN CGO_ENABLED=0 go build -trimpath -o /rcon ./launcher/cmd/rcon \
 	&& CGO_ENABLED=0 go build -trimpath -o /botfiles ./launcher/cmd/botfiles \
-	&& CGO_ENABLED=0 go build -trimpath -o /stockpop ./deploy/stockpop
+	&& CGO_ENABLED=0 go build -trimpath -o /stockpop ./deploy/stockpop \
+	&& CGO_ENABLED=0 go build -trimpath -o /sigmodpatch ./launcher/cmd/sigmodpatch
 
 
 # CBaseNPC and Actions, compiled, so the image carries the patches in
@@ -131,6 +134,7 @@ ARG SIGSEGV_MVM_SHA256
 USER root
 
 COPY deploy/sigmod-stamp.sh /usr/local/bin/tf2ap-sigmod-stamp
+COPY --from=tools /sigmodpatch /usr/local/bin/tf2ap-sigmodpatch
 
 # The staged tree mirrors the game directory, so installing it is one copy.
 RUN apt-get update \
@@ -147,6 +151,7 @@ RUN apt-get update \
 		"https://github.com/rafradek/sigsegv-mvm/releases/download/${SIGSEGV_MVM_VERSION}/package-linux.zip" \
 	&& echo "${SIGSEGV_MVM_SHA256}  /tmp/sigsegv.zip" | sha256sum -c - \
 	&& unzip -oq /tmp/sigsegv.zip -d /opt/tf2-mods/sigsegv-mvm \
+	&& /usr/local/bin/tf2ap-sigmodpatch /opt/tf2-mods/sigsegv-mvm linux \
 	&& sh /usr/local/bin/tf2ap-sigmod-stamp /opt/tf2-mods/sigsegv-mvm \
 		"${SIGSEGV_MVM_VERSION}" "${SIGSEGV_MVM_SHA256}" \
 	&& rm -f /tmp/sigsegv.zip \
