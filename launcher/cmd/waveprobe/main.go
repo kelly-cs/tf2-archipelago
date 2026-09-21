@@ -632,8 +632,10 @@ func (s *server) configureMode(mission gamedata.Mission, mode string) (string, i
 	return teamName, playerTeam, playerClass, nil
 }
 
-var errWallTimeout = errors.New("wave exceeded wall-clock time limit")
-var errWaveZero = errors.New("population manager remained at wave 0")
+var (
+	errWallTimeout = errors.New("wave exceeded wall-clock time limit")
+	errWaveZero    = errors.New("population manager remained at wave 0")
+)
 
 func waveSample(status probeStatus, elapsed time.Duration) sample {
 	return sample{
