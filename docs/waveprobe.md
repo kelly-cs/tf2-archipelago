@@ -12,6 +12,8 @@ missions.
 Each standard test starts the real wave, attempts to defeat each observed BLU
 bot or tank 15–25 game seconds after it first appears, and requires the game's
 `mvm_wave_complete` event to pass.
+Spawn events are counted when they happen, including enemies that die between
+the probe's timer ticks.
 The fake RED player uses Medic for missions tagged `medic_only`, including
 Remedic, and Scout otherwise. A case is one mission wave with Bot Surge either
 off or on; the two modes have separate results and scores.

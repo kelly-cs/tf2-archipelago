@@ -71,6 +71,7 @@ public void OnPluginStart()
     HookEvent("mvm_begin_wave", Event_BeginWave);
     HookEvent("mvm_wave_complete", Event_WaveComplete);
     HookEvent("mvm_wave_failed", Event_WaveFailed);
+    HookEvent("player_spawn", Event_PlayerSpawn);
     HookEvent("player_death", Event_PlayerDeath);
     CreateTimer(PROBE_TICK, Timer_Probe, _, TIMER_REPEAT);
 }
@@ -397,6 +398,68 @@ public void Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast
         g_BotKills++;
         g_BotKillPending[bot] = false;
     }
+    if (bot > 0)
+    {
+        g_BotUserId[bot] = 0;
+        g_BotDeadline[bot] = 0.0;
+    }
+}
+
+public void Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast)
+{
+    int bot = GetClientOfUserId(event.GetInt("userid"));
+    if (bot > 0) RegisterEnemyBot(bot);
+}
+
+static void RegisterEnemyBot(int bot)
+{
+    if (g_State != Probe_Running || bot == g_Defender || !IsClientInGame(bot)
+        || GetClientTeam(bot) != g_EnemyTeam)
+    {
+        return;
+    }
+    int userid = GetClientUserId(bot);
+    if (g_BotUserId[bot] == userid) return;
+    g_BotUserId[bot] = userid;
+    g_BotDeadline[bot] = GetGameTime() + KillDelay();
+    g_BotSpawns++;
+    g_BotKillPending[bot] = false;
+}
+
+public void OnEntityCreated(int entity, const char[] classname)
+{
+    if (g_State == Probe_Running && StrEqual(classname, "tank_boss"))
+    {
+        RegisterTank(entity);
+    }
+}
+
+static int RegisterTank(int tank)
+{
+    int ref = EntIndexToEntRef(tank);
+    int slot = -1;
+    for (int i = 0; i < PROBE_MAX_TANKS; i++)
+    {
+        if (g_TankRef[i] == ref) return i;
+        if (slot < 0 && (g_TankRef[i] == INVALID_ENT_REFERENCE
+            || EntRefToEntIndex(g_TankRef[i]) == INVALID_ENT_REFERENCE))
+        {
+            slot = i;
+        }
+    }
+    if (slot < 0)
+    {
+        g_State = Probe_Failed;
+        strcopy(g_FailureReason, sizeof(g_FailureReason), "tank_overflow");
+        LogError("WAVEPROBE more than %d active tanks", PROBE_MAX_TANKS);
+        return -1;
+    }
+    g_TankRef[slot] = ref;
+    g_TankIndex[slot] = tank;
+    g_TankDeadline[slot] = GetGameTime() + KillDelay();
+    g_TankSpawns++;
+    g_TankKillPending[slot] = false;
+    return slot;
 }
 
 public void OnEntityDestroyed(int entity)
@@ -451,14 +514,7 @@ public Action Timer_Probe(Handle timer)
             g_BotKillPending[bot] = false;
             continue;
         }
-        int userid = GetClientUserId(bot);
-        if (g_BotUserId[bot] != userid)
-        {
-            g_BotUserId[bot] = userid;
-            g_BotDeadline[bot] = now + KillDelay();
-            g_BotSpawns++;
-            g_BotKillPending[bot] = false;
-        }
+        RegisterEnemyBot(bot);
         if (now >= g_BotDeadline[bot])
         {
             g_BotKillPending[bot] = true;
@@ -471,36 +527,8 @@ public Action Timer_Probe(Handle timer)
     int tank = -1;
     while ((tank = FindEntityByClassname(tank, "tank_boss")) != -1)
     {
-        int ref = EntIndexToEntRef(tank);
-        int slot = -1;
-        for (int i = 0; i < PROBE_MAX_TANKS; i++)
-        {
-            if (g_TankRef[i] == ref)
-            {
-                slot = i;
-                break;
-            }
-            if (slot < 0 && (g_TankRef[i] == INVALID_ENT_REFERENCE
-                || EntRefToEntIndex(g_TankRef[i]) == INVALID_ENT_REFERENCE))
-            {
-                slot = i;
-            }
-        }
-        if (slot < 0)
-        {
-            g_State = Probe_Failed;
-            strcopy(g_FailureReason, sizeof(g_FailureReason), "tank_overflow");
-            LogError("WAVEPROBE more than %d active tanks", PROBE_MAX_TANKS);
-            return Plugin_Continue;
-        }
-        if (g_TankRef[slot] != ref)
-        {
-            g_TankRef[slot] = ref;
-            g_TankIndex[slot] = tank;
-            g_TankDeadline[slot] = now + KillDelay();
-            g_TankSpawns++;
-            g_TankKillPending[slot] = false;
-        }
+        int slot = RegisterTank(tank);
+        if (slot < 0) return Plugin_Continue;
         if (now >= g_TankDeadline[slot])
         {
             g_TankKillPending[slot] = true;
