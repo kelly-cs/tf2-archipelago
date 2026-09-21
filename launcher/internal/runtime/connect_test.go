@@ -208,6 +208,14 @@ func TestItemServerLine(t *testing.T) {
 	if got := ItemServerLine(other); !strings.Contains(got, "Failed to load item schema") {
 		t.Errorf("a schema failure said %q", got)
 	}
+	colored := "\x1b[0m\x1b[38;2;255;255;255mApplying new item schema, version 538B6CDE.\x1b[0m"
+	if got, want := ItemServerLine(colored), "item server: Applying new item schema, version 538B6CDE."; got != want {
+		t.Errorf("a colored schema update said %q, want %q", got, want)
+	}
+	coloredFailure := "\x1b[31mFailed to load item schema\x1b[0m"
+	if got, want := ItemServerLine(coloredFailure), "item server: Failed to load item schema"; got != want {
+		t.Errorf("a colored schema failure said %q, want %q", got, want)
+	}
 	for _, line := range []string{
 		"Server is hibernating",
 		"L 08/26/2026 - 07:58:45: [tf2_archipelago.smx] anything",
