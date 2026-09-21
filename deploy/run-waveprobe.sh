@@ -57,7 +57,7 @@ compiler="$root/plugin/build/sourcemod-$SOURCEMOD_VERSION/addons/sourcemod/scrip
 (cd "$root" && go build -o "$run_dir/waveprobe" ./launcher/cmd/waveprobe)
 "$run_dir/waveprobe" -plan -mode both > "$run_dir/plan.jsonl"
 
-run_id="$(date -u +%Y%m%d%H%M%S)-$$"
+run_id=${WAVEPROBE_RUN_ID:-$(date -u +%Y%m%d%H%M%S)-$$}
 : > "$run_dir/projects.txt"
 for ((i=0; i<shards; i++)); do
     project="tf2ap-waveprobe-${run_id}-${i}"
@@ -67,8 +67,17 @@ for ((i=0; i<shards; i++)); do
     if ! docker volume inspect "$volume" >/dev/null 2>&1; then
         docker volume create "$volume" >/dev/null
         echo "copying isolated game files to $volume" >&2
-        docker run --rm -v "$source_volume:/src:ro" -v "$volume:/dst" \
-            debian:bookworm-slim sh -c 'cp -a /src/. /dst/'
+        copied=0
+        for attempt in 1 2 3; do
+            if docker run --rm -v "$source_volume:/src:ro" -v "$volume:/dst" \
+                debian:bookworm-slim sh -c 'cp -a /src/. /dst/'; then
+                copied=1
+                break
+            fi
+            echo "game copy to $volume failed (attempt $attempt/3)" >&2
+            sleep 2
+        done
+        [[ $copied == 1 ]] || exit 1
     fi
     port=$((base_port + i))
     WAVEPROBE_RCON_PORT=$port docker compose -p "$project" \

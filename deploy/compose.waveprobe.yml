@@ -7,6 +7,9 @@ services:
   srcds:
     image: ${WAVEPROBE_SRCDS_IMAGE:-tf2-archipelago-srcds:latest}
     restart: "no"
+    # All shards use loopback-published RCON; sharing Docker's bridge avoids
+    # consuming one subnet per disposable server during large sweeps.
+    network_mode: bridge
     environment:
       SRCDS_HOSTNAME: TF2 Archipelago Wave Probe
       SRCDS_RCONPW: ${WAVEPROBE_RCONPW:?set a separate WAVEPROBE_RCONPW}
