@@ -1,23 +1,61 @@
 package main
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/m-this/tf2-archipelago/gamedata"
 )
 
 func TestParseStatus(t *testing.T) {
-	got, err := parseStatus("[SM] WAVEPROBE state=passed map=mvm_decoy pop=mvm_decoy_advanced3 max=6 gamewave=2 expected=1 observed=1 bots=42 tanks=1 defender=3 defteam=2 playerteam=2 enemyteam=3 elapsed=70.5")
+	got, err := parseStatus("[SM] WAVEPROBE state=passed reason=none map=mvm_decoy pop=mvm_decoy_advanced3 max=6 gamewave=2 expected=1 observed=1 botspawns=45 tankspawns=1 bots=42 tanks=1 attempts=46 alive=0 remaining=0 initial=45 progress=100.0 defender=3 defteam=2 defclass=1 playerteam=2 enemyteam=3 elapsed=70.5")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if got.State != "passed" || got.Pop != "mvm_decoy_advanced3" || got.Max != 6 ||
 		got.GameWave != 2 || got.Expected != 1 || got.Observed != 1 || got.Bots != 42 || got.Tanks != 1 ||
+		got.BotSpawns != 45 || got.TankSpawns != 1 || got.Attempts != 46 || got.Alive != 0 ||
+		got.Initial != 45 || got.Progress != 100 || got.DefClass != 1 ||
 		got.DefTeam != 2 || got.PlayerTeam != 2 || got.EnemyTeam != 3 {
 		t.Fatalf("status = %+v", got)
 	}
 	if _, err := parseStatus("Unknown command sm_waveprobe_status"); err == nil {
 		t.Fatal("missing test plugin looked healthy")
+	}
+}
+
+func TestClassifyWave(t *testing.T) {
+	tests := []struct {
+		name   string
+		status probeStatus
+		err    error
+		want   string
+	}{
+		{"pass", probeStatus{State: "passed", BotSpawns: 1}, nil, "passed"},
+		{"game loss", probeStatus{State: "failed", Reason: "wave_failed", BotSpawns: 1}, errors.New("lost"), "wave failed"},
+		{"wave zero", probeStatus{State: "running", GameWave: 0, BotSpawns: 1}, errWaveZero, "wave 0"},
+		{"empty wave", probeStatus{State: "passed"}, nil, "no enemies spawned"},
+		{"empty timeout", probeStatus{State: "running", GameWave: 1}, errWallTimeout, "no enemies spawned"},
+		{"active timeout", probeStatus{State: "running", GameWave: 1, BotSpawns: 1}, errWallTimeout, "wave timed out"},
+		{"probe failure", probeStatus{State: "failed", Reason: "defender_missing"}, errors.New("missing"), "probe error"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := classifyWave(tt.status, tt.err); got != tt.want {
+				t.Fatalf("got %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestProbeClassName(t *testing.T) {
+	medic, ok := gamedata.MissionByPopFile("mvm_chateau_rc3_adv_remedic")
+	if !ok || probeClassName(medic) != "medic" {
+		t.Fatalf("Remedic probe class: found=%v class=%q", ok, probeClassName(medic))
+	}
+	regular, ok := gamedata.MissionByPopFile("mvm_decoy_advanced3")
+	if !ok || probeClassName(regular) != "scout" {
+		t.Fatalf("ordinary probe class: found=%v class=%q", ok, probeClassName(regular))
 	}
 }
 

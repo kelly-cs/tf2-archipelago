@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Retest all nonpassing waveprobe cases against a game-time limit."""
+"""Retest nonpassing waveprobe cases against the same wall-time limit."""
 import concurrent.futures
 import json
 import pathlib
@@ -7,6 +7,7 @@ import queue
 import subprocess
 import sys
 import threading
+import re
 import zlib
 
 
@@ -20,6 +21,11 @@ def rows(path):
 def main(run_dir, binary, worker_ids, source_shards=None):
     settings = dict(line.split("=", 1) for line in
                     (run_dir / "config.txt").read_text().splitlines() if "=" in line)
+    wall_limit = settings.get("wave_timeout", "900s")
+    match = re.fullmatch(r"(\d+)(s|m)", wall_limit)
+    if not match:
+        raise ValueError(f"unsupported wave timeout: {wall_limit}")
+    subprocess_limit = int(match[1]) * (60 if match[2] == "m" else 1) + 180
     shards = int(settings["shards"])
     if not worker_ids or any(worker < 0 or worker >= shards for worker in worker_ids):
         raise ValueError(f"worker ids must be in [0, {shards})")
@@ -56,7 +62,7 @@ def main(run_dir, binary, worker_ids, source_shards=None):
 
     def worker(index):
         nonlocal finished
-        port = 27035 + index
+        port = int(settings.get("base_port", "27035")) + index
         path = run_dir / f"retest-{index}.jsonl"
         with path.open("a", encoding="utf-8") as stream:
             while True:
@@ -67,11 +73,11 @@ def main(run_dir, binary, worker_ids, source_shards=None):
                 command = [str(binary), "-rcon", f"127.0.0.1:{port}",
                            "-mission", mission, "-mode", mode,
                            "-start-wave", str(wave), "-end-wave", str(wave),
-                           "-speed", "20", "-timeout", "5m",
-                           "-game-timeout", "15m", "-load-timeout", "90s"]
+                           "-speed", settings.get("speed", "20"), "-timeout", wall_limit,
+                           "-load-timeout", "90s"]
                 try:
                     result = subprocess.run(command, capture_output=True, text=True,
-                                            timeout=420, check=False)
+                                            timeout=subprocess_limit, check=False)
                     output = [json.loads(line) for line in result.stdout.splitlines()
                               if line.startswith("{")]
                 except (subprocess.TimeoutExpired, json.JSONDecodeError) as error:

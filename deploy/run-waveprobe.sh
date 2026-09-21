@@ -5,9 +5,9 @@ set -euo pipefail
 root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 cd "$root"
 shards=${WAVEPROBE_SHARDS:-6}
-speed=${WAVEPROBE_SPEED:-10}
+speed=${WAVEPROBE_SPEED:-20}
 seed=${WAVEPROBE_SEED:-1}
-timeout=${WAVEPROBE_TIMEOUT:-90s}
+timeout=${WAVEPROBE_TIMEOUT:-900s}
 base_port=${WAVEPROBE_BASE_PORT:-27035}
 source_volume=${WAVEPROBE_SOURCE_VOLUME:-tf2-archipelago-waveprobe_tf2game_waveprobe}
 run_dir=${WAVEPROBE_RUN_DIR:-$root/docs/audits/waveprobe-$(date -u +%Y%m%d-%H%M%S)}
@@ -16,8 +16,8 @@ run_dir=${WAVEPROBE_RUN_DIR:-$root/docs/audits/waveprobe-$(date -u +%Y%m%d-%H%M%
 [[ $base_port =~ ^[1-9][0-9]*$ ]] || { echo 'WAVEPROBE_BASE_PORT must be positive' >&2; exit 2; }
 mkdir -p "$run_dir"
 docker volume inspect "$source_volume" >/dev/null
-printf 'shards=%s\nspeed=%s\nseed=%s\nwave_timeout=%s\nstarted_utc=%s\n' \
-    "$shards" "$speed" "$seed" "$timeout" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$run_dir/config.txt"
+printf 'shards=%s\nspeed=%s\nseed=%s\nwave_timeout=%s\nbase_port=%s\nstarted_utc=%s\n' \
+    "$shards" "$speed" "$seed" "$timeout" "$base_port" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$run_dir/config.txt"
 
 # Build the two plugins from the current checkout before starting any shard.
 "$root/plugin/build.sh" > "$run_dir/plugin-build.log" 2>&1

@@ -37,14 +37,23 @@ int g_ExpectedWave;
 int g_ObservedWave;
 int g_Seed;
 int g_Defender;
+TFClassType g_DefenderClass = TFClass_Scout;
 int g_PlayerTeam = 2;
 int g_EnemyTeam = 3;
 int g_SpawnSerial;
 int g_BotKills;
 int g_TankKills;
+int g_BotSpawns;
+int g_TankSpawns;
+int g_KillAttempts;
+int g_InitialEnemies;
+char g_FailureReason[32];
 int g_BotUserId[MAXPLAYERS + 1];
+bool g_BotKillPending[MAXPLAYERS + 1];
 float g_BotDeadline[MAXPLAYERS + 1];
 int g_TankRef[PROBE_MAX_TANKS];
+int g_TankIndex[PROBE_MAX_TANKS];
+bool g_TankKillPending[PROBE_MAX_TANKS];
 float g_TankDeadline[PROBE_MAX_TANKS];
 float g_ArmedAt;
 float g_StartedAt;
@@ -62,6 +71,7 @@ public void OnPluginStart()
     HookEvent("mvm_begin_wave", Event_BeginWave);
     HookEvent("mvm_wave_complete", Event_WaveComplete);
     HookEvent("mvm_wave_failed", Event_WaveFailed);
+    HookEvent("player_death", Event_PlayerDeath);
     CreateTimer(PROBE_TICK, Timer_Probe, _, TIMER_REPEAT);
 }
 
@@ -82,7 +92,13 @@ public void OnClientDisconnect(int client)
 {
     if (client == g_Defender) g_Defender = 0;
     g_BotUserId[client] = 0;
+    g_BotKillPending[client] = false;
     g_BotDeadline[client] = 0.0;
+}
+
+public void OnClientPutInServer(int client)
+{
+    SDKHook(client, SDKHook_OnTakeDamage, DefenderDamage);
 }
 
 static void ResetProbe()
@@ -93,16 +109,24 @@ static void ResetProbe()
     g_SpawnSerial = 0;
     g_BotKills = 0;
     g_TankKills = 0;
+    g_BotSpawns = 0;
+    g_TankSpawns = 0;
+    g_KillAttempts = 0;
+    g_InitialEnemies = 0;
+    g_FailureReason[0] = '\0';
     g_ArmedAt = 0.0;
     g_StartedAt = 0.0;
     for (int client = 1; client <= MaxClients; client++)
     {
         g_BotUserId[client] = 0;
+        g_BotKillPending[client] = false;
         g_BotDeadline[client] = 0.0;
     }
     for (int i = 0; i < PROBE_MAX_TANKS; i++)
     {
         g_TankRef[i] = INVALID_ENT_REFERENCE;
+        g_TankIndex[i] = -1;
+        g_TankKillPending[i] = false;
         g_TankDeadline[i] = 0.0;
     }
 }
@@ -146,6 +170,11 @@ public Action Command_Reset(int client, int argc)
 
 public Action Command_Wake(int client, int argc)
 {
+    if (argc < 1)
+    {
+        ReplyToCommand(client, "usage: sm_waveprobe_wake <red|blue> [scout|medic]");
+        return Plugin_Handled;
+    }
     char team[16];
     GetCmdArg(1, team, sizeof(team));
     if (StrEqual(team, "blue", false))
@@ -160,12 +189,27 @@ public Action Command_Wake(int client, int argc)
     }
     else
     {
-        ReplyToCommand(client, "usage: sm_waveprobe_wake <red|blue>");
+        ReplyToCommand(client, "usage: sm_waveprobe_wake <red|blue> [scout|medic]");
         return Plugin_Handled;
     }
+    g_DefenderClass = TFClass_Scout;
+    if (argc >= 2)
+    {
+        char playerClass[16];
+        GetCmdArg(2, playerClass, sizeof(playerClass));
+        if (StrEqual(playerClass, "medic", false))
+        {
+            g_DefenderClass = TFClass_Medic;
+        }
+        else if (!StrEqual(playerClass, "scout", false))
+        {
+            ReplyToCommand(client, "usage: sm_waveprobe_wake <red|blue> [scout|medic]");
+            return Plugin_Handled;
+        }
+    }
     EnsureDefender();
-    ReplyToCommand(client, "WAVEPROBE defender=%d playerteam=%d enemyteam=%d",
-        g_Defender, g_PlayerTeam, g_EnemyTeam);
+    ReplyToCommand(client, "WAVEPROBE defender=%d playerteam=%d enemyteam=%d class=%d",
+        g_Defender, g_PlayerTeam, g_EnemyTeam, view_as<int>(g_DefenderClass));
     return Plugin_Handled;
 }
 
@@ -176,16 +220,34 @@ static void EnsureDefender()
         if (!IsClientInGame(g_Defender)) return;
         if (GetClientTeam(g_Defender) != g_PlayerTeam)
             ChangeClientTeam(g_Defender, g_PlayerTeam);
-        if (TF2_GetPlayerClass(g_Defender) != TFClass_Scout)
-            TF2_SetPlayerClass(g_Defender, TFClass_Scout);
+        if (TF2_GetPlayerClass(g_Defender) != g_DefenderClass)
+        {
+            TF2_SetPlayerClass(g_Defender, g_DefenderClass);
+            TF2_RespawnPlayer(g_Defender);
+        }
         return;
     }
     g_Defender = CreateFakeClient("Wave Probe Player");
     if (g_Defender == 0)
     {
         g_State = Probe_Failed;
+        strcopy(g_FailureReason, sizeof(g_FailureReason), "defender_create");
         LogError("WAVEPROBE cannot create a fake player client");
     }
+}
+
+public Action DefenderDamage(int victim, int &attacker, int &inflictor,
+    float &damage, int &damageType)
+{
+    // The probe measures invader wave progression. Protecting RED also keeps
+    // authored escort NPCs such as Remedic's Chief Medic alive while we kill
+    // BLU robots, so a survival objective does not invalidate that measure.
+    if ((g_State == Probe_Armed || g_State == Probe_Running)
+        && IsClientInGame(victim) && GetClientTeam(victim) == g_PlayerTeam)
+    {
+        return Plugin_Handled;
+    }
+    return Plugin_Continue;
 }
 
 static void StateName(ProbeState state, char[] buffer, int length)
@@ -209,6 +271,8 @@ public Action Command_Status(int client, int argc)
     int gameWave = 0;
     int redClients = 0;
     int blueClients = 0;
+    int alive = 0;
+    int remaining = -1;
     GetCurrentMap(map, sizeof(map));
     StateName(g_State, state, sizeof(state));
     strcopy(pop, sizeof(pop), "unknown");
@@ -227,6 +291,14 @@ public Action Command_Status(int client, int argc)
         {
             gameWave = GetEntProp(resource, Prop_Send, "m_nMannVsMachineWaveCount");
         }
+        if (HasEntProp(resource, Prop_Send, "m_nMannVsMachineWaveEnemyCount"))
+        {
+            remaining = GetEntProp(resource, Prop_Send, "m_nMannVsMachineWaveEnemyCount");
+            if (g_State == Probe_Running && remaining > g_InitialEnemies)
+            {
+                g_InitialEnemies = remaining;
+            }
+        }
     }
     ReplaceString(pop, sizeof(pop), "scripts/population/", "");
     ReplaceString(pop, sizeof(pop), ".pop", "");
@@ -238,14 +310,28 @@ public Action Command_Status(int client, int argc)
         }
         if (GetClientTeam(player) == 2) redClients++;
         if (GetClientTeam(player) == 3) blueClients++;
+        if (GetClientTeam(player) == g_EnemyTeam && IsPlayerAlive(player)) alive++;
+    }
+    int tank = -1;
+    while ((tank = FindEntityByClassname(tank, "tank_boss")) != -1) alive++;
+    float progress = -1.0;
+    if (g_InitialEnemies > 0 && remaining >= 0)
+    {
+        progress = 100.0 * float(g_InitialEnemies - remaining) / float(g_InitialEnemies);
+        if (progress < 0.0) progress = 0.0;
+        if (progress > 100.0) progress = 100.0;
     }
     ReplyToCommand(client,
-        "WAVEPROBE state=%s map=%s pop=%s max=%d gamewave=%d expected=%d observed=%d bots=%d tanks=%d red=%d blue=%d defender=%d defteam=%d playerteam=%d enemyteam=%d elapsed=%.1f",
-        state, map, pop, maxWaves, gameWave, g_ExpectedWave,
-        g_ObservedWave, g_BotKills, g_TankKills, redClients, blueClients,
+        "WAVEPROBE state=%s reason=%s map=%s pop=%s max=%d gamewave=%d expected=%d observed=%d botspawns=%d tankspawns=%d bots=%d tanks=%d attempts=%d alive=%d remaining=%d initial=%d progress=%.1f red=%d blue=%d defender=%d defteam=%d defclass=%d playerteam=%d enemyteam=%d elapsed=%.1f",
+        state, g_FailureReason[0] == '\0' ? "none" : g_FailureReason,
+        map, pop, maxWaves, gameWave, g_ExpectedWave,
+        g_ObservedWave, g_BotSpawns, g_TankSpawns, g_BotKills, g_TankKills,
+        g_KillAttempts, alive, remaining, g_InitialEnemies, progress,
+        redClients, blueClients,
         g_Defender, g_Defender > 0 && IsClientInGame(g_Defender) ? GetClientTeam(g_Defender) : 0,
+        g_Defender > 0 && IsClientInGame(g_Defender) ? view_as<int>(TF2_GetPlayerClass(g_Defender)) : 0,
         g_PlayerTeam, g_EnemyTeam,
-        GetGameTime() - g_ArmedAt);
+        GetGameTime() - (g_StartedAt > 0.0 ? g_StartedAt : g_ArmedAt));
     return Plugin_Handled;
 }
 
@@ -259,6 +345,7 @@ public void Event_BeginWave(Event event, const char[] name, bool dontBroadcast)
     if (g_ObservedWave != g_ExpectedWave)
     {
         g_State = Probe_Failed;
+        strcopy(g_FailureReason, sizeof(g_FailureReason), "wrong_wave");
         LogError("WAVEPROBE wrong wave: expected %d, started %d",
             g_ExpectedWave, g_ObservedWave);
         return;
@@ -267,11 +354,17 @@ public void Event_BeginWave(Event event, const char[] name, bool dontBroadcast)
         || GetClientTeam(g_Defender) != g_PlayerTeam)
     {
         g_State = Probe_Failed;
+        strcopy(g_FailureReason, sizeof(g_FailureReason), "defender_missing");
         LogError("WAVEPROBE fake player is not on expected team %d", g_PlayerTeam);
         return;
     }
     g_State = Probe_Running;
     g_StartedAt = GetGameTime();
+    int resource = FindEntityByClassname(-1, "tf_objective_resource");
+    if (resource != -1 && HasEntProp(resource, Prop_Send, "m_nMannVsMachineWaveEnemyCount"))
+    {
+        g_InitialEnemies = GetEntProp(resource, Prop_Send, "m_nMannVsMachineWaveEnemyCount");
+    }
     LogMessage("WAVEPROBE started wave=%d seed=%d", g_ObservedWave, g_Seed);
 }
 
@@ -291,7 +384,33 @@ public void Event_WaveFailed(Event event, const char[] name, bool dontBroadcast)
     if (g_State == Probe_Running)
     {
         g_State = Probe_Failed;
+        strcopy(g_FailureReason, sizeof(g_FailureReason), "wave_failed");
         LogError("WAVEPROBE game reported wave failed");
+    }
+}
+
+public void Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
+{
+    int bot = GetClientOfUserId(event.GetInt("userid"));
+    if (bot > 0 && g_BotKillPending[bot])
+    {
+        g_BotKills++;
+        g_BotKillPending[bot] = false;
+    }
+}
+
+public void OnEntityDestroyed(int entity)
+{
+    for (int i = 0; i < PROBE_MAX_TANKS; i++)
+    {
+        if (g_TankKillPending[i] && g_TankIndex[i] == entity)
+        {
+            g_TankKills++;
+            g_TankKillPending[i] = false;
+            g_TankRef[i] = INVALID_ENT_REFERENCE;
+            g_TankIndex[i] = -1;
+            return;
+        }
     }
 }
 
@@ -329,6 +448,7 @@ public Action Timer_Probe(Handle timer)
             || GetClientTeam(bot) != g_EnemyTeam || !IsPlayerAlive(bot))
         {
             g_BotUserId[bot] = 0;
+            g_BotKillPending[bot] = false;
             continue;
         }
         int userid = GetClientUserId(bot);
@@ -336,12 +456,15 @@ public Action Timer_Probe(Handle timer)
         {
             g_BotUserId[bot] = userid;
             g_BotDeadline[bot] = now + KillDelay();
+            g_BotSpawns++;
+            g_BotKillPending[bot] = false;
         }
         if (now >= g_BotDeadline[bot])
         {
+            g_BotKillPending[bot] = true;
+            g_KillAttempts++;
             ForcePlayerSuicide(bot);
-            g_BotKills++;
-            g_BotUserId[bot] = 0;
+            g_BotDeadline[bot] = now + 5.0;
         }
     }
 
@@ -366,19 +489,24 @@ public Action Timer_Probe(Handle timer)
         if (slot < 0)
         {
             g_State = Probe_Failed;
+            strcopy(g_FailureReason, sizeof(g_FailureReason), "tank_overflow");
             LogError("WAVEPROBE more than %d active tanks", PROBE_MAX_TANKS);
             return Plugin_Continue;
         }
         if (g_TankRef[slot] != ref)
         {
             g_TankRef[slot] = ref;
+            g_TankIndex[slot] = tank;
             g_TankDeadline[slot] = now + KillDelay();
+            g_TankSpawns++;
+            g_TankKillPending[slot] = false;
         }
         if (now >= g_TankDeadline[slot])
         {
+            g_TankKillPending[slot] = true;
+            g_KillAttempts++;
             SDKHooks_TakeDamage(tank, g_Defender, g_Defender, 1000000.0);
-            g_TankKills++;
-            g_TankRef[slot] = INVALID_ENT_REFERENCE;
+            g_TankDeadline[slot] = now + 5.0;
         }
     }
     return Plugin_Continue;
