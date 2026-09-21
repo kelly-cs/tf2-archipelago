@@ -570,7 +570,7 @@ func (s *server) classifyLoadError(mapName string, mission gamedata.Mission, cau
 	status, err := s.status()
 	if err == nil && status.Map == mapName && status.GameWave == 0 &&
 		(status.Pop == mission.PopFile || status.Pop == "unknown") {
-		return fmt.Errorf("%w: %s (max=%d): %v", errWaveZero, mission.PopFile, status.Max, cause)
+		return fmt.Errorf("%w: %s (max=%d): %w", errWaveZero, mission.PopFile, status.Max, cause)
 	}
 	return cause
 }
@@ -662,32 +662,15 @@ func (s *server) testWave(mission gamedata.Mission, wave, seed int, timeout, loa
 	if _, err := s.exec("mp_restartgame 1"); err != nil {
 		return probeStatus{}, nil, err
 	}
+	last, err := s.waitWaveStart(mission, wave, loadWait)
+	if err != nil {
+		return last, nil, err
+	}
+	if last.State == "passed" {
+		return last, []sample{waveSample(last, 0)}, nil
+	}
 	// The 900-second budget starts when the wave actually runs. Map changes,
 	// jump-to-wave, and the one-second restart are covered by loadWait instead.
-	startDeadline := time.Now().Add(loadWait)
-	var last probeStatus
-	for time.Now().Before(startDeadline) {
-		status, err := s.status()
-		if err == nil {
-			last = status
-			if status.State == "passed" && status.Expected == wave && status.Observed == wave {
-				return status, []sample{waveSample(status, 0)}, nil
-			}
-			if status.State == "failed" {
-				return status, nil, fmt.Errorf("game or probe failed before wave %d ran: %s", wave, status.Reason)
-			}
-			if status.State == "running" && status.Expected == wave && status.Observed == wave {
-				break
-			}
-		}
-		time.Sleep(time.Second)
-	}
-	if last.State != "running" || last.Expected != wave || last.Observed != wave {
-		if last.GameWave == 0 && last.Pop == mission.PopFile {
-			return last, nil, fmt.Errorf("%w: %s wave %d never started", errWaveZero, mission.PopFile, wave)
-		}
-		return last, nil, fmt.Errorf("wave %d did not start within %s: %+v", wave, loadWait, last)
-	}
 	started := time.Now()
 	deadline := started.Add(timeout)
 	timeline := []sample{waveSample(last, 0)}
@@ -727,6 +710,31 @@ func (s *server) testWave(mission gamedata.Mission, wave, seed int, timeout, loa
 	s.stopWave(mission)
 	return last, timeline, fmt.Errorf("%w: wave %d still active after %s (%.1f game seconds)",
 		errWallTimeout, wave, timeout, last.Elapsed)
+}
+
+func (s *server) waitWaveStart(mission gamedata.Mission, wave int, loadWait time.Duration) (probeStatus, error) {
+	startDeadline := time.Now().Add(loadWait)
+	var last probeStatus
+	for time.Now().Before(startDeadline) {
+		status, err := s.status()
+		if err == nil {
+			last = status
+			if status.State == "passed" && status.Expected == wave && status.Observed == wave {
+				return status, nil
+			}
+			if status.State == "failed" {
+				return status, fmt.Errorf("game or probe failed before wave %d ran: %s", wave, status.Reason)
+			}
+			if status.State == "running" && status.Expected == wave && status.Observed == wave {
+				return status, nil
+			}
+		}
+		time.Sleep(time.Second)
+	}
+	if last.GameWave == 0 && last.Pop == mission.PopFile {
+		return last, fmt.Errorf("%w: %s wave %d never started", errWaveZero, mission.PopFile, wave)
+	}
+	return last, fmt.Errorf("wave %d did not start within %s: %+v", wave, loadWait, last)
 }
 
 func (s *server) stopWave(mission gamedata.Mission) {
