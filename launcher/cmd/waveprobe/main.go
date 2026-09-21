@@ -213,7 +213,7 @@ func runMissions(s *server, opt options, missions []gamedata.Mission, modes []st
 			return fmt.Errorf("unknown map for %s", mission.PopFile)
 		}
 		for _, mode := range modes {
-			if err := s.load(played.Name, mission, mode, opt.loadWait); err != nil {
+			if err := s.load(played.Name, mission, mode, opt.loadWait, false); err != nil {
 				outcome := "load blocked"
 				if errors.Is(err, errWaveZero) {
 					outcome = "wave 0"
@@ -266,7 +266,7 @@ func (s *server) runWaves(opt options, mapName string, mission gamedata.Mission,
 		}
 		// The failed wave may still be running. Reload the mission and jump
 		// ahead so later waves are tested independently too.
-		if err := s.load(mapName, mission, mode, opt.loadWait); err != nil {
+		if err := s.load(mapName, mission, mode, opt.loadWait, true); err != nil {
 			outcome := "load blocked"
 			if errors.Is(err, errWaveZero) {
 				outcome = "wave 0"
@@ -507,15 +507,20 @@ func (s *server) await(timeout time.Duration, predicate func(probeStatus) bool) 
 	return fmt.Errorf("timed out after %s (last status %+v)", timeout, last)
 }
 
-func (s *server) load(mapName string, mission gamedata.Mission, mode string, timeout time.Duration) error {
+func (s *server) load(mapName string, mission gamedata.Mission, mode string, timeout time.Duration, forceMapReload bool) error {
 	status, err := s.status()
 	if err != nil {
 		return err
 	}
-	if status.Map != mapName {
+	if forceMapReload || status.Map != mapName {
 		// The server may drop the RCON connection as changelevel runs. The
 		// status poll, rather than that connection, determines success.
 		_, _ = s.exec("changelevel " + mapName)
+		if forceMapReload {
+			// A same-map status check can otherwise succeed before changelevel
+			// has actually restarted the population manager.
+			time.Sleep(2 * time.Second)
+		}
 		if err := s.await(timeout, func(st probeStatus) bool { return st.Map == mapName }); err != nil {
 			return s.classifyLoadError(mapName, mission, err)
 		}
