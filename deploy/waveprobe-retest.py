@@ -18,6 +18,13 @@ def rows(path):
                 yield json.loads(line)
 
 
+def rcon_broken(row):
+    error = row.get("error", "").lower()
+    return any(marker in error for marker in (
+        "connection reset", "connection refused", "cannot read the reply",
+        "broken pipe", "timed out while waiting for rcon"))
+
+
 def main(run_dir, binary, worker_ids, source_shards=None):
     settings = dict(line.split("=", 1) for line in
                     (run_dir / "config.txt").read_text().splitlines() if "=" in line)
@@ -59,11 +66,22 @@ def main(run_dir, binary, worker_ids, source_shards=None):
     print(f"Retesting {total} incomplete waves with {len(worker_ids)} isolated servers.", flush=True)
     lock = threading.Lock()
     finished = 0
+    projects_file = run_dir / "projects.txt"
+    projects = projects_file.read_text().splitlines() if projects_file.exists() else []
+
+    def restart_worker(index):
+        if index >= len(projects):
+            return
+        name = projects[index] + "-srcds-1"
+        subprocess.run(["docker", "restart", name], capture_output=True,
+                       text=True, timeout=120, check=True)
+        print(f"Restarted isolated retry server {index}.", flush=True)
 
     def worker(index):
         nonlocal finished
         port = int(settings.get("base_port", "27035")) + index
         path = run_dir / f"retest-{index}.jsonl"
+        restart_worker(index)
         with path.open("a", encoding="utf-8") as stream:
             while True:
                 try:
@@ -75,27 +93,32 @@ def main(run_dir, binary, worker_ids, source_shards=None):
                            "-start-wave", str(wave), "-end-wave", str(wave),
                            "-speed", settings.get("speed", "20"), "-timeout", wall_limit,
                            "-load-timeout", "90s"]
-                try:
-                    result = subprocess.run(command, capture_output=True, text=True,
-                                            timeout=subprocess_limit, check=False)
-                    output = [json.loads(line) for line in result.stdout.splitlines()
-                              if line.startswith("{")]
-                except (subprocess.TimeoutExpired, json.JSONDecodeError) as error:
-                    output = []
-                    result = None
-                    reason = str(error)
-                else:
-                    reason = result.stderr.strip()
-                wave_rows = [row for row in output if row.get("wave") == wave]
-                if wave_rows:
-                    row = wave_rows[-1]
-                else:
-                    if output:
-                        reason = output[-1].get("error", reason)
-                    row = {"mission": mission, "map": map_name, "mode": mode,
-                           "wave": wave, "seed": 1, "state": "inconclusive", "outcome": "inconclusive",
-                           "retest_no_wave_result": True,
-                           "error": f"retest runner produced no wave result: {reason[:300]}"}
+                for attempt in range(2):
+                    try:
+                        result = subprocess.run(command, capture_output=True, text=True,
+                                                timeout=subprocess_limit, check=False)
+                        output = [json.loads(line) for line in result.stdout.splitlines()
+                                  if line.startswith("{")]
+                    except (subprocess.TimeoutExpired, json.JSONDecodeError) as error:
+                        output = []
+                        result = None
+                        reason = str(error)
+                    else:
+                        reason = result.stderr.strip()
+                    wave_rows = [item for item in output if item.get("wave") == wave]
+                    if wave_rows:
+                        row = wave_rows[-1]
+                    else:
+                        if output:
+                            reason = output[-1].get("error", reason)
+                        row = {"mission": mission, "map": map_name, "mode": mode,
+                               "wave": wave, "seed": 1, "state": "inconclusive", "outcome": "inconclusive",
+                               "retest_no_wave_result": True,
+                               "error": f"retest runner produced no wave result: {reason[:300]}"}
+                    if attempt == 0 and rcon_broken(row):
+                        restart_worker(index)
+                        continue
+                    break
                 stream.write(json.dumps(row) + "\n")
                 stream.flush()
                 with lock:
