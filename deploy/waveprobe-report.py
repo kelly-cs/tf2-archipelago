@@ -23,6 +23,12 @@ def classify(row, prior_load_failure=None):
     if row.get("retest_no_wave_result") and prior_load_failure:
         return classify(prior_load_failure)
     value = row.get("outcome") or row["state"]
+    if value == "no enemies spawned" and (
+            row.get("bot_spawns", 0) + row.get("tank_spawns", 0) > 0 or
+            any(point.get("spawned", 0) > 0 for point in row.get("timeline", []))):
+        # A plugin reset can clear its counters after enemies were already
+        # observed. Keep that as a probe error, never a missing-spawn claim.
+        return "probe error"
     # Old runs recorded kill attempts, not spawns. Do not promote their
     # zero-kill results to the new "No enemies spawned" finding.
     return {"wave lost": "wave failed", "active at limit": "inconclusive",

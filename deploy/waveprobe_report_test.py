@@ -23,6 +23,12 @@ class ReportOutcomeTest(unittest.TestCase):
         prior = {"state": "load_failed", "outcome": "wave 0"}
         self.assertEqual(report.classify(row, prior), "wave 0")
 
+    def test_reset_cannot_erase_observed_spawns(self):
+        row = {"state": "failed", "outcome": "no enemies spawned",
+               "bot_spawns": 0, "tank_spawns": 0,
+               "timeline": [{"spawned": 3}, {"spawned": 0}]}
+        self.assertEqual(report.classify(row), "probe error")
+
     def test_report_scores_modes_and_shows_timeline(self):
         with tempfile.TemporaryDirectory() as folder:
             root = pathlib.Path(folder)
