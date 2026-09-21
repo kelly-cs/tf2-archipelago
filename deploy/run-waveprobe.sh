@@ -43,8 +43,9 @@ trap finish EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
 docker volume inspect "$source_volume" >/dev/null
-printf 'shards=%s\nspeed=%s\nseed=%s\nwave_timeout=%s\nbase_port=%s\nstarted_utc=%s\n' \
-    "$shards" "$speed" "$seed" "$timeout" "$base_port" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$run_dir/config.txt"
+printf 'shards=%s\nspeed=%s\nseed=%s\nwave_timeout=%s\nbase_port=%s\nstarted_utc=%s\nsource_commit=%s\nmain_commit=%s\n' \
+    "$shards" "$speed" "$seed" "$timeout" "$base_port" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+    "$(git rev-parse HEAD)" "$(git rev-parse origin/main)" > "$run_dir/config.txt"
 
 # Build the two plugins from the current checkout before starting any shard.
 "$root/plugin/build.sh" > "$run_dir/plugin-build.log" 2>&1

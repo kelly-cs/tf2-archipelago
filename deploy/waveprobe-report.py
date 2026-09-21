@@ -110,6 +110,9 @@ def main(run_dir):
     print(f"Started {settings.get('started_utc', 'unknown')} · {settings.get('shards', '?')} isolated servers · "
           f"requested speed {settings.get('speed', '?')}× · {settings.get('wave_timeout', '?')} "
           f"**real-time** limit after wave start · seed {settings.get('seed', '1')}.\n")
+    if settings.get("source_commit") or settings.get("main_commit"):
+        print(f"Source commit `{settings.get('source_commit', 'unknown')}` · "
+              f"upstream main `{settings.get('main_commit', 'unknown')}`.\n")
     print("| Result | Bot Surge off | Bot Surge on | Total |\n| --- | ---: | ---: | ---: |")
     for name in RESULTS:
         normal = sum(value == name for key, value in outcomes.items() if key[1] == "normal")
