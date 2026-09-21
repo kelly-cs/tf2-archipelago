@@ -37,6 +37,7 @@ func TestClassifyWave(t *testing.T) {
 		{"empty wave", probeStatus{State: "passed"}, nil, "no enemies spawned"},
 		{"empty timeout", probeStatus{State: "running", GameWave: 1}, errWallTimeout, "no enemies spawned"},
 		{"active timeout", probeStatus{State: "running", GameWave: 1, BotSpawns: 1}, errWallTimeout, "wave timed out"},
+		{"reset at deadline", probeStatus{State: "idle", GameWave: 1}, errWallTimeout, "probe error"},
 		{"probe failure", probeStatus{State: "failed", Reason: "defender_missing"}, errors.New("missing"), "probe error"},
 	}
 	for _, tt := range tests {

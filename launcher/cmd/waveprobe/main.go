@@ -325,7 +325,10 @@ func classifyWave(status probeStatus, err error) string {
 		return "wave failed"
 	case status.State == "passed" && err == nil && status.BotSpawns+status.TankSpawns > 0:
 		return "passed"
-	case (status.State == "passed" || errors.Is(err, errWallTimeout)) && status.BotSpawns+status.TankSpawns == 0:
+	case status.State == "idle" || status.State == "armed":
+		return "probe error"
+	case (status.State == "passed" || (status.State == "running" && errors.Is(err, errWallTimeout))) &&
+		status.BotSpawns+status.TankSpawns == 0:
 		return "no enemies spawned"
 	case errors.Is(err, errWallTimeout):
 		return "wave timed out"
@@ -683,6 +686,12 @@ func (s *server) testWave(mission gamedata.Mission, wave, seed int, timeout, loa
 	for time.Now().Before(deadline) {
 		status, err := s.status()
 		if err == nil {
+			if status.State != "running" && status.State != "passed" && status.State != "failed" ||
+				status.Pop != mission.PopFile {
+				timeline = append(timeline, waveSample(status, time.Since(started)))
+				return last, timeline, fmt.Errorf("probe state reset during wave %d: state=%s pop=%s gamewave=%d",
+					wave, status.State, status.Pop, status.GameWave)
+			}
 			last = status
 			now := time.Now()
 			if now.Sub(lastSample) >= 10*time.Second || status.State != "running" {
