@@ -51,10 +51,13 @@ export WAVEPROBE_RCONPW="$(openssl rand -hex 24)"
 WAVEPROBE_SHARDS=6 WAVEPROBE_SPEED=20 bash deploy/run-waveprobe.sh
 ```
 
-`WAVEPROBE_SHARDS`, `WAVEPROBE_SPEED` (1–20), and `WAVEPROBE_TIMEOUT`
-(real time per running wave, default `900s`) control runtime. At 20×, 900
-real seconds can represent up to five game hours; the deadline never shrinks
-to 45 real seconds. Map and wave load have a separate 90-second deadline.
+`WAVEPROBE_SHARDS`, `WAVEPROBE_SPEED` (1–20),
+`WAVEPROBE_FIRST_PASS_TIMEOUT` (default `180s`), and `WAVEPROBE_TIMEOUT`
+(default `900s`) control runtime. Every nonpass from the first pass is retried
+automatically with the full 900 real-second limit before the final report is
+written. At 20×, 900 real seconds can represent up to five game hours; the
+deadline never shrinks to 45 real seconds. Map and wave load have a separate
+90-second deadline.
 `WAVEPROBE_RUN_DIR`
 chooses where the JSONL files and `REPORT.md` go; otherwise a timestamped
 directory is made in `docs/audits/`. `SUMMARY.json` carries comparable counts
@@ -74,10 +77,12 @@ prove every authored bot appeared, or that the wave will complete under every
 player strategy. Re-run timeouts at a lower speed or another seed before
 attributing them to the mission or Bot Surge.
 
-For a second pass, start the stopped disposable Compose projects again and run
+The standard sweep runs the second pass and writes `REPORT.md` and `SUMMARY.json`
+itself, including when a shard exits with a failure. For an interrupted sweep,
+start the stopped disposable Compose projects again and run
 `deploy/waveprobe-retest.py` with the run directory, the freshly built runner,
 and the comma-separated shard IDs whose servers are available. It reruns only
-cases without a pass, using the same real-time wave limit and writing
+cases without a pass, using the 900-second real-time wave limit and writing
 `retest-<id>.jsonl` alongside the first pass. Then regenerate `REPORT.md` with
 `deploy/waveprobe-report.py`. A wave that remains active at that limit needs
 inspection; the time limit alone does not prove a deadlock.

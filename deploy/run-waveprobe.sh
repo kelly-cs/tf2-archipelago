@@ -7,6 +7,7 @@ cd "$root"
 shards=${WAVEPROBE_SHARDS:-6}
 speed=${WAVEPROBE_SPEED:-20}
 seed=${WAVEPROBE_SEED:-1}
+first_timeout=${WAVEPROBE_FIRST_PASS_TIMEOUT:-180s}
 timeout=${WAVEPROBE_TIMEOUT:-900s}
 base_port=${WAVEPROBE_BASE_PORT:-27035}
 source_volume=${WAVEPROBE_SOURCE_VOLUME:-tf2-archipelago-waveprobe_tf2game_waveprobe}
@@ -43,8 +44,8 @@ trap finish EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
 docker volume inspect "$source_volume" >/dev/null
-printf 'shards=%s\nspeed=%s\nseed=%s\nwave_timeout=%s\nbase_port=%s\nstarted_utc=%s\nsource_commit=%s\nmain_commit=%s\n' \
-    "$shards" "$speed" "$seed" "$timeout" "$base_port" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+printf 'shards=%s\nspeed=%s\nseed=%s\nfirst_pass_timeout=%s\nwave_timeout=%s\nbase_port=%s\nstarted_utc=%s\nsource_commit=%s\nmain_commit=%s\n' \
+    "$shards" "$speed" "$seed" "$first_timeout" "$timeout" "$base_port" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
     "$(git rev-parse HEAD)" "$(git rev-parse origin/main)" > "$run_dir/config.txt"
 
 # Build the two plugins from the current checkout before starting any shard.
@@ -85,7 +86,7 @@ for ((i=0; i<shards; i++)); do
         -f "$root/deploy/compose.waveprobe.yml" up -d --force-recreate > "$run_dir/docker-$i.log" 2>&1
     echo "shard $i/$shards on 127.0.0.1:$port" >&2
     "$run_dir/waveprobe" -rcon "127.0.0.1:$port" -shards "$shards" -shard "$i" \
-        -mission all -mode both -speed "$speed" -seed "$seed" -timeout "$timeout" \
+        -mission all -mode both -speed "$speed" -seed "$seed" -timeout "$first_timeout" \
         > "$run_dir/shard-$i.jsonl" 2> "$run_dir/shard-$i.err" &
     pids+=("$!")
 done
@@ -94,4 +95,8 @@ failed=0
 for ((i=0; i<shards; i++)); do
     wait "${pids[i]}" || failed=1
 done
+echo "retesting nonpasses with ${timeout} real-time wave limit" >&2
+worker_ids=$(seq -s, 0 "$((shards - 1))")
+python3 "$root/deploy/waveprobe-retest.py" "$run_dir" "$run_dir/waveprobe" "$worker_ids" \
+    > "$run_dir/retest.log" 2>&1 || failed=1
 exit "$failed"
