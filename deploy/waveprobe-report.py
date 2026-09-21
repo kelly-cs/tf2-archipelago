@@ -116,6 +116,8 @@ def main(run_dir):
     if settings.get("source_commit") or settings.get("main_commit"):
         print(f"Source commit `{settings.get('source_commit', 'unknown')}` · "
               f"upstream main `{settings.get('main_commit', 'unknown')}`.\n")
+    if settings.get("retry_commit"):
+        print(f"Retry runner commit `{settings['retry_commit']}`. The first pass used the source commit above.\n")
     print("| Result | Bot Surge off | Bot Surge on | Total |\n| --- | ---: | ---: | ---: |")
     for name in RESULTS:
         normal = sum(value == name for key, value in outcomes.items() if key[1] == "normal")
