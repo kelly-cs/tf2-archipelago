@@ -33,6 +33,7 @@ bool g_Holding;
 #define BotTrimDelay 3.0
 
 bool g_BotsWaveRunning;
+int g_CurrentWave;
 
 // The upgrade names, in the order scripts/items/mvm_upgrades.txt lists the
 // entries the game actually loads. That order is the index MVM_Upgrade carries:
@@ -152,6 +153,7 @@ void Bots_OnMapStart()
 
 public Action Timer_VillaEscort(Handle timer)
 {
+    Bots_PublishDirective();
     float now = GetEngineTime();
     // Villa's scripted finale can continue after the game marks wave 6 done.
     // The human player's arrival on the roof is the reliable phase signal.
@@ -234,6 +236,56 @@ public Action Timer_VillaEscort(Handle timer)
         AP_Debug("Villa moved defender %N to the disconnected roof arena.", bot);
     }
     return Plugin_Continue;
+}
+
+// The defender mod only knows how to carry out these short lived orders.
+// Archipelago owns Villa's mission, wave, and room choice. Refreshing each
+// order also makes a plugin reload or mission switch clear it automatically.
+void Bots_PublishDirective()
+{
+    if (GetFeatureStatus(FeatureType_Native, "Defenderbots_SetDirective") != FeatureStatus_Available)
+    {
+        return;
+    }
+    char map[64], pop[PLATFORM_MAX_PATH];
+    GetCurrentMap(map, sizeof(map));
+    bool villa = MvM_IsActive() && StrEqual(map, "mvm_villa_b13f")
+        && MvM_PopFile(pop, sizeof(pop))
+        && StrEqual(pop, "mvm_villa_b13f_adv_recalled_to_life");
+    int wave = g_CurrentWave > 0 ? g_CurrentWave : MvM_WaveFromGame();
+    bool combat = villa && wave >= 2 && wave <= 5
+        && GameRules_GetRoundState() == RoundState_RoundRunning;
+    float goal[3] = {-8637.5, 5712.5, 896.2};
+    if (combat && wave == 5)
+    {
+        // Villa's hunt script picks one of seven rooms at runtime. Its BLU
+        // robots appear inside the chosen room; their live position follows
+        // that choice without duplicating the script's random order here.
+        for (int robot = 1; robot <= MaxClients; robot++)
+        {
+            if (!IsClientInGame(robot) || !IsFakeClient(robot) || !IsPlayerAlive(robot)
+                || GetClientTeam(robot) != TeamBlue)
+            {
+                continue;
+            }
+            float position[3];
+            GetClientAbsOrigin(robot, position);
+            if (position[0] > -9900.0 && position[0] < -7400.0
+                && position[1] > 2500.0 && position[1] < 5000.0
+                && position[2] > 650.0 && position[2] < 1600.0)
+            {
+                goal = position;
+                break;
+            }
+        }
+    }
+    for (int bot = 1; bot <= MaxClients; bot++)
+    {
+        if (MvM_IsDefender(bot) && IsFakeClient(bot) && !IsClientSourceTV(bot))
+        {
+            Defenderbots_SetDirective(bot, combat, goal, combat, villa);
+        }
+    }
 }
 
 void Bots_OnWaveBegin()

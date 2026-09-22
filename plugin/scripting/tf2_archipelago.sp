@@ -21,6 +21,9 @@
 #include <ripext>
 #include <tf2attributes>
 
+native bool Defenderbots_SetDirective(int client, bool rally, const float goal[3],
+    bool seekEnemies, bool buyAnywhere);
+
 #include "tf2_archipelago/log.inc"
 #include "tf2_archipelago/mvm.inc"
 #include "tf2_archipelago/invader_stalls.inc"
@@ -56,7 +59,6 @@ public Plugin myinfo =
 };
 
 // Zero when no wave is running. A late plugin load recovers an active wave.
-int g_CurrentWave;
 // Which giant and which tank of the running wave the next kill is. Every one
 // is reported as the nth of its wave beside the mission's own first of each;
 // with giantsanity or tanksanity on, the seed holds a check for each.
@@ -98,6 +100,7 @@ bool g_GiantReported;
 public APLRes AskPluginLoad2(Handle self, bool late, char[] error, int length)
 {
     CreateNative("TF2AP_GetBundleCredits", Native_GetBundleCredits);
+    MarkNativeAsOptional("Defenderbots_SetDirective");
     RegPluginLibrary("tf2_archipelago");
     return APLRes_Success;
 }
@@ -428,6 +431,7 @@ public void Event_BeginWave(Event event, const char[] name, bool dontBroadcast)
     Bots_OnWaveBegin();
     MissionModifiers_AnnounceWave();
     g_CurrentWave = event.GetInt("wave_index") + 1;
+    Bots_PublishDirective();
     MissionModifiers_OnWaveBegin(g_CurrentWave);
     g_MaxWaves = event.GetInt("max_waves");
     g_PolledWave = g_CurrentWave;
