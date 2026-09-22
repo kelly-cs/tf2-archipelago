@@ -152,6 +152,7 @@ void Bots_OnMapStart()
 
 public Action Timer_VillaEscort(Handle timer)
 {
+    float now = GetEngineTime();
     // Villa's scripted finale can continue after the game marks wave 6 done.
     // The human player's arrival on the roof is the reliable phase signal.
     if (!MvM_IsActive())
@@ -186,14 +187,15 @@ public Action Timer_VillaEscort(Handle timer)
             break;
         }
     }
-    if (destinationEntity == -1)
+    // Villa's BSP names this destination, but the mission may remove that
+    // entity at runtime. These are its authored coordinates in the BSP.
+    float destination[3] = {-9024.0, 5056.0, 2448.0};
+    if (destinationEntity != -1)
     {
-        return Plugin_Continue;
+        GetEntPropVector(destinationEntity, Prop_Data, "m_vecAbsOrigin", destination);
     }
 
-    float now = GetEngineTime();
-    float botPosition[3], destination[3];
-    GetEntPropVector(destinationEntity, Prop_Data, "m_vecAbsOrigin", destination);
+    float botPosition[3];
     // The roof destination exists before the finale. Villa moves human players
     // there only when the boss enters its final phase, so follow that signal.
     bool playerOnRoof = false;
