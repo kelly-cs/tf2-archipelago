@@ -31,7 +31,8 @@
 #define SyringeUberOnHitFraction 0.01
 #define AmmoOnHitEffect 69
 #define NoSelfBlastEffect 62
-#define SelfBlastDamageAttribute "blast dmg to self increased"
+#define NoSelfBlastAttribute "no self blast dmg"
+#define LegacySelfBlastDamageAttribute "blast dmg to self increased"
 #define RocketJumpProtectionEffect 72
 // What one level of rocket-jump protection takes off self-inflicted blast damage.
 #define RocketJumpProtectionPerLevel 0.25
@@ -2692,12 +2693,10 @@ static int WeaponBuffs_Provider(int client, int weaponEntity)
     return provider;
 }
 
-// Attribute 181 (no self blast dmg) changes rockets and grenades to the
-// Jumper explosion particle as well as suppressing damage. Attribute 207 is
-// the independent self-blast damage multiplier: zeroing it in TF2's native
-// damage rules retains the ordinary explosion, blast-jump force and
-// conditions. Keep it on every loadout weapon so a projectile still has the
-// attribute after its owner switches.
+// TF2's native no-self-blast attribute preserves the blast-jump impulse while
+// suppressing self damage. The old zero self-damage multiplier also removed
+// the launch force. Keep this on every loadout weapon so a projectile still
+// has the attribute after its owner switches.
 static void WeaponBuffs_SyncNativeSelfBlast(int client, bool removeAll)
 {
     for (int slot = 0; slot <= 5; slot++)
@@ -2707,12 +2706,13 @@ static void WeaponBuffs_SyncNativeSelfBlast(int client, bool removeAll)
         {
             continue;
         }
-        TF2Attrib_RemoveByName(entity, SelfBlastDamageAttribute);
+        TF2Attrib_RemoveByName(entity, LegacySelfBlastDamageAttribute);
+        TF2Attrib_RemoveByName(entity, NoSelfBlastAttribute);
         int weapon = WeaponBuffs_ForEntity(entity);
         if (!removeAll && weapon >= 0
             && g_WeaponEffectLevels[weapon][NoSelfBlastEffect] > 0)
         {
-            if (!TF2Attrib_SetByName(entity, SelfBlastDamageAttribute, 0.0))
+            if (!TF2Attrib_SetByName(entity, NoSelfBlastAttribute, 1.0))
             {
                 LogError("Could not apply native no-self-blast effect to %s.",
                     g_WeaponNames[weapon]);
