@@ -32,6 +32,7 @@ func TestClassifyWave(t *testing.T) {
 		want   string
 	}{
 		{"pass", probeStatus{State: "passed", BotSpawns: 1}, nil, "passed"},
+		{"single tank boss", probeStatus{State: "passed", TankSpawns: 1}, nil, "passed"},
 		{"game loss", probeStatus{State: "failed", Reason: "wave_failed", BotSpawns: 1}, errors.New("lost"), "wave failed"},
 		{"wave zero", probeStatus{State: "running", GameWave: 0, BotSpawns: 1}, errWaveZero, "wave 0"},
 		{"empty wave", probeStatus{State: "passed"}, nil, "no enemies spawned"},
@@ -49,10 +50,36 @@ func TestClassifyWave(t *testing.T) {
 	}
 }
 
+func TestLoadFailureRequiresObservedOldMap(t *testing.T) {
+	before := probeStatus{Map: "mvm_decoy", Pop: "mvm_decoy_advanced"}
+	after := probeStatus{Map: "mvm_decoy", Pop: "mvm_decoy_advanced", State: "idle"}
+	change := classifyMapChange("mvm_deathpour_rc1", before, after,
+		"map change was rejected", nil, errors.New("timed out"))
+	row := loadFailure("mvm_deathpour_rc1_int_technical_terror", "mvm_deathpour_rc1", "normal", change)
+	if row.Outcome != "changelevel failure" || row.Changelevel == nil ||
+		row.Changelevel.AfterMap != "mvm_decoy" || row.Changelevel.CommandReply != "map change was rejected" {
+		t.Fatalf("changelevel evidence lost: %+v", row)
+	}
+	blocked := loadFailure("mission", "mvm_deathpour_rc1", "normal", errors.New("RCON unavailable"))
+	if blocked.Outcome != "load blocked" || blocked.Changelevel != nil {
+		t.Fatalf("unobserved map change called a changelevel failure: %+v", blocked)
+	}
+	after.Map = "mvm_deathpour_rc1"
+	if err := classifyMapChange("mvm_deathpour_rc1", before, after, "", nil, errors.New("late status")); err == nil {
+		t.Fatal("late status error disappeared")
+	} else if row := loadFailure("mission", "mvm_deathpour_rc1", "normal", err); row.Outcome != "load blocked" {
+		t.Fatalf("arrived map called a changelevel failure: %+v", row)
+	}
+}
+
 func TestProbeClassName(t *testing.T) {
 	medic, ok := gamedata.MissionByPopFile("mvm_chateau_rc3_adv_remedic")
 	if !ok || probeClassName(medic) != "medic" {
 		t.Fatalf("Remedic probe class: found=%v class=%q", ok, probeClassName(medic))
+	}
+	recalled, ok := gamedata.MissionByPopFile("mvm_villa_b13f_adv_recalled_to_life")
+	if !ok || probeClassName(recalled) != "medic" {
+		t.Fatalf("Recalled to Life probe class: found=%v class=%q", ok, probeClassName(recalled))
 	}
 	regular, ok := gamedata.MissionByPopFile("mvm_decoy_advanced3")
 	if !ok || probeClassName(regular) != "scout" {

@@ -13,6 +13,28 @@ spec.loader.exec_module(report)
 
 
 class ReportOutcomeTest(unittest.TestCase):
+    def test_changelevel_failure_is_counted_and_shows_map_evidence(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = pathlib.Path(folder)
+            case = {"mission": "mission", "map": "mvm_deathpour_rc1", "mode": "normal", "wave": 5}
+            (root / "plan.jsonl").write_text(json.dumps({**case, "state": "planned"}) + "\n")
+            (root / "shard-0.jsonl").write_text(json.dumps({**case, "state": "failed",
+                "outcome": "wave timed out", "bot_spawns": 82}) + "\n")
+            evidence = {"requested_map": "mvm_deathpour_rc1", "before_map": "mvm_decoy",
+                        "before_pop": "mvm_decoy_advanced", "after_map": "mvm_decoy",
+                        "after_pop": "mvm_decoy_advanced", "after_state": "idle",
+                        "command_reply": "rejected"}
+            (root / "retest-0.jsonl").write_text(json.dumps({**case, "state": "load_failed",
+                "outcome": "changelevel failure", "error": "map stayed on Decoy",
+                "changelevel": evidence}) + "\n")
+            output = io.StringIO()
+            with contextlib.redirect_stdout(output):
+                report.main(root)
+            summary = json.loads((root / "SUMMARY.json").read_text())
+            self.assertEqual(summary["outcomes"]["changelevel failure"], 1)
+            self.assertIn("Changelevel evidence: requested `mvm_deathpour_rc1`", output.getvalue())
+            self.assertIn("Reply: `rejected`", output.getvalue())
+
     def test_old_zero_kill_rows_do_not_claim_no_spawns(self):
         self.assertEqual(report.classify({"state": "failed", "outcome": "no enemies observed"}),
                          "inconclusive")

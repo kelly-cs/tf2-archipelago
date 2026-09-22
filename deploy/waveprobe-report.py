@@ -7,7 +7,7 @@ import pathlib
 import sys
 
 RESULTS = ("passed", "wave failed", "wave 0", "no enemies spawned",
-           "wave timed out", "probe error", "load blocked", "inconclusive",
+           "wave timed out", "probe error", "changelevel failure", "load blocked", "inconclusive",
            "not run", "reverse objective")
 MODES = {"normal": "Bot Surge off", "surge": "Bot Surge on"}
 
@@ -65,7 +65,7 @@ def load_results(run_dir):
     for path in files:
         for row in rows(path):
             key = row["mission"], row["mode"], row["wave"]
-            if row["state"] == "load_failed":
+            if row["state"] == "load_failed" and row["wave"] == 0:
                 load_errors[key[:2]] = row
             elif key not in observed or classify(row) == "passed" or classify(observed[key]) != "passed":
                 observed[key] = row
@@ -135,7 +135,9 @@ def main(run_dir):
     print("**Wave failed** is the game's loss event; **Wave 0** means the population manager did "
           "not initialize a wave; **No enemies spawned** means no BLU bot or tank was observed "
           "in a standard wave. **Wave timed out** means no completion after the real-time limit "
-          "despite observed enemies. Probe errors and load blocks are separate.\n")
+          "despite observed enemies. **Changelevel failure** means the responsive server "
+          "remained on a different map after the load deadline; the command reply and map "
+          "states are recorded below. Probe errors and other load blocks are separate.\n")
     print("| Mode | Stability | Passed | Tested | Eligible |\n| --- | ---: | ---: | ---: | ---: |")
     for mode in modes:
         part = per_mode[mode]
@@ -143,7 +145,7 @@ def main(run_dir):
               f"{part['passed']} | {part['tested']} | {part['eligible']} |")
     print()
 
-    issue_names = set(RESULTS[1:8])
+    issue_names = set(RESULTS[1:-2])
     issues = sorted((key for key, value in outcomes.items() if value in issue_names),
                     key=lambda key: (plan[key]["map"], key[0], key[2], key[1]))
     if issues:
@@ -177,6 +179,15 @@ def main(run_dir):
                 print("No wave timeline: the mission did not load or the probe did not start.")
             if row.get("error"):
                 print(f"\nReason: {safe(row['error'])[:500]}")
+            if row.get("changelevel"):
+                evidence = row["changelevel"]
+                print("\nChangelevel evidence: "
+                      f"requested `{safe(evidence['requested_map'])}`, "
+                      f"before `{safe(evidence['before_map'])}`/`{safe(evidence['before_pop'])}`, "
+                      f"after `{safe(evidence['after_map'])}`/`{safe(evidence['after_pop'])}` "
+                      f"(state `{safe(evidence['after_state'])}`). "
+                      f"Reply: `{safe(evidence.get('command_reply', ''))[:500]}`; "
+                      f"command error: `{safe(evidence.get('command_error', ''))[:500]}`.")
             print("\n</details>\n")
 
     if counts["not run"]:

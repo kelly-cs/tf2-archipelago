@@ -13,6 +13,30 @@ spec.loader.exec_module(retest)
 
 
 class RetestRecoveryTest(unittest.TestCase):
+    def test_changelevel_failure_keeps_evidence_for_requested_wave(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = pathlib.Path(folder)
+            (root / "config.txt").write_text("shards=1\nwave_timeout=1s\n")
+            case = {"mission": "mvm_deathpour_rc1_int_technical_terror", "map": "mvm_deathpour_rc1",
+                    "mode": "normal", "wave": 5}
+            (root / "plan.jsonl").write_text(json.dumps({**case, "state": "planned"}) + "\n")
+            (root / "shard-0.jsonl").write_text(json.dumps({**case, "state": "failed",
+                                                             "outcome": "wave timed out"}) + "\n")
+            evidence = {"requested_map": "mvm_deathpour_rc1", "before_map": "mvm_decoy",
+                        "before_pop": "mvm_decoy_advanced", "after_map": "mvm_decoy",
+                        "after_pop": "mvm_decoy_advanced", "after_state": "idle"}
+            load_row = {**case, "wave": 0, "state": "load_failed",
+                        "outcome": "changelevel failure", "error": "map remained on Decoy",
+                        "changelevel": evidence}
+            runner = root / "probe"
+            runner.write_text("#!/bin/sh\necho '" + json.dumps(load_row) + "'\n")
+            runner.chmod(0o755)
+            retest.main(root, runner, [0])
+            result = json.loads((root / "retest-0.jsonl").read_text())
+            self.assertEqual(result["wave"], 5)
+            self.assertEqual(result["outcome"], "changelevel failure")
+            self.assertEqual(result["changelevel"], evidence)
+
     def test_queue_spreads_map_loads(self):
         cases = [("a1", "map_a"), ("a2", "map_a"),
                  ("b1", "map_b"), ("b2", "map_b"),

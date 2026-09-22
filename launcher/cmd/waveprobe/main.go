@@ -72,25 +72,77 @@ type sample struct {
 }
 
 type result struct {
-	Mission     string   `json:"mission"`
-	Map         string   `json:"map"`
-	Mode        string   `json:"mode"`
-	Wave        int      `json:"wave"`
-	Seed        int      `json:"seed"`
-	State       string   `json:"state"`
-	Outcome     string   `json:"outcome,omitempty"`
-	Bots        int      `json:"bots"`
-	Tanks       int      `json:"tanks"`
-	BotSpawns   int      `json:"bot_spawns"`
-	TankSpawns  int      `json:"tank_spawns"`
-	Attempts    int      `json:"kill_attempts"`
-	Alive       int      `json:"alive_at_end"`
-	Remaining   int      `json:"remaining_at_end"`
-	Progress    float64  `json:"progress_percent"`
-	Seconds     float64  `json:"wall_seconds"`
-	GameSeconds float64  `json:"game_seconds,omitempty"`
-	Error       string   `json:"error,omitempty"`
-	Timeline    []sample `json:"timeline,omitempty"`
+	Mission     string               `json:"mission"`
+	Map         string               `json:"map"`
+	Mode        string               `json:"mode"`
+	Wave        int                  `json:"wave"`
+	Seed        int                  `json:"seed"`
+	State       string               `json:"state"`
+	Outcome     string               `json:"outcome,omitempty"`
+	Bots        int                  `json:"bots"`
+	Tanks       int                  `json:"tanks"`
+	BotSpawns   int                  `json:"bot_spawns"`
+	TankSpawns  int                  `json:"tank_spawns"`
+	Attempts    int                  `json:"kill_attempts"`
+	Alive       int                  `json:"alive_at_end"`
+	Remaining   int                  `json:"remaining_at_end"`
+	Progress    float64              `json:"progress_percent"`
+	Seconds     float64              `json:"wall_seconds"`
+	GameSeconds float64              `json:"game_seconds,omitempty"`
+	Error       string               `json:"error,omitempty"`
+	Timeline    []sample             `json:"timeline,omitempty"`
+	Changelevel *changelevelEvidence `json:"changelevel,omitempty"`
+}
+
+type changelevelEvidence struct {
+	RequestedMap string `json:"requested_map"`
+	BeforeMap    string `json:"before_map"`
+	BeforePop    string `json:"before_pop"`
+	AfterMap     string `json:"after_map"`
+	AfterPop     string `json:"after_pop"`
+	AfterState   string `json:"after_state"`
+	CommandReply string `json:"command_reply,omitempty"`
+	CommandError string `json:"command_error,omitempty"`
+}
+
+type changelevelError struct {
+	evidence changelevelEvidence
+	cause    error
+}
+
+func (e *changelevelError) Error() string {
+	return fmt.Sprintf("changelevel did not reach %s: before %s/%s, after %s/%s (%s); reply %q; command error %q; %v",
+		e.evidence.RequestedMap, e.evidence.BeforeMap, e.evidence.BeforePop,
+		e.evidence.AfterMap, e.evidence.AfterPop, e.evidence.AfterState,
+		e.evidence.CommandReply, e.evidence.CommandError, e.cause)
+}
+
+func classifyMapChange(target string, before, after probeStatus, reply string, commandErr, cause error) error {
+	if after.Map == target {
+		return cause
+	}
+	evidence := changelevelEvidence{
+		RequestedMap: target, BeforeMap: before.Map, BeforePop: before.Pop,
+		AfterMap: after.Map, AfterPop: after.Pop, AfterState: after.State,
+		CommandReply: strings.TrimSpace(reply),
+	}
+	if commandErr != nil {
+		evidence.CommandError = commandErr.Error()
+	}
+	return &changelevelError{evidence: evidence, cause: cause}
+}
+
+func loadFailure(mission, mapName, mode string, err error) result {
+	row := result{Mission: mission, Map: mapName, Mode: mode,
+		State: "load_failed", Outcome: "load blocked", Error: err.Error()}
+	if errors.Is(err, errWaveZero) {
+		row.Outcome = "wave 0"
+	}
+	if changeErr, ok := errors.AsType[*changelevelError](err); ok {
+		row.Outcome = "changelevel failure"
+		row.Changelevel = &changeErr.evidence
+	}
+	return row
 }
 
 func main() {
@@ -214,14 +266,7 @@ func runMissions(s *server, opt options, missions []gamedata.Mission, modes []st
 		}
 		for _, mode := range modes {
 			if err := s.load(played.Name, mission, mode, opt.loadWait, false); err != nil {
-				outcome := "load blocked"
-				if errors.Is(err, errWaveZero) {
-					outcome = "wave 0"
-				}
-				writeResult(result{
-					Mission: mission.PopFile, Map: played.Name, Mode: mode,
-					State: "load_failed", Outcome: outcome, Error: err.Error(),
-				})
+				writeResult(loadFailure(mission.PopFile, played.Name, mode, err))
 				failures++
 				if opt.failFast {
 					return fmt.Errorf("%d wave tests failed", failures)
@@ -267,14 +312,7 @@ func (s *server) runWaves(opt options, mapName string, mission gamedata.Mission,
 		// The failed wave may still be running. Reload the mission and jump
 		// ahead so later waves are tested independently too.
 		if err := s.load(mapName, mission, mode, opt.loadWait, true); err != nil {
-			outcome := "load blocked"
-			if errors.Is(err, errWaveZero) {
-				outcome = "wave 0"
-			}
-			writeResult(result{
-				Mission: mission.PopFile, Map: mapName, Mode: mode,
-				State: "load_failed", Outcome: outcome, Error: err.Error(),
-			})
+			writeResult(loadFailure(mission.PopFile, mapName, mode, err))
 			failures++
 			break
 		}
@@ -518,13 +556,24 @@ func (s *server) load(mapName string, mission gamedata.Mission, mode string, tim
 	if forceMapReload || status.Map != mapName {
 		// The server may drop the RCON connection as changelevel runs. The
 		// status poll, rather than that connection, determines success.
-		_, _ = s.exec("changelevel " + mapName)
+		changeReply, changeErr := s.exec("changelevel " + mapName)
 		if forceMapReload {
 			// A same-map status check can otherwise succeed before changelevel
 			// has actually restarted the population manager.
 			time.Sleep(2 * time.Second)
 		}
 		if err := s.await(timeout, func(st probeStatus) bool { return st.Map == mapName }); err != nil {
+			// A responsive server still on the old map is direct evidence that
+			// changelevel did not complete. Preserve the command reply and both
+			// observed maps; a lost RCON connection alone is not that evidence.
+			after, statusErr := s.status()
+			if statusErr == nil && after.Map != mapName {
+				return classifyMapChange(mapName, status, after, changeReply, changeErr, err)
+			}
+			if statusErr != nil {
+				return fmt.Errorf("changelevel %s from %s/%s: reply %q, command error %s, final status error %w: %w",
+					mapName, status.Map, status.Pop, strings.TrimSpace(changeReply), fmt.Sprint(changeErr), statusErr, err)
+			}
 			return s.classifyLoadError(mapName, mission, err)
 		}
 		// Some missions initialize only after a player joins. configureMode

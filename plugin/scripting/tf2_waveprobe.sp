@@ -424,6 +424,29 @@ static void RegisterEnemyBot(int bot)
     g_BotDeadline[bot] = GetGameTime() + KillDelay();
     g_BotSpawns++;
     g_BotKillPending[bot] = false;
+    CreateTimer(0.1, Timer_MarkScriptedBot, userid, TIMER_FLAG_NO_MAPCHANGE);
+}
+
+// SigMod's TimerBot is a wave clock, not an enemy the player is meant to
+// defeat. Its "timer" tag is visible to VScript, so mark it through the same
+// RunScriptCode input the authored missions use and leave it alive while the
+// real room groups are cleared. The game retires it at wave completion.
+public Action Timer_MarkScriptedBot(Handle timer, any userid)
+{
+    int bot = GetClientOfUserId(userid);
+    if (bot > 0 && IsClientInGame(bot) && GetClientTeam(bot) == g_EnemyTeam)
+    {
+        SetVariantString("if (self.HasBotTag(\"timer\")) self.AcceptInput(\"AddOutput\", \"targetname waveprobe_timer\", null, null)");
+        AcceptEntityInput(bot, "RunScriptCode");
+    }
+    return Plugin_Stop;
+}
+
+static bool IsScriptedTimerBot(int bot)
+{
+    char name[64];
+    GetEntPropString(bot, Prop_Data, "m_iName", name, sizeof(name));
+    return StrEqual(name, "waveprobe_timer");
 }
 
 public void OnEntityCreated(int entity, const char[] classname)
@@ -515,7 +538,7 @@ public Action Timer_Probe(Handle timer)
             continue;
         }
         RegisterEnemyBot(bot);
-        if (now >= g_BotDeadline[bot])
+        if (!IsScriptedTimerBot(bot) && now >= g_BotDeadline[bot])
         {
             g_BotKillPending[bot] = true;
             g_KillAttempts++;
