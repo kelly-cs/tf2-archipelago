@@ -48,6 +48,12 @@ ArrayList g_UpgradeNames;
 // When the next fill may ask, so that one ask is not made five times over.
 float g_NextFill;
 
+// Villa's roof boss arena has no NAV connection from the ordinary map. Its
+// scripted player teleport skips bots, so late-spawning defenders need the
+// same one-way transfer. The house and ghost rooms have NAV routes and are
+// left to the defender mod's normal movement.
+float g_NextVillaEscort[MAXPLAYERS + 1];
+
 /* How long an ask is given to become a player before another one is made.
  *
  * A bot asked for is not a bot on RED: sm_addbots connects one, which takes a
@@ -88,6 +94,7 @@ void Bots_Init()
     // No TIMER_FLAG_NO_MAPCHANGE on either: they must outlive every map change.
     CreateTimer(BotReadyInterval, Timer_HoldBotsReady, _, TIMER_REPEAT);
     CreateTimer(BotFillInterval, Timer_FillTeam, _, TIMER_REPEAT);
+    CreateTimer(2.0, Timer_VillaEscort, _, TIMER_REPEAT);
 }
 
 void Bots_OnConfigsExecuted()
@@ -137,6 +144,72 @@ void Bots_OnMapStart()
     // The clock this is measured against restarts with the map, so a deadline
     // left over from a long one would hold the fill off on the next.
     g_NextFill = 0.0;
+    for (int client = 1; client <= MaxClients; client++)
+    {
+        g_NextVillaEscort[client] = 0.0;
+    }
+}
+
+public Action Timer_VillaEscort(Handle timer)
+{
+    if (!MvM_IsActive() || GameRules_GetRoundState() != RoundState_RoundRunning
+        || MvM_WaveFromGame() != 6)
+    {
+        return Plugin_Continue;
+    }
+    char map[64];
+    GetCurrentMap(map, sizeof(map));
+    if (!StrEqual(map, "mvm_villa_b13f"))
+    {
+        return Plugin_Continue;
+    }
+    char pop[PLATFORM_MAX_PATH];
+    if (!MvM_PopFile(pop, sizeof(pop))
+        || !StrEqual(pop, "mvm_villa_b13f_adv_recalled_to_life"))
+    {
+        return Plugin_Continue;
+    }
+
+    int destinationEntity = -1;
+    for (int entity = MaxClients + 1; entity < GetMaxEntities(); entity++)
+    {
+        if (!IsValidEntity(entity))
+        {
+            continue;
+        }
+        char name[40];
+        GetEntPropString(entity, Prop_Data, "m_iName", name, sizeof(name));
+        if (StrEqual(name, "roof_player_destination"))
+        {
+            destinationEntity = entity;
+            break;
+        }
+    }
+    if (destinationEntity == -1)
+    {
+        return Plugin_Continue;
+    }
+
+    float now = GetEngineTime();
+    float botPosition[3], destination[3];
+    GetEntPropVector(destinationEntity, Prop_Data, "m_vecAbsOrigin", destination);
+    for (int bot = 1; bot <= MaxClients; bot++)
+    {
+        if (!MvM_IsDefender(bot) || !IsFakeClient(bot) || IsClientSourceTV(bot)
+            || !IsPlayerAlive(bot) || now < g_NextVillaEscort[bot])
+        {
+            continue;
+        }
+        GetClientAbsOrigin(bot, botPosition);
+        if (GetVectorDistance(botPosition, destination) < 650.0)
+        {
+            continue;
+        }
+        TeleportEntity(bot, destination, NULL_VECTOR, NULL_VECTOR);
+        g_NextVillaEscort[bot] = now + 10.0;
+        AP_Debug("Villa moved defender %N to the disconnected roof arena.", bot);
+    }
+    return Plugin_Continue;
 }
 
 void Bots_OnWaveBegin()

@@ -249,7 +249,9 @@ static void OnVersionChecked(HTTPResponse response, any value, const char[] erro
         return;
     }
     AP_Debug("The bridge answered, API version %d.", version);
-    g_TestRunCanChange = health.GetBool("test_mode");
+    // Older API v5 bridges do not send this optional field. Treat their runs
+    // as fixed rather than throwing during plugin startup.
+    g_TestRunCanChange = health.HasKey("test_mode") && health.GetBool("test_mode");
     Bridge_NoteRunSeed(health);
 }
 
