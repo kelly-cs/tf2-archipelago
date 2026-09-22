@@ -64,6 +64,8 @@ public void OnPluginStart()
         "Arm a wave test: sm_waveprobe_arm <wave> [seed]");
     RegAdminCmd("sm_waveprobe_status", Command_Status, ADMFLAG_ROOT,
         "Print machine-readable wave test state");
+    RegAdminCmd("sm_waveprobe_debug", Command_Debug, ADMFLAG_ROOT,
+        "Print a snapshot of the wave and living invaders");
     RegAdminCmd("sm_waveprobe_reset", Command_Reset, ADMFLAG_ROOT,
         "Stop the wave test, retaining its fake player client");
     RegAdminCmd("sm_waveprobe_wake", Command_Wake, ADMFLAG_ROOT,
@@ -333,6 +335,41 @@ public Action Command_Status(int client, int argc)
         g_Defender > 0 && IsClientInGame(g_Defender) ? view_as<int>(TF2_GetPlayerClass(g_Defender)) : 0,
         g_PlayerTeam, g_EnemyTeam,
         GetGameTime() - (g_StartedAt > 0.0 ? g_StartedAt : g_ArmedAt));
+    return Plugin_Handled;
+}
+
+public Action Command_Debug(int client, int argc)
+{
+    int resource = FindEntityByClassname(-1, "tf_objective_resource");
+    int wave = resource == -1 ? -1 : GetEntProp(resource, Prop_Send, "m_nMannVsMachineWaveCount");
+    int remaining = resource == -1 ? -1 : GetEntProp(resource, Prop_Send, "m_nMannVsMachineWaveEnemyCount");
+    ConVar timescale = FindConVar("host_timescale");
+    ReplyToCommand(client,
+        "WAVEPROBE_DEBUG state=%d wave=%d expected=%d game=%.1f engine=%.1f timescale=%.1f remaining=%d spawns=%d kills=%d attempts=%d defender=%d",
+        view_as<int>(g_State), wave, g_ExpectedWave, GetGameTime(), GetEngineTime(),
+        timescale == null ? -1.0 : timescale.FloatValue, remaining,
+        g_BotSpawns + g_TankSpawns, g_BotKills + g_TankKills, g_KillAttempts, g_Defender);
+    int listed;
+    int alive;
+    for (int bot = 1; bot <= MaxClients; bot++)
+    {
+        if (!IsClientInGame(bot) || GetClientTeam(bot) != g_EnemyTeam || !IsPlayerAlive(bot))
+        {
+            continue;
+        }
+        alive++;
+        if (listed++ >= 12) continue;
+        char name[64];
+        float origin[3];
+        GetClientName(bot, name, sizeof(name));
+        GetClientAbsOrigin(bot, origin);
+        ReplyToCommand(client,
+            "WAVEPROBE_BOT client=%d userid=%d class=%d hp=%d timer=%d deadline=%.1f origin=%.0f,%.0f,%.0f name=%s",
+            bot, GetClientUserId(bot), view_as<int>(TF2_GetPlayerClass(bot)), GetClientHealth(bot),
+            IsScriptedTimerBot(bot), g_BotDeadline[bot] - GetGameTime(),
+            origin[0], origin[1], origin[2], name);
+    }
+    ReplyToCommand(client, "WAVEPROBE_DEBUG_END alive=%d listed=%d", alive, listed < 12 ? listed : 12);
     return Plugin_Handled;
 }
 

@@ -109,6 +109,8 @@ def main(run_dir):
     (run_dir / "SUMMARY.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
 
     print("# MvM wave smoke probe\n")
+    if settings.get("scope"):
+        print(f"Subset: {safe(settings['scope'])}.\n")
     print(f"## Stability score: **{pct(passed, tested)}** ({passed}/{tested} tested wave/mode cases passed)\n")
     print(f"**Verified coverage:** {pct(passed, eligible)} ({passed}/{eligible} eligible cases); "
           f"**tested:** {tested}/{eligible}; **missions:** {len({key[0] for key in plan})}. "
@@ -179,6 +181,10 @@ def main(run_dir):
                 print("No wave timeline: the mission did not load or the probe did not start.")
             if row.get("error"):
                 print(f"\nReason: {safe(row['error'])[:500]}")
+            if row.get("debug_snapshot"):
+                print("\nFailure snapshot:\n\n```text")
+                print(row["debug_snapshot"][:3000])
+                print("```")
             if row.get("changelevel"):
                 evidence = row["changelevel"]
                 print("\nChangelevel evidence: "

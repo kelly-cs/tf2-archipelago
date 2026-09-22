@@ -90,6 +90,7 @@ type result struct {
 	Seconds     float64              `json:"wall_seconds"`
 	GameSeconds float64              `json:"game_seconds,omitempty"`
 	Error       string               `json:"error,omitempty"`
+	Debug       string               `json:"debug_snapshot,omitempty"`
 	Timeline    []sample             `json:"timeline,omitempty"`
 	Changelevel *changelevelEvidence `json:"changelevel,omitempty"`
 }
@@ -356,6 +357,11 @@ func (s *server) recordWave(opt options, mapName string, mission gamedata.Missio
 			row.Error = "the wave completed without an observed enemy spawn"
 		}
 		row.Timeline = timeline
+		if snapshot, debugErr := s.exec("sm_waveprobe_debug"); debugErr == nil {
+			row.Debug = strings.TrimSpace(snapshot)
+		} else {
+			row.Debug = "debug snapshot unavailable: " + debugErr.Error()
+		}
 	}
 	writeResult(row)
 	if row.Outcome == "passed" {
