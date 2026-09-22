@@ -53,6 +53,7 @@
 #define BuffMode_Toggle 3
 
 int g_WeaponEffectLevels[WeaponCount][WeaponEffectCount];
+int g_WeaponBuffSelfBlastHealth[MAXPLAYERS + 1];
 int g_WeaponBuffProviderRef[MAXPLAYERS + 1];
 float g_WeaponBuffProviderRetryAt[MAXPLAYERS + 1];
 bool g_WeaponBuffAtUpgradeStation[MAXPLAYERS + 1];
@@ -612,8 +613,11 @@ void WeaponBuffs_HookClient(int client)
     g_WeaponBuffProjectileDestructionReadyAt[client] = 0.0;
     g_WeaponBuffLastSubstanceWeapon[client] = -1;
     g_WeaponBuffLastSubstanceTime[client] = 0.0;
+    g_WeaponBuffSelfBlastHealth[client] = 0;
     SDKUnhook(client, SDKHook_OnTakeDamage, WeaponBuffs_OnTakeDamage);
     SDKHook(client, SDKHook_OnTakeDamage, WeaponBuffs_OnTakeDamage);
+    SDKUnhook(client, SDKHook_OnTakeDamageAlivePost, WeaponBuffs_OnTakeDamageAlivePost);
+    SDKHook(client, SDKHook_OnTakeDamageAlivePost, WeaponBuffs_OnTakeDamageAlivePost);
     SDKUnhook(client, SDKHook_OnTakeDamagePost, WeaponBuffs_OnTakeDamagePost);
     SDKHook(client, SDKHook_OnTakeDamagePost, WeaponBuffs_OnTakeDamagePost);
     SDKUnhook(client, SDKHook_WeaponSwitchPost, WeaponBuffs_WeaponSwitchPost);
@@ -2344,11 +2348,9 @@ bool WeaponBuffs_HasRevealOnHit(int attacker, int inflictor, int weapon, int dam
             && TF2Attrib_HookValueInt(0, "reveal_cloaked_victim_on_hit", weapon) > 0);
 }
 
-// Scale self-inflicted blast damage for rocket-jump protection. Do not turn
-// no-self-blast into a zero-damage SDKHook event here: TF2 stops processing a
-// zero-damage event before it applies the explosion's push. The launcher
-// multiplier installed below lets TF2's damage rules zero health damage after
-// the explosion and its force have already been established.
+// Scale self-inflicted blast damage for rocket-jump protection. TF2 scales
+// away the blast impulse when this event's damage is reduced to zero (or near
+// zero), so no-self-blast restores health after damage processing instead.
 public Action WeaponBuffs_OnTakeDamage(int victim, int &attacker, int &inflictor,
     float &damage, int &damagetype, int &weapon, float damageForce[3],
     float damagePosition[3], int damagecustom)
@@ -2382,6 +2384,18 @@ public Action WeaponBuffs_OnTakeDamage(int victim, int &attacker, int &inflictor
     {
         return Plugin_Continue;
     }
+    if (g_WeaponEffectLevels[catalog][NoSelfBlastEffect] > 0)
+    {
+        int health = GetClientHealth(victim);
+        g_WeaponBuffSelfBlastHealth[victim] = health;
+        // Let the full damage determine push, but prevent a lethal hit before
+        // the alive-post hook can refund it.
+        if (damage >= float(health))
+        {
+            SetEntityHealth(victim, health + RoundToCeil(damage));
+        }
+        return Plugin_Continue;
+    }
     int levels = g_WeaponEffectLevels[catalog][RocketJumpProtectionEffect];
     if (levels <= 0)
     {
@@ -2394,6 +2408,19 @@ public Action WeaponBuffs_OnTakeDamage(int victim, int &attacker, int &inflictor
     }
     damage *= kept;
     return Plugin_Changed;
+}
+
+public void WeaponBuffs_OnTakeDamageAlivePost(int victim, int attacker, int inflictor,
+    float damage, int damagetype, int weapon, const float damageForce[3],
+    const float damagePosition[3], int damagecustom)
+{
+    int health = g_WeaponBuffSelfBlastHealth[victim];
+    g_WeaponBuffSelfBlastHealth[victim] = 0;
+    if (health > 0 && victim == attacker && (damagetype & DMG_BLAST)
+        && IsClientInGame(victim) && IsPlayerAlive(victim))
+    {
+        SetEntityHealth(victim, health);
+    }
 }
 
 public void WeaponBuffs_OnTakeDamagePost(int victim, int attacker, int inflictor,
