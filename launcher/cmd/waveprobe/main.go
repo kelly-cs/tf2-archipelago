@@ -133,8 +133,10 @@ func classifyMapChange(target string, before, after probeStatus, reply string, c
 }
 
 func loadFailure(mission, mapName, mode string, err error) result {
-	row := result{Mission: mission, Map: mapName, Mode: mode,
-		State: "load_failed", Outcome: "load blocked", Error: err.Error()}
+	row := result{
+		Mission: mission, Map: mapName, Mode: mode,
+		State: "load_failed", Outcome: "load blocked", Error: err.Error(),
+	}
 	if errors.Is(err, errWaveZero) {
 		row.Outcome = "wave 0"
 	}
