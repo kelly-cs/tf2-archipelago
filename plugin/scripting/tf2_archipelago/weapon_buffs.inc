@@ -72,6 +72,7 @@ Handle g_WeaponBuffProjectileSetDamage;
 Handle g_WeaponBuffProjectileSetLauncher;
 Handle g_WeaponBuffFlareAdd;
 bool g_WeaponBuffNativeExtra[2049];
+bool g_WeaponBuffEnergyExtraHit[2049];
 float g_WeaponBuffNativeExtraBorn[2049];
 bool g_WeaponBuffArrowExtra[2049];
 bool g_WeaponBuffArrowTouched[2049];
@@ -662,6 +663,7 @@ public void OnEntityCreated(int entity, const char[] classname)
         return;
     }
     g_WeaponBuffNativeExtra[entity] = g_WeaponBuffFiringExtra;
+    g_WeaponBuffEnergyExtraHit[entity] = false;
     g_WeaponBuffNativeExtraBorn[entity] = GetGameTime();
     g_WeaponBuffArrowExtra[entity] = false;
     g_WeaponBuffArrowTouched[entity] = false;
@@ -1300,6 +1302,7 @@ public void OnEntityDestroyed(int entity)
                 entity, GetGameTime() - g_WeaponBuffNativeExtraBorn[entity]);
         }
         g_WeaponBuffNativeExtra[entity] = false;
+        g_WeaponBuffEnergyExtraHit[entity] = false;
         g_WeaponBuffArrowExtra[entity] = false;
         g_WeaponBuffArrowTouched[entity] = false;
         g_WeaponBuffProjectileDestructionHits[entity] = 0;
@@ -1724,7 +1727,7 @@ static void WeaponBuffs_CopyDataFloat(int source, int extra, const char[] proper
 }
 
 static int WeaponBuffs_CloneProjectile(int source, const char[] classname, int owner,
-    int launcher, const float origin[3], const float angles[3], const float velocity[3])
+    int launcher, float damage, const float origin[3], const float angles[3], const float velocity[3])
 {
     g_WeaponBuffFiringExtra = true;
     int extra = CreateEntityByName(classname);
@@ -1738,6 +1741,9 @@ static int WeaponBuffs_CloneProjectile(int source, const char[] classname, int o
     // Projectile type selects the correct model and behavior for arrows,
     // healing bolts and the festive variants, and must be set before Spawn.
     WeaponBuffs_CopySendInt(source, extra, "m_iProjectileType");
+    // Cow Mangler's charged energy ball initializes its damage behavior in
+    // Spawn; copying the charge flag afterward produces a visible dud.
+    WeaponBuffs_CopySendInt(source, extra, "m_bChargedShot");
     bool isFlare = StrEqual(classname, "tf_projectile_flare", false);
     if (isFlare && HasEntProp(extra, Prop_Send, "m_hOwnerEntity"))
     {
@@ -1780,6 +1786,13 @@ static int WeaponBuffs_CloneProjectile(int source, const char[] classname, int o
     WeaponBuffs_CopySendInt(source, extra, "m_bChargedShot");
     WeaponBuffs_CopySendInt(source, extra, "m_CollisionGroup");
     WeaponBuffs_CopyDataFloat(source, extra, "m_flDamage");
+    if (StrEqual(classname, "tf_projectile_energy_ball", false)
+        && g_WeaponBuffProjectileSetDamage != null)
+    {
+        // Energy balls hold damage in CTFBaseProjectile's private field, not
+        // m_flDamage. A spawned clone otherwise explodes without hurting.
+        SDKCall(g_WeaponBuffProjectileSetDamage, extra, damage);
+    }
     WeaponBuffs_CopyDataFloat(source, extra, "m_flDamageRadius");
     WeaponBuffs_CopyDataFloat(source, extra, "m_flDetonateTime");
     WeaponBuffs_CopyDataFloat(source, extra, "m_flCreationTime");
@@ -1799,7 +1812,39 @@ static int WeaponBuffs_CloneProjectile(int source, const char[] classname, int o
     SetEntityMoveType(extra, GetEntityMoveType(source));
     SetEntityGravity(extra, GetEntityGravity(source));
     TeleportEntity(extra, origin, angles, velocity);
+    if (StrEqual(classname, "tf_projectile_energy_ball", false))
+    {
+        SDKHook(extra, SDKHook_Touch, WeaponBuffs_EnergyBallTouch);
+    }
     return extra;
+}
+
+public Action WeaponBuffs_EnergyBallTouch(int entity, int other)
+{
+    if (g_WeaponBuffEnergyExtraHit[entity] || other < 1 || other > MaxClients
+        || !IsClientInGame(other) || !IsPlayerAlive(other))
+    {
+        return Plugin_Continue;
+    }
+    int owner = WeaponBuffs_EntityOwner(entity);
+    if (owner < 1 || owner > MaxClients || !IsClientInGame(owner)
+        || GetClientTeam(owner) == GetClientTeam(other))
+    {
+        return Plugin_Continue;
+    }
+    // TF2's native energy-ball Touch is not initialized by DispatchSpawn on a
+    // cloned entity. Deal the original projectile's direct hit once ourselves.
+    g_WeaponBuffEnergyExtraHit[entity] = true;
+    int launcher = HasEntProp(entity, Prop_Send, "m_hLauncher")
+        ? GetEntPropEnt(entity, Prop_Send, "m_hLauncher") : -1;
+    float damage = g_WeaponBuffProjectileGetDamage != null
+        ? view_as<float>(SDKCall(g_WeaponBuffProjectileGetDamage, entity)) : 0.0;
+    if (damage > 0.0)
+    {
+        SDKHooks_TakeDamage(other, entity, owner, damage, DMG_BLAST, launcher);
+    }
+    RequestFrame(WeaponBuffs_RemoveEntityFrame, EntIndexToEntRef(entity));
+    return Plugin_Continue;
 }
 
 static int WeaponBuffs_FireMimicProjectile(int mimicType, int owner,
@@ -2302,7 +2347,7 @@ static void WeaponBuffs_FireExtraProjectiles(any reference)
                 }
             }
             extra = WeaponBuffs_CloneProjectile(source, classname, owner, launcher,
-                extraOrigin, angles, velocity);
+                damage, extraOrigin, angles, velocity);
         }
         if (extra <= MaxClients || !IsValidEntity(extra))
         {
