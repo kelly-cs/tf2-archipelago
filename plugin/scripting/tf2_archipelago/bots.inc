@@ -193,6 +193,27 @@ public Action Timer_VillaEscort(Handle timer)
     float now = GetEngineTime();
     float botPosition[3], destination[3];
     GetEntPropVector(destinationEntity, Prop_Data, "m_vecAbsOrigin", destination);
+    // The roof destination exists before the finale. Villa moves human players
+    // there only when the boss enters its final phase, so follow that signal.
+    bool playerOnRoof = false;
+    for (int client = 1; client <= MaxClients; client++)
+    {
+        if (!IsClientInGame(client) || IsFakeClient(client) || !IsPlayerAlive(client)
+            || !MvM_IsDefender(client))
+        {
+            continue;
+        }
+        GetClientAbsOrigin(client, botPosition);
+        if (GetVectorDistance(botPosition, destination) < 1200.0)
+        {
+            playerOnRoof = true;
+            break;
+        }
+    }
+    if (!playerOnRoof)
+    {
+        return Plugin_Continue;
+    }
     for (int bot = 1; bot <= MaxClients; bot++)
     {
         if (!MvM_IsDefender(bot) || !IsFakeClient(bot) || IsClientSourceTV(bot)
