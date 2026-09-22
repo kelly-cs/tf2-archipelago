@@ -290,8 +290,28 @@ class TF2MvMWorld(World):
         self.missionsanity_target = max(1, math.ceil(len(self.missions) * share))
 
         requirement = REQUIREMENTS[self.start_mission.difficulty]
-        classes = self._start_classes(requirement.classes)
-        if self.options.class_weapon_slots.value == ANY_ORDER:
+        tickets = (
+            [data.TICKET_NAMES[mission.id] for mission in self.missions]
+            if self.options.mission_ticket_importance.current_key == "disabled"
+            else [data.TICKET_NAMES[self.start_mission.id]]
+        )
+        classes = (
+            list(data.CLASS_NAMES)
+            if self.options.class_unlock_importance.current_key == "disabled"
+            else self._start_classes(requirement.classes)
+        )
+        if self.options.weapon_slot_importance.current_key == "disabled":
+            if self.options.class_weapon_slots.value == ANY_ORDER:
+                slots = [name for names in data.CLASS_NAMED_SLOT_ITEMS.values() for name in names]
+            elif self.options.class_weapon_slots.value:
+                slots = [
+                    name
+                    for name in data.CLASS_SLOT_ITEMS.values()
+                    for _ in range(data.CLASS_SLOT_COUNT)
+                ]
+            else:
+                slots = [data.PROGRESSIVE_WEAPON_SLOT] * data.WEAPON_SLOT_COUNT
+        elif self.options.class_weapon_slots.value == ANY_ORDER:
             # Named slots are still handed out in the class's own order to
             # start with: the tier says how many, and the first of a class's
             # order is the one it is played with.
@@ -310,7 +330,7 @@ class TF2MvMWorld(World):
             ]
         else:
             slots = [data.PROGRESSIVE_WEAPON_SLOT] * requirement.slots
-        self.start_items = [data.TICKET_NAMES[self.start_mission.id], *classes, *slots]
+        self.start_items = [*tickets, *classes, *slots]
 
     def _asked_start_mission(self, available: list[data.Mission]) -> data.Mission | None:
         """The mission start_mission names, or None for the easiest one drawn."""
@@ -417,6 +437,7 @@ class TF2MvMWorld(World):
             self.create_item(data.TICKET_NAMES[mission.id])
             for mission in self.missions
             if mission is not self.start_mission
+            and self.options.mission_ticket_importance.current_key != "disabled"
         ]
         pool += [
             self.create_item(name) for name in data.CLASS_NAMES if name not in self.start_items
@@ -452,8 +473,10 @@ class TF2MvMWorld(World):
         open_slots -= trap_count
 
         # Numeric buff permutations may repeat as levels; toggles remain unique.
-        buff_count = open_slots
-        if self.options.cash_rewards.value:
+        buff_count = (
+            0 if self.options.weapon_buff_importance.current_key == "disabled" else open_slots
+        )
+        if self.options.cash_rewards.value and buff_count:
             buff_count = math.ceil(open_slots * self.options.weapon_buff_percentage.value / 100)
         if self.options.weapon_buff_importance.current_key == "progression":
             buff_count = max(buff_count, max(BUFF_REQUIREMENTS.values()))
@@ -508,7 +531,10 @@ class TF2MvMWorld(World):
         item = data.ITEMS_BY_NAME[name]
         classification = item.classification
         if option_name := IMPORTANCE_OPTION_BY_KIND.get(item.kind):
-            classification = getattr(self.options, option_name).current_key
+            mode = getattr(self.options, option_name).current_key
+            # Archipelago only collects advancement items into logic state.
+            # Disabled unlocks are all precollected, never placed in the pool.
+            classification = "progression" if mode == "disabled" else mode
         return TF2MvMItem(name, CLASSIFICATIONS[classification], item.id, self.player)
 
     def get_filler_item_name(self) -> str:
@@ -586,13 +612,27 @@ class TF2MvMWorld(World):
         if start is None:
             start = min(missions, key=self._tier_order)
         requirement = REQUIREMENTS[start.difficulty]
-        if self.options.class_weapon_slots.value:
-            slot_unlocks = len(
-                data.CLASS_SLOT_ITEMS
-            ) * data.CLASS_SLOT_COUNT - requirement.classes * (requirement.slots - 1)
+        if self.options.weapon_slot_importance.current_key == "disabled":
+            slot_unlocks = 0
+        elif self.options.class_weapon_slots.value:
+            slot_unlocks = len(data.CLASS_SLOT_ITEMS) * data.CLASS_SLOT_COUNT - (
+                len(data.CLASS_NAMES)
+                if self.options.class_unlock_importance.current_key == "disabled"
+                else requirement.classes
+            ) * (requirement.slots - 1)
         else:
             slot_unlocks = data.WEAPON_SLOT_COUNT - requirement.slots
-        unlocks = len(missions) - 1 + len(data.CLASS_NAMES) - requirement.classes + slot_unlocks
+        ticket_unlocks = (
+            0
+            if self.options.mission_ticket_importance.current_key == "disabled"
+            else len(missions) - 1
+        )
+        class_unlocks = (
+            0
+            if self.options.class_unlock_importance.current_key == "disabled"
+            else len(data.CLASS_NAMES) - requirement.classes
+        )
+        unlocks = ticket_unlocks + class_unlocks + slot_unlocks
         if self.options.weapon_buff_importance.current_key == "progression":
             unlocks += max(BUFF_REQUIREMENTS.values())
         return unlocks - self._check_count(missions)
@@ -613,7 +653,7 @@ class TF2MvMWorld(World):
         Tickets that are not progression cannot gate anything, and that setting
         already asks for a shallower run, so it keeps the old behaviour.
         """
-        if self.options.mission_ticket_importance.current_key == "useful":
+        if self.options.mission_ticket_importance.current_key != "progression":
             return None
         kind = next((one.kind for one in data.MILESTONES if one.name == name), None)
         if kind is None:
@@ -666,27 +706,27 @@ class TF2MvMWorld(World):
 
         def can_deploy(state: CollectionState) -> bool:
             ticket_ready = (
-                self.options.mission_ticket_importance.current_key == "useful"
+                self.options.mission_ticket_importance.current_key != "progression"
                 or state.has(ticket, player)
             )
             if per_class:
                 ready = (
-                    self.options.class_unlock_importance.current_key == "useful"
-                    and self.options.weapon_slot_importance.current_key == "useful"
+                    self.options.class_unlock_importance.current_key != "progression"
+                    and self.options.weapon_slot_importance.current_key != "progression"
                 ) or deployable_classes(state) >= requirement.classes
                 classes_ready = slots_ready = ready
             else:
                 classes_ready = (
-                    self.options.class_unlock_importance.current_key == "useful"
+                    self.options.class_unlock_importance.current_key != "progression"
                     or state.has_group("Classes", player, requirement.classes)
                 )
                 slots_ready = (
-                    self.options.weapon_slot_importance.current_key == "useful"
+                    self.options.weapon_slot_importance.current_key != "progression"
                     or state.has(data.PROGRESSIVE_WEAPON_SLOT, player, requirement.slots)
                 )
             buffs_ready = (
                 mission is self.start_mission
-                or self.options.weapon_buff_importance.current_key == "useful"
+                or self.options.weapon_buff_importance.current_key != "progression"
                 or state.has_group("Weapon Buffs", player, BUFF_REQUIREMENTS[mission.difficulty])
             )
             return ticket_ready and classes_ready and slots_ready and buffs_ready

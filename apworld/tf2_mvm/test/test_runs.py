@@ -400,6 +400,121 @@ class TestUsefulUnlockModes(TF2MvMTestBase):
         self.assertTrue(all(item.classification == ItemClassification.useful for item in items))
 
 
+class TestDisabledRewards(TF2MvMTestBase):
+    options: ClassVar[dict[str, Any]] = {
+        "mission_count": 1,
+        "difficulty_pool": "normal",
+        "mission_ticket_importance": "disabled",
+        "class_unlock_importance": "disabled",
+        "weapon_slot_importance": "disabled",
+        "weapon_buff_importance": "disabled",
+    }
+
+    def test_all_unlocks_are_precollected_and_absent_from_the_pool(self) -> None:
+        held = self.world.start_items
+        self.assertEqual(
+            {data.TICKET_NAMES[mission.id] for mission in self.world.missions},
+            {name for name in held if name in data.TICKET_NAMES.values()},
+        )
+        self.assertEqual(set(data.CLASS_NAMES), set(held) & set(data.CLASS_NAMES))
+        self.assertEqual(data.WEAPON_SLOT_COUNT, held.count(data.PROGRESSIVE_WEAPON_SLOT))
+        unlock_kinds = {"mission_ticket", "class", "weapon_slot", "class_weapon_slot"}
+        self.assertFalse(
+            [
+                item
+                for item in self.multiworld.itempool
+                if data.ITEMS_BY_NAME[item.name].kind in unlock_kinds
+            ]
+        )
+        self.assertEqual(
+            1, len(self.world.missions), "disabled unlocks should not widen a short run"
+        )
+
+    def test_no_buffs_are_awarded_even_with_cash_rewards_off(self) -> None:
+        self.assertFalse(
+            [item for item in self.multiworld.itempool if item.name in data.WEAPON_BUFF_NAMES]
+        )
+        self.assertTrue(any(item.name in data.FILLER_NAMES for item in self.multiworld.itempool))
+        self.assertTrue(all(self.can_reach_region(mission.name) for mission in self.world.missions))
+
+
+class TestDisabledProgressiveClassSlots(TF2MvMTestBase):
+    options: ClassVar[dict[str, Any]] = {
+        "class_weapon_slots": "progressive",
+        "mission_ticket_importance": "disabled",
+        "class_unlock_importance": "disabled",
+        "weapon_slot_importance": "disabled",
+    }
+
+    def test_every_class_and_its_slots_start_unlocked(self) -> None:
+        self.assertLessEqual(set(data.CLASS_NAMES), set(self.world.start_items))
+        for name in data.CLASS_SLOT_ITEMS.values():
+            self.assertEqual(data.CLASS_SLOT_COUNT, self.world.start_items.count(name))
+            self.assertFalse(any(item.name == name for item in self.multiworld.itempool))
+        self.assertTrue(all(self.can_reach_region(mission.name) for mission in self.world.missions))
+
+
+class TestDisabledNamedClassSlots(TF2MvMTestBase):
+    options: ClassVar[dict[str, Any]] = {
+        "class_weapon_slots": "any_order",
+        "mission_ticket_importance": "disabled",
+        "class_unlock_importance": "disabled",
+        "weapon_slot_importance": "disabled",
+    }
+
+    def test_every_named_slot_starts_unlocked(self) -> None:
+        names = {name for slots in data.CLASS_NAMED_SLOT_ITEMS.values() for name in slots}
+        self.assertLessEqual(names, set(self.world.start_items))
+        self.assertFalse(any(item.name in names for item in self.multiworld.itempool))
+        self.assertTrue(all(self.can_reach_region(mission.name) for mission in self.world.missions))
+
+
+class TestDisabledClassesWithProgressionSlots(TF2MvMTestBase):
+    options: ClassVar[dict[str, Any]] = {
+        "class_weapon_slots": "progressive",
+        "class_unlock_importance": "disabled",
+        "weapon_slot_importance": "progression",
+        "difficulty_pool": "advanced",
+    }
+
+    def test_each_class_gets_only_the_starting_tier_slots(self) -> None:
+        starting = REQUIREMENTS[self.world.start_mission.difficulty].slots - 1
+        for name in data.CLASS_SLOT_ITEMS.values():
+            self.assertEqual(starting, self.world.start_items.count(name))
+            self.assertEqual(
+                data.CLASS_SLOT_COUNT - starting,
+                sum(item.name == name for item in self.multiworld.itempool),
+            )
+
+
+class TestDisabledSlotsWithProgressionClasses(TF2MvMTestBase):
+    options: ClassVar[dict[str, Any]] = {
+        "class_weapon_slots": "any_order",
+        "class_unlock_importance": "progression",
+        "weapon_slot_importance": "disabled",
+    }
+
+    def test_all_slots_are_open_but_classes_remain_rewards(self) -> None:
+        names = {name for slots in data.CLASS_NAMED_SLOT_ITEMS.values() for name in slots}
+        self.assertLessEqual(names, set(self.world.start_items))
+        self.assertFalse(any(item.name in names for item in self.multiworld.itempool))
+        self.assertTrue(any(item.name in data.CLASS_NAMES for item in self.multiworld.itempool))
+
+
+class TestDisabledBuffsWithCashEnabled(TF2MvMTestBase):
+    options: ClassVar[dict[str, Any]] = {
+        "weapon_buff_importance": "disabled",
+        "cash_rewards": True,
+        "weapon_buff_percentage": 100,
+    }
+
+    def test_buff_percentage_cannot_restore_disabled_buffs(self) -> None:
+        self.assertFalse(
+            any(item.name in data.WEAPON_BUFF_NAMES for item in self.multiworld.itempool)
+        )
+        self.assertTrue(any(item.name in data.FILLER_NAMES for item in self.multiworld.itempool))
+
+
 class TestProgressionWeaponBuffs(TF2MvMTestBase):
     options: ClassVar[dict[str, Any]] = {
         "weapon_buff_importance": "progression",
