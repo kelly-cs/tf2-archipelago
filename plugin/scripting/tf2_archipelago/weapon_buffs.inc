@@ -2222,6 +2222,7 @@ static void WeaponBuffs_FireExtraProjectiles(any reference)
     int mimicType = WeaponBuffs_MimicType(source, classname);
     bool isFlare = StrEqual(classname, "tf_projectile_flare", false);
     bool isArrow = WeaponBuffs_IsArrow(classname);
+    bool isEnergyBall = StrEqual(classname, "tf_projectile_energy_ball", false);
     float flareOrigin[3];
     if (isFlare)
     {
@@ -2286,8 +2287,22 @@ static void WeaponBuffs_FireExtraProjectiles(any reference)
         }
         else
         {
+            float extraOrigin[3];
+            extraOrigin = origin;
+            if (isEnergyBall)
+            {
+                // One frame of flight can leave the Cow Mangler ball inside
+                // the shooter's hull, so start each cloned copy ahead.
+                float direction[3];
+                NormalizeVector(velocity, direction);
+                float clearance = 64.0 + float(copy) * 8.0;
+                for (int axis = 0; axis < 3; axis++)
+                {
+                    extraOrigin[axis] += direction[axis] * clearance;
+                }
+            }
             extra = WeaponBuffs_CloneProjectile(source, classname, owner, launcher,
-                origin, angles, velocity);
+                extraOrigin, angles, velocity);
         }
         if (extra <= MaxClients || !IsValidEntity(extra))
         {
