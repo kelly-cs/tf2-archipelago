@@ -81,8 +81,8 @@ export class MissionsTable {
   readonly initialSort = input<MissionColumn>('name');
 
   readonly toggled = output<string>();
-  readonly chosen = output<string>();
-  readonly resumed = output<{ key: string; wave: number }>();
+  readonly chosen = output<{ key: string; wave: number }>();
+  private readonly selectedWaves = new Map<string, number>();
 
   readonly sortBy = signal<MissionColumn | undefined>(undefined);
   readonly ascending = signal(true);
@@ -106,6 +106,14 @@ export class MissionsTable {
     const direction = this.ascending() ? 1 : -1;
     return this.rows().toSorted((left, right) => direction * compare(left, right, key));
   });
+
+  selectWave(key: string, wave: number): void {
+    this.selectedWaves.set(key, wave);
+  }
+
+  choose(row: MissionRow): void {
+    this.chosen.emit({ key: row.key, wave: this.selectedWaves.get(row.key) ?? row.waveStart });
+  }
 
   sortOn(key: MissionColumn): void {
     if (this.key() === key) {
