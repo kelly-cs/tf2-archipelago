@@ -197,10 +197,10 @@ func ValidateCommunitySources(sources ...string) error {
 			return fmt.Errorf("community mission %s SigMod requirement is %t in its population file but %q in community.json", popFile, needsSigMod, MissionRequirement(mission.ID))
 		}
 		medicOnly := slices.ContainsFunc(bodies, func(body sourcedPopulation) bool {
-			return CommunityPopulationMedicOnly(body.body)
+			return CommunityMissionMedicOnly(popFile, body.body)
 		})
 		if medicOnly != (MissionLoadout(mission.ID) == "medic_only") {
-			return fmt.Errorf("community mission %s Medic-only restriction is %t in its population file but loadout is %q in community.json", popFile, medicOnly, MissionLoadout(mission.ID))
+			return fmt.Errorf("community mission %s Medic-only restriction is %t but loadout is %q in community.json", popFile, medicOnly, MissionLoadout(mission.ID))
 		}
 	}
 	return validatePopulationFacts(populations)
@@ -418,6 +418,17 @@ func CommunityPopulationMedicOnly(body []byte) bool {
 	return false
 }
 
+// Villa's two Medic-only missions do not use ClassLimit blocks in their
+// population files, so keep their catalog labels explicit.
+func CommunityMissionMedicOnly(popFile string, body []byte) bool {
+	switch popFile {
+	case "mvm_villa_b13f_adv_forgotten", "mvm_villa_b13f_adv_recalled_to_life":
+		return true
+	default:
+		return CommunityPopulationMedicOnly(body)
+	}
+}
+
 // CommunityPopulationRequiresSigMod recognizes extension syntax whose absence
 // changes how a mission plays. Potato files annotate most such lines with the
 // $SIGSEGV KeyValues condition. Precaching and sound download annotations are
@@ -624,7 +635,7 @@ func MissionRequirement(id MissionID) string {
 // Blank means the usual unrestricted MvM loadout. "medieval" describes the
 // mission's weapon roster and player-facing recommendation; it does not assert
 // that the map enables TF2's engine-level Medieval Mode. "medic_only" means
-// the mission permits only Medic on RED, through its pop file or map script.
+// the mission enforces Medic on RED through its pop file or map script.
 func MissionLoadout(id MissionID) string {
 	return communityContent.Loadouts[id]
 }
