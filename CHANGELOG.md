@@ -4,7 +4,7 @@ What each release changes, for somebody who plays the game. The workflow in
 `.github/workflows/release.yml` reads the section matching the tag and puts it
 in the release notes, so this file is the only place to write it.
 
-## Unreleased
+## v1.17.3
 
 ### Added
 
@@ -16,10 +16,24 @@ in the release notes, so this file is the only place to write it.
   never has it in the server. Turning a mod off leaves the download in place,
   so turning it back on costs nothing.
 - **SigMod is offered on Windows again**, through this project's own port,
-  since upstream publishes no Windows build. It is off by default and the page
-  says what it is: the port crashed one player's server, and the new loading
-  setting is what makes it safe to offer. Leave it on **only when a mission
-  needs it** unless you are testing it.
+  since upstream publishes no Windows build. It is off by default and the row
+  reads **SigMod (beta)**: the port crashed one player's server, and the new
+  loading setting is what makes it safe to offer. Leave it on **only when a
+  mission needs it** unless you are testing it. Linux, Docker and WSL download
+  upstream's build and are the safe way to play those missions today.
+- **Each reward family can be turned off.** Mission Ticket, Class Unlock and
+  Weapon Slot Importance take **Disabled - All Unlocked**: everything starts
+  unlocked and leaves the item pool, per-class slots included. Weapon Buff
+  Importance takes **Disabled - No Buffs**, and the spare checks become cash.
+  The defaults are unchanged. By kelly-cs.
+- **Remedic is labelled Medic only** in the mission table, the mission pool and
+  the start-mission choices, since its population file bans every other class.
+  By kelly-cs.
+- **Community archives are checked against a pinned hash.** The Potato and
+  Moonlight snapshots now download from this project's GitHub release first,
+  with the Potato servers as fallback, and a file whose hash differs is held
+  back until you press **Ignore hash mismatch** on the Missions page. By
+  kelly-cs.
 
 ### Fixed
 
@@ -27,6 +41,37 @@ in the release notes, so this file is the only place to write it.
   Docker stack, taking a mod out of the settings left it loading from the game
   files it had already been installed into, with nothing on screen admitting
   it. Both now take the marker away.
+- **Modifiers work on a Windows server.** Thirteen of the plugin's game hooks
+  had no Windows signature, so a modifier could be drawn and announced while
+  half of it did nothing. Faulty Calibration and Mental's cloak now work there,
+  and a refused mission file is reported. Bot Surge's support fillers and Make
+  it Count's dispenser limit still do nothing on Windows.
+- **A robot stuck protected in its spawn no longer holds the wave open.** After
+  two minutes the plugin removes it. Condemned Trespasser wave 2 could not end
+  without this. By kelly-cs.
+- **Bot Surge no longer loses scripted waves at once.** It shortened every
+  spawn delay, including the timers some missions use to open the hatch, so
+  Homestead Happenings wave 5 was lost after seven seconds. Only robot spawns
+  are sped up now. By kelly-cs.
+- **Caliginous Caper wave 666 has its tanks and its Halloween look.** The stock
+  file sends its tanks down a path the map does not have. The server now
+  repairs it from your game files at start. By kelly-cs.
+- **SigMod no longer kicks RED defender bots.** Its robot limit counted them,
+  so a crowded wave kicked one and the bots added it back, over and over. By
+  kelly-cs.
+- **Ten community missions are marked as needing SigMod**, among them Bionic
+  Breach, Nuclear Threat and Twilight Of Terror. They were offered without it
+  and could not run. By kelly-cs.
+- **SigMod's extra loadout menu shows its item names and title** instead of
+  `%t: %s %s %t`. On the Windows and Linux launchers, SigMod shows as not ready
+  once after this update: press **Download / set up selected server mods** to
+  apply the fix. By kelly-cs.
+- **Docker: editing SigMod's config no longer hides its missions**, and the
+  settings page no longer points at a setup button that does nothing in Docker.
+  By kelly-cs.
+- **Docker: Test mode uses the whole mission pool you asked for**, not eight,
+  and the server picks up a new test run without a restart. By kelly-cs.
+- **The item server line no longer shows terminal color codes.** By kelly-cs.
 
 ## v1.17.2
 
