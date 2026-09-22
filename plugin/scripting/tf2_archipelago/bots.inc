@@ -152,8 +152,9 @@ void Bots_OnMapStart()
 
 public Action Timer_VillaEscort(Handle timer)
 {
-    if (!MvM_IsActive() || GameRules_GetRoundState() != RoundState_RoundRunning
-        || MvM_WaveFromGame() != 6)
+    // Villa's scripted finale can continue after the game marks wave 6 done.
+    // The human player's arrival on the roof is the reliable phase signal.
+    if (!MvM_IsActive())
     {
         return Plugin_Continue;
     }
