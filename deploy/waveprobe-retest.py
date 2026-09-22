@@ -141,12 +141,22 @@ def main(run_dir, binary, worker_ids, source_shards=None):
                             if load_failures:
                                 row = {**load_failures[-1], "wave": wave, "seed": 1}
                             else:
-                                if output:
+                                warmup_failures = [item for item in output
+                                                   if 0 < item.get("wave", 0) < wave
+                                                   and item.get("state") != "passed"]
+                                if warmup_failures:
+                                    failed = warmup_failures[-1]
+                                    reason = (f"required earlier wave {failed['wave']} "
+                                              f"{failed.get('outcome', failed['state'])}: "
+                                              f"{failed.get('error', reason)}")
+                                elif output:
                                     reason = output[-1].get("error", reason)
+                                prefix = ("wave setup could not complete" if warmup_failures
+                                          else "retest runner produced no wave result")
                                 row = {"mission": mission, "map": map_name, "mode": mode,
                                        "wave": wave, "seed": 1, "state": "inconclusive", "outcome": "inconclusive",
                                        "retest_no_wave_result": phase == "retest",
-                                       "error": f"retest runner produced no wave result: {reason[:300]}"}
+                                       "error": f"{prefix}: {reason[:300]}"}
                         if attempt == 0 and rcon_broken(row):
                             restart_worker(index)
                             continue

@@ -77,6 +77,11 @@ prove every authored bot appeared, or that the wave will complete under every
 player strategy. Re-run timeouts at a lower speed or another seed before
 attributing them to the mission or Bot Surge.
 
+Villa's Recalled to Life mission needs its earlier rooms initialized before
+the wave-5 hunt. A targeted `-start-wave 5 -end-wave 5` run therefore plays
+waves 1–4 first. If one of those setup waves fails, wave 5 is inconclusive;
+the runner does not jump past it and report a misleading wave-5 timeout.
+
 The standard sweep runs the second pass and writes `REPORT.md` and `SUMMARY.json`
 itself, including when a shard exits with a failure. To resume an interrupted
 sweep, run `bash deploy/resume-waveprobe.sh <run-directory>`. It starts the

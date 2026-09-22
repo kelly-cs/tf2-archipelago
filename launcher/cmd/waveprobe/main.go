@@ -291,6 +291,13 @@ func runMissions(s *server, opt options, missions []gamedata.Mission, modes []st
 
 func (s *server) runWaves(opt options, mapName string, mission gamedata.Mission, mode string) (int, error) {
 	first := opt.startWave
+	sequential := mission.PopFile == "mvm_villa_b13f_adv_recalled_to_life"
+	if sequential && first > 1 {
+		// Villa's hunt wave needs the map's earlier room setup. Jumping
+		// directly to wave 5 starts its timer bot but never spawns the room
+		// groups, which produces a false wave timeout.
+		first = 1
+	}
 	last := int(mission.Waves)
 	if opt.endWave > 0 {
 		last = opt.endWave
@@ -306,7 +313,7 @@ func (s *server) runWaves(opt options, mapName string, mission gamedata.Mission,
 			continue
 		}
 		failures++
-		if opt.failFast || wave == last {
+		if opt.failFast || wave == last || sequential {
 			break
 		}
 		// The failed wave may still be running. Reload the mission and jump
