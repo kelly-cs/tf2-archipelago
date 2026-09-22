@@ -6,6 +6,7 @@ import (
 	"net"
 	"net/url"
 	"os"
+	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -172,9 +173,15 @@ func SourceModWasUpdated(line string) bool {
  */
 const itemSchemaPrefix = "Current item schema is up-to-date"
 
+// SRCDS sometimes decorates the schema message with terminal colors. The
+// browser displays control bytes instead of interpreting them, so remove CSI
+// sequences before either matching or showing the message.
+var consoleCSI = regexp.MustCompile(`\x1b\[[0-?]*[ -/]*[@-~]`)
+
 // ItemServerLine turns one line of server output into something worth showing a
 // player, or "" for every other line.
 func ItemServerLine(line string) string {
+	line = consoleCSI.ReplaceAllString(line, "")
 	if strings.Contains(line, itemSchemaPrefix) {
 		return "the item server answered: weapons are available"
 	}
