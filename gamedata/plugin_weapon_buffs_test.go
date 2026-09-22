@@ -497,6 +497,9 @@ func TestSelfBlastBuffsPreserveTheNativeExplosionAndPush(t *testing.T) {
 	if !strings.Contains(hook, "SDKHook_OnTakeDamage, WeaponBuffs_OnTakeDamage") {
 		t.Fatal("players are not hooked for modifiable damage")
 	}
+	if !strings.Contains(hook, "SDKHook_OnTakeDamageAlivePost, WeaponBuffs_OnTakeDamageAlivePost") {
+		t.Fatal("players are not hooked to restore self-blast health")
+	}
 
 	damage := sourceFunction(t, buffs, "public Action WeaponBuffs_OnTakeDamage")
 	for _, required := range []string{
@@ -511,16 +514,29 @@ func TestSelfBlastBuffsPreserveTheNativeExplosionAndPush(t *testing.T) {
 			t.Fatalf("self-blast damage path has no %q", required)
 		}
 	}
-	if strings.Contains(damage, "NoSelfBlastEffect") || strings.Contains(damage, "damage = 0.0") {
-		t.Fatal("no-self-blast still zeroes the SDKHook event and suppresses native blast movement")
+	for _, required := range []string{
+		"g_WeaponEffectLevels[catalog][NoSelfBlastEffect]",
+		"g_WeaponBuffSelfBlastHealth[victim] = health",
+		"SetEntityHealth(victim, health + RoundToCeil(damage))",
+	} {
+		if !strings.Contains(damage, required) {
+			t.Fatalf("self-blast health refund path has no %q", required)
+		}
+	}
+	if strings.Contains(damage, "damage = 0.0") {
+		t.Fatal("no-self-blast zeroes the SDKHook event and suppresses blast movement")
+	}
+	post := sourceFunction(t, buffs, "public void WeaponBuffs_OnTakeDamageAlivePost")
+	if !strings.Contains(post, "SetEntityHealth(victim, health)") {
+		t.Fatal("self-blast health is not restored after the engine applies push")
 	}
 
 	native := sourceFunction(t, buffs, "static void WeaponBuffs_SyncNativeSelfBlast")
 	for _, required := range []string{
 		"GetPlayerWeaponSlot(client, slot)",
-		"TF2Attrib_RemoveByName(entity, SelfBlastDamageAttribute)",
+		"TF2Attrib_RemoveByName(entity, LegacySelfBlastDamageAttribute)",
 		"g_WeaponEffectLevels[weapon][NoSelfBlastEffect]",
-		"TF2Attrib_SetByName(entity, SelfBlastDamageAttribute, 0.0)",
+		"TF2Attrib_SetByName(entity, NoSelfBlastAttribute, 1.0)",
 		"TF2Attrib_ClearCache(entity)",
 	} {
 		if !strings.Contains(native, required) {
