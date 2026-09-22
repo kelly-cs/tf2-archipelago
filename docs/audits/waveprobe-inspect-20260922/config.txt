@@ -1,0 +1,11 @@
+scope=91 prior Waves to inspect cases from waveprobe-20260921-main-full-final
+shards=12
+speed=20
+seed=1
+first_pass_timeout=180s
+wave_timeout=900s
+base_port=27060
+started_utc=2026-09-22T07:15:16Z
+source_commit=58131b41b942dcce6b3ed9995fe584c80b5714de
+main_commit=c31e4d1030d2b576fbf6ee873e042340305cd30f
+retry_commit=f8d3456402f3a554de2d488ab6fe874a3dad560d

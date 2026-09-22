@@ -117,6 +117,9 @@ def main(run_dir):
           "A pass requires the game's wave-complete event and an observed enemy spawn.\n")
     print("The stability score uses tested cases; verified coverage uses the full eligible plan, "
           "so unrun waves cannot silently improve it. Reverse objectives are excluded.\n")
+    print("This score measures the current automated probe at the configured speed and "
+          "kill timing. A nonpass is a reproducible probe observation, not by itself "
+          "proof that a player cannot finish the wave.\n")
     print(f"Started {settings.get('started_utc', 'unknown')} · {settings.get('shards', '?')} isolated servers · "
           f"requested speed {settings.get('speed', '?')}× · {settings.get('wave_timeout', '?')} "
           f"**real-time** limit after wave start · seed {settings.get('seed', '1')}.\n")
