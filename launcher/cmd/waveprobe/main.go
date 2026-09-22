@@ -367,6 +367,9 @@ func (s *server) recordWave(opt options, mapName string, mission gamedata.Missio
 	if row.Outcome == "passed" {
 		return nil
 	}
+	if errors.Is(err, errWallTimeout) {
+		s.stopWave(mission)
+	}
 	return fmt.Errorf("%s: %s", row.Outcome, row.Error)
 }
 
@@ -785,7 +788,6 @@ func (s *server) testWave(mission gamedata.Mission, wave, seed int, timeout, loa
 	if last.State == "failed" {
 		return last, timeline, fmt.Errorf("game or probe failed wave %d: %s", wave, last.Reason)
 	}
-	s.stopWave(mission)
 	return last, timeline, fmt.Errorf("%w: wave %d still active after %s (%.1f game seconds)",
 		errWallTimeout, wave, timeout, last.Elapsed)
 }
