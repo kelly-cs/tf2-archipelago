@@ -58,7 +58,6 @@ public Plugin myinfo =
     url = "https://github.com/m-this/tf2-archipelago",
 };
 
-// Zero when no wave is running. A late plugin load recovers an active wave.
 // Which giant and which tank of the running wave the next kill is. Every one
 // is reported as the nth of its wave beside the mission's own first of each;
 // with giantsanity or tanksanity on, the seed holds a check for each.

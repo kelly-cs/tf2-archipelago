@@ -33,6 +33,7 @@ bool g_Holding;
 #define BotTrimDelay 3.0
 
 bool g_BotsWaveRunning;
+// Zero when no wave is running. A late plugin load recovers an active wave.
 int g_CurrentWave;
 
 // The upgrade names, in the order scripts/items/mvm_upgrades.txt lists the
@@ -57,6 +58,13 @@ float g_NextVillaEscort[MAXPLAYERS + 1];
 #define VillaMapName "mvm_villa_b13f"
 #define VillaRecalledPop "mvm_villa_b13f_adv_recalled_to_life"
 #define VillaRoofDestinationName "roof_player_destination"
+#define VillaEscortInterval 2.0
+#define VillaRoomMinX -9900.0
+#define VillaRoomMaxX -7400.0
+#define VillaRoomMinY 2500.0
+#define VillaRoomMaxY 5000.0
+#define VillaRoomMinZ 650.0
+#define VillaRoomMaxZ 1600.0
 float g_VillaRoofDestination[3] = {-9024.0, 5056.0, 2448.0};
 int g_VillaRoofDestinationRef;
 bool g_VillaRoofDestinationSearched;
@@ -101,7 +109,7 @@ void Bots_Init()
     // No TIMER_FLAG_NO_MAPCHANGE on either: they must outlive every map change.
     CreateTimer(BotReadyInterval, Timer_HoldBotsReady, _, TIMER_REPEAT);
     CreateTimer(BotFillInterval, Timer_FillTeam, _, TIMER_REPEAT);
-    CreateTimer(2.0, Timer_VillaEscort, _, TIMER_REPEAT);
+    CreateTimer(VillaEscortInterval, Timer_VillaEscort, _, TIMER_REPEAT);
 }
 
 void Bots_OnConfigsExecuted()
@@ -287,9 +295,9 @@ void Bots_PublishDirective()
             }
             float position[3];
             GetClientAbsOrigin(robot, position);
-            if (position[0] > -9900.0 && position[0] < -7400.0
-                && position[1] > 2500.0 && position[1] < 5000.0
-                && position[2] > 650.0 && position[2] < 1600.0)
+            if (position[0] > VillaRoomMinX && position[0] < VillaRoomMaxX
+                && position[1] > VillaRoomMinY && position[1] < VillaRoomMaxY
+                && position[2] > VillaRoomMinZ && position[2] < VillaRoomMaxZ)
             {
                 goal = position;
                 break;
