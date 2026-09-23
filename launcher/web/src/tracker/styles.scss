@@ -529,7 +529,7 @@ main {
 
 .class-card {
   display: grid;
-  min-height: 90px;
+  min-height: 106px;
   padding: 5px;
   place-items: center;
   color: var(--text-disabled);
@@ -560,6 +560,17 @@ main {
 .class-card small {
   font-weight: 700;
   text-transform: uppercase;
+}
+
+.class-first-slot {
+  font-size: var(--text-xs);
+  text-align: center;
+}
+
+.slot-explanation {
+  margin: 0 0 var(--gap-sm);
+  color: var(--text-dim);
+  font-size: var(--text-sm);
 }
 
 .slot-track {
@@ -771,12 +782,17 @@ main {
 }
 
 .class-slot-track .weapon-slot {
-  min-height: 72px;
+  min-height: 92px;
+  gap: 3px;
+}
+
+.class-slot-track .weapon-slot small {
+  font-size: var(--text-sm);
 }
 
 .class-slot-track .weapon-slot span {
   color: inherit;
-  font: 9px/1 var(--font-mono);
+  font: var(--text-xs) / 1 var(--font-mono);
   text-transform: uppercase;
 }
 
@@ -785,6 +801,13 @@ main {
   justify-content: space-between;
   gap: var(--gap);
   color: var(--text-dim);
+}
+
+.class-slot-track .slot-example {
+  color: var(--text-dim);
+  font-size: var(--text-xs);
+  text-align: center;
+  text-transform: none;
 }
 
 .buff-list {

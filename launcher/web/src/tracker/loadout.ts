@@ -29,8 +29,8 @@ export function loadoutView(
             ? byName
             : order.filter((_, index) => (index === 0 ? unlocked : index <= copies)),
         )
-      : new Set(weaponSlots.slice(0, sharedSlotCount));
-    const slots = weaponSlots.map((slot) => ({ name: slot, unlocked: unlockedSlots.has(slot) }));
+      : new Set(order.slice(0, sharedSlotCount));
+    const slots = order.map((slot) => ({ name: slot, unlocked: unlockedSlots.has(slot) }));
     return {
       name,
       unlocked,

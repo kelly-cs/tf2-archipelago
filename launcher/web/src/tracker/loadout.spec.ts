@@ -13,9 +13,9 @@ describe('tracker loadouts', () => {
 
     expect(slots('Scout')).toEqual(['Primary:true', 'Secondary:true', 'Melee:true']);
     expect(slots('Soldier')).toEqual(['Primary:true', 'Secondary:true', 'Melee:false']);
-    expect(slots('Engineer')).toEqual(['Primary:true', 'Secondary:false', 'Melee:true']);
-    expect(slots('Medic')).toEqual(['Primary:true', 'Secondary:true', 'Melee:true']);
-    expect(slots('Spy')).toEqual(['Primary:false', 'Secondary:true', 'Melee:false']);
+    expect(slots('Engineer')).toEqual(['Melee:true', 'Primary:true', 'Secondary:false']);
+    expect(slots('Medic')).toEqual(['Secondary:true', 'Primary:true', 'Melee:true']);
+    expect(slots('Spy')).toEqual(['Melee:false', 'Secondary:true', 'Primary:false']);
   });
 
   it('keeps the shared three-slot view for rooms using the original option', () => {
@@ -31,8 +31,8 @@ describe('tracker loadouts', () => {
     expect(shared.slotCount).toBe(1);
     expect(shared.slotTotal).toBe(3);
     expect(shared.classes.find((entry) => entry.name === 'Medic')?.slots).toEqual([
-      { name: 'Primary', unlocked: true },
-      { name: 'Secondary', unlocked: false },
+      { name: 'Secondary', unlocked: true },
+      { name: 'Primary', unlocked: false },
       { name: 'Melee', unlocked: false },
     ]);
   });

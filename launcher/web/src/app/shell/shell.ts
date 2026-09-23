@@ -6,6 +6,7 @@ import { filter, switchMap, tap, timer } from 'rxjs';
 import { LauncherStore } from '@app/server/launcher-store';
 import { ServerButtons } from '@app/shell/server-buttons';
 import { StatusLine } from '@app/shell/status-line';
+import { trackerLink } from '@app/shell/tracker-link';
 import { Logo } from '@app/ui/logo';
 import { Notice } from '@app/ui/notice';
 import { appLink } from '@app/routing/app-routes';
@@ -33,6 +34,7 @@ export class Shell {
 
   readonly title = computed(() => this.store.title() || 'Mann vs Archipelago');
   readonly lost = computed(() => this.store.lost());
+  readonly trackerUrl = computed(() => trackerLink(this.store.trackerRoomUrl()));
 
   /**
    * The last thing the launcher said, while it is still worth saying.

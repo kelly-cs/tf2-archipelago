@@ -213,7 +213,11 @@
                     classView.name +
                     ', ' +
                     (classView.unlocked ? 'unlocked' : 'locked') +
-                    '; inspect upgrades'
+                    '; slot 1 ' +
+                    classView.slots[0]?.name +
+                    ' (' +
+                    firstWeapon[classView.name] +
+                    '); inspect upgrades'
                   "
                   (click)="openBuffs(classView)"
                 >
@@ -224,18 +228,23 @@
                     loading="lazy"
                   />
                   <small>{{ classView.name }}</small>
+                  <span class="class-first-slot">#1 {{ firstWeapon[classView.name] }}</span>
                 </button>
               }
             </div>
           </app-panel>
 
           <app-panel heading="Loadout & equipment">
+            <p class="slot-explanation">
+              Each number unlocks a different weapon slot for each class. Pick a class above to see
+              its order.
+            </p>
             <div class="slot-track">
               @if (!run.classWeaponSlots) {
-                @for (slot of slots; track slot; let index = $index) {
-                  <div class="weapon-slot" [class.owned]="index < run.slotCount">
-                    <strong>0{{ index + 1 }}</strong>
-                    <small>{{ slot }}</small>
+                @for (number of slotNumbers; track number) {
+                  <div class="weapon-slot" [class.owned]="number <= run.slotCount">
+                    <strong>0{{ number }}</strong>
+                    <small>Class-specific</small>
                   </div>
                 }
               }
@@ -318,10 +327,20 @@
             <div
               class="weapon-slot"
               [class.owned]="slot.unlocked"
-              [attr.aria-label]="slot.name + ', ' + (slot.unlocked ? 'unlocked' : 'locked')"
+              [attr.aria-label]="
+                'Slot ' +
+                (index + 1) +
+                ', ' +
+                slot.name +
+                ', ' +
+                (slot.unlocked ? 'unlocked' : 'locked')
+              "
             >
-              <strong>0{{ index + 1 }}</strong>
+              <strong>#{{ index + 1 }}</strong>
               <small>{{ slot.name }}</small>
+              @if (index === 0) {
+                <span class="slot-example">Starts with {{ firstWeapon[chosen.name] }}</span>
+              }
               <span>{{ slot.unlocked ? 'Unlocked' : 'Locked' }}</span>
             </div>
           }

@@ -24,6 +24,16 @@ Open <http://localhost:8000/> and either:
 - paste its standard tracker URL or compact tracker ID; or
 - choose **View sample run** to explore the interface without a room.
 
+The launcher's admin UI has a **Campaign tracker** link in its footer. Paste
+the Archipelago room page URL into **Settings → Archipelago room → Room page
+link** and save; the footer link then opens the tracker with that room loaded.
+The game connection address (`host:port`) does not include the public room ID,
+so it cannot select a tracker room by itself. With no room page link saved, the
+footer opens the tracker's room picker.
+
+For a repeatable visual demo, open <http://localhost:8000/?demo=1>. The sample
+shows the per-class progressive slot order in each roster menu.
+
 Select a TF2 slot when a multiworld contains more than one. Click a class icon
 to see the weapon buffs that class can equip, their individual stack counts,
 and the combined level for each weapon. A live tracker refreshes once a minute;

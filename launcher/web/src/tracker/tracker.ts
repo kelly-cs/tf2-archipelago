@@ -20,6 +20,7 @@ import { ModifierIcon } from '@app/ui/modifier-icon';
 import { Panel } from '@app/ui/panel';
 import { grapplingHookIcon, mercenaryIcons } from '@app/ui/tf2-art';
 import { buffsFor, buildView } from './model';
+import { firstWeapon } from './first-weapon';
 import { hideBrokenImage, initialLocation, objectiveLabel, rememberSource } from './presentation';
 import { TrackerSourceClient } from './tracker-source';
 import { ClassView, TrackerSource } from './types';
@@ -75,7 +76,8 @@ export class Tracker implements OnDestroy {
 
   readonly mercenaryIcons = mercenaryIcons;
   readonly grapplingHookIcon = grapplingHookIcon;
-  readonly slots = ['Primary', 'Secondary', 'Melee'] as const;
+  readonly slotNumbers = [1, 2, 3] as const;
+  readonly firstWeapon = firstWeapon;
   readonly powerSegments = Array.from({ length: 10 }, (_, index) => index + 1);
   readonly objectiveLabel = objectiveLabel;
   readonly hideBrokenImage = hideBrokenImage;

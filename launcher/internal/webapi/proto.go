@@ -40,6 +40,7 @@ func (s Snapshot) Proto() *launcherv1.Snapshot {
 		Busy:              s.Busy,
 		Activity:          s.Activity,
 		Room:              s.Room,
+		TrackerRoomUrl:    s.TrackerRoomURL,
 		Join:              s.Join,
 		JoinUrl:           s.JoinURL,
 		Mission:           s.Mission,

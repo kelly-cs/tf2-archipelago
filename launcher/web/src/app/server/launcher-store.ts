@@ -40,6 +40,7 @@ export class LauncherStore {
   readonly busy = this.field((s) => s.busy, false);
   readonly activity = this.field((s) => s.activity, '');
   readonly room = this.field((s) => s.room, '');
+  readonly trackerRoomUrl = this.field((s) => s.trackerRoomUrl, '');
   readonly join = this.field((s) => s.join, '');
   readonly joinUrl = this.field((s) => s.joinUrl, '');
   readonly mission = this.field((s) => s.mission, '');
