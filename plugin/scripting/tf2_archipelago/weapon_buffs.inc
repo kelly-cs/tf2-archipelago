@@ -2387,6 +2387,12 @@ public Action WeaponBuffs_OnTakeDamage(int victim, int &attacker, int &inflictor
     if (g_WeaponEffectLevels[catalog][NoSelfBlastEffect] > 0)
     {
         int health = GetClientHealth(victim);
+        if (g_WeaponBuffSelfBlastHealth[victim] == 0)
+        {
+            // Uber and other damage rules can skip OnTakeDamageAlivePost.
+            // Never leave the lethal-hit guard or its baseline past this frame.
+            RequestFrame(Frame_RestoreSelfBlastHealth, GetClientUserId(victim));
+        }
         int baseline = WeaponBuffs_SelfBlastBaseline(
             g_WeaponBuffSelfBlastHealth[victim], health);
         g_WeaponBuffSelfBlastHealth[victim] = baseline;
@@ -2422,13 +2428,30 @@ void WeaponBuffs_RestoreSelfBlastHealth(int victim, int health)
     SetEntityHealth(victim, health);
 }
 
-public void WeaponBuffs_OnTakeDamageAlivePost(int victim, int attacker, int inflictor,
-    float damage, int damagetype, int weapon, const float damageForce[3],
-    const float damagePosition[3], int damagecustom)
+void WeaponBuffs_RestorePendingSelfBlastHealth(int victim)
 {
     int health = g_WeaponBuffSelfBlastHealth[victim];
     g_WeaponBuffSelfBlastHealth[victim] = 0;
     WeaponBuffs_RestoreSelfBlastHealth(victim, health);
+}
+
+public void Frame_RestoreSelfBlastHealth(int userid)
+{
+    int client = GetClientOfUserId(userid);
+    if (client > 0)
+    {
+        WeaponBuffs_RestorePendingSelfBlastHealth(client);
+    }
+}
+
+public void WeaponBuffs_OnTakeDamageAlivePost(int victim, int attacker, int inflictor,
+    float damage, int damagetype, int weapon, const float damageForce[3],
+    const float damagePosition[3], int damagecustom)
+{
+    if (victim == attacker && (damagetype & DMG_BLAST))
+    {
+        WeaponBuffs_RestorePendingSelfBlastHealth(victim);
+    }
 }
 
 public void WeaponBuffs_OnTakeDamagePost(int victim, int attacker, int inflictor,
@@ -2728,11 +2751,9 @@ static int WeaponBuffs_Provider(int client, int weaponEntity)
     return provider;
 }
 
-// TF2's native no-self-blast attribute preserves the blast-jump impulse while
-// suppressing self damage. The old zero self-damage multiplier also removed
-// the launch force. Keep this on every loadout weapon so a projectile still
-// has the attribute after its owner switches.
-static void WeaponBuffs_SyncNativeSelfBlast(int client, bool removeAll)
+// Clear attributes applied by earlier versions. The no-self-blast buff now
+// refunds health after TF2 computes the normal explosion and its push.
+static void WeaponBuffs_ClearOldSelfBlastAttributes(int client)
 {
     for (int slot = 0; slot <= 5; slot++)
     {
@@ -2743,16 +2764,6 @@ static void WeaponBuffs_SyncNativeSelfBlast(int client, bool removeAll)
         }
         TF2Attrib_RemoveByName(entity, LegacySelfBlastDamageAttribute);
         TF2Attrib_RemoveByName(entity, NoSelfBlastAttribute);
-        int weapon = WeaponBuffs_ForEntity(entity);
-        if (!removeAll && weapon >= 0
-            && g_WeaponEffectLevels[weapon][NoSelfBlastEffect] > 0)
-        {
-            if (!TF2Attrib_SetByName(entity, NoSelfBlastAttribute, 1.0))
-            {
-                LogError("Could not apply native no-self-blast effect to %s.",
-                    g_WeaponNames[weapon]);
-            }
-        }
         TF2Attrib_ClearCache(entity);
     }
 }
@@ -2766,7 +2777,7 @@ static void WeaponBuffs_Remove(int client)
     }
     if (client > 0 && client <= MaxClients && IsClientInGame(client))
     {
-        WeaponBuffs_SyncNativeSelfBlast(client, true);
+        WeaponBuffs_ClearOldSelfBlastAttributes(client);
         int entity = GetEntPropEnt(client, Prop_Send, "m_hActiveWeapon");
         if (entity > MaxClients && IsValidEntity(entity))
         {
@@ -2779,7 +2790,7 @@ void WeaponBuffs_Disconnect(int client)
 {
     if (client > 0 && client <= MaxClients && IsClientInGame(client))
     {
-        WeaponBuffs_SyncNativeSelfBlast(client, true);
+        WeaponBuffs_ClearOldSelfBlastAttributes(client);
     }
     int provider = EntRefToEntIndex(g_WeaponBuffProviderRef[client]);
     g_WeaponBuffProviderRef[client] = INVALID_ENT_REFERENCE;
@@ -2829,7 +2840,7 @@ void WeaponBuffs_Apply(int client)
     }
     int entity = GetEntPropEnt(client, Prop_Send, "m_hActiveWeapon");
     int weapon = WeaponBuffs_ForEntity(entity);
-    WeaponBuffs_SyncNativeSelfBlast(client, false);
+    WeaponBuffs_ClearOldSelfBlastAttributes(client);
     // Reloads, respawns and special movement weapons can briefly leave the
     // player with no valid active weapon. A provider cannot be verified
     // against that state, and repeatedly creating/removing one feeds another
@@ -2892,7 +2903,7 @@ void WeaponBuffs_Apply(int client)
         {
             continue;
         }
-        // This one uses a different launcher attribute below so TF2 retains
+        // The damage hooks handle this without a native attribute, preserving
         // both normal explosion visuals and blast-jump movement.
         if (effect == NoSelfBlastEffect)
         {

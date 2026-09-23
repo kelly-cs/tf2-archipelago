@@ -260,8 +260,11 @@ func TestBuilderToolboxResolvesToTheConstructionPDA(t *testing.T) {
 func TestSelfBlastHealthStateHandlesOverlappingHits(t *testing.T) {
 	got := driver{body: "    printnum(WeaponBuffs_SelfBlastBaseline(0, 100));\n" +
 		"    printnum(WeaponBuffs_SelfBlastBaseline(100, 180));\n" +
-		"    printnum(view_as<int>(WeaponBuffs_SelfBlastGuardHealth(100, 125.5)));\n"}.run(t)
-	if len(got) != 3 || got[0] != 100 || got[1] != 100 || bitsToFloat(got[2]) != 225.5 {
+		"    printnum(view_as<int>(WeaponBuffs_SelfBlastGuardHealth(100, 125.5)));\n" +
+		"    printnum(WeaponBuffs_SelfBlastBaseline(0, 25));\n" +
+		"    printnum(view_as<int>(WeaponBuffs_SelfBlastGuardHealth(25, 120.0)));\n"}.run(t)
+	if len(got) != 5 || got[0] != 100 || got[1] != 100 || bitsToFloat(got[2]) != 225.5 ||
+		got[3] != 25 || bitsToFloat(got[4]) != 145.0 {
 		t.Fatalf("self-blast health state returned %v", got)
 	}
 }
