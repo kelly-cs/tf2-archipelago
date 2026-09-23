@@ -197,7 +197,7 @@ func ValidateCommunitySources(sources ...string) error {
 			return fmt.Errorf("community mission %s SigMod requirement is %t in its population file but %q in community.json", popFile, needsSigMod, MissionRequirement(mission.ID))
 		}
 		medicOnly := slices.ContainsFunc(bodies, func(body sourcedPopulation) bool {
-			return CommunityMissionMedicOnly(popFile, body.body)
+			return CommunityMissionMedicOnlyForCatalog(popFile, body.body)
 		})
 		if medicOnly != (MissionLoadout(mission.ID) == "medic_only") {
 			return fmt.Errorf("community mission %s Medic-only restriction is %t but loadout is %q in community.json", popFile, medicOnly, MissionLoadout(mission.ID))
@@ -420,7 +420,7 @@ func CommunityPopulationMedicOnly(body []byte) bool {
 
 // Villa's two missions enforce Medic through scripted map behavior rather than
 // ClassLimit blocks, so keep their catalog labels explicit.
-func CommunityMissionMedicOnly(popFile string, body []byte) bool {
+func CommunityMissionMedicOnlyForCatalog(popFile string, body []byte) bool {
 	switch popFile {
 	case "mvm_villa_b13f_adv_forgotten", "mvm_villa_b13f_adv_recalled_to_life":
 		return true

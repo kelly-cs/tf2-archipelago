@@ -87,11 +87,11 @@ func TestVillaMissionsAreMedicOnly(t *testing.T) {
 		"mvm_villa_b13f_adv_forgotten",
 		"mvm_villa_b13f_adv_recalled_to_life",
 	} {
-		if !CommunityMissionMedicOnly(popFile, nil) {
+		if !CommunityMissionMedicOnlyForCatalog(popFile, nil) {
 			t.Errorf("%s should be marked Medic only", popFile)
 		}
 	}
-	if CommunityMissionMedicOnly("mvm_villa_b13f_adv_other", nil) {
+	if CommunityMissionMedicOnlyForCatalog("mvm_villa_b13f_adv_other", nil) {
 		t.Error("unlisted Villa mission should not inherit the label")
 	}
 }
