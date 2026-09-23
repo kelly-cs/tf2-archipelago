@@ -38,6 +38,16 @@
 #define ProjectileDestructionCooldownStep 0.25
 #define ProjectileDestructionMinimumCooldown 0.5
 
+int WeaponBuffs_SelfBlastBaseline(int pending, int health)
+{
+    return pending > 0 ? pending : health;
+}
+
+float WeaponBuffs_SelfBlastGuardHealth(int health, float damage)
+{
+    return damage >= float(health) ? float(health) + damage : float(health);
+}
+
 bool WeaponBuffs_IsPassiveEffect(int effect)
 {
     return effect == MoveSpeedEffect || effect == JumpHeightEffect

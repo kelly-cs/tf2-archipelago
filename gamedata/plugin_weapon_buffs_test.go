@@ -517,7 +517,7 @@ func TestSelfBlastBuffsPreserveTheNativeExplosionAndPush(t *testing.T) {
 	for _, required := range []string{
 		"g_WeaponEffectLevels[catalog][NoSelfBlastEffect]",
 		"g_WeaponBuffSelfBlastHealth[victim] = baseline",
-		"SetEntityHealth(victim, health + RoundToCeil(damage))",
+		"WeaponBuffs_SelfBlastGuardHealth(health, damage)",
 	} {
 		if !strings.Contains(damage, required) {
 			t.Fatalf("self-blast health refund path has no %q", required)
