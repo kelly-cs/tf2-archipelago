@@ -72,6 +72,7 @@ Handle g_WeaponBuffProjectileSetDamage;
 Handle g_WeaponBuffProjectileSetLauncher;
 Handle g_WeaponBuffFlareAdd;
 bool g_WeaponBuffNativeExtra[2049];
+bool g_WeaponBuffEnergyExtraHit[2049];
 float g_WeaponBuffNativeExtraBorn[2049];
 bool g_WeaponBuffArrowExtra[2049];
 bool g_WeaponBuffArrowTouched[2049];
@@ -662,6 +663,7 @@ public void OnEntityCreated(int entity, const char[] classname)
         return;
     }
     g_WeaponBuffNativeExtra[entity] = g_WeaponBuffFiringExtra;
+    g_WeaponBuffEnergyExtraHit[entity] = false;
     g_WeaponBuffNativeExtraBorn[entity] = GetGameTime();
     g_WeaponBuffArrowExtra[entity] = false;
     g_WeaponBuffArrowTouched[entity] = false;
@@ -1300,6 +1302,7 @@ public void OnEntityDestroyed(int entity)
                 entity, GetGameTime() - g_WeaponBuffNativeExtraBorn[entity]);
         }
         g_WeaponBuffNativeExtra[entity] = false;
+        g_WeaponBuffEnergyExtraHit[entity] = false;
         g_WeaponBuffArrowExtra[entity] = false;
         g_WeaponBuffArrowTouched[entity] = false;
         g_WeaponBuffProjectileDestructionHits[entity] = 0;
@@ -1412,6 +1415,33 @@ static bool WeaponBuffs_ProjectileVisible(int client, const float start[3], cons
             fraction, blocker);
     }
     return visible;
+}
+
+static void WeaponBuffs_ClearEnergyBallOrigin(int client, const float origin[3],
+    const float direction[3], float desired, float result[3])
+{
+    float finish[3];
+    result = origin;
+    for (int axis = 0; axis < 3; axis++)
+    {
+        finish[axis] = origin[axis] + direction[axis] * desired;
+    }
+    Handle trace = TR_TraceRayFilterEx(origin, finish, MASK_SOLID, RayType_EndPoint,
+        WeaponBuffs_ProjectileVisibilityFilter, client);
+    float distance = desired * TR_GetFraction(trace);
+    if (TR_DidHit(trace))
+    {
+        distance -= 4.0;
+        if (distance < 0.0)
+        {
+            distance = 0.0;
+        }
+    }
+    for (int axis = 0; axis < 3; axis++)
+    {
+        result[axis] += direction[axis] * distance;
+    }
+    delete trace;
 }
 
 // CTFBaseRocket::Destroy(false, true) sends this same message before removing
@@ -1724,7 +1754,7 @@ static void WeaponBuffs_CopyDataFloat(int source, int extra, const char[] proper
 }
 
 static int WeaponBuffs_CloneProjectile(int source, const char[] classname, int owner,
-    int launcher, const float origin[3], const float angles[3], const float velocity[3])
+    int launcher, float damage, const float origin[3], const float angles[3], const float velocity[3])
 {
     g_WeaponBuffFiringExtra = true;
     int extra = CreateEntityByName(classname);
@@ -1738,6 +1768,12 @@ static int WeaponBuffs_CloneProjectile(int source, const char[] classname, int o
     // Projectile type selects the correct model and behavior for arrows,
     // healing bolts and the festive variants, and must be set before Spawn.
     WeaponBuffs_CopySendInt(source, extra, "m_iProjectileType");
+    // Cow Mangler's charged energy ball initializes its damage behavior in
+    // Spawn; copying the charge flag afterward produces a visible dud.
+    if (HasEntProp(source, Prop_Send, "m_bChargedShot"))
+    {
+        WeaponBuffs_CopySendInt(source, extra, "m_bChargedShot");
+    }
     bool isFlare = StrEqual(classname, "tf_projectile_flare", false);
     if (isFlare && HasEntProp(extra, Prop_Send, "m_hOwnerEntity"))
     {
@@ -1777,9 +1813,15 @@ static int WeaponBuffs_CloneProjectile(int source, const char[] classname, int o
     WeaponBuffs_CopySendEntity(source, extra, "m_hOriginalLauncher");
     WeaponBuffs_CopySendInt(source, extra, "m_bCritical");
     WeaponBuffs_CopySendInt(source, extra, "m_bArrowAlight");
-    WeaponBuffs_CopySendInt(source, extra, "m_bChargedShot");
     WeaponBuffs_CopySendInt(source, extra, "m_CollisionGroup");
     WeaponBuffs_CopyDataFloat(source, extra, "m_flDamage");
+    if (StrEqual(classname, "tf_projectile_energy_ball", false)
+        && g_WeaponBuffProjectileSetDamage != null)
+    {
+        // Energy balls hold damage in CTFBaseProjectile's private field, not
+        // m_flDamage. A spawned clone otherwise explodes without hurting.
+        SDKCall(g_WeaponBuffProjectileSetDamage, extra, damage);
+    }
     WeaponBuffs_CopyDataFloat(source, extra, "m_flDamageRadius");
     WeaponBuffs_CopyDataFloat(source, extra, "m_flDetonateTime");
     WeaponBuffs_CopyDataFloat(source, extra, "m_flCreationTime");
@@ -1799,7 +1841,39 @@ static int WeaponBuffs_CloneProjectile(int source, const char[] classname, int o
     SetEntityMoveType(extra, GetEntityMoveType(source));
     SetEntityGravity(extra, GetEntityGravity(source));
     TeleportEntity(extra, origin, angles, velocity);
+    if (StrEqual(classname, "tf_projectile_energy_ball", false))
+    {
+        SDKHook(extra, SDKHook_Touch, WeaponBuffs_EnergyBallTouch);
+    }
     return extra;
+}
+
+public Action WeaponBuffs_EnergyBallTouch(int entity, int other)
+{
+    if (g_WeaponBuffEnergyExtraHit[entity] || other < 1 || other > MaxClients
+        || !IsClientInGame(other) || !IsPlayerAlive(other))
+    {
+        return Plugin_Continue;
+    }
+    int owner = WeaponBuffs_EntityOwner(entity);
+    if (owner < 1 || owner > MaxClients || !IsClientInGame(owner)
+        || GetClientTeam(owner) == GetClientTeam(other))
+    {
+        return Plugin_Continue;
+    }
+    // TF2's native energy-ball Touch is not initialized by DispatchSpawn on a
+    // cloned entity. Deal the original projectile's direct hit once ourselves.
+    g_WeaponBuffEnergyExtraHit[entity] = true;
+    int launcher = HasEntProp(entity, Prop_Send, "m_hLauncher")
+        ? GetEntPropEnt(entity, Prop_Send, "m_hLauncher") : -1;
+    float damage = g_WeaponBuffProjectileGetDamage != null
+        ? view_as<float>(SDKCall(g_WeaponBuffProjectileGetDamage, entity)) : 0.0;
+    if (damage > 0.0)
+    {
+        SDKHooks_TakeDamage(other, entity, owner, damage, DMG_BLAST, launcher);
+    }
+    RequestFrame(WeaponBuffs_RemoveEntityFrame, EntIndexToEntRef(entity));
+    return Plugin_Continue;
 }
 
 static int WeaponBuffs_FireMimicProjectile(int mimicType, int owner,
@@ -1935,7 +2009,6 @@ static int WeaponBuffs_FireNativeArrow(int source, int owner, int launcher, floa
     SDKCall(g_WeaponBuffProjectileSetLauncher, extra, launcher);
     WeaponBuffs_CopySendInt(source, extra, "m_bCritical");
     WeaponBuffs_CopySendInt(source, extra, "m_bArrowAlight");
-    WeaponBuffs_CopySendInt(source, extra, "m_bChargedShot");
     WeaponBuffs_CopySendInt(source, extra, "m_CollisionGroup");
     WeaponBuffs_CopyArrowPenetration(source, extra);
     if (!HasEntProp(source, Prop_Send, "m_bCritical")
@@ -2222,6 +2295,7 @@ static void WeaponBuffs_FireExtraProjectiles(any reference)
     int mimicType = WeaponBuffs_MimicType(source, classname);
     bool isFlare = StrEqual(classname, "tf_projectile_flare", false);
     bool isArrow = WeaponBuffs_IsArrow(classname);
+    bool isEnergyBall = StrEqual(classname, "tf_projectile_energy_ball", false);
     float flareOrigin[3];
     if (isFlare)
     {
@@ -2254,7 +2328,8 @@ static void WeaponBuffs_FireExtraProjectiles(any reference)
             float extraOrigin[3], direction[3];
             extraOrigin = flareOrigin;
             NormalizeVector(velocity, direction);
-            float clearance = 64.0 + float(copy) * 12.0;
+            float desiredClearance = 64.0 + float(copy) * 12.0;
+            float clearance = desiredClearance;
             for (int axis = 0; axis < 3; axis++)
             {
                 extraOrigin[axis] += direction[axis] * clearance;
@@ -2286,8 +2361,21 @@ static void WeaponBuffs_FireExtraProjectiles(any reference)
         }
         else
         {
+            float extraOrigin[3];
+            extraOrigin = origin;
+            if (isEnergyBall)
+            {
+                // One frame of flight can leave the Cow Mangler ball inside
+                // the shooter's hull, so start each cloned copy ahead.
+                float direction[3];
+                NormalizeVector(velocity, direction);
+                float desiredClearance = 64.0 + float(copy) * 8.0;
+                float clearance = desiredClearance;
+                WeaponBuffs_ClearEnergyBallOrigin(owner, origin, direction,
+                    clearance, extraOrigin);
+            }
             extra = WeaponBuffs_CloneProjectile(source, classname, owner, launcher,
-                origin, angles, velocity);
+                damage, extraOrigin, angles, velocity);
         }
         if (extra <= MaxClients || !IsValidEntity(extra))
         {
