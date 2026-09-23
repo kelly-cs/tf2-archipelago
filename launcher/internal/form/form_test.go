@@ -161,6 +161,46 @@ func TestChoicesTakeTheirOptionsAndNothingElse(t *testing.T) {
 	}
 }
 
+func TestRewardDisabledChoicesHaveTheRightMeaning(t *testing.T) {
+	for _, row := range []struct {
+		id, label string
+	}{
+		{"rewards.mission_tickets", "Disabled - All Unlocked"},
+		{"rewards.class_unlocks", "Disabled - All Unlocked"},
+		{"rewards.weapon_slots", "Disabled - All Unlocked"},
+		{"rewards.weapon_buffs", "Disabled - No Buffs"},
+	} {
+		t.Run(row.id, func(t *testing.T) {
+			var found bool
+			for _, spec := range Specs(base(), Env{}) {
+				if spec.ID != row.id {
+					continue
+				}
+				found = true
+				var label string
+				for _, option := range spec.Options(base(), Env{}) {
+					if option.Value == "disabled" {
+						label = option.Label
+					}
+				}
+				if label != row.label {
+					t.Errorf("disabled is labeled %q, want %q", label, row.label)
+				}
+				next, err := Apply(base(), Env{}, Change{Field: row.id, Value: "disabled"})
+				if err != nil {
+					t.Fatal(err)
+				}
+				if got := spec.Get(next); got != "disabled" {
+					t.Errorf("saved %q instead of disabled", got)
+				}
+			}
+			if !found {
+				t.Fatal("reward row is missing")
+			}
+		})
+	}
+}
+
 // A toggle reads back as the bool it was set to, in the spelling ParseBool and
 // FormatBool agree on, because the value crosses a socket as text.
 func TestTogglesRoundTripAsText(t *testing.T) {

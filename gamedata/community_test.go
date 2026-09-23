@@ -71,6 +71,8 @@ func TestCommunityPopulationMedicOnly(t *testing.T) {
 		{"Medic also excluded", strings.Replace(eightExcluded, "Spy 0", "Spy 0\n Medic 0", 1), false},
 		{"Soldier allowed", strings.Replace(eightExcluded, "Soldier 0", "Soldier 1", 1), false},
 		{"incomplete limits", strings.Replace(eightExcluded, "Sniper 0", "", 1), false},
+		{"Villa Medic relay", `InitWaveOutput { Target medonly_hill_init_relay Action Trigger }`, true},
+		{"Villa relay only in comment", `// Target medonly_hill_init_relay`, false},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			if got := CommunityPopulationMedicOnly([]byte(test.body)); got != test.want {
@@ -104,6 +106,7 @@ func TestCommunityMissionsNameTheirSpecialRestrictions(t *testing.T) {
 		"mvm_frostwynd_rc1_adv_fiefdom_fiasco":   "medieval",
 		"mvm_frostwynd_rc1_adv_medieval_madness": "medieval",
 		"mvm_chateau_rc3_adv_remedic":            "medic_only",
+		"mvm_villa_b13f_adv_recalled_to_life":    "medic_only",
 	}
 	for _, mission := range communityMissions {
 		got := MissionLoadout(mission.ID)
