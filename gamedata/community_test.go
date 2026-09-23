@@ -82,6 +82,20 @@ func TestCommunityPopulationMedicOnly(t *testing.T) {
 	}
 }
 
+func TestVillaMissionsAreMedicOnly(t *testing.T) {
+	for _, popFile := range []string{
+		"mvm_villa_b13f_adv_forgotten",
+		"mvm_villa_b13f_adv_recalled_to_life",
+	} {
+		if !CommunityMissionMedicOnlyForCatalog(popFile, nil) {
+			t.Errorf("%s should be marked Medic only", popFile)
+		}
+	}
+	if CommunityMissionMedicOnlyForCatalog("mvm_villa_b13f_adv_other", nil) {
+		t.Error("unlisted Villa mission should not inherit the label")
+	}
+}
+
 func TestCommunityManifestRejectsTyposAndReservedIDs(t *testing.T) {
 	for name, body := range map[string]string{
 		"unknown field":       `{"format_version":1,"mapps":[]}`,
@@ -106,6 +120,7 @@ func TestCommunityMissionsNameTheirSpecialRestrictions(t *testing.T) {
 		"mvm_frostwynd_rc1_adv_fiefdom_fiasco":   "medieval",
 		"mvm_frostwynd_rc1_adv_medieval_madness": "medieval",
 		"mvm_chateau_rc3_adv_remedic":            "medic_only",
+		"mvm_villa_b13f_adv_forgotten":           "medic_only",
 		"mvm_villa_b13f_adv_recalled_to_life":    "medic_only",
 	}
 	for _, mission := range communityMissions {

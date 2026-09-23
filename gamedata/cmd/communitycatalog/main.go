@@ -213,7 +213,7 @@ func missionRow(popFile string, mapIDs map[string]uint8, nav map[string]bool, po
 	if pop.pack == "mlarchive-assets.zip" {
 		row.Pack = pop.pack
 	}
-	if gamedata.CommunityPopulationMedicOnly(pop.body) {
+	if gamedata.CommunityMissionMedicOnlyForCatalog(popFile, pop.body) {
 		row.Loadout = "medic_only"
 	} else if strings.Contains(strings.ToLower(popFile), "medieval") {
 		row.Loadout = "medieval"

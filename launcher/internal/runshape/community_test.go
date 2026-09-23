@@ -50,17 +50,26 @@ func TestMedievalLoadoutAppearsInStartMissionChoices(t *testing.T) {
 	t.Fatal("Wicked Wizardry is missing from the start mission choices")
 }
 
-func TestRemedicRestrictionAppearsInStartMissionChoices(t *testing.T) {
+func TestMedicOnlyRestrictionAppearsInStartMissionChoices(t *testing.T) {
 	choices := StartMissionChoicesForPacksAndMods([]string{"archive-assets.zip"}, []string{"sigsegv-mvm"})
+	want := map[string]bool{
+		"mvm_chateau_rc3_adv_remedic":         false,
+		"mvm_villa_b13f_adv_forgotten":        false,
+		"mvm_villa_b13f_adv_recalled_to_life": false,
+	}
 	for _, choice := range choices {
-		if choice.PopFile == "mvm_chateau_rc3_adv_remedic" {
+		if _, expected := want[choice.PopFile]; expected {
 			if !strings.Contains(choice.Label, "Medic only") {
-				t.Fatalf("Remedic label = %q", choice.Label)
+				t.Fatalf("%s label = %q", choice.PopFile, choice.Label)
 			}
-			return
+			want[choice.PopFile] = true
 		}
 	}
-	t.Fatal("Remedic is missing from the start mission choices")
+	for mission, found := range want {
+		if !found {
+			t.Errorf("%s is missing from the start mission choices", mission)
+		}
+	}
 }
 
 func TestLockedCommunityMissionsNeverEnterStartChoices(t *testing.T) {
