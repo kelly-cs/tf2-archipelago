@@ -527,7 +527,11 @@ func TestSelfBlastBuffsPreserveTheNativeExplosionAndPush(t *testing.T) {
 		t.Fatal("no-self-blast zeroes the SDKHook event and suppresses blast movement")
 	}
 	post := sourceFunction(t, buffs, "public void WeaponBuffs_OnTakeDamageAlivePost")
-	if !strings.Contains(post, "SetEntityHealth(victim, health)") {
+	if !strings.Contains(post, "WeaponBuffs_RestoreSelfBlastHealth(victim, health)") {
+		t.Fatal("self-blast health is not handed to the post-damage restoration helper")
+	}
+	restore := sourceFunction(t, buffs, "void WeaponBuffs_RestoreSelfBlastHealth")
+	if !strings.Contains(restore, "SetEntityHealth(victim, health)") {
 		t.Fatal("self-blast health is not restored after the engine applies push")
 	}
 
