@@ -516,7 +516,7 @@ func TestSelfBlastBuffsPreserveTheNativeExplosionAndPush(t *testing.T) {
 	}
 	for _, required := range []string{
 		"g_WeaponEffectLevels[catalog][NoSelfBlastEffect]",
-		"g_WeaponBuffSelfBlastHealth[victim] = health",
+		"g_WeaponBuffSelfBlastHealth[victim] = baseline",
 		"SetEntityHealth(victim, health + RoundToCeil(damage))",
 	} {
 		if !strings.Contains(damage, required) {

@@ -2387,12 +2387,15 @@ public Action WeaponBuffs_OnTakeDamage(int victim, int &attacker, int &inflictor
     if (g_WeaponEffectLevels[catalog][NoSelfBlastEffect] > 0)
     {
         int health = GetClientHealth(victim);
-        g_WeaponBuffSelfBlastHealth[victim] = health;
+        int baseline = WeaponBuffs_SelfBlastBaseline(
+            g_WeaponBuffSelfBlastHealth[victim], health);
+        g_WeaponBuffSelfBlastHealth[victim] = baseline;
         // Let the full damage determine push, but prevent a lethal hit before
         // the alive-post hook can refund it.
         if (damage >= float(health))
         {
-            SetEntityHealth(victim, health + RoundToCeil(damage));
+            SetEntityHealth(victim, RoundToCeil(
+                WeaponBuffs_SelfBlastGuardHealth(health, damage)));
         }
         return Plugin_Continue;
     }
@@ -2416,8 +2419,7 @@ public void WeaponBuffs_OnTakeDamageAlivePost(int victim, int attacker, int infl
 {
     int health = g_WeaponBuffSelfBlastHealth[victim];
     g_WeaponBuffSelfBlastHealth[victim] = 0;
-    if (health > 0 && victim == attacker && (damagetype & DMG_BLAST)
-        && IsClientInGame(victim) && IsPlayerAlive(victim))
+    if (health > 0 && IsClientInGame(victim) && IsPlayerAlive(victim))
     {
         SetEntityHealth(victim, health);
     }

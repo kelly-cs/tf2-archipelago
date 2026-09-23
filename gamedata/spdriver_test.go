@@ -257,6 +257,15 @@ func TestBuilderToolboxResolvesToTheConstructionPDA(t *testing.T) {
 	}
 }
 
+func TestSelfBlastHealthStateHandlesOverlappingHits(t *testing.T) {
+	got := driver{body: "    printnum(WeaponBuffs_SelfBlastBaseline(0, 100));\n" +
+		"    printnum(WeaponBuffs_SelfBlastBaseline(100, 180));\n" +
+		"    printnum(view_as<int>(WeaponBuffs_SelfBlastGuardHealth(100, 125.5)));\n"}.run(t)
+	if len(got) != 3 || got[0] != 100 || got[1] != 100 || bitsToFloat(got[2]) != 225.5 {
+		t.Fatalf("self-blast health state returned %v", got)
+	}
+}
+
 // max32 is the plugin's own floor, written out in Go rather than reached for,
 // because the point of the test above is that the two agree.
 func max32(a, b float32) float32 {
