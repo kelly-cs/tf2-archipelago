@@ -2413,17 +2413,22 @@ public Action WeaponBuffs_OnTakeDamage(int victim, int &attacker, int &inflictor
     return Plugin_Changed;
 }
 
+void WeaponBuffs_RestoreSelfBlastHealth(int victim, int health)
+{
+    if (!(health > 0) || !IsClientInGame(victim) || !IsPlayerAlive(victim))
+    {
+        return;
+    }
+    SetEntityHealth(victim, health);
+}
+
 public void WeaponBuffs_OnTakeDamageAlivePost(int victim, int attacker, int inflictor,
     float damage, int damagetype, int weapon, const float damageForce[3],
     const float damagePosition[3], int damagecustom)
 {
     int health = g_WeaponBuffSelfBlastHealth[victim];
     g_WeaponBuffSelfBlastHealth[victim] = 0;
-    if (!(health > 0) || !IsClientInGame(victim) || !IsPlayerAlive(victim))
-    {
-        return;
-    }
-    SetEntityHealth(victim, health);
+    WeaponBuffs_RestoreSelfBlastHealth(victim, health);
 }
 
 public void WeaponBuffs_OnTakeDamagePost(int victim, int attacker, int inflictor,
