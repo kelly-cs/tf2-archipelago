@@ -72,8 +72,8 @@ test.describe('the Play screen', () => {
   });
 
   /* A wave picker beside Play, so a team can go straight to the wave they
-     want rather than replaying a mission to reach it. It starts on the wave
-     the team got to, which is the one they came back for. */
+     want rather than replaying a mission to reach it. Play must use the
+     selected wave instead of resetting the mission to wave 1. */
   test('offers a wave to start at, beside Play', async ({ page }) => {
     await page.goto('/session');
     const started = page.getByRole('row', { name: /Ctrl\+Alt\+Destruction/ });
@@ -88,6 +88,7 @@ test.describe('the Play screen', () => {
     await expect(started.getByRole('button', { name: 'Play' })).toBeVisible();
 
     await picker.selectOption('6');
+    await started.getByRole('button', { name: 'Play' }).click();
     await expect(page.getByText(/resuming mvm_coaltown_advanced at wave 6/)).toBeVisible();
   });
 

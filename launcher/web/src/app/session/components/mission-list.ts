@@ -95,23 +95,20 @@ export class MissionList {
       return play;
     }
     return (
-      play + ' Picking a wave starts the mission there, with the money for the waves before it.'
+      play + ' Choose a wave, then Play or Replay starts it there with the money for earlier waves.'
     );
   });
 
-  readonly choose = new Subject<string>();
-  readonly resume = new Subject<{ key: string; wave: number }>();
+  readonly choose = new Subject<{ key: string; wave: number }>();
 
   constructor() {
     this.choose
       .pipe(
-        exhaustMap((popFile) => this.commands.setMission(popFile)),
-        takeUntilDestroyed(),
-      )
-      .subscribe();
-    this.resume
-      .pipe(
-        exhaustMap((asked) => this.commands.resumeMission(asked.key, asked.wave)),
+        exhaustMap((asked) =>
+          asked.wave > 1
+            ? this.commands.resumeMission(asked.key, asked.wave)
+            : this.commands.setMission(asked.key),
+        ),
         takeUntilDestroyed(),
       )
       .subscribe();
