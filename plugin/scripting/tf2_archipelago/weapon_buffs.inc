@@ -2419,10 +2419,11 @@ public void WeaponBuffs_OnTakeDamageAlivePost(int victim, int attacker, int infl
 {
     int health = g_WeaponBuffSelfBlastHealth[victim];
     g_WeaponBuffSelfBlastHealth[victim] = 0;
-    if (health > 0 && IsClientInGame(victim) && IsPlayerAlive(victim))
+    if (health <= 0 || !IsClientInGame(victim) || !IsPlayerAlive(victim))
     {
-        SetEntityHealth(victim, health);
+        return;
     }
+    SetEntityHealth(victim, health);
 }
 
 public void WeaponBuffs_OnTakeDamagePost(int victim, int attacker, int inflictor,
