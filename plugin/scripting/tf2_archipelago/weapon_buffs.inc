@@ -2009,7 +2009,6 @@ static int WeaponBuffs_FireNativeArrow(int source, int owner, int launcher, floa
     SDKCall(g_WeaponBuffProjectileSetLauncher, extra, launcher);
     WeaponBuffs_CopySendInt(source, extra, "m_bCritical");
     WeaponBuffs_CopySendInt(source, extra, "m_bArrowAlight");
-    WeaponBuffs_CopySendInt(source, extra, "m_bChargedShot");
     WeaponBuffs_CopySendInt(source, extra, "m_CollisionGroup");
     WeaponBuffs_CopyArrowPenetration(source, extra);
     if (!HasEntProp(source, Prop_Send, "m_bCritical")
@@ -2370,7 +2369,8 @@ static void WeaponBuffs_FireExtraProjectiles(any reference)
                 // the shooter's hull, so start each cloned copy ahead.
                 float direction[3];
                 NormalizeVector(velocity, direction);
-                float clearance = 64.0 + float(copy) * 8.0;
+                float desiredClearance = 64.0 + float(copy) * 8.0;
+                float clearance = desiredClearance;
                 WeaponBuffs_ClearEnergyBallOrigin(owner, origin, direction,
                     clearance, extraOrigin);
             }
