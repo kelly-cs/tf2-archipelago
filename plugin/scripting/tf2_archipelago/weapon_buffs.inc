@@ -1770,7 +1770,10 @@ static int WeaponBuffs_CloneProjectile(int source, const char[] classname, int o
     WeaponBuffs_CopySendInt(source, extra, "m_iProjectileType");
     // Cow Mangler's charged energy ball initializes its damage behavior in
     // Spawn; copying the charge flag afterward produces a visible dud.
-    WeaponBuffs_CopySendInt(source, extra, "m_bChargedShot");
+    if (HasEntProp(source, Prop_Send, "m_bChargedShot"))
+    {
+        WeaponBuffs_CopySendInt(source, extra, "m_bChargedShot");
+    }
     bool isFlare = StrEqual(classname, "tf_projectile_flare", false);
     if (isFlare && HasEntProp(extra, Prop_Send, "m_hOwnerEntity"))
     {
@@ -2326,7 +2329,8 @@ static void WeaponBuffs_FireExtraProjectiles(any reference)
             float extraOrigin[3], direction[3];
             extraOrigin = flareOrigin;
             NormalizeVector(velocity, direction);
-            float clearance = 64.0 + float(copy) * 12.0;
+            float desiredClearance = 64.0 + float(copy) * 12.0;
+            float clearance = desiredClearance;
             for (int axis = 0; axis < 3; axis++)
             {
                 extraOrigin[axis] += direction[axis] * clearance;
