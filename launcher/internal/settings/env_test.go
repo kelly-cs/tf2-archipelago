@@ -74,6 +74,7 @@ func TestEveryFieldHasAnEnvVar(t *testing.T) {
 		"APHost":                     "AP_HOST",
 		"APPort":                     "AP_PORT",
 		"APTls":                      "AP_TLS",
+		"APRoomURL":                  "AP_ROOM_URL",
 		"APSlotName":                 "AP_SLOT_NAME",
 		"APPassword":                 "AP_PASSWORD",
 		"SrcdsHostname":              "SRCDS_HOSTNAME",

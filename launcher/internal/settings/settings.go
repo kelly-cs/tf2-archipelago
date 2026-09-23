@@ -42,6 +42,7 @@ type Settings struct {
 	APHost     string `json:"ap_host"`
 	APPort     int    `json:"ap_port"`
 	APTls      bool   `json:"ap_tls"`
+	APRoomURL  string `json:"ap_room_url,omitempty"`
 	APSlotName string `json:"ap_slot_name"`
 	APPassword string `json:"ap_password,omitempty"`
 

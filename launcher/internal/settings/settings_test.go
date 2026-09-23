@@ -20,6 +20,7 @@ func TestSaveLoadRoundTrip(t *testing.T) {
 	s.SrcdsRconPw = "hunter2"
 	s.APPort = 12345
 	s.APHost = "archipelago.gg"
+	s.APRoomURL = "https://archipelago.gg/room/demo-room"
 	s.APTls = true
 	s.SrcdsAdminSteamIDs = "76561198014216803"
 
@@ -39,6 +40,9 @@ func TestSaveLoadRoundTrip(t *testing.T) {
 	}
 	if loaded.APHost != s.APHost {
 		t.Errorf("AP host: got %q, want %q", loaded.APHost, s.APHost)
+	}
+	if loaded.APRoomURL != s.APRoomURL {
+		t.Errorf("AP room URL: got %q, want %q", loaded.APRoomURL, s.APRoomURL)
 	}
 	if loaded.APTls != s.APTls {
 		t.Errorf("AP TLS: got %v, want %v", loaded.APTls, s.APTls)

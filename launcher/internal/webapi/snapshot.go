@@ -27,6 +27,7 @@ type Snapshot struct {
 	Busy              bool             `json:"busy"`
 	Activity          string           `json:"activity,omitempty"`
 	Room              string           `json:"room"`
+	TrackerRoomURL    string           `json:"tracker_room_url,omitempty"`
 	Join              string           `json:"join"`
 	JoinURL           string           `json:"join_url"`
 	Mission           string           `json:"mission"`
@@ -109,7 +110,8 @@ func (a *App) Snapshot() Snapshot {
 		Title:  assets.Title("Mann vs Archipelago"),
 		Slot:   s.APSlotName,
 		Status: status, Running: running, Busy: a.busy, Activity: a.activity, Room: room,
-		Join: a.joinLineLocked(), JoinURL: a.joinURLLocked(), Mission: playing,
+		TrackerRoomURL: s.APRoomURL,
+		Join:           a.joinLineLocked(), JoinURL: a.joinURLLocked(), Mission: playing,
 		Logs: slices.Clone(a.logs), Session: sessionState,
 		Bots: botlive.Team(s), DrawnBots: botlive.Drawn(s),
 		Form: screen.Form, FormPage: screen.Page, Notice: a.notice, NoticeSeq: a.noticeSeq,

@@ -18,6 +18,9 @@
       ],
       "@gen/*": [
         "./src/gen/*"
+      ],
+      "@tracker/*": [
+        "./src/tracker/*"
       ]
     }
   },

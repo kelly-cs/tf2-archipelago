@@ -172,6 +172,9 @@ message Snapshot {
   // A long-running settings action and its latest progress line. Unlike a
   // notice, this remains in place only while the action is running.
   string activity = 23;
+
+  // Public room page URL, used to open the campaign tracker on this room.
+  string tracker_room_url = 24;
 }
 
 message GetSnapshotRequest {}

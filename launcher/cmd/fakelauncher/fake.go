@@ -46,6 +46,7 @@ type fake struct {
 func newFake(title string) *fake {
 	base := settings.Defaults()
 	base.APHost, base.APPort, base.APSlotName = "archipelago.gg", 38281, "Scout"
+	base.APRoomURL = "https://archipelago.gg/room/demo-room"
 	base.InstallRoot = "/home/player/tf2-archipelago"
 	// A loadout somebody built and a team somebody kept, so the editors have
 	// something to load, remove and hand to a seat.
@@ -116,20 +117,21 @@ func (f *fake) snapshotLocked() webapi.Snapshot {
 		room += "   " + f.mission
 	}
 	snapshot := webapi.Snapshot{
-		Title:      f.title,
-		Status:     status,
-		Running:    f.running,
-		Room:       room,
-		Join:       "connect 127.0.0.1:27015; password \"\"",
-		JoinURL:    "steam://run/440//+connect%20127.0.0.1:27015",
-		Mission:    f.mission,
-		Logs:       slices.Clone(f.logs),
-		Session:    fakeSession(f.running),
-		Bots:       botlive.Team(f.settings),
-		DrawnBots:  botlive.Drawn(f.settings),
-		Notice:     f.notice,
-		NoticeSeq:  f.noticeSeq,
-		ItemServer: "item server: ready",
+		Title:          f.title,
+		Status:         status,
+		Running:        f.running,
+		Room:           room,
+		TrackerRoomURL: f.settings.APRoomURL,
+		Join:           "connect 127.0.0.1:27015; password \"\"",
+		JoinURL:        "steam://run/440//+connect%20127.0.0.1:27015",
+		Mission:        f.mission,
+		Logs:           slices.Clone(f.logs),
+		Session:        fakeSession(f.running),
+		Bots:           botlive.Team(f.settings),
+		DrawnBots:      botlive.Drawn(f.settings),
+		Notice:         f.notice,
+		NoticeSeq:      f.noticeSeq,
+		ItemServer:     "item server: ready",
 	}
 	screen := f.screenLocked()
 	snapshot.Form, snapshot.FormPage = screen.Form, screen.Page

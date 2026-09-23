@@ -103,7 +103,7 @@ module.exports = defineConfig([
           patterns: [
             {
               group: ['../**'],
-              message: 'Use path aliases (@app/*, @gen/*) instead of parent-relative imports.',
+              message: 'Use path aliases (@app/*, @gen/*, @tracker/*) instead of parent-relative imports.',
             },
           ],
         },

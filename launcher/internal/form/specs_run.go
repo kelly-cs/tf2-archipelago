@@ -666,6 +666,11 @@ func roomSpecs() []Spec {
 		   and the parse is reported; Save is where a room that never became an
 		   address is refused, and test mode never needs one. */
 		roomAddress(),
+		text("room.tracker_link", tab, "Room page link",
+			"Paste the room page URL from archipelago.gg to open this room directly in the campaign tracker. The game connection address above does not contain the room ID.",
+			"https://archipelago.gg/room/...",
+			func(s State) string { return s.Settings.APRoomURL },
+			func(s State, v string) State { s.Settings.APRoomURL = trim(v); return s }),
 
 		secret("room.password", tab, "Room password", "Only if the room asks for one.", "none",
 			func(s State) string { return s.Settings.APPassword },
