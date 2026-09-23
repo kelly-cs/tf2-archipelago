@@ -418,8 +418,8 @@ func CommunityPopulationMedicOnly(body []byte) bool {
 	return false
 }
 
-// Villa's two Medic-only missions do not use ClassLimit blocks in their
-// population files, so keep their catalog labels explicit.
+// Villa's two missions enforce Medic through scripted map behavior rather than
+// ClassLimit blocks, so keep their catalog labels explicit.
 func CommunityMissionMedicOnly(popFile string, body []byte) bool {
 	switch popFile {
 	case "mvm_villa_b13f_adv_forgotten", "mvm_villa_b13f_adv_recalled_to_life":
