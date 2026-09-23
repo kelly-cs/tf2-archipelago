@@ -213,11 +213,7 @@
                     classView.name +
                     ', ' +
                     (classView.unlocked ? 'unlocked' : 'locked') +
-                    '; slot 1 ' +
-                    classView.slots[0]?.name +
-                    ' (' +
-                    firstWeapon[classView.name] +
-                    '); inspect upgrades'
+                    '; inspect loadout and upgrades'
                   "
                   (click)="openBuffs(classView)"
                 >
@@ -228,7 +224,6 @@
                     loading="lazy"
                   />
                   <small>{{ classView.name }}</small>
-                  <span class="class-first-slot">#1 {{ firstWeapon[classView.name] }}</span>
                 </button>
               }
             </div>

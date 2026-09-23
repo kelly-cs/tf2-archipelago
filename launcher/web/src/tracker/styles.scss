@@ -529,7 +529,7 @@ main {
 
 .class-card {
   display: grid;
-  min-height: 106px;
+  min-height: 88px;
   padding: 5px;
   place-items: center;
   color: var(--text-disabled);
@@ -560,11 +560,6 @@ main {
 .class-card small {
   font-weight: 700;
   text-transform: uppercase;
-}
-
-.class-first-slot {
-  font-size: var(--text-xs);
-  text-align: center;
 }
 
 .slot-explanation {

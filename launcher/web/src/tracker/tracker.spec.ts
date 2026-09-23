@@ -195,8 +195,8 @@ describe('tracker screen', () => {
     expect(element.querySelectorAll('app-panel').length).toBeGreaterThan(3);
     expect(element.textContent).toContain('RED Team Server');
     expect(element.textContent).toContain('Grappling Hook');
-    expect(element.textContent).toContain('#1 Medi Gun');
-    expect(element.textContent).toContain('#1 Knife');
+    expect(element.querySelector('.class-grid')?.textContent).toContain('Spy');
+    expect(element.querySelector('.class-grid')?.textContent).not.toMatch(/Medi Gun|Knife/);
     expect(element.textContent).toContain('All-Class Melee');
     expect(element.textContent).toContain('Low Gravity');
     expect(element.textContent).toContain('Blast Plating');
