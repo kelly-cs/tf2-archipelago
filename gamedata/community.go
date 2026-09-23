@@ -374,10 +374,17 @@ func InspectCommunityPopulation(body []byte) (waves int, hasTank, hasGiant bool)
 }
 
 // CommunityPopulationMedicOnly recognizes a ClassLimit block that excludes
-// every playable class except Medic. Unknown or incomplete blocks stay
-// unrestricted rather than inventing a class restriction.
+// every playable class except Medic, or Recalled to Life's map relay that
+// enforces the same restriction through its embedded VScript. Unknown or
+// incomplete blocks stay unrestricted rather than inventing a restriction.
 func CommunityPopulationMedicOnly(body []byte) bool {
 	tokens := populationTokens(body)
+	// Recalled to Life invokes this map relay at wave 1 initialization. The
+	// relay runs the BSP's recalled-to-life/mediconly.nut, which changes every
+	// RED player to Medic and forces them back when they change class.
+	if slices.Contains(tokens, "medonly_hill_init_relay") {
+		return true
+	}
 	for i := 0; i+1 < len(tokens); i++ {
 		if !strings.EqualFold(tokens[i], "ClassLimit") || tokens[i+1] != "{" {
 			continue
@@ -617,7 +624,7 @@ func MissionRequirement(id MissionID) string {
 // Blank means the usual unrestricted MvM loadout. "medieval" describes the
 // mission's weapon roster and player-facing recommendation; it does not assert
 // that the map enables TF2's engine-level Medieval Mode. "medic_only" means
-// the mission's population file excludes every other player class.
+// the mission permits only Medic on RED, through its pop file or map script.
 func MissionLoadout(id MissionID) string {
 	return communityContent.Loadouts[id]
 }

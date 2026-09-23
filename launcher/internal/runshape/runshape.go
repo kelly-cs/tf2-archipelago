@@ -230,7 +230,7 @@ func LoadoutNote(loadout string) string {
 	case "medieval":
 		return "Medieval: melee and medieval-era weapons only, so most slot unlocks do nothing here."
 	case "medic_only":
-		return "Medic only: this mission's population file excludes every other player class."
+		return "Medic only: this mission requires RED players to use Medic."
 	}
 	return ""
 }
