@@ -33,6 +33,8 @@ bool g_Holding;
 #define BotTrimDelay 3.0
 
 bool g_BotsWaveRunning;
+// Zero when no wave is running. A late plugin load recovers an active wave.
+int g_CurrentWave;
 
 // The upgrade names, in the order scripts/items/mvm_upgrades.txt lists the
 // entries the game actually loads. That order is the index MVM_Upgrade carries:
@@ -47,6 +49,25 @@ ArrayList g_UpgradeNames;
 
 // When the next fill may ask, so that one ask is not made five times over.
 float g_NextFill;
+
+// Villa's roof boss arena has no NAV connection from the ordinary map. Its
+// scripted player teleport skips bots, so late-spawning defenders need the
+// same one-way transfer. The house and ghost rooms have NAV routes and are
+// left to the defender mod's normal movement.
+float g_NextVillaEscort[MAXPLAYERS + 1];
+#define VillaMapName "mvm_villa_b13f"
+#define VillaRecalledPop "mvm_villa_b13f_adv_recalled_to_life"
+#define VillaRoofDestinationName "roof_player_destination"
+#define VillaEscortInterval 2.0
+#define VillaRoomMinX -9900.0
+#define VillaRoomMaxX -7400.0
+#define VillaRoomMinY 2500.0
+#define VillaRoomMaxY 5000.0
+#define VillaRoomMinZ 650.0
+#define VillaRoomMaxZ 1600.0
+float g_VillaRoofDestination[3] = {-9024.0, 5056.0, 2448.0};
+int g_VillaRoofDestinationRef;
+bool g_VillaRoofDestinationSearched;
 
 /* How long an ask is given to become a player before another one is made.
  *
@@ -88,6 +109,7 @@ void Bots_Init()
     // No TIMER_FLAG_NO_MAPCHANGE on either: they must outlive every map change.
     CreateTimer(BotReadyInterval, Timer_HoldBotsReady, _, TIMER_REPEAT);
     CreateTimer(BotFillInterval, Timer_FillTeam, _, TIMER_REPEAT);
+    CreateTimer(VillaEscortInterval, Timer_VillaEscort, _, TIMER_REPEAT);
 }
 
 void Bots_OnConfigsExecuted()
@@ -137,11 +159,164 @@ void Bots_OnMapStart()
     // The clock this is measured against restarts with the map, so a deadline
     // left over from a long one would hold the fill off on the next.
     g_NextFill = 0.0;
+    for (int client = 1; client <= MaxClients; client++)
+    {
+        g_NextVillaEscort[client] = 0.0;
+    }
+    g_VillaRoofDestinationRef = INVALID_ENT_REFERENCE;
+    g_VillaRoofDestinationSearched = false;
+}
+
+public Action Timer_VillaEscort(Handle timer)
+{
+    Bots_PublishDirective();
+    float now = GetEngineTime();
+    // Villa's scripted finale can continue after the game marks wave 6 done.
+    // The human player's arrival on the roof is the reliable phase signal.
+    if (!MvM_IsActive())
+    {
+        return Plugin_Continue;
+    }
+    char map[64];
+    GetCurrentMap(map, sizeof(map));
+    if (!StrEqual(map, VillaMapName))
+    {
+        return Plugin_Continue;
+    }
+    char pop[PLATFORM_MAX_PATH];
+    if (!MvM_PopFile(pop, sizeof(pop))
+        || !StrEqual(pop, VillaRecalledPop))
+    {
+        return Plugin_Continue;
+    }
+
+    if (!g_VillaRoofDestinationSearched)
+    {
+        g_VillaRoofDestinationSearched = true;
+        for (int entity = MaxClients + 1; entity < GetMaxEntities(); entity++)
+        {
+            if (!IsValidEntity(entity) || !HasEntProp(entity, Prop_Data, "m_iName"))
+            {
+                continue;
+            }
+            char name[40];
+            GetEntPropString(entity, Prop_Data, "m_iName", name, sizeof(name));
+            if (StrEqual(name, VillaRoofDestinationName))
+            {
+                g_VillaRoofDestinationRef = EntIndexToEntRef(entity);
+                GetEntPropVector(entity, Prop_Data, "m_vecAbsOrigin", g_VillaRoofDestination);
+                break;
+            }
+        }
+        if (g_VillaRoofDestinationRef == INVALID_ENT_REFERENCE)
+        {
+            AP_Debug("Villa roof destination entity was not found; using authored fallback coordinates.");
+        }
+    }
+    float destination[3];
+    destination = g_VillaRoofDestination;
+    int destinationEntity = EntRefToEntIndex(g_VillaRoofDestinationRef);
+    if (destinationEntity > MaxClients && IsValidEntity(destinationEntity)
+        && HasEntProp(destinationEntity, Prop_Data, "m_vecAbsOrigin"))
+    {
+        GetEntPropVector(destinationEntity, Prop_Data, "m_vecAbsOrigin", destination);
+    }
+
+    float botPosition[3];
+    // The roof destination exists before the finale. Villa moves human players
+    // there only when the boss enters its final phase, so follow that signal.
+    bool playerOnRoof = false;
+    for (int client = 1; client <= MaxClients; client++)
+    {
+        if (!IsClientInGame(client) || IsFakeClient(client) || !IsPlayerAlive(client)
+            || !MvM_IsDefender(client))
+        {
+            continue;
+        }
+        GetClientAbsOrigin(client, botPosition);
+        if (GetVectorDistance(botPosition, destination) < 1200.0)
+        {
+            playerOnRoof = true;
+            break;
+        }
+    }
+    if (!playerOnRoof)
+    {
+        return Plugin_Continue;
+    }
+    for (int bot = 1; bot <= MaxClients; bot++)
+    {
+        if (!MvM_IsDefender(bot) || !IsFakeClient(bot) || IsClientSourceTV(bot)
+            || !IsPlayerAlive(bot) || now < g_NextVillaEscort[bot])
+        {
+            continue;
+        }
+        GetClientAbsOrigin(bot, botPosition);
+        if (GetVectorDistance(botPosition, destination) < 650.0)
+        {
+            continue;
+        }
+        TeleportEntity(bot, destination, NULL_VECTOR, NULL_VECTOR);
+        g_NextVillaEscort[bot] = now + 10.0;
+        AP_Debug("Villa moved defender %N to the disconnected roof arena.", bot);
+    }
+    return Plugin_Continue;
+}
+
+// The defender mod only knows how to carry out these short lived orders.
+// Archipelago owns Villa's mission, wave, and room choice. Refreshing each
+// order also makes a plugin reload or mission switch clear it automatically.
+void Bots_PublishDirective()
+{
+    if (GetFeatureStatus(FeatureType_Native, "Defenderbots_SetDirective") != FeatureStatus_Available)
+    {
+        return;
+    }
+    char map[64], pop[PLATFORM_MAX_PATH];
+    GetCurrentMap(map, sizeof(map));
+    bool villa = MvM_IsActive() && StrEqual(map, VillaMapName)
+        && MvM_PopFile(pop, sizeof(pop))
+        && StrEqual(pop, VillaRecalledPop);
+    int wave = g_CurrentWave > 0 ? g_CurrentWave : MvM_WaveFromGame();
+    bool combat = villa && wave >= 2 && wave <= 5
+        && GameRules_GetRoundState() == RoundState_RoundRunning;
+    float goal[3] = {-8637.5, 5712.5, 896.2};
+    if (combat && wave == 5)
+    {
+        // Villa's hunt script picks one of seven rooms at runtime. Its BLU
+        // robots appear inside the chosen room; their live position follows
+        // that choice without duplicating the script's random order here.
+        for (int robot = 1; robot <= MaxClients; robot++)
+        {
+            if (!IsClientInGame(robot) || !IsFakeClient(robot) || !IsPlayerAlive(robot)
+                || GetClientTeam(robot) != TeamBlue)
+            {
+                continue;
+            }
+            float position[3];
+            GetClientAbsOrigin(robot, position);
+            if (position[0] > VillaRoomMinX && position[0] < VillaRoomMaxX
+                && position[1] > VillaRoomMinY && position[1] < VillaRoomMaxY
+                && position[2] > VillaRoomMinZ && position[2] < VillaRoomMaxZ)
+            {
+                goal = position;
+                break;
+            }
+        }
+    }
+    for (int bot = 1; bot <= MaxClients; bot++)
+    {
+        if (MvM_IsDefender(bot) && IsFakeClient(bot) && !IsClientSourceTV(bot))
+        {
+            Defenderbots_SetDirective(bot, combat, goal, combat, villa);
+        }
+    }
 }
 
 void Bots_OnWaveBegin()
 {
     g_BotsWaveRunning = true;
+    g_VillaRoofDestinationSearched = false;
 }
 
 void Bots_OnWaveEnd()
