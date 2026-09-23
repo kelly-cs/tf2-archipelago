@@ -54,6 +54,12 @@ float g_NextFill;
 // same one-way transfer. The house and ghost rooms have NAV routes and are
 // left to the defender mod's normal movement.
 float g_NextVillaEscort[MAXPLAYERS + 1];
+#define VillaMapName "mvm_villa_b13f"
+#define VillaRecalledPop "mvm_villa_b13f_adv_recalled_to_life"
+#define VillaRoofDestinationName "roof_player_destination"
+float g_VillaRoofDestination[3] = {-9024.0, 5056.0, 2448.0};
+int g_VillaRoofDestinationRef;
+bool g_VillaRoofDestinationSearched;
 
 /* How long an ask is given to become a player before another one is made.
  *
@@ -149,6 +155,8 @@ void Bots_OnMapStart()
     {
         g_NextVillaEscort[client] = 0.0;
     }
+    g_VillaRoofDestinationRef = INVALID_ENT_REFERENCE;
+    g_VillaRoofDestinationSearched = false;
 }
 
 public Action Timer_VillaEscort(Handle timer)
@@ -163,36 +171,45 @@ public Action Timer_VillaEscort(Handle timer)
     }
     char map[64];
     GetCurrentMap(map, sizeof(map));
-    if (!StrEqual(map, "mvm_villa_b13f"))
+    if (!StrEqual(map, VillaMapName))
     {
         return Plugin_Continue;
     }
     char pop[PLATFORM_MAX_PATH];
     if (!MvM_PopFile(pop, sizeof(pop))
-        || !StrEqual(pop, "mvm_villa_b13f_adv_recalled_to_life"))
+        || !StrEqual(pop, VillaRecalledPop))
     {
         return Plugin_Continue;
     }
 
-    int destinationEntity = -1;
-    for (int entity = MaxClients + 1; entity < GetMaxEntities(); entity++)
+    if (!g_VillaRoofDestinationSearched)
     {
-        if (!IsValidEntity(entity))
+        g_VillaRoofDestinationSearched = true;
+        for (int entity = MaxClients + 1; entity < GetMaxEntities(); entity++)
         {
-            continue;
+            if (!IsValidEntity(entity) || !HasEntProp(entity, Prop_Data, "m_iName"))
+            {
+                continue;
+            }
+            char name[40];
+            GetEntPropString(entity, Prop_Data, "m_iName", name, sizeof(name));
+            if (StrEqual(name, VillaRoofDestinationName))
+            {
+                g_VillaRoofDestinationRef = EntIndexToEntRef(entity);
+                GetEntPropVector(entity, Prop_Data, "m_vecAbsOrigin", g_VillaRoofDestination);
+                break;
+            }
         }
-        char name[40];
-        GetEntPropString(entity, Prop_Data, "m_iName", name, sizeof(name));
-        if (StrEqual(name, "roof_player_destination"))
+        if (g_VillaRoofDestinationRef == INVALID_ENT_REFERENCE)
         {
-            destinationEntity = entity;
-            break;
+            AP_Debug("Villa roof destination entity was not found; using authored fallback coordinates.");
         }
     }
-    // Villa's BSP names this destination, but the mission may remove that
-    // entity at runtime. These are its authored coordinates in the BSP.
-    float destination[3] = {-9024.0, 5056.0, 2448.0};
-    if (destinationEntity != -1)
+    float destination[3];
+    destination = g_VillaRoofDestination;
+    int destinationEntity = EntRefToEntIndex(g_VillaRoofDestinationRef);
+    if (destinationEntity > MaxClients && IsValidEntity(destinationEntity)
+        && HasEntProp(destinationEntity, Prop_Data, "m_vecAbsOrigin"))
     {
         GetEntPropVector(destinationEntity, Prop_Data, "m_vecAbsOrigin", destination);
     }
@@ -249,9 +266,9 @@ void Bots_PublishDirective()
     }
     char map[64], pop[PLATFORM_MAX_PATH];
     GetCurrentMap(map, sizeof(map));
-    bool villa = MvM_IsActive() && StrEqual(map, "mvm_villa_b13f")
+    bool villa = MvM_IsActive() && StrEqual(map, VillaMapName)
         && MvM_PopFile(pop, sizeof(pop))
-        && StrEqual(pop, "mvm_villa_b13f_adv_recalled_to_life");
+        && StrEqual(pop, VillaRecalledPop);
     int wave = g_CurrentWave > 0 ? g_CurrentWave : MvM_WaveFromGame();
     bool combat = villa && wave >= 2 && wave <= 5
         && GameRules_GetRoundState() == RoundState_RoundRunning;
@@ -291,6 +308,7 @@ void Bots_PublishDirective()
 void Bots_OnWaveBegin()
 {
     g_BotsWaveRunning = true;
+    g_VillaRoofDestinationSearched = false;
 }
 
 void Bots_OnWaveEnd()
