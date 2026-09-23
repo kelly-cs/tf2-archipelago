@@ -1417,6 +1417,33 @@ static bool WeaponBuffs_ProjectileVisible(int client, const float start[3], cons
     return visible;
 }
 
+static void WeaponBuffs_ClearEnergyBallOrigin(int client, const float origin[3],
+    const float direction[3], float desired, float result[3])
+{
+    float finish[3];
+    result = origin;
+    for (int axis = 0; axis < 3; axis++)
+    {
+        finish[axis] = origin[axis] + direction[axis] * desired;
+    }
+    Handle trace = TR_TraceRayFilterEx(origin, finish, MASK_SOLID, RayType_EndPoint,
+        WeaponBuffs_ProjectileVisibilityFilter, client);
+    float distance = desired * TR_GetFraction(trace);
+    if (TR_DidHit(trace))
+    {
+        distance -= 4.0;
+        if (distance < 0.0)
+        {
+            distance = 0.0;
+        }
+    }
+    for (int axis = 0; axis < 3; axis++)
+    {
+        result[axis] += direction[axis] * distance;
+    }
+    delete trace;
+}
+
 // CTFBaseRocket::Destroy(false, true) sends this same message before removing
 // a rocket. Clients with a breakable model render the projectile tumbling
 // apart; projectile types without model gibs still get sparks and the impact
@@ -1783,7 +1810,6 @@ static int WeaponBuffs_CloneProjectile(int source, const char[] classname, int o
     WeaponBuffs_CopySendEntity(source, extra, "m_hOriginalLauncher");
     WeaponBuffs_CopySendInt(source, extra, "m_bCritical");
     WeaponBuffs_CopySendInt(source, extra, "m_bArrowAlight");
-    WeaponBuffs_CopySendInt(source, extra, "m_bChargedShot");
     WeaponBuffs_CopySendInt(source, extra, "m_CollisionGroup");
     WeaponBuffs_CopyDataFloat(source, extra, "m_flDamage");
     if (StrEqual(classname, "tf_projectile_energy_ball", false)
@@ -2341,10 +2367,8 @@ static void WeaponBuffs_FireExtraProjectiles(any reference)
                 float direction[3];
                 NormalizeVector(velocity, direction);
                 float clearance = 64.0 + float(copy) * 8.0;
-                for (int axis = 0; axis < 3; axis++)
-                {
-                    extraOrigin[axis] += direction[axis] * clearance;
-                }
+                WeaponBuffs_ClearEnergyBallOrigin(owner, origin, direction,
+                    clearance, extraOrigin);
             }
             extra = WeaponBuffs_CloneProjectile(source, classname, owner, launcher,
                 damage, extraOrigin, angles, velocity);
