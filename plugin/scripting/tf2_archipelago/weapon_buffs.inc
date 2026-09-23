@@ -31,7 +31,8 @@
 #define SyringeUberOnHitFraction 0.01
 #define AmmoOnHitEffect 69
 #define NoSelfBlastEffect 62
-#define SelfBlastDamageAttribute "blast dmg to self increased"
+#define NoSelfBlastAttribute "no self blast dmg"
+#define LegacySelfBlastDamageAttribute "blast dmg to self increased"
 #define RocketJumpProtectionEffect 72
 // What one level of rocket-jump protection takes off self-inflicted blast damage.
 #define RocketJumpProtectionPerLevel 0.25
@@ -52,6 +53,7 @@
 #define BuffMode_Toggle 3
 
 int g_WeaponEffectLevels[WeaponCount][WeaponEffectCount];
+int g_WeaponBuffSelfBlastHealth[MAXPLAYERS + 1];
 int g_WeaponBuffProviderRef[MAXPLAYERS + 1];
 float g_WeaponBuffProviderRetryAt[MAXPLAYERS + 1];
 bool g_WeaponBuffAtUpgradeStation[MAXPLAYERS + 1];
@@ -612,8 +614,11 @@ void WeaponBuffs_HookClient(int client)
     g_WeaponBuffProjectileDestructionReadyAt[client] = 0.0;
     g_WeaponBuffLastSubstanceWeapon[client] = -1;
     g_WeaponBuffLastSubstanceTime[client] = 0.0;
+    g_WeaponBuffSelfBlastHealth[client] = 0;
     SDKUnhook(client, SDKHook_OnTakeDamage, WeaponBuffs_OnTakeDamage);
     SDKHook(client, SDKHook_OnTakeDamage, WeaponBuffs_OnTakeDamage);
+    SDKUnhook(client, SDKHook_OnTakeDamageAlivePost, WeaponBuffs_OnTakeDamageAlivePost);
+    SDKHook(client, SDKHook_OnTakeDamageAlivePost, WeaponBuffs_OnTakeDamageAlivePost);
     SDKUnhook(client, SDKHook_OnTakeDamagePost, WeaponBuffs_OnTakeDamagePost);
     SDKHook(client, SDKHook_OnTakeDamagePost, WeaponBuffs_OnTakeDamagePost);
     SDKUnhook(client, SDKHook_WeaponSwitchPost, WeaponBuffs_WeaponSwitchPost);
@@ -2431,11 +2436,9 @@ bool WeaponBuffs_HasRevealOnHit(int attacker, int inflictor, int weapon, int dam
             && TF2Attrib_HookValueInt(0, "reveal_cloaked_victim_on_hit", weapon) > 0);
 }
 
-// Scale self-inflicted blast damage for rocket-jump protection. Do not turn
-// no-self-blast into a zero-damage SDKHook event here: TF2 stops processing a
-// zero-damage event before it applies the explosion's push. The launcher
-// multiplier installed below lets TF2's damage rules zero health damage after
-// the explosion and its force have already been established.
+// Scale self-inflicted blast damage for rocket-jump protection. TF2 scales
+// away the blast impulse when this event's damage is reduced to zero (or near
+// zero), so no-self-blast restores health after damage processing instead.
 public Action WeaponBuffs_OnTakeDamage(int victim, int &attacker, int &inflictor,
     float &damage, int &damagetype, int &weapon, float damageForce[3],
     float damagePosition[3], int damagecustom)
@@ -2469,6 +2472,27 @@ public Action WeaponBuffs_OnTakeDamage(int victim, int &attacker, int &inflictor
     {
         return Plugin_Continue;
     }
+    if (g_WeaponEffectLevels[catalog][NoSelfBlastEffect] > 0)
+    {
+        int health = GetClientHealth(victim);
+        if (g_WeaponBuffSelfBlastHealth[victim] == 0)
+        {
+            // Uber and other damage rules can skip OnTakeDamageAlivePost.
+            // Never leave the lethal-hit guard or its baseline past this frame.
+            RequestFrame(Frame_RestoreSelfBlastHealth, GetClientUserId(victim));
+        }
+        int baseline = WeaponBuffs_SelfBlastBaseline(
+            g_WeaponBuffSelfBlastHealth[victim], health);
+        g_WeaponBuffSelfBlastHealth[victim] = baseline;
+        // Let the full damage determine push, but prevent a lethal hit before
+        // the alive-post hook can refund it.
+        if (damage >= float(health))
+        {
+            SetEntityHealth(victim, RoundToCeil(
+                WeaponBuffs_SelfBlastGuardHealth(health, damage)));
+        }
+        return Plugin_Continue;
+    }
     int levels = g_WeaponEffectLevels[catalog][RocketJumpProtectionEffect];
     if (levels <= 0)
     {
@@ -2481,6 +2505,41 @@ public Action WeaponBuffs_OnTakeDamage(int victim, int &attacker, int &inflictor
     }
     damage *= kept;
     return Plugin_Changed;
+}
+
+void WeaponBuffs_RestoreSelfBlastHealth(int victim, int health)
+{
+    if (!(health > 0) || !IsClientInGame(victim) || !IsPlayerAlive(victim))
+    {
+        return;
+    }
+    SetEntityHealth(victim, health);
+}
+
+void WeaponBuffs_RestorePendingSelfBlastHealth(int victim)
+{
+    int health = g_WeaponBuffSelfBlastHealth[victim];
+    g_WeaponBuffSelfBlastHealth[victim] = 0;
+    WeaponBuffs_RestoreSelfBlastHealth(victim, health);
+}
+
+public void Frame_RestoreSelfBlastHealth(int userid)
+{
+    int client = GetClientOfUserId(userid);
+    if (client > 0)
+    {
+        WeaponBuffs_RestorePendingSelfBlastHealth(client);
+    }
+}
+
+public void WeaponBuffs_OnTakeDamageAlivePost(int victim, int attacker, int inflictor,
+    float damage, int damagetype, int weapon, const float damageForce[3],
+    const float damagePosition[3], int damagecustom)
+{
+    if (victim == attacker && (damagetype & DMG_BLAST))
+    {
+        WeaponBuffs_RestorePendingSelfBlastHealth(victim);
+    }
 }
 
 public void WeaponBuffs_OnTakeDamagePost(int victim, int attacker, int inflictor,
@@ -2780,13 +2839,9 @@ static int WeaponBuffs_Provider(int client, int weaponEntity)
     return provider;
 }
 
-// Attribute 181 (no self blast dmg) changes rockets and grenades to the
-// Jumper explosion particle as well as suppressing damage. Attribute 207 is
-// the independent self-blast damage multiplier: zeroing it in TF2's native
-// damage rules retains the ordinary explosion, blast-jump force and
-// conditions. Keep it on every loadout weapon so a projectile still has the
-// attribute after its owner switches.
-static void WeaponBuffs_SyncNativeSelfBlast(int client, bool removeAll)
+// Clear attributes applied by earlier versions. The no-self-blast buff now
+// refunds health after TF2 computes the normal explosion and its push.
+static void WeaponBuffs_ClearOldSelfBlastAttributes(int client)
 {
     for (int slot = 0; slot <= 5; slot++)
     {
@@ -2795,17 +2850,8 @@ static void WeaponBuffs_SyncNativeSelfBlast(int client, bool removeAll)
         {
             continue;
         }
-        TF2Attrib_RemoveByName(entity, SelfBlastDamageAttribute);
-        int weapon = WeaponBuffs_ForEntity(entity);
-        if (!removeAll && weapon >= 0
-            && g_WeaponEffectLevels[weapon][NoSelfBlastEffect] > 0)
-        {
-            if (!TF2Attrib_SetByName(entity, SelfBlastDamageAttribute, 0.0))
-            {
-                LogError("Could not apply native no-self-blast effect to %s.",
-                    g_WeaponNames[weapon]);
-            }
-        }
+        TF2Attrib_RemoveByName(entity, LegacySelfBlastDamageAttribute);
+        TF2Attrib_RemoveByName(entity, NoSelfBlastAttribute);
         TF2Attrib_ClearCache(entity);
     }
 }
@@ -2819,7 +2865,7 @@ static void WeaponBuffs_Remove(int client)
     }
     if (client > 0 && client <= MaxClients && IsClientInGame(client))
     {
-        WeaponBuffs_SyncNativeSelfBlast(client, true);
+        WeaponBuffs_ClearOldSelfBlastAttributes(client);
         int entity = GetEntPropEnt(client, Prop_Send, "m_hActiveWeapon");
         if (entity > MaxClients && IsValidEntity(entity))
         {
@@ -2832,7 +2878,7 @@ void WeaponBuffs_Disconnect(int client)
 {
     if (client > 0 && client <= MaxClients && IsClientInGame(client))
     {
-        WeaponBuffs_SyncNativeSelfBlast(client, true);
+        WeaponBuffs_ClearOldSelfBlastAttributes(client);
     }
     int provider = EntRefToEntIndex(g_WeaponBuffProviderRef[client]);
     g_WeaponBuffProviderRef[client] = INVALID_ENT_REFERENCE;
@@ -2882,7 +2928,7 @@ void WeaponBuffs_Apply(int client)
     }
     int entity = GetEntPropEnt(client, Prop_Send, "m_hActiveWeapon");
     int weapon = WeaponBuffs_ForEntity(entity);
-    WeaponBuffs_SyncNativeSelfBlast(client, false);
+    WeaponBuffs_ClearOldSelfBlastAttributes(client);
     // Reloads, respawns and special movement weapons can briefly leave the
     // player with no valid active weapon. A provider cannot be verified
     // against that state, and repeatedly creating/removing one feeds another
@@ -2945,7 +2991,7 @@ void WeaponBuffs_Apply(int client)
         {
             continue;
         }
-        // This one uses a different launcher attribute below so TF2 retains
+        // The damage hooks handle this without a native attribute, preserving
         // both normal explosion visuals and blast-jump movement.
         if (effect == NoSelfBlastEffect)
         {

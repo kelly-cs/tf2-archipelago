@@ -497,6 +497,9 @@ func TestSelfBlastBuffsPreserveTheNativeExplosionAndPush(t *testing.T) {
 	if !strings.Contains(hook, "SDKHook_OnTakeDamage, WeaponBuffs_OnTakeDamage") {
 		t.Fatal("players are not hooked for modifiable damage")
 	}
+	if !strings.Contains(hook, "SDKHook_OnTakeDamageAlivePost, WeaponBuffs_OnTakeDamageAlivePost") {
+		t.Fatal("players are not hooked to restore self-blast health")
+	}
 
 	damage := sourceFunction(t, buffs, "public Action WeaponBuffs_OnTakeDamage")
 	for _, required := range []string{
@@ -511,36 +514,57 @@ func TestSelfBlastBuffsPreserveTheNativeExplosionAndPush(t *testing.T) {
 			t.Fatalf("self-blast damage path has no %q", required)
 		}
 	}
-	if strings.Contains(damage, "NoSelfBlastEffect") || strings.Contains(damage, "damage = 0.0") {
-		t.Fatal("no-self-blast still zeroes the SDKHook event and suppresses native blast movement")
+	for _, required := range []string{
+		"g_WeaponEffectLevels[catalog][NoSelfBlastEffect]",
+		"g_WeaponBuffSelfBlastHealth[victim] = baseline",
+		"WeaponBuffs_SelfBlastGuardHealth(health, damage)",
+		"RequestFrame(Frame_RestoreSelfBlastHealth, GetClientUserId(victim))",
+	} {
+		if !strings.Contains(damage, required) {
+			t.Fatalf("self-blast health refund path has no %q", required)
+		}
+	}
+	if strings.Contains(damage, "damage = 0.0") {
+		t.Fatal("no-self-blast zeroes the SDKHook event and suppresses blast movement")
+	}
+	post := sourceFunction(t, buffs, "public void WeaponBuffs_OnTakeDamageAlivePost")
+	if !strings.Contains(post, "WeaponBuffs_RestorePendingSelfBlastHealth(victim)") {
+		t.Fatal("self-blast health is not restored after alive damage")
+	}
+	frame := sourceFunction(t, buffs, "public void Frame_RestoreSelfBlastHealth")
+	if !strings.Contains(frame, "WeaponBuffs_RestorePendingSelfBlastHealth(client)") {
+		t.Fatal("cancelled self-blast damage can leave temporary guard health behind")
+	}
+	restore := sourceFunction(t, buffs, "void WeaponBuffs_RestoreSelfBlastHealth")
+	if !strings.Contains(restore, "SetEntityHealth(victim, health)") {
+		t.Fatal("self-blast health is not restored after the engine applies push")
 	}
 
-	native := sourceFunction(t, buffs, "static void WeaponBuffs_SyncNativeSelfBlast")
+	native := sourceFunction(t, buffs, "static void WeaponBuffs_ClearOldSelfBlastAttributes")
 	for _, required := range []string{
 		"GetPlayerWeaponSlot(client, slot)",
-		"TF2Attrib_RemoveByName(entity, SelfBlastDamageAttribute)",
-		"g_WeaponEffectLevels[weapon][NoSelfBlastEffect]",
-		"TF2Attrib_SetByName(entity, SelfBlastDamageAttribute, 0.0)",
+		"TF2Attrib_RemoveByName(entity, LegacySelfBlastDamageAttribute)",
+		"TF2Attrib_RemoveByName(entity, NoSelfBlastAttribute)",
 		"TF2Attrib_ClearCache(entity)",
 	} {
 		if !strings.Contains(native, required) {
-			t.Fatalf("native no-self-blast path has no %q", required)
+			t.Fatalf("old self-blast attribute cleanup has no %q", required)
 		}
 	}
-	if strings.Contains(native, "g_WeaponEffectAttributes[NoSelfBlastEffect], 2.0") {
-		t.Fatal("native no-self-blast path still selects TF2's replacement Jumper explosion")
+	if strings.Contains(native, "TF2Attrib_SetByName") {
+		t.Fatal("no-self-blast still applies an attribute that changes explosion visuals")
 	}
 
 	apply := sourceFunction(t, buffs, "void WeaponBuffs_Apply(int client)")
-	if !strings.Contains(apply, "WeaponBuffs_SyncNativeSelfBlast(client, false)") {
-		t.Fatal("buff application does not synchronize native no-self-blast attributes")
+	if !strings.Contains(apply, "WeaponBuffs_ClearOldSelfBlastAttributes(client)") {
+		t.Fatal("buff application does not clear old self-blast attributes")
 	}
 	if !strings.Contains(apply, "effect == NoSelfBlastEffect") {
-		t.Fatal("generic provider still duplicates the native no-self-blast attribute")
+		t.Fatal("generic provider still applies the no-self-blast attribute")
 	}
 	remove := sourceFunction(t, buffs, "static void WeaponBuffs_Remove(int client)")
-	if !strings.Contains(remove, "WeaponBuffs_SyncNativeSelfBlast(client, true)") {
-		t.Fatal("buff removal leaves native no-self-blast attributes behind")
+	if !strings.Contains(remove, "WeaponBuffs_ClearOldSelfBlastAttributes(client)") {
+		t.Fatal("buff removal leaves old no-self-blast attributes behind")
 	}
 }
 
