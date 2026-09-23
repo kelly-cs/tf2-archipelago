@@ -2330,7 +2330,8 @@
       "waves": 6,
       "has_tank": true,
       "has_giant": true,
-      "requires": "sigsegv-mvm"
+      "requires": "sigsegv-mvm",
+      "loadout": "medic_only"
     },
     {
       "id": 304,

@@ -225,7 +225,8 @@ class WeaponBuffPercentage(Range):
     are enabled.
 
     The remaining space contains cash filler. With cash rewards disabled,
-    every spare check awards a weapon buff and this option is ignored.
+    every spare check awards a weapon buff and this option is ignored. It is
+    also ignored when weapon buffs are disabled.
     """
 
     display_name = "Weapon Buff Percentage"
@@ -249,17 +250,19 @@ class WeaponBuffStackChance(Range):
 
 
 class RewardImportance(Choice):
-    """Whether this reward can gate access or is an optional power-up."""
+    """Whether this reward gates access, is optional, or is disabled."""
 
     option_useful = 0
     option_progression = 1
+    option_disabled = 2
 
 
 class MissionTicketImportance(RewardImportance):
     """Progression tickets are required to deploy to their missions.
 
     Useful tickets do not gate deployment; all missions drawn by the seed are
-    available from the start.
+    available from the start. Disabled tickets are all unlocked at the start
+    and are not placed as rewards.
     """
 
     display_name = "Mission Ticket Importance"
@@ -270,6 +273,7 @@ class ClassUnlockImportance(RewardImportance):
     """Progression class unlocks satisfy each mission tier's class requirement.
 
     Useful class unlocks still expand the roster but never block deployment.
+    Disabled unlocks make every class playable from the start.
     """
 
     display_name = "Class Unlock Importance"
@@ -279,7 +283,8 @@ class ClassUnlockImportance(RewardImportance):
 class WeaponSlotImportance(RewardImportance):
     """Progression weapon slots satisfy each mission tier's loadout requirement.
 
-    Useful slots still expand loadouts but never block deployment.
+    Useful slots still expand loadouts but never block deployment. Disabled
+    slots unlock every loadout slot from the start, including per-class slots.
     """
 
     display_name = "Weapon Slot Importance"
@@ -288,7 +293,8 @@ class WeaponSlotImportance(RewardImportance):
 
 class WeaponBuffImportance(RewardImportance):
     """Useful buffs are optional upgrades. Progression buffs are also required
-    in increasing numbers for harder mission tiers.
+    in increasing numbers for harder mission tiers. Disabled awards no weapon
+    buffs; spare checks receive cash filler instead.
     """
 
     display_name = "Weapon Buff Importance"
@@ -299,7 +305,8 @@ class CashRewards(Toggle):
     """Put cash filler in some spare checks.
 
     Disabled by default because cash is temporary and less satisfying than a
-    persistent weapon buff. When disabled, every spare check is a buff.
+    persistent weapon buff. When disabled, every spare check is a buff unless
+    weapon buffs themselves are disabled; then those checks contain cash.
     """
 
     display_name = "Cash Rewards"

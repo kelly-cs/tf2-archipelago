@@ -10,6 +10,8 @@ The launcher downloads these snapshots from the [community assets GitHub release
 
 The release tag is pinned deliberately: a new snapshot needs a new release, reviewed full and part hashes, and a launcher update. If the pinned release is unavailable or its bytes fail verification, the launcher logs the reason and tries Potato. It still checks the final ZIP against the pinned hash before installation.
 
+Publish a snapshot release with `--latest=false`, or untick **Set as the latest release**. The README's download buttons point at `releases/latest`, so a snapshot marked latest breaks them.
+
 | Pack | Source | Bytes | SHA-256 |
 | --- | --- | ---: | --- |
 | Potato `archive-assets.zip` | `https://dlarchive.potato.tf/archive-assets.zip` | 2,594,253,886 | `e7e54f3167b97341d11cf1a1b30f437bf0651fec40e4e1d25232b883cf44bb69` |
