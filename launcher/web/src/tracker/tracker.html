@@ -285,6 +285,24 @@
           </app-panel>
         </aside>
       </div>
+      <app-panel heading="Defender collection">
+        <span panelAside class="section-aside">{{ unlockedBots().length }} / 6 discovered</span>
+        <p class="prototype-note">
+          Cards can be Human, RED robot or RED robot Giant. Forms shown here illustrate the three
+          looks; the admin's saved form is authoritative in-game until AP room metadata carries it.
+          Common, Elite and Legendary have 1, 2 and 3 distinct AP-eligible weapon innates, each
+          stacked 1, 2 or 3 times. AIM is preview accuracy capped at 100%; REACT is seconds.
+          Cosmetics equip in-game; Legendary cosmetics receive a random Unusual effect. Aim/reaction
+          values remain visual previews.
+        </p>
+        <div class="bot-card-grid">
+          @for (card of unlockedBots(); track card.id) {
+            <app-bot-card [card]="card" state="selected" [form]="formFor(card)" />
+          } @empty {
+            <app-empty-state>No named defenders discovered in this room yet.</app-empty-state>
+          }
+        </div>
+      </app-panel>
     </div>
   }
 </main>

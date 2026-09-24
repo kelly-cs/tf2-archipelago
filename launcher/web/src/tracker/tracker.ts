@@ -19,6 +19,8 @@ import { Logo } from '@app/ui/logo';
 import { ModifierIcon } from '@app/ui/modifier-icon';
 import { Panel } from '@app/ui/panel';
 import { grapplingHookIcon, mercenaryIcons } from '@app/ui/tf2-art';
+import { BotTradingCard } from '@cards/bot-card';
+import { BotCard, BotForm, botCards } from '@cards/catalog';
 import { buffsFor, buildView } from './model';
 import { firstWeapon } from './first-weapon';
 import { hideBrokenImage, initialLocation, objectiveLabel, rememberSource } from './presentation';
@@ -27,7 +29,7 @@ import { ClassView, TrackerSource } from './types';
 @Component({
   selector: 'app-tracker',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Badge, Button, EmptyState, Logo, ModifierIcon, Panel],
+  imports: [Badge, BotTradingCard, Button, EmptyState, Logo, ModifierIcon, Panel],
   templateUrl: './tracker.html',
 })
 export class Tracker implements OnDestroy {
@@ -62,6 +64,19 @@ export class Tracker implements OnDestroy {
       name: source?.names.get(Number(row.player)) ?? `TF2 slot ${row.player}`,
     }));
   });
+  readonly unlockedBots = computed(() => {
+    const owned = this.view()?.owned;
+    return owned === undefined ? [] : botCards.filter((card) => owned.has(`Bot: ${card.name}`));
+  });
+
+  // The AP room currently grants card identity, not its local server form.
+  // Show the three collectible looks in this preview; the admin selection is
+  // authoritative for live gameplay until form metadata reaches the room.
+  formFor(card: BotCard): BotForm {
+    if (card.id === 'credit-to-team' || card.id === 'chell') return 'human';
+    if (card.id === 'herr-doktor' || card.id === 'mentlegen') return 'giant';
+    return 'robot';
+  }
   readonly classBuffs = computed(() => {
     const chosen = this.selectedClass();
     const view = this.view();

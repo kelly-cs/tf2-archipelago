@@ -12,6 +12,7 @@ func built() fstest.MapFS {
 		"index.html":          {Data: []byte("<app-root></app-root>")},
 		"main-AMM3UY6G.js":    {Data: []byte("bootstrapApplication")},
 		"styles-QAEZWQS6.css": {Data: []byte("body{}")},
+		"tracker/index.html":  {Data: []byte("<app-tracker></app-tracker>")},
 	}
 }
 
@@ -41,6 +42,13 @@ func TestFilesAreServedAsThemselves(t *testing.T) {
 	response := get(t, handlerFor(built()), "/main-AMM3UY6G.js")
 	if body := response.Body.String(); body != "bootstrapApplication" {
 		t.Errorf("served %q, want the bundle", body)
+	}
+}
+
+func TestEmbeddedTrackerDirectoryServesItsOwnPage(t *testing.T) {
+	response := get(t, handlerFor(built()), "/tracker/")
+	if response.Code != http.StatusOK || response.Body.String() != "<app-tracker></app-tracker>" {
+		t.Fatalf("tracker served status %d and %q", response.Code, response.Body.String())
 	}
 }
 

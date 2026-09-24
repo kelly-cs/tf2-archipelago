@@ -26,6 +26,8 @@ var EnvNames = []string{
 	"SRCDS_BLU_HEALTH_PCT",
 	"SRCDS_BOT_TEAM_COMP",
 	"SRCDS_BOT_SEAT_LOADOUTS",
+	"SRCDS_BOT_GIANT_CARDS",
+	"SRCDS_BOT_HUMAN_CARDS",
 	"SRCDS_BOT_HATS",
 	"SRCDS_BOT_HAT_EFFECTS",
 	"TF2AP_BOT_UPGRADES_CHAT",
@@ -67,6 +69,8 @@ func applyBotEnv(s Settings) Settings {
 	seatList(&s.SrcdsBotSeatNames, "SRCDS_BOT_SEAT_NAMES")
 	seatList(&s.SrcdsBotTeamComp, "SRCDS_BOT_TEAM_COMP")
 	seatList(&s.SrcdsBotSeatLoadouts, "SRCDS_BOT_SEAT_LOADOUTS")
+	list(&s.SrcdsBotGiantCards, "SRCDS_BOT_GIANT_CARDS")
+	list(&s.SrcdsBotHumanCards, "SRCDS_BOT_HUMAN_CARDS")
 	boolean(&s.SrcdsBotHats, "SRCDS_BOT_HATS")
 	boolean(&s.SrcdsBotHatEffects, "SRCDS_BOT_HAT_EFFECTS")
 	boolean(&s.BotUpgradesChat, "TF2AP_BOT_UPGRADES_CHAT")

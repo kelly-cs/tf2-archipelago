@@ -47,7 +47,7 @@ func Handler() http.Handler {
 func handlerFor(root fs.FS) http.Handler {
 	files := http.FileServerFS(root)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		name := strings.TrimPrefix(r.URL.Path, "/")
+		name := strings.TrimSuffix(strings.TrimPrefix(r.URL.Path, "/"), "/")
 		if name != "" && exists(root, name) {
 			if hashed(name) {
 				w.Header().Set("Cache-Control", immutableMax)

@@ -162,6 +162,12 @@ type Settings struct {
 	// seat with no entry draws from the pool as it always did, which is every
 	// seat until somebody names one.
 	SrcdsBotSeatNames []string `json:"srcds_bot_seat_names,omitempty"`
+	// Giant card IDs travel with saved teams, not seat positions, so reordering
+	// a defender never changes its form.
+	SrcdsBotGiantCards []string `json:"srcds_bot_giant_cards,omitempty"`
+	// Human card IDs retain their ordinary RED mercenary form. Cards in neither
+	// list use the RED robot form; Giant takes precedence if both were written.
+	SrcdsBotHumanCards []string `json:"srcds_bot_human_cards,omitempty"`
 
 	/* SrcdsBotCustomLoadouts is the loadouts the player has built, keyed by the
 	 * name they gave. A seat or a class names one with the custom: prefix, so a
@@ -323,6 +329,8 @@ type BotTeam struct {
 	Comp          []string          `json:"comp,omitempty"`
 	SeatLoadouts  []string          `json:"seat_loadouts,omitempty"`
 	SeatNames     []string          `json:"seat_names,omitempty"`
+	GiantCards    []string          `json:"giant_cards,omitempty"`
+	HumanCards    []string          `json:"human_cards,omitempty"`
 	ClassLoadouts map[string]string `json:"class_loadouts,omitempty"`
 	Blacklist     []string          `json:"blacklist,omitempty"`
 }
@@ -333,6 +341,8 @@ func BotTeamOf(s Settings) BotTeam {
 		Comp:          slices.Clone(s.SrcdsBotTeamComp),
 		SeatLoadouts:  slices.Clone(s.SrcdsBotSeatLoadouts),
 		SeatNames:     slices.Clone(s.SrcdsBotSeatNames),
+		GiantCards:    slices.Clone(s.SrcdsBotGiantCards),
+		HumanCards:    slices.Clone(s.SrcdsBotHumanCards),
 		ClassLoadouts: maps.Clone(s.SrcdsBotLoadouts),
 		Blacklist:     slices.Clone(s.SrcdsBotClassBlacklist),
 	}
@@ -343,6 +353,8 @@ func WithBotTeam(s Settings, team BotTeam) Settings {
 	s.SrcdsBotTeamComp = slices.Clone(team.Comp)
 	s.SrcdsBotSeatLoadouts = slices.Clone(team.SeatLoadouts)
 	s.SrcdsBotSeatNames = slices.Clone(team.SeatNames)
+	s.SrcdsBotGiantCards = slices.Clone(team.GiantCards)
+	s.SrcdsBotHumanCards = slices.Clone(team.HumanCards)
 	s.SrcdsBotLoadouts = maps.Clone(team.ClassLoadouts)
 	s.SrcdsBotClassBlacklist = slices.Clone(team.Blacklist)
 	return s

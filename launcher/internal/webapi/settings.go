@@ -11,6 +11,7 @@ import (
 
 	"github.com/m-this/tf2-archipelago/gamedata"
 	"github.com/m-this/tf2-archipelago/launcher/internal/assets"
+	"github.com/m-this/tf2-archipelago/launcher/internal/botfiles"
 	"github.com/m-this/tf2-archipelago/launcher/internal/botlive"
 	"github.com/m-this/tf2-archipelago/launcher/internal/composeenv"
 	"github.com/m-this/tf2-archipelago/launcher/internal/form"
@@ -93,6 +94,11 @@ func (a *App) SaveSettings(restart bool) error {
 	if err != nil {
 		return err
 	}
+	if attached && botlive.TeamMoved(before, written) {
+		if err := a.applyAttachedTeam(before, written); err != nil {
+			return fmt.Errorf("settings saved to .env, but the live bot team was not applied: %w", err)
+		}
+	}
 	a.mu.Lock()
 	a.settings, a.draft = written, nil
 	a.notice = "settings saved"
@@ -156,11 +162,50 @@ func persistDraft(draft, before settings.Settings, readyMods []string, attached 
 
 func (a *App) finishAttachedSave(before, after settings.Settings) {
 	plan := saveplan.For(before, after)
-	if plan.Restart || plan.Team {
+	if plan.Restart {
 		a.Notify("Settings saved to .env. Apply them with: docker compose up -d --force-recreate")
 		return
 	}
+	if plan.Team {
+		a.Notify("Bot team applied to the running server without a map restart.")
+		return
+	}
 	a.Notify("Settings saved to .env. Container settings apply with docker compose up -d --force-recreate; seed options apply on the next generation.")
+}
+
+// applyAttachedTeam uses the existing shared community overlay as a narrow
+// hand-off. The admin cannot write the game volume and does not have Docker's
+// socket; the AP plugin copies exactly the two bot files over RCON, then each
+// lineup command is acknowledged in order on one connection.
+func (a *App) applyAttachedTeam(before, after settings.Settings) error {
+	root := filepath.Join(before.CommunityContentDir, "tf")
+	if err := botfiles.StageForLive(root, after); err != nil {
+		return fmt.Errorf("stage bot files: %w", err)
+	}
+	client, err := dialRCON(before)
+	if err != nil {
+		return fmt.Errorf("connect to the game: %w", err)
+	}
+	defer func() { _ = client.Close() }()
+	reply, err := client.Exec("sm_ap_botcards_sync")
+	if err != nil {
+		return fmt.Errorf("copy bot files into the game: %w", err)
+	}
+	if !strings.Contains(reply, "Bot file sync OK") {
+		return fmt.Errorf("copy bot files into the game: %s", strings.TrimSpace(reply))
+	}
+	for _, command := range botlive.Commands(before, after) {
+		reply, err := client.Exec(command)
+		if err != nil {
+			return fmt.Errorf("%s: %w", command, err)
+		}
+		if strings.Contains(reply, "Unknown command") || strings.Contains(reply, "cards unchanged") ||
+			strings.Contains(reply, "Cannot read the new lineup") ||
+			strings.Contains(reply, "No card loadout file to reload") {
+			return fmt.Errorf("%s: %s", command, reply)
+		}
+	}
+	return nil
 }
 
 func (a *App) reportRoom(s settings.Settings, typed string, parseErr error) {

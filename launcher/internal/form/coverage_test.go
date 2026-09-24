@@ -4,6 +4,7 @@ import (
 	"reflect"
 	"slices"
 	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/m-this/tf2-archipelago/launcher/internal/botloadout"
@@ -138,6 +139,12 @@ func populated() State {
 // differentValue is a value the spec takes and does not already hold, so that
 // setting it moves something.
 func differentValue(spec Spec, s State, env Env) (string, bool) {
+	// Priority only permutes selected cards, and definition indexes only take
+	// positive integers. The generic "-moved" probe is invalid for both;
+	// dedicated card tests exercise their valid changes.
+	if spec.ID == "bots.priority" || strings.HasPrefix(spec.ID, "loadout.any_item.") {
+		return "", false
+	}
 	current := spec.Get(s)
 	switch spec.Kind {
 	case Toggle:
