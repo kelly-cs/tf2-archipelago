@@ -486,11 +486,7 @@ class TF2MvMWorld(World):
         # percent; zero stays zero.
         open_slots = self._free_check_count() - len(pool)
         if self.options.bot_cards.value:
-            card_count = min(
-                max(0, open_slots),
-                self.options.maximum_bot_card_checks.value,
-                len(self.bot_card_rewards),
-            )
+            card_count = min(max(0, open_slots), len(self.bot_card_rewards))
             pool += [self.create_item(name) for name in self.bot_card_rewards[:card_count]]
             open_slots -= card_count
         trap_count = min(

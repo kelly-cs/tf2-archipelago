@@ -42,7 +42,6 @@ func TestPlayerYAMLHoldsTheRunShape(t *testing.T) {
 		"  bot_cards: false",
 		"  starting_bot_cards: 0",
 		"  starting_bot_card_mode: draw_random",
-		"  maximum_bot_card_checks: 6",
 		"  weapon_buff_percentage: 75",
 		"  weapon_buff_stack_chance: 25",
 	} {

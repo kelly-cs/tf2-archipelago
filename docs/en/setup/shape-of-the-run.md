@@ -187,10 +187,9 @@ after the classes, the slots and the tickets.
 | Weapon slots | `weapon_slot_importance` | `MVM_WEAPON_SLOT_IMPORTANCE` | `progression` | Whether slots count for the tier requirements. |
 | Weapon buffs | `weapon_buff_importance` | `MVM_WEAPON_BUFF_IMPORTANCE` | `useful` | Whether harder tiers need some buffs. |
 | Cash rewards | `cash_rewards` | `MVM_CASH_REWARDS` | off | Let spare checks pay cash. |
-| Unlockable bot cards | `bot_cards` | `MVM_BOT_CARDS` | off | Put optional named defenders in the seed. |
+| Unlockable bot cards | `bot_cards` | `MVM_BOT_CARDS` | off | Put every distinct non-starting card on a spare check when the seed has room; cards never gate progress. |
 | Starting card mode | `starting_bot_card_mode` | `MVM_STARTING_BOT_CARD_MODE` | `draw_random` | Random cards or one stock-loadout card for each class. |
 | Random starting cards | `starting_bot_cards` | `MVM_STARTING_BOT_CARDS` | `0` | Distinct cards received at the start; ignored in stock-class mode. |
-| Maximum bot-card checks | `maximum_bot_card_checks` | `MVM_MAXIMUM_BOT_CARD_CHECKS` | `6` | Cap useful card rewards on checks; starting cards do not consume the cap. |
 | Buff share | `weapon_buff_percentage` | `MVM_WEAPON_BUFF_PERCENTAGE` | `75` | With cash on, the share of spare checks that pay a buff. |
 | Buff stack chance | `weapon_buff_stack_chance` | `MVM_WEAPON_BUFF_STACK_CHANCE` | `25` | Chance that a buff adds a level to one already in the seed. |
 | Traps (%) | `trap_percentage` | `MVM_TRAP_PERCENTAGE` | `1` | The share of spare checks that hold a trap. |

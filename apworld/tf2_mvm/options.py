@@ -346,18 +346,6 @@ class StartingBotCardMode(Choice):
     default = 0
 
 
-class MaximumBotCardChecks(Range):
-    """Most optional bot cards the seed may place on checks, after starting
-    cards and required items. If there is not enough room or fewer distinct
-    cards remain, it places fewer. Zero means starting cards only.
-    """
-
-    display_name = "Maximum Bot Card Checks"
-    range_start = 0
-    range_end = len(data.BOT_CARD_BASES)
-    default = 6
-
-
 class ServerSettings(Toggle):
     """Put the server-setting items in the pool.
 
@@ -485,7 +473,6 @@ class TF2MvMOptions(PerGameCommonOptions):
     bot_cards: BotCards
     starting_bot_cards: StartingBotCards
     starting_bot_card_mode: StartingBotCardMode
-    maximum_bot_card_checks: MaximumBotCardChecks
     weapon_buff_percentage: WeaponBuffPercentage
     weapon_buff_stack_chance: WeaponBuffStackChance
     trap_percentage: TrapPercentage
@@ -538,7 +525,6 @@ option_groups = [
             BotCards,
             StartingBotCards,
             StartingBotCardMode,
-            MaximumBotCardChecks,
             WeaponBuffPercentage,
             WeaponBuffStackChance,
             TrapPercentage,

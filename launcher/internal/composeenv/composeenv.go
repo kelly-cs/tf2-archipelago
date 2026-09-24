@@ -170,7 +170,6 @@ func seedValues(s settings.Settings) map[string]string {
 		"MVM_BOT_CARDS":                 boolean(s.MvmBotCards),
 		"MVM_STARTING_BOT_CARDS":        strconv.Itoa(s.MvmStartingBotCards),
 		"MVM_STARTING_BOT_CARD_MODE":    s.MvmStartingBotCardMode,
-		"MVM_MAXIMUM_BOT_CARD_CHECKS":   strconv.Itoa(s.MvmMaximumBotCardChecks),
 		"MVM_WEAPON_BUFF_PERCENTAGE":    strconv.Itoa(s.MvmWeaponBuffPct),
 		"MVM_WEAPON_BUFF_STACK_CHANCE":  strconv.Itoa(s.MvmWeaponBuffStackChance),
 		"MVM_TRAP_PERCENTAGE":           strconv.Itoa(s.MvmTrapPct),

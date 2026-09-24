@@ -53,7 +53,6 @@ func PlayerYAML(s Settings, archipelagoVersion string) string {
 	fmt.Fprintf(&b, "  bot_cards: %t\n", s.MvmBotCards)
 	fmt.Fprintf(&b, "  starting_bot_cards: %d\n", s.MvmStartingBotCards)
 	fmt.Fprintf(&b, "  starting_bot_card_mode: %s\n", s.MvmStartingBotCardMode)
-	fmt.Fprintf(&b, "  maximum_bot_card_checks: %d\n", s.MvmMaximumBotCardChecks)
 	fmt.Fprintf(&b, "  weapon_buff_percentage: %d\n", s.MvmWeaponBuffPct)
 	fmt.Fprintf(&b, "  weapon_buff_stack_chance: %d\n", s.MvmWeaponBuffStackChance)
 	fmt.Fprintf(&b, "  trap_percentage: %d\n", s.MvmTrapPct)

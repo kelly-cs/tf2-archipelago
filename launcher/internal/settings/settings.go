@@ -252,7 +252,6 @@ type Settings struct {
 	MvmBotCards                bool   `json:"mvm_bot_cards"`
 	MvmStartingBotCards        int    `json:"mvm_starting_bot_cards"`
 	MvmStartingBotCardMode     string `json:"mvm_starting_bot_card_mode"`
-	MvmMaximumBotCardChecks    int    `json:"mvm_maximum_bot_card_checks"`
 	// SrcdsBotCardRolls pins the AP reward variant selected for each named seat.
 	SrcdsBotCardRolls        map[string]string `json:"srcds_bot_card_rolls,omitempty"`
 	MvmWeaponBuffPct         int               `json:"mvm_weapon_buff_percentage"`
@@ -315,7 +314,6 @@ func Defaults() Settings {
 		MvmWeaponSlotImportance:    "progression",
 		MvmWeaponBuffImportance:    "useful",
 		MvmStartingBotCardMode:     "draw_random",
-		MvmMaximumBotCardChecks:    6,
 		MvmWeaponBuffPct:           75,
 		MvmWeaponBuffStackChance:   25,
 		MvmTrapPct:                 1,
@@ -439,7 +437,6 @@ func (s Settings) withAppearanceDefaults(data []byte) Settings {
 		WeaponBuffPct         *int  `json:"mvm_weapon_buff_percentage"`
 		WeaponBuffStackChance *int  `json:"mvm_weapon_buff_stack_chance"`
 		TrapPct               *int  `json:"mvm_trap_percentage"`
-		MaximumBotCardChecks  *int  `json:"mvm_maximum_bot_card_checks"`
 		CommunityMissions     *bool `json:"mvm_community_missions"`
 		ModifierMin           *int  `json:"mvm_minimum_mission_modifiers"`
 		ModifierMax           *int  `json:"mvm_maximum_mission_modifiers"`
@@ -464,9 +461,6 @@ func (s Settings) withAppearanceDefaults(data []byte) Settings {
 	}
 	if said.TrapPct == nil {
 		s.MvmTrapPct = d.MvmTrapPct
-	}
-	if said.MaximumBotCardChecks == nil {
-		s.MvmMaximumBotCardChecks = d.MvmMaximumBotCardChecks
 	}
 	/* A file written before this option existed loads it as off, and off means
 	   the generator draws no community mission at all. That was invisible until

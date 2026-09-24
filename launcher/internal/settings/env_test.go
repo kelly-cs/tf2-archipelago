@@ -131,7 +131,6 @@ func TestEveryFieldHasAnEnvVar(t *testing.T) {
 		"MvmBotCards":                "MVM_BOT_CARDS",
 		"MvmStartingBotCards":        "MVM_STARTING_BOT_CARDS",
 		"MvmStartingBotCardMode":     "MVM_STARTING_BOT_CARD_MODE",
-		"MvmMaximumBotCardChecks":    "MVM_MAXIMUM_BOT_CARD_CHECKS",
 		"SrcdsBotCardRolls":          "SRCDS_BOT_CARD_ROLLS",
 		"MvmWeaponBuffPct":           "MVM_WEAPON_BUFF_PERCENTAGE",
 		"MvmWeaponBuffStackChance":   "MVM_WEAPON_BUFF_STACK_CHANCE",
