@@ -1,0 +1,172 @@
+diff --git a/plugin/source/redbots3/generated/commands.sp b/plugin/source/redbots3/generated/commands.sp
+--- a/plugin/source/redbots3/generated/commands.sp
++++ b/plugin/source/redbots3/generated/commands.sp
+@@ -99,6 +99,49 @@ public Action Command_ReloadBotNames(int client, int args)
+ 	return Plugin_Handled;
+ }
+ 
++// Reload a card team without replacing bots whose identity and loadout have
++// not changed. The admin applies the new file first, then evicts only changed
++// cards. Rebinding seats by pinned name keeps a dragged card's weapons on its
++// next respawn even though its priority number moved.
++public Action Command_ReloadBotCards(int client, int args)
++{
++	Config_LoadBotNames();
++	Config_LoadServerLoadout();
++	if (m_kvServerLoadout == null)
++	{
++		ReplyToCommand(client, "[BM3] No card loadout file to reload.");
++		return Plugin_Handled;
++	}
++	int rebound;
++	for (int bot = 1; bot <= MaxClients; bot++)
++	{
++		if (!IsClientInGame(bot) || !IsDefenderBot(bot) || TF2_GetClientTeam(bot) != TFTeam_Red)
++		{
++			continue;
++		}
++		char current[128];
++		GetClientName(bot, current, sizeof(current));
++		for (int seat = 1; seat <= redbots_manager_defender_team_size.IntValue; seat++)
++		{
++			char key[8], name[128], wantedClass[32];
++			IntToString(seat, key, sizeof(key));
++			m_kvServerLoadout.Rewind();
++			if (!m_kvServerLoadout.JumpToKey("seats") || !m_kvServerLoadout.JumpToKey(key)) continue;
++			m_kvServerLoadout.GetString("name", name, sizeof(name));
++			m_kvServerLoadout.GetString("class", wantedClass, sizeof(wantedClass));
++			if (StrEqual(name, current, false) && TF2_GetClassIndexFromString(wantedClass) == TF2_GetPlayerClass(bot))
++			{
++				m_iBotSeat[bot] = seat;
++				rebound++;
++				break;
++			}
++		}
++	}
++	m_kvServerLoadout.Rewind();
++	ReplyToCommand(client, "[BM3] Card loadouts reloaded; %d existing bot seats rebound.", rebound);
++	return Plugin_Handled;
++}
++
+ // 	CommandReseatBots rebuilds the team from the loadout file
+ //
+ // A recycle asked for mid-wave is held until the break: kicking a bot in the
+diff --git a/plugin/source/redbots3/generated/declarations.sp b/plugin/source/redbots3/generated/declarations.sp
+--- a/plugin/source/redbots3/generated/declarations.sp
++++ b/plugin/source/redbots3/generated/declarations.sp
+@@ -16,6 +16,9 @@
+ #define PLUGIN_PREFIX ("[BotManager]")
+ 
+ #define TFBOT_IDENTITY_NAME ("TFBOT_SEX_HAVER")
+ 
++// Needed by the manager before playerpref.sp is included.
++int m_iBotSeat[65];
++
+ enum struct esMapConfiguration
+ {
+diff --git a/plugin/source/redbots3/generated/dispatch.sp b/plugin/source/redbots3/generated/dispatch.sp
+--- a/plugin/source/redbots3/generated/dispatch.sp
++++ b/plugin/source/redbots3/generated/dispatch.sp
+@@ -77,7 +77,7 @@ stock Action GetDesiredBotAction(int client, BehaviorAction action)
+ 			{
+ 				if (redbots_manager_bot_use_upgrades.BoolValue)
+ 				{
+-					return action.SuspendFor(CTFBotGotoUpgrade(), "!IsInUpgradeZone && RoundState_BetweenRounds");
++					return action.SuspendFor(CTFBotUpgrade(), "Buy upgrades here between rounds");
+ 				}
+ 				SetPlayerReady(client, true);
+ 				return action.SuspendFor(CTFBotMoveToFront(), "Skip upgrading");
+@@ -102,5 +102,5 @@ stock Action GetDesiredBotAction(int client, BehaviorAction action)
+ 				// We probably just joined in the middle of an active game, or we
+ 				// want to buy upgrades again right now.
+ 				g_iBuyUpgradesNumber[client] = 0;
+-				return action.SuspendFor(CTFBotGotoUpgrade(), "Buy upgrades now");
++				return action.SuspendFor(CTFBotUpgrade(), "Buy upgrades here now");
+ 			}
+ 			// Health and ammo live in CTFBotTacticalMonitor_Update, which takes
+diff --git a/plugin/source/redbots3/generated/upgrade.sp b/plugin/source/redbots3/generated/upgrade.sp
+--- a/plugin/source/redbots3/generated/upgrade.sp
++++ b/plugin/source/redbots3/generated/upgrade.sp
+@@ -597,6 +597,9 @@ public Action CTFBotUpgrade_OnStart(BehaviorAction action, int actor, BehaviorAc
+ 	{
+ 		m_iSpentOnUpgrade[actor][index] = 0;
+ 	}
++	// The game accepts a bot purchase with this flag, including away from a
++	// physical station. Only the defender bot's shopping action sets it.
++	TF2_SetInUpgradeZone(actor, true);
+ 	if (!TF2_IsInUpgradeZone(actor))
+ 	{
+ 		return action.ChangeTo(CTFBotGotoUpgrade(), "Not standing at an upgrade station!");
+@@ -626,7 +629,9 @@ public Action CTFBotUpgrade_Update(BehaviorAction action, int actor, float interval, ActionResult result)
+ // whoever he is beaming, so the break is worth an uber if he spends it next to
+ // anybody at all.
+ public Action CTFBotUpgrade_Update(BehaviorAction action, int actor, float interval, ActionResult result)
+ {
++	// Keep the bot-only purchase window open if the engine leaves a trigger.
++	TF2_SetInUpgradeZone(actor, true);
+ 	if (!TF2_IsInUpgradeZone(actor))
+ 	{
+ 		return action.ChangeTo(CTFBotGotoUpgrade(), "Not standing at an upgrade station!");
+diff --git a/plugin/source/redbots3/generated/manage.sp b/plugin/source/redbots3/generated/manage.sp
+--- a/plugin/source/redbots3/generated/manage.sp
++++ b/plugin/source/redbots3/generated/manage.sp
+@@ -161,15 +161,16 @@ stock void MakePlayerDance(int client)
+ // the server after the mission started is told the team is full for the rest of it.
+ //
+ // Only when RED is already full: below the size there is a seat going spare and
+-// nobody has to leave. A dead bot goes first, since kicking one costs the team
+-// nothing it still had.
++// nobody has to leave. The lowest-priority card yields first; a dead bot only
++// breaks a tie between seats without a priority.
+ stock void MakeRoomForHumanPlayer(int client)
+ {
+ 	if (GetHumanAndDefenderBotCount(TFTeam_Red) < redbots_manager_defender_team_size.IntValue)
+ 	{
+ 		return;
+ 	}
+ 	int victim = -1;
++	int lowestPriority = -1;
+ 	for (int i = 1; i <= MaxClients; i++)
+ 	{
+ 		if ((i == client) || !IsClientInGame(i) || !g_bIsDefenderBot[i])
+@@ -180,14 +181,12 @@ stock void MakeRoomForHumanPlayer(int client)
+ 		{
+ 			continue;
+ 		}
+-		if (!IsPlayerAlive(i))
++		int priority = m_iBotSeat[i] > 0 ? m_iBotSeat[i] : MAXPLAYERS + 1;
++		if (priority > lowestPriority ||
++			(priority == lowestPriority && victim != -1 && IsPlayerAlive(victim) && !IsPlayerAlive(i)))
+ 		{
+ 			victim = i;
+-			break;
+-		}
+-		if (victim == -1)
+-		{
+-			victim = i;
++			lowestPriority = priority;
+ 		}
+ 	}
+ 	if (victim == -1)
+diff --git a/plugin/source/redbots3/generated/playerpref.sp b/plugin/source/redbots3/generated/playerpref.sp
+--- a/plugin/source/redbots3/generated/playerpref.sp
++++ b/plugin/source/redbots3/generated/playerpref.sp
+@@ -17,7 +17,6 @@
+ 
+ #define Go_ItemDefDefault (-1)
+ 
+-int m_iBotSeat[65];
+ ArrayList m_adtPendingBotSeats;
+ KeyValues m_kvServerLoadout;
+ KeyValues m_kvPlayerPrefData;
+diff --git a/plugin/source/redbots3/generated/pluginstart.sp b/plugin/source/redbots3/generated/pluginstart.sp
+--- a/plugin/source/redbots3/generated/pluginstart.sp
++++ b/plugin/source/redbots3/generated/pluginstart.sp
+@@ -62,6 +62,7 @@ public void OnPluginStart()
+ 	RegAdminCmd("sm_purgebots", Command_RemoveAllBots, ADMFLAG_GENERIC);
+ 	RegAdminCmd("sm_redbots_reseat", Command_ReseatBots, ADMFLAG_GENERIC, "Reload the loadout file and rebuild RED from the current lineup");
+ 	RegAdminCmd("sm_redbots_reload_names", Command_ReloadBotNames, ADMFLAG_GENERIC, "Read the bots' names again and rename the seats that were given one");
++	RegAdminCmd("sm_redbots_reload_cards", Command_ReloadBotCards, ADMFLAG_GENERIC, "Reload card seats without recycling the team");
+ 	RegAdminCmd("sm_dump_credits", Command_DumpCredits, ADMFLAG_GENERIC, "What every player on RED is holding");
+ 	RegAdminCmd("sm_botmanager_stop", Command_StopManagingBots, ADMFLAG_GENERIC);
+ 	RegAdminCmd("sm_view_bot_upgrades", Command_ViewBotUpgrades, ADMFLAG_GENERIC);

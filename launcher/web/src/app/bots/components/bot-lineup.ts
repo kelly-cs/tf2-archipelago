@@ -39,6 +39,7 @@ export class BotLineup {
 
   readonly open = computed(() => this.settings.open());
   readonly notRunning = computed(() => !this.launcher.running());
+  readonly attached = this.launcher.managedExternally;
   readonly feedback = signal('');
 
   readonly fill = computed(() => this.settings.field('bots.fill'));

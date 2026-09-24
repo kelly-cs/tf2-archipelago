@@ -23,6 +23,12 @@ COPY launcher/web/package.json launcher/web/package-lock.json launcher/web/
 RUN npm --prefix launcher/web ci --no-audit --no-fund
 COPY --from=code /src /src
 RUN npm --prefix launcher/web run build
+# Keep a local tracker preview alongside the public tracker link. It lets a
+# test-mode admin inspect new card UI without waiting for GitHub Pages deploys.
+RUN mkdir -p launcher/web/src/tracker/data \
+    && cp apworld/tf2_mvm/data/missions.json apworld/tf2_mvm/data/weapon_classes.json apworld/tf2_mvm/data/class_loadouts.json launcher/web/src/tracker/data/ \
+    && npm --prefix launcher/web run build:tracker \
+    && cp -a dist/tracker launcher/internal/spa/dist/tracker
 
 
 FROM golang:1.27 AS build

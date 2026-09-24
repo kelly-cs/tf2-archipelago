@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"maps"
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/m-this/tf2-archipelago/gamedata"
+	"github.com/m-this/tf2-archipelago/launcher/internal/botcards"
 	"github.com/m-this/tf2-archipelago/launcher/internal/botloadout"
 	"github.com/m-this/tf2-archipelago/launcher/internal/botnames"
 	"github.com/m-this/tf2-archipelago/launcher/internal/settings"
@@ -71,13 +73,18 @@ func botSpecs(s State) []Spec {
 			"Keeps the seats and their loadouts under the name in the box. Saving over a name replaces it."),
 		press("bots.remove_team", tab, "Remove this team",
 			"Forget the saved team named above. The seats on screen are left alone."),
+		demoLineupSpec(),
+		cardPrioritySpec(),
 	)
+	for _, card := range botcards.Cards {
+		specs = append(specs, inGroup("Team", cardFormSpec(card))...)
+	}
 
 	// The seats, in the order they fill, each with what it plays and what it
 	// carries. Two engineers are only worth naming separately if they can hold
 	// different weapons.
 	for seat := range Seats {
-		specs = append(specs, inGroup("Team", seatClassSpec(seat), seatLoadoutSpec(seat), seatNameSpec(seat))...)
+		specs = append(specs, inGroup("Team", seatCardSpec(seat), seatClassSpec(seat), seatLoadoutSpec(seat), seatNameSpec(seat))...)
 	}
 
 	// What a class falls back on when the mod draws it rather than a seat
@@ -321,9 +328,14 @@ func loadoutSpecs(s State) []Spec {
 				return s
 			}),
 	}
+	if class == "spy" {
+		// Spy has no ordinary primary picker, but a prototype may still try a
+		// definition in the mod's primary key and observe what TF2 equips.
+		specs = append(specs, slotAnyItemSpec("primary"))
+	}
 
 	for _, slot := range LoadoutSlots(class) {
-		specs = append(specs, slotSpec(class, slot))
+		specs = append(specs, slotSpec(class, slot), slotAnyItemSpec(slot))
 	}
 
 	return append(specs, loadoutLibrarySpecs(tab)...)
@@ -394,9 +406,16 @@ func slotSpec(class, slot string) Spec {
 		labels = append(labels, weapon.Name)
 	}
 
-	return choice("loadout.slot."+slot, "Loadouts", "  "+SlotName(slot),
+	return openChoice("loadout.slot."+slot, "Loadouts", "  "+SlotName(slot),
 		"The weapon in this slot. Stock leaves the game's own alone.",
-		options(values, labels),
+		func(s State, _ Env) []Option {
+			out := options(values, labels)
+			held := s.Draft.Slot(slot)
+			if held != botloadout.Stock && !slices.Contains(values, fmt.Sprint(held)) {
+				out = append(out, Option{Value: fmt.Sprint(held), Label: botloadout.WeaponName(held) + " (manual)"})
+			}
+			return out
+		},
 		func(s State) string {
 			if held := s.Draft.Slot(slot); held != botloadout.Stock {
 				return fmt.Sprint(held)
@@ -413,6 +432,37 @@ func slotSpec(class, slot string) Spec {
 			s.Draft = s.Draft.WithSlot(slot, defIndex)
 			return s
 		})
+}
+
+// A raw definition index lets a test team experiment with combinations the
+// class-filtered picker does not offer. The defender mod accepts the number;
+// whether TF2 equips a cross-class/cross-slot item is an engine limitation to
+// verify on the server, not something this editor can guarantee.
+func slotAnyItemSpec(slot string) Spec {
+	return Spec{
+		ID: "loadout.any_item." + slot, Tab: "Loadouts", Kind: Text,
+		Label:       "  " + SlotName(slot) + " item definition",
+		Help:        "Experimental: enter any positive TF2 item definition index for this slot. Clear for stock. Some incompatible items may be rejected by TF2.",
+		Placeholder: "e.g. 997",
+		Get: func(s State) string {
+			if held := s.Draft.Slot(slot); held != botloadout.Stock {
+				return fmt.Sprint(held)
+			}
+			return ""
+		},
+		Set: func(s State, raw string) (State, error) {
+			if raw == "" {
+				s.Draft = s.Draft.WithSlot(slot, botloadout.Stock)
+				return s, nil
+			}
+			index, err := strconv.Atoi(raw)
+			if err != nil || index <= 0 {
+				return s, fmt.Errorf("item definition must be a positive integer")
+			}
+			s.Draft = s.Draft.WithSlot(slot, index)
+			return s, nil
+		},
+	}
 }
 
 // SlotName is what the pages call a slot.

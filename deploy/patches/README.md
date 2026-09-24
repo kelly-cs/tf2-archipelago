@@ -20,6 +20,13 @@ move with it. A fix carried here instead was carried nowhere: the patch never
 applied, and when a cached build tree happened to hold its output anyway, the
 generated-code check failed on it.
 
+The bot-card proof of concept temporarily overlays generated SourcePawn with
+`deploy/bots/poc-botcards.patch` after that check. This is deliberately outside
+`deploy/patches/`: move the upgrade-anywhere and live card-rebinding changes to
+the defender mod's Go action source, tag it, update go.mod, then remove the
+overlay. The staged build tree is keyed by the patch checksum so a changed POC
+patch cannot be silently compiled over an older one.
+
 | Patch | Why |
 | --- | --- |
 | `cbasenpc/0001-refresh-tools-nav-cache-on-map-start.patch` | Only for a from-source build of the extension. Rebuilds CBaseNPC's tools-side navigation cache after every map activates, so Defender Bots do not receive an empty area list on community-map changelevels. |

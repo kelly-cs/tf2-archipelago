@@ -122,18 +122,22 @@ command -v go >/dev/null 2>&1 || {
 ( cd "$root" && go mod download "$defenderbots_module" )
 defenderbots_version=$(cd "$root" && go list -m -f '{{.Version}}' "$defenderbots_module")
 defenderbots_dir=$(cd "$root" && go list -m -f '{{.Dir}}' "$defenderbots_module")
+poc_upgrade_patch="$root/deploy/bots/poc-botcards.patch"
+# A changed POC overlay needs a fresh staged tree: a cached copy with the old
+# overlay cannot safely accept a revised patch on top of it.
+defenderbots_stage_ref="$defenderbots_version:$(sha256sum "$poc_upgrade_patch" | cut -d ' ' -f1)"
 
 # The same stamp rule the checkouts use, and for the same reason: a tree left
 # from the previous version builds and says nothing.
 defenderbots_stamp="$src/defenderbots.ref"
-if [ ! -d "$src/defenderbots" ] || [ "$(cat "$defenderbots_stamp" 2>/dev/null)" != "$defenderbots_version" ]; then
+if [ ! -d "$src/defenderbots" ] || [ "$(cat "$defenderbots_stamp" 2>/dev/null)" != "$defenderbots_stage_ref" ]; then
 	echo "staging $defenderbots_module@$defenderbots_version"
 	rm -rf "$src/defenderbots"
 	cp -a "$defenderbots_dir" "$src/defenderbots"
 	# The module cache is 0444 all the way down, and a later run has to be
 	# able to replace this.
 	chmod -R u+w "$src/defenderbots"
-	printf '%s\n' "$defenderbots_version" >"$defenderbots_stamp"
+	printf '%s\n' "$defenderbots_stage_ref" >"$defenderbots_stamp"
 fi
 
 # --- The generated SourcePawn, checked against the pinned generator ---
@@ -179,6 +183,20 @@ generate_from_module() {
 }
 
 generate_from_module
+
+# Bot-card POC: buy in place and rebind priority seats while the defender
+# mod's Go source is updated and tagged upstream. Apply only to the staged
+# copy, after checking the pinned module's generated code against its own
+# generator above. A module copy has no .git; without its own repository,
+# git apply silently targets this outer checkout instead of the staged tree.
+# The eventual mod tag should replace this downstream overlay.
+if [ ! -d "$src/defenderbots/.git" ]; then
+	git -C "$src/defenderbots" init --quiet
+fi
+if ! git -C "$src/defenderbots" apply --reverse --check "$poc_upgrade_patch" 2>/dev/null; then
+	echo "applying bot-card POC defender changes"
+	git -C "$src/defenderbots" apply --whitespace=nowarn "$poc_upgrade_patch"
+fi
 
 # The include roots the plugins compile against. Only the includes are needed,
 # so these are checkouts of source we never build.

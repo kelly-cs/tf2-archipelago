@@ -20,6 +20,8 @@
 #include <tf2_stocks>
 #include <ripext>
 #include <tf2attributes>
+#include <tf_econ_data>
+#include <tf2utils>
 
 #include "tf2_archipelago/log.inc"
 #include "tf2_archipelago/mvm.inc"
@@ -27,6 +29,7 @@
 #include "tf2_archipelago/unlocks.inc"
 #include "tf2_archipelago/weapon_buffs_data.inc"
 #include "tf2_archipelago/weapon_buffs_math.inc"
+#include "tf2_archipelago/bot_cards.inc"
 #include "tf2_archipelago/mission_modifiers_math.inc"
 #include "tf2_archipelago/weapon_buffs.inc"
 #include "tf2_archipelago/deathlink.inc"
@@ -123,6 +126,15 @@ public void OnPluginStart()
     Bridge_Init();
     Missions_Init();
     Bots_Init();
+    // A hot reload must reattach card models and innates to bots already in
+    // the arena; it should not require a map change or whole-team reseat.
+    for (int client = 1; client <= MaxClients; client++)
+    {
+        if (IsClientInGame(client))
+        {
+            BotCards_OnSpawn(client);
+        }
+    }
     MissionModifiers_Init();
 
     g_HaveBeginWave = HookEventEx("mvm_begin_wave", Event_BeginWave);
@@ -148,6 +160,16 @@ public void OnPluginStart()
     AddCommandListener(Command_Say, "say_team");
     RegAdminCmd("sm_ap_status", Command_Status, ADMFLAG_GENERIC,
         "Show the state of the Archipelago integration");
+    RegAdminCmd("sm_ap_botcards", Command_BotCards, ADMFLAG_GENERIC,
+        "Show spawned RED robot cards, tier, innates, health and scale");
+    RegAdminCmd("sm_ap_botcards_sync", Command_BotCardsSync, ADMFLAG_ROOT,
+        "Copy the admin's staged bot files into the running game");
+    RegAdminCmd("sm_ap_botcards_evict", Command_BotCardsEvict, ADMFLAG_ROOT,
+        "Replace one named bot after its card changes");
+    RegAdminCmd("sm_ap_botcards_evict_unselected", Command_BotCardsEvictUnselected, ADMFLAG_ROOT,
+        "Free a full team's lowest-priority unselected bot seat");
+    RegAdminCmd("sm_ap_botcards_reconcile", Command_BotCardsReconcile, ADMFLAG_ROOT,
+        "Make live RED bots match the highest-priority card seats");
     RegAdminCmd("sm_ap_report", Command_Report, ADMFLAG_ROOT,
         "Report an objective by hand: sm_ap_report <wave_cleared|mission_cleared|death> [wave]");
     RegAdminCmd("sm_ap_bundle", Command_Bundle, ADMFLAG_ROOT,
@@ -225,6 +247,7 @@ public void OnPluginEnd()
 
 public void OnClientPutInServer(int client)
 {
+    BotCards_Clear(client);
     InvaderStalls_ResetClient(client);
     WeaponBuffs_HookClient(client);
     MissionModifiers_HookClient(client);
@@ -700,6 +723,7 @@ public void Event_InventoryApplied(Event event, const char[] name, bool dontBroa
 public void Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast)
 {
     int client = GetClientOfUserId(event.GetInt("userid"));
+    BotCards_OnSpawn(client);
     InvaderStalls_ResetClient(client);
     MissionModifiers_OnPlayerSpawn(client);
     if (MvM_IsPlayer(client))
@@ -715,6 +739,8 @@ public void Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast
 // was has to be recorded before it goes.
 public void OnClientDisconnect(int client)
 {
+    BotCards_Clear(client);
+    g_CardCosmeticPending[client] = false;
     InvaderStalls_ResetClient(client);
     MissionModifiers_OnPlayerDeath(client);
     WeaponBuffs_Disconnect(client);

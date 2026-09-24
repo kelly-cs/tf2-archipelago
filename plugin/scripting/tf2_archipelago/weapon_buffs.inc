@@ -2788,7 +2788,8 @@ void WeaponBuffs_ApplyNextFrame(int client)
 
 void WeaponBuffs_Apply(int client)
 {
-    if (!g_HaveUnlocks || !WeaponBuffs_CanUseRunBuffs(client) || !IsPlayerAlive(client))
+    bool runBuffs = g_HaveUnlocks && WeaponBuffs_CanUseRunBuffs(client);
+    if ((!runBuffs && !BotCards_HasInnates(client)) || !IsPlayerAlive(client))
     {
         return;
     }
@@ -2871,7 +2872,8 @@ void WeaponBuffs_Apply(int client)
         {
             continue;
         }
-        int levels = g_WeaponEffectLevels[weapon][effect];
+        int levels = (runBuffs ? g_WeaponEffectLevels[weapon][effect] : 0)
+            + BotCards_InnateLevels(client, effect);
         if (levels <= 0)
         {
             continue;
@@ -2939,6 +2941,29 @@ void WeaponBuffs_Apply(int client)
     WeaponBuffs_ApplyDisposableSentryPrediction(client, provider);
     WeaponBuffs_ApplyPassives(client, provider);
     TF2Attrib_ClearCache(entity);
+}
+
+// The card diagnostic distinguishes configured innates from effects actually
+// installed on the private provider for the bot's currently held weapon.
+int WeaponBuffs_CardInnatesOnActive(int client)
+{
+    int entity = GetEntPropEnt(client, Prop_Send, "m_hActiveWeapon");
+    int weapon = WeaponBuffs_ForEntity(entity);
+    int provider = EntRefToEntIndex(g_WeaponBuffProviderRef[client]);
+    if (weapon < 0 || provider <= MaxClients || !IsValidEntity(provider))
+    {
+        return 0;
+    }
+    int applied;
+    for (int effect = 0; effect < WeaponEffectCount; effect++)
+    {
+        if (BotCards_InnateLevels(client, effect) > 0
+            && TF2Attrib_GetByName(provider, g_WeaponEffectAttributes[effect]) != Address_Null)
+        {
+            applied++;
+        }
+    }
+    return applied;
 }
 
 static void WeaponBuffs_ApplyDisposableSentryPrediction(int client, int provider)
