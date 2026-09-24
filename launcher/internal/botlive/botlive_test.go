@@ -86,6 +86,24 @@ func TestCardSeatCarriesRobotGiantAndDistinctStackedInnates(t *testing.T) {
 	}
 }
 
+func TestAPCardUsesReceivedTierAndNeedsAReceivedRoll(t *testing.T) {
+	s := settings.Settings{
+		MvmBotCards:          true,
+		SrcdsBotTeamComp:     []string{"scout"},
+		SrcdsBotSeatNames:    []string{"Chucklenuts"},
+		SrcdsBotSeatLoadouts: []string{"stock"},
+		SrcdsBotGiantCards:   []string{"stock-scout"},
+	}
+	if SeatsOf(s)[0].Card {
+		t.Fatal("unreceived card got card buffs")
+	}
+	s.SrcdsBotCardRolls = map[string]string{"stock-scout": "Bot: Chucklenuts | Legendary | Giant"}
+	seat := SeatsOf(s)[0]
+	if !seat.Card || seat.Tier != 3 || !seat.Giant || !seat.Unusual || seat.UnusualEffect != 13 || len(seat.Innates) != 3 {
+		t.Fatalf("received Legendary Giant = %+v", seat)
+	}
+}
+
 func TestCardPriorityDragKeepsExistingBotsAndRebindsSeats(t *testing.T) {
 	before := settings.Settings{
 		SrcdsBotTeamComp:     []string{"medic", "heavyweapons"},

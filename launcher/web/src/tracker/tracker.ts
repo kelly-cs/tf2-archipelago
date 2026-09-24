@@ -1,3 +1,4 @@
+/* eslint-disable max-lines -- room loading, collection rendering and mission state share one tracker component */
 import {
   ChangeDetectionStrategy,
   Component,
@@ -20,7 +21,7 @@ import { ModifierIcon } from '@app/ui/modifier-icon';
 import { Panel } from '@app/ui/panel';
 import { grapplingHookIcon, mercenaryIcons } from '@app/ui/tf2-art';
 import { BotTradingCard } from '@cards/bot-card';
-import { BotCard, BotForm, botCards } from '@cards/catalog';
+import { BotCard, BotForm, botCards, rolledCard } from '@cards/catalog';
 import { buffsFor, buildView } from './model';
 import { firstWeapon } from './first-weapon';
 import { hideBrokenImage, initialLocation, objectiveLabel, rememberSource } from './presentation';
@@ -66,17 +67,22 @@ export class Tracker implements OnDestroy {
   });
   readonly unlockedBots = computed(() => {
     const owned = this.view()?.owned;
-    return owned === undefined ? [] : botCards.filter((card) => owned.has(`Bot: ${card.name}`));
+    if (owned === undefined) return [];
+    const found: { card: BotCard; form: BotForm }[] = [];
+    for (const base of botCards) {
+      for (const name of owned.keys()) {
+        const parts = name.split(' | ');
+        if (parts[0] !== `Bot: ${base.name}` || parts.length !== 3) continue;
+        const rarity = parts[1]?.toUpperCase();
+        const form = parts[2]?.toLowerCase();
+        if (rarity !== 'COMMON' && rarity !== 'ELITE' && rarity !== 'LEGENDARY') continue;
+        if (form !== 'human' && form !== 'robot' && form !== 'giant') continue;
+        found.push({ card: rolledCard(base, rarity), form });
+        break;
+      }
+    }
+    return found;
   });
-
-  // The AP room currently grants card identity, not its local server form.
-  // Show the three collectible looks in this preview; the admin selection is
-  // authoritative for live gameplay until form metadata reaches the room.
-  formFor(card: BotCard): BotForm {
-    if (card.id === 'credit-to-team' || card.id === 'chell') return 'human';
-    if (card.id === 'herr-doktor' || card.id === 'mentlegen') return 'giant';
-    return 'robot';
-  }
   readonly classBuffs = computed(() => {
     const chosen = this.selectedClass();
     const view = this.view();

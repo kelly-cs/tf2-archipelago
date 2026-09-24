@@ -32,7 +32,7 @@ them away. Both interfaces used to keep them in their own screen struct, which
 is how the loadout builder ended up the one part of the settings the window and
 the terminal did not agree about even in shape.
 */
-func botSpecs(s State) []Spec {
+func botSpecs(s State, env Env) []Spec {
 	const tab = "Bots"
 
 	specs := inGroup("Team",
@@ -73,7 +73,6 @@ func botSpecs(s State) []Spec {
 			"Keeps the seats and their loadouts under the name in the box. Saving over a name replaces it."),
 		press("bots.remove_team", tab, "Remove this team",
 			"Forget the saved team named above. The seats on screen are left alone."),
-		demoLineupSpec(),
 		cardPrioritySpec(),
 	)
 	for _, card := range botcards.Cards {
@@ -84,7 +83,7 @@ func botSpecs(s State) []Spec {
 	// carries. Two engineers are only worth naming separately if they can hold
 	// different weapons.
 	for seat := range Seats {
-		specs = append(specs, inGroup("Team", seatCardSpec(seat), seatClassSpec(seat), seatLoadoutSpec(seat), seatNameSpec(seat))...)
+		specs = append(specs, inGroup("Team", seatCardSpec(seat, env), seatClassSpec(seat), seatLoadoutSpec(seat), seatNameSpec(seat))...)
 	}
 
 	// What a class falls back on when the mod draws it rather than a seat
@@ -200,7 +199,7 @@ func seatClassSpec(seat int) Spec {
 		options(values, labels),
 		func(s State) string { return at(s.Settings.SrcdsBotTeamComp, seat) },
 		func(s State, v string) State {
-			s.Settings.SrcdsBotTeamComp = withAt(s.Settings.SrcdsBotTeamComp, seat, v, Seats)
+			s.Settings.SrcdsBotTeamComp = withAt(s.Settings.SrcdsBotTeamComp, seat, v)
 			return s
 		})
 }
@@ -214,7 +213,7 @@ func seatLoadoutSpec(seat int) Spec {
 		func(s State, _ Env) []Option { return loadoutOptions(s, at(s.Settings.SrcdsBotTeamComp, seat)) },
 		func(s State) string { return at(s.Settings.SrcdsBotSeatLoadouts, seat) },
 		func(s State, v string) State {
-			s.Settings.SrcdsBotSeatLoadouts = withAt(s.Settings.SrcdsBotSeatLoadouts, seat, v, Seats)
+			s.Settings.SrcdsBotSeatLoadouts = withAt(s.Settings.SrcdsBotSeatLoadouts, seat, v)
 			return s
 		})
 }
@@ -240,7 +239,7 @@ func seatNameSpec(seat int) Spec {
 		},
 		func(s State) string { return at(s.Settings.SrcdsBotSeatNames, seat) },
 		func(s State, v string) State {
-			s.Settings.SrcdsBotSeatNames = withAt(s.Settings.SrcdsBotSeatNames, seat, v, Seats)
+			s.Settings.SrcdsBotSeatNames = withAt(s.Settings.SrcdsBotSeatNames, seat, v)
 			return s
 		})
 }
@@ -563,8 +562,8 @@ entries in the settings file rather than six, three of which mean nothing. It
 matters because the mod reads the length: a comp of six with three blanks is not
 the same instruction as a comp of three.
 */
-func withAt(list []string, i int, value string, limit int) []string {
-	if i < 0 || i >= limit {
+func withAt(list []string, i int, value string) []string {
+	if i < 0 || i >= Seats {
 		return list
 	}
 	next := slices.Clone(list)

@@ -54,9 +54,24 @@ test('a full manual team can recruit cards without a false full warning', async 
   await expect(page.getByRole('status')).not.toContainText('All six seats are filled');
 });
 
-test('drafts all six cards atomically for a fast test run', async ({ page }) => {
+test('recruits and previews a full six-card team', async ({ page }) => {
   await page.goto('/bots');
-  await page.getByRole('button', { name: 'Use all six prototype cards' }).click();
+  for (const name of [
+    'CreditToTeam',
+    "Screamin' Eagles",
+    'IvanTheSpaceBiker',
+    'Herr Doktor',
+    'Chell',
+    'Mentlegen',
+  ]) {
+    await page
+      .getByRole('region', { name: 'Bot card collection' })
+      .getByRole('button', { name: `Recruit ${name}` })
+      .click();
+    await expect(
+      page.getByRole('region', { name: 'Selected bot priority' }).getByRole('heading', { name }),
+    ).toBeVisible();
+  }
   const squad = page.getByRole('region', { name: 'Selected bot priority' });
   await expect(squad.locator('.entry')).toHaveCount(6);
   await expect(page.getByLabel('Name for Seat 6')).toHaveValue('Mentlegen');
@@ -66,8 +81,6 @@ test('drafts all six cards atomically for a fast test run', async ({ page }) => 
   await expect(squad.locator('.trading-card').filter({ hasText: 'Herr Doktor' })).toContainText(
     '0.10s',
   );
-  await expect(squad.locator('.trading-card.human')).toHaveCount(2);
-  await expect(squad.locator('.trading-card.giant')).toHaveCount(2);
   await expect(
     squad.locator('.trading-card').filter({ hasText: 'Herr Doktor' }).locator('.perk li'),
   ).toHaveCount(3);

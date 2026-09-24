@@ -2,6 +2,7 @@ package form
 
 import (
 	"fmt"
+	"maps"
 	"math/rand/v2"
 	"slices"
 	"strings"
@@ -24,22 +25,24 @@ func cardSeatAt(s State, index int) cardSeat {
 }
 
 func putCardSeat(s State, index int, seat cardSeat) State {
-	s.Settings.SrcdsBotTeamComp = withAt(s.Settings.SrcdsBotTeamComp, index, seat.class, Seats)
-	s.Settings.SrcdsBotSeatNames = withAt(s.Settings.SrcdsBotSeatNames, index, seat.name, Seats)
-	s.Settings.SrcdsBotSeatLoadouts = withAt(s.Settings.SrcdsBotSeatLoadouts, index, seat.loadout, Seats)
+	s.Settings.SrcdsBotTeamComp = withAt(s.Settings.SrcdsBotTeamComp, index, seat.class)
+	s.Settings.SrcdsBotSeatNames = withAt(s.Settings.SrcdsBotSeatNames, index, seat.name)
+	s.Settings.SrcdsBotSeatLoadouts = withAt(s.Settings.SrcdsBotSeatLoadouts, index, seat.loadout)
 	return s
 }
 
 // One atomic setting change chooses the card's class, pinned name and starting
 // weapons. The older per-seat rows remain available for hand tuning afterward.
-func seatCardSpec(index int) Spec {
+func seatCardSpec(index int, env Env) Spec {
 	return openChoice(fmt.Sprintf("bots.seat.%d.card", index), "Bots",
 		fmt.Sprintf("Seat %d card", index+1),
-		"Pick a named defender prototype. Its class, name and preferred weapons fill this seat together; the rows below can still be customized.",
+		"Pick a named defender. Its class, name and preferred weapons fill this seat together; the rows below can still be customized.",
 		func(State, Env) []Option {
 			out := []Option{{Value: "", Label: "no card"}}
 			for _, card := range botcards.Cards {
-				out = append(out, Option{Value: card.ID, Label: card.Name})
+				if env.BotCardItems == nil || cardRoll(env, card.ID) != "" {
+					out = append(out, Option{Value: card.ID, Label: card.Name})
+				}
 			}
 			return out
 		},
@@ -55,8 +58,16 @@ func seatCardSpec(index int) Spec {
 				return putCardSeat(s, index, cardSeat{})
 			}
 			card, ok := botcards.ByID(id)
-			if !ok {
+			roll := cardRoll(env, id)
+			if !ok || (env.BotCardItems != nil && roll == "") {
 				return s
+			}
+			s.Settings.SrcdsBotCardRolls = maps.Clone(s.Settings.SrcdsBotCardRolls)
+			if s.Settings.SrcdsBotCardRolls == nil {
+				s.Settings.SrcdsBotCardRolls = map[string]string{}
+			}
+			if roll != "" {
+				s.Settings.SrcdsBotCardRolls[id] = roll
 			}
 			for other := range Seats {
 				if other == index {
@@ -71,10 +82,24 @@ func seatCardSpec(index int) Spec {
 			current := cardSeatAt(s, index)
 			s = putCardSeat(s, index, cardSeat{card.Class, card.Name, card.Loadout})
 			if current.class != card.Class || current.name != card.Name {
-				s = setCardForm(s, card.ID, randomCardForm())
+				form := randomCardForm()
+				if _, _, drawnForm, valid := botcards.ParseItemName(roll); valid {
+					form = drawnForm
+				}
+				s = setCardForm(s, card.ID, form)
 			}
 			return s
 		})
+}
+
+func cardRoll(env Env, id string) string {
+	for _, name := range env.BotCardItems {
+		card, _, _, ok := botcards.ParseItemName(name)
+		if ok && card.ID == id {
+			return name
+		}
+	}
+	return ""
 }
 
 func selectedCardIDs(s State) []string {
@@ -95,7 +120,14 @@ const (
 )
 
 func randomCardForm() string {
-	return []string{cardHuman, cardRobot, cardGiant}[rand.IntN(3)]
+	roll := rand.IntN(100)
+	if roll < 50 {
+		return cardHuman
+	}
+	if roll < 90 {
+		return cardRobot
+	}
+	return cardGiant
 }
 
 func cardForm(s State, id string) string {
@@ -136,27 +168,6 @@ func cardFormSpec(card botcards.Card) Spec {
 				return s
 			}
 			return setCardForm(s, card.ID, form)
-		})
-}
-
-func demoLineupSpec() Spec {
-	return openChoice("bots.demo_lineup", "Bots", "Demo card lineup",
-		"Draft the six prototype cards in priority order. Nothing reaches the server until Apply.",
-		func(State, Env) []Option {
-			return []Option{{Value: "", Label: "keep this team"}, {Value: "demo", Label: "use all six cards"}}
-		},
-		func(State) string { return "" },
-		func(s State, choice string) State {
-			if choice != "demo" {
-				return s
-			}
-			forms := []string{cardHuman, cardHuman, cardRobot, cardRobot, cardGiant, cardGiant}
-			order := rand.Perm(len(forms))
-			for index, card := range botcards.Cards {
-				s = putCardSeat(s, index, cardSeat{card.Class, card.Name, card.Loadout})
-				s = setCardForm(s, card.ID, forms[order[index]])
-			}
-			return s
 		})
 }
 

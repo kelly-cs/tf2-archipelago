@@ -202,10 +202,17 @@ checks qui restent après les classes, les emplacements et les tickets.
 | Weapon slots | `weapon_slot_importance` | `MVM_WEAPON_SLOT_IMPORTANCE` | `progression` | Si les emplacements comptent pour les exigences des paliers. |
 | Weapon buffs | `weapon_buff_importance` | `MVM_WEAPON_BUFF_IMPORTANCE` | `useful` | Si les paliers durs demandent quelques bonus. |
 | Cash rewards | `cash_rewards` | `MVM_CASH_REWARDS` | désactivé | Laisser les checks libres payer des crédits. |
+| Cartes de bots déblocables | `bot_cards` | `MVM_BOT_CARDS` | désactivé | Ajouter des défenseurs optionnels à la seed. |
+| Mode des cartes de départ | `starting_bot_card_mode` | `MVM_STARTING_BOT_CARD_MODE` | `draw_random` | Cartes aléatoires ou une carte avec équipement de base par classe. |
+| Cartes aléatoires de départ | `starting_bot_cards` | `MVM_STARTING_BOT_CARDS` | `0` | Cartes distinctes au départ ; ignoré en mode une par classe. |
+| Maximum de checks de cartes | `maximum_bot_card_checks` | `MVM_MAXIMUM_BOT_CARD_CHECKS` | `6` | Limite les cartes utiles trouvées sur les checks, hors cartes de départ. |
 | Buff share | `weapon_buff_percentage` | `MVM_WEAPON_BUFF_PERCENTAGE` | `75` | Avec les crédits activés, la part des checks libres qui paient un bonus. |
 | Buff stack chance | `weapon_buff_stack_chance` | `MVM_WEAPON_BUFF_STACK_CHANCE` | `25` | La chance qu'un bonus ajoute un niveau à un bonus déjà dans la seed. |
 | Traps (%) | `trap_percentage` | `MVM_TRAP_PERCENTAGE` | `1` | La part des checks libres qui contiennent un piège. |
 | Grappling Hook | `server_settings` | `MVM_SERVER_SETTINGS` | désactivé | Mettre le grappin dans la réserve. |
+
+La rareté et la forme sont tirées séparément : Commune / Élite / Légendaire
+à 50 % / 40 % / 10 %, et Humain / robot RED / Géant à 50 % / 40 % / 10 %.
 
 ### Importance
 
