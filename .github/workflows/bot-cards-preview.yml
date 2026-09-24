@@ -1,0 +1,97 @@
+name: Bot cards preview
+
+on:
+  push:
+    branches: [feat/bot-cards-poc]
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  preview:
+    if: github.server_url == 'https://github.com'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Name this immutable preview
+        run: |
+          echo "TAG=bot-cards-preview-${GITHUB_SHA:0:8}" >> "$GITHUB_ENV"
+          echo "IMAGE=ghcr.io/${{ github.repository }}" >> "$GITHUB_ENV"
+      - name: Build downloadable files
+        run: make dist BUILD_CHANNEL=bot-cards-preview
+      - name: Point Compose at this preview's images
+        run: |
+          sed -i "s/:-latest}/:-${TAG}}/g" dist/compose.yaml
+          sed -i "s|ghcr.io/m-this/tf2-archipelago|$IMAGE|g" dist/compose.yaml
+          cd dist
+          sha256sum tf2ap.exe tf2ap-linux-amd64 compose.yaml env.example \
+            tf2_mvm.apworld tf2_archipelago.smx tf2-defender-bots.zip \
+            meta.json items.json missions.json > SHA256SUMS
+      - uses: actions/upload-artifact@v5
+        with:
+          name: bot-cards-preview-${{ github.sha }}
+          path: |
+            dist/tf2ap.exe
+            dist/tf2ap-linux-amd64
+            dist/compose.yaml
+            dist/env.example
+            dist/tf2_mvm.apworld
+            dist/tf2_archipelago.smx
+            dist/tf2-defender-bots.zip
+            dist/meta.json
+            dist/items.json
+            dist/missions.json
+            dist/SHA256SUMS
+          retention-days: 14
+      - name: Log in to GitHub Container Registry
+        run: echo "${{ github.token }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+      - name: Build and push bridge and admin images
+        run: |
+          . deploy/env/versions.env
+          docker build -f deploy/Dockerfile.bridge -t "$IMAGE/bridge:$TAG" .
+          deploy/push-image.sh "$IMAGE/bridge:$TAG"
+          docker build -f deploy/Dockerfile.admin \
+            --build-arg "LAUNCHER_VERSION=$TAG" \
+            --build-arg "NODE_VERSION=$NODE_VERSION" \
+            --build-arg "TAILSCALE_VERSION=$TAILSCALE_VERSION" \
+            -t "$IMAGE/admin:$TAG" .
+          deploy/push-image.sh "$IMAGE/admin:$TAG"
+      - uses: docker/setup-buildx-action@v4
+        id: buildx
+        with:
+          use: false
+      - uses: crazy-max/ghaction-github-runtime@v4
+      - name: Build and push game-server image
+        run: |
+          . deploy/env/versions.env
+          docker buildx build --builder "${{ steps.buildx.outputs.name }}" --load \
+            -f deploy/Dockerfile.srcds \
+            --cache-from type=gha,scope=srcds \
+            --cache-to type=gha,scope=srcds,mode=max \
+            --build-arg "RIPEXT_VERSION=$RIPEXT_VERSION" \
+            --build-arg "SIGSEGV_MVM_VERSION=$SIGSEGV_MVM_VERSION" \
+            --build-arg "SIGSEGV_MVM_SHA256=$SIGSEGV_MVM_SHA256" \
+            -t "$IMAGE/srcds:$TAG" .
+          deploy/push-image.sh "$IMAGE/srcds:$TAG"
+      - name: Build and push Archipelago image
+        run: |
+          . deploy/env/versions.env
+          docker build -f deploy/Dockerfile.archipelago \
+            --build-arg "ARCHIPELAGO_VERSION=$ARCHIPELAGO_VERSION" \
+            -t "$IMAGE/archipelago:$TAG" .
+          deploy/push-image.sh "$IMAGE/archipelago:$TAG"
+      - name: Publish preview release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$TAG" \
+            dist/tf2ap.exe dist/tf2ap-linux-amd64 dist/compose.yaml dist/env.example \
+            dist/tf2_mvm.apworld dist/tf2_archipelago.smx dist/tf2-defender-bots.zip \
+            dist/meta.json dist/items.json dist/missions.json dist/SHA256SUMS \
+            --target "$GITHUB_SHA" --prerelease \
+            --title "Bot cards preview ${GITHUB_SHA:0:8}" \
+            --notes "Bot-card Rewards preview from $GITHUB_SHA. Use the attached compose.yaml with the matching preview images; this is not a stable release."

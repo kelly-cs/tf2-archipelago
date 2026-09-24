@@ -83,13 +83,9 @@ func (a *App) SaveSettings(restart bool) error {
 	readyMods := slices.Clone(a.serverMods)
 	attached, envFile := a.attached, a.attachedEnvFile
 	a.mu.Unlock()
-	room, roomErr := settings.ParseRoom(draft.Draft.Room)
-	if roomErr == nil {
-		draft.Settings.APHost, draft.Settings.APPort, draft.Settings.APTls = room.Host, room.Port, room.TLS
-	} else if strings.TrimSpace(draft.Draft.Room) == "" {
-		draft.Settings.APHost, draft.Settings.APPort = "", 0
-	}
+	roomErr := parseDraftRoom(&draft)
 	before := a.supervisor.Settings()
+	forgetOldRoomCards(before, &draft.Settings)
 	written, err := persistDraft(draft.Settings, before, readyMods, attached, envFile)
 	if err != nil {
 		return err
@@ -142,6 +138,16 @@ func (a *App) SaveSettings(restart bool) error {
 	go a.reportRoom(written, draft.Draft.Room, roomErr)
 	a.publishState()
 	return nil
+}
+
+func parseDraftRoom(draft *form.State) error {
+	room, err := settings.ParseRoom(draft.Draft.Room)
+	if err == nil {
+		draft.Settings.APHost, draft.Settings.APPort, draft.Settings.APTls = room.Host, room.Port, room.TLS
+	} else if strings.TrimSpace(draft.Draft.Room) == "" {
+		draft.Settings.APHost, draft.Settings.APPort = "", 0
+	}
+	return err
 }
 
 func persistDraft(draft, before settings.Settings, readyMods []string, attached bool, envFile string) (settings.Settings, error) {
@@ -240,7 +246,17 @@ func (a *App) formEnvLocked() form.Env {
 	if len(dirs) > 0 {
 		appDir = dirs[0]
 	}
+	var received []string
+	if !a.draft.Settings.TestMode {
+		received = []string{}
+		for _, unlock := range a.snapshot.Unlocks {
+			if unlock.Kind == "Bot card" {
+				received = append(received, unlock.Name)
+			}
+		}
+	}
 	return form.Env{
+		BotCardItems:       received,
 		CommunityAvailable: slices.Clone(a.community), ServerModsReady: slices.Clone(a.serverMods),
 		CommunityHashMismatches: installer.PendingCommunityArchiveHashMismatches(settings.KnownCommunityArchives(a.draft.Settings.CommunityContentDir)),
 		Platform:                runtime.GOOS, AppDirDefault: appDir, ManagedExternally: a.attached,

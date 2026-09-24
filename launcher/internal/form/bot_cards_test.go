@@ -1,6 +1,7 @@
 package form
 
 import (
+	"fmt"
 	"reflect"
 	"slices"
 	"testing"
@@ -42,6 +43,26 @@ func TestBotCardSelectionAndPriorityKeepTheWholeIdentity(t *testing.T) {
 	}
 	if !reflect.DeepEqual(s, before) {
 		t.Fatal("refused priority changed the team")
+	}
+}
+
+func TestRoomOnlyOffersReceivedCardAndPinsItsRoll(t *testing.T) {
+	s := NewState(settings.Defaults())
+	s.Settings.MvmBotCards = true
+	env := Env{BotCardItems: []string{"Bot: Chucklenuts | Legendary | Giant"}}
+	field, ok := Build(s, env).Field("bots.seat.0.card")
+	if !ok || len(field.Options) != 2 || field.Options[1].Value != "stock-scout" {
+		t.Fatalf("room card choices = %+v", field)
+	}
+	if _, err := Apply(s, env, Change{Field: "bots.seat.0.card", Value: "herr-doktor"}); err == nil {
+		t.Fatal("accepted a card absent from the room")
+	}
+	next, err := Apply(s, env, Change{Field: "bots.seat.0.card", Value: "stock-scout"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if next.Settings.SrcdsBotCardRolls["stock-scout"] != env.BotCardItems[0] || cardForm(next, "stock-scout") != cardGiant {
+		t.Fatalf("card roll not pinned: %+v", next.Settings)
 	}
 }
 
@@ -93,12 +114,9 @@ func TestSpyCanTryAnExperimentalPrimary(t *testing.T) {
 	}
 }
 
-func TestDemoLineupFillsAllSixNamedSeats(t *testing.T) {
+func TestSixCardsFillAllNamedSeats(t *testing.T) {
 	s := NewState(settings.Defaults())
-	next, err := Apply(s, Env{}, Change{Field: "bots.demo_lineup", Value: "demo"})
-	if err != nil {
-		t.Fatal(err)
-	}
+	next := draftSixCards(t, s)
 	if len(selectedCardIDs(next)) != Seats {
 		t.Fatalf("demo selected %d cards, want %d", len(selectedCardIDs(next)), Seats)
 	}
@@ -108,9 +126,8 @@ func TestDemoLineupFillsAllSixNamedSeats(t *testing.T) {
 }
 
 func TestGiantChoiceStaysWithCardAcrossPriorityAndSavedTeams(t *testing.T) {
-	s := NewState(settings.Defaults())
+	s := draftSixCards(t, NewState(settings.Defaults()))
 	for _, change := range []Change{
-		{Field: "bots.demo_lineup", Value: "demo"},
 		{Field: "bots.card.herr-doktor.form", Value: "giant"},
 		{Field: "bots.card.chell.form", Value: "human"},
 		{Field: "bots.priority", Value: "herr-doktor,credit-to-team,screamin-eagles,ivan,chell,mentlegen"},
@@ -132,4 +149,16 @@ func TestGiantChoiceStaysWithCardAcrossPriorityAndSavedTeams(t *testing.T) {
 	if got := cardForm(NewState(restored), "chell"); got != cardHuman {
 		t.Fatalf("saved Chell form = %q", got)
 	}
+}
+
+func draftSixCards(t *testing.T, s State) State {
+	t.Helper()
+	for index, id := range []string{"credit-to-team", "screamin-eagles", "ivan", "herr-doktor", "chell", "mentlegen"} {
+		var err error
+		s, err = Apply(s, Env{}, Change{Field: fmt.Sprintf("bots.seat.%d.card", index), Value: id})
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	return s
 }

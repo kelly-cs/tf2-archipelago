@@ -1,28 +1,11 @@
 <div class="intro">
   <div>
-    <p class="eyebrow">Defender collection · prototype</p>
+    <p class="eyebrow">Defender collection</p>
     <h3>Your squad</h3>
     <p>Drag to rank your team. The lowest-ranked defender makes room first when a human joins.</p>
-    @if (attached()) {
-      <a class="preview-link" href="/tracker/?demo=1" target="_blank" rel="noopener noreferrer">
-        Open card tracker demo ↗
-      </a>
-    }
   </div>
   <span>{{ selected().length }} / 6 selected</span>
 </div>
-<p class="prototype-note">
-  Test build: each recruited card randomly draws Human, RED robot or RED robot Giant, then keeps its
-  form across maps. The six-card demo guarantees a shuffled mix of two each; you can change or
-  reroll forms below. Common / Elite / Legendary have 0% / 50% / 100% HP, preview AIM and
-  reaction-speed bonuses. AIM is capped at 100%; REACT is seconds. Each tier grants 1 / 2 / 3
-  distinct AP-eligible innates stacked 1 / 2 / 3 times each across all their weapons. Giant doubles
-  health and grows larger. Card cosmetics equip in-game, with a random Unusual effect for Legendary
-  bots. Aim/reaction values are visual previews.
-</p>
-<button class="demo-lineup" type="button" (click)="useDemoSquad()">
-  Use all six prototype cards
-</button>
 
 @if (selected().length === 0) {
   <div class="empty">No named defenders selected yet. Recruit from the collection below.</div>

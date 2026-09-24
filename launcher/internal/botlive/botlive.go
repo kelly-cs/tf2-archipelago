@@ -54,8 +54,8 @@ func Commands(before, after settings.Settings) []string {
 		// mod rebinds that name to the card's new priority seat without a kick.
 		out = append(out, "sm_redbots_reload_cards")
 		oldSeats := SeatsOf(before)
-		for i := len(oldSeats) - 1; i >= 0; i-- {
-			name := oldSeats[i].Name
+		for _, seat := range slices.Backward(oldSeats) {
+			name := seat.Name
 			old, isCard := oldCards[name]
 			if !isCard {
 				continue
@@ -211,18 +211,29 @@ func SeatsOf(s settings.Settings) []botloadout.Seat {
 		if !ok {
 			continue
 		}
+		tier := card.Tier
+		rolled, rolledTier, _, valid := botcards.ParseItemName(s.SrcdsBotCardRolls[card.ID])
+		if s.MvmBotCards && !s.TestMode && (!valid || rolled.ID != card.ID) {
+			continue
+		}
+		if valid && rolled.ID == card.ID {
+			tier = rolledTier
+		}
 		seats[i].Giant = slices.Contains(s.SrcdsBotGiantCards, card.ID)
 		seats[i].Robot = seats[i].Giant || !slices.Contains(s.SrcdsBotHumanCards, card.ID)
 		seats[i].Card = true
-		seats[i].Tier = card.Tier.Stacks()
+		seats[i].Tier = tier.Stacks()
 		seats[i].Cosmetic = card.Cosmetic
-		seats[i].Unusual = card.Tier == botcards.Legendary
+		seats[i].Unusual = tier == botcards.Legendary && card.Cosmetic != 0
 		seats[i].UnusualEffect = card.UnusualEffect
-		for _, id := range card.BuffIDs {
+		if seats[i].Unusual && seats[i].UnusualEffect == 0 {
+			seats[i].UnusualEffect = 13
+		}
+		for _, id := range botcards.BuffsFor(card, tier) {
 			buff, ok := gamedata.WeaponBuffByID(id)
 			if ok && buff.Eligible {
 				seats[i].Innates = append(seats[i].Innates, botloadout.Innate{
-					Effect: int(buff.EffectID) - 1, Stacks: card.Tier.Stacks(),
+					Effect: int(buff.EffectID) - 1, Stacks: tier.Stacks(),
 				})
 			}
 		}

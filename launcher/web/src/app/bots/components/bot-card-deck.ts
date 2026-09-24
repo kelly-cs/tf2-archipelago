@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { CdkDrag, CdkDragDrop, CdkDragHandle, CdkDropList } from '@angular/cdk/drag-drop';
 
 import { BotTradingCard } from '@cards/bot-card';
-import { BotCard, BotForm, botCards, cardById } from '@cards/catalog';
+import { BotCard, BotForm, botCards, cardById, rolledCard } from '@cards/catalog';
 import { SettingsStore } from '@app/settings/settings-store';
 import { LauncherStore } from '@app/server/launcher-store';
 
@@ -15,20 +15,39 @@ import { LauncherStore } from '@app/server/launcher-store';
 })
 export class BotCardDeck {
   private readonly settings = inject(SettingsStore);
-  readonly attached = inject(LauncherStore).managedExternally;
+  private readonly launcher = inject(LauncherStore);
   readonly cards = botCards;
   readonly feedback = signal('');
+  readonly owned = computed(() => {
+    const rolls = new Map<string, BotCard>();
+    for (const unlock of this.launcher.unlocks()) {
+      if (unlock.kind !== 'Bot card') continue;
+      const [identity, tier] = unlock.name.split(' | ');
+      const base = botCards.find((card) => identity === `Bot: ${card.name}`);
+      const rarity = tier?.toUpperCase();
+      if (base && (rarity === 'COMMON' || rarity === 'ELITE' || rarity === 'LEGENDARY')) {
+        rolls.set(base.id, rolledCard(base, rarity));
+      }
+    }
+    return rolls;
+  });
   readonly selected = computed(() =>
     this.settings
       .value('bots.priority')
       .split(',')
       .filter(Boolean)
-      .map(cardById)
+      .map((id) => this.owned().get(id) ?? cardById(id))
+      .map((card) => card && rolledCard(card, card.rarity))
       .filter((card): card is BotCard => card !== undefined),
   );
   readonly available = computed(() => {
     const selected = new Set(this.selected().map((card) => card.id));
-    return botCards.filter((card) => !selected.has(card.id));
+    return botCards
+      .filter((card) => !selected.has(card.id))
+      .filter(
+        (card) => this.settings.value('room.test_mode') === 'true' || this.owned().has(card.id),
+      )
+      .map((card) => this.owned().get(card.id) ?? rolledCard(card, card.rarity));
   });
 
   form(card: BotCard): BotForm {
@@ -40,13 +59,6 @@ export class BotCardDeck {
     if (form !== 'human' && form !== 'robot' && form !== 'giant' && form !== 'reroll') return;
     this.settings.change(`bots.card.${card.id}.form`, form);
     this.feedback.set(`${card.name} is ${this.form(card)}. Press Apply to save.`);
-  }
-
-  useDemoSquad(): void {
-    this.settings.change('bots.demo_lineup', 'demo');
-    this.feedback.set(
-      'Six-card lineup drafted with a random two-of-each form mix. Press Apply to save it.',
-    );
   }
 
   select(card: BotCard): void {

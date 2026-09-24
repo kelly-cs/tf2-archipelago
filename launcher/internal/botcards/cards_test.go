@@ -17,6 +17,9 @@ func TestInnatesAreDistinctStackableAPEffectsForTheClass(t *testing.T) {
 			}
 			loadout := class.LoadoutByKey(card.Loadout)
 			definitions := []int{loadout.Primary, loadout.Second, loadout.Melee, loadout.PDA2}
+			if card.StockDef != 0 {
+				definitions = append(definitions, card.StockDef)
+			}
 			if len(card.BuffIDs) != card.Tier.Stacks() {
 				t.Fatalf("%s has %d innates, want %d", card.Tier, len(card.BuffIDs), card.Tier.Stacks())
 			}
@@ -54,5 +57,28 @@ func TestLegendaryUnusualEffectsBelongToCards(t *testing.T) {
 			t.Errorf("%s needs its own fixed Unusual effect, got %d", card.ID, card.UnusualEffect)
 		}
 		seen[card.UnusualEffect] = true
+	}
+}
+
+func TestEverySeedTierHasItsOwnEligibleInnates(t *testing.T) {
+	for _, card := range Cards {
+		for _, tier := range []Tier{Common, Elite, Legendary} {
+			buffs := BuffsFor(card, tier)
+			if len(buffs) != tier.Stacks() {
+				t.Errorf("%s %s: %d innates, want %d", card.Name, tier, len(buffs), tier.Stacks())
+			}
+			seen := map[uint8]bool{}
+			for _, id := range buffs {
+				buff, ok := gamedata.WeaponBuffByID(id)
+				if !ok || !buff.Eligible || buff.Mode == gamedata.BuffToggle {
+					t.Errorf("%s %s: invalid buff %d", card.Name, tier, id)
+					continue
+				}
+				if seen[buff.EffectID] {
+					t.Errorf("%s %s: repeated effect %d", card.Name, tier, buff.EffectID)
+				}
+				seen[buff.EffectID] = true
+			}
+		}
 	}
 }
