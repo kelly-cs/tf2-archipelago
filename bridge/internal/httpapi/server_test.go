@@ -214,6 +214,9 @@ func TestUnlocksReportsWhatHasBeenGranted(t *testing.T) {
 	if unlocks.ResumeFrom != 0 {
 		t.Errorf("resume_from = %d", unlocks.ResumeFrom)
 	}
+	if unlocks.SnapshotSeq != 2 {
+		t.Errorf("snapshot_seq = %d, want both items in the snapshot", unlocks.SnapshotSeq)
+	}
 	missions := unlocks.Of(gamedata.ItemMissionTicket)
 	if len(missions) != 1 || missions[0] != "mvm_coaltown" {
 		t.Errorf("missions = %v", missions)
@@ -345,6 +348,41 @@ func TestGrantsReturnWhatIsAlreadyThere(t *testing.T) {
 	decode(t, get(t, handler, "/grants?since=0"), &response)
 	if len(response.Grants) != 1 || response.Grants[0].Seq != 1 {
 		t.Fatalf("grants = %+v", response.Grants)
+	}
+}
+
+func TestHeldEffectReplaysBuffsWithoutChangingTheirPositions(t *testing.T) {
+	store, handler := newTestServer(t, time.Second)
+	buff := gamedata.WeaponBuffs[0]
+	if err := store.ApplyItems(0, []int64{buff.ItemID(), cashBundleID(t), buff.ItemID()}); err != nil {
+		t.Fatal(err)
+	}
+
+	var snapshot state.Unlocks
+	decode(t, get(t, handler, "/unlocks"), &snapshot)
+	if snapshot.ResumeFrom != 0 || snapshot.SnapshotSeq != 3 {
+		t.Fatalf("snapshot cursors = (%d, %d), want (0, 3)", snapshot.ResumeFrom, snapshot.SnapshotSeq)
+	}
+	if got := snapshot.Of(gamedata.ItemWeaponBuff); !slices.Equal(got, []string{buff.Key, buff.Key}) {
+		t.Fatalf("snapshot buff levels = %v, want two copies", got)
+	}
+
+	// Cash cannot be acknowledged until the upgrade station is ready. Each
+	// retry asks from zero and receives the same buff positions again.
+	for retry := range 21 {
+		var response grantsResponse
+		decode(t, get(t, handler, "/grants?since=0"), &response)
+		if response.Seq != 3 || len(response.Grants) != 3 {
+			t.Fatalf("retry %d: response = %+v", retry, response)
+		}
+		for i, grant := range response.Grants {
+			if grant.Seq != i+1 {
+				t.Fatalf("retry %d: grant %d = %+v", retry, i, grant)
+			}
+		}
+		if response.Grants[0].Key != buff.Key || response.Grants[1].Kind != gamedata.ItemCredits.Key() || response.Grants[2].Key != buff.Key {
+			t.Fatalf("retry %d: grants = %+v", retry, response.Grants)
+		}
 	}
 }
 
