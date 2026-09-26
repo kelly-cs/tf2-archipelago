@@ -116,8 +116,8 @@ func (d driver) run(t *testing.T) []int32 {
 }
 
 // The SourcePawn grant cursor must count each received item position once.
-// A held cash bundle makes the bridge return the same later buff positions on
-// every retry; the old plugin incremented a legitimate x2 to x44 this way.
+// Held cash or a trap makes the bridge return the same later buff positions on
+// every retry; the old plugin could increment a legitimate x2 to x44 this way.
 func TestStateGrantCursorIgnoresRuntimeReplays(t *testing.T) {
 	got := driver{body: `
     int seen = 4; // The unlock snapshot already holds two copies.
@@ -157,6 +157,26 @@ func TestStateGrantCursorIgnoresRuntimeReplays(t *testing.T) {
 		if got[i] != want[i] {
 			t.Fatalf("grant cursor returned %v, want %v", got, want)
 		}
+	}
+}
+
+// A reload can ask from an acknowledgement that predates the unlock snapshot
+// even when the run contains no cash or traps. Those copies are already in the
+// menu and must not be counted by the first grant poll a second time.
+func TestStateGrantCursorIgnoresSnapshotOverlapWithoutEffects(t *testing.T) {
+	got := driver{body: `
+    int seen = 2; // The unlock snapshot contains two buff copies.
+    int levels = 2;
+    for (int seq = 1; seq <= 2; seq++)
+    {
+        int next = Bridge_NextStateGrantSeq(seen, seq);
+        if (next != seen) { levels++; seen = next; }
+    }
+    printnum(levels);
+    printnum(seen);
+`}.run(t)
+	if len(got) != 2 || got[0] != 2 || got[1] != 2 {
+		t.Fatalf("snapshot overlap returned %v, want [2 2]", got)
 	}
 }
 
