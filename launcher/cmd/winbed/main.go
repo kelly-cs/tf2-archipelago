@@ -23,6 +23,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 
 	"github.com/m-this/tf2-archipelago/launcher/internal/installer"
@@ -34,14 +35,18 @@ import (
 const sigmodKey = "sigsegv-mvm"
 
 type options struct {
-	root    string
-	packs   string
-	sigmod  string
-	probe   string
-	rconpw  string
-	port    int
-	install bool
-	serve   bool
+	root        string
+	packs       string
+	sigmod      string
+	probe       string
+	rconpw      string
+	port        int
+	install     bool
+	serve       bool
+	bots        bool
+	noSigmod    bool
+	testMode    bool
+	botTeamSize int
 }
 
 func main() {
@@ -54,6 +59,10 @@ func main() {
 	flag.IntVar(&opt.port, "port", 27015, "game port, also rcon")
 	flag.BoolVar(&opt.install, "install", false, "install the server, the packs, SigMod and the probe, then exit")
 	flag.BoolVar(&opt.serve, "serve", false, "run the game server until interrupted")
+	flag.BoolVar(&opt.noSigmod, "no-sigmod", os.Getenv("WINBED_NO_SIGMOD") == "1", "load no SigMod, as a server without it runs (WINBED_NO_SIGMOD=1)")
+	flag.BoolVar(&opt.testMode, "test-mode", os.Getenv("WINBED_TEST_MODE") == "1", "serve a test multiworld, as the launcher's test mode does (WINBED_TEST_MODE=1)")
+	flag.IntVar(&opt.botTeamSize, "bot-team-size", envInt("WINBED_BOT_TEAM_SIZE", 6), "defender bots on RED (WINBED_BOT_TEAM_SIZE)")
+	flag.BoolVar(&opt.bots, "bots", os.Getenv("WINBED_BOTS") == "1", "fill RED with defender bots, which shop at the upgrade station (WINBED_BOTS=1)")
 	flag.Parse()
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 	if err := run(opt, logger); err != nil {
@@ -79,20 +88,27 @@ func run(opt options, logger *slog.Logger) error {
 }
 
 // bedSettings is the launcher's defaults with what the Docker probe sets:
-// a LAN server with no bots and no room, SigMod loaded whatever the mission.
+// a LAN server with no room, SigMod loaded whatever the mission. Bots are off
+// unless asked for; with them on, their purchases go through the upgrade code.
 func bedSettings(opt options) settings.Settings {
 	s := settings.Defaults()
 	s.InstallRoot = opt.root
 	s.CommunityContentDir = filepath.Join(opt.root, "community")
 	s.CommunityPacks = strings.Split(opt.packs, ",")
-	s.SrcdsMods = []string{sigmodKey}
-	s.SrcdsModLoading = settings.ModLoadingAlways
+	if !opt.noSigmod {
+		s.SrcdsMods = []string{sigmodKey}
+		s.SrcdsModLoading = settings.ModLoadingAlways
+	}
 	s.SrcdsRconPw = opt.rconpw
 	s.SrcdsPort = opt.port
 	s.SrcdsMaxPlayers = 32
 	s.SrcdsReach = settings.ReachLan
-	s.SrcdsBots = false
-	s.TestMode = false
+	s.SrcdsBots = opt.bots
+	s.BotUpgradesChat = opt.bots
+	s.TestMode = opt.testMode
+	if opt.botTeamSize > 0 {
+		s.SrcdsBotTeamSize = opt.botTeamSize
+	}
 	s.FastDLPort = 0
 	s.SrcdsStartMap = "mvm_decoy"
 	s.SrcdsHostname = "TF2 Archipelago Wave Probe"
@@ -195,4 +211,12 @@ func extract(file *zip.File, target string) error {
 		return err
 	}
 	return out.Close()
+}
+
+func envInt(key string, fallback int) int {
+	n, err := strconv.Atoi(os.Getenv(key))
+	if err != nil {
+		return fallback
+	}
+	return n
 }
