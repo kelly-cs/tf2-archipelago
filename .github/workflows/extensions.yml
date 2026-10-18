@@ -16,9 +16,12 @@ on:
   workflow_dispatch:
   workflow_call:
   # What changes the binaries, so a pull request that moves a pin or a patch
-  # builds them on both platforms before it merges.
+  # builds them on both platforms before it merges, and main builds them again
+  # once it has: m-this/sigsegv-mvm-win's beds install the latest successful
+  # run on main, and without this one that run is whatever somebody last
+  # started by hand.
   pull_request:
-    paths:
+    paths: &binaries
       - deploy/env/versions.env
       - deploy/patches/cbasenpc/**
       - deploy/patches/actions/**
@@ -26,6 +29,9 @@ on:
       - deploy/patches/sourcemod/**
       - deploy/bots/build-extensions.sh
       - .github/workflows/extensions.yml
+  push:
+    branches: [main]
+    paths: *binaries
 
 permissions:
   contents: read
