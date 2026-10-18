@@ -24,7 +24,15 @@ concurrency:
 # GitHub-only, like the release job: ghcr.io, the release API and the `gh` CLI
 # are all GitHub's. The Forgejo mirror reads this file and skips it.
 jobs:
+  # SourceMod 1.13 refuses an extension built for 1.12, so the launcher's
+  # CBaseNPC, Actions, REST in Pawn and DHooks are built here, the Windows half
+  # on a Windows runner. make dist refuses a tree without both.
+  extensions:
+    if: github.server_url == 'https://github.com'
+    uses: ./.github/workflows/extensions.yml
+
   nightly:
+    needs: extensions
     if: github.server_url == 'https://github.com'
     runs-on: ubuntu-latest
     permissions:
@@ -115,8 +123,15 @@ jobs:
       # bundle instead of the release version this was built past. Without it a
       # build from main after 1.9.0 calls itself 1.9.0 and a player reporting a
       # bug on it looks like a player on the release.
+      - uses: actions/download-artifact@v8
+        with:
+          name: extensions
+          path: extensions
+
       - name: build the files
         run: make dist BUILD_CHANNEL=nightly
+        env:
+          BOTS_EXTENSIONS_DIR: ${{ github.workspace }}/extensions
 
       - name: pin the compose file to nightly
         run: |

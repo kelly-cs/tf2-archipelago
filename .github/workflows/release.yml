@@ -10,7 +10,15 @@ on:
 # No `make check`: the tag points at a commit CI already passed on main. The
 # version check below is the one thing a tag can get wrong on its own.
 jobs:
+  # SourceMod 1.13 refuses an extension built for 1.12, so the launcher's
+  # CBaseNPC, Actions, REST in Pawn and DHooks are built here, the Windows half
+  # on a Windows runner. make dist refuses a tree without both.
+  extensions:
+    if: github.server_url == 'https://github.com'
+    uses: ./.github/workflows/extensions.yml
+
   release:
+    needs: extensions
     if: github.server_url == 'https://github.com'
     runs-on: ubuntu-latest
     permissions:
@@ -107,8 +115,15 @@ jobs:
             -t "$IMAGE/archipelago:latest" .
           deploy/push-image.sh --all-tags "$IMAGE/archipelago"
 
+      - uses: actions/download-artifact@v8
+        with:
+          name: extensions
+          path: extensions
+
       - name: build the files
         run: make dist
+        env:
+          BOTS_EXTENSIONS_DIR: ${{ github.workspace }}/extensions
 
       # A downloaded stack then keeps the release it came with until
       # TF2AP_VERSION says otherwise.
