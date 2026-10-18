@@ -26,6 +26,10 @@ in the release notes, so this file is the only place to write it.
 
 ### Fixed
 
+- **Servers work on the TF2 update of 16 October 2026.** Windows SigMod
+  servers no longer refuse to start or crash on every community mission, and
+  the defender bots read item and attribute data correctly again on Windows
+  and Linux.
 - **Windows SigMod servers play every community mission to the end.** The
   test servers now clear all 532 waves of the SigMod community missions.
 - **Spy stabs alert nearby robots** on Linux SigMod servers.
