@@ -4,6 +4,16 @@ What each release changes, for somebody who plays the game. The workflow in
 `.github/workflows/release.yml` reads the section matching the tag and puts it
 in the release notes, so this file is the only place to write it.
 
+## Unreleased
+
+### Fixed
+
+- **Taking an upgrade back no longer pays out every Cash Bundle again.** With
+  cash rewards in the run, buying an upgrade and pressing minus at the station
+  handed you all the bundle credits of the mission on top of the refund, every
+  time. The minus button now gives back what the upgrade cost and nothing more.
+  Refund All and a lost wave still keep your bundle credits.
+
 ## v1.18.3
 
 ### Added
