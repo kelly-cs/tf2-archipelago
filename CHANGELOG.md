@@ -18,7 +18,8 @@ in the release notes, so this file is the only place to write it.
   to grenades. He also emptied the launcher on a lone robot or one standing
   right next to him, then never set the stickies off. He now keeps the
   launcher loaded between fights and only fires stickies he is going to
-  detonate.
+  detonate. A Demoman with nothing but stickies, on Booties or out of pipes,
+  now sets them off on a single robot instead of letting it walk over them.
 
 ## v1.18.3
 
