@@ -13,6 +13,12 @@ in the release notes, so this file is the only place to write it.
   handed you all the bundle credits of the mission on top of the refund, every
   time. The minus button now gives back what the upgrade cost and nothing more.
   Refund All and a lost wave still keep your bundle credits.
+- **Demoman bots reload their stickybomb launcher.** Once a Demoman had fired
+  his stickies he never reloaded them, so against the next giant he was back
+  to grenades. He also emptied the launcher on a lone robot or one standing
+  right next to him, then never set the stickies off. He now keeps the
+  launcher loaded between fights and only fires stickies he is going to
+  detonate.
 
 ## v1.18.3
 
