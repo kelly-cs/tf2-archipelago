@@ -60,6 +60,7 @@ var driverIncludes = []string{
 	"bridge_grants_math.inc",
 	"mission_modifiers_math.inc",
 	"loadout_math.inc",
+	"mvm_math.inc",
 }
 
 /*

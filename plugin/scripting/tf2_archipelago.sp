@@ -28,6 +28,7 @@ native bool Defenderbots_SetDirective(int client, bool rally, const float goal[3
 native int Defenderbots_GetSeatRank(int client);
 
 #include "tf2_archipelago/log.inc"
+#include "tf2_archipelago/mvm_math.inc"
 #include "tf2_archipelago/mvm.inc"
 #include "tf2_archipelago/invader_stalls.inc"
 #include "tf2_archipelago/unlocks.inc"
