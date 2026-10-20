@@ -4,6 +4,7 @@ import (
 	"maps"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"slices"
 	"strings"
@@ -77,6 +78,43 @@ func TestTheBotsStageCopiesWhatItsScriptReads(t *testing.T) {
 	for _, path := range slices.Sorted(maps.Keys(rootPaths(string(script)))) {
 		if !strings.Contains(stage, "COPY "+path) {
 			t.Errorf("bots/build.sh reads %s and the bots stage does not copy it", path)
+		}
+	}
+}
+
+/*
+The runtime stage carries every gamedata file the plugin ships.
+
+SourceMod refuses a plugin whose gamedata it cannot open, and a server without
+the plugin is stock Mann vs Machine that answers A2S and lets players join with
+nothing saying the run is not randomised. The launcher embeds these files, so
+only the image could go without them, and v1.11.0 did (apw-o3w).
+*/
+func TestTheImageCarriesThePluginsGamedata(t *testing.T) {
+	t.Parallel()
+
+	dockerfile, err := os.ReadFile("Dockerfile.srcds")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, runtime, found := strings.Cut(string(dockerfile), "FROM cm2network")
+	if !found {
+		t.Fatal("Dockerfile.srcds has no runtime stage")
+	}
+	copies := strings.Join(strings.Fields(strings.ReplaceAll(runtime, "\\\n", " ")), " ")
+
+	files, err := filepath.Glob("../plugin/gamedata/*.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(files) == 0 {
+		t.Fatal("plugin/gamedata holds no gamedata file")
+	}
+	for _, file := range files {
+		name := filepath.Base(file)
+		want := "COPY plugin/gamedata/" + name + " /opt/tf2-archipelago/addons/sourcemod/gamedata/" + name
+		if !strings.Contains(copies, want) {
+			t.Errorf("the runtime stage does not install plugin/gamedata/%s: want %q", name, want)
 		}
 	}
 }
