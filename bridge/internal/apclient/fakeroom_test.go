@@ -59,7 +59,15 @@ func TestFakeRoomServesThisClient(t *testing.T) {
 		Store:    store,
 		Logger:   slog.New(slog.DiscardHandler),
 	})
-	go func() { _ = client.Run(ctx) }()
+	stopped := make(chan struct{})
+	go func() {
+		defer close(stopped)
+		_ = client.Run(ctx)
+	}()
+	t.Cleanup(func() {
+		cancel()
+		<-stopped
+	})
 
 	// The handshake, including the made-up slot data: without missions the
 	// bridge has no seed and records nothing.
