@@ -79,7 +79,15 @@ func TestASeedWhoseCommunityMissionIsNotInstalledStopsTheBridge(t *testing.T) {
 				PopulationDir: population,
 			})
 			ended := make(chan error, 1)
-			go func() { ended <- client.Run(ctx) }()
+			stopped := make(chan struct{})
+			go func() {
+				defer close(stopped)
+				ended <- client.Run(ctx)
+			}()
+			t.Cleanup(func() {
+				cancel()
+				<-stopped
+			})
 
 			if test.refusal == nil {
 				waitFor(t, "the handshake", func() bool { return client.Health().Connected })
