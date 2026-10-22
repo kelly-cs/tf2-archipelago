@@ -45,6 +45,7 @@ native int Defenderbots_GetSeatRank(int client);
 #include "tf2_archipelago/bridge.inc"
 #include "tf2_archipelago/bots.inc"
 #include "tf2_archipelago/mission_modifiers.inc"
+#include "tf2_archipelago/missions_math.inc"
 #include "tf2_archipelago/missions.inc"
 #include "tf2_archipelago/botswitch.inc"
 #include "tf2_archipelago/downloads.inc"

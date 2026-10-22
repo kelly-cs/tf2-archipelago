@@ -260,10 +260,9 @@ func TestInstallServerCfgCarriesTheRunAndTheBots(t *testing.T) {
 	}
 }
 
-// tf_mvm_popfile does nothing on a server that is hibernating, and a server
-// with nobody on it hibernates the moment its map is up: the start mission
-// was refused with "Could not find a valid population file matching: normal"
-// and the map stayed on its own default at wave 0.
+// A server with nobody on it hibernates the moment its map is up, and its game
+// clock stops there. The start mission waits for SigMod's first ten seconds of
+// game time to pass, so it waited until somebody joined (apw-o96).
 func TestInstallServerCfgKeepsTheServerAwake(t *testing.T) {
 	s := settings.Settings{InstallRoot: t.TempDir()}
 	if err := Install(s); err != nil {
