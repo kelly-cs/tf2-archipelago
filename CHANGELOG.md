@@ -13,6 +13,10 @@ in the release notes, so this file is the only place to write it.
   the run switched to that mission, sometimes an hour in. Now the server stops
   as soon as it joins the room and names the mission and the pack to tick in
   Settings > Missions.
+- **A download site that is down no longer sends you to Repair.** When
+  alliedmods.net or another site the install downloads from fails, the launcher
+  now names the address and says to try again later. Repair would only have
+  asked the same site again.
 - **Taking an upgrade back no longer pays out every Cash Bundle again.** With
   cash rewards in the run, buying an upgrade and pressing minus at the station
   handed you all the bundle credits of the mission on top of the refund, every

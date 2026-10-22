@@ -234,7 +234,7 @@ func (a *App) Start() {
 		if _, err := installer.Ensure(ctx, s.InstallRoot, settings.CommunityArchives(s), settings.ServerModKeys(s), logf); err != nil {
 			if ctx.Err() == nil {
 				a.Say("install failed: %v", err)
-				a.Say("%s.", installer.RepairAdvice)
+				a.Say("%s.", installer.Advice(err))
 			}
 			return
 		}

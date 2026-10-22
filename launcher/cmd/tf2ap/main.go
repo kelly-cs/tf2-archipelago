@@ -249,7 +249,7 @@ func writeStarterYAML(s settings.Settings) error {
 func ensureInstalled(s settings.Settings, logger *slog.Logger) settings.Settings {
 	result, err := installer.Ensure(context.Background(), s.InstallRoot, settings.CommunityArchives(s), settings.ServerModKeys(s), logf(logger))
 	if err != nil {
-		logger.Error("install failed", "error", err, "advice", installer.RepairAdvice)
+		logger.Error("install failed", "error", err, "advice", installer.Advice(err))
 		os.Exit(1)
 	}
 	if err := installer.StartAnyway(installer.UpdateGame(context.Background(), s.InstallRoot, logf(logger)), logf(logger)); err != nil {
