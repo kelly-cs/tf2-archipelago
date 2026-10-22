@@ -34,6 +34,8 @@ func fakeSteamcmd(t *testing.T, outcomes ...string) (steamcmdDir, gameDir string
 	if err := os.WriteFile(filepath.Join(gameDir, "srcds_run"), []byte("#!/bin/sh\n"), 0o755); err != nil {
 		t.Fatal(err)
 	}
+	// A SteamCMD that has run once has this, and the game server needs it.
+	writeSteamClient(t, steamcmdDir)
 	if err := os.WriteFile(filepath.Join(steamcmdDir, "outcomes"), []byte(strings.Join(outcomes, "\n")+"\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}

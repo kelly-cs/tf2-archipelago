@@ -1,6 +1,8 @@
 package installer
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -23,6 +25,20 @@ and leaves nothing of ours behind. See SteamHome.
 
 Windows needs none of this and gets none of it.
 */
+func ensureSteamClient(ctx context.Context, installRoot, steamcmdDir string, logf func(string, ...any)) error {
+	if runtime.GOOS == "windows" {
+		return nil
+	}
+	// A SteamCMD unpacked by Repair beside an installed game has never run, and
+	// steamclient.so is one of the files its first run downloads.
+	if !exists(filepath.Join(steamcmdDir, "linux32", "steamclient.so")) {
+		if exe := firstExisting(steamcmdDir, steamcmdNames()); exe != "" {
+			warmUpSteamcmd(ctx, exe, steamcmdDir, logf)
+		}
+	}
+	return linkSteamClient(installRoot, steamcmdDir)
+}
+
 func linkSteamClient(installRoot, steamcmdDir string) error {
 	if runtime.GOOS == "windows" {
 		return nil
@@ -34,8 +50,12 @@ func linkSteamClient(installRoot, steamcmdDir string) error {
 		{"linux64", "sdk64"},
 	} {
 		source := filepath.Join(steamcmdDir, sdk.from, "steamclient.so")
-		if !exists(source) {
+		if !exists(source) && sdk.to == "sdk64" {
 			continue
+		}
+		if !exists(source) {
+			return fmt.Errorf("%w: SteamCMD has not downloaded %s, and the game server "+
+				"crashes at replay_srv.so without it. %s", ErrNoSteamClient, source, RepairAdvice)
 		}
 		dir := filepath.Join(SteamHome(installRoot), ".steam", sdk.to)
 		if err := os.MkdirAll(dir, 0o755); err != nil {
@@ -71,6 +91,33 @@ func dropMismatchedLoader(modDir string) error {
 		return fmt.Errorf("cannot remove %s: %w", unused, err)
 	}
 	return nil
+}
+
+// ErrNoSteamClient is a game server that would start without the steamclient.so
+// srcds_run loads, and crash at replay_srv.so.
+var ErrNoSteamClient = errors.New("the game server has no steamclient.so")
+
+// SteamClient is the link srcds_run loads steamclient.so through, and whether
+// it leads to a file.
+type SteamClient struct {
+	Link   string
+	Target string
+	Err    error
+}
+
+// InspectSteamClient reads the sdk32 link under the install root. Err is nil
+// only when the link resolves to a file the server can load.
+func InspectSteamClient(installRoot string) SteamClient {
+	got := SteamClient{Link: filepath.Join(SteamHome(installRoot), ".steam", "sdk32", "steamclient.so")}
+	got.Target, _ = os.Readlink(got.Link)
+	info, err := os.Stat(got.Link)
+	switch {
+	case err != nil:
+		got.Err = fmt.Errorf("%w: %s does not lead to a file: %w", ErrNoSteamClient, got.Link, err)
+	case !info.Mode().IsRegular():
+		got.Err = fmt.Errorf("%w: %s is not a file", ErrNoSteamClient, got.Link)
+	}
+	return got
 }
 
 // SteamHome is the HOME the game server runs with. It is the install root, so

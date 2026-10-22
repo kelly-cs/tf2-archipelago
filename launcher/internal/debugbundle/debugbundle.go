@@ -20,10 +20,12 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	goruntime "runtime"
 	"sort"
 	"strings"
 	"time"
 
+	"github.com/m-this/tf2-archipelago/launcher/internal/installer"
 	apruntime "github.com/m-this/tf2-archipelago/launcher/internal/runtime"
 	"github.com/m-this/tf2-archipelago/launcher/internal/session"
 	"github.com/m-this/tf2-archipelago/launcher/internal/settings"
@@ -180,6 +182,9 @@ func summary(s settings.Settings, versions map[string]string, pinnedTF2Build str
 	   leave out. srcds prints it at every start and the logs in this bundle
 	   already carried it; reading it meant knowing to grep Breakpad's banner. */
 	fmt.Fprintf(&b, "tf2 build     %s\n", tf2BuildNote(got.tf2Build, pinnedTF2Build))
+	if goruntime.GOOS != "windows" {
+		fmt.Fprintf(&b, "steamclient   %s\n", steamClientNote(installer.InspectSteamClient(s.InstallRoot)))
+	}
 
 	b.WriteString(configDrift(s))
 	b.WriteString(crossCheck(got.tf2Build, pinnedTF2Build, versions, got))
@@ -189,6 +194,20 @@ func summary(s settings.Settings, versions map[string]string, pinnedTF2Build str
 	b.WriteString("\nPasswords are taken out of every file in this bundle.\n")
 	b.WriteString("collected.txt names every file this bundle went for, and why one is missing.\n")
 	return b.String()
+}
+
+// steamClientNote is the link srcds_run loads steamclient.so through, where it
+// points, and whether that leads to a file. Without one srcds crashes at
+// replay_srv.so and no log says why.
+func steamClientNote(got installer.SteamClient) string {
+	target := got.Target
+	if target == "" {
+		target = "(not a link)"
+	}
+	if got.Err != nil {
+		return fmt.Sprintf("%s -> %s, DOES NOT RESOLVE: %v", got.Link, target, got.Err)
+	}
+	return fmt.Sprintf("%s -> %s, resolves", got.Link, target)
 }
 
 // tf2BuildNote is the build the server started on, and the build the pins

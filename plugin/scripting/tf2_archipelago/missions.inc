@@ -35,6 +35,11 @@ char g_PendingPopFile[64];
 // whatever the game's cycle picked.
 char g_PlannedPopFile[64];
 
+// A tf_mvm_popfile held back until SigMod's vote guard lets it through, and
+// whether a timer is already out to send it.
+char g_DeferredPopFileCommand[64];
+bool g_DeferredPopFileArmed;
+
 // Long enough after a map change for the mission to be loadable. tf_mvm_popfile
 // reloads the mission in place, so it cannot be run while the map still is.
 #define PopFileDelay 2.0
@@ -83,6 +88,8 @@ void Missions_Init()
 
 void Missions_OnConfigsExecuted()
 {
+    // A command held for the map that just ended names a mission of that map.
+    g_DeferredPopFileCommand[0] = '\0';
     if (g_PendingPopFile[0] != '\0')
     {
         CreateTimer(PopFileDelay, Timer_ApplyPendingPopFile);
@@ -98,8 +105,15 @@ void Missions_OnConfigsExecuted()
  * complete name is rejected during exactly the two-second window in which a
  * cross-map switch lands.
  *
- * A relative name is TF2's normal spelling for this command and works with or
- * without SigMod. The complete id remains untouched everywhere else.
+ * A relative name is TF2's normal spelling for this command. The complete id
+ * remains untouched everywhere else.
+ *
+ * The relative name only gets through that guard when the map's loose files
+ * list it, and Valve's own missions are not loose: they are in
+ * tf2_misc_dir.vpk, which the listing never reads. So "normal" for mvm_decoy
+ * was refused two seconds into the map and the map stayed on the first
+ * community file it had, at wave 0 (apw-o96). Under SigMod the command waits
+ * for the guard to close; the guard is game time, not the plugin's.
  */
 static void Missions_ApplyPopFile(const char[] popFile, const char[] map)
 {
@@ -126,7 +140,41 @@ static void Missions_ApplyPopFile(const char[] popFile, const char[] map)
             strcopy(commandName, sizeof(commandName), popFile);
         }
     }
-    ServerCommand("tf_mvm_popfile %s", commandName);
+    strcopy(g_DeferredPopFileCommand, sizeof(g_DeferredPopFileCommand), commandName);
+    Missions_SendPopFileCommand();
+}
+
+static bool Missions_SigModVoteGuard()
+{
+    ConVar extensions = FindConVar("sig_pop_popmgr_extensions");
+    return extensions != null && extensions.BoolValue;
+}
+
+static void Missions_SendPopFileCommand()
+{
+    if (g_DeferredPopFileArmed || g_DeferredPopFileCommand[0] == '\0')
+    {
+        return;
+    }
+    float wait = Missions_PopFileWait(GetGameTime(), Missions_SigModVoteGuard());
+    if (wait > 0.0)
+    {
+        AP_Debug("The plugin names the mission in %.1f seconds, once SigMod accepts it.", wait);
+        g_DeferredPopFileArmed = true;
+        CreateTimer(wait, Timer_SendPopFileCommand);
+        return;
+    }
+    ServerCommand("tf_mvm_popfile %s", g_DeferredPopFileCommand);
+    g_DeferredPopFileCommand[0] = '\0';
+}
+
+// Not bound to the map: a timer that outlives one finds the command cleared, or
+// one for the new map that it sends only once the new map's guard is over.
+static Action Timer_SendPopFileCommand(Handle timer)
+{
+    g_DeferredPopFileArmed = false;
+    Missions_SendPopFileCommand();
+    return Plugin_Stop;
 }
 
 void Missions_ReloadCurrentForModifiers()

@@ -339,6 +339,11 @@ func runSrcdsWithSink(ctx context.Context, s settings.Settings, logger *slog.Log
 	if _, err := os.Stat(filepath.Join(gameDir, "srcds_run")); err == nil {
 		exeName = "srcds_run"
 	}
+	if exeName == "srcds_run" {
+		if err := installer.InspectSteamClient(s.InstallRoot).Err; err != nil {
+			return fmt.Errorf("the game server would crash at replay_srv.so: %w. %s", err, installer.RepairAdvice)
+		}
+	}
 	// Before the server opens it: -condebug appends, and one file holding every
 	// evening ever played is a file nobody can send anywhere.
 	RotateConsoleLog(gameDir)

@@ -120,7 +120,7 @@ func Ensure(ctx context.Context, installRoot string, communityArchives, serverMo
 	// After the game, because it links what SteamCMD downloaded into where the
 	// game server looks. Every start, because it is a link and cheap, and a
 	// game directory moved between disks leaves a stale one.
-	if err := linkSteamClient(installRoot, result.SteamcmdDir); err != nil {
+	if err := ensureSteamClient(ctx, installRoot, result.SteamcmdDir, logf); err != nil {
 		return result, err
 	}
 

@@ -61,6 +61,7 @@ var driverIncludes = []string{
 	"mission_modifiers_math.inc",
 	"loadout_math.inc",
 	"mvm_math.inc",
+	"missions_math.inc",
 }
 
 /*

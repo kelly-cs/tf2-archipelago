@@ -17,6 +17,12 @@ in the release notes, so this file is the only place to write it.
   alliedmods.net or another site the install downloads from fails, the launcher
   now names the address and says to try again later. Repair would only have
   asked the same site again.
+- **A Valve mission loads with SigMod on.** Starting on Doe's Drill, or
+  switching to any Valve mission on a map that also has community missions,
+  could leave the server at wave 0 with "Could not find a valid population
+  file" in the console. SigMod refuses a mission named in the first ten
+  seconds of a map unless it is a loose file, and Valve's are not. The server
+  now names the mission once those ten seconds are over.
 - **Taking an upgrade back no longer pays out every Cash Bundle again.** With
   cash rewards in the run, buying an upgrade and pressing minus at the station
   handed you all the bundle credits of the mission on top of the refund, every
@@ -29,6 +35,11 @@ in the release notes, so this file is the only place to write it.
   launcher loaded between fights and only fires stickies he is going to
   detonate. A Demoman with nothing but stickies, on Booties or out of pipes,
   now sets them off on a single robot instead of letting it walk over them.
+- **Linux: a server missing `steamclient.so` says so instead of crashing.**
+  Without it the game server dies at `replay_srv.so` on every start, and the
+  launcher used to start it anyway. It now runs SteamCMD once to fetch the
+  file, refuses the start with a message naming it if that fails, and the
+  debug bundle's summary says where the link points and whether it works.
 
 ## v1.18.3
 
