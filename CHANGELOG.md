@@ -8,6 +8,12 @@ in the release notes, so this file is the only place to write it.
 
 ### Fixed
 
+- **A Valve mission loads with SigMod on.** Starting on Doe's Drill, or
+  switching to any Valve mission on a map that also has community missions,
+  could leave the server at wave 0 with "Could not find a valid population
+  file" in the console. SigMod refuses a mission named in the first ten
+  seconds of a map unless it is a loose file, and Valve's are not. The server
+  now names the mission once those ten seconds are over.
 - **Taking an upgrade back no longer pays out every Cash Bundle again.** With
   cash rewards in the run, buying an upgrade and pressing minus at the station
   handed you all the bundle credits of the mission on top of the refund, every
