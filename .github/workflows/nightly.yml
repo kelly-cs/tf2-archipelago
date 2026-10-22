@@ -135,7 +135,7 @@ jobs:
 
       - name: pin the compose file to nightly
         run: |
-          sed -i "s/:-latest}/:-nightly}/g" dist/compose.yaml
+          sed -i -E "s/(TF2AP_VERSION:-)[^}]+/\1nightly/g" dist/compose.yaml
           sed -i "s|ghcr.io/m-this/tf2-archipelago|ghcr.io/${{ github.repository }}|g" dist/compose.yaml
 
       # The notes are the commit list since the last real tag, which is the thing

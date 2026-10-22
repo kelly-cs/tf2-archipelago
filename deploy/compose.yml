@@ -192,7 +192,7 @@ services:
   # password. Reachable wherever the game port is, and nowhere else: no
   # forwarding here beyond what the game already needs.
   fastdl:
-    image: caddy:2-alpine
+    image: caddy:2.11.7-alpine
     restart: unless-stopped
     ports:
       - "${FASTDL_BIND:-0.0.0.0}:${FASTDL_PORT:-27080}:80/tcp"

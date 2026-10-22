@@ -128,7 +128,7 @@ jobs:
       # A downloaded stack then keeps the release it came with until
       # TF2AP_VERSION says otherwise.
       - name: pin the compose file to this tag
-        run: sed -i "s/:-latest}/:-$GITHUB_REF_NAME}/g" dist/compose.yaml
+        run: sed -i -E "s/(TF2AP_VERSION:-)[^}]+/\1$GITHUB_REF_NAME/g" dist/compose.yaml
 
       # CHANGELOG.md is written for somebody who plays the game, one section per
       # tag. A release with no section still publishes: the marker is dropped
