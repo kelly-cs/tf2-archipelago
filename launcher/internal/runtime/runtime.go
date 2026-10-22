@@ -175,6 +175,7 @@ func bridgeConfig(s settings.Settings) (config.Config, error) {
 		Password:       s.APPassword,
 		Listen:         "127.0.0.1:24680",
 		StatePath:      statePath,
+		PopulationDir:  filepath.Join(s.InstallRoot, "tf-dedicated", "tf", "scripts", "population"),
 	}
 	if s.MetricsPort > 0 {
 		cfg.MetricsListen = "127.0.0.1:" + fmt.Sprintf("%d", s.MetricsPort)

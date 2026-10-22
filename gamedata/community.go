@@ -624,6 +624,18 @@ func MissionPack(id MissionID) string {
 	return communityContent.Packs[id]
 }
 
+// PackLabel is what a player knows a pack by, the name the launcher's Missions
+// page puts beside its tick. Blank for a pack this table does not know.
+func PackLabel(pack string) string {
+	switch pack {
+	case "archive-assets.zip":
+		return "Potato Archive"
+	case "mlarchive-assets.zip":
+		return "Moonlight Archive"
+	}
+	return ""
+}
+
 // MissionRequirement reports why a cataloged community mission is not a
 // portable choice. Blank means the mission is supported by the stock server.
 // Launchers use this to show unavailable content without making it seedable.

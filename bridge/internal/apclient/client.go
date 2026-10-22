@@ -65,6 +65,11 @@ type Options struct {
 	Chat     *chat.Log
 	Deaths   *deathlink.Feed
 	Logger   *slog.Logger
+
+	// PopulationDir is the game server's scripts/population directory, where a
+	// community pack puts its missions. Empty leaves the check to the plugin,
+	// which is all a bridge in another container can do.
+	PopulationDir string
 }
 
 // Client is one Archipelago session, reconnected as needed.
@@ -436,6 +441,9 @@ func (c *Client) onConnected(
 		return permanentError{fmt.Errorf("cannot read the slot data: %w", err)}
 	}
 	if err := slot.validate(); err != nil {
+		return permanentError{err}
+	}
+	if err := uninstalledPacks(c.opts.PopulationDir, slot.Missions); err != nil {
 		return permanentError{err}
 	}
 	if err := c.bindSeed(ctx); err != nil {

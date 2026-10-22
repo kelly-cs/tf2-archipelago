@@ -164,6 +164,8 @@ func Run(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 		Chat:     messages,
 		Deaths:   deaths,
 		Logger:   logger,
+
+		PopulationDir: cfg.PopulationDir,
 	})
 	api := httpapi.New(store, client, messages, deaths, cfg.PollTimeout, cfg.TestMode, logger)
 	server, metrics := servers(cfg, api)

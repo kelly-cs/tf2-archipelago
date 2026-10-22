@@ -37,6 +37,11 @@ type Config struct {
 
 	StatePath string
 
+	// PopulationDir is the game server's scripts/population directory. The
+	// bridge refuses a seed whose community missions have no file there. Empty
+	// skips the check: a bridge in its own container cannot see that disk.
+	PopulationDir string
+
 	// PollTimeout is how long GET /grants is held open; the plugin's own timeout must be longer.
 	PollTimeout time.Duration
 

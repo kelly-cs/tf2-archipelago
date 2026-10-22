@@ -8,6 +8,11 @@ in the release notes, so this file is the only place to write it.
 
 ### Fixed
 
+- **A seed with a community mission whose pack is not installed stops at
+  Start.** The launcher used to start the run anyway, and you found out when
+  the run switched to that mission, sometimes an hour in. Now the server stops
+  as soon as it joins the room and names the mission and the pack to tick in
+  Settings > Missions.
 - **Taking an upgrade back no longer pays out every Cash Bundle again.** With
   cash rewards in the run, buying an upgrade and pressing minus at the station
   handed you all the bundle credits of the mission on top of the refund, every
