@@ -5,7 +5,7 @@
 # file nobody sees, so our additions are staged in /opt and the entrypoint
 # installs them once SourceMod exists.
 
-FROM debian:stable-slim AS build
+FROM debian:13.7-slim AS build
 
 RUN apt-get update \
 	&& apt-get install --yes --no-install-recommends curl ca-certificates unzip \
@@ -71,19 +71,19 @@ RUN CGO_ENABLED=0 go build -trimpath -o /rcon ./launcher/cmd/rcon \
 # pins arrive through a stage of their own that keeps only the extension lines
 # of versions.env: COPY --from is keyed on the content it copies, so bumping
 # any other pin leaves the build below cached.
-FROM debian:stable-slim AS extension-pins
+FROM debian:13.7-slim AS extension-pins
 
 COPY deploy/env/versions.env /versions.env
 RUN grep -E '^(HL2SDK|SOURCEMOD_SRC|METAMOD_SRC|AMBUILD|CBASENPC|ACTIONS|RIPEXT)_' \
 	/versions.env >/extension-pins.env
 
 
-# Bookworm, not stable-slim: these two .so files are loaded by the TF2 image
+# Bookworm, not Debian 13 like the stages above: these two .so files are loaded by the TF2 image
 # below, which is Bookworm, and Debian stable has moved on to a glibc newer than
 # it has. Built on stable the extensions ask for GLIBC_2.38, SourceMod loads
 # neither, and no defender bots join. The check at the end of the last stage is
 # what catches it, and it caught this.
-FROM debian:bookworm-slim AS extensions
+FROM debian:12.15-slim AS extensions
 
 RUN apt-get update \
 	&& apt-get install --yes --no-install-recommends \
@@ -129,7 +129,8 @@ COPY --from=extensions /extensions /extensions
 RUN BOTS_EXTENSIONS_DIR=/extensions sh deploy/bots/build.sh
 
 
-FROM cm2network/tf2:sourcemod
+# cm2network/tf2:sourcemod. The image has rolling tags only, so it is pinned by digest.
+FROM cm2network/tf2@sha256:2e30546eb83f941d0321f9220dad1b509f813ad502a63915f663f28e436c26eb
 
 ARG RIPEXT_VERSION
 ARG SOURCEMOD_VERSION
