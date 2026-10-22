@@ -87,6 +87,7 @@ func fakeServer(t *testing.T, root string) settings.Settings {
 	if err := os.WriteFile(path, []byte(script), 0o755); err != nil {
 		t.Fatalf("cannot write %s: %v", path, err)
 	}
+	linkFakeSteamClient(t, root)
 
 	s := settings.Defaults()
 	s.InstallRoot = root
@@ -96,6 +97,24 @@ func fakeServer(t *testing.T, root string) settings.Settings {
 	s.APHost, s.APPort, s.APTls = "127.0.0.1", 1, false
 	s.MetricsPort = 0
 	return s
+}
+
+// linkFakeSteamClient puts the link srcds_run needs where a real install has it.
+func linkFakeSteamClient(t *testing.T, root string) {
+	t.Helper()
+	source := filepath.Join(root, "steamcmd", "linux32", "steamclient.so")
+	link := filepath.Join(root, ".steam", "sdk32", "steamclient.so")
+	for _, dir := range []string{filepath.Dir(source), filepath.Dir(link)} {
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := os.WriteFile(source, []byte("ELF"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(source, link); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestSupervisorStartStop(t *testing.T) {

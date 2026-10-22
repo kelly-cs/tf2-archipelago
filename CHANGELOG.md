@@ -20,6 +20,11 @@ in the release notes, so this file is the only place to write it.
   launcher loaded between fights and only fires stickies he is going to
   detonate. A Demoman with nothing but stickies, on Booties or out of pipes,
   now sets them off on a single robot instead of letting it walk over them.
+- **Linux: a server missing `steamclient.so` says so instead of crashing.**
+  Without it the game server dies at `replay_srv.so` on every start, and the
+  launcher used to start it anyway. It now runs SteamCMD once to fetch the
+  file, refuses the start with a message naming it if that fails, and the
+  debug bundle's summary says where the link points and whether it works.
 
 ## v1.18.3
 
