@@ -8,6 +8,15 @@ in the release notes, so this file is the only place to write it.
 
 ### Fixed
 
+- **A seed with a community mission whose pack is not installed stops at
+  Start.** The launcher used to start the run anyway, and you found out when
+  the run switched to that mission, sometimes an hour in. Now the server stops
+  as soon as it joins the room and names the mission and the pack to tick in
+  Settings > Missions.
+- **A download site that is down no longer sends you to Repair.** When
+  alliedmods.net or another site the install downloads from fails, the launcher
+  now names the address and says to try again later. Repair would only have
+  asked the same site again.
 - **A Valve mission loads with SigMod on.** Starting on Doe's Drill, or
   switching to any Valve mission on a map that also has community missions,
   could leave the server at wave 0 with "Could not find a valid population

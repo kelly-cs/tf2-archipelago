@@ -200,14 +200,10 @@ func missionSource(mission gamedata.Mission, importedPacks []string) string {
 	if slices.Contains(importedPacks, gamedata.MissionPack(mission.ID)) {
 		return "Imported"
 	}
-	switch gamedata.MissionPack(mission.ID) {
-	case settings.CommunityPackPotato:
-		return "Potato Archive"
-	case settings.CommunityPackMoonlight:
-		return "Moonlight Archive"
-	default:
-		return "Valve"
+	if label := gamedata.PackLabel(gamedata.MissionPack(mission.ID)); label != "" {
+		return label
 	}
+	return "Valve"
 }
 
 func (a *App) joinLineLocked() string {

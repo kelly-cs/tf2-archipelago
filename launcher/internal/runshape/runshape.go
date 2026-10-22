@@ -236,11 +236,8 @@ func LoadoutNote(loadout string) string {
 }
 
 func missionSource(mission gamedata.Mission) string {
-	switch gamedata.MissionPack(mission.ID) {
-	case "archive-assets.zip":
-		return "Potato Archive"
-	case "mlarchive-assets.zip":
-		return "Moonlight Archive"
+	if label := gamedata.PackLabel(gamedata.MissionPack(mission.ID)); label != "" {
+		return label
 	}
 	return "Valve"
 }

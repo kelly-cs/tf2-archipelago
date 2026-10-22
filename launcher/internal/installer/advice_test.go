@@ -1,6 +1,10 @@
 package installer
 
 import (
+	"errors"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 )
@@ -64,5 +68,46 @@ func TestLineSplitterRemembersThe32BitFailure(t *testing.T) {
 	}
 	if quiet.saw32BitFailure {
 		t.Error("an ordinary line was read as a 32-bit failure")
+	}
+}
+
+// Lee's install stopped on a 404 from mms.alliedmods.net while the site was
+// down, and the launcher told him to press Repair, which fetches the same URL
+// from the same site again. A host that fails is a host to wait for, and the
+// player needs its address to see that it is not their machine.
+func TestADownloadHostThatFailsIsNotARepair(t *testing.T) {
+	failing := func(status int) string {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(status)
+		}))
+		t.Cleanup(server.Close)
+		return server.URL + "/mmsdrop/1.12/mmsource-1.12.0-git1228-linux.tar.gz"
+	}
+	closed := httptest.NewServer(http.NotFoundHandler())
+	closed.Close()
+	unreachable := closed.URL + "/sourcemod.tar.gz"
+
+	for _, url := range []string{failing(http.StatusNotFound), failing(http.StatusBadGateway), unreachable} {
+		_, err := fetch(t.Context(), url)
+		if err == nil {
+			t.Fatalf("%s: fetch succeeded", url)
+		}
+		advice := Advice(fmt.Errorf("cannot download Metamod:Source: %w", err))
+		if strings.Contains(advice, "Repair") {
+			t.Errorf("%s: advises Repair: %q", url, advice)
+		}
+		if !strings.Contains(advice, url) {
+			t.Errorf("%s: does not name the URL: %q", url, advice)
+		}
+		if !strings.Contains(advice, "later") {
+			t.Errorf("%s: does not say to try again later: %q", url, advice)
+		}
+	}
+}
+
+// Everything else an install can trip on is still worth a Repair.
+func TestAnyOtherInstallFailureStillAdvisesRepair(t *testing.T) {
+	if advice := Advice(errors.New("cannot unpack Metamod:Source: unexpected EOF")); advice != RepairAdvice {
+		t.Errorf("advice = %q", advice)
 	}
 }

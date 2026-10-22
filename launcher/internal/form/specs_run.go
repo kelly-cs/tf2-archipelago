@@ -325,9 +325,9 @@ func missionSpecs(s State, env Env) []Spec {
 	classValues := append([]string{""}, classLabels[1:]...)
 
 	specs := []Spec{
-		packSpec("missions.potato", "Potato Archive", settings.CommunityPackPotato,
+		packSpec("missions.potato", gamedata.PackLabel(settings.CommunityPackPotato), settings.CommunityPackPotato,
 			"Select archive-assets.zip for the explicit download action and for installation when the local ZIP is valid."),
-		packSpec("missions.moonlight", "Moonlight Archive", settings.CommunityPackMoonlight,
+		packSpec("missions.moonlight", gamedata.PackLabel(settings.CommunityPackMoonlight), settings.CommunityPackMoonlight,
 			"Select mlarchive-assets.zip for the explicit download action and for installation when the local ZIP is valid."),
 
 		/* The generator's own switch for community missions, which is a
@@ -538,12 +538,9 @@ missing from every settings file written before it existed.
 */
 func poolSpec(mission gamedata.Mission) Spec {
 	played, _ := gamedata.MapByID(mission.Map)
-	source := "Valve"
-	switch gamedata.MissionPack(mission.ID) {
-	case settings.CommunityPackPotato:
-		source = "Potato Archive"
-	case settings.CommunityPackMoonlight:
-		source = "Moonlight Archive"
+	source := gamedata.PackLabel(gamedata.MissionPack(mission.ID))
+	if source == "" {
+		source = "Valve"
 	}
 	tag := ""
 	if label := runshape.MissionLoadoutLabel(mission); label != "" {

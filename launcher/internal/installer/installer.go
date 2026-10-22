@@ -1375,11 +1375,11 @@ func fetch(ctx context.Context, url string) ([]byte, error) {
 	client := &http.Client{Timeout: 10 * time.Minute}
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, &HostError{URL: url, Err: err}
 	}
 	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("%s answered %d", url, resp.StatusCode)
+		return nil, &HostError{URL: url, Status: resp.StatusCode, Err: errors.New(resp.Status)}
 	}
 	return io.ReadAll(resp.Body)
 }

@@ -369,3 +369,15 @@ func TestSourceRequiresSigModUsesTheMissionArchive(t *testing.T) {
 		t.Fatal("Potato mission lost its own extension")
 	}
 }
+
+// The launcher's Missions page and the bridge's refusal name a pack by its
+// label, and a pack added to the catalog without one would be named by its
+// file, which nobody ticks.
+func TestEveryCommunityPackHasALabel(t *testing.T) {
+	for _, mission := range Missions {
+		pack := MissionPack(mission.ID)
+		if pack != "" && PackLabel(pack) == "" {
+			t.Errorf("%s comes from %s, which has no label", mission.PopFile, pack)
+		}
+	}
+}
