@@ -127,11 +127,10 @@ func TestDisposableSentryBuffHasAnIndependentBuildAllowance(t *testing.T) {
 
 	allowance := sourceFunction(t, buffs, "static bool WeaponBuffs_HasDisposableSentryRoom")
 	for _, required := range []string{
-		"WeaponBuffs_DisposableSentryLevels()",
 		"WeaponBuffs_NativeDisposableSentryLevels(client)",
 		`FindEntityByClassname(sentry, "obj_sentrygun")`,
 		`"m_bDisposableBuilding"`,
-		"hasPrimary && disposable < allowed",
+		"BuffLevels_DisposableRoom(",
 	} {
 		if !strings.Contains(allowance, required) {
 			t.Fatalf("independent disposable allowance has no %s", required)
@@ -144,24 +143,16 @@ func TestDisposableSentryBuffHasAnIndependentBuildAllowance(t *testing.T) {
 		t.Fatal("native disposable allowance is not read directly from Valve-owned item attributes")
 	}
 
+	// Which items predict how many is TestDisposableSentriesShareTheConstructionPDAsPool.
 	apply := sourceFunction(t, buffs, "void WeaponBuffs_Apply(int client)")
-	for _, required := range []string{
-		"effect == DisposableSentryEffect",
-		"WeaponBuffs_ApplyDisposableSentryPrediction(client, provider)",
-	} {
-		if !strings.Contains(apply, required) {
-			t.Fatalf("client prediction mirror has no %s", required)
-		}
+	if !strings.Contains(apply, "WeaponBuffs_ApplyDisposableSentryPrediction(client, provider)") {
+		t.Fatal("client prediction mirror is not installed with the provider")
 	}
 	prediction := sourceFunction(t, buffs,
 		"static void WeaponBuffs_ApplyDisposableSentryPrediction")
 	for _, required := range []string{
+		"BuffLevels_DisposablePrediction(definition,",
 		"g_WeaponBuffAtUpgradeStation[client]",
-		"WeaponBuffs_DisposableSentryLevels()",
-		"definition == 25 || definition == 737 || definition == 15025",
-		"definition == 28 || definition == 15028",
-		"if (toolbox)",
-		"levels++",
 		`TF2Attrib_SetByName(provider,`,
 		`"engy disposable sentries"`,
 	} {
@@ -285,13 +276,10 @@ func TestJoiningClientSnapshotIsNotChurnedByBotRemoval(t *testing.T) {
 func TestNonMinigunProjectileDestructionUsesConfirmedShots(t *testing.T) {
 	buffs := "../plugin/scripting/tf2_archipelago/weapon_buffs.inc"
 	postThink := sourceFunction(t, buffs, "public void WeaponBuffs_PostThinkPost")
+	// What counts as a shot is TestProjectileSweepsFollowConfirmedShots.
 	for _, required := range []string{
-		"clip < g_WeaponBuffShotClip[client]",
-		"ammo < g_WeaponBuffShotAmmo[client]",
-		"energy + 0.001 < g_WeaponBuffShotEnergy[client]",
-		"nextAttack > g_WeaponBuffShotNextAttack[client] + 0.001",
+		"BuffLevels_Shot(client, catalog, reference, clip, ammo, energy, nextAttack)",
 		"WeaponBuffs_AttackEnemyProjectiles(client, levels)",
-		"!WeaponBuffs_UsesNativeProjectileDestruction(catalog)",
 	} {
 		if !strings.Contains(postThink, required) {
 			t.Errorf("confirmed-shot detector has no %q", required)
@@ -357,7 +345,7 @@ func TestNonMinigunProjectileDestructionUsesConfirmedShots(t *testing.T) {
 	}
 
 	/* The cooldown itself is not asked about here any more. It moved to
-	   weapon_buffs_math.inc and TestProjectileDestructionCooldownIsTheDeclaredCurve
+	   weapon_buff_levels.inc and TestProjectileDestructionCooldownIsTheDeclaredCurve
 	   runs it, which catches the floor being inverted. Reading the source for
 	   "float(levels - 1) * ProjectileDestructionCooldownStep" did not. */
 	dud := sourceFunction(t, buffs, "static void WeaponBuffs_ShowProjectileDud")
@@ -441,9 +429,9 @@ func TestJarHitsAndHolsteredKillsArePaidByThePlugin(t *testing.T) {
 		t.Fatal("a jar splash pays no heal or speed on hit")
 	}
 	jar := sourceFunction(t, buffs, "static void WeaponBuffs_ApplyJarHitRewards")
+	// What a splash and a kill pay is TestKillsAndJarSplashesPayTheirLevels.
 	for _, required := range []string{
-		"g_WeaponEffectLevels[weapon][HealOnHitEffect]",
-		"g_WeaponEffectLevels[weapon][SpeedOnHitEffect]",
+		"BuffLevels_JarReward(weapon, reward)",
 		"WeaponBuffs_HealClient(attacker",
 		"TF2_AddCondition(attacker, TFCond_SpeedBuffAlly, SpeedOnHitSeconds",
 	} {
@@ -457,7 +445,7 @@ func TestJarHitsAndHolsteredKillsArePaidByThePlugin(t *testing.T) {
 		`event.GetInt("weapon_def_index")`,
 		"WeaponBuffs_CanUseRunBuffs(attacker)",
 		"GetClientTeam(attacker) == GetClientTeam(victim)",
-		"if (weapon >= 0 && active != weapon)",
+		"BuffLevels_GamePaidKill(weapon, active)",
 		"WeaponBuffs_ApplyKillRewards(attacker, weapon)",
 		"WeaponBuffs_CreditGasBurn(attacker, victim, weapon)",
 	} {
@@ -467,7 +455,7 @@ func TestJarHitsAndHolsteredKillsArePaidByThePlugin(t *testing.T) {
 	}
 	kill := sourceFunction(t, buffs, "static void WeaponBuffs_ApplyKillRewards")
 	for _, required := range []string{
-		"HealOnKillEffect", "TFCond_CritOnKill", "TFCond_MiniCritOnKill",
+		"BuffLevels_KillReward(weapon, reward)", "TFCond_CritOnKill", "TFCond_MiniCritOnKill",
 		"TFCond_SpeedBuffAlly, SpeedOnKillSeconds",
 	} {
 		if !strings.Contains(kill, required) {
@@ -478,13 +466,8 @@ func TestJarHitsAndHolsteredKillsArePaidByThePlugin(t *testing.T) {
 		t.Fatal("the plugin does not watch kills")
 	}
 	gas := sourceFunction(t, buffs, "static void WeaponBuffs_CreditGasBurn")
-	for _, required := range []string{
-		"WeaponBuffs_ForDefinition(GasPasserDefinition)", "killedWith == gasPasser",
-		"g_WeaponBuffGasFrom[victim] != attacker", "GasCreditSeconds",
-	} {
-		if !strings.Contains(gas, required) {
-			t.Fatalf("gas burn credit has no %s", required)
-		}
+	if !strings.Contains(gas, "BuffLevels_GasKill(victim, attacker, killedWith, GetGameTime())") {
+		t.Fatal("gas burn credit does not ask the levels who to pay")
 	}
 	if !strings.Contains(sourceFunction(t, buffs, "public Action Timer_WeaponBuffGasWatch"), "TF2_IsPlayerInCondition(client, TFCond_Gas)") {
 		t.Fatal("nothing watches robots turning gassed")
@@ -507,7 +490,7 @@ func TestSelfBlastBuffsPreserveTheNativeExplosionAndPush(t *testing.T) {
 		"!(damagetype & DMG_BLAST)",
 		"WeaponBuffs_WeaponOfHit(attacker, inflictor, weapon, damagecustom)",
 		"WeaponBuffs_ForEntity(weapon)",
-		"g_WeaponEffectLevels[catalog][RocketJumpProtectionEffect]",
+		"BuffLevels_SelfBlastKept(catalog)",
 		"damage *= kept",
 	} {
 		if !strings.Contains(damage, required) {
@@ -515,8 +498,8 @@ func TestSelfBlastBuffsPreserveTheNativeExplosionAndPush(t *testing.T) {
 		}
 	}
 	for _, required := range []string{
-		"g_WeaponEffectLevels[catalog][NoSelfBlastEffect]",
-		"g_WeaponBuffSelfBlastHealth[victim] = baseline",
+		"BuffLevels_Of(catalog, NoSelfBlastEffect)",
+		"BuffLevels_SelfBlastHit(victim, health)",
 		"WeaponBuffs_SelfBlastGuardHealth(health, damage)",
 		"RequestFrame(Frame_RestoreSelfBlastHealth, GetClientUserId(victim))",
 	} {
@@ -558,9 +541,6 @@ func TestSelfBlastBuffsPreserveTheNativeExplosionAndPush(t *testing.T) {
 	apply := sourceFunction(t, buffs, "void WeaponBuffs_Apply(int client)")
 	if !strings.Contains(apply, "WeaponBuffs_ClearOldSelfBlastAttributes(client)") {
 		t.Fatal("buff application does not clear old self-blast attributes")
-	}
-	if !strings.Contains(apply, "effect == NoSelfBlastEffect") {
-		t.Fatal("generic provider still applies the no-self-blast attribute")
 	}
 	remove := sourceFunction(t, buffs, "static void WeaponBuffs_Remove(int client)")
 	if !strings.Contains(remove, "WeaponBuffs_ClearOldSelfBlastAttributes(client)") {

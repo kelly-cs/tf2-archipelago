@@ -13,7 +13,7 @@ import (
 Reading the plugin's own numbers, so a driver never carries a copy of one.
 
 There used to be more here: a function that cut a whole function body out by
-counting braces, so a driver could paste it. weapon_buffs_math.inc replaced
+counting braces, so a driver could paste it. weapon_buff_levels.inc replaced
 that. The driver includes the file the plugin includes, so the only thing still
 lifted out of the source is a constant's value, which a test needs in Go to work
 out what the answer should be.
@@ -45,12 +45,14 @@ func intDefine(t *testing.T, path, name string) int {
 	return n
 }
 
-func floatDefine(t *testing.T, path, name string) float32 {
+// floatDefine reads a float out of weapon_buff_levels.inc, the one file whose
+// floats a driver works out answers from.
+func floatDefine(t *testing.T, name string) float32 {
 	t.Helper()
-	value := defineValue(t, path, name)
+	value := defineValue(t, mathSource, name)
 	f, err := strconv.ParseFloat(value, 32)
 	if err != nil {
-		t.Fatalf("%s is #define %s %s, which is not a number", path, name, value)
+		t.Fatalf("%s is #define %s %s, which is not a number", mathSource, name, value)
 	}
 	return float32(f)
 }
