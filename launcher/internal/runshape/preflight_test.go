@@ -5,13 +5,18 @@ import (
 	"testing"
 
 	"github.com/m-this/tf2-archipelago/gamedata"
+	"github.com/m-this/tf2-archipelago/gamedata/availability"
 )
 
 // everything is the widest pool the checks below start from: community
 // missions on and every cataloged mod loaded, so what a test excludes is the
 // only thing keeping a mission out.
 func everything(excluded ...string) Pool {
-	return Pool{Mods: gamedata.ServerModKeys(), Community: true, Excluded: excluded}
+	return Pool{
+		Server:    availability.Planned([]string{"archive-assets.zip", "mlarchive-assets.zip"}, gamedata.ServerModKeys()),
+		Community: true,
+		Excluded:  excluded,
+	}
 }
 
 func excludingAllBut(popFiles ...string) []string {

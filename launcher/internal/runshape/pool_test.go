@@ -5,7 +5,11 @@ import (
 	"testing"
 
 	"github.com/m-this/tf2-archipelago/gamedata"
+	"github.com/m-this/tf2-archipelago/gamedata/availability"
 )
+
+// bothPacks is a server with both community packs installed and no mods.
+var bothPacks = availability.Planned([]string{"archive-assets.zip", "mlarchive-assets.zip"}, nil)
 
 func valveMissionsAtOrAbove(floor gamedata.Difficulty) int {
 	count := 0
@@ -29,7 +33,7 @@ func TestTheCeilingCountsOnlyWhatTheGeneratorWillDraw(t *testing.T) {
 		t.Fatalf("normal ceiling with community missions off = %d, want %d", got, want)
 	}
 
-	withCommunity := Pool{Community: true}
+	withCommunity := Pool{Server: bothPacks, Community: true}
 	if MissionsInPool(withCommunity, "normal") <= want {
 		t.Fatal("turning community missions on did not widen the pool")
 	}
@@ -38,8 +42,8 @@ func TestTheCeilingCountsOnlyWhatTheGeneratorWillDraw(t *testing.T) {
 // A mission left out on the Missions page is one the generator never sees, so
 // it cannot be one the launcher counts towards the number a run may ask for.
 func TestExcludedMissionsLeaveTheCeiling(t *testing.T) {
-	before := MissionsInPool(Pool{Community: true}, "advanced")
-	excluded := Pool{Community: true, Excluded: []string{"mvm_mannworks_advanced"}}
+	before := MissionsInPool(Pool{Server: bothPacks, Community: true}, "advanced")
+	excluded := Pool{Server: bothPacks, Community: true, Excluded: []string{"mvm_mannworks_advanced"}}
 	if got := MissionsInPool(excluded, "advanced"); got != before-1 {
 		t.Fatalf("advanced ceiling after one exclusion = %d, want %d", got, before-1)
 	}
@@ -48,7 +52,7 @@ func TestExcludedMissionsLeaveTheCeiling(t *testing.T) {
 // The label is the sentence a player reads before typing a mission count, so
 // it has to describe the same pool the count is capped against.
 func TestTierLabelsDescribeThePoolTheCeilingCaps(t *testing.T) {
-	pool := Pool{Community: true, Excluded: []string{"mvm_decoy", "mvm_mannworks_advanced"}}
+	pool := Pool{Server: bothPacks, Community: true, Excluded: []string{"mvm_decoy", "mvm_mannworks_advanced"}}
 	for _, tier := range Tiers(pool) {
 		if tier.Missions != MissionsInPool(pool, tier.Key) {
 			t.Fatalf("%s: label says %d missions, ceiling says %d",

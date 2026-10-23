@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/m-this/tf2-archipelago/gamedata"
+	"github.com/m-this/tf2-archipelago/gamedata/availability"
 	"github.com/m-this/tf2-archipelago/launcher/internal/assets"
 	"github.com/m-this/tf2-archipelago/launcher/internal/botlive"
 	"github.com/m-this/tf2-archipelago/launcher/internal/form"
@@ -106,7 +107,7 @@ func (a *App) Snapshot() Snapshot {
 		// imported pack, so a Potato mission on a machine that had downloaded
 		// it read as whatever the bridge happened to say (kelly-cs, #50).
 		if mission, known := gamedata.MissionByPopFile(sessionState.Missions[i].PopFile); known {
-			sessionState.Missions[i].Source = missionSource(mission, a.imported)
+			sessionState.Missions[i].Source = availability.Source(mission, a.imported)
 		}
 	}
 	screen := a.screenLocked(running)
@@ -133,56 +134,41 @@ func restartNeeded(running bool, before settings.Settings, draft *form.State) bo
 	return running && draft != nil && saveplan.For(before, draft.Settings).Restart
 }
 
-type missionPoolSources struct {
-	availablePacks    []string
-	importedPacks     []string
-	readyMods         []string
-	managedExternally bool
-}
+/*
+missionPoolRows is the mission table: a row per mission the server's packs
+bring, and for each the verdict in a word.
 
-func missionPoolRows(s form.State, built form.Model, sources missionPoolSources) []MissionPoolRow {
-	availablePacks, importedPacks, readyMods := sources.availablePacks, sources.importedPacks, sources.readyMods
+The words are availability's, so the table says what the row's tick says and
+what the bridge would refuse a seed over. A playable mission can still be one
+the seed never draws, and the table says that too: community missions off, or
+below the difficulty floor.
+*/
+func missionPoolRows(s form.State, built form.Model, server availability.Server, importedPacks []string) []MissionPoolRow {
 	floor, hasFloor := gamedata.DifficultyByKey(s.Settings.MvmDifficulty)
-	activeMods := activeReadyServerMods(s.Settings, readyMods)
-	missions := runshape.VisibleMissions(availablePacks)
-	rows := make([]MissionPoolRow, 0, len(missions))
-	for _, mission := range missions {
+	shown := server.Shown()
+	rows := make([]MissionPoolRow, 0, len(shown))
+	for _, verdict := range shown {
+		mission := verdict.Mission
 		played, _ := gamedata.MapByID(mission.Map)
-		compatibility := gamedata.RequirementLabel(gamedata.MissionRequirement(mission.ID))
-		playable := gamedata.IsMissionPlayableWith(mission.ID, activeMods)
 		fieldID := "missions.pool." + mission.PopFile
 		field, found := built.Field(fieldID)
-		if nav := gamedata.MissingNavigationMesh(mission.ID); nav != "" {
-			compatibility = "Missing " + nav
-		}
-		if key := gamedata.MissionServerMod(mission.ID); key != "" {
-			mod, _ := gamedata.ServerModByKey(key)
-			switch {
-			case !slices.Contains(settings.ServerModKeys(s.Settings), key):
-				compatibility = "Turn on " + mod.Name + " above"
-			case !slices.Contains(readyMods, key):
-				compatibility = form.MissingServerModReason(mod.Name, sources.managedExternally)
-			}
-		}
-		if playable {
-			compatibility = "Ready"
-			if gamedata.IsCommunityMission(mission.ID) && !s.Settings.MvmCommunityMissions {
-				compatibility = "Community missions are off"
-			} else if hasFloor && mission.Difficulty < floor {
-				compatibility = "Below " + floor.String() + " floor"
-			}
+		compatibility := "Ready"
+		switch {
+		case !verdict.Playable():
+			compatibility = capitalize(verdict.Why())
+		case gamedata.IsCommunityMission(mission.ID) && !s.Settings.MvmCommunityMissions:
+			compatibility = "Community missions are off"
+		case hasFloor && mission.Difficulty < floor:
+			compatibility = "Below " + floor.String() + " floor"
 		}
 		mods := "—"
 		if key := gamedata.MissionServerMod(mission.ID); key != "" {
-			if mod, ok := gamedata.ServerModByKey(key); ok {
-				mods = mod.Name
-			} else {
-				mods = key
-			}
+			mod, _ := gamedata.ServerModByKey(key)
+			mods = mod.Name
 		}
 		rows = append(rows, MissionPoolRow{
 			Field:         fieldID,
-			Source:        missionSource(mission, importedPacks),
+			Source:        availability.Source(mission, importedPacks),
 			Map:           played.Name,
 			Name:          mission.Name,
 			Loadout:       runshape.MissionLoadoutLabel(mission),
@@ -196,14 +182,11 @@ func missionPoolRows(s form.State, built form.Model, sources missionPoolSources)
 	return rows
 }
 
-func missionSource(mission gamedata.Mission, importedPacks []string) string {
-	if slices.Contains(importedPacks, gamedata.MissionPack(mission.ID)) {
-		return "Imported"
+func capitalize(text string) string {
+	if text == "" {
+		return text
 	}
-	if label := gamedata.PackLabel(gamedata.MissionPack(mission.ID)); label != "" {
-		return label
-	}
-	return "Valve"
+	return strings.ToUpper(text[:1]) + text[1:]
 }
 
 func (a *App) joinLineLocked() string {
@@ -299,7 +282,8 @@ func (a *App) screenLocked(running bool) Screen {
 	if a.draft == nil {
 		return Screen{Page: a.formPage}
 	}
-	built := form.Build(*a.draft, a.formEnvLocked())
+	env := a.formEnvLocked()
+	built := form.Build(*a.draft, env)
 	for page := range built.Tabs {
 		for field := range built.Tabs[page].Fields {
 			if built.Tabs[page].Fields[field].Kind == form.Password {
@@ -310,7 +294,7 @@ func (a *App) screenLocked(running bool) Screen {
 	return Screen{
 		Form:          &built,
 		Page:          a.formPage,
-		MissionPool:   missionPoolRows(*a.draft, built, missionPoolSources{availablePacks: a.community, importedPacks: a.imported, readyMods: a.serverMods, managedExternally: a.attached}),
+		MissionPool:   missionPoolRows(*a.draft, built, form.Availability(*a.draft, env), a.imported),
 		RestartNeeded: restartNeeded(running, a.settings, a.draft),
 	}
 }

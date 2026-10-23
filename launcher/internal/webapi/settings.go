@@ -18,7 +18,6 @@ import (
 	"github.com/m-this/tf2-archipelago/launcher/internal/generate"
 	"github.com/m-this/tf2-archipelago/launcher/internal/installer"
 	"github.com/m-this/tf2-archipelago/launcher/internal/roomcheck"
-	"github.com/m-this/tf2-archipelago/launcher/internal/runshape"
 	"github.com/m-this/tf2-archipelago/launcher/internal/saveplan"
 	"github.com/m-this/tf2-archipelago/launcher/internal/settings"
 	"github.com/m-this/tf2-archipelago/launcher/internal/srcdsconfig"
@@ -351,20 +350,12 @@ func (a *App) setPool(all bool) {
 	if a.draft == nil {
 		return
 	}
-	activeMods := activeReadyServerMods(a.draft.Settings, a.serverMods)
+	server := form.Availability(*a.draft, a.formEnvLocked())
 	var excluded []string
-	if !all {
-		for _, mission := range gamedata.Missions {
+	for _, mission := range gamedata.Missions {
+		if !all || !server.Check(mission).Playable() ||
+			gamedata.IsCommunityMission(mission.ID) && !a.draft.Settings.MvmCommunityMissions {
 			excluded = append(excluded, mission.PopFile)
-		}
-	} else {
-		visible := runshape.VisibleMissions(a.community)
-		for _, mission := range gamedata.Missions {
-			if !gamedata.IsMissionPlayableWith(mission.ID, activeMods) ||
-				gamedata.IsCommunityMission(mission.ID) && !a.draft.Settings.MvmCommunityMissions ||
-				gamedata.MissionPack(mission.ID) != "" && !slices.ContainsFunc(visible, func(candidate gamedata.Mission) bool { return candidate.ID == mission.ID }) {
-				excluded = append(excluded, mission.PopFile)
-			}
 		}
 	}
 	a.draft.Settings.MvmExcludedMissions = excluded
@@ -374,16 +365,6 @@ func (a *App) setPool(all bool) {
 	a.notice = map[bool]string{true: "every mission is in the pool", false: "every mission is left out"}[all]
 	a.noticeSeq++
 	a.publishLocked(Event{Name: "state", Data: struct{}{}})
-}
-
-func activeReadyServerMods(s settings.Settings, ready []string) []string {
-	var active []string
-	for _, key := range settings.ServerModKeys(s) {
-		if slices.Contains(ready, key) {
-			active = append(active, key)
-		}
-	}
-	return active
 }
 
 func (a *App) readyServerMods() []string {

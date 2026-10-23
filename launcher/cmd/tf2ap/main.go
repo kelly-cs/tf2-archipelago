@@ -25,6 +25,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/m-this/tf2-archipelago/gamedata/availability"
 	"github.com/m-this/tf2-archipelago/launcher/internal/assets"
 	"github.com/m-this/tf2-archipelago/launcher/internal/generate"
 	"github.com/m-this/tf2-archipelago/launcher/internal/installer"
@@ -481,7 +482,7 @@ func missionOptions(s settings.Settings) []ui.Option {
 	for _, path := range availablePaths {
 		availablePacks = append(availablePacks, filepath.Base(path))
 	}
-	choices := runshape.MissionChoicesForPacks(availablePacks)
+	choices := runshape.MissionChoicesFor(availability.Planned(availablePacks, nil))
 	options := make([]ui.Option, 0, len(choices))
 	for _, choice := range choices {
 		options = append(options, ui.Option{Value: choice.PopFile, Label: choice.Label})

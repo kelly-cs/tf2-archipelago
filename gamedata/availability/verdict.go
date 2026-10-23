@@ -13,8 +13,6 @@ const (
 	// PackMissing: the community pack the mission comes from has no valid
 	// ZIP on disk.
 	PackMissing
-	// PackOff: the pack is on disk but not ticked, so Start never installs it.
-	PackOff
 	// ModNoBuild: the mission names a server mod with no build for the
 	// server's platform.
 	ModNoBuild
@@ -23,6 +21,8 @@ const (
 	// ModUnverified: the mod is turned on, and its installation was not found
 	// or did not check out.
 	ModUnverified
+	// PackOff: the pack is on disk but not ticked, so Start never installs it.
+	PackOff
 )
 
 func (r Reason) String() string {
@@ -33,14 +33,14 @@ func (r Reason) String() string {
 		return "no navigation mesh"
 	case PackMissing:
 		return "pack missing"
-	case PackOff:
-		return "pack off"
 	case ModNoBuild:
 		return "mod has no build"
 	case ModOff:
 		return "mod off"
 	case ModUnverified:
 		return "mod unverified"
+	case PackOff:
+		return "pack off"
 	}
 	return "unknown"
 }
@@ -76,20 +76,20 @@ func (v Verdict) Why() string {
 		return "missing " + gamedata.MissingNavigationMesh(v.Mission.ID)
 	case PackMissing:
 		return pack + " is not on this server: download or import it on the Missions page"
-	case PackOff:
-		return "tick " + pack + " above"
 	case ModNoBuild:
 		return mod.Name + " has no " + v.platform + " server build, so this mission cannot run here"
 	case ModOff:
 		if v.managed {
-			return "turn on " + mod.Name + " above, then save and recreate the containers"
+			return "turn on " + mod.Name + ", then save and recreate the containers"
 		}
-		return "turn on " + mod.Name + " above, then press Download / set up selected server mods"
+		return "turn on " + mod.Name + ", then press Download / set up selected server mods"
 	case ModUnverified:
 		if v.managed {
 			return mod.Name + " files are missing or incomplete in the server volume; recreate the container"
 		}
 		return mod.Name + " is selected but its installation is missing or incomplete; press Download / set up selected server mods"
+	case PackOff:
+		return "tick " + pack
 	}
 	return v.Reason.String()
 }

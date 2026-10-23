@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/m-this/tf2-archipelago/gamedata"
+	"github.com/m-this/tf2-archipelago/gamedata/availability"
 	"github.com/m-this/tf2-archipelago/launcher/internal/runshape"
 	"github.com/m-this/tf2-archipelago/launcher/internal/settings"
 )
@@ -18,7 +19,7 @@ row, so renaming one is a
 protocol change rather than a rename.
 */
 func runSpecs(s State, env Env) []Spec {
-	specs := playerSpecs(s, env)
+	specs := playerSpecs(s)
 	specs = append(specs, rewardSpecs()...)
 	specs = append(specs, balancingSpecs()...)
 	specs = append(specs, missionSpecs(s, env)...)
@@ -28,14 +29,12 @@ func runSpecs(s State, env Env) []Spec {
 	return specs
 }
 
-func playerSpecs(s State, env Env) []Spec {
+func playerSpecs(s State) []Spec {
 	/* The tiers describe the pool as the settings stand when the page is
 	   built, which is the same pool the ceiling below caps against. Turning a
 	   mission on is a Missions-page change and the labels catch up when the
 	   page is built again. */
-	poolSettings := s.Settings
-	poolSettings.SrcdsMods = activeServerMods(s, env)
-	tiers := runshape.Tiers(settings.MissionPool(poolSettings))
+	tiers := runshape.Tiers(settings.MissionPool(s.Settings))
 	tierValues := make([]string, 0, len(tiers))
 	tierLabels := make([]string, 0, len(tiers))
 	for _, tier := range tiers {
@@ -309,7 +308,8 @@ variable: ticking a pack adds twenty rows below.
 func missionSpecs(s State, env Env) []Spec {
 	const tab = "Missions"
 
-	starts := runshape.StartMissionChoicesForPacksAndMods(env.CommunityAvailable, activeServerMods(s, env))
+	server := Availability(s, env)
+	starts := runshape.StartMissionChoices(server)
 	startValues := make([]string, 0, len(starts))
 	startLabels := make([]string, 0, len(starts))
 	for _, start := range starts {
@@ -372,8 +372,8 @@ func missionSpecs(s State, env Env) []Spec {
 		press("missions.pool_none", tab, "None in the pool", "Leave every mission out, to tick back the few this run is for."),
 	)
 
-	for _, mission := range runshape.VisibleMissions(env.CommunityAvailable) {
-		specs = append(specs, poolSpec(mission))
+	for _, verdict := range server.Shown() {
+		specs = append(specs, poolSpec(verdict.Mission))
 	}
 	return specs
 }
@@ -405,16 +405,6 @@ func missionSetupActions(env Env) []Spec {
 		press("missions.check_selection", tab, "Check Run Selection",
 			"Confirm that the eligible mission pool has enough checks to hold every mission, class, and weapon-slot unlock."),
 	)
-}
-
-func activeServerMods(s State, env Env) []string {
-	var active []string
-	for _, key := range settings.ServerModKeys(s.Settings) {
-		if slices.Contains(env.ServerModsReady, key) {
-			active = append(active, key)
-		}
-	}
-	return active
 }
 
 /*
@@ -515,7 +505,10 @@ func serverModInstallSpec() Spec {
 }
 
 // packSpec is one community asset pack, on or off. Off is not "absent": the
-// pack is still offered so the player can see what a download would add.
+// pack is still offered so the player can see what a download would add. Off
+// does take its missions out of the pool, like the mod and community switches:
+// Start installs only the ticked packs, and a mission it never installs is one
+// the bridge refuses the seed for.
 func packSpec(id, label, pack, help string) Spec {
 	return toggle(id, "Missions", label, help, "selected",
 		func(s State) bool { return slices.Contains(s.Settings.CommunityPacks, pack) },
@@ -525,6 +518,10 @@ func packSpec(id, label, pack, help string) Spec {
 				packs = append(packs, pack)
 			}
 			s.Settings.CommunityPacks = packs
+			if !v {
+				s = excludePoolMissions(s, func(m gamedata.Mission) bool { return gamedata.MissionPack(m.ID) == pack })
+				s = clearIneligibleStart(s)
+			}
 			return s
 		})
 }
@@ -538,10 +535,7 @@ missing from every settings file written before it existed.
 */
 func poolSpec(mission gamedata.Mission) Spec {
 	played, _ := gamedata.MapByID(mission.Map)
-	source := gamedata.PackLabel(gamedata.MissionPack(mission.ID))
-	if source == "" {
-		source = "Valve"
-	}
+	source := availability.Source(mission, nil)
 	tag := ""
 	if label := runshape.MissionLoadoutLabel(mission); label != "" {
 		tag = " [" + label + "]"
@@ -565,65 +559,34 @@ func poolSpec(mission gamedata.Mission) Spec {
 			return clearIneligibleStart(s)
 		})
 
-	/* A mission the game cannot play is shown and refused rather than hidden,
-	   so a player looking for one the wiki names finds out why it is not here.
-	   The row says what is missing rather than "unavailable": the two reasons
-	   are a missing navigation mesh and a server mod whose verified setup is
-	   not ready, and the fix is different for each. */
-	if gamedata.MissionRequirement(mission.ID) != "" {
-		return missionRequirementSpec(spec, mission, help)
-	}
-	/* A ticked community mission the switch above will not let the seed draw.
-	   The tick is not wrong and neither is the pack, so the row says which
-	   switch is in the way rather than being hidden or quietly refused. */
-	if gamedata.IsCommunityMission(mission.ID) {
-		spec.Unavailable = func(s State, _ Env) string {
-			if s.Settings.MvmCommunityMissions || !slices.Contains(s.Settings.MvmExcludedMissions, mission.PopFile) {
-				return ""
-			}
-			return "community missions are off"
-		}
-	}
-	return spec
-}
-
-func missionRequirementSpec(spec Spec, mission gamedata.Mission, help string) Spec {
-	if gamedata.MissionRequirement(mission.ID) == "no_nav" {
-		nav := gamedata.MissingNavigationMesh(mission.ID)
-		why := "The asset pack has this map's BSP but is missing " + nav + ". Bots cannot navigate the map, so this mission cannot be enabled in a seed."
-		short := "missing " + nav
-		spec.Help = why
+	/* A mission the server cannot play is shown and refused rather than
+	   hidden, so a player looking for one the wiki names finds out why it is
+	   not here. The row says what is missing rather than "unavailable", since
+	   the fix is different for each reason. A mission already in the pool
+	   stays editable, so it can be taken out whatever stands in its way. A
+	   ticked community mission the community switch will not let the seed draw
+	   says which switch is in the way rather than being quietly refused. */
+	if nav := gamedata.MissingNavigationMesh(mission.ID); nav != "" {
+		spec.Help = "The asset pack has this map's BSP but is missing " + nav + ". Bots cannot navigate the map, so this mission cannot be enabled in a seed."
 		spec.Get = func(State) string { return "false" }
-		spec.Unavailable = func(State, Env) string { return short }
-		return spec
-	}
-	if key := gamedata.MissionServerMod(mission.ID); key != "" {
+	} else if key := gamedata.MissionServerMod(mission.ID); key != "" {
 		spec.Help = gamedata.RequirementLabel(key) + ". " + help
-		spec.Unavailable = func(s State, env Env) string {
-			// An already selected mission must remain editable so it can be
-			// removed even when the mod or community switch is unavailable.
-			if !slices.Contains(s.Settings.MvmExcludedMissions, mission.PopFile) {
-				return ""
-			}
-			mod, _ := gamedata.ServerModByKey(key)
-			if (env.Platform == "windows" && !mod.Windows) || (env.Platform == "linux" && !mod.Linux) {
-				return mod.Name + " has no " + env.Platform + " server build, so this mission cannot run here"
-			}
-			if !slices.Contains(settings.ServerModKeys(s.Settings), key) {
-				if env.ManagedExternally {
-					return "turn on " + mod.Name + " above, then save and recreate the containers"
-				}
-				return "turn on " + mod.Name + " above, then press Download / set up selected server mods"
-			}
-			if !slices.Contains(env.ServerModsReady, key) {
-				return MissingServerModReason(mod.Name, env.ManagedExternally)
-			}
-			if !s.Settings.MvmCommunityMissions {
-				return "community missions are off"
-			}
+	}
+	spec.Unavailable = func(s State, env Env) string {
+		verdict := Availability(s, env).Check(mission)
+		if verdict.Reason == availability.NoNavMesh {
+			return verdict.Why()
+		}
+		if !slices.Contains(s.Settings.MvmExcludedMissions, mission.PopFile) {
 			return ""
 		}
-		return spec
+		if !verdict.Playable() {
+			return verdict.Why()
+		}
+		if gamedata.IsCommunityMission(mission.ID) && !s.Settings.MvmCommunityMissions {
+			return "community missions are off"
+		}
+		return ""
 	}
 	return spec
 }
@@ -815,13 +778,4 @@ func networkingSpecs() []Spec {
 		press("net.check_funnel", tab, "Set up / check Funnel",
 			"Checks Funnel and provides the approval page when needed. Docker includes its own Tailscale service and remembers the login. With the native launcher, install Tailscale first; headless Linux can run this launcher with -setup-funnel."),
 	}
-}
-
-// MissingServerModReason is shared by the setting and mission table so both
-// explain the same unavailable state in the same words.
-func MissingServerModReason(name string, managedExternally bool) string {
-	if managedExternally {
-		return name + " files are missing or incomplete in the server volume; recreate the container"
-	}
-	return name + " is selected but its installation is missing or incomplete; press Download / set up selected server mods"
 }

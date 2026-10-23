@@ -59,37 +59,38 @@ func Planned(packs, mods []string) Server {
 	return Server{PacksSelected: packs, PacksPresent: packs, ModsSelected: mods, ModsVerified: mods}
 }
 
-// Check is the verdict on one mission.
+// Check is the verdict on one mission. A pack that is on disk and not ticked
+// is the last thing it says, because ticking the pack is all that is left to
+// do: a mission that also needs a mod the server cannot load says so first.
 func (s Server) Check(mission gamedata.Mission) Verdict {
 	verdict := Verdict{Mission: mission, managed: s.ManagedExternally, platform: s.Platform}
-	if gamedata.MissionRequirement(mission.ID) == noNavRequirement {
-		verdict.Reason = NoNavMesh
-		return verdict
+	verdict.Reason = s.reason(mission)
+	return verdict
+}
+
+func (s Server) reason(mission gamedata.Mission) Reason {
+	pack := gamedata.MissionPack(mission.ID)
+	if pack != "" && !slices.Contains(s.PacksPresent, pack) {
+		return PackMissing
 	}
-	if pack := gamedata.MissionPack(mission.ID); pack != "" {
+	if gamedata.MissionRequirement(mission.ID) == noNavRequirement {
+		return NoNavMesh
+	}
+	if key := gamedata.MissionServerMod(mission.ID); key != "" {
+		mod, _ := gamedata.ServerModByKey(key)
 		switch {
-		case !slices.Contains(s.PacksPresent, pack):
-			verdict.Reason = PackMissing
-			return verdict
-		case !slices.Contains(s.PacksSelected, pack):
-			verdict.Reason = PackOff
-			return verdict
+		case s.Platform != "" && !mod.BuildsOn(s.Platform):
+			return ModNoBuild
+		case !slices.Contains(s.ModsSelected, key):
+			return ModOff
+		case !slices.Contains(s.ModsVerified, key):
+			return ModUnverified
 		}
 	}
-	key := gamedata.MissionServerMod(mission.ID)
-	if key == "" {
-		return verdict
+	if pack != "" && !slices.Contains(s.PacksSelected, pack) {
+		return PackOff
 	}
-	mod, _ := gamedata.ServerModByKey(key)
-	switch {
-	case s.Platform != "" && !mod.BuildsOn(s.Platform):
-		verdict.Reason = ModNoBuild
-	case !slices.Contains(s.ModsSelected, key):
-		verdict.Reason = ModOff
-	case !slices.Contains(s.ModsVerified, key):
-		verdict.Reason = ModUnverified
-	}
-	return verdict
+	return Playable
 }
 
 // Playable is every mission Check passes, in table order.
@@ -101,6 +102,20 @@ func (s Server) Playable() []gamedata.Mission {
 		}
 	}
 	return playable
+}
+
+// Shown is the verdict on every mission a mission table lists, in table
+// order: all of them but those whose pack is not on disk. A row that says why
+// it is locked beats a mission that is not there, and a pack nobody has
+// downloaded would be twenty rows of the same reason.
+func (s Server) Shown() []Verdict {
+	var shown []Verdict
+	for _, mission := range gamedata.Missions {
+		if verdict := s.Check(mission); verdict.Reason != PackMissing {
+			shown = append(shown, verdict)
+		}
+	}
+	return shown
 }
 
 // noNavRequirement is the catalog's word for a map that ships without a bot

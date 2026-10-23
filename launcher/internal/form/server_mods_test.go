@@ -30,6 +30,7 @@ func TestMissingNavigationMeshMissionNamesItsMapAndStaysOff(t *testing.T) {
 
 func TestSigmodMissionExplainsAndEnforcesSetup(t *testing.T) {
 	state := NewState(settings.Defaults())
+	state.Settings.CommunityPacks = []string{settings.CommunityPackPotato}
 	env := Env{CommunityAvailable: []string{settings.CommunityPackPotato}, Platform: "linux"}
 	field, ok := Build(state, env).Field(sigmodMissionField)
 	if !ok {

@@ -27,6 +27,7 @@ import (
 	"time"
 
 	"github.com/m-this/tf2-archipelago/gamedata"
+	"github.com/m-this/tf2-archipelago/gamedata/availability"
 	"github.com/m-this/tf2-archipelago/launcher/internal/assets"
 	"github.com/m-this/tf2-archipelago/launcher/internal/sigmodpatch"
 	"github.com/m-this/tf2-archipelago/launcher/internal/winproc"
@@ -665,7 +666,11 @@ func unsupportedCommunityPopfile(relative string, serverMods []string) bool {
 			continue
 		}
 		mission, cataloged := gamedata.MissionByPopFile(name)
-		return !cataloged || !gamedata.IsMissionPlayableWith(mission.ID, serverMods)
+		if !cataloged {
+			return true
+		}
+		installed := []string{gamedata.MissionPack(mission.ID)}
+		return !availability.Planned(installed, serverMods).Check(mission).Playable()
 	}
 	return false
 }

@@ -79,7 +79,7 @@ func TestCheck(t *testing.T) {
 			server:  Server{PacksPresent: []string{potato}},
 			popFile: binaryBroadcast,
 			want:    PackOff,
-			why:     "tick Potato Archive above",
+			why:     "tick Potato Archive",
 		},
 		{
 			name:    "a Moonlight mission on a Valve map is still the pack's",
@@ -106,7 +106,7 @@ func TestCheck(t *testing.T) {
 			server:  Server{Platform: "linux", PacksSelected: []string{potato}, PacksPresent: []string{potato}},
 			popFile: pointOfImpact,
 			want:    ModOff,
-			why:     "turn on SigMod above, then press Download / set up selected server mods",
+			why:     "turn on SigMod, then press Download / set up selected server mods",
 		},
 		{
 			name: "a SigMod mission with SigMod off, in Docker",
@@ -116,7 +116,7 @@ func TestCheck(t *testing.T) {
 			},
 			popFile: pointOfImpact,
 			want:    ModOff,
-			why:     "turn on SigMod above, then save and recreate the containers",
+			why:     "turn on SigMod, then save and recreate the containers",
 		},
 		{
 			name: "a SigMod mission with SigMod ticked and not verified",
@@ -146,7 +146,7 @@ func TestCheck(t *testing.T) {
 			},
 			popFile: pointOfImpact,
 			want:    ModOff,
-			why:     "turn on SigMod above, then press Download / set up selected server mods",
+			why:     "turn on SigMod, then press Download / set up selected server mods",
 		},
 		{
 			name: "a SigMod mission on a platform with no SigMod build",
@@ -157,6 +157,13 @@ func TestCheck(t *testing.T) {
 			popFile: pointOfImpact,
 			want:    ModNoBuild,
 			why:     "SigMod has no plan9 server build, so this mission cannot run here",
+		},
+		{
+			name:    "an unticked pack is said after the mod its mission needs",
+			server:  Server{Platform: "linux", PacksPresent: []string{potato}},
+			popFile: pointOfImpact,
+			want:    ModOff,
+			why:     "turn on SigMod, then press Download / set up selected server mods",
 		},
 		{
 			name:    "a missing pack is said before the mod its mission needs",
@@ -203,6 +210,25 @@ func TestPlayableIsCheckOverTheCatalog(t *testing.T) {
 		if slices.ContainsFunc(playable, func(m gamedata.Mission) bool { return m.PopFile == popFile }) {
 			t.Errorf("%s is playable on a server that cannot play it", popFile)
 		}
+	}
+}
+
+func TestShownLeavesOutOnlyMissingPacks(t *testing.T) {
+	server := Server{Platform: "linux", PacksPresent: []string{potato}}
+	shown := server.Shown()
+	listed := func(popFile string) bool {
+		return slices.ContainsFunc(shown, func(v Verdict) bool { return v.Mission.PopFile == popFile })
+	}
+	for _, popFile := range []string{decoy, homestead, swampFever, pointOfImpact} {
+		if !listed(popFile) {
+			t.Errorf("%s is not shown, and its pack is on disk", popFile)
+		}
+	}
+	if listed(troubleInTown) {
+		t.Errorf("%s is shown without its pack", troubleInTown)
+	}
+	if valveOnly := (Server{}).Shown(); slices.ContainsFunc(valveOnly, func(v Verdict) bool { return v.Mission.PopFile == swampFever }) {
+		t.Errorf("%s is shown without its pack because its map has no navigation mesh", swampFever)
 	}
 }
 
