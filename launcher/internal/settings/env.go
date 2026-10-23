@@ -7,46 +7,123 @@ import (
 	"strings"
 )
 
-// EnvNames lists every variable ApplyEnv reads, in the order the help prints
+/*
+EnvVar is one variable ApplyEnv reads, and the Compose services that read it
+from their environment.
+
+Services is what deploy/compose.yml and deploy/compose.seed.yml must hand that
+variable to, and TestComposePassesEveryVariableToItsReaders holds them to it.
+The admin service is never named: it loads the whole of .env, because it is
+what writes it. A variable no service names is one only the launcher and the
+admin page act on.
+
+The archipelago and seed services both run playeryaml, so both read whatever
+the player file renders.
+*/
+type EnvVar struct {
+	Name     string
+	Services []string
+}
+
+var (
+	playerFile       = []string{"archipelago", "seed"}
+	playerFileBridge = []string{"archipelago", "seed", "bridge"}
+	gameServer       = []string{"srcds"}
+)
+
+// EnvVars lists every variable ApplyEnv reads, in the order the help prints
 // them. The names are the ones deploy/.env.example already uses, so a compose
 // operator's file works here unchanged.
-var EnvNames = []string{
-	"TF2AP_INSTALL_ROOT",
-	"TF2AP_COMMUNITY_CONTENT_DIR", "TF2AP_COMMUNITY_PACKS",
-	"TF2AP_TEST_MODE", "TF2AP_ARCHIPELAGO_DIR",
-	"AP_ROOM", "AP_HOST", "AP_PORT", "AP_TLS", "AP_ROOM_URL", "AP_SLOT_NAME", "AP_PASSWORD",
-	"SRCDS_HOSTNAME", "SRCDS_RCONPW", "SRCDS_PW", "SRCDS_PORT", "TF2AP_JOIN_HOST",
-	"SRCDS_MAXPLAYERS", "SRCDS_START_MISSION", "SRCDS_STARTMAP", "SRCDS_TOKEN",
-	"SRCDS_LAN", "SRCDS_REACH", "SRCDS_ADMIN_STEAMIDS", "SRCDS_MODS",
-	"SRCDS_MOD_LOADING",
-	"FASTDL_PORT", "SRCDS_DOWNLOADURL", "TAILSCALE_FASTDL",
-	"SRCDS_BOTS", "SRCDS_BOT_TEAM_SIZE", "SRCDS_BOT_CLASS_BLACKLIST", "SRCDS_BOT_LOADOUTS",
-	"SRCDS_BOT_CUSTOM_LOADOUTS", "SRCDS_BOT_TEAM_PRESETS",
-	"SRCDS_BOT_NAMES_EXCLUDED", "SRCDS_BOT_NAMES_ADDED", "SRCDS_BOT_SEAT_NAMES",
-	"SRCDS_BLU_HEALTH_PCT",
-	"SRCDS_BOT_TEAM_COMP",
-	"SRCDS_BOT_SEAT_LOADOUTS",
-	"SRCDS_BOT_CARD_FORMS",
-	"SRCDS_BOT_HATS",
-	"SRCDS_BOT_BUY_ANYWHERE",
-	"SRCDS_BOT_HAT_EFFECTS",
-	"TF2AP_BOT_UPGRADES_CHAT",
-	"MVM_MISSION_COUNT", "MVM_DIFFICULTY", "MVM_GOAL",
-	"MVM_MISSIONSANITY_PERCENTAGE", "MVM_MISSION_MODIFIERS",
-	"MVM_MINIMUM_MISSION_MODIFIERS", "MVM_MAXIMUM_MISSION_MODIFIERS",
-	"MVM_MEDAL_ON_CLEAR", "MVM_VICTORY_CACHES", "MVM_MILESTONE_CHECKS",
-	"MVM_CLASS_WEAPON_SLOTS", "MVM_GIANTSANITY", "MVM_TANKSANITY",
-	"MVM_SERVER_SETTINGS", "MVM_DEATH_LINK",
-	"MVM_EXCLUDED_MISSIONS",
-	"MVM_START_MISSION", "MVM_START_CLASS", "MVM_COMMUNITY_MISSIONS",
-	"MVM_MISSION_TICKET_IMPORTANCE", "MVM_CLASS_UNLOCK_IMPORTANCE",
-	"MVM_WEAPON_SLOT_IMPORTANCE", "MVM_WEAPON_BUFF_IMPORTANCE",
-	"MVM_CASH_REWARDS", "MVM_BOT_CARDS", "MVM_STARTING_BOT_CARDS",
-	"MVM_STARTING_BOT_CARD_MODE",
-	"SRCDS_BOT_CARD_ROLLS",
-	"MVM_WEAPON_BUFF_PERCENTAGE", "MVM_WEAPON_BUFF_STACK_CHANCE",
-	"MVM_TRAP_PERCENTAGE",
-	"BRIDGE_METRICS_PORT",
+var EnvVars = []EnvVar{
+	{"TF2AP_INSTALL_ROOT", nil},
+	{"TF2AP_COMMUNITY_CONTENT_DIR", nil},
+	{"TF2AP_COMMUNITY_PACKS", playerFile},
+	{"TF2AP_TEST_MODE", []string{"srcds", "bridge"}},
+	{"TF2AP_ARCHIPELAGO_DIR", nil},
+	{"AP_ROOM", nil},
+	{"AP_HOST", []string{"bridge"}},
+	{"AP_PORT", []string{"archipelago", "bridge"}},
+	{"AP_TLS", []string{"bridge"}},
+	{"AP_ROOM_URL", nil},
+	{"AP_SLOT_NAME", playerFileBridge},
+	{"AP_PASSWORD", []string{"archipelago", "bridge"}},
+	{"SRCDS_HOSTNAME", gameServer},
+	{"SRCDS_RCONPW", gameServer},
+	{"SRCDS_PW", gameServer},
+	{"SRCDS_PORT", gameServer},
+	{"TF2AP_JOIN_HOST", nil},
+	{"SRCDS_MAXPLAYERS", gameServer},
+	{"SRCDS_START_MISSION", gameServer},
+	{"SRCDS_STARTMAP", gameServer},
+	{"SRCDS_TOKEN", gameServer},
+	{"SRCDS_LAN", gameServer},
+	{"SRCDS_REACH", gameServer},
+	{"SRCDS_ADMIN_STEAMIDS", gameServer},
+	{"SRCDS_MODS", []string{"archipelago", "seed", "bridge", "srcds"}},
+	{"SRCDS_MOD_LOADING", nil},
+	{"FASTDL_PORT", gameServer},
+	{"SRCDS_DOWNLOADURL", gameServer},
+	{"TAILSCALE_FASTDL", []string{"srcds", "tailscale-fastdl"}},
+	{"SRCDS_BOTS", gameServer},
+	{"SRCDS_BOT_TEAM_SIZE", gameServer},
+	{"SRCDS_BOT_CLASS_BLACKLIST", gameServer},
+	{"SRCDS_BOT_LOADOUTS", gameServer},
+	{"SRCDS_BOT_CUSTOM_LOADOUTS", gameServer},
+	{"SRCDS_BOT_TEAM_PRESETS", nil},
+	{"SRCDS_BOT_NAMES_EXCLUDED", gameServer},
+	{"SRCDS_BOT_NAMES_ADDED", gameServer},
+	{"SRCDS_BOT_SEAT_NAMES", gameServer},
+	{"SRCDS_BLU_HEALTH_PCT", nil},
+	{"SRCDS_BOT_TEAM_COMP", gameServer},
+	{"SRCDS_BOT_SEAT_LOADOUTS", gameServer},
+	{"SRCDS_BOT_CARD_FORMS", gameServer},
+	{"SRCDS_BOT_HATS", gameServer},
+	{"SRCDS_BOT_BUY_ANYWHERE", gameServer},
+	{"SRCDS_BOT_HAT_EFFECTS", gameServer},
+	{"TF2AP_BOT_UPGRADES_CHAT", gameServer},
+	{"MVM_MISSION_COUNT", playerFileBridge},
+	{"MVM_DIFFICULTY", playerFileBridge},
+	{"MVM_GOAL", playerFileBridge},
+	{"MVM_MISSIONSANITY_PERCENTAGE", playerFile},
+	{"MVM_MISSION_MODIFIERS", playerFileBridge},
+	{"MVM_MINIMUM_MISSION_MODIFIERS", playerFileBridge},
+	{"MVM_MAXIMUM_MISSION_MODIFIERS", playerFileBridge},
+	{"MVM_MEDAL_ON_CLEAR", playerFile},
+	{"MVM_VICTORY_CACHES", playerFileBridge},
+	{"MVM_MILESTONE_CHECKS", playerFileBridge},
+	{"MVM_CLASS_WEAPON_SLOTS", playerFile},
+	{"MVM_GIANTSANITY", playerFileBridge},
+	{"MVM_TANKSANITY", playerFileBridge},
+	{"MVM_SERVER_SETTINGS", playerFile},
+	{"MVM_DEATH_LINK", playerFileBridge},
+	{"MVM_EXCLUDED_MISSIONS", playerFileBridge},
+	{"MVM_START_MISSION", playerFileBridge},
+	{"MVM_START_CLASS", playerFileBridge},
+	{"MVM_COMMUNITY_MISSIONS", playerFileBridge},
+	{"MVM_MISSION_TICKET_IMPORTANCE", playerFile},
+	{"MVM_CLASS_UNLOCK_IMPORTANCE", playerFile},
+	{"MVM_WEAPON_SLOT_IMPORTANCE", playerFile},
+	{"MVM_WEAPON_BUFF_IMPORTANCE", playerFile},
+	{"MVM_CASH_REWARDS", playerFile},
+	{"MVM_BOT_CARDS", playerFile},
+	{"MVM_STARTING_BOT_CARDS", playerFile},
+	{"MVM_STARTING_BOT_CARD_MODE", playerFile},
+	{"SRCDS_BOT_CARD_ROLLS", nil},
+	{"MVM_WEAPON_BUFF_PERCENTAGE", playerFile},
+	{"MVM_WEAPON_BUFF_STACK_CHANCE", playerFile},
+	{"MVM_TRAP_PERCENTAGE", playerFile},
+	{"BRIDGE_METRICS_PORT", nil},
+}
+
+// EnvNames is the names of EnvVars, in the same order.
+var EnvNames = envNames()
+
+func envNames() []string {
+	names := make([]string, len(EnvVars))
+	for i, v := range EnvVars {
+		names[i] = v.Name
+	}
+	return names
 }
 
 // ApplyEnv overlays the environment on top of the saved settings. A variable

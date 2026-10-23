@@ -10,6 +10,7 @@ require (
 	fyne.io/systray v1.12.2
 	github.com/coder/websocket v1.8.15
 	github.com/m-this/tf2-mvm-bots-go v0.18.8
+	go.yaml.in/yaml/v3 v3.0.5
 	golang.org/x/sys v0.49.0
 	google.golang.org/protobuf v1.36.12
 )
@@ -21,7 +22,6 @@ require (
 	connectrpc.com/connect/v2 v2.0.0 // indirect
 	github.com/antlr4-go/antlr/v4 v4.13.1 // indirect
 	github.com/godbus/dbus/v5 v5.2.4 // indirect
-	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	golang.org/x/exp v0.0.0-20261013213113-2ab7f3cbc5fb // indirect
 	golang.org/x/text v0.43.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20261012220534-4341edf3f941 // indirect

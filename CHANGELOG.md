@@ -8,6 +8,12 @@ in the release notes, so this file is the only place to write it.
 
 ### Fixed
 
+- **The Docker stack generates the seed you set in the admin page.** Twelve
+  run options never reached `make seed` or the self-hosted multiworld:
+  mission modifiers and their minimum and maximum, the Australium Medal on
+  clear, the Grappling Hook, cash rewards, the weapon-buff share and stack
+  chance, the trap share, and bot cards with their starting count and mode.
+  The seed was generated with their defaults whatever `.env` said.
 - **A seed with a community mission whose pack is not installed stops at
   Start.** The launcher used to start the run anyway, and you found out when
   the run switched to that mission, sometimes an hour in. Now the server stops
