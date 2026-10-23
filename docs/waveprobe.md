@@ -14,6 +14,16 @@ bot or tank 15–25 game seconds after it first appears, and requires the game's
 `mvm_wave_complete` event to pass.
 Spawn events are counted when they happen, including enemies that die between
 the probe's timer ticks.
+Before wave setup, the headless runner sets and reads back
+`tf_allow_server_hibernation 0`. Fake clients do not wake the server like a
+human connection, so leaving hibernation enabled can prevent SigMod's robot
+pool from being allocated. This matches the fixture in SigMod's own
+[Linux](https://github.com/m-this/sigsegv-mvm-win/blob/a83ba95177dd2091a366ed2c9edafca869b22b1e/.github/workflows/linuxbed.yml#L145)
+and [Windows](https://github.com/m-this/sigsegv-mvm-win/blob/a83ba95177dd2091a366ed2c9edafca869b22b1e/.github/workflows/windows.yml#L384)
+test beds. It leaves the production robot limiter and invader cap in place.
+This headless fixture does not test idle hibernation or human join/wake behavior;
+those need a separate real-client check.
+
 The fake RED player uses Medic for missions tagged `medic_only`, including
 Remedic, and Scout otherwise. A case is one mission wave with Bot Surge either
 off or on; the two modes have separate results and scores.

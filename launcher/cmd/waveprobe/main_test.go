@@ -89,11 +89,11 @@ func TestProbeClassName(t *testing.T) {
 
 func TestTimescaleMatches(t *testing.T) {
 	for _, reply := range []string{`host_timescale = "10" ( def. "1" )`, `host_timescale = "10.000000"`} {
-		if !timescaleMatches(reply, 10) {
+		if !cvarMatches(reply, "host_timescale", 10) {
 			t.Errorf("did not accept %q", reply)
 		}
 	}
-	if timescaleMatches(`host_timescale = "1" ( def. "1" )`, 10) {
+	if cvarMatches(`host_timescale = "1" ( def. "1" )`, "host_timescale", 10) {
 		t.Fatal("accepted unchanged clock")
 	}
 }
@@ -184,5 +184,20 @@ func TestLastWave(t *testing.T) {
 				t.Fatalf("got %d, want %d", got, tt.want)
 			}
 		})
+	}
+}
+
+func TestHeadlessWakeReadback(t *testing.T) {
+	if !cvarMatches(`"tf_allow_server_hibernation" = "0" ( def. "1" )`, "tf_allow_server_hibernation", 0) {
+		t.Fatal("did not recognize an awake headless server")
+	}
+	for _, reply := range []string{
+		`"tf_allow_server_hibernation" = "1" ( def. "0" )`,
+		`Unknown command "tf_allow_server_hibernation"`,
+		`"another_cvar" = "0"`,
+	} {
+		if cvarMatches(reply, "tf_allow_server_hibernation", 0) {
+			t.Fatalf("accepted unverified wake-up: %q", reply)
+		}
 	}
 }

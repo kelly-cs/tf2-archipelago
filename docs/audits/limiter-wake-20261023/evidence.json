@@ -1,0 +1,21 @@
+{
+  "source_commit": "56eeaf4071c2538f2859afb1f7cea02c21c3206b",
+  "image": "ghcr.io/m-this/tf2-archipelago/srcds@sha256:c388d649573d8773d96c639ed46d4f5f6f2ebb8a23faa237e5b868fd8ef73684",
+  "running_version": "11138802",
+  "latest_before": "11138802",
+  "latest_after": "11138802",
+  "started_utc": "2026-10-23T23:21:23.629572830Z",
+  "finished_utc": "2026-10-23T23:24:58.837486+00:00",
+  "binary_sha256": "daa9ec6564a822ea02faf50954c38ccf54ac51c17aeaa84835ca1ac56c028cc4",
+  "cpus": 4,
+  "speed": 20,
+  "seed": 1,
+  "mission": "mvm_decoy_expert1",
+  "robot_limiter": 1,
+  "max_invaders": 22,
+  "fatal_log_lines": [],
+  "trial_seconds": [
+    92.03659058800076,
+    90.07215344100041
+  ]
+}

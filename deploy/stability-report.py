@@ -32,7 +32,7 @@ def combine_shards(source, plan_path, shards, commit):
         root = source / environment
         root.mkdir(parents=True, exist_ok=True)
         meta = {"environment": environment, "commit": commit, "startup": True,
-                "fresh": True, "completed": True, "shards": []}
+                "fresh": True, "completed": True, "robot_limiter": True, "crash_free": True, "shards": []}
         errors = []
         if not plan_path.exists():
             errors.append("build did not produce the canonical wave plan")
@@ -53,6 +53,8 @@ def combine_shards(source, plan_path, shards, commit):
             meta["startup"] &= valid and evidence.get("startup") is True
             meta["fresh"] &= valid and evidence.get("fresh") is True
             meta["completed"] &= valid and evidence.get("completed") is True
+            meta["robot_limiter"] &= valid and evidence.get("robot_limiter") is True
+            meta["crash_free"] &= valid and evidence.get("crash_free") is True
             if not valid:
                 continue
             expected = {case_key(row) for row in plan if zlib.crc32(row["mission"].encode()) % shards == shard}
@@ -91,7 +93,7 @@ def evaluate(meta, summary, commit, latest=None):
     passed = summary.get("passed_cases", 0)
     tested = summary.get("tested_cases", 0)
     valid = (meta.get("commit") == commit and meta.get("startup") is True
-             and meta.get("fresh") is True and eligible > 0
+             and meta.get("fresh") is True and meta.get("robot_limiter") is True and meta.get("crash_free") is True and eligible > 0
              and 0 <= passed <= tested <= eligible
              and (latest is None or meta.get("installed_version") == latest))
     # Missing waves remain in the denominator, including when the runner crashed.
@@ -104,6 +106,10 @@ def evaluate(meta, summary, commit, latest=None):
         status = "startup failed"
     elif not meta.get("fresh") or (latest is not None and meta.get("installed_version") != latest):
         status = "latest build unverified"
+    elif meta.get("crash_free") is not True:
+        status = "crash recorded or unverified"
+    elif meta.get("robot_limiter") is not True:
+        status = "robot limiter unverified"
     elif not valid:
         status = "invalid or empty wave plan"
     elif not meta.get("completed") or tested < eligible:
@@ -152,8 +158,8 @@ def main(source, output, commit, run_url, check_live=False):
                  "color": "brightgreen" if result["status"] == "passed" else "red",
                  "cacheSeconds": 300}
         (output / f"{key}.json").write_text(json.dumps(badge) + "\n")
-    lines += ["", "Score = passed / every eligible planned wave/mode case, with startup and live-build verification required. "
-              "Unrun waves count against the score; failed startup or unverified freshness has no numeric score.", "",
+    lines += ["", "Score = passed / every eligible planned wave/mode case, with startup, live-build, enabled robot limiter and crash-log checks required. "
+              "Unrun waves count against the score; failed startup, unverified checks or recorded engine crashes have no numeric score.", "",
               "Each mission runs every wave at 20× with Bot Surge off and on. Nonpasses are retried at a 900-second "
               "wall limit; the original 180-second results remain in the evidence. A pass is a completion witness "
               "from this automated probe, not a guarantee for every player strategy.", "",
@@ -167,6 +173,8 @@ def main(source, output, commit, run_url, check_live=False):
         meta = result["evidence"]
         lines += [f"Started: {meta.get('started_utc', 'unknown')}. Finished: {meta.get('finished_utc', 'unknown')}.",
                   f"Host: `{meta.get('host', 'unknown')}`. Running engine: `{meta.get('running_version', 'unknown')}`.", ""]
+        lines += [f"Robot limiter enabled at both endpoint checks: {meta.get('robot_limiter') is True}. "
+                  f"No fatal engine errors in captured logs: {meta.get('crash_free') is True}.", ""]
         if result["evidence"].get("error"):
             # Escape report content so runner error text cannot inject Markdown.
             error = str(result["evidence"]["error"]).replace("`", "'").replace("\n", " ")

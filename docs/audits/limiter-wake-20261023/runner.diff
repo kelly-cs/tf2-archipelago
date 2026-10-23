@@ -1,0 +1,53 @@
+diff --git a/launcher/cmd/waveprobe/main.go b/launcher/cmd/waveprobe/main.go
+index c059bd7..193c750 100644
+--- a/launcher/cmd/waveprobe/main.go
++++ b/launcher/cmd/waveprobe/main.go
+@@ -287,6 +287,18 @@ func (s *server) prepare(opt options) error {
+ 	if _, err := s.exec("sv_cheats 1"); err != nil {
+ 		return err
+ 	}
++	// Fake clients do not wake MvM like a human connection. Keep this headless
++	// test awake so SigMod's production robot allocator can populate its pool.
++	// This is also the fixture used by SigMod's Linux and Windows test beds;
++	// do not disable sig_mvm_robot_limit or alter tf_mvm_max_invaders instead.
++	if _, err := s.exec("tf_allow_server_hibernation 0"); err != nil {
++		return err
++	}
++	if reply, err := s.exec("tf_allow_server_hibernation"); err != nil {
++		return fmt.Errorf("read tf_allow_server_hibernation: %w", err)
++	} else if !cvarMatches(reply, "tf_allow_server_hibernation", 0) {
++		return fmt.Errorf("headless server wake-up did not stick: %q", reply)
++	}
+ 	// A bot reaching the hatch would test an undefended loss, not population
+ 	// progression. Valve provides this cvar specifically for bot testing.
+ 	if _, err := s.exec("tf_bot_flag_kill_on_touch 1"); err != nil {
+@@ -304,7 +316,7 @@ func (s *server) prepare(opt options) error {
+ 	}
+ 	if reply, err := s.exec("host_timescale"); err != nil {
+ 		return fmt.Errorf("read host_timescale: %w", err)
+-	} else if !timescaleMatches(reply, opt.speed) {
++	} else if !cvarMatches(reply, "host_timescale", opt.speed) {
+ 		return fmt.Errorf("host_timescale %d did not stick: %q", opt.speed, reply)
+ 	}
+ 	return nil
+@@ -630,9 +642,9 @@ func parseStatus(reply string) (probeStatus, error) {
+ 	return status, nil
+ }
+ 
+-func timescaleMatches(reply string, speed int) bool {
++func cvarMatches(reply, name string, want int) bool {
+ 	equals := strings.IndexByte(reply, '=')
+-	if equals < 0 {
++	if equals < 0 || strings.Trim(strings.TrimSpace(reply[:equals]), "\"") != name {
+ 		return false
+ 	}
+ 	start := strings.IndexByte(reply[equals+1:], '"')
+@@ -645,7 +657,7 @@ func timescaleMatches(reply string, speed int) bool {
+ 		return false
+ 	}
+ 	value, err := strconv.ParseFloat(reply[start+1:start+1+end], 64)
+-	return err == nil && value == float64(speed)
++	return err == nil && value == float64(want)
+ }
+ 
+ func (s *server) await(timeout time.Duration, predicate func(probeStatus) bool) error {

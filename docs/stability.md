@@ -16,6 +16,15 @@ plugin or extension loads. The Docker check runs the production entrypoint,
 including its own SteamCMD update; the launcher-prepared tree supplies the
 community packs. It never mounts a live server's files.
 
+Startup is checked before the wave runner applies its headless wake-up fixture
+(`tf_allow_server_hibernation 0`). The sweep keeps `sig_mvm_robot_limit` enabled
+and records its readback before and after testing; a disabled or unreadable
+limiter prevents a numeric score. The invader cap, population files, mod code
+and 20× speed are unchanged. This fixture models an awake server with a human
+connected; it does not validate idle hibernation or real-client wake-up.
+Fatal errors and segmentation faults in the captured engine logs invalidate the
+score, including when `srcds_run` restarts the engine and later checks succeed.
+
 SteamCMD installs the current public TF2 server, without a game version pin.
 The measurement compares `tf/steam.inf`'s `ServerVersion` with Valve's live
 `ISteamApps/UpToDateCheck` response before setup, at readiness, after the sweep,
@@ -37,7 +46,8 @@ carry spawn/kill/alive counts, progress and timeline/debug evidence.
 
 **Score = passed cases / all eligible planned cases × 100.** Missing results
 count against it. Startup failure, an empty plan, a different source commit or
-an unverified current TF2 build produces an unverified score. A lost, timed-out
+an unverified current TF2 build, an unverified robot limiter, or a recorded
+engine crash produces an unverified score. A lost, timed-out
 or interrupted run fails the workflow. The report also shows raw coverage and
 each Bot Surge mode separately.
 

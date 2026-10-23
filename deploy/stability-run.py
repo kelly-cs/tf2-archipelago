@@ -84,6 +84,32 @@ def startup_ready(evidence):
                               evidence, re.IGNORECASE))
 
 
+def robot_limiter_enabled(reply):
+    # Fail closed on an unknown cvar, changed output or a disabled production mod.
+    return bool(re.search(r'^\s*"sig_mvm_robot_limit"\s*=\s*"1(?:\.0+)?"',
+                          reply, re.MULTILINE))
+
+
+def check_robot_limiter(rcon, output):
+    reply = rcon("sig_mvm_robot_limit")
+    output.write_text(reply, encoding="utf-8")
+    if not robot_limiter_enabled(reply):
+        raise RuntimeError("production robot limiter is disabled or unverified")
+
+
+def crash_evidence(output):
+    # srcds_run restarts a crashed engine. A later healthy RCON reply must not
+    # erase a fatal error from startup or an earlier wave in this measurement.
+    failures = []
+    for name in ("server.log", "docker.log", "console.log"):
+        path = output / name
+        if path.exists():
+            for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
+                if re.search(r"Segmentation fault|FATAL ERROR|EXCEPTION_ACCESS_VIOLATION", line, re.IGNORECASE):
+                    failures.append(f"{name}: {line}")
+    return failures
+
+
 def main(opt):
     out = opt.output.resolve()
     out.mkdir(parents=True, exist_ok=True)
@@ -108,7 +134,7 @@ def main(opt):
             "started_utc": dt.datetime.now(dt.timezone.utc).isoformat(),
             "commit": os.environ.get("GITHUB_SHA", "local"), "host": platform.platform(),
             "run_url": os.environ.get("STABILITY_RUN_URL", ""), "startup": False,
-            "fresh": False, "completed": False}
+            "fresh": False, "completed": False, "robot_limiter": False, "crash_free": False}
     process = None
     container = "tf2ap-stability-" + uuid.uuid4().hex[:12]
     deadline = time.monotonic() + opt.hours * 3600
@@ -193,6 +219,7 @@ def main(opt):
         if not meta["installed_version"] == meta["running_version"] == meta["latest_at_start"]:
             raise ValueError("TF2 changed during setup; rerun against the new build")
         meta["fresh"] = True
+        check_robot_limiter(rcon, out / "robot-limiter-before.txt")
         run([binary("waveprobe"), "-rcon", f"127.0.0.1:{port}", "-mission", "all",
                       "-mode", "both", "-speed", "20", "-seed", "1", "-timeout", "180s", *partition],
                      "shard-0.jsonl", check=False)
@@ -203,6 +230,8 @@ def main(opt):
         (out / "final-health.txt").write_text(final_health, encoding="utf-8")
         if not startup_ready(final_health):
             raise RuntimeError("server mods did not remain healthy through the sweep")
+        check_robot_limiter(rcon, out / "robot-limiter-after.txt")
+        meta["robot_limiter"] = True
         meta["latest_after"] = live_version()
         meta["fresh"] = meta["latest_after"] == meta["installed_version"]
         meta["completed"] = True
@@ -226,6 +255,11 @@ def main(opt):
                 shutil.copy2(source, out / source.name)
         if (game / "tf/addons/sourcemod/logs").exists():
             shutil.copytree(game / "tf/addons/sourcemod/logs", out / "sourcemod-logs", dirs_exist_ok=True)
+        crashes = crash_evidence(out)
+        meta["crash_free"] = not crashes
+        if crashes:
+            meta["crashes"] = crashes
+            meta["error"] = "; ".join(filter(None, [meta.get("error"), "engine crash recorded; automatic restart does not count as recovery"]))
         meta["finished_utc"] = dt.datetime.now(dt.timezone.utc).isoformat()
         (out / "environment.json").write_text(json.dumps(meta, indent=2) + "\n")
         if (out / "plan.jsonl").exists():
@@ -233,7 +267,7 @@ def main(opt):
                 subprocess.run([sys.executable, "deploy/waveprobe-report.py", str(out)],
                                stdout=report, check=True)
     summary = json.loads((out / "SUMMARY.json").read_text()) if (out / "SUMMARY.json").exists() else {}
-    return 0 if (meta["startup"] and meta["fresh"] and meta["completed"]
+    return 0 if (meta["startup"] and meta["fresh"] and meta["completed"] and meta["crash_free"]
                  and summary.get("eligible_cases", 0) > 0
                  and summary.get("passed_cases") == summary.get("eligible_cases")) else 1
 

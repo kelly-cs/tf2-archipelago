@@ -29,7 +29,7 @@ publisher = module("stability-publish")
 class StabilityTest(unittest.TestCase):
     def setUp(self):
         self.meta = {"commit": "abc", "startup": True, "fresh": True,
-                     "completed": True, "installed_version": "123"}
+                     "completed": True, "robot_limiter": True, "crash_free": True, "installed_version": "123"}
         self.summary = {"eligible_cases": 100, "passed_cases": 50, "tested_cases": 50}
 
     def test_interrupted_run_cannot_score_100_percent(self):
@@ -39,7 +39,7 @@ class StabilityTest(unittest.TestCase):
         self.assertEqual(result["status"], "incomplete")
 
     def test_unverified_inputs_have_no_numeric_score(self):
-        for change in ({"startup": False}, {"fresh": False}, {"commit": "other"}):
+        for change in ({"startup": False}, {"fresh": False}, {"commit": "other"}, {"robot_limiter": False}, {"crash_free": False}):
             with self.subTest(change=change):
                 result = report.evaluate({**self.meta, **change}, self.summary, "abc", "123")
                 self.assertIsNone(result["score"])
@@ -164,6 +164,31 @@ class StabilityTest(unittest.TestCase):
             self.assertFalse(runner.startup_ready(good + "\n" + error))
         self.assertFalse(runner.startup_ready("TF2 MvM wave probe"))
 
+    def test_crash_followed_by_successful_restart_is_still_a_failure(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / "server.log").write_text("Segmentation fault (core dumped)\nServer restart in 10 seconds\nready\n")
+            (root / "console.log").write_text("healthy probe\n")
+            self.assertEqual(len(runner.crash_evidence(root)), 1)
+        complete = {"eligible_cases": 1, "passed_cases": 1, "tested_cases": 1}
+        result = report.evaluate({**self.meta, "crash_free": False}, complete, "abc")
+        self.assertIsNone(result["score"])
+        self.assertEqual(result["status"], "crash recorded or unverified")
+
+    def test_limiter_must_be_enabled_and_readable(self):
+        self.assertTrue(runner.robot_limiter_enabled('"sig_mvm_robot_limit" = "1" ( def. "0" )'))
+        for reply in ('"sig_mvm_robot_limit" = "0" ( def. "1" )',
+                      'Unknown command "sig_mvm_robot_limit"',
+                      '"tf_mvm_max_invaders" = "1"', ''):
+            self.assertFalse(runner.robot_limiter_enabled(reply))
+        with tempfile.TemporaryDirectory() as temp:
+            evidence = Path(temp) / "limiter.txt"
+            with self.assertRaisesRegex(RuntimeError, "limiter is disabled"):
+                runner.check_robot_limiter(lambda _: '"sig_mvm_robot_limit" = "0"', evidence)
+            self.assertIn('"0"', evidence.read_text())
+        self.meta.pop("robot_limiter")
+        self.assertIsNone(report.evaluate(self.meta, self.summary, "abc")["score"])
+
     def test_reads_server_version_instead_of_steam_depot_buildid(self):
         with tempfile.TemporaryDirectory() as temp:
             game = Path(temp)
@@ -192,6 +217,8 @@ class StabilityTest(unittest.TestCase):
                     (root / 'tf-dedicated/tf').mkdir(parents=True)
                     (root / 'tf-dedicated/tf/steam.inf').write_text('ServerVersion=123\\n')
                     (root / 'tf-dedicated/tf/console.log').write_text('Using Breakpad minidump system. Version: 123\\n')
+                elif name == 'rcon' and args == ['sig_mvm_robot_limit']:
+                    print('\"sig_mvm_robot_limit\" = \"1\" ( def. \"0\" )')
                 elif name == 'rcon':
                     print('TF2 MvM Archipelago\\nTF2 MvM wave probe\\nstatus: idle')
                 elif name == 'docker':
