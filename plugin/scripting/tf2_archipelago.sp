@@ -28,13 +28,15 @@ native bool Defenderbots_SetDirective(int client, bool rally, const float goal[3
 native int Defenderbots_GetSeatRank(int client);
 
 #include "tf2_archipelago/log.inc"
-#include "tf2_archipelago/mvm_math.inc"
+#include "tf2_archipelago/grant_ledger.inc"
+#if MAXPLAYERS + 1 != BundleLedgerClients
+#error BundleLedgerClients has to be MAXPLAYERS + 1
+#endif
 #include "tf2_archipelago/mvm.inc"
 #include "tf2_archipelago/invader_stalls.inc"
 #include "tf2_archipelago/unlocks.inc"
 #include "tf2_archipelago/weapon_buffs_data.inc"
 #include "tf2_archipelago/weapon_buffs_math.inc"
-#include "tf2_archipelago/bridge_grants_math.inc"
 #include "tf2_archipelago/bot_cards.inc"
 #include "tf2_archipelago/mission_modifiers_math.inc"
 #include "tf2_archipelago/weapon_buffs.inc"
@@ -121,7 +123,7 @@ static any Native_GetBundleCredits(Handle plugin, int numParams)
     {
         return ThrowNativeError(SP_ERROR_NATIVE, "client %d is not a client", client);
     }
-    return MvM_BundleCredits(client);
+    return BundleLedger_Credits(client);
 }
 
 public void OnPluginStart()
@@ -266,8 +268,7 @@ public void OnClientPutInServer(int client)
     // Client indexes are reused, so the previous occupant's cooldown is not
     // this player's.
     Bridge_ClearCooldown(client);
-    // Client indexes are reused, and so is the bundle ledger behind them.
-    MvM_ForgetBundles(client);
+    BundleLedger_Forget(client);
     if (IsFakeClient(client))
     {
         return;
@@ -417,7 +418,8 @@ public void OnMapStart()
     MissionModifiers_OnMapStart();
     Downloads_OnMapStart();
     Bots_OnMapStart();
-    MvM_OnMapStart();
+    // The game clears its own record of the wave with the map.
+    BundleLedger_Clear();
     WeaponBuffs_OnMapStart();
     Chamber_OnMapStart();
 

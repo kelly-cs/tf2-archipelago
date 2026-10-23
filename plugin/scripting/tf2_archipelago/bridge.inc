@@ -167,21 +167,6 @@ float g_ObjectivesSentAt;
 
 bool g_PollingGrants;
 bool g_FetchingUnlocks;
-int g_GrantSeq;
-
-// State grants already represented by the unlock snapshot or applied from a
-// poll. This advances past a held effect without moving the effect cursor.
-// Numeric weapon buffs are state, but applying one twice adds another level.
-int g_StateGrantSeq;
-
-// The sequence of the effect the plugin is holding, zero for none. An effect
-// happens once, so one that cannot happen yet is not acknowledged; the bridge
-// keeps sending it, which is also what carries it across a plugin reload.
-int g_HeldSeq;
-
-// How far the bridge has been told the plugin got. Effects at or below it are
-// never sent again, which is what stops a reload paying the run's cash twice.
-int g_AckedSeq;
 
 char g_LastBridgeError[192];
 float g_LastSaid[MAXPLAYERS + 1];
@@ -231,7 +216,7 @@ void Bridge_LastError(char[] buffer, int maxlength)
 
 int Bridge_Sequence()
 {
-    return g_GrantSeq;
+    return GrantCursor_Sequence();
 }
 
 // What sm_ap_status prints about the chat relay: whether a request is in
@@ -523,7 +508,7 @@ static Action Timer_DrainPending(Handle timer)
     {
         Bridge_PollDeaths();
     }
-    if (g_GrantSeq > g_AckedSeq)
+    if (GrantCursor_AckDue() != 0)
     {
         Bridge_SendAck();
     }
@@ -553,12 +538,13 @@ static Action Timer_DrainPending(Handle timer)
 // that come later.
 static void Bridge_SendAck()
 {
+    int seq = GrantCursor_AckDue();
     JSONObject body = new JSONObject();
-    body.SetInt("seq", g_GrantSeq);
+    body.SetInt("seq", seq);
 
     HTTPRequest request = BridgeRequest("/grants/ack");
     request.Timeout = 10;
-    request.Post(body, OnAcked, g_GrantSeq);
+    request.Post(body, OnAcked, seq);
     delete body;
 }
 
@@ -570,10 +556,7 @@ static void OnAcked(HTTPResponse response, any value, const char[] error)
         // underneath the plugin. Retrying the same number every five seconds
         // would never stop; asking what the run is now does.
         AP_Debug("The bridge refused the acknowledgement of sequence %d. The plugin resyncs.", value);
-        g_GrantSeq = 0;
-        g_AckedSeq = 0;
-        g_HeldSeq = 0;
-        g_StateGrantSeq = 0;
+        GrantCursor_Restart();
         Bridge_FetchUnlocks();
         return;
     }
@@ -582,17 +565,10 @@ static void OnAcked(HTTPResponse response, any value, const char[] error)
         AP_Debug("The bridge did not take the acknowledgement of sequence %d. The plugin tries again.", value);
         return;
     }
-    // A run restart zeroes both cursors while an acknowledgement may still be
-    // in flight. Letting that late answer set the cursor above where the plugin
-    // now is stops it acknowledging anything for the rest of the run.
-    if (value > g_GrantSeq)
+    if (!GrantCursor_Acknowledged(value))
     {
         AP_Debug("An acknowledgement of sequence %d arrived from a run that ended.", value);
         return;
-    }
-    if (value > g_AckedSeq)
-    {
-        g_AckedSeq = value;
     }
     AP_Debug("The bridge acknowledged sequence %d.", value);
 }
@@ -800,15 +776,14 @@ static void OnUnlocks(HTTPResponse response, any value, const char[] error)
     // plugin must deduplicate, plus every effect it never received. Taking
     // the item count here instead would step
     // over an unapplied cash bundle and lose it for good.
-    g_GrantSeq = payload.GetInt("resume_from");
-    ApplyUnlockSet(payload);
-    // The snapshot already counted every state grant through this item position.
+    // The snapshot already counted every state grant through snapshot_seq.
     // Polling from resume_from may send them again to recover a held effect.
-    g_StateGrantSeq = payload.GetInt("snapshot_seq");
+    GrantCursor_Resume(payload.GetInt("resume_from"), payload.GetInt("snapshot_seq"));
+    ApplyUnlockSet(payload);
     g_HaveUnlocks = true;
     Bridge_ClearError();
 
-    AP_Debug("The plugin applied the unlock set at sequence %d.", g_GrantSeq);
+    AP_Debug("The plugin applied the unlock set at sequence %d.", GrantCursor_Sequence());
     Unlocks_ApplyToAll();
     Missions_OnListUpdated();
 
@@ -952,7 +927,7 @@ void Bridge_PollGrants()
         return;
     }
     char path[64];
-    FormatEx(path, sizeof(path), "/grants?since=%d", g_GrantSeq);
+    FormatEx(path, sizeof(path), "/grants?since=%d", GrantCursor_Sequence());
 
     HTTPRequest request = BridgeRequest(path);
     // Longer than the bridge's own poll timeout, so a timeout here always means something is wrong.
@@ -987,14 +962,9 @@ static void OnGrants(HTTPResponse response, any value, const char[] error)
     JSONObject payload = view_as<JSONObject>(response.Data);
 
     // A bridge behind this plugin means the run restarted: these grants belong to a different one.
-    if (payload.GetInt("seq") < g_GrantSeq
-        || payload.GetInt("seq") < g_StateGrantSeq)
+    if (GrantCursor_RunRestarted(payload.GetInt("seq")))
     {
         AP_Error("The run restarted. The plugin asks for the unlock set again.");
-        g_GrantSeq = 0;
-        g_AckedSeq = 0;
-        g_HeldSeq = 0;
-        g_StateGrantSeq = 0;
         Bridge_FetchUnlocks();
         return;
     }
@@ -1012,7 +982,7 @@ static void OnGrants(HTTPResponse response, any value, const char[] error)
     }
     Bridge_ClearError();
     Unlocks_ApplyToAll();
-    if (g_GrantSeq > g_AckedSeq)
+    if (GrantCursor_AckDue() != 0)
     {
         Bridge_SendAck();
     }
@@ -1020,7 +990,7 @@ static void OnGrants(HTTPResponse response, any value, const char[] error)
     // answers at once with the same grant. Asking straight away would be a
     // loop as fast as the loopback; asking on the retry timer is what turns
     // the hold into a wait for the upgrade station.
-    if (g_HeldSeq != 0)
+    if (GrantCursor_Holding())
     {
         Bridge_PollGrantsLater();
         return;
@@ -1038,15 +1008,6 @@ static Action Timer_PollAgain(Handle timer)
 static void ApplyGrant(JSONObject grant)
 {
     int seq = grant.GetInt("seq");
-
-    // Applied once. The bridge holds an effect back once it is acknowledged,
-    // but the acknowledgement is a round trip and this is what covers it.
-    if (seq <= g_GrantSeq)
-    {
-        AP_Debug("The bridge re-sent sequence %d, which the plugin already applied.", seq);
-        return;
-    }
-
     char kind[24], key[64], name[64];
     grant.GetString("kind", kind, sizeof(kind));
     if (!grant.GetString("key", key, sizeof(key)))
@@ -1058,110 +1019,72 @@ static void ApplyGrant(JSONObject grant)
         strcopy(name, sizeof(name), key);
     }
 
-    bool state = !StrEqual(kind, "credits") && !StrEqual(kind, "trap");
-    int nextStateSeq = state ? Bridge_NextStateGrantSeq(g_StateGrantSeq, seq) : g_StateGrantSeq;
-    bool newState = state && nextStateSeq != g_StateGrantSeq;
-    // The snapshot or an earlier poll already counted every older state item.
-    // A held effect keeps resending those items until it can be applied.
-    if (!state || newState)
+    bool credits = StrEqual(kind, "credits");
+    bool trap = StrEqual(kind, "trap");
+    GrantStep step = GrantCursor_Receive(seq, credits || trap);
+    if (step == GrantStep_Applied)
     {
-        if (StrEqual(kind, "credits"))
+        AP_Debug("The bridge re-sent sequence %d, which the plugin already applied.", seq);
+        return;
+    }
+    if (step == GrantStep_Skip)
+    {
+        return;
+    }
+    if (step == GrantStep_Try)
+    {
+        if (credits)
         {
-            if (!ApplyCredits(seq, grant.GetInt("amount")))
+            int amount = grant.GetInt("amount");
+            if (GrantCursor_Settle(seq, PayCredits(amount)))
             {
-                return;
+                AP_Announce("%d credits are waiting for the upgrade station.", amount);
             }
+            return;
         }
-        else if (StrEqual(kind, "trap"))
+        if (GrantCursor_Settle(seq, FireTrap(key)))
         {
-            if (!ApplyTrap(seq, key, name))
-            {
-                return;
-            }
-        }
-        else if (Bridge_ApplyKind(kind, key))
-        {
-            // A held effect stops the effect cursor. New state grants beyond
-            // it can still be applied and announced once.
-            if (g_HeldSeq == 0)
-            {
-                AP_Announce("%s unlocked: %s", GrantLabel(kind), name);
-            }
-        }
-        else
-        {
-            AP_Error("The bridge sent a grant of kind %s. This plugin does not know it.", kind);
-        }
-    }
-
-    if (newState)
-    {
-        g_StateGrantSeq = nextStateSeq;
-    }
-
-    // The effect cursor stays behind a held effect. The state cursor above
-    // prevents later state items being applied again on the next poll.
-    if (g_HeldSeq == 0)
-    {
-        g_GrantSeq = seq;
-    }
-}
-
-// Pays a Cash Bundle, or holds it for a moment when it survives. False when it
-// held: the caller then leaves the cursor where it is, and the bridge sends
-// this grant again on the next poll.
-//
-// Effects are strictly ordered. A second bundle behind a held one waits too,
-// because a grant applied out of order is one the acknowledgement cannot
-// describe: the cursor is a single number.
-static bool ApplyCredits(int seq, int amount)
-{
-    if (g_HeldSeq != 0 && seq != g_HeldSeq)
-    {
-        return false;
-    }
-    if (!MvM_CanPayCredits() || MvM_GrantCredits(amount) == 0)
-    {
-        if (g_HeldSeq != seq)
-        {
-            g_HeldSeq = seq;
-            AP_Announce("%d credits are waiting for the upgrade station.", amount);
-        }
-        return false;
-    }
-    g_HeldSeq = 0;
-    return true;
-}
-
-// Fires a trap, or holds it until there is a wave to ruin. False when it held,
-// exactly like a Cash Bundle. The caller leaves the cursor where it is, and the
-// bridge sends this grant again on the next poll.
-//
-// Credits wait for the upgrade station and traps wait for the robots. It is the
-// same wait: a trap that lands between waves soaks a team standing at the shop.
-//
-// This plugin announces a key it cannot read once, then counts it as fired.
-// Holding an effect that can never apply blocks every effect behind it.
-static bool ApplyTrap(int seq, const char[] key, const char[] name)
-{
-    if (g_HeldSeq != 0 && seq != g_HeldSeq)
-    {
-        return false;
-    }
-    if (!MvM_WaveInProgress())
-    {
-        if (g_HeldSeq != seq)
-        {
-            g_HeldSeq = seq;
             AP_Announce("%s is waiting for the next wave.", name);
         }
+        return;
+    }
+    if (!Bridge_ApplyKind(kind, key))
+    {
+        AP_Error("The bridge sent a grant of kind %s. This plugin does not know it.", kind);
+        return;
+    }
+    // Behind a held effect the grant is new, but chat is already saying why
+    // the cursor stopped.
+    if (!GrantCursor_Holding())
+    {
+        AP_Announce("%s unlocked: %s", GrantLabel(kind), name);
+    }
+}
+
+// Pays a Cash Bundle. False when it has to wait: money paid into a wave the
+// team then loses goes back with the wave, so it waits for the upgrade station.
+static bool PayCredits(int amount)
+{
+    return MvM_CanPayCredits() && MvM_GrantCredits(amount) != 0;
+}
+
+/* Fires a trap. False when there is no wave to ruin: credits wait for the
+ * upgrade station and traps wait for the robots. It is the same wait, since a
+ * trap that lands between waves soaks a team standing at the shop.
+ *
+ * A key this plugin cannot read is said once, then counted as fired. Holding an
+ * effect that can never apply blocks every effect behind it.
+ */
+static bool FireTrap(const char[] key)
+{
+    if (!MvM_WaveInProgress())
+    {
         return false;
     }
     if (!Traps_Apply(key))
     {
         AP_Error("The bridge sent a trap named %s. This plugin does not know it.", key);
     }
-    g_HeldSeq = 0;
     return true;
 }
 

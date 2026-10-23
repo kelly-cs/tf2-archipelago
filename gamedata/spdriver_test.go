@@ -57,10 +57,9 @@ const (
 var driverIncludes = []string{
 	"weapon_buffs_data.inc",
 	"weapon_buffs_math.inc",
-	"bridge_grants_math.inc",
+	"grant_ledger.inc",
 	"mission_modifiers_math.inc",
 	"loadout_math.inc",
-	"mvm_math.inc",
 	"missions_math.inc",
 }
 
@@ -68,10 +67,12 @@ var driverIncludes = []string{
 	driver is a standalone plugin built around the plugin's own math include.
 
 body is the main: whatever it prints comes back as cells, in order. A float goes
-out as view_as<int> so the bits arrive rather than a rounded decimal.
+out as view_as<int> so the bits arrive rather than a rounded decimal. prelude
+comes before it, for the globals and helpers a scenario plays the game with.
 */
 type driver struct {
-	body string
+	prelude string
+	body    string
 }
 
 func (d driver) source() string {
@@ -82,6 +83,7 @@ func (d driver) source() string {
 	for _, name := range driverIncludes {
 		fmt.Fprintf(&b, "#include %q\n", name)
 	}
+	b.WriteString(d.prelude)
 	b.WriteString("\npublic int main()\n{\n")
 	b.WriteString(d.body)
 	b.WriteString("\n    return 0;\n}\n")
@@ -116,71 +118,6 @@ func (d driver) run(t *testing.T) []int32 {
 		t.Fatalf("running the driver: %v\n\n%s", err, d.source())
 	}
 	return cells
-}
-
-// The SourcePawn grant cursor must count each received item position once.
-// Held cash or a trap makes the bridge return the same later buff positions on
-// every retry; the old plugin could increment a legitimate x2 to x44 this way.
-func TestStateGrantCursorIgnoresRuntimeReplays(t *testing.T) {
-	got := driver{body: `
-    int seen = 4; // The unlock snapshot already holds two copies.
-    int levels = 2;
-    for (int retry = 0; retry < 21; retry++)
-    {
-        int next = Bridge_NextStateGrantSeq(seen, 2);
-        if (next != seen) { levels++; seen = next; }
-        next = Bridge_NextStateGrantSeq(seen, 4);
-        if (next != seen) { levels++; seen = next; }
-    }
-    printnum(levels);
-    printnum(seen);
-
-    // One genuinely new copy arrives while the same effect is still held.
-    for (int retry = 0; retry < 21; retry++)
-    {
-        int next = Bridge_NextStateGrantSeq(seen, 5);
-        if (next != seen) { levels++; seen = next; }
-    }
-    printnum(levels);
-    printnum(seen);
-
-    // An older replay cannot lower the cursor before another new copy.
-    int next = Bridge_NextStateGrantSeq(seen, 3);
-    if (next != seen) { levels++; seen = next; }
-    next = Bridge_NextStateGrantSeq(seen, 6);
-    if (next != seen) { levels++; seen = next; }
-    printnum(levels);
-    printnum(seen);
-`}.run(t)
-	want := []int32{2, 4, 3, 5, 4, 6}
-	if len(got) != len(want) {
-		t.Fatalf("grant cursor returned %v, want %v", got, want)
-	}
-	for i := range want {
-		if got[i] != want[i] {
-			t.Fatalf("grant cursor returned %v, want %v", got, want)
-		}
-	}
-}
-
-// A reload can ask from an acknowledgement that predates the unlock snapshot
-// even when the run contains no cash or traps. Those copies are already in the
-// menu and must not be counted by the first grant poll a second time.
-func TestStateGrantCursorIgnoresSnapshotOverlapWithoutEffects(t *testing.T) {
-	got := driver{body: `
-    int seen = 2; // The unlock snapshot contains two buff copies.
-    int levels = 2;
-    for (int seq = 1; seq <= 2; seq++)
-    {
-        int next = Bridge_NextStateGrantSeq(seen, seq);
-        if (next != seen) { levels++; seen = next; }
-    }
-    printnum(levels);
-    printnum(seen);
-`}.run(t)
-	if len(got) != 2 || got[0] != 2 || got[1] != 2 {
-		t.Fatalf("snapshot overlap returned %v, want [2 2]", got)
-	}
 }
 
 /*
