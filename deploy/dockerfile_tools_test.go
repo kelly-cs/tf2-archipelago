@@ -47,11 +47,22 @@ func TestTheToolsStageCopiesWhatItsCommandsImport(t *testing.T) {
 			if !inRepo {
 				continue
 			}
-			if !strings.Contains(stage, "COPY "+path+" "+path) {
+			if !copies(stage, path) {
 				t.Errorf("%s needs %s and the tools stage does not copy it", command, path)
 			}
 		}
 	}
+}
+
+// copies reports whether stage copies path, by itself or with the directory
+// it sits in: COPY gamedata gamedata takes gamedata/availability along.
+func copies(stage, path string) bool {
+	for dir := path; dir != "."; dir = filepath.Dir(dir) {
+		if strings.Contains(stage, "COPY "+dir+" "+dir+"\n") {
+			return true
+		}
+	}
+	return false
 }
 
 /*
