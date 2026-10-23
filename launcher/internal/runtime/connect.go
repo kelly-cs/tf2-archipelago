@@ -6,12 +6,13 @@ import (
 	"net"
 	"net/url"
 	"os"
+	"regexp"
 	"slices"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/m-this/tf2-archipelago/launcher/internal/lanaddr"
 	"github.com/m-this/tf2-archipelago/launcher/internal/settings"
 )
 
@@ -27,6 +28,9 @@ import (
 func ConnectLines(s settings.Settings) []string {
 	port := strconv.Itoa(s.SrcdsPort)
 	lines := []string{"connect " + net.JoinHostPort("127.0.0.1", port) + "   (on this machine)"}
+	if s.SrcdsJoinHost != "" {
+		lines = append(lines, "connect "+net.JoinHostPort(s.SrcdsJoinHost, port)+"   (configured join address)")
+	}
 	for _, address := range LocalAddresses() {
 		lines = append(lines, "connect "+net.JoinHostPort(address, port)+"   (from your network)")
 	}
@@ -75,80 +79,9 @@ func FakeIPAddress(line string) string {
 	return address
 }
 
-// LocalAddresses lists this machine's IPv4 addresses, skipping loopback and
-// the ones Windows hands out when a network is not really there.
-func LocalAddresses() []string {
-	preferred := preferredOutboundAddress()
-	interfaces, err := net.Interfaces()
-	if err != nil {
-		return nil
-	}
-	var found []string
-	for _, iface := range interfaces {
-		if iface.Flags&net.FlagUp == 0 || iface.Flags&net.FlagLoopback != 0 {
-			continue
-		}
-		addresses, err := iface.Addrs()
-		if err != nil {
-			continue
-		}
-		for _, address := range addresses {
-			ipNet, ok := address.(*net.IPNet)
-			if !ok {
-				continue
-			}
-			ip := ipNet.IP.To4()
-			if ip == nil || ip.IsLoopback() || ip.IsLinkLocalUnicast() {
-				continue
-			}
-			found = append(found, ip.String())
-		}
-	}
-	sort.SliceStable(found, func(i, j int) bool {
-		return found[i] == preferred && found[j] != preferred
-	})
-	return found
-}
-
-// routeLookupTimeout bounds the route question below.
-const routeLookupTimeout = time.Second
-
-/* preferredAddress is the one this machine would send from, asked of the OS.
- *
- * The order net.Interfaces returns is arbitrary, and a machine with Docker,
- * WSL or a virtual machine on it has several addresses that answer nothing.
- * One bundle carried four: 192.168.50.105 alongside 192.168.34.1,
- * 192.168.222.1 and 172.25.192.1. Taking the first of those for the join link
- * sends the player at an adapter with no server behind it, which is
- * "connection failed after 4 retries" and a stall at two bars while the LAN
- * tab of the server browser finds the same server first try.
- *
- * A UDP dial to a routable address sends nothing. It only makes the kernel
- * choose a route, and the local address of that choice is the interface this
- * machine really reaches the network on.
- */
-func preferredOutboundAddress() string {
-	// Bounded, though a UDP dial only consults the routing table and does not
-	// wait for anybody: a machine with no route at all should not hold the
-	// interface up while it finds that out.
-	ctx, cancel := context.WithTimeout(context.Background(), routeLookupTimeout)
-	defer cancel()
-	var dialer net.Dialer
-	conn, err := dialer.DialContext(ctx, "udp4", "192.0.2.1:9")
-	if err != nil {
-		return ""
-	}
-	defer func() { _ = conn.Close() }()
-	local, ok := conn.LocalAddr().(*net.UDPAddr)
-	if !ok || local.IP == nil {
-		return ""
-	}
-	ip := local.IP.To4()
-	if ip == nil || ip.IsLoopback() || ip.IsLinkLocalUnicast() {
-		return ""
-	}
-	return ip.String()
-}
+// LocalAddresses lists this machine's IPv4 addresses, the one friends reach it
+// on first. See lanaddr.
+func LocalAddresses() []string { return lanaddr.All() }
 
 // RconAddresses are the addresses this machine's own game server may answer
 // rcon on, in the order worth trying.
@@ -226,6 +159,21 @@ func SourceModWasUpdated(line string) bool {
 	return strings.Contains(line, sourcemodUpdatedPrefix)
 }
 
+// gameUpdateLine is srcds passing on Steam's word that a newer TF2 build is
+// out. The running server keeps the old one, and clients that updated cannot
+// join it until it is updated and started again.
+const gameUpdateLine = "Your server needs to be restarted in order to receive the latest update"
+
+// gameUpdatePattern holds the line at its start, past colors and a log
+// timestamp, so a player quoting it in chat does not raise it.
+var gameUpdatePattern = regexp.MustCompile(`^(L \d\d/\d\d/\d{4} - \d\d:\d\d:\d\d: )?` + regexp.QuoteMeta(gameUpdateLine))
+
+// GameUpdateRequired reports whether this line is Steam saying the installed
+// TF2 server is behind.
+func GameUpdateRequired(line string) bool {
+	return gameUpdatePattern.MatchString(strings.TrimSpace(consoleCSI.ReplaceAllString(line, "")))
+}
+
 /* itemSchemaPrefix is srcds saying it reached Steam's item server.
  *
  * That server is what hands out weapons. Without it every player and every bot
@@ -240,9 +188,15 @@ func SourceModWasUpdated(line string) bool {
  */
 const itemSchemaPrefix = "Current item schema is up-to-date"
 
+// SRCDS sometimes decorates the schema message with terminal colors. The
+// browser displays control bytes instead of interpreting them, so remove CSI
+// sequences before either matching or showing the message.
+var consoleCSI = regexp.MustCompile(`\x1b\[[0-?]*[ -/]*[@-~]`)
+
 // ItemServerLine turns one line of server output into something worth showing a
 // player, or "" for every other line.
 func ItemServerLine(line string) string {
+	line = consoleCSI.ReplaceAllString(line, "")
 	if strings.Contains(line, itemSchemaPrefix) {
 		return "the item server answered: weapons are available"
 	}
@@ -288,7 +242,9 @@ func SteamConnectURL(s settings.Settings, steamAddress string) string {
 	// until then.
 	if s.SrcdsReach != settings.ReachSteam || address == "" {
 		host := "127.0.0.1"
-		if local := LocalAddresses(); len(local) > 0 {
+		if s.SrcdsJoinHost != "" {
+			host = s.SrcdsJoinHost
+		} else if local := LocalAddresses(); len(local) > 0 {
 			host = local[0]
 		}
 		address = net.JoinHostPort(host, strconv.Itoa(s.SrcdsPort))

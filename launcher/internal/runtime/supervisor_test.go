@@ -2,16 +2,20 @@ package runtime
 
 import (
 	"context"
+	"errors"
 	"os"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/m-this/tf2-archipelago/bridge/config"
+	"github.com/m-this/tf2-archipelago/fakeroom"
 	"github.com/m-this/tf2-archipelago/gamedata"
 	"github.com/m-this/tf2-archipelago/launcher/internal/settings"
+	"github.com/m-this/tf2-archipelago/launcher/internal/tailscalefastdl"
 )
 
 func TestTestModeRejectsAnInvalidRunBeforeOpeningARoom(t *testing.T) {
@@ -26,6 +30,44 @@ func TestTestModeRejectsAnInvalidRunBeforeOpeningARoom(t *testing.T) {
 			_ = room.Close(context.Background())
 		}
 		t.Fatal("Test mode accepted an empty mission pool")
+	}
+}
+
+func TestTestModeLoadsEverySelectedMissionRegardlessOfSeedCount(t *testing.T) {
+	s := settings.Defaults()
+	s.MvmMissionCount = 1
+	s.MvmDifficulty = "normal"
+	selected := []string{"mvm_decoy", "mvm_coaltown_intermediate", "mvm_mannworks_advanced"}
+	for _, mission := range gamedata.PlayableMissions() {
+		if !slices.Contains(selected, mission.PopFile) {
+			s.MvmExcludedMissions = append(s.MvmExcludedMissions, mission.PopFile)
+		}
+	}
+	s.MvmStartMission = selected[1]
+
+	got := testModeMissions(s)
+	want := []string{selected[1], selected[0], selected[2]}
+	if !slices.Equal(got, want) {
+		t.Fatalf("test-mode missions = %v, want %v", got, want)
+	}
+}
+
+func TestTestModeDrawsConfiguredMissionModifiers(t *testing.T) {
+	missions := []string{"mvm_decoy", "mvm_coaltown_intermediate"}
+	got := fakeroom.DrawMissionModifiers(missions, 3, 3)
+	for _, mission := range missions {
+		if len(got[mission]) != 3 {
+			t.Fatalf("%s modifiers = %d, want 3", mission, len(got[mission]))
+		}
+		gravity := 0
+		for _, modifier := range got[mission] {
+			if modifier.Key == "low_gravity" || modifier.Key == "high_gravity" {
+				gravity++
+			}
+		}
+		if gravity > 1 {
+			t.Fatalf("%s received incompatible gravity modifiers: %+v", mission, got[mission])
+		}
 	}
 }
 
@@ -45,6 +87,7 @@ func fakeServer(t *testing.T, root string) settings.Settings {
 	if err := os.WriteFile(path, []byte(script), 0o755); err != nil {
 		t.Fatalf("cannot write %s: %v", path, err)
 	}
+	linkFakeSteamClient(t, root)
 
 	s := settings.Defaults()
 	s.InstallRoot = root
@@ -54,6 +97,24 @@ func fakeServer(t *testing.T, root string) settings.Settings {
 	s.APHost, s.APPort, s.APTls = "127.0.0.1", 1, false
 	s.MetricsPort = 0
 	return s
+}
+
+// linkFakeSteamClient puts the link srcds_run needs where a real install has it.
+func linkFakeSteamClient(t *testing.T, root string) {
+	t.Helper()
+	source := filepath.Join(root, "steamcmd", "linux32", "steamclient.so")
+	link := filepath.Join(root, ".steam", "sdk32", "steamclient.so")
+	for _, dir := range []string{filepath.Dir(source), filepath.Dir(link)} {
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := os.WriteFile(source, []byte("ELF"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(source, link); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestSupervisorStartStop(t *testing.T) {
@@ -119,6 +180,112 @@ func TestSupervisorRefusesAnIncompleteConfiguration(t *testing.T) {
 	s.InstallRoot = t.TempDir()
 	if err := NewSupervisor(s, nil, nil).Start(nil); err == nil {
 		t.Fatal("Start with no room address and no RCON password succeeded")
+	}
+}
+
+func TestSupervisorDoesNotHoldItsMutexWhileTailscaleStarts(t *testing.T) {
+	s := settings.Defaults()
+	s.TailscaleFastDL = true
+	sup := NewSupervisor(s, nil, nil)
+	entered := make(chan struct{})
+	release := make(chan struct{})
+	sup.configureTailscale = func(context.Context, int) (tailscalefastdl.Result, error) {
+		close(entered)
+		<-release
+		return tailscalefastdl.Result{}, errors.New("setup stopped for the test")
+	}
+
+	startErr := make(chan error, 1)
+	go func() { startErr <- sup.Start(nil) }()
+	select {
+	case <-entered:
+	case <-time.After(time.Second):
+		t.Fatal("Tailscale setup did not start")
+	}
+
+	status := make(chan bool, 1)
+	go func() { status <- sup.Running() }()
+	select {
+	case running := <-status:
+		if !running {
+			t.Fatal("Running is false while setup is in progress")
+		}
+	case <-time.After(100 * time.Millisecond):
+		t.Fatal("Running blocked on Tailscale setup")
+	}
+
+	close(release)
+	if err := <-startErr; err == nil {
+		t.Fatal("failed Tailscale setup was accepted")
+	}
+}
+
+func TestSupervisorStopCancelsAndWaitsForTailscaleSetup(t *testing.T) {
+	s := settings.Defaults()
+	s.TailscaleFastDL = true
+	sup := NewSupervisor(s, nil, nil)
+	entered := make(chan struct{})
+	sup.configureTailscale = func(ctx context.Context, _ int) (tailscalefastdl.Result, error) {
+		close(entered)
+		<-ctx.Done()
+		return tailscalefastdl.Result{}, ctx.Err()
+	}
+
+	startErr := make(chan error, 1)
+	go func() { startErr <- sup.Start(nil) }()
+	<-entered
+	sup.Stop()
+	if err := <-startErr; err != nil {
+		t.Fatalf("operator-cancelled Start returned %v", err)
+	}
+	if sup.Running() {
+		t.Fatal("Running is true after cancelling setup")
+	}
+}
+
+func TestSupervisorStopRemovesTheFastDLFunnelRoute(t *testing.T) {
+	s := fakeServer(t, t.TempDir())
+	s.TailscaleFastDL = true
+	sup := NewSupervisor(s, nil, nil)
+	sup.configureTailscale = func(context.Context, int) (tailscalefastdl.Result, error) {
+		return tailscalefastdl.Result{URL: "https://host.example.ts.net/tf"}, nil
+	}
+	disabled := make(chan struct{}, 1)
+	sup.disableTailscale = func(context.Context) error {
+		disabled <- struct{}{}
+		return nil
+	}
+
+	if err := sup.Start(nil); err != nil {
+		t.Fatal(err)
+	}
+	sup.Stop()
+	select {
+	case <-disabled:
+	default:
+		t.Fatal("Stop did not remove the FastDL Funnel route")
+	}
+}
+
+func TestSupervisorStartupFailureRemovesAConfiguredFunnelRoute(t *testing.T) {
+	s := settings.Defaults()
+	s.TailscaleFastDL = true
+	// No RCON password makes bridgeConfig fail after Funnel was configured.
+	sup := NewSupervisor(s, nil, nil)
+	sup.configureTailscale = func(context.Context, int) (tailscalefastdl.Result, error) {
+		return tailscalefastdl.Result{URL: "https://host.example.ts.net/tf"}, nil
+	}
+	disabled := false
+	sup.disableTailscale = func(context.Context) error {
+		disabled = true
+		return nil
+	}
+
+	if err := sup.Start(nil); err == nil {
+		t.Fatal("incomplete configuration was accepted")
+	}
+	if !disabled {
+		t.Fatal("startup failure left the configured Funnel route behind")
 	}
 }
 

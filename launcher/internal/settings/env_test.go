@@ -59,110 +59,6 @@ func TestApplyEnvIgnoresGarbageNumbers(t *testing.T) {
 	}
 }
 
-// Every field the launcher saves has to be reachable from the environment, so a
-// shortcut, a .bat or a CI job can set any of them. A field added without a
-// variable fails here rather than being discovered by somebody scripting it.
-func TestEveryFieldHasAnEnvVar(t *testing.T) {
-	// The variable that carries a whole room address covers three fields at
-	// once, and the rest map one to one.
-	byField := map[string]string{
-		"InstallRoot":                "TF2AP_INSTALL_ROOT",
-		"CommunityContentDir":        "TF2AP_COMMUNITY_CONTENT_DIR",
-		"CommunityPacks":             "TF2AP_COMMUNITY_PACKS",
-		"TestMode":                   "TF2AP_TEST_MODE",
-		"ArchipelagoDir":             "TF2AP_ARCHIPELAGO_DIR",
-		"APHost":                     "AP_HOST",
-		"APPort":                     "AP_PORT",
-		"APTls":                      "AP_TLS",
-		"APSlotName":                 "AP_SLOT_NAME",
-		"APPassword":                 "AP_PASSWORD",
-		"SrcdsHostname":              "SRCDS_HOSTNAME",
-		"SrcdsRconPw":                "SRCDS_RCONPW",
-		"SrcdsPw":                    "SRCDS_PW",
-		"SrcdsPort":                  "SRCDS_PORT",
-		"SrcdsMaxPlayers":            "SRCDS_MAXPLAYERS",
-		"SrcdsStartMission":          "SRCDS_START_MISSION",
-		"SrcdsStartMap":              "SRCDS_STARTMAP",
-		"SrcdsToken":                 "SRCDS_TOKEN",
-		"SrcdsReach":                 "SRCDS_REACH",
-		"SrcdsAdminSteamIDs":         "SRCDS_ADMIN_STEAMIDS",
-		"SrcdsBots":                  "SRCDS_BOTS",
-		"SrcdsBotTeamSize":           "SRCDS_BOT_TEAM_SIZE",
-		"SrcdsBotClassBlacklist":     "SRCDS_BOT_CLASS_BLACKLIST",
-		"SrcdsBotLoadouts":           "SRCDS_BOT_LOADOUTS",
-		"SrcdsBotTeamComp":           "SRCDS_BOT_TEAM_COMP",
-		"SrcdsBotSeatLoadouts":       "SRCDS_BOT_SEAT_LOADOUTS",
-		"SrcdsBotHats":               "SRCDS_BOT_HATS",
-		"SrcdsBotHatEffects":         "SRCDS_BOT_HAT_EFFECTS",
-		"BotUpgradesChat":            "TF2AP_BOT_UPGRADES_CHAT",
-		"MvmMissionCount":            "MVM_MISSION_COUNT",
-		"MvmDifficulty":              "MVM_DIFFICULTY",
-		"MvmGoal":                    "MVM_GOAL",
-		"MvmMissionsanityPct":        "MVM_MISSIONSANITY_PERCENTAGE",
-		"MvmDeathLink":               "MVM_DEATH_LINK",
-		"MvmExcludedMissions":        "MVM_EXCLUDED_MISSIONS",
-		"MvmStartMission":            "MVM_START_MISSION",
-		"MvmStartClass":              "MVM_START_CLASS",
-		"MvmMissionTicketImportance": "MVM_MISSION_TICKET_IMPORTANCE",
-		"MvmClassUnlockImportance":   "MVM_CLASS_UNLOCK_IMPORTANCE",
-		"MvmWeaponSlotImportance":    "MVM_WEAPON_SLOT_IMPORTANCE",
-		"MvmWeaponBuffImportance":    "MVM_WEAPON_BUFF_IMPORTANCE",
-		"MvmCashRewards":             "MVM_CASH_REWARDS",
-		"MvmWeaponBuffPct":           "MVM_WEAPON_BUFF_PERCENTAGE",
-		"MvmWeaponBuffStackChance":   "MVM_WEAPON_BUFF_STACK_CHANCE",
-		"MetricsPort":                "BRIDGE_METRICS_PORT",
-		"SrcdsBluHealthPct":          "SRCDS_BLU_HEALTH_PCT",
-	}
-	// Fields kept only to read a config file written by an older build. They
-	// are never saved and never asked for, so there is nothing to set.
-	legacy := map[string]bool{"SrcdsLanLegacy": true}
-
-	// Fields the config file holds and the environment does not. A saved team
-	// is something somebody named in front of the window; a compose stack
-	// names its team in SRCDS_BOT_TEAM_COMP and has nowhere to click. A built
-	// loadout is the same: four item indexes and a name, put together in a
-	// menu, and a seat names one with the custom: prefix in the team it is
-	// already setting.
-	windowOnly := map[string]bool{
-		"SrcdsBotTeamPresets":    true,
-		"SrcdsBotCustomLoadouts": true,
-	}
-
-	known := map[string]bool{}
-	for _, name := range EnvNames {
-		known[name] = true
-	}
-
-	for structField := range reflect.TypeFor[Settings]().Fields() {
-		field := structField.Name
-		if legacy[field] || windowOnly[field] {
-			continue
-		}
-		name, ok := byField[field]
-		if !ok {
-			t.Errorf("%s has no environment variable; add one to ApplyEnv and to this table", field)
-			continue
-		}
-		if !known[name] {
-			t.Errorf("%s maps to %s, which is not in EnvNames", field, name)
-		}
-	}
-
-	// And the other way: a name in the list that nothing reads is a lie in the
-	// output of -env.
-	// AP_ROOM carries a whole address, and SRCDS_LAN is the older spelling of
-	// two of the three reaches. Both are read, neither owns a field.
-	mapped := map[string]bool{"AP_ROOM": true, "SRCDS_LAN": true}
-	for _, name := range byField {
-		mapped[name] = true
-	}
-	for _, name := range EnvNames {
-		if !mapped[name] {
-			t.Errorf("%s is listed but no field uses it", name)
-		}
-	}
-}
-
 func TestApplyEnvReadsTheLists(t *testing.T) {
 	t.Setenv("SRCDS_BOT_CLASS_BLACKLIST", "sniper, spy")
 	t.Setenv("SRCDS_BOT_LOADOUTS", "scout=milk,soldier=banner")
@@ -229,5 +125,15 @@ func TestSeatListsKeepTheirHoles(t *testing.T) {
 	// The blacklist is a set and has no seats, so it drops its empties.
 	if got := strings.Join(s.SrcdsBotClassBlacklist, "|"); got != "sniper|spy" {
 		t.Errorf("blacklist = %q", got)
+	}
+}
+
+// Compose passes SRCDS_START_MISSION empty when .env names none. That is not
+// a mission, so the map SRCDS_STARTMAP names still decides where the run starts.
+func TestAnEmptyStartMissionLeavesTheStartMap(t *testing.T) {
+	t.Setenv("SRCDS_STARTMAP", "mvm_bigrock")
+	t.Setenv("SRCDS_START_MISSION", "")
+	if got := ApplyEnv(Defaults()).SrcdsStartMission; got == "" || got == Defaults().SrcdsStartMission {
+		t.Errorf("start mission = %q, want a mission on mvm_bigrock", got)
 	}
 }

@@ -24,6 +24,17 @@ type BuffWeapon struct {
 	ApplyID uint16
 }
 
+const allClassMeleeName = "All-Class Melee"
+
+// DisplayName is the player-facing name of a reward pool. Stable weapon names
+// still identify the pool internally, so relabelling one does not move its IDs.
+func (w BuffWeapon) DisplayName() string {
+	if w.Name == "Saxxy" {
+		return allClassMeleeName
+	}
+	return w.Name
+}
+
 // WeaponEffect is one positive TF2 item attribute. Every effect is deliberately
 // paired with every weapon, including combinations the stock game never uses.
 type WeaponEffect struct {
@@ -58,6 +69,21 @@ func (b WeaponBuff) ItemID() int64 {
 
 func (b WeaponBuff) ItemName() string {
 	return "Weapon Buff: " + b.Weapon + " — " + b.Description
+}
+
+func weaponEffectDescription(weapon string, effect WeaponEffect) string {
+	if effect.Key == "damage" && stompWeapons[weapon] {
+		return "+5× fall-damage multiplier"
+	}
+	if effect.Key == "clip-size" && weapon == "Thermal Thruster" {
+		return "+1 launch charge"
+	}
+	// A syringe gun lands hits far faster than a saw swings, so it charges at a
+	// fifth of the rate. The plugin scales the same pair of values.
+	if effect.Key == "uber-on-hit" && medicSyringeGuns[weapon] {
+		return "+1% ÜberCharge on hit"
+	}
+	return effect.Description
 }
 
 var weaponBuffsByID = indexWeaponBuffs()
@@ -97,9 +123,9 @@ func buildWeaponBuffs() []WeaponBuff {
 			all = append(all, WeaponBuff{
 				ID: id, Key: key, WeaponID: weapon.ID, ApplyWeaponID: weapon.ApplyID,
 				EffectID: effect.ID,
-				Weapon:   weapon.Name, DefIndexes: weapon.DefIndexes,
+				Weapon:   weapon.DisplayName(), DefIndexes: weapon.DefIndexes,
 				Attribute: effect.Attribute, Value: effect.Increment,
-				Description: effect.Description, Additive: effect.Mode == BuffAdd,
+				Description: weaponEffectDescription(weapon.Name, effect), Additive: effect.Mode == BuffAdd,
 				Mode:     effect.Mode,
 				Eligible: weapon.ID == weapon.ApplyID && weaponEffectEligible(canonical, effect),
 			})

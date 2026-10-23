@@ -16,10 +16,6 @@
 // Keeps each missing-property complaint to one line rather than one per frame.
 StringMap g_WarnedProps;
 
-// The bundles handed to each player that the game's own record never saw.
-// Read in full where it is written back, below.
-static int g_BundleCredits[MAXPLAYERS + 1];
-
 void MvM_Init()
 {
     g_WarnedProps = new StringMap();
@@ -125,14 +121,14 @@ stock bool MvM_IsGiant(int client)
 stock bool MvM_IsSentryBuster(int client)
 {
     char model[PLATFORM_MAX_PATH];
-    if (!GetClientModel(client, model, sizeof(model)))
-    {
-        return false;
-    }
+    GetClientModel(client, model, sizeof(model));
     return StrEqual(model, "models/bots/demo/bot_sentry_buster.mdl");
 }
 
 // UNVERIFIED m_iszMvMPopfileName: scripts/population/mvm_decoy.pop, trimmed to mvm_decoy.
+#define CaliginousCaperID "mvm_ghost_town_666"
+#define CaliginousCaperRuntimePop "mvm_ghost_town_ap_caliginous_caper"
+
 stock bool MvM_PopFile(char[] buffer, int maxlength)
 {
     buffer[0] = '\0';
@@ -150,6 +146,12 @@ stock bool MvM_PopFile(char[] buffer, int maxlength)
     if (buffer[0] == '\0')
     {
         GetCurrentMap(buffer, maxlength);
+    }
+    // The repaired _666 popfile has a selectable runtime alias. Keep the
+    // original ID for saved seeds and checks when the game reports its alias.
+    if (StrEqual(buffer, CaliginousCaperRuntimePop, false))
+    {
+        strcopy(buffer, maxlength, CaliginousCaperID);
     }
     return buffer[0] != '\0';
 }
@@ -213,6 +215,27 @@ stock bool MvM_CanPayCredits()
         // player walks nowhere. Between waves everybody is alive; the check is
         // for the moment after a wave is lost and before the respawn.
         if (MvM_IsPlayer(client) && IsPlayerAlive(client))
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+// Whether the team fights a wave now. It is the mirror of MvM_CanPayCredits,
+// which wants the quiet moment between waves instead.
+//
+// Defenders rather than players: a wave with only bots alive is still a wave.
+// An effect that waits for a live human can wait forever.
+stock bool MvM_WaveInProgress()
+{
+    if (!MvM_IsActive() || GameRules_GetRoundState() != RoundState_RoundRunning)
+    {
+        return false;
+    }
+    for (int client = 1; client <= MaxClients; client++)
+    {
+        if (MvM_IsDefender(client) && IsPlayerAlive(client))
         {
             return true;
         }
@@ -296,41 +319,8 @@ static bool MvM_DropCredits(int client, int amount)
     }
     int held = GetEntProp(client, Prop_Send, "m_nCurrency");
     SetEntProp(client, Prop_Send, "m_nCurrency", held + amount);
-    g_BundleCredits[client] += amount;
+    BundleLedger_Pay(client, amount);
     return true;
-}
-
-/* What the game does not know it paid.
- *
- * A bundle written straight onto m_nCurrency is money the game's own record of
- * the wave never saw, and the refund button does not hand back what was spent:
- * it restores that record. So the bundles vanish, which is the bug a play-test
- * found by spending 1200 and refunding into 400.
- *
- * The ledger is per client and it only grows, because the record the game
- * restores never contains a single credit of ours. Correct balance after any
- * restore is therefore the game's number plus everything we ever added. It is
- * cleared on a map change, where the game clears its own side too.
- */
-// Everything a bundle ever added to this client, which is what the game's own
-// record of the wave is missing. Read across the plugin boundary by the defender
-// bot mod, so a bot that respawns is not reset to a number with no bundles in it.
-stock int MvM_BundleCredits(int client)
-{
-    return (client >= 0 && client <= MAXPLAYERS) ? g_BundleCredits[client] : 0;
-}
-
-stock void MvM_ForgetBundles(int client)
-{
-    g_BundleCredits[client] = 0;
-}
-
-stock void MvM_OnMapStart()
-{
-    for (int client = 0; client <= MaxClients; client++)
-    {
-        g_BundleCredits[client] = 0;
-    }
 }
 
 /* Every command the upgrade station sends, so a refund can be put right.
@@ -340,34 +330,34 @@ stock void MvM_OnMapStart()
  * sends is written to the log once, which is how the next bundle says the
  * real name if this one is wrong.
  */
-stock void MvM_OnCommandKeyValues(int client, const char[] name, int count)
+stock void MvM_OnCommandKeyValues(int client, const char[] name)
 {
     if (StrEqual(name, "MvM_UpgradesBegin", false))
     {
-        // Nobody asked for this one, so an empty loadout gets no window.
-        WeaponBuffs_ShowMenu(client);
+        // Remove the client-side disposable-sentry prediction mirror before
+        // the shop reads the PDA. AP levels must not become purchased ranks.
+        WeaponBuffs_EnterUpgradeStation(client);
+        WeaponBuffs_AnnounceAtStation(client);
         return;
     }
+    if (StrEqual(name, "MvM_UpgradesDone", false))
+    {
+        // The client needs its prediction mirror again after leaving the shop.
+        WeaponBuffs_LeaveUpgradeStation(client);
+        return;
+    }
+    StationCommand command = StationCommand_Other;
     if (StrEqual(name, "MVM_Respec", false))
     {
-        RequestFrame(Frame_RestoreBundles, GetClientUserId(client));
-        WeaponBuffs_ApplyNextFrame(client);
-        return;
+        command = StationCommand_Respec;
     }
-    if (StrEqual(name, "MVM_Upgrade", false))
+    else if (StrEqual(name, "MVM_Upgrade", false))
     {
-        /* A negative count is the minus button, which is a refund of one
-         * upgrade rather than the whole respec above.
-         *
-         * The game puts the balance back from its own record of the wave, and
-         * that record has never held a single bundle credit, so a player who
-         * spent bundle money and then took one upgrade back was handed a
-         * smaller number than he started with. Reported from play as the minus
-         * button refunding nothing.
-         *
-         * A sale is left alone. The game charges those against a balance that
-         * already has the bundles in it, so there is nothing to put back. */
-        if (count < 0)
+        command = StationCommand_Upgrade;
+    }
+    if (command != StationCommand_Other)
+    {
+        if (BundleLedger_Station(client, command))
         {
             RequestFrame(Frame_RestoreBundles, GetClientUserId(client));
         }
@@ -397,6 +387,7 @@ stock void MvM_RestoreBundlesAll()
         // Whoever was paid is whoever is owed, so this walks defenders too.
         if (MvM_IsDefender(client))
         {
+            BundleLedger_WaveLost(client);
             RequestFrame(Frame_RestoreBundles, GetClientUserId(client));
         }
     }
@@ -416,18 +407,14 @@ static void Frame_RestoreBundles(any userid)
         return;
     }
     int held = GetEntProp(client, Prop_Send, "m_nCurrency");
-    int owed = held + g_BundleCredits[client];
-    if (owed < 0)
-    {
-        owed = 0;
-    }
+    int owed = BundleLedger_Restore(client, held);
     if (owed == held)
     {
         return;
     }
     SetEntProp(client, Prop_Send, "m_nCurrency", owed);
     AP_Debug("%N came back to %d credits, and %d of bundles put that at %d.",
-        client, held, g_BundleCredits[client], owed);
+        client, held, BundleLedger_Credits(client), owed);
 }
 
 // The names a currency pack's amount might go by, newest guess first. Checked

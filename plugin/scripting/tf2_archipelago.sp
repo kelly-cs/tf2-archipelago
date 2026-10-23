@@ -15,23 +15,47 @@
 #include <sourcemod>
 #include <sdkhooks>
 #include <sdktools>
+#include <dhooks>
 #include <tf2>
 #include <tf2_stocks>
 #include <ripext>
 #include <tf2attributes>
+#include <tf_econ_data>
+#include <tf2utils>
+
+native bool Defenderbots_SetDirective(int client, bool rally, const float goal[3],
+    bool seekEnemies, bool buyAnywhere);
+native int Defenderbots_GetSeatRank(int client);
 
 #include "tf2_archipelago/log.inc"
+#include "tf2_archipelago/grant_ledger.inc"
+#if MAXPLAYERS + 1 != BundleLedgerClients
+#error BundleLedgerClients has to be MAXPLAYERS + 1
+#endif
 #include "tf2_archipelago/mvm.inc"
+#include "tf2_archipelago/invader_stalls.inc"
 #include "tf2_archipelago/unlocks.inc"
 #include "tf2_archipelago/weapon_buffs_data.inc"
+#include "tf2_archipelago/weapon_buff_levels.inc"
+#if MAXPLAYERS + 1 != BuffLevelsClients
+#error BuffLevelsClients has to be MAXPLAYERS + 1
+#endif
+#include "tf2_archipelago/bot_cards.inc"
+#include "tf2_archipelago/mission_modifiers_math.inc"
 #include "tf2_archipelago/weapon_buffs.inc"
+#include "tf2_archipelago/loadout_math.inc"
+#include "tf2_archipelago/loadout.inc"
 #include "tf2_archipelago/deathlink.inc"
+#include "tf2_archipelago/traps.inc"
 #include "tf2_archipelago/bridge.inc"
-#include "tf2_archipelago/missions.inc"
 #include "tf2_archipelago/bots.inc"
+#include "tf2_archipelago/mission_modifiers.inc"
+#include "tf2_archipelago/missions_math.inc"
+#include "tf2_archipelago/missions.inc"
 #include "tf2_archipelago/botswitch.inc"
+#include "tf2_archipelago/downloads.inc"
 
-#define PLUGIN_VERSION "1.11.0"
+#define PLUGIN_VERSION "1.18.4"
 
 // Only used when the wave events turn out not to exist.
 #define WavePollInterval 1.0
@@ -48,8 +72,12 @@ public Plugin myinfo =
     url = "https://github.com/m-this/tf2-archipelago",
 };
 
-// Zero when no wave is running, or when the plugin loaded mid-mission.
-int g_CurrentWave;
+// Which giant and which tank of the running wave the next kill is. Every one
+// is reported as the nth of its wave beside the mission's own first of each;
+// with giantsanity or tanksanity on, the seed holds a check for each.
+int g_WaveGiants;
+int g_WaveTanks;
+
 int g_MaxWaves;
 
 bool g_HaveBeginWave;
@@ -85,6 +113,8 @@ bool g_GiantReported;
 public APLRes AskPluginLoad2(Handle self, bool late, char[] error, int length)
 {
     CreateNative("TF2AP_GetBundleCredits", Native_GetBundleCredits);
+    MarkNativeAsOptional("Defenderbots_SetDirective");
+    MarkNativeAsOptional("Defenderbots_GetSeatRank");
     RegPluginLibrary("tf2_archipelago");
     return APLRes_Success;
 }
@@ -96,7 +126,7 @@ static any Native_GetBundleCredits(Handle plugin, int numParams)
     {
         return ThrowNativeError(SP_ERROR_NATIVE, "client %d is not a client", client);
     }
-    return MvM_BundleCredits(client);
+    return BundleLedger_Credits(client);
 }
 
 public void OnPluginStart()
@@ -104,11 +134,23 @@ public void OnPluginStart()
     LoadTranslations("common.phrases");
     Log_Init();
     MvM_Init();
+    InvaderStalls_Init();
     Unlocks_Init();
     WeaponBuffs_Init();
+    Loadout_Init();
     Bridge_Init();
     Missions_Init();
     Bots_Init();
+    // A hot reload must reattach card models and innates to bots already in
+    // the arena; it should not require a map change or whole-team reseat.
+    for (int client = 1; client <= MaxClients; client++)
+    {
+        if (IsClientInGame(client))
+        {
+            BotCards_OnSpawn(client);
+        }
+    }
+    MissionModifiers_Init();
 
     g_HaveBeginWave = HookEventEx("mvm_begin_wave", Event_BeginWave);
     g_HaveWaveComplete = HookEventEx("mvm_wave_complete", Event_WaveComplete);
@@ -133,20 +175,48 @@ public void OnPluginStart()
     AddCommandListener(Command_Say, "say_team");
     RegAdminCmd("sm_ap_status", Command_Status, ADMFLAG_GENERIC,
         "Show the state of the Archipelago integration");
+    RegAdminCmd("sm_ap_botcards", Command_BotCards, ADMFLAG_GENERIC,
+        "Show spawned RED robot cards, tier, innates, health and scale");
+    RegAdminCmd("sm_ap_botcards_sync", Command_BotCardsSync, ADMFLAG_ROOT,
+        "Copy the admin's staged bot files into the running game");
+    RegAdminCmd("sm_ap_botcards_evict", Command_BotCardsEvict, ADMFLAG_ROOT,
+        "Replace one named bot after its card changes");
+    RegAdminCmd("sm_ap_botcards_reconcile", Command_BotCardsReconcile, ADMFLAG_ROOT,
+        "Make live RED bots match the highest-priority card seats");
     RegAdminCmd("sm_ap_report", Command_Report, ADMFLAG_ROOT,
         "Report an objective by hand: sm_ap_report <wave_cleared|mission_cleared|death> [wave]");
     RegAdminCmd("sm_ap_bundle", Command_Bundle, ADMFLAG_ROOT,
         "Pay a Cash Bundle by hand, the way a grant from the room would: sm_ap_bundle [credits]");
+    RegAdminCmd("sm_ap_trap", Command_Trap, ADMFLAG_ROOT,
+        "Fire a trap by hand, the way a grant from the room would: sm_ap_trap <key>");
     RegAdminCmd("sm_ap_resync", Command_Resync, ADMFLAG_GENERIC,
-        "Ask the bridge for the unlock set again");
+        "Ask the bridge for the mission list and unlock set again");
+    RegAdminCmd("sm_ap_resume", Command_Resume, ADMFLAG_CHANGEMAP,
+        "sm_ap_resume <popfile> [wave] - load a mission and start it at a wave");
+    RegConsoleCmd("sm_ap_modifiers", Command_MissionModifiers,
+        "Show the modifiers active on this mission");
+    RegAdminCmd("sm_ap_modifier", Command_MissionModifierDebug, ADMFLAG_ROOT,
+        "Change modifiers live: sm_ap_modifier <on|off|toggle> <key|all>, clear, or seed");
+    RegAdminCmd("sm_ap_count_damage", Command_ChamberDamage, ADMFLAG_ROOT,
+        "Test Make it Count damage: sm_ap_count_damage [bonus percent|reset]");
+    RegConsoleCmd("sm_ap_botcount", Command_BotCountHud,
+        "Toggle the live enemy robot counter: sm_ap_botcount [on|off]");
     RegAdminCmd("sm_ap_mission", Command_Mission, ADMFLAG_CHANGEMAP,
         "List the run's missions, or switch to one: sm_ap_mission [number|popfile]");
     RegConsoleCmd("sm_ap_buffs", Command_WeaponBuffs,
         "Show the Archipelago buffs for your current loadout");
+    RegConsoleCmd("sm_ap_loadout", Command_Loadout,
+        "Pick any weapon for your class, owned or not");
+    RegAdminCmd("sm_ap_loadout_set", Command_LoadoutSet, ADMFLAG_ROOT,
+        "Set a player's loadout: sm_ap_loadout_set <target> <primary|secondary|melee|watch> <weapon|own>");
     RegAdminCmd("sm_ap_buff_test", Command_TestWeaponBuff, ADMFLAG_ROOT,
         "Test an active-weapon effect: sm_ap_buff_test <number|key|all> [levels]");
     RegAdminCmd("sm_ap_buff_give", Command_GiveWeaponBuff, ADMFLAG_ROOT,
         "Give a test effect to a player's active weapon: sm_ap_buff_give <target> <number|key|all> [levels]");
+    RegAdminCmd("sm_ap_buff_debug", Command_DisposableSentryDebug, ADMFLAG_ROOT,
+        "Show disposable-sentry PDA/toolbox state for the calling player");
+    RegAdminCmd("sm_ap_buff_slot", Command_GiveSlotWeaponBuff, ADMFLAG_ROOT,
+        "Give a test effect by loadout slot: sm_ap_buff_slot <target> <1|2|3> <number|key|all> [levels]");
     RegAdminCmd("sm_ap_projectile_debug", Command_ProjectileDebug, ADMFLAG_ROOT,
         "Toggle projectile diagnostics: sm_ap_projectile_debug [on|off]");
     RegAdminCmd("sm_ap_unlock_override", Command_UnlockOverride, ADMFLAG_ROOT,
@@ -181,21 +251,36 @@ public void OnPluginStart()
     Bridge_FetchMissions();
     Bridge_PollMessages();
     Bridge_PollDeaths();
+    // SourceMod can reload this plugin during a wave. The begin event has
+    // already fired, so recover the wave and arm the spawn guard in place.
+    CreateTimer(1.0, Timer_ResumeRunningWave, _, TIMER_FLAG_NO_MAPCHANGE);
+}
+
+public void OnPluginEnd()
+{
+    MissionModifiers_Shutdown();
+    WeaponBuffs_Shutdown();
 }
 
 public void OnClientPutInServer(int client)
 {
+    BotCards_Clear(client);
+    InvaderStalls_ResetClient(client);
     WeaponBuffs_HookClient(client);
+    MissionModifiers_HookClient(client);
     // Client indexes are reused, so the previous occupant's cooldown is not
     // this player's.
     Bridge_ClearCooldown(client);
-    // Client indexes are reused, and so is the bundle ledger behind them.
-    MvM_ForgetBundles(client);
+    BundleLedger_Forget(client);
     if (IsFakeClient(client))
     {
         return;
     }
-    Bots_MakeRoom();
+    // Do not remove a fully equipped defender bot while this client is still
+    // receiving its initial entity snapshot. That burst can overflow Source's
+    // fixed 4 KB unreliable stream and trap a relayed client in a reconnect
+    // loop. Command_JoinRed frees the seat when the loaded client actually
+    // asks to join RED; Bots_Fill already reserves seats for connected humans.
     CreateTimer(WelcomeDelay, Timer_Welcome, GetClientUserId(client));
 }
 
@@ -245,6 +330,7 @@ public Action Command_Say(int client, const char[] command, int argc)
         AP_PrintToClient(client, "!ap unlock mission hands over the next mission ticket, in test mode only.");
         AP_PrintToClient(client, "!ap bots changes what the bots on RED play, seat by seat.");
         AP_PrintToClient(client, "!ap buffs lists the Archipelago buffs on your loadout.");
+        AP_PrintToClient(client, "!ap loadout equips any weapon for your class, owned or not.");
         AP_PrintToClient(client, "!apchat <text> speaks to the other players in the multiworld.");
         AP_PrintToClient(client, "!mission lists the run's missions.%s",
             CheckCommandAccess(client, "sm_ap_mission", ADMFLAG_CHANGEMAP) ? " !mission <number> switches to one." : "");
@@ -261,6 +347,11 @@ public Action Command_Say(int client, const char[] command, int argc)
         {
             AP_PrintToClient(client, "No buffs for this loadout yet.");
         }
+        return Plugin_Handled;
+    }
+    if (StrEqual(message, "!ap loadout", false) || StrEqual(message, "!aploadout", false))
+    {
+        Loadout_Open(client);
         return Plugin_Handled;
     }
     if (StrEqual(message, "!ap bots", false) || StrEqual(message, "!apbots", false))
@@ -319,14 +410,21 @@ public Action Command_Say(int client, const char[] command, int argc)
 
 public void OnMapStart()
 {
+    InvaderStalls_Reset();
+    Tally_Flush();
     g_CurrentWave = 0;
     g_MaxWaves = 0;
     g_PolledWave = 0;
     g_MissionReported = false;
     g_TankReported = false;
     g_GiantReported = false;
+    MissionModifiers_OnMapStart();
+    Downloads_OnMapStart();
     Bots_OnMapStart();
-    MvM_OnMapStart();
+    // The game clears its own record of the wave with the map.
+    BundleLedger_Clear();
+    WeaponBuffs_OnMapStart();
+    Chamber_OnMapStart();
 
     // The plugin's copy of the unlock set went with the map; ask before anyone spawns.
     Bridge_FetchUnlocks();
@@ -337,6 +435,11 @@ public void OnMapStart()
 
 public void OnConfigsExecuted()
 {
+    // server.cfg has just run and put the host's values back, so the settings
+    // the run was granted go on after it rather than before.
+    Unlocks_ApplyServerSettings();
+
+    Bots_OnConfigsExecuted();
     if (!MvM_IsActive())
     {
         AP_Debug("This map is not Mann vs Machine. The plugin waits for the run's mission list.");
@@ -346,11 +449,41 @@ public void OnConfigsExecuted()
 }
 
 // The only source of the wave number: mvm_wave_complete does not carry one.
+public Action Timer_ResumeRunningWave(Handle timer)
+{
+    if (g_CurrentWave > 0 || !MvM_IsActive()
+        || GameRules_GetRoundState() != RoundState_RoundRunning)
+    {
+        return Plugin_Stop;
+    }
+    int wave = MvM_WaveFromGame();
+    if (wave < 1)
+    {
+        return Plugin_Stop;
+    }
+    g_CurrentWave = wave;
+    g_MaxWaves = MvM_MaxWavesFromGame();
+    g_PolledWave = wave;
+    InvaderStalls_BeginWave();
+    AP_Debug("Reloaded during wave %d of %d; watching protected BLU robots.",
+        g_CurrentWave, g_MaxWaves);
+    return Plugin_Stop;
+}
+
 public void Event_BeginWave(Event event, const char[] name, bool dontBroadcast)
 {
+    InvaderStalls_BeginWave();
+    Bots_OnWaveBegin();
+    MissionModifiers_AnnounceWave();
     g_CurrentWave = event.GetInt("wave_index") + 1;
+    Bots_PublishDirective();
+    MissionModifiers_OnWaveBegin(g_CurrentWave);
     g_MaxWaves = event.GetInt("max_waves");
     g_PolledWave = g_CurrentWave;
+    // A replayed wave counts its giants and tanks again from one, which the
+    // bridge takes as the same checks it already holds.
+    g_WaveGiants = 0;
+    g_WaveTanks = 0;
     // The mod adds its whole lineup at this moment whatever is already on RED,
     // and this plugin has filled the team before it. One of the two has to
     // count, and the seats belong to this one.
@@ -361,7 +494,6 @@ public void Event_BeginWave(Event event, const char[] name, bool dontBroadcast)
         g_TankReported = false;
         g_GiantReported = false;
     }
-
     int fromGame = MvM_WaveFromGame();
     if (fromGame > 0 && fromGame != g_CurrentWave)
     {
@@ -370,26 +502,74 @@ public void Event_BeginWave(Event event, const char[] name, bool dontBroadcast)
     AP_Debug("Wave %d of %d started.", g_CurrentWave, g_MaxWaves);
 }
 
+/*
+The running totals behind the milestone checks: robots, giants and tanks
+destroyed since the last report. Counted on every death, reported once a wave
+ends, won or lost, so the bridge sees one request per counter per wave rather
+than one per robot. A map change reports whatever a wave left uncounted.
+*/
+int g_TallyRobots;
+int g_TallyGiants;
+int g_TallyTanks;
+
+static void Tally_OnRobotDeath(int client)
+{
+    if (!MvM_IsActive() || client <= 0 || client > MaxClients || !IsClientInGame(client)
+        || !IsFakeClient(client) || GetClientTeam(client) != TeamBlue || MvM_IsSentryBuster(client))
+    {
+        return;
+    }
+    g_TallyRobots++;
+    if (MvM_IsGiant(client))
+    {
+        g_TallyGiants++;
+    }
+}
+
+static void Tally_Flush()
+{
+    if (g_TallyRobots == 0 && g_TallyGiants == 0 && g_TallyTanks == 0)
+    {
+        return;
+    }
+    char popFile[64];
+    MvM_PopFile(popFile, sizeof(popFile));
+    Bridge_ReportTally("tally_robots", popFile, g_TallyRobots);
+    Bridge_ReportTally("tally_giants", popFile, g_TallyGiants);
+    Bridge_ReportTally("tally_tanks", popFile, g_TallyTanks);
+    g_TallyRobots = 0;
+    g_TallyGiants = 0;
+    g_TallyTanks = 0;
+}
+
 public void Event_WaveComplete(Event event, const char[] name, bool dontBroadcast)
 {
+    InvaderStalls_Reset();
+    Bots_OnWaveEnd();
+    Tally_Flush();
     ReportWaveCleared(g_CurrentWave > 0 ? g_CurrentWave : MvM_WaveFromGame());
 }
 
 public void Event_MissionComplete(Event event, const char[] name, bool dontBroadcast)
 {
+    InvaderStalls_Reset();
     ReportMissionCleared();
 }
 
 // A giant died, maybe. This runs on every robot death of every wave, so the
-// cheapest test comes first and the whole handler stops for good once the
-// mission's check is in.
+// cheapest test comes first; the mission's own check reports once, the wave's
+// nth on every giant.
 public void Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 {
-    if (g_GiantReported || !MvM_IsActive())
+    int client = GetClientOfUserId(event.GetInt("userid"));
+    InvaderStalls_ResetClient(client);
+    MissionModifiers_OnPlayerDeath(client);
+    if (MissionModifiers_IsCulledSupport(client))
     {
         return;
     }
-    if (!MvM_IsGiant(GetClientOfUserId(event.GetInt("userid"))))
+    Tally_OnRobotDeath(client);
+    if (!MvM_IsActive() || !MvM_IsGiant(client))
     {
         return;
     }
@@ -397,6 +577,16 @@ public void Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast
     if (!MvM_PopFile(popFile, sizeof(popFile)))
     {
         AP_Error("The team killed a giant, but the mission has no name. The plugin did not report the check.");
+        return;
+    }
+    if (g_CurrentWave > 0)
+    {
+        g_WaveGiants++;
+        Bridge_ReportWaveKill("giant_killed", popFile, g_CurrentWave, g_WaveGiants,
+            g_MaxWaves > 0 ? g_MaxWaves : MvM_MaxWavesFromGame());
+    }
+    if (g_GiantReported)
+    {
         return;
     }
     g_GiantReported = true;
@@ -410,14 +600,25 @@ public void Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast
 // eight requests for one location. g_TankReported keeps them off the wire.
 public void Event_TankDestroyed(Event event, const char[] name, bool dontBroadcast)
 {
-    if (!MvM_IsActive() || g_TankReported)
+    if (!MvM_IsActive())
     {
         return;
     }
+    g_TallyTanks++;
     char popFile[64];
     if (!MvM_PopFile(popFile, sizeof(popFile)))
     {
         AP_Error("The team destroyed a tank, but the mission has no name. The plugin did not report the check.");
+        return;
+    }
+    if (g_CurrentWave > 0)
+    {
+        g_WaveTanks++;
+        Bridge_ReportWaveKill("tank_destroyed", popFile, g_CurrentWave, g_WaveTanks,
+            g_MaxWaves > 0 ? g_MaxWaves : MvM_MaxWavesFromGame());
+    }
+    if (g_TankReported)
+    {
         return;
     }
     g_TankReported = true;
@@ -433,6 +634,10 @@ public void Event_TankDestroyed(Event event, const char[] name, bool dontBroadca
 // sets it, a cleared wave and a map change clear it.
 public void Event_WaveFailed(Event event, const char[] name, bool dontBroadcast)
 {
+    InvaderStalls_Reset();
+    Bots_OnWaveEnd();
+    MissionModifiers_OnWaveEnd();
+    Tally_Flush();
     if (g_CurrentWave < 1)
     {
         AP_Debug("The game reported a lost wave with no wave running. The plugin ignores it.");
@@ -463,6 +668,7 @@ static void ReportWaveCleared(int wave)
     {
         return;
     }
+    MissionModifiers_OnWaveEnd();
     char popFile[64];
     if (!MvM_PopFile(popFile, sizeof(popFile)))
     {
@@ -527,20 +733,26 @@ public Action Timer_PollWave(Handle timer)
     return Plugin_Continue;
 }
 
-// Both events fire for robots too; MvM_IsPlayer is what leaves their loadout alone.
+// Slot enforcement is player-only. Buff application has its own ownership
+// policy, including the optional mirror-to-BLU-robots mode.
 public void Event_InventoryApplied(Event event, const char[] name, bool dontBroadcast)
 {
     int client = GetClientOfUserId(event.GetInt("userid"));
+    Loadout_Apply(client);
     if (MvM_IsPlayer(client))
     {
         Unlocks_EnforceSlots(client);
-        WeaponBuffs_Apply(client);
     }
+    WeaponBuffs_Apply(client);
+    MissionModifiers_OnInventoryApplied(client);
 }
 
 public void Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast)
 {
     int client = GetClientOfUserId(event.GetInt("userid"));
+    BotCards_OnSpawn(client);
+    InvaderStalls_ResetClient(client);
+    MissionModifiers_OnPlayerSpawn(client);
     if (MvM_IsPlayer(client))
     {
         Unlocks_EnforceClass(client);
@@ -554,6 +766,12 @@ public void Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast
 // was has to be recorded before it goes.
 public void OnClientDisconnect(int client)
 {
+    Loadout_Forget(client);
+    BotCards_Clear(client);
+    g_CardCosmeticPending[client] = false;
+    InvaderStalls_ResetClient(client);
+    MissionModifiers_OnPlayerDeath(client);
+    WeaponBuffs_Disconnect(client);
     Bots_OnClientLeaving(client);
 }
 
@@ -636,6 +854,32 @@ public Action Command_Mission(int client, int argc)
     return Plugin_Handled;
 }
 
+/* Load a mission and start it at a wave.
+ *
+ * The wave picker beside Play on the mission list, and the console's way in.
+ * Same shape as sm_ap_mission, because it is the same act with one more thing
+ * asked of it. No wave, or wave one, is the start, which is what sm_ap_mission
+ * already does; the argument is what makes it a way back in.
+ */
+public Action Command_Resume(int client, int argc)
+{
+    if (argc < 1)
+    {
+        ReplyToCommand(client, "[AP] sm_ap_resume <popfile> [wave]");
+        return Plugin_Handled;
+    }
+    char choice[64], asked[8];
+    GetCmdArg(1, choice, sizeof(choice));
+    int wave = 1;
+    if (argc >= 2)
+    {
+        GetCmdArg(2, asked, sizeof(asked));
+        wave = StringToInt(asked);
+    }
+    Missions_ResumeMission(client, choice, wave);
+    return Plugin_Handled;
+}
+
 public Action Command_Status(int client, int argc)
 {
     char popFile[64], lastError[192];
@@ -651,6 +895,10 @@ public Action Command_Status(int client, int argc)
         g_HaveMissionComplete ? "yes" : "no",
         g_HaveWaveFailed ? "yes" : "no");
     ReplyToCommand(client, "[AP] death link %s", g_DeathLinkOn ? "on" : "off");
+    // The two moments the effects wait for. A held Cash Bundle or a held trap
+    // is a question about these two, and nothing else answered it.
+    ReplyToCommand(client, "[AP] wave running %s, credits payable %s",
+        MvM_WaveInProgress() ? "yes" : "no", MvM_CanPayCredits() ? "yes" : "no");
     ReplyToCommand(client, "[AP] unlocks %s at sequence %d, %d objective(s) waiting to be sent",
         g_HaveUnlocks ? "held" : "NOT FETCHED", Bridge_Sequence(), Bridge_PendingCount());
     ReplyToCommand(client, "[AP] classes: %s", Status_ClassList());
@@ -773,6 +1021,39 @@ public Action Command_Bundle(int client, int argc)
     return Plugin_Handled;
 }
 
+/* Fires a trap without waiting for one to arrive from the room.
+ *
+ * Calls Traps_Apply, the same path a grant takes, so what it exercises is the
+ * real effect. It skips the hold on purpose: the hold is what makes a trap
+ * wait for a wave, and a tester who wants to see the effect between waves has
+ * to be able to.
+ */
+public Action Command_Trap(int client, int argc)
+{
+    if (argc < 1)
+    {
+        ReplyToCommand(client, "[AP] Usage: sm_ap_trap <key>, for example sm_ap_trap team_jarate");
+        return Plugin_Handled;
+    }
+    char key[64];
+    GetCmdArg(1, key, sizeof(key));
+
+    if (!MvM_IsActive())
+    {
+        ReplyToCommand(client, "[AP] This map is not Mann vs Machine.");
+        return Plugin_Handled;
+    }
+    if (!MvM_WaveInProgress())
+    {
+        ReplyToCommand(client, "[AP] No wave is running. A real trap would wait; this one fires anyway.");
+    }
+    if (!Traps_Apply(key))
+    {
+        ReplyToCommand(client, "[AP] No trap is named %s.", key);
+    }
+    return Plugin_Handled;
+}
+
 // Tests the wiring without playing a wave, and sends a check the game failed to fire an event for.
 public Action Command_Report(int client, int argc)
 {
@@ -814,6 +1095,7 @@ public Action Command_Report(int client, int argc)
 public Action Command_Resync(int client, int argc)
 {
     Bridge_FetchUnlocks();
-    ReplyToCommand(client, "[AP] The plugin asked the bridge for the unlock set.");
+    Bridge_FetchMissions();
+    ReplyToCommand(client, "[AP] The plugin asked the bridge for the mission list and unlock set.");
     return Plugin_Handled;
 }

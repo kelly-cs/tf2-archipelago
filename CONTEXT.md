@@ -16,7 +16,7 @@ world.
 **Slot**
 One participant in a multiworld. A name identifies each slot, and a slot
 plays exactly one game with one YAML. In this project a slot is **the TF2
-server**, not a Steam account. See `docs/en/spec.md`, "Slot model".
+server**, not a Steam account. See `design/spec.md`, "Slot model".
 
 **Seed**
 The generated multiworld, immutable once generated. Every id it references
@@ -51,7 +51,7 @@ hold M's ticket and a primary weapon slot" is an access rule.
 **Sphere 0**
 Everything reachable with no items at all. If sphere 0 contains no location,
 the seed is unplayable from the start. See the starting-state requirement in
-`docs/en/spec.md`.
+`design/spec.md`.
 
 **DeathLink**
 An opt-in convention where a death in one world kills every other DeathLink
@@ -60,7 +60,7 @@ death in MvM is routine and only a deployed bomb ends a wave. Outbound, a
 lost wave is a `Bounce`; inbound, a `Bounced` kills everyone on RED, bots
 included, and an undefended hatch is what loses the wave. The plugin does
 not send that loss back out.
-See `docs/en/spec.md`, "Traps and DeathLink".
+See `design/spec.md`, "Traps and DeathLink".
 
 **Trap**
 An item with a negative effect. A first-class classification in Archipelago,
@@ -146,16 +146,18 @@ The SourcePawn plugin inside the `srcds` container. Sees the game, knows
 nothing about Archipelago, holds no authoritative state.
 
 **Launcher**
-The Windows exe, `tf2ap.exe`. Installs the game server and its mods, and runs
-the bridge in-process next to `srcds.exe`. Its window holds the log, the start
-and stop buttons and an rcon box. The Windows equivalent of the compose stack.
+The Windows and Linux executable. It installs the game server and its mods and
+runs the bridge in-process next to SRCDS. Windows defaults to its native window,
+Linux to its terminal interface; `-web` opts into the experimental shared
+browser interface. The desktop equivalent of the compose stack.
 
 **Defender bots**
 OfficerSpy's MvM Defender TFBots and its five dependencies, staged by
-`deploy/bots/build.sh`. The mod comes from our fork, `m-this/tf2-mvm-bots`,
-whose `tf2ap` branch carries our changes as commits. `deploy/patches/` patches
-the five dependencies. They fill the RED team so a wave balanced for six
-players is winnable by fewer.
+`deploy/bots/build.sh`. The mod is `m-this/tf2-mvm-bots-go`, where the bots'
+decisions are written in Go and the SourcePawn the server runs is generated
+from it; this repository depends on it as a Go module, so the `go.mod`
+requirement is the pin. `deploy/patches/` patches the five dependencies. They
+fill the RED team so a wave balanced for six players is winnable by fewer.
 
 **Objective**
 The plugin's vocabulary for what the bridge calls a location. The plugin
@@ -171,7 +173,9 @@ sends `grant_weapon_slot{slot}`; the plugin never sees the item id behind it.
 The two kinds of grant, told apart by `ItemKind.OneShot` in `gamedata`. A
 state grant is a fact that stays true, such as a playable class, an open
 loadout slot, or an available mission. Applying one twice equals applying
-it once, so the bridge can resend it whenever the plugin asks.
+it once for those unlocks. Weapon buffs are state too, but each received copy
+adds a level. The bridge may resend them; the plugin counts each item sequence
+once, including those already represented by an unlock snapshot.
 
 An effect happens once and ends: credits get paid, or a trap fires.
 Applying one twice pays money nobody earned, or fires a trap nobody
@@ -183,7 +187,8 @@ keeps sending it. Credits are the case: money paid into a wave the team
 then loses goes back with the wave, so the plugin waits for the upgrade
 station. The cursor stops at the held effect and effects stay ordered
 behind it, while state grants past it are applied anyway, because applying
-one twice changes nothing.
+them once does not skip the held effect. Their item sequences are remembered
+separately from the acknowledgement cursor so retries cannot add buff levels.
 
 **Acknowledgement**
 The sequence number the plugin reports back to the bridge for what it

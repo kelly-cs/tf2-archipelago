@@ -1,55 +1,36 @@
 # Démarrer une nouvelle partie
 
-Une session ne change jamais une fois qu'elle existe. Une partie différente
-demande une nouvelle session, une nouvelle room, et une modification dans
-`.env`.
+Une seed ne change jamais une fois créée. Une autre partie demande une
+nouvelle seed et une nouvelle room. Les fichiers de jeu ne bougent pas, donc
+cela prend quelques minutes.
 
-## Les quatre étapes
+## Avec le lanceur
 
-1. Modifiez `.env` si la forme de la partie change. Voir
-   [La forme de la partie](../setup/shape-of-the-run.md).
-2. Lancez `make seed`. La commande écrit un fichier de plus dans `seed/`.
-3. Envoyez ce fichier et créez une room. Voir
-   [Créer la session](../setup/create-the-session.md).
-4. Réglez `AP_PORT` sur le port de la nouvelle room, puis lancez
-   `make restart`.
+1. Changez les [options de la partie](../setup/shape-of-the-run.md) dans
+   **Settings**, si vous voulez une partie différente.
+2. Appuyez sur **Generate seed** sur la page **Player options**.
+3. Envoyez le nouveau fichier sur
+   [archipelago.gg/uploads](https://archipelago.gg/uploads) et créez une room.
+4. Collez la nouvelle adresse de room dans **Settings**, puis
+   **Archipelago room**.
+5. Enregistrez, puis appuyez sur **Restart**.
 
-Les fichiers du jeu ne sont pas touchés, donc le redémarrage prend quelques
-secondes.
+## Avec Docker
+
+1. Modifiez les lignes `MVM_` dans `.env`, si vous voulez une partie
+   différente.
+2. Lancez `make seed`. Il écrit un autre fichier dans `seed/`.
+3. Envoyez ce fichier et créez une room.
+4. Réglez `AP_PORT` sur le port de la nouvelle room.
+5. Lancez `make restart`.
 
 Gardez les anciens fichiers dans `seed/`. Chacun est une partie entière, et la
-room d'une partie revient à partir de son fichier.
+room d'une partie revient depuis son fichier.
 
-## Ce que le bridge fait de l'ancienne partie
+### Si vous hébergez la session vous-même
 
-Le bridge remarque que la session n'est pas celle sur laquelle il
-travaillait. Il fait alors ceci :
-
-1. Met son fichier d'état de côté sous `bridge.<seed>.json`, dans le même
-   dossier.
-2. Repart sans checks et sans déblocages.
-3. Dit au plugin que la partie a redémarré, pour que le plugin abandonne sa
-   propre copie et redemande le nouvel ensemble de déblocages.
-
-L'ancien fichier n'est jamais écrasé. Si vous pointez le bridge par accident
-vers la mauvaise room, la partie précédente est toujours sur le disque, dans le
-volume `tf2-archipelago_bridgestate`.
-
-Rien d'autre ne fait perdre une partie. Redémarrer un service, redémarrer
-la machine et s'arrêter pendant une semaine la gardent tous.
-
-## Ce que vous n'avez pas besoin de supprimer
-
-| Volume | Laissez-le tranquille |
-| --- | --- |
-| `tf2-archipelago_tf2game` | 14 Go de fichiers de jeu. Le supprimer les retélécharge. |
-| `tf2-archipelago_bridgestate` | Le bridge y archive l'ancienne partie tout seul. |
-
-## Si vous hébergez la session vous-même
-
-`COMPOSE_PROFILES=selfhost` met la session dans le volume
-`tf2-archipelago_apoutput`, et vous n'avez rien à envoyer. Une nouvelle partie
-tient en trois commandes :
+Avec `COMPOSE_PROFILES=selfhost`, la seed vit dans le volume
+`tf2-archipelago_apoutput`. Une nouvelle partie, c'est :
 
 ```sh
 make down
@@ -57,16 +38,27 @@ docker volume rm tf2-archipelago_apoutput
 make up
 ```
 
-Modifiez `.env` entre la première et la troisième commande. Le conteneur
-`archipelago` trouve un dossier de sortie vide, fabrique une session à partir
-du `.env` actuel, et l'héberge. Cela prend moins d'une minute.
+Modifiez `.env` entre la première et la troisième commande.
 
-## Tout recommencer complètement
+## Ce qui arrive à l'ancienne partie
 
-```sh
-make clean
-```
+Le bridge remarque que la room n'est pas celle dont il garde l'état. Alors :
 
-Cela arrête la stack et supprime chaque volume, y compris les fichiers du
-jeu. Cela laisse `seed/` tranquille. Utilisez-le quand vous en avez fini avec
-le projet, pas entre deux parties.
+1. il met son fichier d'état de côté, sous `bridge.<seed>.json` dans le même
+   dossier ;
+2. il repart sans check et sans déblocage ;
+3. il dit au plugin que la partie a redémarré.
+
+Rien n'est écrasé. Si vous pointez le serveur vers la mauvaise room par
+erreur, l'ancienne partie est toujours sur le disque.
+
+Rien d'autre ne perd une partie. Redémarrer le serveur, redémarrer la machine
+et s'arrêter une semaine la gardent tous.
+
+## Tout recommencer
+
+- **Lanceur :** **Reset settings** dans **Settings** remet chaque réglage à sa
+  valeur par défaut et garde les fichiers de jeu.
+- **Docker :** `make clean` arrête la pile et supprime chaque volume, y
+  compris les 14 Go de fichiers de jeu. Utilisez-le quand vous en avez fini
+  avec le projet, pas entre deux parties.

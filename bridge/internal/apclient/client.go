@@ -24,11 +24,16 @@ import (
 	"github.com/m-this/tf2-archipelago/bridge/internal/guard"
 	"github.com/m-this/tf2-archipelago/bridge/internal/state"
 	"github.com/m-this/tf2-archipelago/gamedata"
+	"github.com/m-this/tf2-archipelago/gamedata/availability"
 )
 
 const (
-	// readLimitBytes: RoomInfo carries a checksum per game, past the 32 KiB default.
-	readLimitBytes = 4 << 20
+	// readLimitBytes is a guard against a runaway reply, not a size the normal
+	// path reaches: the names are asked for one game at a time, and one
+	// game's tables are well under this. A public room's package for every
+	// game at once went past the old 4 MiB and dropped the session on every
+	// connect, forever.
+	readLimitBytes = 32 << 20
 
 	dialTimeout  = 30 * time.Second
 	writeTimeout = 10 * time.Second
@@ -39,7 +44,7 @@ const (
 )
 
 // version is the Archipelago release this client is written against.
-var version = Version{Class: "Version", Major: 0, Minor: 6, Build: 7}
+var version = Version{Class: "Version", Major: 0, Minor: 6, Build: 8}
 
 // permanentError wraps a failure reconnecting cannot fix; the bridge stops rather than retry.
 type permanentError struct{ err error }
@@ -61,6 +66,11 @@ type Options struct {
 	Chat     *chat.Log
 	Deaths   *deathlink.Feed
 	Logger   *slog.Logger
+
+	// Missions is what the game server has, for refusing a seed it cannot
+	// play. Nil leaves that to the plugin, which is all a bridge in another
+	// container can do.
+	Missions *availability.Server
 }
 
 // Client is one Archipelago session, reconnected as needed.
@@ -68,9 +78,20 @@ type Client struct {
 	opts Options
 	uuid string
 
+	// Fields rather than constants at the call site so the half-open session
+	// regression does not have to wait forty seconds for a ping to fail.
+	pingEvery   time.Duration
+	pingTimeout time.Duration
+
 	// said and died bound what the game server can pour into the multiworld.
 	said *bucket
 	died *deaths
+
+	// roomSeed is the seed the current session's RoomInfo named. Only the read
+	// loop touches it. It is bound once the room accepts the slot, never on
+	// RoomInfo: archipelago.gg hands a closed room's port to another
+	// multiworld, and reaching that one wiped a live run.
+	roomSeed string
 
 	writeMu sync.Mutex
 
@@ -79,6 +100,10 @@ type Client struct {
 	connected bool
 	slot      SlotData
 	names     *nameBook
+	// fetched is every game whose names have arrived. A reconnect asks only
+	// for the ones missing, so a room that hands out one oversized package
+	// cannot cost the session on every connect.
+	fetched   map[string]bool
 	lastError string
 }
 
@@ -91,8 +116,24 @@ type Health struct {
 	// StartMission is empty for a seed from an apworld that predates the
 	// option. The server then finds the first unlocked mission on its own,
 	// which is what it always did.
-	StartMission            string `json:"start_mission,omitempty"`
-	MissionTicketImportance string `json:"mission_ticket_importance,omitempty"`
+	StartMission            string                       `json:"start_mission,omitempty"`
+	MissionTicketImportance string                       `json:"mission_ticket_importance,omitempty"`
+	MissionModifiers        map[string][]MissionModifier `json:"mission_modifiers,omitempty"`
+
+	// VictoryCaches is the seed holding extra checks on every clear, which
+	// the bridge records when the clear comes in; the plugin never hears of
+	// them.
+	VictoryCaches bool `json:"victory_caches"`
+	// MilestoneChecks is the seed holding the running-total checks, which the
+	// bridge records as the tallies cross them; a seed without them has no
+	// location to record.
+	MilestoneChecks bool `json:"milestone_checks"`
+	// ClassWeaponSlots is the seed opening loadout slots class by class.
+	ClassWeaponSlots bool `json:"class_weapon_slots"`
+	// Giantsanity and Tanksanity are the seed holding a check per giant and
+	// per tank of every wave, beside the mission's own first of each.
+	Giantsanity bool `json:"giantsanity"`
+	Tanksanity  bool `json:"tanksanity"`
 
 	DeathLink bool   `json:"death_link"`
 	LastError string `json:"last_error,omitempty"`
@@ -106,7 +147,10 @@ func New(opts Options) *Client {
 	if opts.Deaths == nil {
 		opts.Deaths = deathlink.New(1)
 	}
-	return &Client{opts: opts, uuid: randomUUID(), said: newBucket(time.Now), died: &deaths{now: time.Now}}
+	return &Client{
+		opts: opts, uuid: randomUUID(), said: newBucket(time.Now), died: &deaths{now: time.Now},
+		pingEvery: pingEvery, pingTimeout: writeTimeout,
+	}
 }
 
 // Health reports the session state. The plugin uses it to tell a player the
@@ -120,6 +164,12 @@ func (c *Client) Health() Health {
 		Missions:                c.slot.Missions,
 		StartMission:            c.slot.StartMission,
 		MissionTicketImportance: c.slot.MissionTicketImportance,
+		MissionModifiers:        c.slot.MissionModifiers,
+		VictoryCaches:           c.slot.VictoryCaches,
+		MilestoneChecks:         c.slot.MilestoneChecks,
+		ClassWeaponSlots:        c.slot.ClassWeaponSlots,
+		Giantsanity:             c.slot.Giantsanity,
+		Tanksanity:              c.slot.Tanksanity,
 		DeathLink:               c.slot.DeathLink,
 		LastError:               c.lastError,
 	}
@@ -176,6 +226,7 @@ func (c *Client) session(ctx context.Context) error {
 	c.mu.Lock()
 	c.conn = conn
 	c.mu.Unlock()
+	c.roomSeed = ""
 	defer func() {
 		c.mu.Lock()
 		c.conn = nil
@@ -183,13 +234,31 @@ func (c *Client) session(ctx context.Context) error {
 	}()
 
 	ready := make(chan struct{})
-	pumped := make(chan error, 1)
-	go guard.Run("the Archipelago pump", c.opts.Logger, func() { pumped <- c.pump(ctx, conn, ready) })
+	type result struct {
+		direction string
+		err       error
+	}
+	finished := make(chan result, 2)
+	run := func(direction string, work func() error) {
+		finished <- result{
+			direction: direction,
+			err:       guard.Result("the Archipelago "+direction, c.opts.Logger, work),
+		}
+	}
+	go run("read loop", func() error { return c.readLoop(ctx, conn, ready) })
+	go run("outbound pump", func() error { return c.pump(ctx, conn, ready) })
 
-	err = c.readLoop(ctx, conn, ready)
+	first := <-finished
+	// Either direction ending invalidates the session. In particular, a missed
+	// pong can stop the outbound pump while room traffic keeps the read loop
+	// alive. Closing both is what makes Run reconnect and replay durable checks.
 	cancel()
-	<-pumped
-	return err
+	_ = conn.CloseNow()
+	<-finished
+	if first.err == nil {
+		return nil
+	}
+	return fmt.Errorf("archipelago %s: %w", first.direction, first.err)
 }
 
 // readLoop reads messages until the connection dies, starting with the RoomInfo/Connect handshake.
@@ -255,14 +324,7 @@ func (c *Client) onRoomInfo(ctx context.Context, conn *websocket.Conn, message j
 	if err := json.Unmarshal(message, &room); err != nil {
 		return err
 	}
-	archive, err := c.opts.Store.BindSeed(room.SeedName)
-	if err != nil {
-		return err
-	}
-	if archive != "" {
-		c.opts.Logger.WarnContext(ctx, "new seed, set the previous run aside",
-			"seed", room.SeedName, "archive", archive)
-	}
+	c.roomSeed = room.SeedName
 	return c.send(ctx, conn, connectMessage{
 		Cmd:           "Connect",
 		Password:      c.opts.Password,
@@ -292,7 +354,11 @@ func (c *Client) onDataPackage(message json.RawMessage) error {
 	if c.names == nil {
 		c.names = newNameBook()
 	}
+	if c.fetched == nil {
+		c.fetched = map[string]bool{}
+	}
 	for game, names := range payload.Data.Games {
+		c.fetched[game] = true
 		items := make(map[int64]string, len(names.ItemNameToID))
 		for name, id := range names.ItemNameToID {
 			items[id] = name
@@ -348,6 +414,19 @@ func (c *Client) rememberNames(payload connected) []string {
 	return games
 }
 
+// namesMissing is the games in the room whose names have not arrived yet.
+func (c *Client) namesMissing(games []string) []string {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	var missing []string
+	for _, game := range games {
+		if !c.fetched[game] {
+			missing = append(missing, game)
+		}
+	}
+	return missing
+}
+
 // onConnected records the seed's shape. The pump wakes on ready and reports;
 // the only thing sent from here is the DeathLink tag, which cannot go on
 // Connect because the slot data that decides it is what Connected carries.
@@ -365,6 +444,12 @@ func (c *Client) onConnected(
 	if err := slot.validate(); err != nil {
 		return permanentError{err}
 	}
+	if err := unplayable(c.opts.Missions, slot.Missions); err != nil {
+		return permanentError{err}
+	}
+	if err := c.bindSeed(ctx); err != nil {
+		return err
+	}
 	/* Who everybody is, and then what their items are called
 	 *
 	 * The names cost one request and the room does not change while a session
@@ -372,9 +457,12 @@ func (c *Client) onConnected(
 	 * failure to play: the chat falls back to printing ids, which is what it
 	 * did before it asked at all.
 	 */
-	if games := c.rememberNames(payload); len(games) > 0 {
-		if err := c.send(ctx, conn, getDataPackage{Cmd: "GetDataPackage", Games: games}); err != nil {
-			c.opts.Logger.WarnContext(ctx, "cannot ask for the item names, chat will show ids", "error", err)
+	for _, game := range c.namesMissing(c.rememberNames(payload)) {
+		/* One game per request. A room holds many games and one package for
+		   all of them is what went past the read limit and dropped the
+		   session on every connect; a game's own tables never come near it. */
+		if err := c.send(ctx, conn, getDataPackage{Cmd: "GetDataPackage", Games: []string{game}}); err != nil {
+			c.opts.Logger.WarnContext(ctx, "cannot ask for the item names, chat will show ids", "game", game, "error", err)
 		}
 	}
 	// The server holds the same check list for this slot, and the seed is
@@ -415,6 +503,26 @@ func (c *Client) onConnected(
 	}
 	if slot.DeathLink {
 		return c.claimDeathLink(ctx, conn)
+	}
+	return nil
+}
+
+// bindSeed ties the state to the room that has just accepted the slot.
+func (c *Client) bindSeed(ctx context.Context) error {
+	if c.roomSeed == "" {
+		return errors.New("the room accepted the slot without naming its seed first")
+	}
+	bound, err := c.opts.Store.BindSeed(c.roomSeed)
+	if err != nil {
+		return err
+	}
+	if bound.Archived != "" {
+		c.opts.Logger.WarnContext(ctx, "new seed, set the previous run aside",
+			"seed", c.roomSeed, "archive", bound.Archived)
+	}
+	if bound.Restored != "" {
+		c.opts.Logger.WarnContext(ctx, "this seed was played here before, its run is back",
+			"seed", c.roomSeed, "restored_from", bound.Restored)
 	}
 	return nil
 }
@@ -489,7 +597,7 @@ func (c *Client) pump(ctx context.Context, conn *websocket.Conn, ready chan stru
 		return nil
 	}
 
-	ping := time.NewTicker(pingEvery)
+	ping := time.NewTicker(c.pingEvery)
 	defer ping.Stop()
 	for {
 		changed := c.opts.Store.Watch()
@@ -501,7 +609,7 @@ func (c *Client) pump(ctx context.Context, conn *websocket.Conn, ready chan stru
 			return nil
 		case <-changed:
 		case <-ping.C:
-			pingCtx, cancel := context.WithTimeout(ctx, writeTimeout)
+			pingCtx, cancel := context.WithTimeout(ctx, c.pingTimeout)
 			err := conn.Ping(pingCtx)
 			cancel()
 			if err != nil {

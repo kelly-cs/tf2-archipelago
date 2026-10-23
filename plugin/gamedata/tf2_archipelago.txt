@@ -4,35 +4,401 @@
 	{
 		"Signatures"
 		{
+			"CTFPlayer::RemoveInvisibility"
+			{
+				"library" "server"
+				"linux" "@_ZN9CTFPlayer18RemoveInvisibilityEv"
+				"linux64" "@_ZN9CTFPlayer18RemoveInvisibilityEv"
+				"windows" "\x55\x8B\xEC\x51\x53\x8B\xD9\x57\x8D\xBB\x2A\x2A\x2A\x2A\x8B\xCF\xE8\x2A\x2A\x2A\x2A"
+			}
+
+			"CTFPlayer::ReapplyItemUpgrades"
+			{
+				"library" "server"
+				"linux" "@_ZN9CTFPlayer19ReapplyItemUpgradesEP13CEconItemView"
+				"linux64" "@_ZN9CTFPlayer19ReapplyItemUpgradesEP13CEconItemView"
+				"windows" "\x55\x8B\xEC\x83\xEC\x0C\x57\x8B\xF9\x8B\x07\x8B\x80\x2A\x2A\x00\x00\xFF\xD0\x84\xC0\x0F\x85\x2A\x2A\x2A\x2A\x8B\x87\x2A\x2A\x00\x00\x8B\xCF\x56\x89\x45\xFC\xE8\x2A\x2A\x2A\x2A\x8B\xF0\x89\x75\xF4\x85\xF6\x0F\x84"
+			}
+
+			"CTFPlayer::GetMaxAmmo"
+			{
+				"library" "server"
+				"linux" "@_ZN9CTFPlayer10GetMaxAmmoEii"
+				"linux64" "@_ZN9CTFPlayer10GetMaxAmmoEii"
+				"windows" "\x55\x8B\xEC\x8B\x45\x2A\x53\x8B\xD9\x56\x57\x8B\x7D\x2A\x83\xF8\x2A\x75\x2A\xFF\xB3\x2A\x2A\x2A\x2A"
+			}
+
+			"CObjectDispenser::DispenseAmmo"
+			{
+				"library" "server"
+				"linux" "@_ZN16CObjectDispenser12DispenseAmmoEP9CTFPlayer"
+				"linux64" "@_ZN16CObjectDispenser12DispenseAmmoEP9CTFPlayer"
+				"windows" "\x55\x8B\xEC\x51\x53\x56\x57\x8B\x7D\x2A\x8B\xD9\x85\xFF\x0F\x2A\x2A\x2A\x2A\x2A"
+			}
+
+			"CPopulationManager::Parse"
+			{
+				"library"	"server"
+				"linux"		"@_ZN18CPopulationManager5ParseEv"
+				"linux64"	"@_ZN18CPopulationManager5ParseEv"
+				"windows" "\x55\x8B\xEC\x83\xEC\x2A\x53\x8B\xD9\x80\xBB\x2A\x2A\x2A\x2A\x2A\x56\x8D\xB3\x2A\x2A\x2A\x2A\x89\x5D\x2A"
+			}
+			"CWaveSpawnPopulator::Parse"
+			{
+				"library"	"server"
+				"linux"		"@_ZN19CWaveSpawnPopulator5ParseEP9KeyValues"
+				"linux64"	"@_ZN19CWaveSpawnPopulator5ParseEP9KeyValues"
+				"windows" "\x55\x8B\xEC\x53\x56\x57\x6A\x2A\x8B\xF9\x8B\x4D\x2A\x68\x2A\x2A\x2A\x2A\xE8\x2A\x2A\x2A\x2A"
+			}
+			"CWave::Parse"
+			{
+				"library"	"server"
+				"linux"		"@_ZN5CWave5ParseEP9KeyValues"
+				"linux64"	"@_ZN5CWave5ParseEP9KeyValues"
+				"windows" "\x55\x8B\xEC\x83\xEC\x2A\x8B\x45\x2A\x53\x8B\xD9\x56\x57\x89\x5D\x2A\xC7\x43\x2A\x2A\x2A\x2A\x2A"
+			}
+			"KeyValues::MakeCopy"
+			{
+				"library"	"server"
+				"linux"		"@_ZNK9KeyValues8MakeCopyEv"
+				"linux64"	"@_ZNK9KeyValues8MakeCopyEv"
+				"windows" "\x53\x56\x57\x8B\xD9\xFF\x2A\x2A\x2A\x2A\x2A\x6A\x2A\x8B\xC8\x8B\x10\xFF\x2A\x2A"
+			}
+			"KeyValues::AddSubKey"
+			{
+				"library"	"server"
+				"linux"		"@_ZN9KeyValues9AddSubKeyEPS_"
+				"linux64"	"@_ZN9KeyValues9AddSubKeyEPS_"
+			}
+			"KeyValues::SetInt"
+			{
+				"library"	"server"
+				"linux"		"@_ZN9KeyValues6SetIntEPKci"
+				"linux64"	"@_ZN9KeyValues6SetIntEPKci"
+				"windows" "\x55\x8B\xEC\x6A\x2A\xFF\x75\x2A\xE8\x2A\x2A\x2A\x2A\x85\xC0\x74\x2A\x8B\x4D\x2A"
+			}
+			"KeyValues::SetFloat"
+			{
+				"library"	"server"
+				"linux"		"@_ZN9KeyValues8SetFloatEPKcf"
+				"linux64"	"@_ZN9KeyValues8SetFloatEPKcf"
+				"windows" "\x55\x8B\xEC\x6A\x2A\xFF\x75\x2A\xE8\x2A\x2A\x2A\x2A\x85\xC0\x74\x2A\xF3\x0F\x10\x45\x2A"
+			}
+			"KeyValues::SetString"
+			{
+				"library"	"server"
+				"linux"		"@_ZN9KeyValues9SetStringEPKcS1_"
+				"linux64"	"@_ZN9KeyValues9SetStringEPKcS1_"
+				"windows" "\x55\x8B\xEC\x53\x56\x8B\x75\x2A\x6A\x2A\xFF\x75\x2A\xE8\x2A\x2A\x2A\x2A\x8B\xD8"
+			}
+			"KeyValues::FindKey"
+			{
+				"library"	"server"
+				"linux"		"@_ZN9KeyValues7FindKeyEPKcb"
+				"linux64"	"@_ZN9KeyValues7FindKeyEPKcb"
+				"windows" "\x55\x8B\xEC\x81\xEC\x2A\x2A\x2A\x2A\x56\x57\x8B\x7D\x2A\x8B\xF1\x85\xFF\x0F\x2A\x2A\x2A\x2A\x2A\x80\x3F\x2A"
+			}
+			"KeyValues::RemoveSubKey"
+			{
+				"library"	"server"
+				"linux"		"@_ZN9KeyValues12RemoveSubKeyEPS_"
+				"linux64"	"@_ZN9KeyValues12RemoveSubKeyEPS_"
+				"windows" "\x55\x8B\xEC\x8B\x55\x2A\x85\xD2\x74\x2A\x8B\x41\x2A\x3B\xC2\x75\x2A\x8B\x42\x2A"
+			}
+			"KeyValues::deleteThis"
+			{
+				"library"	"server"
+				"linux"		"@_ZN9KeyValues10deleteThisEv"
+				"linux64"	"@_ZN9KeyValues10deleteThisEv"
+				"windows" "\x56\x8B\xF1\x85\xF6\x74\x2A\x57\xE8\x2A\x2A\x2A\x2A\x80\x7E\x2A\x00\x74\x2A\x53\x8B\x5E\x2A"
+			}
+			"CTFPlayer::CanBuild"
+			{
+				"library"	"server"
+				"linux"		"@_ZN9CTFPlayer8CanBuildEii"
+				"linux64"	"@_ZN9CTFPlayer8CanBuildEii"
+				"windows"	"\x55\x8B\xEC\x83\xEC\x0C\x53\x8B\x5D\x08\x57\x8B\xF9\x83\xFB\x03"
+				"windows64"	"\x40\x56\x57\x41\x54\x48\x83\xEC\x40\x45\x8B\xE0"
+			}
+			"FX_FireBullets"
+			{
+				"library"	"server"
+				"linux"		"@_Z14FX_FireBulletsP13CTFWeaponBaseiRK6VectorRK6QAngleiiiffb"
+				"linux64"	"@_Z14FX_FireBulletsP13CTFWeaponBaseiRK6VectorRK6QAngleiiiffb"
+				"windows" "\x53\x8B\xDC\x83\xEC\x2A\x83\xE4\x2A\x83\xC4\x2A\x55\x8B\x6B\x2A\x89\x6C\x24\x2A\x8B\xEC\x81\xEC\x2A\x2A\x2A\x2A\x56\x8B\x73\x2A\x57\x56\xE8\x2A\x2A\x2A\x2A"
+			}
+			"CTFPlayer::MaybeDrawRailgunBeam"
+			{
+				"library"	"server"
+				"linux"		"@_ZN9CTFPlayer20MaybeDrawRailgunBeamEP16IRecipientFilterP13CTFWeaponBaseRK6VectorS6_"
+				"linux64"	"@_ZN9CTFPlayer20MaybeDrawRailgunBeamEP16IRecipientFilterP13CTFWeaponBaseRK6VectorS6_"
+			}
+			"CRecipientFilter::AddRecipient"
+			{
+				"library"	"server"
+				"linux"		"@_ZN16CRecipientFilter12AddRecipientEPK11CBasePlayer"
+				"linux64"	"@_ZN16CRecipientFilter12AddRecipientEPK11CBasePlayer"
+			}
 			"CTFProjectile_Arrow::Create"
 			{
 				"library"	"server"
+				"linux"		"@_ZN19CTFProjectile_Arrow6CreateERK6VectorRK6QAngleff16ProjectileType_tP11CBaseEntityS8_"
 				"windows"	"\x55\x8B\xEC\x56\x8B\x75\x18\x57\x83\xFE\x0B\x74\x17\x83\xFE\x17\x74\x12\x83\xFE\x1A"
 				"windows64"	"\x48\x89\x5C\x24\x08\x48\x89\x6C\x24\x10\x48\x89\x74\x24\x18\x57\x48\x83\xEC\x60\x8B\x9C\x24\x90\x00\x00\x00"
 			}
 			"CTFProjectile_Flare::Create"
 			{
 				"library"	"server"
+				"linux"		"@_ZN19CTFProjectile_Flare6CreateEP11CBaseEntityRK6VectorRK6QAngleS1_S1_"
 				"windows"	"\x55\x8B\xEC\x83\xEC\x48\x53\x8B\x5D\x14\x57\x53\xFF\x75\x10\xFF\x75\x0C\x68\x2A\x2A\x2A\x2A"
 				"windows64"	"\x48\x89\x6C\x24\x10\x48\x89\x74\x24\x18\x48\x89\x7C\x24\x20\x41\x56\x48\x81\xEC\xA0\x00\x00\x00\x48\x8B\xE9"
 			}
 			"CTFBaseProjectile::GetDamage"
 			{
 				"library"	"server"
+				"linux"		"@_ZN17CTFBaseProjectile9GetDamageEv"
 				"windows"	"\xD9\x81\xF4\x04\x00\x00\xC3"
 				"windows64"	"\xF3\x0F\x10\x81\x50\x06\x00\x00\xC3"
 			}
 			"CTFBaseProjectile::SetDamage"
 			{
 				"library"	"server"
+				"linux"		"@_ZN17CTFBaseProjectile9SetDamageEf"
 				"windows"	"\x55\x8B\xEC\xF3\x0F\x10\x45\x08\xF3\x0F\x11\x81\xF4\x04\x00\x00"
 				"windows64"	"\xF3\x0F\x11\x89\x50\x06\x00\x00\xC3"
 			}
 			"CTFFlareGun::AddFlare"
 			{
 				"library"	"server"
+				"linux"		"@_ZN11CTFFlareGun8AddFlareEP19CTFProjectile_Flare"
 				"windows"	"\x55\x8B\xEC\x56\x57\x8B\xF9\x8B\x4D\x08\x85\xC9\x74\x09\x8B\x01\xFF\x50\x08\x8B\x30\xEB\x03\x83\xCE\xFF\x8B\x97\x0C\x08\x00\x00"
 				"windows64"	"\x48\x89\x5C\x24\x08\x48\x89\x6C\x24\x10\x48\x89\x74\x24\x18\x57\x48\x83\xEC\x20\x48\x8B\xF9\x48\x85\xD2"
+			}
+		}
+		"Offsets"
+		{
+			"CWaveSpawnPopulator::m_maxActive"
+			{
+				"linux"		"60"
+				"linux64"	"92"
+			}
+			"CWaveSpawnPopulator::m_spawnCount"
+			{
+				"linux"		"64"
+				"linux64"	"96"
+			}
+			"CWaveSpawnPopulator::m_bHasTFBotSpawner"
+			{
+				"linux"		"57"
+				"linux64"	"89"
+			}
+			"CWaveSpawnPopulator::m_waitBeforeStarting"
+			{
+				"linux"		"68"
+				"linux64"	"100"
+			}
+			"CWaveSpawnPopulator::m_waitBetweenSpawns"
+			{
+				"linux"		"72"
+				"linux64"	"104"
+			}
+			"CWaveSpawnPopulator::m_bSupportWave"
+			{
+				"linux"		"1228"
+				"linux64"	"1320"
+			}
+			"CWaveSpawnPopulator::m_bLimitedSupport"
+			{
+				"linux"		"1229"
+				"linux64"	"1321"
+			}
+			// CUtlVector<CHandle<CTFBot>>; verified against
+			// CWaveSpawnPopulator::OnPlayerKilled in the 32-bit server binary.
+			"CWaveSpawnPopulator::m_activeBots"
+			{
+				"linux"		"1200"
+			}
+			"CWaveSpawnPopulator::m_activeBotsCount"
+			{
+				"linux"		"1212"
+			}
+			"CBaseProjectile::SetLauncher"
+			{
+				"windows"	"234"
+				"linux"		"235"
+			}
+		}
+		"Functions"
+		{
+			"CTFPlayer::RemoveInvisibility"
+			{
+				"signature" "CTFPlayer::RemoveInvisibility"
+				"callconv" "thiscall"
+				"return" "void"
+				"this" "entity"
+			}
+
+			"CTFPlayer::GetMaxAmmo"
+			{
+				"signature" "CTFPlayer::GetMaxAmmo"
+				"callconv" "thiscall"
+				"return" "int"
+				"this" "entity"
+				"arguments"
+				{
+					"ammo"
+					{
+						"type" "int"
+					}
+					"class"
+					{
+						"type" "int"
+					}
+				}
+			}
+
+			"CObjectDispenser::DispenseAmmo"
+			{
+				"signature" "CObjectDispenser::DispenseAmmo"
+				"callconv" "thiscall"
+				"return" "bool"
+				"this" "entity"
+				"arguments"
+				{
+					"player"
+					{
+						"type" "cbaseentity"
+					}
+				}
+			}
+
+			"CPopulationManager::Parse"
+			{
+				"signature"	"CPopulationManager::Parse"
+				"callconv"	"thiscall"
+				"return"	"bool"
+				"this"		"address"
+			}
+			"CWaveSpawnPopulator::Parse"
+			{
+				"signature"	"CWaveSpawnPopulator::Parse"
+				"callconv"	"thiscall"
+				"return"	"bool"
+				"this"		"address"
+				"arguments"
+				{
+					"data"
+					{
+						"type"	"objectptr"
+					}
+				}
+			}
+			"CWave::Parse"
+			{
+				"signature"	"CWave::Parse"
+				"callconv"	"thiscall"
+				"return"	"bool"
+				"this"		"address"
+				"arguments"
+				{
+					"data"
+					{
+						"type"	"objectptr"
+					}
+				}
+			}
+			"CTFPlayer::CanBuild"
+			{
+				"signature"	"CTFPlayer::CanBuild"
+				"callconv"	"thiscall"
+				"return"	"int"
+				"this"		"entity"
+				"arguments"
+				{
+					"objectType"
+					{
+						"type"	"int"
+					}
+					"objectMode"
+					{
+						"type"	"int"
+					}
+				}
+			}
+			"FX_FireBullets"
+			{
+				"signature"	"FX_FireBullets"
+				"callconv"	"cdecl"
+				"return"	"void"
+				"arguments"
+				{
+					"weapon"
+					{
+						"type"	"cbaseentity"
+					}
+					"player"
+					{
+						"type"	"int"
+					}
+					"origin"
+					{
+						"type"	"vectorptr"
+					}
+					"angles"
+					{
+						"type"	"vectorptr"
+					}
+					"weaponID"
+					{
+						"type"	"int"
+					}
+					"mode"
+					{
+						"type"	"int"
+					}
+					"seed"
+					{
+						"type"	"int"
+					}
+					"spread"
+					{
+						"type"	"float"
+					}
+					"damage"
+					{
+						"type"	"float"
+					}
+					"critical"
+					{
+						"type"	"bool"
+					}
+				}
+			}
+			"CTFPlayer::MaybeDrawRailgunBeam"
+			{
+				"signature"	"CTFPlayer::MaybeDrawRailgunBeam"
+				"callconv"	"thiscall"
+				"return"	"void"
+				"this"		"entity"
+				"arguments"
+				{
+					"filter"
+					{
+						"type"	"objectptr"
+					}
+					"weapon"
+					{
+						"type"	"cbaseentity"
+					}
+					"start"
+					{
+						"type"	"vectorptr"
+					}
+					"end"
+					{
+						"type"	"vectorptr"
+					}
+				}
 			}
 		}
 	}

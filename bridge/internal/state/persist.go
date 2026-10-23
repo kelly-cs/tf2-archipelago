@@ -9,11 +9,15 @@ import (
 	"runtime"
 	"slices"
 	"strings"
+	"time"
 )
 
 const (
 	// FormatVersion is the shape of the state file this binary writes.
-	FormatVersion = 3
+	// 4 says Played is written. A version 3 file can be from either side of
+	// the day Played arrived, and the goal cannot tell a run that played
+	// nothing from one written before the list existed.
+	FormatVersion = 4
 
 	// FormatVersionMin is the oldest shape it can still read. A file older than
 	// that is an error rather than a guess: it holds the only record of what a
@@ -71,6 +75,25 @@ type snapshot struct {
 	 * again.
 	 */
 	Resume Resume `json:"resume,omitzero"`
+
+	/* Reached is the highest wave the team has cleared in each mission, by
+	 * popfile, and it outlives the mission they are on.
+	 *
+	 * Resume above is only ever the current mission, so switching away threw
+	 * the old one's progress out: a team three waves into Coal Town who went
+	 * to look at Decoy came back to Coal Town at wave one. This is what the
+	 * Resume button on the mission list offers, mission by mission.
+	 *
+	 * An entry goes when the mission is cleared. There is nothing to go back
+	 * to in a mission you have beaten.
+	 */
+	Reached map[string]int `json:"reached,omitempty"`
+
+	// Tallies are the running totals behind the milestones, by tally kind:
+	// robots, giants and tanks the team has destroyed over the whole run. The
+	// plugin reports increments at the end of every wave, won or lost, and a
+	// restart must not start the count over.
+	Tallies map[string]int `json:"tallies,omitempty"`
 }
 
 // Resume is the mission the team was playing and the last wave they cleared in
@@ -107,11 +130,17 @@ func readSnapshot(path string) (snapshot, int, error) {
 	// since is zero, which is what an older file means by leaving it out.
 	wasVersion := loaded.FormatVersion
 	loaded.FormatVersion = FormatVersion
-	// A file written before Played existed cannot say which of its checks the
-	// server made, and the run in it was played by somebody. Taking them all is
-	// the reading that does not ask a team to replay an evening; the distinction
-	// starts holding from here on.
-	if wasVersion < 3 && loaded.Played == nil {
+	/* A file written before Played existed cannot say which of its checks the
+	   server made, and the run in it was played by somebody. Taking them all is
+	   the reading that does not ask a team to replay an evening; the distinction
+	   starts holding from here on.
+
+	   Version 3 files exist on both sides of that day, because the list arrived
+	   without a bump. One from before has no played key at all; one from after
+	   always writes it, empty or not. kelly-cs's run crossed the upgrade with
+	   every mission cleared reading as collected and the goal counting none of
+	   them (gh-16). */
+	if wasVersion < 4 && loaded.Played == nil {
 		loaded.Played = slices.Clone(loaded.Checks)
 	}
 	return loaded, wasVersion, nil
@@ -207,19 +236,47 @@ func archiveSnapshot(path, seed string) (string, error) {
 // problem or a failing disk, leaves the name taken: reading it as free is how
 // an archive overwrites a run it cannot see.
 func archivePath(path, seed string) string {
-	extension := filepath.Ext(path)
-	stem := strings.TrimSuffix(path, extension)
-	base := fmt.Sprintf("%s.%s%s", stem, safeSeedName(seed), extension)
-	if free(base) {
-		return base
-	}
-	for attempt := 1; attempt < archivesMax; attempt++ {
-		candidate := fmt.Sprintf("%s.%s.%d%s", stem, safeSeedName(seed), attempt, extension)
+	names := archiveNames(path, seed)
+	for _, candidate := range names {
 		if free(candidate) {
 			return candidate
 		}
 	}
-	return base
+	return names[0]
+}
+
+func archiveNames(path, seed string) []string {
+	extension := filepath.Ext(path)
+	stem := strings.TrimSuffix(path, extension)
+	names := []string{fmt.Sprintf("%s.%s%s", stem, safeSeedName(seed), extension)}
+	for attempt := 1; attempt < archivesMax; attempt++ {
+		names = append(names, fmt.Sprintf("%s.%s.%d%s", stem, safeSeedName(seed), attempt, extension))
+	}
+	return names
+}
+
+// latestArchive reads back the newest run set aside for seed, and names the
+// file it came from; the name is empty when there is none.
+//
+// An archive that cannot be read, or that holds another seed safeSeedName
+// folded onto the same name, is passed over and left on disk. The seed then
+// starts empty, which is what it always did.
+func latestArchive(path, seed string) (snapshot, string) {
+	var found snapshot
+	var from string
+	var newest time.Time
+	for _, candidate := range archiveNames(path, seed) {
+		info, err := os.Stat(candidate)
+		if err != nil || (from != "" && info.ModTime().Before(newest)) {
+			continue
+		}
+		loaded, _, err := readSnapshot(candidate)
+		if err != nil || loaded.Seed != seed {
+			continue
+		}
+		found, from, newest = loaded, candidate, info.ModTime()
+	}
+	return found, from
 }
 
 func free(path string) bool {

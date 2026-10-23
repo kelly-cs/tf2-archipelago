@@ -1,35 +1,87 @@
 package runshape
 
 import (
-	"slices"
+	"strings"
 	"testing"
 
 	"github.com/m-this/tf2-archipelago/gamedata"
+	"github.com/m-this/tf2-archipelago/gamedata/availability"
 )
 
-func TestCommunityMissionsStayHiddenUntilTheirArchiveExists(t *testing.T) {
-	for _, mission := range VisibleMissions(nil) {
-		if gamedata.IsCommunityMission(mission.ID) {
-			t.Fatalf("community mission %s is visible without an archive", mission.PopFile)
+func startChoice(choices []MissionChoice, popFile string) (MissionChoice, bool) {
+	for _, choice := range choices {
+		if choice.PopFile == popFile {
+			return choice, true
 		}
 	}
+	return MissionChoice{}, false
+}
 
-	visible := VisibleMissions([]string{"archive-assets.zip"})
-	if !slices.ContainsFunc(visible, func(m gamedata.Mission) bool { return m.PopFile == "mvm_kelly_rc1b_adv_homestead_happenings" }) {
-		t.Fatal("a portable Potato mission did not appear with its archive")
+func TestMedievalLoadoutAppearsInStartMissionChoices(t *testing.T) {
+	choices := StartMissionChoices(availability.Planned([]string{"archive-assets.zip"}, nil))
+	choice, ok := startChoice(choices, "mvm_frostwynd_rc1_int_wicked_wizardry")
+	if !ok {
+		t.Fatal("Wicked Wizardry is missing from the start mission choices")
 	}
-	if !slices.ContainsFunc(visible, func(m gamedata.Mission) bool { return m.PopFile == "mvm_bogland_rc12_adv_swamp_fever" }) {
-		t.Fatal("the missing-NAV compatibility row did not appear with its archive")
-	}
-	if slices.ContainsFunc(visible, func(m gamedata.Mission) bool { return m.PopFile == "mvm_area_52_rc3_int_anomalous_materials" }) {
-		t.Fatal("a Moonlight mission appeared without the Moonlight archive")
+	if !strings.Contains(choice.Label, "Medieval") {
+		t.Fatalf("Wicked Wizardry label = %q", choice.Label)
 	}
 }
 
-func TestLockedCommunityMissionsNeverEnterStartChoices(t *testing.T) {
-	for _, choice := range StartMissionChoicesForPacks([]string{"archive-assets.zip", "mlarchive-assets.zip"}) {
-		if choice.PopFile == "mvm_bogland_rc12_adv_swamp_fever" || choice.PopFile == "mvm_cyberia_rc6a_adv_silver_snow" {
-			t.Fatalf("locked mission entered the start menu: %s", choice.PopFile)
+func TestMedicOnlyRestrictionAppearsInStartMissionChoices(t *testing.T) {
+	choices := StartMissionChoices(availability.Planned([]string{"archive-assets.zip"}, []string{"sigsegv-mvm"}))
+	for _, popFile := range []string{
+		"mvm_chateau_rc3_adv_remedic",
+		"mvm_villa_b13f_adv_forgotten",
+		"mvm_villa_b13f_adv_recalled_to_life",
+	} {
+		choice, ok := startChoice(choices, popFile)
+		if !ok {
+			t.Errorf("%s is missing from the start mission choices", popFile)
+			continue
+		}
+		if !strings.Contains(choice.Label, "Medic only") {
+			t.Errorf("%s label = %q", popFile, choice.Label)
 		}
 	}
+}
+
+// Picking a start mission ticks its pack, so a pack that is on disk and not
+// ticked keeps its missions on the menu. Nothing else that stands in a
+// mission's way does.
+func TestStartMissionChoicesFollowTheVerdict(t *testing.T) {
+	server := availability.Server{
+		Platform:     "linux",
+		PacksPresent: []string{"archive-assets.zip"},
+		ModsSelected: []string{"sigsegv-mvm"},
+	}
+	choices := StartMissionChoices(server)
+	tests := []struct {
+		popFile string
+		offered bool
+	}{
+		{"mvm_decoy", true},
+		{"mvm_kelly_rc1b_adv_homestead_happenings", true},
+		{"mvm_bogland_rc12_adv_swamp_fever", false},
+		{"mvm_bronx_rc2_adv_point_of_impact", false},
+		{"mvm_area_52_rc3_int_anomalous_materials", false},
+	}
+	for _, test := range tests {
+		if _, offered := startChoice(choices, test.popFile); offered != test.offered {
+			t.Errorf("%s offered = %v, want %v (%v)", test.popFile, offered, test.offered,
+				server.Check(mustMission(t, test.popFile)).Reason)
+		}
+	}
+	if choices[0].PopFile != "" || choices[0].Label != AnyLabel {
+		t.Errorf("the draw is not first: %+v", choices[0])
+	}
+}
+
+func mustMission(t *testing.T, popFile string) gamedata.Mission {
+	t.Helper()
+	mission, ok := gamedata.MissionByPopFile(popFile)
+	if !ok {
+		t.Fatalf("%s is not in the catalog", popFile)
+	}
+	return mission
 }

@@ -12,6 +12,7 @@ package main
 import (
 	"context"
 	"flag"
+	"io"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -22,23 +23,41 @@ import (
 )
 
 func main() {
-	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
-	if err := run(logger); err != nil {
-		logger.Error("bridge stopped", "error", err)
-		os.Exit(1)
-	}
-}
-
-func run(logger *slog.Logger) error {
 	health := flag.Bool("health", false,
 		"ask the running bridge for its health and exit; this is the container health check")
 	flag.Parse()
 
+	output, closeLog := logOutput(*health)
+	logger := slog.New(slog.NewTextHandler(output, nil))
+	if err := run(*health, logger); err != nil {
+		logger.Error("bridge stopped", "error", err)
+		closeLog()
+		os.Exit(1)
+	}
+	closeLog()
+}
+
+// logOutput keeps the container's normal stderr and gives the admin sidecar a
+// read-only file to follow. The health check is its own process, and it must
+// not truncate the live bridge's log every fifteen seconds.
+func logOutput(health bool) (io.Writer, func()) {
+	path := os.Getenv("BRIDGE_LOG_FILE")
+	if path == "" || health {
+		return os.Stderr, func() {}
+	}
+	file, err := os.Create(path)
+	if err != nil {
+		return os.Stderr, func() {}
+	}
+	return io.MultiWriter(os.Stderr, file), func() { _ = file.Close() }
+}
+
+func run(health bool, logger *slog.Logger) error {
 	cfg, err := config.Load()
 	if err != nil {
 		return err
 	}
-	if *health {
+	if health {
 		return bridge.CheckHealth(cfg.Listen)
 	}
 

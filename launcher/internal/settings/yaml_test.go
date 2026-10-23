@@ -3,6 +3,7 @@ package settings
 import (
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -16,6 +17,9 @@ func TestPlayerYAMLHoldsTheRunShape(t *testing.T) {
 	s.MvmGoal = "missionsanity"
 	s.MvmMissionsanityPct = 60
 	s.MvmDeathLink = true
+	s.MvmMissionModifiers = true
+	s.MvmModifierMin = 2
+	s.MvmModifierMax = 3
 
 	got := PlayerYAML(s, "0.6.7")
 	for _, want := range []string{
@@ -27,16 +31,41 @@ func TestPlayerYAMLHoldsTheRunShape(t *testing.T) {
 		"  goal: missionsanity",
 		"  missionsanity_percentage: 60",
 		"  death_link: true",
+		"  mission_modifiers: true",
+		"  minimum_mission_modifiers: 2",
+		"  maximum_mission_modifiers: 3",
 		"  mission_ticket_importance: progression",
 		"  class_unlock_importance: progression",
 		"  weapon_slot_importance: progression",
 		"  weapon_buff_importance: useful",
 		"  cash_rewards: false",
+		"  bot_cards: false",
+		"  starting_bot_cards: 0",
+		"  starting_bot_card_mode: draw_random",
 		"  weapon_buff_percentage: 75",
 		"  weapon_buff_stack_chance: 25",
 	} {
 		if !strings.Contains(got, want) {
 			t.Errorf("missing %q in:\n%s", want, got)
+		}
+	}
+}
+
+func TestPlayerYAMLWritesDisabledRewards(t *testing.T) {
+	s := Defaults()
+	s.MvmMissionTicketImportance = "disabled"
+	s.MvmClassUnlockImportance = "disabled"
+	s.MvmWeaponSlotImportance = "disabled"
+	s.MvmWeaponBuffImportance = "disabled"
+	yaml := PlayerYAML(s, "")
+	for _, key := range []string{
+		"mission_ticket_importance",
+		"class_unlock_importance",
+		"weapon_slot_importance",
+		"weapon_buff_importance",
+	} {
+		if !strings.Contains(yaml, "  "+key+": disabled\n") {
+			t.Errorf("missing disabled %s in:\n%s", key, yaml)
 		}
 	}
 }
@@ -146,8 +175,76 @@ func TestPlayerYAMLNamesTheExcludedMissions(t *testing.T) {
 		t.Errorf("a popfile the tables do not know reached the file:\n%s", got)
 	}
 	empty := Defaults()
+	empty.CommunityPacks = gamedata.CommunityPacks()
 	empty.MvmExcludedMissions = []string{}
 	if !strings.Contains(PlayerYAML(empty, ""), "  excluded_missions: []\n") {
 		t.Error("an empty exclusion list is not written as an empty list")
+	}
+}
+
+// The player file names the mods the server loads, in catalog order, and
+// nothing the catalog does not know: the apworld refuses a key it has never
+// heard of, and a refused file is a seed nobody gets.
+func TestPlayerYAMLSaysWhetherCommunityMissionsPlay(t *testing.T) {
+	s := Defaults()
+	if !strings.Contains(PlayerYAML(s, ""), "  community_missions: true\n") {
+		t.Error("the default did not write community_missions on")
+	}
+	s.MvmCommunityMissions = false
+	if !strings.Contains(PlayerYAML(s, ""), "  community_missions: false\n") {
+		t.Error("turning it off did not reach the file")
+	}
+}
+
+func TestPlayerYAMLNamesTheServerMods(t *testing.T) {
+	s := Defaults()
+	s.SrcdsMods = []string{"rafmod", "sigsegv-mvm"}
+	got := PlayerYAML(s, "")
+	if !strings.Contains(got, "  server_mods:\n    - \"sigsegv-mvm\"\n") {
+		t.Errorf("server_mods missing or wrong:\n%s", got)
+	}
+	if strings.Contains(got, "rafmod") {
+		t.Errorf("an unknown mod reached the player file:\n%s", got)
+	}
+	s.SrcdsMods = nil
+	if got := PlayerYAML(s, ""); !strings.Contains(got, "  server_mods: []\n") {
+		t.Errorf("no mods should write an empty list:\n%s", got)
+	}
+}
+
+/*
+TestPlayerYAMLWritesEveryOptionTheApworldDeclares walks the apworld rather than
+a list written here.
+
+TF2MvMOptions is the contract: a field on it is an option the seed is generated
+from, and a key the launcher does not write is an option nobody who uses the
+launcher can reach. server_settings was exactly that for a release. The
+Grappling Hook was in the pool code, in the item tables and in the plugin, and
+the only way to turn it on was to hand-edit a file the launcher then rewrote.
+
+Reading the Python is the same trade gamedata/manifest_test.go makes with the
+plugin source: the two languages cannot share a declaration, so the test reads
+one and checks the other against it.
+*/
+func TestPlayerYAMLWritesEveryOptionTheApworldDeclares(t *testing.T) {
+	source, err := os.ReadFile(filepath.Join("..", "..", "..", "apworld", "tf2_mvm", "options.py"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	body := regexp.MustCompile(`(?s)class TF2MvMOptions\(PerGameCommonOptions\):\n(.*?)\n\n`).FindSubmatch(source)
+	if body == nil {
+		t.Fatal("options.py declares no TF2MvMOptions dataclass")
+	}
+	fields := regexp.MustCompile(`(?m)^\s+(\w+):`).FindAllSubmatch(body[1], -1)
+	if len(fields) < 15 {
+		t.Fatalf("found %d options, which is too few to be the whole dataclass", len(fields))
+	}
+
+	yaml := PlayerYAML(Defaults(), "")
+	for _, field := range fields {
+		option := string(field[1])
+		if !strings.Contains(yaml, "\n  "+option+":") {
+			t.Errorf("the apworld declares %s and the player file never writes it", option)
+		}
 	}
 }

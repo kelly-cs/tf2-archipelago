@@ -22,6 +22,11 @@ import (
 
 func newTestServer(t *testing.T, pollTimeout time.Duration) (*state.Store, http.Handler) {
 	t.Helper()
+	return newTestServerWithMode(t, pollTimeout, false)
+}
+
+func newTestServerWithMode(t *testing.T, pollTimeout time.Duration, testMode bool) (*state.Store, http.Handler) {
+	t.Helper()
 	store, err := state.Open(filepath.Join(t.TempDir(), "bridge.json"))
 	if err != nil {
 		t.Fatal(err)
@@ -32,7 +37,7 @@ func newTestServer(t *testing.T, pollTimeout time.Duration) (*state.Store, http.
 	client := apclient.New(apclient.Options{
 		SlotName: "tf2", Store: store, Chat: messages, Deaths: deaths, Logger: logger,
 	})
-	return store, New(store, client, messages, deaths, pollTimeout, logger).Handler()
+	return store, New(store, client, messages, deaths, pollTimeout, testMode, logger).Handler()
 }
 
 func post(t *testing.T, handler http.Handler, body string) *httptest.ResponseRecorder {
@@ -61,6 +66,96 @@ func TestObjectiveRecordsACheck(t *testing.T) {
 	held := store.Checks()
 	if len(held) != 1 || held[0] != mission.WaveLocationID(3) {
 		t.Fatalf("checks = %v", held)
+	}
+}
+
+// A clear pays its caches only when the seed holds them: a check the room does
+// not know is a check refused. Nothing but a clear pays any.
+func TestAClearPaysItsVictoryCachesOnlyWhenTheSeedHoldsThem(t *testing.T) {
+	mission, _ := gamedata.MissionByPopFile("mvm_coaltown_advanced")
+	cleared, _ := gamedata.LocationByObjective(gamedata.ObjectiveMissionCleared, mission.PopFile, 0)
+	if got := victoryCachesPaidBy(cleared, false); len(got) != 0 {
+		t.Fatalf("a seed without caches paid %d", len(got))
+	}
+	got := victoryCachesPaidBy(cleared, true)
+	if len(got) != 2 || got[0].ID != mission.VictoryCacheLocationID(1) || got[1].ID != mission.VictoryCacheLocationID(2) {
+		t.Fatalf("an advanced clear paid %+v", got)
+	}
+	wave, _ := gamedata.LocationByObjective(gamedata.ObjectiveWaveCleared, mission.PopFile, 1)
+	if got := victoryCachesPaidBy(wave, true); len(got) != 0 {
+		t.Fatalf("a wave paid %d caches", len(got))
+	}
+}
+
+// A tally adds to a running total on disk. A seed without milestones records
+// no check for it, and the same report sent twice, as a retry after a lost
+// answer would, counts once.
+func TestATallyAddsUpOnceAndPaysNoMilestoneTheSeedLacks(t *testing.T) {
+	store, handler := newTestServer(t, time.Second)
+	body := `{"kind":"tally_robots","popfile":"mvm_coaltown","count":60,"session":7,"id":1}`
+	for range 2 {
+		if got := post(t, handler, body); got.Code != http.StatusNoContent {
+			t.Fatalf("code = %d, body = %s", got.Code, got.Body)
+		}
+	}
+	if got := post(t, handler, `{"kind":"tally_robots","popfile":"mvm_coaltown","count":50,"session":7,"id":2}`); got.Code != http.StatusNoContent {
+		t.Fatalf("code = %d", got.Code)
+	}
+	if total := store.Tallies()["robots"]; total != 110 {
+		t.Fatalf("robots = %d, want 110 from one repeated 60 and a 50", total)
+	}
+	if held := store.Checks(); len(held) != 0 {
+		t.Fatalf("a seed without milestones recorded %v", held)
+	}
+	if got := post(t, handler, `{"kind":"tally_robots","popfile":"mvm_coaltown","count":5000,"session":7,"id":3}`); got.Code != http.StatusBadRequest {
+		t.Fatalf("a count no wave can hold was taken: %d", got.Code)
+	}
+}
+
+func TestMilestonesReachedFollowTheLadder(t *testing.T) {
+	if got := gamedata.MilestonesReached(gamedata.ObjectiveTallyTanks, 4); len(got) != 0 {
+		t.Fatalf("four tanks paid %+v", got)
+	}
+	got := gamedata.MilestonesReached(gamedata.ObjectiveTallyTanks, 21)
+	if len(got) != 3 || got[2].Threshold != 20 || got[2].Name != "20 Tanks Destroyed" {
+		t.Fatalf("twenty-one tanks paid %+v", got)
+	}
+}
+
+// The unlock set says which rule the slot keys are read under. A seed without
+// the option, which is every seed this test server has, reads as the one item
+// for every class.
+func TestTheUnlockSetSaysHowSlotsAreOpened(t *testing.T) {
+	_, handler := newTestServer(t, time.Second)
+	got := get(t, handler, "/unlocks")
+	if got.Code != http.StatusOK || !strings.Contains(got.Body.String(), `"class_weapon_slots":false`) {
+		t.Fatalf("code = %d, body = %s", got.Code, got.Body)
+	}
+}
+
+// A per-kill report is a check only when the seed holds that kind, and only
+// as far as the wave's count goes; this test server's seed holds neither.
+func TestAPerKillReportIsDroppedWhenTheSeedLacksIt(t *testing.T) {
+	store, handler := newTestServer(t, time.Second)
+	got := post(t, handler, `{"kind":"giant_killed","popfile":"mvm_coaltown_advanced","wave":3,"index":1}`)
+	if got.Code != http.StatusNoContent {
+		t.Fatalf("code = %d, body = %s", got.Code, got.Body)
+	}
+	if held := store.Checks(); len(held) != 0 {
+		t.Fatalf("a seed without giantsanity recorded %v", held)
+	}
+}
+
+func TestLocationByWaveKillFollowsTheCounts(t *testing.T) {
+	mission, _ := gamedata.MissionByPopFile("mvm_coaltown_advanced")
+	if _, ok := gamedata.LocationByWaveKill(gamedata.ObjectiveGiantKilled, mission.PopFile, 3, 3); !ok {
+		t.Fatal("Ctrl+Alt+Destruction wave 3 holds three giants and the third resolved to nothing")
+	}
+	if _, ok := gamedata.LocationByWaveKill(gamedata.ObjectiveGiantKilled, mission.PopFile, 3, 4); ok {
+		t.Fatal("a fourth giant in a wave of three resolved to a check")
+	}
+	if _, ok := gamedata.LocationByWaveKill(gamedata.ObjectiveTankDestroyed, mission.PopFile, 2, 1); !ok {
+		t.Fatal("wave 2's tank resolved to nothing")
 	}
 }
 
@@ -119,6 +214,9 @@ func TestUnlocksReportsWhatHasBeenGranted(t *testing.T) {
 	if unlocks.ResumeFrom != 0 {
 		t.Errorf("resume_from = %d", unlocks.ResumeFrom)
 	}
+	if unlocks.SnapshotSeq != 2 {
+		t.Errorf("snapshot_seq = %d, want both items in the snapshot", unlocks.SnapshotSeq)
+	}
 	missions := unlocks.Of(gamedata.ItemMissionTicket)
 	if len(missions) != 1 || missions[0] != "mvm_coaltown" {
 		t.Errorf("missions = %v", missions)
@@ -145,7 +243,7 @@ func TestMissionsNameTheMapAndWhatIsUnlocked(t *testing.T) {
 	// Checked by the room but not played here, which is the case another
 	// world's !collect produces.
 	missions, unknown := missionsFor(
-		drawn, []string{"mvm_ghost_town_666"}, []int64{coaltown.ClearLocationID()}, nil, false)
+		drawn, []string{"mvm_ghost_town_666"}, []int64{coaltown.ClearLocationID()}, nil, false, nil)
 
 	if len(unknown) != 0 {
 		t.Fatalf("the tables did not know %v", unknown)
@@ -177,8 +275,26 @@ func TestMissionsNameTheMapAndWhatIsUnlocked(t *testing.T) {
 	}
 }
 
+func TestMissionsCarryTheirSeedModifiers(t *testing.T) {
+	modifier := apclient.MissionModifier{
+		Key: "blast_plating", Name: "Blast Plating", Kind: "robots",
+		Description: "Enemy robots have 50% blast resistance.",
+	}
+	missions, unknown := missionsFor(
+		[]string{"mvm_coaltown_intermediate"}, nil, nil, nil, false,
+		nil,
+		map[string][]apclient.MissionModifier{"mvm_coaltown_intermediate": {modifier}},
+	)
+	if len(unknown) != 0 || len(missions) != 1 {
+		t.Fatalf("missions = %+v, unknown = %v", missions, unknown)
+	}
+	if got := missions[0].Modifiers; len(got) != 1 || got[0] != modifier {
+		t.Errorf("modifiers = %+v, want %+v", got, modifier)
+	}
+}
+
 func TestMissionsSkipWhatTheTablesDoNotKnow(t *testing.T) {
-	missions, unknown := missionsFor([]string{"mvm_potato", "mvm_coaltown"}, nil, nil, nil, false)
+	missions, unknown := missionsFor([]string{"mvm_potato", "mvm_coaltown"}, nil, nil, nil, false, nil)
 	if len(missions) != 1 || missions[0].PopFile != "mvm_coaltown" {
 		t.Fatalf("missions = %+v", missions)
 	}
@@ -187,9 +303,20 @@ func TestMissionsSkipWhatTheTablesDoNotKnow(t *testing.T) {
 	}
 }
 
+func TestMissionsExposeTheSpecialLoadout(t *testing.T) {
+	popFile := "mvm_frostwynd_rc1_int_wicked_wizardry"
+	missions, unknown := missionsFor([]string{popFile}, []string{popFile}, nil, nil, false, nil)
+	if len(unknown) != 0 || len(missions) != 1 {
+		t.Fatalf("missions = %+v, unknown = %v", missions, unknown)
+	}
+	if got := missions[0].Loadout; got != "medieval" {
+		t.Fatalf("loadout = %q, want medieval", got)
+	}
+}
+
 func TestUsefulTicketsLeaveEveryDrawnMissionUnlocked(t *testing.T) {
 	drawn := []string{"mvm_coaltown", "mvm_coaltown_intermediate"}
-	missions, unknown := missionsFor(drawn, nil, nil, nil, true)
+	missions, unknown := missionsFor(drawn, nil, nil, nil, true, nil)
 	if len(unknown) != 0 || len(missions) != 2 {
 		t.Fatalf("missions = %+v, unknown = %v", missions, unknown)
 	}
@@ -221,6 +348,79 @@ func TestGrantsReturnWhatIsAlreadyThere(t *testing.T) {
 	decode(t, get(t, handler, "/grants?since=0"), &response)
 	if len(response.Grants) != 1 || response.Grants[0].Seq != 1 {
 		t.Fatalf("grants = %+v", response.Grants)
+	}
+}
+
+func TestHeldEffectReplaysBuffsWithoutChangingTheirPositions(t *testing.T) {
+	buff := gamedata.WeaponBuffs[0]
+	for _, tc := range []struct {
+		name       string
+		effectID   int64
+		effectKind gamedata.ItemKind
+	}{
+		{"cash waiting for the upgrade station", cashBundleID(t), gamedata.ItemCredits},
+		{"trap waiting for a wave", gamedata.Traps[0].ItemID(), gamedata.ItemTrap},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			store, handler := newTestServer(t, time.Second)
+			if err := store.ApplyItems(0, []int64{buff.ItemID(), tc.effectID, buff.ItemID()}); err != nil {
+				t.Fatal(err)
+			}
+
+			var snapshot state.Unlocks
+			decode(t, get(t, handler, "/unlocks"), &snapshot)
+			if snapshot.ResumeFrom != 0 || snapshot.SnapshotSeq != 3 {
+				t.Fatalf("snapshot cursors = (%d, %d), want (0, 3)", snapshot.ResumeFrom, snapshot.SnapshotSeq)
+			}
+			if got := snapshot.Of(gamedata.ItemWeaponBuff); !slices.Equal(got, []string{buff.Key, buff.Key}) {
+				t.Fatalf("snapshot buff levels = %v, want two copies", got)
+			}
+
+			// An effect held by the plugin leaves the poll cursor at zero.
+			// Each retry then returns the same buff positions again.
+			for retry := range 21 {
+				var response grantsResponse
+				decode(t, get(t, handler, "/grants?since=0"), &response)
+				if response.Seq != 3 || len(response.Grants) != 3 {
+					t.Fatalf("retry %d: response = %+v", retry, response)
+				}
+				for i, grant := range response.Grants {
+					if grant.Seq != i+1 {
+						t.Fatalf("retry %d: grant %d = %+v", retry, i, grant)
+					}
+				}
+				if response.Grants[0].Key != buff.Key || response.Grants[1].Kind != tc.effectKind.Key() || response.Grants[2].Key != buff.Key {
+					t.Fatalf("retry %d: grants = %+v", retry, response.Grants)
+				}
+			}
+		})
+	}
+}
+
+func TestBuffSnapshotAndPollCanOverlapWithoutEffects(t *testing.T) {
+	store, handler := newTestServer(t, time.Second)
+	buff := gamedata.WeaponBuffs[0]
+	if err := store.ApplyItems(0, []int64{buff.ItemID(), buff.ItemID()}); err != nil {
+		t.Fatal(err)
+	}
+
+	var snapshot state.Unlocks
+	decode(t, get(t, handler, "/unlocks"), &snapshot)
+	if snapshot.ResumeFrom != 0 || snapshot.SnapshotSeq != 2 {
+		t.Fatalf("snapshot cursors = (%d, %d), want (0, 2)", snapshot.ResumeFrom, snapshot.SnapshotSeq)
+	}
+	if got := snapshot.Of(gamedata.ItemWeaponBuff); !slices.Equal(got, []string{buff.Key, buff.Key}) {
+		t.Fatalf("snapshot buff levels = %v, want two copies", got)
+	}
+
+	// Even without a held effect, the acknowledgement can lag a reload. The
+	// plugin then polls both item positions already included in the snapshot.
+	var response grantsResponse
+	decode(t, get(t, handler, "/grants?since=0"), &response)
+	if response.Seq != 2 || len(response.Grants) != 2 ||
+		response.Grants[0].Seq != 1 || response.Grants[1].Seq != 2 ||
+		response.Grants[0].Key != buff.Key || response.Grants[1].Key != buff.Key {
+		t.Fatalf("overlapping snapshot and poll = %+v", response)
 	}
 }
 
@@ -279,7 +479,10 @@ func TestGrantsWakeOnANewItem(t *testing.T) {
 }
 
 func TestGrantsKeepWaitingThroughAnUnrelatedChange(t *testing.T) {
-	store, handler := newTestServer(t, 300*time.Millisecond)
+	// Generous, because the two changes below each write the state file, and
+	// on a slow CI disk the pair once outlasted a 300ms poll: the poll then
+	// timed out empty and the test read that as the grant never arriving.
+	store, handler := newTestServer(t, 5*time.Second)
 	mission, _ := gamedata.MissionByPopFile("mvm_decoy")
 	done := make(chan *httptest.ResponseRecorder, 1)
 	go func() { done <- get(t, handler, "/grants?since=0") }()
@@ -300,7 +503,7 @@ func TestGrantsKeepWaitingThroughAnUnrelatedChange(t *testing.T) {
 		if len(response.Grants) != 1 {
 			t.Fatalf("grants = %+v", response.Grants)
 		}
-	case <-time.After(2 * time.Second):
+	case <-time.After(10 * time.Second):
 		t.Fatal("the long poll never answered")
 	}
 }
@@ -607,7 +810,7 @@ func TestAMissionCheckedByTheRoomIsNotPlayedHere(t *testing.T) {
 
 	missions, _ := missionsFor(drawn, drawn,
 		[]int64{coaltown.ClearLocationID(), ghost.ClearLocationID()},
-		[]int64{ghost.ClearLocationID()}, false)
+		[]int64{ghost.ClearLocationID()}, false, nil)
 
 	if len(missions) != 2 {
 		t.Fatalf("missions = %+v", missions)
@@ -649,10 +852,44 @@ func TestTheMissionsAnswerCarriesWhereTheRunWas(t *testing.T) {
 		}
 	}
 
-	if err := store.ClearProgress(); err != nil {
+	if err := store.ClearProgress("mvm_decoy_advanced"); err != nil {
 		t.Fatal(err)
 	}
 	if body = get(t, handler, "/missions").Body.String(); strings.Contains(body, "resume") {
 		t.Errorf("a finished mission still offered a resume:\n%s", body)
+	}
+}
+
+/*
+	The mission list says where each mission can be resumed from.
+
+The Resume button reads this. It is per mission and it outlives the switch, so
+a team who left Coal Town at wave three and went to look at Decoy is still
+offered Coal Town at wave three.
+*/
+func TestTheMissionListSaysWhereEachMissionCanBeResumed(t *testing.T) {
+	drawn := []string{"mvm_coaltown_intermediate", "mvm_decoy_advanced"}
+	missions, _ := missionsFor(drawn, drawn, nil, nil, true,
+		map[string]int{"mvm_coaltown_intermediate": 3})
+
+	for _, got := range missions {
+		want := 0
+		if got.PopFile == "mvm_coaltown_intermediate" {
+			want = 3
+		}
+		if got.WaveReached != want {
+			t.Errorf("%s offers wave %d, want %d", got.PopFile, got.WaveReached, want)
+		}
+	}
+}
+
+func TestHealthReportsTestModeForSeedWatcher(t *testing.T) {
+	for _, enabled := range []bool{false, true} {
+		_, handler := newTestServerWithMode(t, time.Second, enabled)
+		var health healthResponse
+		decode(t, get(t, handler, "/healthz"), &health)
+		if health.TestMode != enabled {
+			t.Fatalf("health test_mode = %t, want %t", health.TestMode, enabled)
+		}
 	}
 }

@@ -22,6 +22,12 @@ pack checkbox is selected. They appear only after the matching ZIP exists and
 validates. Maps without a bot `.nav` then appear in red as unavailable and
 cannot be added to a seed.
 
+With Docker Compose, the admin page stores the ZIPs in the host's
+`./community-content` directory and extracts their `tf/` tree there when the
+download finishes. The running game server watches that same overlay and picks
+up the extracted files within about 30 seconds; rebuilding the image is not
+required.
+
 ### Use asset ZIPs you already have
 
 Keep the original full-with-maps ZIP intact; do not extract or rename it. Put
@@ -50,27 +56,34 @@ The recognized downloads are:
 The `-no-maps.zip` alternatives are deliberately not used: they omit the
 BSP/NAV files required by this catalog.
 
-The mission table has an explicit **Source** column (`Valve`, `Potato Archive`,
-or `Moonlight Archive`), and every start-mission choice has the same source prefix.
-This build installs every asset in the selected archives and offers 53
-stock-syntax missions across 19 community maps. The number of compatible
-missions varies by map because missions that require SigMod are not offered:
-
-| Map | Portable missions |
-| --- | ---: |
-| Area 52 | 8 |
-| Autumnull, Condemned, Frostwynd, Lotus, Transmission | 2 each |
-| Downpour, Oxidize RC3, Oxidize RR18, Radar, Teien | 3 each |
-| Hideout | 6 |
-| Oilrig | 5 |
-| Snowpine | 4 |
-| Heatrock, Kelly, Null, Redstone Ridge, Yiresa | 1 each |
+The mission table has explicit **Source** and **Mods** columns (`Valve`,
+`Potato Archive`, or `Moonlight Archive` for the source), and every
+start-mission choice has the same source prefix. The two archives contain 201
+missions whose map BSP is also present: 79 run on a stock server, 106 declare
+SigMod (`sigsegv-mvm`), and 16 are listed but locked because the archive has no
+bot navigation mesh for their map. This is 116 more missions and 25 more maps
+than the original curated catalog. Another 363 historical population files in
+the archives are not registered because neither archive contains their map;
+installing a population file without its BSP cannot make that mission playable.
 
 The catalog enables missions that use stock server features and have the
 required map, population, and navigation files. Entries missing bot navigation
 remain visible as unavailable and cannot be drawn by a seed. The launcher
 strips the archive's `tf/download/` prefix so assets arrive under the correct
 TF2 game directory on Windows and Linux.
+
+Turn on **SigMod** and press **Download / set up selected server mods**. The
+launcher downloads the release pinned in `deploy/env/versions.env`, verifies its
+package checksum, installs it with SourceMod, and records hashes for its
+critical installed files. **Start** performs the same setup automatically. A
+SigMod mission cannot be ticked or chosen as the start until that inspection
+passes; its Compatibility cell says whether to turn SigMod on or run setup.
+
+Both platforms work, from different releases of `m-this/sigsegv-mvm-win`:
+the Linux package is upstream rebuilt against the current TF2 SDK, and the
+Windows extension is the port. They are pinned separately, so a Windows
+launcher can never reach for the Linux one. Nothing installs SigMod on its own: it arrives only when it is turned on,
+and it is turned on only for missions that declare `requires: "sigsegv-mvm"`.
 
 ## Build a new Windows launcher
 
@@ -95,7 +108,8 @@ make launcher-linux
 ```
 
 That produces `dist/tf2ap-linux-amd64`. Both binaries recognize the same ZIP
-names and offer the same 19 portable community maps.
+names and show the same 201 community missions with their compatibility and
+required server mod.
 
 ## Start a server with a Potato map
 
@@ -141,9 +155,17 @@ this directory does not make TF2 send them.
 
 ## Register the content
 
-Edit `gamedata/community.json`. IDs are permanent Archipelago identities:
-start at 100, never reuse an ID, and keep the manifest with every server and
-apworld that can load the resulting seed.
+Run the archive importer when updating the official packs:
+
+```sh
+make community-catalog
+```
+
+It adds missions only when one of the supplied archives also contains their
+map, detects gameplay-relevant SigMod syntax, and preserves every existing ID
+and hand-written name. Review the result in `gamedata/community.json`. IDs are
+permanent Archipelago identities: start at 100, never reuse an ID, and keep the
+manifest with every server and apworld that can load the resulting seed.
 
 ```json
 {
@@ -226,5 +248,13 @@ docker compose --project-directory . \
 
 - Vanilla `.bsp`, `.nav`, `.pop`, packed VScript, and normal TF2 assets work
   with the layout above. Selectable missions use Valve's upgrade table.
-- Missions that require additional server extensions are not included in the
-  supported catalog.
+- A mission that needs a server mod names it in `requires`, with a key from
+  `gamedata/server_mods.go`. Today that is `sigsegv-mvm` (SigMod). The
+  Docker image stages the pinned release from `deploy/env/versions.env` and
+  installs it when `SRCDS_MODS` names it; `make seed` passes the same list as
+  the apworld's `server_mods` option. The native launcher downloads and
+  verifies the same pin when SigMod is selected, taking the Linux package or
+  the Windows one by the platform it runs on. Every path lets the seed draw
+  those missions only for a server configured to load the mod.
+- A mission that needs a mod the catalog does not know is not accepted by
+  `community.json`. Add the mod to the catalog and pin it first.

@@ -1,0 +1,130 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-sm);
+  min-height: 0;
+}
+
+.panel {
+  background: var(--surface-log);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-panel);
+  overflow: hidden;
+}
+
+cdk-virtual-scroll-viewport {
+  min-height: 440px;
+  max-height: 64vh;
+  height: 60vh;
+}
+
+/* Every row is exactly the height the viewport is told, and a long line runs
+   off to the right rather than wrapping. It used to wrap, and the viewport
+   places rows by count times height: enough wrapped lines and the rows it
+   drew sat above the part of the log on screen, which showed nothing. */
+cdk-virtual-scroll-viewport {
+  overflow-x: auto;
+}
+
+.line {
+  display: flex;
+  gap: var(--gap-sm);
+  align-items: baseline;
+  padding: 0 var(--gap);
+  width: max-content;
+  min-width: 100%;
+  font-family: var(--font-mono);
+  font-size: var(--text-xxs);
+  height: 18px;
+  line-height: 18px;
+  white-space: pre;
+  color: var(--text-log);
+}
+
+.at {
+  color: var(--text-mute);
+  flex: none;
+}
+
+/* Who said it, in their own colour. The launcher set the source, so this is a
+   fact rather than a guess made from the words. */
+.source {
+  flex: none;
+  color: var(--text-mute);
+}
+
+.source.srcds {
+  color: var(--source-srcds);
+}
+
+.source.rcon {
+  color: var(--source-rcon);
+}
+
+.source.launcher {
+  color: var(--source-launcher);
+}
+
+.source.install {
+  color: var(--source-install);
+}
+
+.console {
+  display: flex;
+  gap: var(--gap-sm);
+  align-items: center;
+  padding: var(--gap-sm) var(--gap);
+  background: var(--surface-header);
+  border-top: 1px solid var(--line-soft);
+}
+
+.prompt {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--text-faint);
+}
+
+.console input {
+  flex: 1;
+  min-width: 0;
+  background: var(--surface-void);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: var(--text-md);
+  padding: 8px 10px;
+}
+
+.bar {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-sm);
+  flex-wrap: wrap;
+}
+
+.bar app-search-box {
+  flex: 1;
+  min-width: 180px;
+}
+
+.tick {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-sm);
+  font-size: var(--text-md);
+  color: var(--text-dim);
+  cursor: pointer;
+}
+
+.tick input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+}
+
+.said {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--text-faint);
+}

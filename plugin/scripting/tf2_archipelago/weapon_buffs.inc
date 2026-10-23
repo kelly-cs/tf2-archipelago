@@ -1,39 +1,58 @@
 /** Every positive weapon/effect permutation received from the multiworld. */
 
-#define ProjectileCountEffect 5
-#define BleedEffect 8
-#define IgniteEffect 9
-#define MadMilkEffect 14
-#define GasolineEffect 15
-#define MarkForDeathEffect 16
-#define JarateEffect 60
+// Measured on a server: speed_boost_on_kill lasts one second.
+#define SpeedOnKillSeconds 1.0
+#define SpeedOnHitSeconds 1.0
+#define NoSelfBlastAttribute "no self blast dmg"
+#define LegacySelfBlastDamageAttribute "blast dmg to self increased"
+#define ProjectileDestructionRange 2000.0
+#define ProjectileDestructionRadius 256.0
+#define EnergyWeaponMaxCharge 20.0
+#define EnergyClipSizeAttribute "clip size bonus upgrade"
+#define EnergyClipSizeAttributeClass "mult_clipsize_upgrade"
+#define WeaponBuffProviderRetrySeconds 5.0
+#define WeaponBuffProviderTargetName "tf2ap_weapon_buff_provider"
+#define WeaponBuffProviderListMax 32
+#define AmmoTypeCount 32
+#define ItemChargeMeterMaximum 100.0
+#define RocketPackReadyCharge 50.0
 
-#define BuffMode_Add 1
-#define BuffMode_Percentage 2
-#define BuffMode_Toggle 3
-
-int g_WeaponEffectLevels[WeaponCount][WeaponEffectCount];
-int g_WeaponBuffAppliedRef[2049];
-bool g_WeaponBuffApplied[2049][WeaponEffectCount];
-int g_WeaponBuffAppliedLevels[2049][WeaponEffectCount];
-float g_WeaponBuffAppliedValue[2049][WeaponEffectCount];
+int g_WeaponBuffProviderRef[MAXPLAYERS + 1];
+float g_WeaponBuffProviderRetryAt[MAXPLAYERS + 1];
+bool g_WeaponBuffProviderNotEmptyLogged;
+bool g_WeaponBuffOrphanLogged;
+ConVar g_WeaponBuffKeepVitals;
+bool g_WeaponBuffAtUpgradeStation[MAXPLAYERS + 1];
+int g_DisposableSentryLastSwitchArgumentRef[MAXPLAYERS + 1];
+int g_DisposableSentryLastSwitchActiveRef[MAXPLAYERS + 1];
+int g_DisposableSentryCanBuildCalls[MAXPLAYERS + 1];
+int g_DisposableSentryCanBuildOverrides[MAXPLAYERS + 1];
+int g_DisposableSentryLastCanBuildResult[MAXPLAYERS + 1];
 ConVar g_WeaponBuffProjectileDebug;
+ConVar g_WeaponBuffMirrorRobots;
+ConVar g_WeaponBuffDefenderBots;
 bool g_WeaponBuffFiringExtra;
 int g_WeaponBuffLastExtra;
 Handle g_WeaponBuffFlareCreate;
 Handle g_WeaponBuffArrowCreate;
 Handle g_WeaponBuffProjectileGetDamage;
 Handle g_WeaponBuffProjectileSetDamage;
+Handle g_WeaponBuffProjectileSetLauncher;
 Handle g_WeaponBuffFlareAdd;
 bool g_WeaponBuffNativeExtra[2049];
+bool g_WeaponBuffEnergyExtraHit[2049];
 float g_WeaponBuffNativeExtraBorn[2049];
 bool g_WeaponBuffArrowExtra[2049];
 bool g_WeaponBuffArrowTouched[2049];
 float g_WeaponBuffArrowOrigin[2049][3];
 int g_WeaponBuffStickyMimic[2049];
 int g_WeaponBuffLastButtons[MAXPLAYERS + 1];
+int g_WeaponBuffProjectileDestructionHits[2049];
+float g_WeaponBuffProjectileDestructionReadyAt[MAXPLAYERS + 1];
 int g_WeaponBuffLastSubstanceWeapon[MAXPLAYERS + 1];
 float g_WeaponBuffLastSubstanceTime[MAXPLAYERS + 1];
+float g_WeaponBuffLastGasThrow[MAXPLAYERS + 1];
+bool g_WeaponBuffGassed[MAXPLAYERS + 1];
 #define ProjectileDebugLineCount 24
 char g_WeaponBuffProjectileLines[ProjectileDebugLineCount][256];
 int g_WeaponBuffProjectileLineNext;
@@ -53,10 +72,30 @@ static void WeaponBuffs_DebugLog(const char[] format, any ...)
     }
 }
 
+void WeaponBuffs_OnMapStart()
+{
+    g_WeaponBuffProviderNotEmptyLogged = false;
+    g_WeaponBuffOrphanLogged = false;
+}
+
 void WeaponBuffs_Init()
 {
+    WeaponBuffs_RemoveStaleProviders();
+    g_WeaponBuffKeepVitals = CreateConVar("tf2ap_buff_keep_vitals", "1",
+        "Put back the ammo and health a buff rebuild raised; 0 only to measure what it prevents", FCVAR_NONE, true, 0.0, true, 1.0);
     g_WeaponBuffProjectileDebug = CreateConVar("tf2ap_projectile_debug", "0",
         "Log extra-projectile creation and lifetime", FCVAR_NONE, true, 0.0, true, 1.0);
+    CreateTimer(1.0, Timer_WeaponBuffHealthRegen, _, TIMER_REPEAT);
+    CreateTimer(0.5, Timer_WeaponBuffGasWatch, _, TIMER_REPEAT);
+    g_WeaponBuffMirrorRobots = CreateConVar("tf2ap_mirror_buffs_to_robots", "0",
+        "Mirror Archipelago weapon buffs to enemy BLU robots", FCVAR_NONE, true, 0.0, true, 1.0);
+    g_WeaponBuffMirrorRobots.AddChangeHook(WeaponBuffs_MirrorRobotsChanged);
+    g_WeaponBuffDefenderBots = CreateConVar("tf2ap_buffs_for_defender_bots", "0",
+        "Let the defender bots carry the run's weapon buffs, to measure a buff on a server with no player", FCVAR_NONE, true, 0.0, true, 1.0);
+    g_WeaponBuffDefenderBots.AddChangeHook(WeaponBuffs_DefenderBotsChanged);
+    HookEvent("player_death", WeaponBuffs_PlayerDeath);
+    HookEvent("rocketpack_launch", WeaponBuffs_RocketPackLaunch);
+    WeaponBuffs_InitDisposableSentryHook();
     WeaponBuffs_InitProjectileCalls();
     UserMsg jarated = GetUserMessageId("PlayerJarated");
     if (jarated == INVALID_MESSAGE_ID || GetUserMessageType() != UM_BitBuf)
@@ -72,6 +111,389 @@ void WeaponBuffs_Init()
         if (IsClientInGame(client))
         {
             WeaponBuffs_HookClient(client);
+        }
+    }
+    int tank = -1;
+    while ((tank = FindEntityByClassname(tank, "tank_boss")) != -1)
+    {
+        WeaponBuffs_HookTank(tank);
+    }
+}
+
+static bool WeaponBuffs_IsPrivateProvider(int entity)
+{
+    if (entity <= MaxClients || !IsValidEntity(entity)
+        || !HasEntProp(entity, Prop_Send, "m_iItemDefinitionIndex")
+        || GetEntProp(entity, Prop_Send, "m_iItemDefinitionIndex") != 940
+        || !HasEntProp(entity, Prop_Send, "m_ProviderType")
+        || GetEntProp(entity, Prop_Send, "m_ProviderType") != 0
+        || GetEntityRenderMode(entity) != RENDER_NONE)
+    {
+        return false;
+    }
+    char targetname[48];
+    if (HasEntProp(entity, Prop_Data, "m_iName"))
+    {
+        GetEntPropString(entity, Prop_Data, "m_iName", targetname,
+            sizeof(targetname));
+    }
+    // Legacy providers had no targetname. Their invisible, generic, level-one
+    // Ghostly Gibus shape is otherwise unused and safe to retire on startup.
+    return StrEqual(targetname, WeaponBuffProviderTargetName)
+        || (HasEntProp(entity, Prop_Send, "m_iEntityLevel")
+            && GetEntProp(entity, Prop_Send, "m_iEntityLevel") == 1);
+}
+
+static int WeaponBuffs_PrivateProviderCount()
+{
+    int count;
+    int entity = -1;
+    while ((entity = FindEntityByClassname(entity, "tf_wearable")) != -1)
+    {
+        if (WeaponBuffs_IsPrivateProvider(entity))
+        {
+            count++;
+        }
+    }
+    return count;
+}
+
+static bool WeaponBuffs_IsClientProvider(int entity)
+{
+    int ref = EntIndexToEntRef(entity);
+    for (int client = 1; client <= MaxClients; client++)
+    {
+        if (g_WeaponBuffProviderRef[client] == ref)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+// Every private provider is some client's g_WeaponBuffProviderRef. One that is
+// not keeps providing to its owner and stacks on the real one.
+static void WeaponBuffs_RemoveOrphanProviders()
+{
+    int removed;
+    int entity = -1;
+    while ((entity = FindEntityByClassname(entity, "tf_wearable")) != -1)
+    {
+        if (WeaponBuffs_IsPrivateProvider(entity)
+            && !WeaponBuffs_IsClientProvider(entity))
+        {
+            RemoveEntity(entity);
+            removed++;
+        }
+    }
+    if (removed > 0 && !g_WeaponBuffOrphanLogged)
+    {
+        g_WeaponBuffOrphanLogged = true;
+        LogError("Removed %d Archipelago buff providers that no player held; each one stacked its buffs on the real provider.", removed);
+    }
+}
+
+static void WeaponBuffs_RemoveStaleProviders()
+{
+    int entity = -1;
+    while ((entity = FindEntityByClassname(entity, "tf_wearable")) != -1)
+    {
+        if (WeaponBuffs_IsPrivateProvider(entity))
+        {
+            RemoveEntity(entity);
+        }
+    }
+}
+
+void WeaponBuffs_Shutdown()
+{
+    for (int client = 1; client <= MaxClients; client++)
+    {
+        int provider = EntRefToEntIndex(g_WeaponBuffProviderRef[client]);
+        g_WeaponBuffProviderRef[client] = INVALID_ENT_REFERENCE;
+        if (provider > MaxClients && IsValidEntity(provider))
+        {
+            RemoveEntity(provider);
+        }
+    }
+}
+
+// CTFPlayer::CanBuild result values from tf_shareddefs.h. The hook changes only
+// the ordinary one-sentry limit; every other refusal remains the game's.
+#define CanBuild_Allowed 0
+#define CanBuild_LimitReached 2
+
+static void WeaponBuffs_InitDisposableSentryHook()
+{
+    GameData config = LoadGameConfigFile("tf2_archipelago");
+    if (config == null)
+    {
+        LogError("Disposable-sentry buffs disabled: tf2_archipelago gamedata is missing.");
+        return;
+    }
+    DynamicDetour hook = DynamicDetour.FromConf(config, "CTFPlayer::CanBuild");
+    delete config;
+    if (hook == null || !hook.Enable(Hook_Post, WeaponBuffs_CanBuildPost))
+    {
+        LogError("Disposable-sentry buffs disabled: CTFPlayer::CanBuild could not be hooked.");
+    }
+    delete hook;
+}
+
+static int WeaponBuffs_DirectDisposableSentryLevels(int entity)
+{
+    if (entity < 1 || !IsValidEntity(entity))
+    {
+        return 0;
+    }
+    Address attribute = TF2Attrib_GetByName(entity, "engy disposable sentries");
+    return attribute == Address_Null ? 0
+        : RoundToFloor(TF2Attrib_GetValue(attribute));
+}
+
+static int WeaponBuffs_NativeDisposableSentryLevels(int client)
+{
+    // AP never writes this attribute onto the player or his loadout entities,
+    // so direct values are exactly the ranks owned by Valve's MvM station.
+    int levels = WeaponBuffs_DirectDisposableSentryLevels(client);
+    for (int slot = 0; slot <= 5; slot++)
+    {
+        levels += WeaponBuffs_DirectDisposableSentryLevels(
+            WeaponBuffs_EntityInLoadoutSlot(client, slot));
+    }
+    return levels;
+}
+
+static bool WeaponBuffs_HasDisposableSentryRoom(int client)
+{
+    if (BuffLevels_DisposableSentries() <= 0)
+    {
+        return false;
+    }
+    int disposable;
+    bool hasPrimary;
+    int sentry = -1;
+    while ((sentry = FindEntityByClassname(sentry, "obj_sentrygun")) != -1)
+    {
+        if (GetEntPropEnt(sentry, Prop_Send, "m_hBuilder") != client)
+        {
+            continue;
+        }
+        // Placement ghosts have a builder but are not in the player's object
+        // list yet. Counting one would turn the first real sentry disposable.
+        if (HasEntProp(sentry, Prop_Send, "m_bPlacing")
+            && GetEntProp(sentry, Prop_Send, "m_bPlacing") != 0)
+        {
+            continue;
+        }
+        if (GetEntProp(sentry, Prop_Send, "m_bDisposableBuilding") != 0)
+        {
+            disposable++;
+        }
+        else
+        {
+            hasPrimary = true;
+        }
+    }
+    // AP never supplies this attribute. What remains is exactly the upgrade
+    // station's allowance, appended to the levels held by the multiworld.
+    return BuffLevels_DisposableRoom(WeaponBuffs_NativeDisposableSentryLevels(client),
+        hasPrimary, disposable);
+}
+
+public MRESReturn WeaponBuffs_CanBuildPost(int client, DHookReturn result,
+    DHookParam params)
+{
+    if (client >= 1 && client <= MaxClients
+        && params.Get(1) == view_as<int>(TFObject_Sentry))
+    {
+        g_DisposableSentryCanBuildCalls[client]++;
+        g_DisposableSentryLastCanBuildResult[client] = result.Value;
+    }
+    if (result.Value != CanBuild_LimitReached
+        || params.Get(1) != view_as<int>(TFObject_Sentry)
+        || client < 1 || client > MaxClients || !IsClientInGame(client)
+        || !WeaponBuffs_CanUseRunBuffs(client)
+        || !WeaponBuffs_HasDisposableSentryRoom(client))
+    {
+        return MRES_Ignored;
+    }
+    g_DisposableSentryCanBuildOverrides[client]++;
+    result.Value = CanBuild_Allowed;
+    return MRES_Override;
+}
+
+void WeaponBuffs_EnterUpgradeStation(int client)
+{
+    g_WeaponBuffAtUpgradeStation[client] = true;
+    WeaponBuffs_Apply(client);
+}
+
+void WeaponBuffs_LeaveUpgradeStation(int client)
+{
+    g_WeaponBuffAtUpgradeStation[client] = false;
+    WeaponBuffs_ApplyNextFrame(client);
+}
+
+/*
+The buffs that follow the player rather than the weapon in his hands.
+
+MvM's own movement, jump and regeneration upgrades are bought on the class and
+never stop working, and a player asked for these to read the same way (gh-32).
+The provider is attached to the player, so the attribute reaches him whatever
+he is holding; what has to change is which weapons are counted. Levels add up
+across the loadout, so a Scout who rolled the same buff on his Scattergun and
+his Bat carries both.
+*/
+
+/*
+What one level of an effect is worth on this weapon.
+
+Nearly every effect is worth the same everywhere and the generated increment is
+the answer. ÜberCharge on hit is the exception a player asked for (gh-32): the
+saw keeps five percent a swing and a syringe gun, which lands hits far faster,
+charges one. The apworld describes the pair the same way.
+*/
+static int WeaponBuffs_LoadoutLevels(int client, int effect)
+{
+    // Every slot the game has, not the three the unlocks work in: a Spy's watch
+    // and an Engineer's PDAs sit past those and can carry one of these.
+    int weapons[6];
+    for (int slot = 0; slot < sizeof(weapons); slot++)
+    {
+        weapons[slot] = WeaponBuffs_ForEntity(WeaponBuffs_EntityInLoadoutSlot(client, slot));
+    }
+    return BuffLevels_Loadout(weapons, sizeof(weapons), effect);
+}
+
+public Action Timer_WeaponBuffHealthRegen(Handle timer)
+{
+    int resource = GetPlayerResourceEntity();
+    if (resource <= MaxClients || !IsValidEntity(resource)
+        || !HasEntProp(resource, Prop_Send, "m_iMaxHealth"))
+    {
+        return Plugin_Continue;
+    }
+
+    for (int client = 1; client <= MaxClients; client++)
+    {
+        if (!WeaponBuffs_CanUseRunBuffs(client) || !IsPlayerAlive(client))
+        {
+            continue;
+        }
+        int levels = WeaponBuffs_LoadoutLevels(client, ActiveHealthRegenEffect);
+        if (levels <= 0)
+        {
+            continue;
+        }
+
+        WeaponBuffs_HealClient(client, RoundToFloor(
+            g_WeaponEffectIncrements[ActiveHealthRegenEffect] * float(levels)));
+    }
+    return Plugin_Continue;
+}
+
+// Heals up to the player's real maximum and shows the heal popup, the way the
+// game's own heal on hit does. Returns what landed.
+static int WeaponBuffs_HealClient(int client, int amount)
+{
+    int resource = GetPlayerResourceEntity();
+    if (resource <= MaxClients || !IsValidEntity(resource)
+        || !HasEntProp(resource, Prop_Send, "m_iMaxHealth"))
+    {
+        return 0;
+    }
+    // CTFPlayerResource asks CTFPlayer::GetMaxHealth for this value. That
+    // includes class health and every active weapon, MvM and Archipelago
+    // max-health modifier; m_iMaxHealth on the entity itself does not.
+    int maximum = GetEntProp(resource, Prop_Send, "m_iMaxHealth", 4, client);
+    int health = GetClientHealth(client);
+    int missing = maximum - health;
+    int healed = amount < missing ? amount : missing;
+    if (healed <= 0)
+    {
+        return 0;
+    }
+    SetEntityHealth(client, health + healed);
+    Event event = CreateEvent("player_healonhit");
+    if (event != null)
+    {
+        int active = GetEntPropEnt(client, Prop_Send, "m_hActiveWeapon");
+        event.SetInt("amount", healed);
+        event.SetInt("entindex", client);
+        event.SetInt("weapon_def_index", active > MaxClients && IsValidEntity(active)
+            ? GetEntProp(active, Prop_Send, "m_iItemDefinitionIndex") : -1);
+        event.Fire();
+    }
+    return healed;
+}
+
+static bool WeaponBuffs_IsEnemyRobot(int client)
+{
+    return client > 0 && client <= MaxClients
+        && IsClientInGame(client)
+        && IsFakeClient(client)
+        && !IsClientSourceTV(client)
+        && GetClientTeam(client) == TeamBlue;
+}
+
+static bool WeaponBuffs_IsDefenderBot(int client)
+{
+    return MvM_IsDefender(client)
+        && IsFakeClient(client)
+        && !IsClientSourceTV(client);
+}
+
+// The catalog is run-wide, so every gameplay path must pass through this
+// ownership policy before reading it. Otherwise a robot carrying a matching
+// weapon silently receives the human player's Archipelago effects.
+static bool WeaponBuffs_CanUseRunBuffs(int client)
+{
+    return MvM_IsPlayer(client)
+        || (g_WeaponBuffMirrorRobots != null
+            && g_WeaponBuffMirrorRobots.BoolValue
+            && WeaponBuffs_IsEnemyRobot(client))
+        || (g_WeaponBuffDefenderBots != null
+            && g_WeaponBuffDefenderBots.BoolValue
+            && WeaponBuffs_IsDefenderBot(client));
+}
+
+public void WeaponBuffs_MirrorRobotsChanged(ConVar convar,
+    const char[] oldValue, const char[] newValue)
+{
+    for (int client = 1; client <= MaxClients; client++)
+    {
+        if (!WeaponBuffs_IsEnemyRobot(client))
+        {
+            continue;
+        }
+        if (convar.BoolValue && IsPlayerAlive(client))
+        {
+            WeaponBuffs_Apply(client);
+        }
+        else
+        {
+            WeaponBuffs_Remove(client);
+        }
+    }
+}
+
+public void WeaponBuffs_DefenderBotsChanged(ConVar convar,
+    const char[] oldValue, const char[] newValue)
+{
+    for (int client = 1; client <= MaxClients; client++)
+    {
+        if (!WeaponBuffs_IsDefenderBot(client))
+        {
+            continue;
+        }
+        if (convar.BoolValue && IsPlayerAlive(client))
+        {
+            WeaponBuffs_Apply(client);
+        }
+        else
+        {
+            WeaponBuffs_Remove(client);
         }
     }
 }
@@ -126,6 +548,13 @@ static void WeaponBuffs_InitProjectileCalls()
     }
 
     StartPrepSDKCall(SDKCall_Entity);
+    if (PrepSDKCall_SetFromConf(config, SDKConf_Virtual, "CBaseProjectile::SetLauncher"))
+    {
+        PrepSDKCall_AddParameter(SDKType_CBaseEntity, SDKPass_Pointer);
+        g_WeaponBuffProjectileSetLauncher = EndPrepSDKCall();
+    }
+
+    StartPrepSDKCall(SDKCall_Entity);
     if (PrepSDKCall_SetFromConf(config, SDKConf_Signature, "CTFFlareGun::AddFlare"))
     {
         PrepSDKCall_AddParameter(SDKType_CBaseEntity, SDKPass_Pointer);
@@ -138,7 +567,7 @@ static void WeaponBuffs_InitProjectileCalls()
     {
         LogError("Projectile-count flare fanout disabled: this TF2 build does not match the native flare gamedata.");
     }
-    if (g_WeaponBuffArrowCreate == null)
+    if (g_WeaponBuffArrowCreate == null || g_WeaponBuffProjectileSetLauncher == null)
     {
         LogError("Projectile-count arrow fanout disabled: this TF2 build does not match the native arrow gamedata.");
     }
@@ -146,11 +575,49 @@ static void WeaponBuffs_InitProjectileCalls()
 
 void WeaponBuffs_HookClient(int client)
 {
+    g_WeaponBuffProviderRetryAt[client] = 0.0;
+    g_DisposableSentryLastSwitchArgumentRef[client] = INVALID_ENT_REFERENCE;
+    g_DisposableSentryLastSwitchActiveRef[client] = INVALID_ENT_REFERENCE;
+    g_DisposableSentryCanBuildCalls[client] = 0;
+    g_DisposableSentryCanBuildOverrides[client] = 0;
+    g_DisposableSentryLastCanBuildResult[client] = -1;
     g_WeaponBuffLastButtons[client] = 0;
+    BuffLevels_ForgetClient(client);
+    g_WeaponBuffProjectileDestructionReadyAt[client] = 0.0;
     g_WeaponBuffLastSubstanceWeapon[client] = -1;
     g_WeaponBuffLastSubstanceTime[client] = 0.0;
+    SDKUnhook(client, SDKHook_OnTakeDamage, WeaponBuffs_OnTakeDamage);
+    SDKHook(client, SDKHook_OnTakeDamage, WeaponBuffs_OnTakeDamage);
+    SDKUnhook(client, SDKHook_OnTakeDamageAlivePost, WeaponBuffs_OnTakeDamageAlivePost);
+    SDKHook(client, SDKHook_OnTakeDamageAlivePost, WeaponBuffs_OnTakeDamageAlivePost);
     SDKUnhook(client, SDKHook_OnTakeDamagePost, WeaponBuffs_OnTakeDamagePost);
     SDKHook(client, SDKHook_OnTakeDamagePost, WeaponBuffs_OnTakeDamagePost);
+    SDKUnhook(client, SDKHook_WeaponSwitchPost, WeaponBuffs_WeaponSwitchPost);
+    SDKHook(client, SDKHook_WeaponSwitchPost, WeaponBuffs_WeaponSwitchPost);
+    SDKUnhook(client, SDKHook_PostThinkPost, WeaponBuffs_PostThinkPost);
+    SDKHook(client, SDKHook_PostThinkPost, WeaponBuffs_PostThinkPost);
+}
+
+static void WeaponBuffs_HookTank(int tank)
+{
+    SDKUnhook(tank, SDKHook_OnTakeDamagePost, WeaponBuffs_OnTankTakeDamagePost);
+    SDKHook(tank, SDKHook_OnTakeDamagePost, WeaponBuffs_OnTankTakeDamagePost);
+}
+
+public void WeaponBuffs_WeaponSwitchPost(int client, int weapon)
+{
+    // WeaponSwitchPost supplies the new entity before m_hActiveWeapon is
+    // guaranteed to expose it. Applying immediately can therefore leave the
+    // PDA value active after the player has taken out the toolbox. The next
+    // frame observes the settled entity, just like station transactions do.
+    g_DisposableSentryLastSwitchArgumentRef[client] =
+        weapon > MaxClients && IsValidEntity(weapon)
+        ? EntIndexToEntRef(weapon) : INVALID_ENT_REFERENCE;
+    int active = GetEntPropEnt(client, Prop_Send, "m_hActiveWeapon");
+    g_DisposableSentryLastSwitchActiveRef[client] =
+        active > MaxClients && IsValidEntity(active)
+        ? EntIndexToEntRef(active) : INVALID_ENT_REFERENCE;
+    WeaponBuffs_ApplyNextFrame(client);
 }
 
 static bool WeaponBuffs_IsProjectile(const char[] classname)
@@ -166,14 +633,21 @@ static bool WeaponBuffs_IsSubstanceProjectile(const char[] classname)
 
 public void OnEntityCreated(int entity, const char[] classname)
 {
+    MissionModifiers_OnEntityCreated(entity, classname);
     if (entity <= MaxClients || entity >= sizeof(g_WeaponBuffNativeExtra))
     {
         return;
     }
     g_WeaponBuffNativeExtra[entity] = g_WeaponBuffFiringExtra;
+    g_WeaponBuffEnergyExtraHit[entity] = false;
     g_WeaponBuffNativeExtraBorn[entity] = GetGameTime();
     g_WeaponBuffArrowExtra[entity] = false;
     g_WeaponBuffArrowTouched[entity] = false;
+    g_WeaponBuffProjectileDestructionHits[entity] = 0;
+    if (StrEqual(classname, "tank_boss"))
+    {
+        WeaponBuffs_HookTank(entity);
+    }
     if (WeaponBuffs_IsProjectile(classname) && g_WeaponBuffProjectileDebug != null
         && g_WeaponBuffProjectileDebug.BoolValue)
     {
@@ -210,7 +684,7 @@ public void WeaponBuffs_SubstanceProjectileSpawned(int entity)
     // shape so even an immediately shattered jar has its reward pool recorded
     // before PlayerJarated is emitted.
     int owner = WeaponBuffs_EntityOwner(entity);
-    if (!MvM_IsPlayer(owner))
+    if (!WeaponBuffs_CanUseRunBuffs(owner))
     {
         return;
     }
@@ -222,6 +696,57 @@ public void WeaponBuffs_SubstanceProjectileSpawned(int entity)
     }
     g_WeaponBuffLastSubstanceWeapon[owner] = weapon;
     g_WeaponBuffLastSubstanceTime[owner] = GetGameTime();
+    char classname[64];
+    GetEntityClassname(entity, classname, sizeof(classname));
+    if (StrEqual(classname, "tf_projectile_jar_gas", false))
+    {
+        g_WeaponBuffLastGasThrow[owner] = GetGameTime();
+    }
+}
+
+// The game sends no PlayerJarated for gas and credits a gassed robot's burn
+// death to whatever lit it, so the Gas Passer's kills are read off the
+// condition: an enemy that turns gassed was gassed by whoever threw gas last.
+public Action Timer_WeaponBuffGasWatch(Handle timer)
+{
+    float now = GetGameTime();
+    for (int client = 1; client <= MaxClients; client++)
+    {
+        if (!IsClientInGame(client) || !IsPlayerAlive(client))
+        {
+            g_WeaponBuffGassed[client] = false;
+            continue;
+        }
+        bool gassed = TF2_IsPlayerInCondition(client, TFCond_Gas);
+        if (gassed && !g_WeaponBuffGassed[client])
+        {
+            int thrower = WeaponBuffs_RecentGasThrower(client, now);
+            if (thrower > 0)
+            {
+                BuffLevels_Gassed(client, thrower, now);
+            }
+        }
+        g_WeaponBuffGassed[client] = gassed;
+    }
+    return Plugin_Continue;
+}
+
+static int WeaponBuffs_RecentGasThrower(int victim, float now)
+{
+    int thrower;
+    float latest = now - 5.0;
+    for (int client = 1; client <= MaxClients; client++)
+    {
+        if (client == victim || g_WeaponBuffLastGasThrow[client] <= latest
+            || !IsClientInGame(client) || !WeaponBuffs_CanUseRunBuffs(client)
+            || GetClientTeam(client) == GetClientTeam(victim))
+        {
+            continue;
+        }
+        thrower = client;
+        latest = g_WeaponBuffLastGasThrow[client];
+    }
+    return thrower;
 }
 
 public Action WeaponBuffs_PlayerJarated(UserMsg msgId, BfRead message,
@@ -231,6 +756,7 @@ public Action WeaponBuffs_PlayerJarated(UserMsg msgId, BfRead message,
     int victim = message.ReadByte();
     if (attacker < 1 || attacker > MaxClients || victim < 1 || victim > MaxClients
         || !IsClientInGame(attacker) || !IsClientInGame(victim)
+        || !WeaponBuffs_CanUseRunBuffs(attacker)
         || GetClientTeam(attacker) == GetClientTeam(victim)
         || GetGameTime() - g_WeaponBuffLastSubstanceTime[attacker] > 60.0)
     {
@@ -262,47 +788,455 @@ public void WeaponBuffs_ApplySubstances(any rawPack)
     delete pack;
     if (attacker < 1 || attacker > MaxClients || victim < 1 || victim > MaxClients
         || !IsClientInGame(attacker) || !IsClientInGame(victim) || !IsPlayerAlive(victim)
+        || !WeaponBuffs_CanUseRunBuffs(attacker)
         || GetClientTeam(attacker) == GetClientTeam(victim)
         || weapon < 0 || weapon >= WeaponCount)
     {
         return;
     }
 
-    int bleed = g_WeaponEffectLevels[weapon][BleedEffect];
-    int milk = g_WeaponEffectLevels[weapon][MadMilkEffect];
-    int gas = g_WeaponEffectLevels[weapon][GasolineEffect];
-    int marked = g_WeaponEffectLevels[weapon][MarkForDeathEffect];
-    int jarate = g_WeaponEffectLevels[weapon][JarateEffect];
-    if (bleed > 0)
+    WeaponBuffs_ApplyHitEffects(victim, attacker, weapon);
+    WeaponBuffs_ApplyJarHitRewards(attacker, weapon);
+}
+
+// The game reads heal on hit and speed on hit off a weapon attack, and a jar
+// splash is not one: with the attributes on, a soaked robot gave the thrower
+// nothing. What every other weapon gets from the attribute, a jar gets here,
+// once per soaked enemy.
+static void WeaponBuffs_ApplyJarHitRewards(int attacker, int weapon)
+{
+    if (!IsPlayerAlive(attacker))
     {
-        TF2_MakeBleed(victim, attacker, 3.0 * float(bleed));
+        return;
     }
-    if (milk > 0)
+    BuffReward reward;
+    if (!BuffLevels_JarReward(weapon, reward))
+    {
+        return;
+    }
+    int healed;
+    if (reward.heal > 0.0)
+    {
+        healed = WeaponBuffs_HealClient(attacker, RoundToFloor(reward.heal));
+    }
+    if (reward.speed)
+    {
+        TF2_AddCondition(attacker, TFCond_SpeedBuffAlly, SpeedOnHitSeconds, attacker);
+    }
+    if (g_WeaponBuffProjectileDebug.BoolValue)
+    {
+        WeaponBuffs_DebugLog("[AP jar hit] weapon=%s attacker=%d healed=%d speed=%d",
+            g_WeaponNames[weapon], attacker, healed, reward.speed);
+    }
+}
+
+// The on-kill attributes are read off the weapon that killed, through its
+// owner, and the owner's provider carries the active weapon's buffs. A robot
+// that burns down after the Pyro put the Gas Passer away was credited to the
+// flamethrower. When the weapon that killed is not the one held, its own
+// on-kill buffs are paid here; when it is, the game already paid them.
+public void WeaponBuffs_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
+{
+    int attacker = GetClientOfUserId(event.GetInt("attacker"));
+    int victim = GetClientOfUserId(event.GetInt("userid"));
+    if (attacker < 1 || victim < 1 || attacker == victim
+        || !IsClientInGame(attacker) || !IsClientInGame(victim)
+        || !IsPlayerAlive(attacker) || !WeaponBuffs_CanUseRunBuffs(attacker)
+        || GetClientTeam(attacker) == GetClientTeam(victim))
+    {
+        return;
+    }
+    // A stomp carries no weapon, and the game reads no on-kill attribute for
+    // it, so the boots or the pack in the secondary slot are paid here.
+    char eventWeapon[64];
+    char logWeapon[64];
+    event.GetString("weapon", eventWeapon, sizeof(eventWeapon));
+    event.GetString("weapon_logclassname", logWeapon, sizeof(logWeapon));
+    bool mantreads = StrEqual(eventWeapon, "mantreads") || StrEqual(logWeapon, "mantreads");
+    bool thermal = StrEqual(eventWeapon, "rocketpack_stomp") || StrEqual(logWeapon, "rocketpack_stomp");
+    int weapon;
+    if (mantreads || thermal)
+    {
+        int entity = WeaponBuffs_EntityInLoadoutSlot(attacker, Slot_Secondary);
+        weapon = WeaponBuffs_ForEntity(entity);
+        BuffStomp stomp = BuffLevels_Stomp(weapon);
+        if ((mantreads && stomp == BuffStomp_Mantreads)
+            || (thermal && stomp == BuffStomp_Thermal))
+        {
+            WeaponBuffs_ApplyStompKillEffects(attacker, entity, weapon);
+        }
+        return;
+    }
+    int definition = event.GetInt("weapon_def_index");
+    weapon = WeaponBuffs_ForDefinition(definition);
+    int active = WeaponBuffs_ForEntity(GetEntPropEnt(attacker, Prop_Send, "m_hActiveWeapon"));
+    int custom = event.GetInt("customkill");
+    if (g_WeaponBuffProjectileDebug.BoolValue && weapon >= 0)
+    {
+        WeaponBuffs_DebugLog("[AP kill] weapon=%s definition=%d active=%d attacker=%d victim=%d custom=%d",
+            g_WeaponNames[weapon], definition, active, attacker, victim, custom);
+    }
+    if (!BuffLevels_GamePaidKill(weapon, active))
+    {
+        WeaponBuffs_ApplyKillRewards(attacker, weapon);
+    }
+    if (custom == TF_CUSTOM_BURNING)
+    {
+        WeaponBuffs_CreditGasBurn(attacker, victim, weapon);
+    }
+}
+
+// A burn death of an enemy this attacker gassed is the Gas Passer's kill too,
+// whichever weapon lit the gas. Its own on-kill buffs are paid here unless
+// the game already credited the Gas Passer itself.
+static void WeaponBuffs_CreditGasBurn(int attacker, int victim, int killedWith)
+{
+    int gasPasser = BuffLevels_GasKill(victim, attacker, killedWith, GetGameTime());
+    if (gasPasser < 0)
+    {
+        return;
+    }
+    if (g_WeaponBuffProjectileDebug.BoolValue)
+    {
+        WeaponBuffs_DebugLog("[AP kill] gas burn attacker=%d victim=%d", attacker, victim);
+    }
+    WeaponBuffs_ApplyKillRewards(attacker, gasPasser);
+}
+
+static void WeaponBuffs_ApplyKillRewards(int attacker, int weapon)
+{
+    BuffReward reward;
+    if (!BuffLevels_KillReward(weapon, reward))
+    {
+        return;
+    }
+    int healed;
+    if (reward.heal > 0.0)
+    {
+        healed = WeaponBuffs_HealClient(attacker, RoundToFloor(reward.heal));
+    }
+    if (reward.crits > 0.0)
+    {
+        TF2_AddCondition(attacker, TFCond_CritOnKill, reward.crits, attacker);
+    }
+    if (reward.minicrits > 0.0)
+    {
+        TF2_AddCondition(attacker, TFCond_MiniCritOnKill, reward.minicrits, attacker);
+    }
+    if (reward.speed)
+    {
+        TF2_AddCondition(attacker, TFCond_SpeedBuffAlly, SpeedOnKillSeconds, attacker);
+    }
+    if (g_WeaponBuffProjectileDebug.BoolValue)
+    {
+        WeaponBuffs_DebugLog("[AP kill] weapon=%s attacker=%d healed=%d crits=%.1f minicrits=%.1f speed=%d",
+            g_WeaponNames[weapon], attacker, healed, reward.crits, reward.minicrits, reward.speed);
+    }
+}
+
+// Item attributes implement these effects for only some of the weapons they
+// can be awarded to. Apply the reward from the resolved catalogue entry on a
+// confirmed enemy hit so bullets, projectiles and jars all use the same rules.
+static void WeaponBuffs_ApplyHitEffects(int victim, int attacker, int weapon)
+{
+    BuffHit hit;
+    if (!BuffLevels_HitEffects(weapon, hit))
+    {
+        return;
+    }
+    if (hit.reveal)
+    {
+        Mental_RevealOnHit(victim);
+    }
+    // One stack per enemy. TF2_MakeBleed adds a stack on every call, and a
+    // syringe gun landed one per syringe on the same target.
+    if (hit.bleed > 0.0 && !TF2_IsPlayerInCondition(victim, TFCond_Bleeding))
+    {
+        TF2_MakeBleed(victim, attacker, hit.bleed);
+    }
+    if (hit.ignite)
+    {
+        TF2_IgnitePlayer(victim, attacker);
+    }
+    if (hit.milk)
     {
         TF2_AddCondition(victim, TFCond_Milked, 10.0, attacker);
     }
-    if (gas > 0)
+    if (hit.gas)
     {
         TF2_AddCondition(victim, TFCond_Gas, 10.0, attacker);
     }
-    if (marked > 0)
+    if (hit.marked)
     {
         TF2_AddCondition(victim, TFCond_MarkedForDeath, 10.0, attacker);
     }
-    if (jarate > 0)
+    if (hit.jarate > 0.0)
     {
-        TF2_AddCondition(victim, TFCond_Jarated, 10.0 + 2.0 * float(jarate), attacker);
+        TF2_AddCondition(victim, TFCond_Jarated, hit.jarate, attacker);
     }
     if (g_WeaponBuffProjectileDebug.BoolValue
-        && (bleed > 0 || milk > 0 || gas > 0 || marked > 0 || jarate > 0))
+        && (hit.bleed > 0.0 || hit.ignite || hit.milk || hit.gas || hit.marked || hit.jarate > 0.0))
     {
-        WeaponBuffs_DebugLog("[AP substance] weapon=%s attacker=%d victim=%d bleed=%d milk=%d gas=%d marked=%d jarate=%d",
-            g_WeaponNames[weapon], attacker, victim, bleed, milk, gas, marked, jarate);
+        WeaponBuffs_DebugLog("[AP substance] weapon=%s attacker=%d victim=%d bleed=%.1f ignite=%d milk=%d gas=%d marked=%d jarate=%.1f",
+            g_WeaponNames[weapon], attacker, victim, hit.bleed, hit.ignite, hit.milk, hit.gas, hit.marked, hit.jarate);
+    }
+}
+
+// Energy weapons do not use a player ammo reserve. Return the amount of meter
+// that one normal shot consumes so one ammo-on-hit level still means one shot.
+// Direct flamethrower contact and afterburn both use TF_CUSTOM_BURNING. Valve
+// identifies direct contact with the weapon as the inflictor; an afterburn tick
+// uses the attacking player instead. Keep the former as a hit and reject the
+// latter, along with all periodic bleed damage.
+static bool WeaponBuffs_IsDamageOverTime(int attacker, int inflictor, int damagecustom)
+{
+    return damagecustom == TF_CUSTOM_BLEEDING
+        || (damagecustom == TF_CUSTOM_BURNING && inflictor == attacker);
+}
+
+static float WeaponBuffs_EnergyShotCost(int entity)
+{
+    char classname[64];
+    GetEntityClassname(entity, classname, sizeof(classname));
+    if (StrEqual(classname, "tf_weapon_particle_cannon")
+        || StrEqual(classname, "tf_weapon_raygun")
+        || StrEqual(classname, "tf_weapon_drg_pomson"))
+    {
+        return 5.0;
+    }
+    return 0.0;
+}
+
+// TF2 expresses an energy weapon's capacity as a number of shots. The MvM
+// station and our private provider both contribute through this hook, so the
+// cap follows either source of clip-size upgrades instead of assuming 20.
+static float WeaponBuffs_EnergyMaxCharge(int entity, float shotCost)
+{
+    int baseShots = RoundToFloor(EnergyWeaponMaxCharge / shotCost);
+    float upgradedShots = TF2Attrib_HookValueFloat(float(baseShots),
+        EnergyClipSizeAttributeClass, entity);
+    return float(RoundToFloor(upgradedShots)) * shotCost;
+}
+
+// A shield bash is credited to the shield wearable. Like a melee hit, it
+// supplies the Demoman's primary reserve rather than the attacking entity.
+static bool WeaponBuffs_SuppliesPrimaryAmmo(int entity)
+{
+    if (WeaponBuffs_IsMelee(entity))
+    {
+        return true;
+    }
+    char classname[64];
+    GetEntityClassname(entity, classname, sizeof(classname));
+    if (StrEqual(classname, "tf_wearable_demoshield"))
+    {
+        return true;
+    }
+    return BuffLevels_Stomp(WeaponBuffs_ForEntity(entity)) == BuffStomp_Mantreads;
+}
+
+static float WeaponBuffs_RocketPackLaunchCost()
+{
+    ConVar cost = FindConVar("tf_rocketpack_cost");
+    return cost != null && cost.FloatValue > 0.0 ? cost.FloatValue : 50.0;
+}
+
+// The engine always requires 50 meter points before it permits a launch.
+// Treating the portion above that threshold as the spendable pool lets every
+// clip-size level add exactly one usable launch to the stock two.
+static float WeaponBuffs_ThermalThrusterEffectiveCost(int weapon)
+{
+    float stockCost = WeaponBuffs_RocketPackLaunchCost();
+    int stockCharges = RoundToFloor(
+        (ItemChargeMeterMaximum - RocketPackReadyCharge) / stockCost) + 1;
+    int levels = BuffLevels_Of(weapon, ClipSizeEffect);
+    if (levels <= 0)
+    {
+        return stockCost;
+    }
+    return (ItemChargeMeterMaximum - RocketPackReadyCharge)
+        / float(stockCharges + levels - 1);
+}
+
+// The Thermal Thruster has an ammo-looking field, but its usable launches live
+// in the player's secondary item meter. Restore one effective launch per level,
+// including when clip-size has increased the number of launches in the meter.
+static void WeaponBuffs_AddThermalThrusterCharge(int attacker, int weapon, int amount)
+{
+    if (!HasEntProp(attacker, Prop_Send, "m_flItemChargeMeter"))
+    {
+        return;
+    }
+    float charge = GetEntPropFloat(attacker, Prop_Send,
+        "m_flItemChargeMeter", Slot_Secondary)
+        + WeaponBuffs_ThermalThrusterEffectiveCost(weapon) * float(amount);
+    if (charge > ItemChargeMeterMaximum)
+    {
+        charge = ItemChargeMeterMaximum;
+    }
+    SetEntPropFloat(attacker, Prop_Send, "m_flItemChargeMeter",
+        charge, Slot_Secondary);
+}
+
+static int WeaponBuffs_ClassBaseHealth(int client)
+{
+    switch (TF2_GetPlayerClass(client))
+    {
+        case TFClass_Scout, TFClass_Engineer, TFClass_Sniper, TFClass_Spy:
+        {
+            return 125;
+        }
+        case TFClass_Soldier:
+        {
+            return 200;
+        }
+        case TFClass_Pyro, TFClass_DemoMan:
+        {
+            return 175;
+        }
+        case TFClass_Heavy:
+        {
+            return 300;
+        }
+        case TFClass_Medic:
+        {
+            return 150;
+        }
+    }
+    return 0;
+}
+
+// Stomp damage is credited to the player rather than to the equipped wearable,
+// so TF2 never consults on-kill attributes attached to Mantreads or the Thermal
+// Thruster. Reproduce their supported effects from the confirmed lethal stomp.
+static void WeaponBuffs_ApplyStompKillEffects(int attacker, int entity, int weapon)
+{
+    float heal = BuffLevels_StompKillHeal(weapon, WeaponBuffs_ClassBaseHealth(attacker));
+    if (heal > 0.0)
+    {
+        int resource = GetPlayerResourceEntity();
+        // m_iMaxHealth belongs to tf_player_manager, not the player entity.
+        // Class base is a safe fallback during the brief map transitions where
+        // the resource entity is unavailable.
+        int maximum = WeaponBuffs_ClassBaseHealth(attacker);
+        if (resource > MaxClients && IsValidEntity(resource)
+            && HasEntProp(resource, Prop_Send, "m_iMaxHealth"))
+        {
+            maximum = GetEntProp(resource, Prop_Send, "m_iMaxHealth", 4, attacker);
+        }
+        int health = GetClientHealth(attacker);
+        int amount = RoundToCeil(heal);
+        int overhealCap = RoundToFloor(float(maximum) * 1.5);
+        int healed = amount < overhealCap - health ? amount : overhealCap - health;
+        if (healed > 0)
+        {
+            SetEntityHealth(attacker, health + healed);
+            Event event = CreateEvent("player_healonhit");
+            if (event != null)
+            {
+                event.SetInt("amount", healed);
+                event.SetInt("entindex", attacker);
+                event.SetInt("weapon_def_index",
+                    GetEntProp(entity, Prop_Send, "m_iItemDefinitionIndex"));
+                event.Fire();
+            }
+        }
+    }
+
+    WeaponBuffs_ApplyKillRewards(attacker, weapon);
+}
+
+// TF2 always requires 50 meter points to begin a launch, even if the amount
+// consumed afterward is changed. Refund part of the stock cost after each
+// launch so 100 meter points contain exactly one additional usable launch per
+// AP clip-size level: 2 stock, then 3, 4, and so on.
+public void WeaponBuffs_RocketPackLaunch(Event event, const char[] name, bool dontBroadcast)
+{
+    int client = GetClientOfUserId(event.GetInt("userid"));
+    if (!WeaponBuffs_CanUseRunBuffs(client) || !IsPlayerAlive(client)
+        || !HasEntProp(client, Prop_Send, "m_flItemChargeMeter"))
+    {
+        return;
+    }
+    int entity = WeaponBuffs_EntityInLoadoutSlot(client, Slot_Secondary);
+    int weapon = WeaponBuffs_ForEntity(entity);
+    if (BuffLevels_Stomp(weapon) != BuffStomp_Thermal
+        || BuffLevels_Of(weapon, ClipSizeEffect) <= 0)
+    {
+        return;
+    }
+
+    float launchCost = WeaponBuffs_RocketPackLaunchCost();
+    float refund = launchCost - WeaponBuffs_ThermalThrusterEffectiveCost(weapon);
+    if (refund <= 0.0)
+    {
+        return;
+    }
+
+    float charge = GetEntPropFloat(client, Prop_Send,
+        "m_flItemChargeMeter", Slot_Secondary) + refund;
+    if (charge > ItemChargeMeterMaximum)
+    {
+        charge = ItemChargeMeterMaximum;
+    }
+    SetEntPropFloat(client, Prop_Send, "m_flItemChargeMeter",
+        charge, Slot_Secondary);
+}
+
+// TF2's add_onhit_addammo attribute queues ammo on a hit, but only pays that
+// queue when a clipless gun fires. Give the reserve ammo here so the effect has
+// the same meaning for clipped and clipless weapons. A melee hit has no useful
+// ammo type of its own, so it supplies the attacker's primary weapon instead.
+// Shield bashes follow that same rule.
+static void WeaponBuffs_AddAmmoOnHit(int attacker, int entity, int weapon)
+{
+    int amount = BuffLevels_Of(weapon, AmmoOnHitEffect);
+    if (amount <= 0 || entity <= MaxClients || !IsValidEntity(entity))
+    {
+        return;
+    }
+
+    if (BuffLevels_Stomp(weapon) == BuffStomp_Thermal)
+    {
+        WeaponBuffs_AddThermalThrusterCharge(attacker, weapon, amount);
+        return;
+    }
+
+    int ammoWeapon = entity;
+    if (WeaponBuffs_SuppliesPrimaryAmmo(entity))
+    {
+        ammoWeapon = GetPlayerWeaponSlot(attacker, TFWeaponSlot_Primary);
+    }
+    if (ammoWeapon <= MaxClients || !IsValidEntity(ammoWeapon)
+        || !HasEntProp(ammoWeapon, Prop_Send, "m_iPrimaryAmmoType"))
+    {
+        return;
+    }
+
+    float energyPerShot = WeaponBuffs_EnergyShotCost(ammoWeapon);
+    if (energyPerShot > 0.0 && HasEntProp(ammoWeapon, Prop_Send, "m_flEnergy"))
+    {
+        float energy = GetEntPropFloat(ammoWeapon, Prop_Send, "m_flEnergy")
+            + energyPerShot * float(amount);
+        float maximum = WeaponBuffs_EnergyMaxCharge(ammoWeapon, energyPerShot);
+        if (energy > maximum)
+        {
+            energy = maximum;
+        }
+        SetEntPropFloat(ammoWeapon, Prop_Send, "m_flEnergy", energy);
+        return;
+    }
+
+    int ammoType = GetEntProp(ammoWeapon, Prop_Send, "m_iPrimaryAmmoType");
+    if (ammoType >= 0)
+    {
+        GivePlayerAmmo(attacker, amount, ammoType, true);
     }
 }
 
 public void OnEntityDestroyed(int entity)
 {
+    MissionModifiers_OnEntityDestroyed(entity);
     if (entity > MaxClients && entity < sizeof(g_WeaponBuffNativeExtra))
     {
         int mimic = EntRefToEntIndex(g_WeaponBuffStickyMimic[entity]);
@@ -317,8 +1251,282 @@ public void OnEntityDestroyed(int entity)
                 entity, GetGameTime() - g_WeaponBuffNativeExtraBorn[entity]);
         }
         g_WeaponBuffNativeExtra[entity] = false;
+        g_WeaponBuffEnergyExtraHit[entity] = false;
         g_WeaponBuffArrowExtra[entity] = false;
         g_WeaponBuffArrowTouched[entity] = false;
+        g_WeaponBuffProjectileDestructionHits[entity] = 0;
+    }
+}
+
+static bool WeaponBuffs_IsDestroyableProjectile(int entity)
+{
+    if (entity <= MaxClients || !IsValidEntity(entity))
+    {
+        return false;
+    }
+    char classname[64];
+    GetEntityClassname(entity, classname, sizeof(classname));
+    // The upgrade's weapon-side eligibility is deliberately narrow, but its
+    // target should be every ordinary TF2 projectile: robot arrows, baseballs,
+    // flares and energy shots are just as threatening as rockets and pipes.
+    return StrContains(classname, "tf_projectile_", false) == 0;
+}
+
+static float WeaponBuffs_DistanceToShot(const float point[3], const float start[3],
+    const float finish[3])
+{
+    float line[3], offset[3];
+    SubtractVectors(finish, start, line);
+    SubtractVectors(point, start, offset);
+    float lengthSquared = GetVectorDotProduct(line, line);
+    float fraction = lengthSquared > 0.0
+        ? GetVectorDotProduct(offset, line) / lengthSquared : 0.0;
+    if (fraction < 0.0) fraction = 0.0;
+    if (fraction > 1.0) fraction = 1.0;
+    float nearest[3];
+    nearest[0] = start[0] + line[0] * fraction;
+    nearest[1] = start[1] + line[1] * fraction;
+    nearest[2] = start[2] + line[2] * fraction;
+    return GetVectorDistance(point, nearest);
+}
+
+public bool WeaponBuffs_ProjectileVisibilityFilter(int entity, int contentsMask, any client)
+{
+    if (entity == client)
+    {
+        return false;
+    }
+    // The invisible attribute provider and the player's equipped entities sit
+    // at their owner. They must not make a trace from that player's eye start
+    // solid, but normal map props and other entities still block visibility.
+    if (entity > MaxClients && IsValidEntity(entity)
+        && HasEntProp(entity, Prop_Send, "m_hOwnerEntity")
+        && GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity") == client)
+    {
+        return false;
+    }
+    return true;
+}
+
+static bool WeaponBuffs_ProjectileVisible(int client, const float start[3], const float point[3])
+{
+    // A projectile commonly flies close to a floor or wall. Tracing into its
+    // exact origin can finish inside that brush and call a clear shot blocked.
+    // Stop sixteen units in front of it, along the shooter's line of sight.
+    float direction[3], finish[3];
+    SubtractVectors(start, point, direction);
+    NormalizeVector(direction, direction);
+    ScaleVector(direction, 48.0);
+    AddVectors(point, direction, finish);
+    Handle trace = TR_TraceRayFilterEx(start, finish, MASK_SOLID, RayType_EndPoint,
+        WeaponBuffs_ProjectileVisibilityFilter, client);
+    float fraction = TR_GetFraction(trace);
+    bool visible = !TR_DidHit(trace) || fraction >= 0.99;
+    int blocker = visible ? -1 : TR_GetEntityIndex(trace);
+    delete trace;
+    if (!visible && g_WeaponBuffProjectileDebug.BoolValue)
+    {
+        WeaponBuffs_DebugLog("[AP destroy] candidate blocked at trace fraction %.3f by entity %d",
+            fraction, blocker);
+    }
+    return visible;
+}
+
+static void WeaponBuffs_ClearEnergyBallOrigin(int client, const float origin[3],
+    const float direction[3], float desired, float result[3])
+{
+    float finish[3];
+    result = origin;
+    for (int axis = 0; axis < 3; axis++)
+    {
+        finish[axis] = origin[axis] + direction[axis] * desired;
+    }
+    Handle trace = TR_TraceRayFilterEx(origin, finish, MASK_SOLID, RayType_EndPoint,
+        WeaponBuffs_ProjectileVisibilityFilter, client);
+    float distance = desired * TR_GetFraction(trace);
+    if (TR_DidHit(trace))
+    {
+        distance -= 4.0;
+        if (distance < 0.0)
+        {
+            distance = 0.0;
+        }
+    }
+    for (int axis = 0; axis < 3; axis++)
+    {
+        result[axis] += direction[axis] * distance;
+    }
+    delete trace;
+}
+
+// CTFBaseRocket::Destroy(false, true) sends this same message before removing
+// a rocket. Clients with a breakable model render the projectile tumbling
+// apart; projectile types without model gibs still get sparks and the impact
+// sound below.
+static void WeaponBuffs_ShowProjectileDud(int projectile, float point[3])
+{
+    int model = HasEntProp(projectile, Prop_Send, "m_nModelIndex")
+        ? GetEntProp(projectile, Prop_Send, "m_nModelIndex") : 0;
+    if (model <= 0)
+    {
+        return;
+    }
+    float angles[3];
+    GetEntPropVector(projectile, Prop_Data, "m_angAbsRotation", angles);
+    Handle message = StartMessageAll("BreakModelRocketDud", USERMSG_RELIABLE);
+    if (message == null)
+    {
+        return;
+    }
+    BfWriteShort(message, model);
+    BfWriteVecCoord(message, point);
+    BfWriteAngles(message, angles);
+    EndMessage();
+}
+
+// Valve's minigun scans a short cylinder in front of the player on every shot.
+// Reproduce that geometry for the bullet and energy guns whose weapon classes
+// never read attack_projectiles themselves.
+static void WeaponBuffs_AttackEnemyProjectiles(int client, int levels)
+{
+    float now = GetGameTime();
+    if (now < g_WeaponBuffProjectileDestructionReadyAt[client])
+    {
+        if (g_WeaponBuffProjectileDebug.BoolValue)
+        {
+            WeaponBuffs_DebugLog("[AP destroy] shot by %N ignored for %.3f second cooldown",
+                client, g_WeaponBuffProjectileDestructionReadyAt[client] - now);
+        }
+        return;
+    }
+    float start[3], aim[3], direction[3], finish[3];
+    GetClientEyePosition(client, start);
+    GetClientEyeAngles(client, aim);
+    GetAngleVectors(aim, direction, NULL_VECTOR, NULL_VECTOR);
+    ScaleVector(direction, ProjectileDestructionRange);
+    AddVectors(start, direction, finish);
+
+    int candidates;
+    int inRange;
+    int blocked;
+    int intercepted;
+    float nearest = -1.0;
+    int chosen = -1;
+    float chosenDistance = -1.0;
+    float chosenPoint[3];
+    for (int projectile = MaxClients + 1; projectile < sizeof(g_WeaponBuffProjectileDestructionHits); projectile++)
+    {
+        if (!WeaponBuffs_IsDestroyableProjectile(projectile)
+            || (GetEntityFlags(projectile) & FL_ONGROUND) != 0
+            || (HasEntProp(projectile, Prop_Send, "m_iTeamNum")
+                && GetEntProp(projectile, Prop_Send, "m_iTeamNum") == GetClientTeam(client)))
+        {
+            continue;
+        }
+        float point[3];
+        GetEntPropVector(projectile, Prop_Data, "m_vecAbsOrigin", point);
+        float distance = WeaponBuffs_DistanceToShot(point, start, finish);
+        candidates++;
+        if (nearest < 0.0 || distance < nearest)
+        {
+            nearest = distance;
+        }
+        if (distance > ProjectileDestructionRadius)
+        {
+            continue;
+        }
+        inRange++;
+        if (!WeaponBuffs_ProjectileVisible(client, start, point))
+        {
+            blocked++;
+            continue;
+        }
+        if (chosen < 0 || distance < chosenDistance)
+        {
+            chosen = projectile;
+            chosenDistance = distance;
+            chosenPoint[0] = point[0];
+            chosenPoint[1] = point[1];
+            chosenPoint[2] = point[2];
+        }
+    }
+    if (chosen >= 0)
+    {
+        // Slow and burst-fire guns cannot practically land Valve's two minigun
+        // hits on one projectile. One confirmed shot therefore intercepts one
+        // projectile, then the upgrade level controls when another can occur.
+        g_WeaponBuffProjectileDestructionHits[chosen]++;
+        float sparkDirection[3];
+        SubtractVectors(start, chosenPoint, sparkDirection);
+        NormalizeVector(sparkDirection, sparkDirection);
+        WeaponBuffs_ShowProjectileDud(chosen, chosenPoint);
+        TE_SetupSparks(chosenPoint, sparkDirection, 2, 1);
+        TE_SendToAll();
+        EmitGameSoundToAll("Halloween.HeadlessBossAxeHitWorld", chosen);
+        if (g_WeaponBuffProjectileDebug.BoolValue)
+        {
+            char classname[64];
+            GetEntityClassname(chosen, classname, sizeof(classname));
+            WeaponBuffs_DebugLog("[AP destroy] %N intercepted entity=%d class=%s distance=%.1f level=%d cooldown=%.2f",
+                client, chosen, classname, chosenDistance, levels,
+                WeaponBuffs_ProjectileDestructionCooldown(levels));
+        }
+        intercepted = 1;
+        g_WeaponBuffProjectileDestructionReadyAt[client] = now
+            + WeaponBuffs_ProjectileDestructionCooldown(levels);
+        RemoveEntity(chosen);
+    }
+    if (g_WeaponBuffProjectileDebug.BoolValue)
+    {
+        WeaponBuffs_DebugLog("[AP destroy] %N swept range=%.0f radius=%.0f candidates=%d in-range=%d blocked=%d intercepted=%d nearest=%.1f",
+            client, ProjectileDestructionRange, ProjectileDestructionRadius,
+            candidates, inRange, blocked, intercepted, nearest);
+    }
+}
+
+static int WeaponBuffs_PrimaryAmmo(int client, int entity)
+{
+    if (!HasEntProp(entity, Prop_Send, "m_iPrimaryAmmoType"))
+    {
+        return -1;
+    }
+    int ammoType = GetEntProp(entity, Prop_Send, "m_iPrimaryAmmoType");
+    return ammoType >= 0 ? GetEntProp(client, Prop_Send, "m_iAmmo", 4, ammoType) : -1;
+}
+
+public void WeaponBuffs_PostThinkPost(int client)
+{
+    if (!IsPlayerAlive(client) || !WeaponBuffs_CanUseRunBuffs(client))
+    {
+        BuffLevels_ForgetShot(client);
+        return;
+    }
+    int entity = GetEntPropEnt(client, Prop_Send, "m_hActiveWeapon");
+    int catalog = WeaponBuffs_ForEntity(entity);
+    if (catalog < 0)
+    {
+        BuffLevels_ForgetShot(client);
+        return;
+    }
+
+    int reference = EntIndexToEntRef(entity);
+    int clip = HasEntProp(entity, Prop_Send, "m_iClip1")
+        ? GetEntProp(entity, Prop_Send, "m_iClip1") : -1;
+    int ammo = WeaponBuffs_PrimaryAmmo(client, entity);
+    float energy = HasEntProp(entity, Prop_Send, "m_flEnergy")
+        ? GetEntPropFloat(entity, Prop_Send, "m_flEnergy") : -1.0;
+    float nextAttack = HasEntProp(entity, Prop_Send, "m_flNextPrimaryAttack")
+        ? GetEntPropFloat(entity, Prop_Send, "m_flNextPrimaryAttack") : 0.0;
+
+    int levels = BuffLevels_Shot(client, catalog, reference, clip, ammo, energy, nextAttack);
+    if (levels > 0)
+    {
+        if (g_WeaponBuffProjectileDebug.BoolValue)
+        {
+            WeaponBuffs_DebugLog("[AP destroy] confirmed shot by %N weapon=%s level=%d clip=%d ammo=%d energy=%.1f next=%.3f",
+                client, g_WeaponNames[catalog], levels, clip, ammo, energy, nextAttack);
+        }
+        WeaponBuffs_AttackEnemyProjectiles(client, levels);
     }
 }
 
@@ -337,7 +1545,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float veloc
     bool pressed = (buttons & IN_ATTACK2) != 0
         && (g_WeaponBuffLastButtons[client] & IN_ATTACK2) == 0;
     g_WeaponBuffLastButtons[client] = buttons;
-    if (!pressed || !MvM_IsPlayer(client))
+    if (!pressed || !WeaponBuffs_CanUseRunBuffs(client))
     {
         return Plugin_Continue;
     }
@@ -444,7 +1652,7 @@ static void WeaponBuffs_CopyDataFloat(int source, int extra, const char[] proper
 }
 
 static int WeaponBuffs_CloneProjectile(int source, const char[] classname, int owner,
-    int launcher, const float origin[3], const float angles[3], const float velocity[3])
+    int launcher, float damage, const float origin[3], const float angles[3], const float velocity[3])
 {
     g_WeaponBuffFiringExtra = true;
     int extra = CreateEntityByName(classname);
@@ -458,6 +1666,12 @@ static int WeaponBuffs_CloneProjectile(int source, const char[] classname, int o
     // Projectile type selects the correct model and behavior for arrows,
     // healing bolts and the festive variants, and must be set before Spawn.
     WeaponBuffs_CopySendInt(source, extra, "m_iProjectileType");
+    // Cow Mangler's charged energy ball initializes its damage behavior in
+    // Spawn; copying the charge flag afterward produces a visible dud.
+    if (HasEntProp(source, Prop_Send, "m_bChargedShot"))
+    {
+        WeaponBuffs_CopySendInt(source, extra, "m_bChargedShot");
+    }
     bool isFlare = StrEqual(classname, "tf_projectile_flare", false);
     if (isFlare && HasEntProp(extra, Prop_Send, "m_hOwnerEntity"))
     {
@@ -497,9 +1711,15 @@ static int WeaponBuffs_CloneProjectile(int source, const char[] classname, int o
     WeaponBuffs_CopySendEntity(source, extra, "m_hOriginalLauncher");
     WeaponBuffs_CopySendInt(source, extra, "m_bCritical");
     WeaponBuffs_CopySendInt(source, extra, "m_bArrowAlight");
-    WeaponBuffs_CopySendInt(source, extra, "m_bChargedShot");
     WeaponBuffs_CopySendInt(source, extra, "m_CollisionGroup");
     WeaponBuffs_CopyDataFloat(source, extra, "m_flDamage");
+    if (StrEqual(classname, "tf_projectile_energy_ball", false)
+        && g_WeaponBuffProjectileSetDamage != null)
+    {
+        // Energy balls hold damage in CTFBaseProjectile's private field, not
+        // m_flDamage. A spawned clone otherwise explodes without hurting.
+        SDKCall(g_WeaponBuffProjectileSetDamage, extra, damage);
+    }
     WeaponBuffs_CopyDataFloat(source, extra, "m_flDamageRadius");
     WeaponBuffs_CopyDataFloat(source, extra, "m_flDetonateTime");
     WeaponBuffs_CopyDataFloat(source, extra, "m_flCreationTime");
@@ -519,7 +1739,39 @@ static int WeaponBuffs_CloneProjectile(int source, const char[] classname, int o
     SetEntityMoveType(extra, GetEntityMoveType(source));
     SetEntityGravity(extra, GetEntityGravity(source));
     TeleportEntity(extra, origin, angles, velocity);
+    if (StrEqual(classname, "tf_projectile_energy_ball", false))
+    {
+        SDKHook(extra, SDKHook_Touch, WeaponBuffs_EnergyBallTouch);
+    }
     return extra;
+}
+
+public Action WeaponBuffs_EnergyBallTouch(int entity, int other)
+{
+    if (g_WeaponBuffEnergyExtraHit[entity] || other < 1 || other > MaxClients
+        || !IsClientInGame(other) || !IsPlayerAlive(other))
+    {
+        return Plugin_Continue;
+    }
+    int owner = WeaponBuffs_EntityOwner(entity);
+    if (owner < 1 || owner > MaxClients || !IsClientInGame(owner)
+        || GetClientTeam(owner) == GetClientTeam(other))
+    {
+        return Plugin_Continue;
+    }
+    // TF2's native energy-ball Touch is not initialized by DispatchSpawn on a
+    // cloned entity. Deal the original projectile's direct hit once ourselves.
+    g_WeaponBuffEnergyExtraHit[entity] = true;
+    int launcher = HasEntProp(entity, Prop_Send, "m_hLauncher")
+        ? GetEntPropEnt(entity, Prop_Send, "m_hLauncher") : -1;
+    float damage = g_WeaponBuffProjectileGetDamage != null
+        ? view_as<float>(SDKCall(g_WeaponBuffProjectileGetDamage, entity)) : 0.0;
+    if (damage > 0.0)
+    {
+        SDKHooks_TakeDamage(other, entity, owner, damage, DMG_BLAST, launcher);
+    }
+    RequestFrame(WeaponBuffs_RemoveEntityFrame, EntIndexToEntRef(entity));
+    return Plugin_Continue;
 }
 
 static int WeaponBuffs_FireMimicProjectile(int mimicType, int owner,
@@ -624,6 +1876,7 @@ static int WeaponBuffs_FireNativeArrow(int source, int owner, int launcher, floa
     const float velocity[3])
 {
     if (g_WeaponBuffArrowCreate == null || g_WeaponBuffProjectileSetDamage == null
+        || g_WeaponBuffProjectileSetLauncher == null
         || !HasEntProp(source, Prop_Send, "m_iProjectileType"))
     {
         return -1;
@@ -641,21 +1894,21 @@ static int WeaponBuffs_FireNativeArrow(int source, int owner, int launcher, floa
         return -1;
     }
 
-    // Create()/InitArrow() supplies the private scorer, hit list, touch
-    // callback and launch time that cannot be reproduced with netprops.
-    SDKCall(g_WeaponBuffProjectileSetDamage, extra, damage);
-    if (HasEntProp(extra, Prop_Send, "m_hLauncher"))
-    {
-        SetEntPropEnt(extra, Prop_Send, "m_hLauncher", launcher);
-    }
-    if (HasEntProp(extra, Prop_Send, "m_hOriginalLauncher"))
-    {
-        SetEntPropEnt(extra, Prop_Send, "m_hOriginalLauncher", launcher);
-    }
+    // HealingBolt::GetDamage scales m_flDamage by flight time. Preserve the
+    // unscaled backing value so the extra is not distance-scaled twice.
+    float baseDamage = HasEntProp(source, Prop_Data, "m_flDamage")
+        ? GetEntPropFloat(source, Prop_Data, "m_flDamage") : damage;
+    SDKCall(g_WeaponBuffProjectileSetDamage, extra, baseDamage);
+
+    // Calling SetLauncher matters: its native ResetCollideWithTeammates path
+    // immediately enables teammate collision for healing bolts. Assigning the
+    // launcher netprop alone skips that private state. Unlike FireArrow, this
+    // setup call does not replay the weapon's firing sound for every extra.
+    SDKCall(g_WeaponBuffProjectileSetLauncher, extra, launcher);
     WeaponBuffs_CopySendInt(source, extra, "m_bCritical");
     WeaponBuffs_CopySendInt(source, extra, "m_bArrowAlight");
-    WeaponBuffs_CopySendInt(source, extra, "m_bChargedShot");
     WeaponBuffs_CopySendInt(source, extra, "m_CollisionGroup");
+    WeaponBuffs_CopyArrowPenetration(source, extra);
     if (!HasEntProp(source, Prop_Send, "m_bCritical")
         && HasEntProp(extra, Prop_Send, "m_bCritical"))
     {
@@ -665,7 +1918,7 @@ static int WeaponBuffs_FireNativeArrow(int source, int owner, int launcher, floa
     {
         SetEntPropVector(extra, Prop_Send, "m_vInitialVelocity", velocity);
     }
-    TeleportEntity(extra, NULL_VECTOR, angles, velocity);
+    TeleportEntity(extra, origin, angles, velocity);
 
     g_WeaponBuffArrowExtra[extra] = true;
     g_WeaponBuffArrowTouched[extra] = false;
@@ -674,6 +1927,31 @@ static int WeaponBuffs_FireNativeArrow(int source, int owner, int launcher, floa
     CreateTimer(0.15, WeaponBuffs_ArrowFlightCheck, EntIndexToEntRef(extra),
         TIMER_FLAG_NO_MAPCHANGE);
     return extra;
+}
+
+static void WeaponBuffs_CopyArrowPenetration(int source, int extra)
+{
+    int criticalOffset = GetEntSendPropOffs(source, "m_bCritical");
+    if (criticalOffset < 0 || !HasEntProp(source, Prop_Data, "m_usSolidFlags")
+        || !HasEntProp(extra, Prop_Data, "m_usSolidFlags"))
+    {
+        return;
+    }
+
+    int penetrateOffset = criticalOffset + 1;
+    int penetrate = GetEntData(source, penetrateOffset, 1);
+    if (penetrate != 0 && penetrate != 1)
+    {
+        LogError("Could not copy arrow penetration: unexpected value %d at offset %d.",
+            penetrate, penetrateOffset);
+        return;
+    }
+    SetEntData(extra, penetrateOffset, penetrate, 1, true);
+    if (penetrate != 0)
+    {
+        SetEntProp(extra, Prop_Data, "m_usSolidFlags",
+            GetEntProp(source, Prop_Data, "m_usSolidFlags"));
+    }
 }
 
 public Action WeaponBuffs_ArrowStartTouch(int entity, int other)
@@ -748,7 +2026,7 @@ public Action WeaponBuffs_FireScheduledFlare(Handle timer, DataPack pack)
         angles[axis] = pack.ReadFloat();
         velocity[axis] = pack.ReadFloat();
     }
-    if (!MvM_IsPlayer(owner) || launcher <= MaxClients || !IsValidEntity(launcher))
+    if (!WeaponBuffs_CanUseRunBuffs(owner) || launcher <= MaxClients || !IsValidEntity(launcher))
     {
         return Plugin_Stop;
     }
@@ -819,15 +2097,16 @@ static void WeaponBuffs_ResolveProjectile(int source, int &owner, int &launcher)
         launcher = owner;
         owner = WeaponBuffs_EntityOwner(launcher);
     }
-    if (!MvM_IsPlayer(owner) && launcher > MaxClients && IsValidEntity(launcher))
+    if (!WeaponBuffs_CanUseRunBuffs(owner) && launcher > MaxClients && IsValidEntity(launcher))
     {
         int launcherOwner = WeaponBuffs_EntityOwner(launcher);
-        if (MvM_IsPlayer(launcherOwner))
+        if (WeaponBuffs_CanUseRunBuffs(launcherOwner))
         {
             owner = launcherOwner;
         }
     }
-    if ((launcher <= MaxClients || !IsValidEntity(launcher)) && MvM_IsPlayer(owner))
+    if ((launcher <= MaxClients || !IsValidEntity(launcher))
+        && WeaponBuffs_CanUseRunBuffs(owner))
     {
         launcher = GetEntPropEnt(owner, Prop_Send, "m_hActiveWeapon");
     }
@@ -842,7 +2121,8 @@ static void WeaponBuffs_FireExtraProjectiles(any reference)
     }
     int owner, launcher;
     WeaponBuffs_ResolveProjectile(source, owner, launcher);
-    if (!MvM_IsPlayer(owner) || launcher <= MaxClients || !IsValidEntity(launcher))
+    if (!WeaponBuffs_CanUseRunBuffs(owner)
+        || launcher <= MaxClients || !IsValidEntity(launcher))
     {
         if (g_WeaponBuffProjectileDebug.BoolValue)
         {
@@ -866,7 +2146,7 @@ static void WeaponBuffs_FireExtraProjectiles(any reference)
         }
         return;
     }
-    int copies = g_WeaponEffectLevels[weapon][ProjectileCountEffect];
+    int copies = BuffLevels_Of(weapon, ProjectileCountEffect);
     if (copies <= 0)
     {
         if (g_WeaponBuffProjectileDebug.BoolValue)
@@ -913,6 +2193,7 @@ static void WeaponBuffs_FireExtraProjectiles(any reference)
     int mimicType = WeaponBuffs_MimicType(source, classname);
     bool isFlare = StrEqual(classname, "tf_projectile_flare", false);
     bool isArrow = WeaponBuffs_IsArrow(classname);
+    bool isEnergyBall = StrEqual(classname, "tf_projectile_energy_ball", false);
     float flareOrigin[3];
     if (isFlare)
     {
@@ -945,7 +2226,8 @@ static void WeaponBuffs_FireExtraProjectiles(any reference)
             float extraOrigin[3], direction[3];
             extraOrigin = flareOrigin;
             NormalizeVector(velocity, direction);
-            float clearance = 64.0 + float(copy) * 12.0;
+            float desiredClearance = 64.0 + float(copy) * 12.0;
+            float clearance = desiredClearance;
             for (int axis = 0; axis < 3; axis++)
             {
                 extraOrigin[axis] += direction[axis] * clearance;
@@ -977,8 +2259,21 @@ static void WeaponBuffs_FireExtraProjectiles(any reference)
         }
         else
         {
+            float extraOrigin[3];
+            extraOrigin = origin;
+            if (isEnergyBall)
+            {
+                // One frame of flight can leave the Cow Mangler ball inside
+                // the shooter's hull, so start each cloned copy ahead.
+                float direction[3];
+                NormalizeVector(velocity, direction);
+                float desiredClearance = 64.0 + float(copy) * 8.0;
+                float clearance = desiredClearance;
+                WeaponBuffs_ClearEnergyBallOrigin(owner, origin, direction,
+                    clearance, extraOrigin);
+            }
             extra = WeaponBuffs_CloneProjectile(source, classname, owner, launcher,
-                origin, angles, velocity);
+                damage, extraOrigin, angles, velocity);
         }
         if (extra <= MaxClients || !IsValidEntity(extra))
         {
@@ -991,6 +2286,135 @@ static void WeaponBuffs_FireExtraProjectiles(any reference)
         WeaponBuffs_LogProjectile(isFlare ? "native-flare-extra"
             : (isArrow ? "native-arrow-extra"
                 : (mimicType >= 0 ? "mimic-extra" : "clone-extra")), extra);
+    }
+}
+
+// The weapon a hit came from: the launcher of the projectile that landed,
+// else what the attacker is holding.
+static int WeaponBuffs_WeaponOfHit(int attacker, int inflictor, int weapon, int damagecustom)
+{
+    // Mantreads and Thermal Thruster landings both use BOOTS_STOMP. The damage
+    // info is allowed to carry no weapon, so recover the class's secondary and
+    // accept it only when it is one of those two actual stomp sources.
+    if (damagecustom == TF_CUSTOM_BOOTS_STOMP)
+    {
+        int stomp = WeaponBuffs_EntityInLoadoutSlot(attacker, Slot_Secondary);
+        if (BuffLevels_Stomp(WeaponBuffs_ForEntity(stomp)) != BuffStomp_None)
+        {
+            return stomp;
+        }
+    }
+    if ((weapon <= MaxClients || !IsValidEntity(weapon)) && inflictor > MaxClients
+        && IsValidEntity(inflictor) && HasEntProp(inflictor, Prop_Send, "m_hLauncher"))
+    {
+        weapon = GetEntPropEnt(inflictor, Prop_Send, "m_hLauncher");
+    }
+    if ((weapon <= MaxClients || !IsValidEntity(weapon)) && IsPlayerAlive(attacker))
+    {
+        weapon = GetEntPropEnt(attacker, Prop_Send, "m_hActiveWeapon");
+    }
+    return weapon;
+}
+
+// Resolve the launcher for projectiles, then inspect AP and native reveal buffs.
+bool WeaponBuffs_HasRevealOnHit(int attacker, int inflictor, int weapon, int damagecustom)
+{
+    weapon = WeaponBuffs_WeaponOfHit(attacker, inflictor, weapon, damagecustom);
+    int catalog = WeaponBuffs_ForEntity(weapon);
+    return BuffLevels_Of(catalog, RevealCloakedEffect) > 0
+        || (weapon > MaxClients && IsValidEntity(weapon)
+            && TF2Attrib_HookValueInt(0, "reveal_cloaked_victim_on_hit", weapon) > 0);
+}
+
+// Scale self-inflicted blast damage for rocket-jump protection. TF2 scales
+// away the blast impulse when this event's damage is reduced to zero (or near
+// zero), so no-self-blast restores health after damage processing instead.
+public Action WeaponBuffs_OnTakeDamage(int victim, int &attacker, int &inflictor,
+    float &damage, int &damagetype, int &weapon, float damageForce[3],
+    float damagePosition[3], int damagecustom)
+{
+    if (damagecustom == TF_CUSTOM_BOOTS_STOMP
+        && victim >= 1 && victim <= MaxClients && attacker >= 1 && attacker <= MaxClients
+        && victim != attacker && IsClientInGame(victim) && IsClientInGame(attacker)
+        && GetClientTeam(victim) != GetClientTeam(attacker)
+        && WeaponBuffs_CanUseRunBuffs(attacker))
+    {
+        float scale = BuffLevels_StompDamageScale(WeaponBuffs_ForEntity(
+            WeaponBuffs_WeaponOfHit(attacker, inflictor, weapon, damagecustom)));
+        if (scale != 1.0)
+        {
+            damage *= scale;
+            return Plugin_Changed;
+        }
+    }
+    if (victim != attacker || victim < 1 || victim > MaxClients || !(damagetype & DMG_BLAST)
+        || !IsClientInGame(victim) || !WeaponBuffs_CanUseRunBuffs(victim))
+    {
+        return Plugin_Continue;
+    }
+    weapon = WeaponBuffs_WeaponOfHit(attacker, inflictor, weapon, damagecustom);
+    int catalog = WeaponBuffs_ForEntity(weapon);
+    if (catalog < 0)
+    {
+        return Plugin_Continue;
+    }
+    if (BuffLevels_Of(catalog, NoSelfBlastEffect) > 0)
+    {
+        int health = GetClientHealth(victim);
+        if (BuffLevels_SelfBlastHit(victim, health))
+        {
+            // Uber and other damage rules can skip OnTakeDamageAlivePost.
+            // Never leave the lethal-hit guard or its baseline past this frame.
+            RequestFrame(Frame_RestoreSelfBlastHealth, GetClientUserId(victim));
+        }
+        // Let the full damage determine push, but prevent a lethal hit before
+        // the alive-post hook can refund it.
+        if (damage >= float(health))
+        {
+            SetEntityHealth(victim, RoundToCeil(
+                WeaponBuffs_SelfBlastGuardHealth(health, damage)));
+        }
+        return Plugin_Continue;
+    }
+    float kept = BuffLevels_SelfBlastKept(catalog);
+    if (kept == 1.0)
+    {
+        return Plugin_Continue;
+    }
+    damage *= kept;
+    return Plugin_Changed;
+}
+
+void WeaponBuffs_RestoreSelfBlastHealth(int victim, int health)
+{
+    if (!(health > 0) || !IsClientInGame(victim) || !IsPlayerAlive(victim))
+    {
+        return;
+    }
+    SetEntityHealth(victim, health);
+}
+
+void WeaponBuffs_RestorePendingSelfBlastHealth(int victim)
+{
+    WeaponBuffs_RestoreSelfBlastHealth(victim, BuffLevels_SelfBlastRefund(victim));
+}
+
+public void Frame_RestoreSelfBlastHealth(int userid)
+{
+    int client = GetClientOfUserId(userid);
+    if (client > 0)
+    {
+        WeaponBuffs_RestorePendingSelfBlastHealth(client);
+    }
+}
+
+public void WeaponBuffs_OnTakeDamageAlivePost(int victim, int attacker, int inflictor,
+    float damage, int damagetype, int weapon, const float damageForce[3],
+    const float damagePosition[3], int damagecustom)
+{
+    if (victim == attacker && (damagetype & DMG_BLAST))
+    {
+        WeaponBuffs_RestorePendingSelfBlastHealth(victim);
     }
 }
 
@@ -1007,23 +2431,52 @@ public void WeaponBuffs_OnTakeDamagePost(int victim, int attacker, int inflictor
     }
     if (victim < 1 || victim > MaxClients || attacker < 1 || attacker > MaxClients
         || victim == attacker || !IsClientInGame(victim) || !IsClientInGame(attacker)
-        || GetClientTeam(victim) == GetClientTeam(attacker) || (damagetype & DMG_BURN) != 0)
+        || !IsPlayerAlive(victim) || !WeaponBuffs_CanUseRunBuffs(attacker)
+        || GetClientTeam(victim) == GetClientTeam(attacker)
+        || WeaponBuffs_IsDamageOverTime(attacker, inflictor, damagecustom))
     {
         return;
     }
-    if ((weapon <= MaxClients || !IsValidEntity(weapon)) && inflictor > MaxClients
-        && IsValidEntity(inflictor) && HasEntProp(inflictor, Prop_Send, "m_hLauncher"))
+    // PlayerJarated carries every victim in a jar splash through the deferred
+    // path above. A jar that also reports impact damage must not apply twice.
+    if (inflictor > MaxClients && IsValidEntity(inflictor))
     {
-        weapon = GetEntPropEnt(inflictor, Prop_Send, "m_hLauncher");
+        char inflictorClass[64];
+        GetEntityClassname(inflictor, inflictorClass, sizeof(inflictorClass));
+        if (WeaponBuffs_IsSubstanceProjectile(inflictorClass))
+        {
+            return;
+        }
     }
-    if ((weapon <= MaxClients || !IsValidEntity(weapon)) && IsPlayerAlive(attacker))
-    {
-        weapon = GetEntPropEnt(attacker, Prop_Send, "m_hActiveWeapon");
-    }
+    weapon = WeaponBuffs_WeaponOfHit(attacker, inflictor, weapon, damagecustom);
     int catalog = WeaponBuffs_ForEntity(weapon);
-    if (catalog >= 0 && g_WeaponEffectLevels[catalog][IgniteEffect] > 0)
+    if (catalog >= 0)
     {
-        TF2_IgnitePlayer(victim, attacker);
+        WeaponBuffs_ApplyHitEffects(victim, attacker, catalog);
+        if (damage > 0.0)
+        {
+            WeaponBuffs_AddAmmoOnHit(attacker, weapon, catalog);
+        }
+    }
+}
+
+public void WeaponBuffs_OnTankTakeDamagePost(int tank, int attacker, int inflictor,
+    float damage, int damagetype, int weapon, const float damageForce[3],
+    const float damagePosition[3], int damagecustom)
+{
+    if (damage <= 0.0 || attacker < 1 || attacker > MaxClients
+        || !IsClientInGame(attacker) || !WeaponBuffs_CanUseRunBuffs(attacker)
+        || GetClientTeam(attacker) == GetEntProp(tank, Prop_Send, "m_iTeamNum")
+        || WeaponBuffs_IsDamageOverTime(attacker, inflictor, damagecustom))
+    {
+        return;
+    }
+
+    weapon = WeaponBuffs_WeaponOfHit(attacker, inflictor, weapon, damagecustom);
+    int catalog = WeaponBuffs_ForEntity(weapon);
+    if (catalog >= 0)
+    {
+        WeaponBuffs_AddAmmoOnHit(attacker, weapon, catalog);
     }
 }
 
@@ -1039,7 +2492,8 @@ public Action Command_ProjectileDebug(int client, int args)
     ReplyToCommand(client, "[AP] Projectile debug %s; backend=mimic, native flare/arrow, plus family clone.",
         g_WeaponBuffProjectileDebug.BoolValue ? "ON" : "OFF");
     ReplyToCommand(client, "[AP] Native calls: arrow=%d flare=%d get-damage=%d set-damage=%d add-detonator=%d.",
-        g_WeaponBuffArrowCreate != null, g_WeaponBuffFlareCreate != null, g_WeaponBuffProjectileGetDamage != null,
+        g_WeaponBuffArrowCreate != null && g_WeaponBuffProjectileSetLauncher != null,
+        g_WeaponBuffFlareCreate != null, g_WeaponBuffProjectileGetDamage != null,
         g_WeaponBuffProjectileSetDamage != null, g_WeaponBuffFlareAdd != null);
     if (args == 0 && g_WeaponBuffProjectileLineHeld > 0)
     {
@@ -1057,7 +2511,7 @@ public Action Command_ProjectileDebug(int client, int args)
         int weapon = WeaponBuffs_ForEntity(entity);
         char classname[64];
         GetEntityClassname(entity, classname, sizeof(classname));
-        int levels = weapon >= 0 ? g_WeaponEffectLevels[weapon][ProjectileCountEffect] : 0;
+        int levels = BuffLevels_Of(weapon, ProjectileCountEffect);
         ReplyToCommand(client, "[AP] Active entity=%d class=%s catalog=%d projectile-count=%d.",
             entity, classname, weapon, levels);
     }
@@ -1066,13 +2520,13 @@ public Action Command_ProjectileDebug(int client, int args)
 
 void WeaponBuffs_Clear()
 {
-    for (int weapon = 0; weapon < WeaponCount; weapon++)
+    // A bridge resync replaces the canonical levels. Remove the contribution
+    // represented by the old levels before the new unlock set is installed.
+    for (int client = 1; client <= MaxClients; client++)
     {
-        for (int effect = 0; effect < WeaponEffectCount; effect++)
-        {
-            g_WeaponEffectLevels[weapon][effect] = 0;
-        }
+        WeaponBuffs_Remove(client);
     }
+    BuffLevels_Clear();
 }
 
 bool WeaponBuffs_Grant(const char[] key)
@@ -1081,33 +2535,12 @@ bool WeaponBuffs_Grant(const char[] key)
     {
         if (StrEqual(g_WeaponBuffKeys[index], key))
         {
-            int weapon = g_WeaponBuffWeapon[index];
-            int effect = g_WeaponBuffEffect[index];
-            if (g_WeaponEffectModes[effect] == BuffMode_Toggle)
-            {
-                g_WeaponEffectLevels[weapon][effect] = 1;
-            }
-            else
-            {
-                g_WeaponEffectLevels[weapon][effect]++;
-            }
+            BuffLevels_Grant(index);
             return true;
         }
     }
     LogError("The bridge granted weapon buff %s. This plugin does not know it.", key);
     return false;
-}
-
-static int WeaponBuffs_ForDefinition(int definition)
-{
-    for (int index = 0; index < sizeof(g_WeaponByDefinition); index++)
-    {
-        if (g_WeaponByDefinition[index][0] == definition)
-        {
-            return g_WeaponByDefinition[index][1];
-        }
-    }
-    return -1;
 }
 
 static int WeaponBuffs_ForEntity(int entity)
@@ -1120,82 +2553,214 @@ static int WeaponBuffs_ForEntity(int entity)
     return WeaponBuffs_ForDefinition(GetEntProp(entity, Prop_Send, "m_iItemDefinitionIndex"));
 }
 
-// Upgrade-station values are composed first. A matching previous result means
-// only newly received levels are added; a different value means TF2 rebuilt
-// the attribute and the complete Archipelago contribution is added again.
-static void WeaponBuffs_ApplyEntity(int entity, int weapon)
+// GetPlayerWeaponSlot cannot see items implemented as wearables: shields,
+// boots, backpacks, the Razorback, and Darwin's Danger Shield. Resolve those
+// through the same class-aware loadout mapping used by slot enforcement.
+static int WeaponBuffs_EntityInLoadoutSlot(int client, int slot)
 {
-    int reference = EntIndexToEntRef(entity);
-    if (g_WeaponBuffAppliedRef[entity] != reference)
+    int entity = GetPlayerWeaponSlot(client, slot);
+    if (entity > MaxClients && IsValidEntity(entity))
     {
-        for (int effect = 0; effect < WeaponEffectCount; effect++)
-        {
-            g_WeaponBuffApplied[entity][effect] = false;
-            g_WeaponBuffAppliedLevels[entity][effect] = 0;
-        }
-        g_WeaponBuffAppliedRef[entity] = reference;
+        return entity;
     }
 
-    for (int effect = 0; effect < WeaponEffectCount; effect++)
+    TFClassType class = TF2_GetPlayerClass(client);
+    entity = -1;
+    while ((entity = FindEntityByClassname(entity, "tf_wearable*")) != -1)
     {
-        int levels = g_WeaponEffectLevels[weapon][effect];
-        if (levels == 0)
+        if (GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity") != client
+            || !HasEntProp(entity, Prop_Send, "m_iItemDefinitionIndex"))
         {
             continue;
         }
-        Address attribute = TF2Attrib_GetByName(entity, g_WeaponEffectAttributes[effect]);
-        float current = g_WeaponEffectModes[effect] == BuffMode_Add ? 0.0 : 1.0;
-        if (attribute != Address_Null)
+        int definition = GetEntProp(entity, Prop_Send, "m_iItemDefinitionIndex");
+        if (Unlocks_WearableSlot(class, definition) == slot)
         {
-            current = TF2Attrib_GetValue(attribute);
+            return entity;
         }
-
-        bool unchanged = g_WeaponBuffApplied[entity][effect]
-            && FloatAbs(current - g_WeaponBuffAppliedValue[entity][effect]) < 0.0001;
-        if (unchanged && g_WeaponBuffAppliedLevels[entity][effect] == levels)
-        {
-            continue;
-        }
-
-        float value;
-        if (g_WeaponEffectModes[effect] == BuffMode_Toggle)
-        {
-            value = 1.0;
-        }
-        else
-        {
-            int addedLevels = unchanged
-                ? levels - g_WeaponBuffAppliedLevels[entity][effect]
-                : levels;
-            value = current + g_WeaponEffectIncrements[effect] * float(addedLevels);
-        }
-        if (!TF2Attrib_SetByName(entity, g_WeaponEffectAttributes[effect], value))
-        {
-            LogError("Could not apply %s to %s.",
-                g_WeaponEffectAttributes[effect], g_WeaponNames[weapon]);
-            continue;
-        }
-        g_WeaponBuffApplied[entity][effect] = true;
-        g_WeaponBuffAppliedLevels[entity][effect] = levels;
-        g_WeaponBuffAppliedValue[entity][effect] = value;
     }
+    return -1;
 }
 
-void WeaponBuffs_Apply(int client)
+static int WeaponBuffs_Provider(int client, int weaponEntity)
 {
-    if (!g_HaveUnlocks || !MvM_IsPlayer(client) || !IsPlayerAlive(client))
+    WeaponBuffs_RemoveOrphanProviders();
+    int provider = EntRefToEntIndex(g_WeaponBuffProviderRef[client]);
+    if (provider > MaxClients && IsValidEntity(provider)
+        && HasEntProp(provider, Prop_Send, "m_hOwnerEntity")
+        && GetEntPropEnt(provider, Prop_Send, "m_hOwnerEntity") == client)
     {
-        return;
+        return provider;
     }
+    if (provider > MaxClients && IsValidEntity(provider))
+    {
+        RemoveEntity(provider);
+    }
+    g_WeaponBuffProviderRef[client] = INVALID_ENT_REFERENCE;
+    if (GetGameTime() < g_WeaponBuffProviderRetryAt[client])
+    {
+        return -1;
+    }
+
+    provider = CreateEntityByName("tf_wearable");
+    if (provider <= MaxClients || !IsValidEntity(provider))
+    {
+        LogError("Could not create the private Archipelago attribute provider for %N.", client);
+        g_WeaponBuffProviderRetryAt[client] = GetGameTime() + WeaponBuffProviderRetrySeconds;
+        return -1;
+    }
+    // A real all-class cosmetic gives the economy entity a valid item view;
+    // RENDER_NONE keeps this implementation detail out of the world. Runtime
+    // attributes live only on this cosmetic, never on the player's weapon or
+    // player ledgers that the MvM station owns.
+    SetEntProp(provider, Prop_Send, "m_iItemDefinitionIndex", 940);
+    SetEntProp(provider, Prop_Send, "m_bInitialized", 1);
+    SetEntProp(provider, Prop_Send, "m_iEntityQuality", 6);
+    SetEntProp(provider, Prop_Send, "m_iEntityLevel", 1);
+    SetEntProp(provider, Prop_Send, "m_iTeamNum", GetClientTeam(client));
+    SetEntityRenderMode(provider, RENDER_NONE);
+    DispatchKeyValue(provider, "targetname", WeaponBuffProviderTargetName);
+    DispatchSpawn(provider);
+    if (!HasEntProp(provider, Prop_Send, "m_ProviderType"))
+    {
+        LogError("The private Archipelago attribute provider has no m_ProviderType.");
+        RemoveEntity(provider);
+        g_WeaponBuffProviderRetryAt[client] = GetGameTime() + WeaponBuffProviderRetrySeconds;
+        return -1;
+    }
+    // CEconEntity initializes as PROVIDER_WEAPON. TF2 deliberately refuses
+    // to apply one weapon-type provider while a different weapon is the hook
+    // initiator, which made every AP weapon effect a no-op. This entity is an
+    // out-of-band modifier, so it must be PROVIDER_GENERIC (zero).
+    SetEntProp(provider, Prop_Send, "m_ProviderType", 0);
+    g_WeaponBuffProviderRef[client] = EntIndexToEntRef(provider);
+    SetEntPropEnt(provider, Prop_Send, "m_hOwnerEntity", client);
+    // CEconEntity::ReapplyProvision follows m_hOwnerEntity and asks its
+    // attribute manager to ProvideTo that owner. This deliberately does not
+    // add the entity to CTFPlayer::m_hMyWearables: TF2Utils' wearable-equip
+    // virtual offset is stale on current Windows TF2, and no visible/equipped
+    // cosmetic is needed for an attribute provider.
+    /* The whole provider rests on this input being accepted. A server with no
+     * VScript VM refuses it, ReapplyProvision never runs, and every weapon buff
+     * in the run silently does nothing. That was reported as the provider not
+     * providing, which is the symptom two steps downstream: say which it was,
+     * because the fix for one is a server setting and the fix for the other is
+     * here. */
+    SetVariantString("self.ReapplyProvision()");
+    if (!AcceptEntityInput(provider, "RunScriptCode"))
+    {
+        LogError("This server refused RunScriptCode, so no weapon buff can be applied to %N. The provider is attached through VScript and this server has none.", client);
+        RemoveEntity(provider);
+        g_WeaponBuffProviderRef[client] = INVALID_ENT_REFERENCE;
+        g_WeaponBuffProviderRetryAt[client] = GetGameTime() + WeaponBuffProviderRetrySeconds;
+        return -1;
+    }
+    if (GetEntPropEnt(provider, Prop_Send, "m_hOwnerEntity") != client)
+    {
+        LogError("Could not attach the private Archipelago attribute provider to %N.", client);
+        RemoveEntity(provider);
+        g_WeaponBuffProviderRef[client] = INVALID_ENT_REFERENCE;
+        g_WeaponBuffProviderRetryAt[client] = GetGameTime() + WeaponBuffProviderRetrySeconds;
+        return -1;
+    }
+
+    // Prove the provider is in the active weapon's aggregate chain. The probe
+    // exists only inside this callback and is removed before real AP effects
+    // are installed; failure is explicit instead of another silent no-op.
+    TF2Attrib_ClearCache(weaponEntity);
+    float damageBefore = TF2Attrib_HookValueFloat(1.0, "mult_dmg", weaponEntity);
+    TF2Attrib_SetByName(provider, "damage bonus", 1.01);
+    TF2Attrib_ClearCache(weaponEntity);
+    float damageAfter = TF2Attrib_HookValueFloat(1.0, "mult_dmg", weaponEntity);
+    TF2Attrib_RemoveByName(provider, "damage bonus");
+    TF2Attrib_ClearCache(weaponEntity);
+    if (FloatAbs(damageAfter - damageBefore) < 0.001)
+    {
+        /* What was in hand, and both readings. The line used to say only that
+         * the probe failed, which left apw-l3v with a player whose buffs never
+         * applied and nothing in the bundle to say what was different about the
+         * moment it was tried. */
+        char held[64];
+        if (!GetEntityClassname(weaponEntity, held, sizeof(held)))
+        {
+            strcopy(held, sizeof(held), "an unnamed entity");
+        }
+        int definition = -1;
+        if (HasEntProp(weaponEntity, Prop_Send, "m_iItemDefinitionIndex"))
+        {
+            definition = GetEntProp(weaponEntity, Prop_Send, "m_iItemDefinitionIndex");
+        }
+        LogError("The private Archipelago provider attached to %N but did not provide attributes, so no weapon buff can apply. Held %s (item %d), which read %.4f before the probe and %.4f after.",
+            client, held, definition, damageBefore, damageAfter);
+        RemoveEntity(provider);
+        g_WeaponBuffProviderRef[client] = INVALID_ENT_REFERENCE;
+        g_WeaponBuffProviderRetryAt[client] = GetGameTime() + WeaponBuffProviderRetrySeconds;
+        return -1;
+    }
+    g_WeaponBuffProviderRetryAt[client] = 0.0;
+    return provider;
+}
+
+// Clear attributes applied by earlier versions. The no-self-blast buff now
+// refunds health after TF2 computes the normal explosion and its push.
+static void WeaponBuffs_ClearOldSelfBlastAttributes(int client)
+{
     for (int slot = 0; slot <= 5; slot++)
     {
         int entity = GetPlayerWeaponSlot(client, slot);
-        int weapon = WeaponBuffs_ForEntity(entity);
-        if (weapon >= 0)
+        if (entity <= MaxClients || !IsValidEntity(entity))
         {
-            WeaponBuffs_ApplyEntity(entity, weapon);
+            continue;
+        }
+        TF2Attrib_RemoveByName(entity, LegacySelfBlastDamageAttribute);
+        TF2Attrib_RemoveByName(entity, NoSelfBlastAttribute);
+        TF2Attrib_ClearCache(entity);
+    }
+}
+
+static void WeaponBuffs_Remove(int client)
+{
+    int provider = EntRefToEntIndex(g_WeaponBuffProviderRef[client]);
+    if (provider > MaxClients && IsValidEntity(provider))
+    {
+        TF2Attrib_RemoveAll(provider);
+    }
+    if (client > 0 && client <= MaxClients && IsClientInGame(client))
+    {
+        WeaponBuffs_ClearOldSelfBlastAttributes(client);
+        int entity = GetEntPropEnt(client, Prop_Send, "m_hActiveWeapon");
+        if (entity > MaxClients && IsValidEntity(entity))
+        {
+            TF2Attrib_ClearCache(entity);
         }
     }
+}
+
+void WeaponBuffs_Disconnect(int client)
+{
+    if (client > 0 && client <= MaxClients && IsClientInGame(client))
+    {
+        WeaponBuffs_ClearOldSelfBlastAttributes(client);
+    }
+    int provider = EntRefToEntIndex(g_WeaponBuffProviderRef[client]);
+    g_WeaponBuffProviderRef[client] = INVALID_ENT_REFERENCE;
+    g_WeaponBuffProviderRetryAt[client] = 0.0;
+    g_WeaponBuffAtUpgradeStation[client] = false;
+    if (provider > MaxClients && IsValidEntity(provider))
+    {
+        RemoveEntity(provider);
+    }
+}
+
+// A weapon in its owner's melee slot. An entity with no owner is not capped.
+static bool WeaponBuffs_IsMelee(int entity)
+{
+    int owner = GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity");
+    if (owner <= 0 || owner > MaxClients || !IsClientInGame(owner))
+    {
+        return false;
+    }
+    return GetPlayerWeaponSlot(owner, TFWeaponSlot_Melee) == entity;
 }
 
 static void Frame_ApplyWeaponBuffs(any userid)
@@ -1207,11 +2772,244 @@ static void Frame_ApplyWeaponBuffs(any userid)
     }
 }
 
+// Let the station command finish rebuilding Valve's own values before
+// recalculating the independent provider's additive percentage ratios.
 void WeaponBuffs_ApplyNextFrame(int client)
 {
-    if (client > 0)
+    if (client > 0 && IsClientInGame(client))
     {
         RequestFrame(Frame_ApplyWeaponBuffs, GetClientUserId(client));
+    }
+}
+
+static int WeaponBuffs_ProviderAttributes(int provider, char[] list, int size)
+{
+    int definitions[WeaponBuffProviderListMax];
+    int count = TF2Attrib_ListDefIndices(provider, definitions, sizeof(definitions));
+    int length;
+    list[0] = '\0';
+    for (int index = 0; index < count && index < sizeof(definitions); index++)
+    {
+        length += Format(list[length], size - length, index > 0 ? ",%d" : "%d",
+            definitions[index]);
+    }
+    return count;
+}
+
+// A gamedata signature that drifted onto another function makes RemoveAll
+// succeed and do nothing, and the provider then keeps every buff it ever had.
+static bool WeaponBuffs_ProviderEmptied(int client, int provider)
+{
+    char list[160];
+    int count = WeaponBuffs_ProviderAttributes(provider, list, sizeof(list));
+    if (count == 0)
+    {
+        return true;
+    }
+    if (!g_WeaponBuffProviderNotEmptyLogged)
+    {
+        g_WeaponBuffProviderNotEmptyLogged = true;
+        LogError("TF2Attrib_RemoveAll left %d attributes on the buff provider of %N (definitions %s), so no buff is applied. TF2Attributes' signature for CAttributeList::DestroyAllAttributes does not name that function on this TF2 build.",
+            count, client, list);
+    }
+    return false;
+}
+
+// Setting a percentage max-ammo or a max-health attribute scales what the player
+// holds by the buff, and RemoveAll does not scale it back, so every rebuild raised
+// the reserve and the health again (measured: reserve 31 became 272 over ten).
+// Slot AmmoTypeCount of the array holds the health.
+static void WeaponBuffs_SaveVitals(int client, int[] vitals)
+{
+    for (int type = 0; type < AmmoTypeCount; type++)
+    {
+        vitals[type] = GetEntProp(client, Prop_Send, "m_iAmmo", 4, type);
+    }
+    vitals[AmmoTypeCount] = GetClientHealth(client);
+}
+
+static void WeaponBuffs_RestoreVitals(int client, const int[] vitals)
+{
+    if (!g_WeaponBuffKeepVitals.BoolValue)
+    {
+        return;
+    }
+    for (int type = 0; type < AmmoTypeCount; type++)
+    {
+        if (GetEntProp(client, Prop_Send, "m_iAmmo", 4, type) > vitals[type])
+        {
+            SetEntProp(client, Prop_Send, "m_iAmmo", vitals[type], 4, type);
+        }
+    }
+    if (GetClientHealth(client) > vitals[AmmoTypeCount])
+    {
+        SetEntityHealth(client, vitals[AmmoTypeCount]);
+    }
+}
+
+void WeaponBuffs_Apply(int client)
+{
+    bool runBuffs = g_HaveUnlocks && WeaponBuffs_CanUseRunBuffs(client);
+    if ((!runBuffs && !BotCards_HasInnates(client)) || !IsPlayerAlive(client))
+    {
+        return;
+    }
+    int entity = GetEntPropEnt(client, Prop_Send, "m_hActiveWeapon");
+    int weapon = WeaponBuffs_ForEntity(entity);
+    WeaponBuffs_ClearOldSelfBlastAttributes(client);
+    // Reloads, respawns and special movement weapons can briefly leave the
+    // player with no valid active weapon. A provider cannot be verified
+    // against that state, and repeatedly creating/removing one feeds another
+    // WeaponSwitchPost event back into this function.
+    if (weapon < 0)
+    {
+        return;
+    }
+    int provider = WeaponBuffs_Provider(client, entity);
+    if (provider <= MaxClients || !IsValidEntity(provider))
+    {
+        return;
+    }
+
+    // Rebuild from an empty private list. The aggregate queried below is now
+    // purely Valve/static/MvM state, so refunds cannot consume AP levels and
+    // repeated purchases cannot fold AP values back into the station ledger.
+    int vitals[AmmoTypeCount + 1];
+    WeaponBuffs_SaveVitals(client, vitals);
+    TF2Attrib_RemoveAll(provider);
+    if (!WeaponBuffs_ProviderEmptied(client, provider))
+    {
+        return;
+    }
+    // The active weapon caches its final hook result, including attributes
+    // reached through its owner. Provider changes clear the provider/player
+    // caches but do not walk back into the weapon, so both sides of this
+    // rebuild explicitly invalidate the weapon cache.
+    TF2Attrib_ClearCache(entity);
+    // What is skipped here and why is BuffLevels_OnProvider's to say: passives
+    // follow the loadout, and hit, ammo, sentry, self-blast and stomp effects
+    // are paid on their own events.
+    for (int effect = 0; effect < WeaponEffectCount; effect++)
+    {
+        int levels = BuffLevels_OnProvider(weapon, effect, runBuffs,
+            BotCards_InnateLevels(client, effect));
+        if (levels <= 0)
+        {
+            continue;
+        }
+        bool energyClipSize = effect == ClipSizeEffect
+            && WeaponBuffs_EnergyShotCost(entity) > 0.0;
+        float base = 1.0;
+        if (BuffLevels_ReadsBase(effect))
+        {
+            base = TF2Attrib_HookValueFloat(1.0, energyClipSize
+                ? EnergyClipSizeAttributeClass : g_WeaponEffectAttributeClasses[effect], entity);
+        }
+        float value = BuffLevels_ProviderValue(weapon, effect, levels, base,
+            effect == FireRateEffect && WeaponBuffs_IsMelee(entity));
+        bool applied;
+        if (energyClipSize)
+        {
+            applied = TF2Attrib_SetByName(provider, EnergyClipSizeAttribute, value);
+        }
+        else
+        {
+            applied = TF2Attrib_SetByName(provider, g_WeaponEffectAttributes[effect], value);
+        }
+        if (!applied)
+        {
+            LogError("Could not apply private effect %s to %s.",
+                g_WeaponEffectAttributes[effect], g_WeaponNames[weapon]);
+        }
+    }
+    WeaponBuffs_ApplyDisposableSentryPrediction(client, provider);
+    WeaponBuffs_ApplyPassives(client, provider);
+    TF2Attrib_ClearCache(entity);
+    WeaponBuffs_RestoreVitals(client, vitals);
+}
+
+// The card diagnostic distinguishes configured innates from effects actually
+// installed on the private provider for the bot's currently held weapon.
+int WeaponBuffs_CardInnatesOnActive(int client)
+{
+    int entity = GetEntPropEnt(client, Prop_Send, "m_hActiveWeapon");
+    int weapon = WeaponBuffs_ForEntity(entity);
+    int provider = EntRefToEntIndex(g_WeaponBuffProviderRef[client]);
+    if (weapon < 0 || provider <= MaxClients || !IsValidEntity(provider))
+    {
+        return 0;
+    }
+    int applied;
+    for (int effect = 0; effect < WeaponEffectCount; effect++)
+    {
+        if (BotCards_InnateLevels(client, effect) > 0
+            && TF2Attrib_GetByName(provider, g_WeaponEffectAttributes[effect]) != Address_Null)
+        {
+            applied++;
+        }
+    }
+    return applied;
+}
+
+static void WeaponBuffs_ApplyDisposableSentryPrediction(int client, int provider)
+{
+    // TF2's client refuses to send a build command unless predicted CanBuild
+    // sees this attribute. Use the same private provider as every other AP
+    // buff, leaving the item lists owned by the MvM station untouched. Both
+    // PDAs share one reward pool; placement consumes one toolbox-side slot.
+    if (BuffLevels_DisposableSentries() <= 0)
+    {
+        return;
+    }
+    int active = GetEntPropEnt(client, Prop_Send, "m_hActiveWeapon");
+    if (active <= MaxClients || !IsValidEntity(active)
+        || !HasEntProp(active, Prop_Send, "m_iItemDefinitionIndex"))
+    {
+        return;
+    }
+    int definition = GetEntProp(active, Prop_Send, "m_iItemDefinitionIndex");
+    int levels = BuffLevels_DisposablePrediction(definition,
+        g_WeaponBuffAtUpgradeStation[client]);
+    if (levels <= 0)
+    {
+        return;
+    }
+    if (!TF2Attrib_SetByName(provider, "engy disposable sentries", float(levels)))
+    {
+        LogError("Could not provide disposable-sentry level %d to item %d for %N.",
+            levels, definition, client);
+    }
+}
+
+/*
+The passive buffs, from every slot of the loadout rather than the held weapon.
+
+These are player attributes: a percentage scales the player's own hooked value,
+not a weapon's, because no weapon contributes to it, and max health is a plain
+addition on top of the class. It joined the list because a bonus that came and
+went with the weapon in hand read as a glitch rather than a buff (gh-32, note
+39). Health regeneration is not here at all, since the timer pays it directly.
+*/
+static void WeaponBuffs_ApplyPassives(int client, int provider)
+{
+    static const int passives[3] = { MoveSpeedEffect, JumpHeightEffect, MaxHealthEffect };
+    for (int index = 0; index < sizeof(passives); index++)
+    {
+        int effect = passives[index];
+        int levels = WeaponBuffs_LoadoutLevels(client, effect);
+        if (levels <= 0)
+        {
+            continue;
+        }
+        float base = BuffLevels_ReadsBase(effect)
+            ? TF2Attrib_HookValueFloat(1.0, g_WeaponEffectAttributeClasses[effect], client)
+            : 1.0;
+        float value = BuffLevels_PassiveValue(effect, levels, base);
+        if (!TF2Attrib_SetByName(provider, g_WeaponEffectAttributes[effect], value))
+        {
+            LogError("Could not apply passive effect %s to %N.",
+                g_WeaponEffectAttributes[effect], client);
+        }
     }
 }
 
@@ -1224,6 +3022,70 @@ public int Menu_WeaponBuffs(Menu menu, MenuAction action, int client, int select
     return 0;
 }
 
+// One line per buff on the loadout, and how many lines a loadout can carry.
+#define BuffLineMax 160
+#define BuffLinesMax (6 * WeaponEffectCount)
+
+static void WeaponBuffs_DescribeEffect(int weapon, int effect,
+    char[] description, int maxlength)
+{
+    BuffStomp stomp = BuffLevels_Stomp(weapon);
+    if (effect == DamageEffect && stomp != BuffStomp_None)
+    {
+        strcopy(description, maxlength, "+5x fall-damage multiplier");
+    }
+    else if (effect == ClipSizeEffect && stomp == BuffStomp_Thermal)
+    {
+        strcopy(description, maxlength, "+1 launch charge");
+    }
+    else
+    {
+        strcopy(description, maxlength, g_WeaponEffectDescriptions[effect]);
+    }
+}
+
+/* The listing, which the menu and the station announcement both draw from:
+ * one line per buffed effect on the weapons the player is holding now.
+ */
+static int WeaponBuffs_Lines(int client, char lines[BuffLinesMax][BuffLineMax])
+{
+    int listed;
+    bool seen[WeaponCount];
+    for (int slot = 0; slot <= 5; slot++)
+    {
+        int weapon = WeaponBuffs_ForEntity(WeaponBuffs_EntityInLoadoutSlot(client, slot));
+        if (weapon < 0 || seen[weapon])
+        {
+            continue;
+        }
+        // Functional families can occupy two loadout slots at once. The
+        // Construction PDA and its toolbox are one reward pool and one line.
+        seen[weapon] = true;
+        for (int effect = 0; effect < WeaponEffectCount; effect++)
+        {
+            int levels = BuffLevels_Of(weapon, effect);
+            if (levels == 0)
+            {
+                continue;
+            }
+            char description[96];
+            WeaponBuffs_DescribeEffect(weapon, effect, description, sizeof(description));
+            if (levels > 1)
+            {
+                FormatEx(lines[listed], BuffLineMax, "%s: %s x%d",
+                    g_WeaponNames[weapon], description, levels);
+            }
+            else
+            {
+                FormatEx(lines[listed], BuffLineMax, "%s: %s",
+                    g_WeaponNames[weapon], description);
+            }
+            listed++;
+        }
+    }
+    return listed;
+}
+
 /* False when the loadout has nothing to list, and nothing was drawn. A menu
  * holds the number keys, which are the weapon slots in MvM, so an empty one
  * costs the player more than the space it takes.
@@ -1234,46 +3096,201 @@ bool WeaponBuffs_ShowMenu(int client)
     {
         return false;
     }
-    Menu menu = new Menu(Menu_WeaponBuffs);
-    menu.SetTitle("Archipelago weapon buffs");
-    int listed;
-    for (int slot = 0; slot <= 5; slot++)
-    {
-        int weapon = WeaponBuffs_ForEntity(GetPlayerWeaponSlot(client, slot));
-        if (weapon < 0)
-        {
-            continue;
-        }
-        for (int effect = 0; effect < WeaponEffectCount; effect++)
-        {
-            int levels = g_WeaponEffectLevels[weapon][effect];
-            if (levels == 0)
-            {
-                continue;
-            }
-            char line[160];
-            if (levels > 1)
-            {
-                FormatEx(line, sizeof(line), "%s: %s x%d",
-                    g_WeaponNames[weapon], g_WeaponEffectDescriptions[effect], levels);
-            }
-            else
-            {
-                FormatEx(line, sizeof(line), "%s: %s",
-                    g_WeaponNames[weapon], g_WeaponEffectDescriptions[effect]);
-            }
-            menu.AddItem(g_WeaponEffectKeys[effect], line);
-            listed++;
-        }
-    }
+    char lines[BuffLinesMax][BuffLineMax];
+    int listed = WeaponBuffs_Lines(client, lines);
     if (listed == 0)
     {
-        delete menu;
         return false;
+    }
+    Menu menu = new Menu(Menu_WeaponBuffs);
+    menu.SetTitle("Archipelago weapon buffs");
+    for (int line = 0; line < listed; line++)
+    {
+        menu.AddItem("", lines[line]);
     }
     menu.ExitButton = true;
     menu.Display(client, 20);
     return true;
+}
+
+// How long the station stays quiet after it has listed a player's buffs once.
+#define BuffAnnounceQuietSeconds 30.0
+
+static float g_BuffsAnnouncedAt[MAXPLAYERS + 1];
+
+/* The station says what the loadout carries, in chat, where it takes no keys.
+ *
+ * A menu holds the number keys and those are the weapon slots, so the window
+ * that used to open here cost the player twenty seconds of switching weapons
+ * by scroll. The list is the same one !ap buffs draws, and the window is still
+ * there for whoever asks for it. A loadout with buffs that lists nothing is the
+ * fault behind apw-z7o, so that case says which of the three checks failed.
+ */
+void WeaponBuffs_AnnounceAtStation(int client)
+{
+    if (!MvM_IsPlayer(client))
+    {
+        return;
+    }
+    if (GetGameTime() < g_BuffsAnnouncedAt[client] + BuffAnnounceQuietSeconds)
+    {
+        return;
+    }
+    char lines[BuffLinesMax][BuffLineMax];
+    int listed = WeaponBuffs_Lines(client, lines);
+    if (listed == 0)
+    {
+        WeaponBuffs_DebugEmptyListing(client);
+        return;
+    }
+    g_BuffsAnnouncedAt[client] = GetGameTime();
+    AP_PrintToClient(client, "Buffs on this loadout (!ap buffs for the list):");
+    for (int line = 0; line < listed; line++)
+    {
+        AP_PrintToClient(client, "  %s", lines[line]);
+    }
+}
+
+/* Names the three things an empty listing can mean, once per station visit,
+ * so the next report says which one it was rather than "it did not open".
+ */
+static void WeaponBuffs_DebugEmptyListing(int client)
+{
+    int granted = BuffLevels_Total();
+    char held[64];
+    for (int slot = 0; slot <= 5; slot++)
+    {
+        int entity = WeaponBuffs_EntityInLoadoutSlot(client, slot);
+        int definition = entity > MaxClients && IsValidEntity(entity)
+            && HasEntProp(entity, Prop_Send, "m_iItemDefinitionIndex")
+            ? GetEntProp(entity, Prop_Send, "m_iItemDefinitionIndex") : -1;
+        Format(held, sizeof(held), "%s%s%d", held, slot == 0 ? "" : " ", definition);
+    }
+    AP_Debug("%N opened the station with nothing to list: %d buff level(s) granted in total, holding %s.",
+        client, granted, held);
+}
+
+static void WeaponBuffs_DebugDisposableEntity(int client, const char[] label,
+    int entity)
+{
+    if (entity <= MaxClients || !IsValidEntity(entity))
+    {
+        ReplyToCommand(client, "[AP debug] %s: none", label);
+        return;
+    }
+    char classname[48];
+    GetEntityClassname(entity, classname, sizeof(classname));
+    int definition = HasEntProp(entity, Prop_Send, "m_iItemDefinitionIndex")
+        ? GetEntProp(entity, Prop_Send, "m_iItemDefinitionIndex") : -1;
+    int weapon = WeaponBuffs_ForEntity(entity);
+    int levels = weapon >= 0 ? BuffLevels_Of(weapon, DisposableSentryEffect) : -1;
+    float hooked = TF2Attrib_HookValueFloat(0.0,
+        "engy_disposable_sentries", entity);
+    ReplyToCommand(client,
+        "[AP debug] %s: ent=%d class=%s def=%d canonical=%d AP=%d direct=%d hooked=%.1f",
+        label, entity, classname, definition, weapon, levels,
+        WeaponBuffs_DirectDisposableSentryLevels(entity), hooked);
+}
+
+static int WeaponBuffs_MaxHealth(int client)
+{
+    int resource = GetPlayerResourceEntity();
+    return resource > MaxClients && IsValidEntity(resource)
+        ? GetEntProp(resource, Prop_Send, "m_iMaxHealth", 4, client) : -1;
+}
+
+static float WeaponBuffs_HookedByKey(const char[] key, int entity)
+{
+    for (int effect = 0; effect < WeaponEffectCount; effect++)
+    {
+        if (StrEqual(key, g_WeaponEffectKeys[effect]))
+        {
+            return entity > MaxClients && IsValidEntity(entity)
+                ? TF2Attrib_HookValueFloat(1.0, g_WeaponEffectAttributeClasses[effect], entity) : -1.0;
+        }
+    }
+    return -1.0;
+}
+
+static int WeaponBuffs_ReserveAmmo(int client, int entity)
+{
+    if (entity <= MaxClients || !IsValidEntity(entity)
+        || !HasEntProp(entity, Prop_Send, "m_iPrimaryAmmoType"))
+    {
+        return -1;
+    }
+    int type = GetEntProp(entity, Prop_Send, "m_iPrimaryAmmoType");
+    return type >= 0 ? GetEntProp(client, Prop_Send, "m_iAmmo", _, type) : -1;
+}
+
+public Action Command_DisposableSentryDebug(int client, int args)
+{
+    int target = client;
+    if (args >= 1)
+    {
+        char pattern[MAX_TARGET_LENGTH];
+        GetCmdArg(1, pattern, sizeof(pattern));
+        target = FindTarget(client, pattern);
+    }
+    if (target < 1 || target > MaxClients || !IsClientInGame(target))
+    {
+        ReplyToCommand(client, "[AP debug] Run sm_ap_buff_debug from the player console, or give it a target.");
+        return Plugin_Handled;
+    }
+    int active = GetEntPropEnt(target, Prop_Send, "m_hActiveWeapon");
+    WeaponBuffs_DebugDisposableEntity(client, "active", active);
+    WeaponBuffs_DebugDisposableEntity(client, "slot 3 / Construction PDA",
+        WeaponBuffs_EntityInLoadoutSlot(target, 3));
+    WeaponBuffs_DebugDisposableEntity(client, "slot 5 / PDA toolbox",
+        WeaponBuffs_EntityInLoadoutSlot(target, 5));
+    WeaponBuffs_DebugDisposableEntity(client, "last switch argument",
+        EntRefToEntIndex(g_DisposableSentryLastSwitchArgumentRef[target]));
+    WeaponBuffs_DebugDisposableEntity(client, "active during switch callback",
+        EntRefToEntIndex(g_DisposableSentryLastSwitchActiveRef[target]));
+
+    int provider = EntRefToEntIndex(g_WeaponBuffProviderRef[target]);
+    int providerDirect = provider > MaxClients && IsValidEntity(provider)
+        ? WeaponBuffs_DirectDisposableSentryLevels(provider) : -1;
+    int primary;
+    int disposable;
+    int sentry = -1;
+    while ((sentry = FindEntityByClassname(sentry, "obj_sentrygun")) != -1)
+    {
+        if (GetEntPropEnt(sentry, Prop_Send, "m_hBuilder") != target
+            || (HasEntProp(sentry, Prop_Send, "m_bPlacing")
+                && GetEntProp(sentry, Prop_Send, "m_bPlacing") != 0))
+        {
+            continue;
+        }
+        if (GetEntProp(sentry, Prop_Send, "m_bDisposableBuilding") != 0)
+        {
+            disposable++;
+        }
+        else
+        {
+            primary++;
+        }
+    }
+    ReplyToCommand(client,
+        "[AP debug] shared AP=%d native=%d provider=%d provider-direct=%d private-providers=%d station=%d sentries=%d primary/%d disposable",
+        BuffLevels_DisposableSentries(),
+        WeaponBuffs_NativeDisposableSentryLevels(target), provider,
+        providerDirect, WeaponBuffs_PrivateProviderCount(),
+        g_WeaponBuffAtUpgradeStation[target], primary, disposable);
+    char attributes[160];
+    int attributeCount = provider > MaxClients && IsValidEntity(provider)
+        ? WeaponBuffs_ProviderAttributes(provider, attributes, sizeof(attributes)) : -1;
+    ReplyToCommand(client, "[AP debug] provider-attributes=%d definitions=%s",
+        attributeCount, attributes);
+    ReplyToCommand(client, "[AP debug] health=%d max-health=%d max-ammo-multiplier=%.3f reserve-ammo=%d",
+        GetClientHealth(target), WeaponBuffs_MaxHealth(target), WeaponBuffs_HookedByKey("max-ammo", active),
+        WeaponBuffs_ReserveAmmo(target, active));
+    ReplyToCommand(client,
+        "[AP debug] CanBuild sentry calls=%d overrides=%d last-result=%d",
+        g_DisposableSentryCanBuildCalls[target],
+        g_DisposableSentryCanBuildOverrides[target],
+        g_DisposableSentryLastCanBuildResult[target]);
+    return Plugin_Handled;
 }
 
 public Action Command_WeaponBuffs(int client, int args)
@@ -1297,11 +3314,27 @@ static int WeaponBuffs_AddTestEffects(int weapon, const char[] wanted, int level
         {
             continue;
         }
-        g_WeaponEffectLevels[weapon][effect] = g_WeaponEffectModes[effect] == BuffMode_Toggle
-            ? 1 : g_WeaponEffectLevels[weapon][effect] + levels;
+        BuffLevels_Add(weapon, effect, levels);
         granted++;
     }
     return granted;
+}
+
+static int WeaponBuffs_ParseLoadoutSlot(const char[] wanted)
+{
+    if (StrEqual(wanted, "1") || StrEqual(wanted, "primary", false))
+    {
+        return Slot_Primary;
+    }
+    if (StrEqual(wanted, "2") || StrEqual(wanted, "secondary", false))
+    {
+        return Slot_Secondary;
+    }
+    if (StrEqual(wanted, "3") || StrEqual(wanted, "melee", false))
+    {
+        return Slot_Melee;
+    }
+    return -1;
 }
 
 // sm_ap_buff_test <effect number|effect key|all> [levels]
@@ -1340,8 +3373,9 @@ public Action Command_TestWeaponBuff(int client, int args)
         ReplyToCommand(client, "[AP] Unknown effect %s. Use 1-%d or an effect key.", wanted, WeaponEffectCount);
         return Plugin_Handled;
     }
-    WeaponBuffs_ApplyEntity(entity, weapon);
-    ReplyToCommand(client, "[AP] Applied %d test effect(s) to %s.", granted, g_WeaponNames[weapon]);
+    WeaponBuffs_Apply(client);
+    ReplyToCommand(client, "[AP] Applied %d test effect(s) to %s.",
+        granted, g_WeaponNames[weapon]);
     WeaponBuffs_ShowMenu(client);
     return Plugin_Handled;
 }
@@ -1359,12 +3393,12 @@ public Action Command_GiveWeaponBuff(int client, int args)
 
     char pattern[MAX_TARGET_LENGTH];
     GetCmdArg(1, pattern, sizeof(pattern));
-    int target = FindTarget(client, pattern, true);
+    int target = FindTarget(client, pattern);
     if (target < 1)
     {
         return Plugin_Handled;
     }
-    if (!MvM_IsPlayer(target) || !IsPlayerAlive(target))
+    if (!WeaponBuffs_CanUseRunBuffs(target) || !IsPlayerAlive(target))
     {
         ReplyToCommand(client, "[AP] %N must be alive on RED before receiving a test buff.", target);
         return Plugin_Handled;
@@ -1397,9 +3431,82 @@ public Action Command_GiveWeaponBuff(int client, int args)
         return Plugin_Handled;
     }
 
-    WeaponBuffs_ApplyEntity(entity, weapon);
+    WeaponBuffs_Apply(target);
     ReplyToCommand(client, "[AP] Applied %d test effect(s) to %N's %s.",
         granted, target, g_WeaponNames[weapon]);
+    if (client != target)
+    {
+        PrintToChat(target, "[AP] An admin applied %d test effect(s) to your %s.",
+            granted, g_WeaponNames[weapon]);
+    }
+    WeaponBuffs_ShowMenu(target);
+    return Plugin_Handled;
+}
+
+// sm_ap_buff_slot <target> <1|2|3|primary|secondary|melee> <effect> [levels]
+public Action Command_GiveSlotWeaponBuff(int client, int args)
+{
+    if (args < 3)
+    {
+        ReplyToCommand(client,
+            "[AP] Usage: sm_ap_buff_slot <target> <1|2|3|primary|secondary|melee> <1-%d|effect-key|all> [levels]",
+            WeaponEffectCount);
+        return Plugin_Handled;
+    }
+
+    char pattern[MAX_TARGET_LENGTH];
+    GetCmdArg(1, pattern, sizeof(pattern));
+    int target = FindTarget(client, pattern);
+    if (target < 1)
+    {
+        return Plugin_Handled;
+    }
+    if (!WeaponBuffs_CanUseRunBuffs(target) || !IsPlayerAlive(target))
+    {
+        ReplyToCommand(client, "[AP] %N must be alive on RED before receiving a test buff.", target);
+        return Plugin_Handled;
+    }
+
+    char rawSlot[16];
+    GetCmdArg(2, rawSlot, sizeof(rawSlot));
+    int slot = WeaponBuffs_ParseLoadoutSlot(rawSlot);
+    if (slot < 0)
+    {
+        ReplyToCommand(client, "[AP] Unknown slot %s. Use 1/primary, 2/secondary, or 3/melee.", rawSlot);
+        return Plugin_Handled;
+    }
+
+    int entity = WeaponBuffs_EntityInLoadoutSlot(target, slot);
+    int weapon = WeaponBuffs_ForEntity(entity);
+    if (weapon < 0)
+    {
+        ReplyToCommand(client, "[AP] %N has no catalog item equipped in slot %d (%s).",
+            target, slot + 1, g_SlotKeys[slot]);
+        return Plugin_Handled;
+    }
+
+    char wanted[64];
+    GetCmdArg(3, wanted, sizeof(wanted));
+    int levels = 1;
+    if (args >= 4)
+    {
+        char rawLevels[12];
+        GetCmdArg(4, rawLevels, sizeof(rawLevels));
+        levels = StringToInt(rawLevels);
+        if (levels < 1) levels = 1;
+    }
+
+    int granted = WeaponBuffs_AddTestEffects(weapon, wanted, levels);
+    if (granted == 0)
+    {
+        ReplyToCommand(client, "[AP] Unknown effect %s. Use 1-%d or an effect key.",
+            wanted, WeaponEffectCount);
+        return Plugin_Handled;
+    }
+
+    WeaponBuffs_Apply(target);
+    ReplyToCommand(client, "[AP] Applied %d test effect(s) to %N's slot %d %s.",
+        granted, target, slot + 1, g_WeaponNames[weapon]);
     if (client != target)
     {
         PrintToChat(target, "[AP] An admin applied %d test effect(s) to your %s.",

@@ -1,0 +1,203 @@
+import { Objective, TrackerSource, Weapon } from './types';
+import { sampleClassLoadouts } from './sample-loadouts';
+const game = 'Team Fortress 2 Mann vs Machine';
+
+export function sampleSource(host: string): TrackerSource {
+  const catalog = [
+    mission(2, 'mvm_decoy_intermediate', "Doe's Doom", 'intermediate', 7),
+    mission(15, 'mvm_mannworks_ironman', 'Mean Machines', 'advanced', 7),
+    mission(24, 'mvm_mannhattan_advanced1', 'Empire Escalation', 'advanced', 5),
+    mission(31, 'mvm_bigrock_advanced1', 'Broken Parts', 'expert', 7),
+  ];
+  const checked = [
+    ...catalog[0].locations.map((location) => location.id),
+    ...catalog[1].locations.slice(0, 5).map((location) => location.id),
+    ...catalog[2].locations.slice(0, 2).map((location) => location.id),
+  ];
+  const itemNames = new Map<number, string>([
+    [7_443_001_002, "Mission Ticket: Doe's Doom"],
+    [7_443_001_015, 'Mission Ticket: Mean Machines'],
+    [7_443_001_024, 'Mission Ticket: Empire Escalation'],
+    [7_443_002_001, 'Class: Scout'],
+    [7_443_002_002, 'Class: Soldier'],
+    [7_443_002_005, 'Class: Heavy'],
+    [7_443_002_006, 'Class: Engineer'],
+    [7_443_002_007, 'Class: Medic'],
+    [7_443_009_001, 'Progressive Weapon Slot: Scout'],
+    [7_443_009_002, 'Progressive Weapon Slot: Soldier'],
+    [7_443_009_003, 'Progressive Weapon Slot: Pyro'],
+    [7_443_009_004, 'Progressive Weapon Slot: Demoman'],
+    [7_443_009_005, 'Progressive Weapon Slot: Heavy'],
+    [7_443_009_006, 'Progressive Weapon Slot: Engineer'],
+    [7_443_009_007, 'Progressive Weapon Slot: Medic'],
+    [7_443_009_008, 'Progressive Weapon Slot: Sniper'],
+    [7_443_009_009, 'Progressive Weapon Slot: Spy'],
+    [7_443_005_001, 'Weapon Buff: Air Strike — +10% firing speed'],
+    [7_443_005_002, 'Weapon Buff: Minigun — +10% damage'],
+    [7_443_005_003, 'Weapon Buff: Mad Milk — +15% slow duration'],
+    [7_443_005_004, "Weapon Buff: Crusader's Crossbow — +25% healing"],
+    [7_443_005_005, 'Weapon Buff: Grenade Launcher — +20% explosion radius'],
+    [7_443_005_006, 'Weapon Buff: Air Strike — +10% damage'],
+    [7_443_005_007, 'Weapon Buff: Air Strike — +15% reload speed'],
+    [7_443_005_008, 'Weapon Buff: Minigun — +15 health on kill'],
+    [7_443_005_009, 'Weapon Buff: All-Class Melee — +10% damage'],
+    [7_443_005_010, 'Weapon Buff: All-Class Melee — +15 health on kill'],
+    [7_443_005_011, 'Weapon Buff: Three-Rune Blade — inflicts 3 seconds of bleed'],
+    [7_443_005_012, 'Weapon Buff: Bootlegger — +15 max health while active'],
+    [7_443_007_001, 'Grappling Hook'],
+    [7_443_004_001, 'Cash Bundle'],
+    [7_443_011_082, 'Bot: CreditToTeam | Common | Human'],
+    [7_443_011_095, "Bot: Screamin' Eagles | Elite | Robot"],
+    [7_443_011_117, 'Bot: Herr Doktor | Legendary | Giant'],
+  ]);
+  const receivedIds = [
+    7_443_001_002, 7_443_001_015, 7_443_001_024, 7_443_002_001, 7_443_002_002, 7_443_002_005,
+    7_443_002_006, 7_443_002_007, 7_443_009_001, 7_443_009_001, 7_443_009_002, 7_443_009_005,
+    7_443_009_005, 7_443_009_006, 7_443_009_007, 7_443_009_007, 7_443_009_009, 7_443_005_001,
+    7_443_005_001, 7_443_005_002, 7_443_005_002, 7_443_005_002, 7_443_005_002, 7_443_005_003,
+    7_443_005_004, 7_443_005_004, 7_443_005_004, 7_443_005_005, 7_443_005_005, 7_443_005_005,
+    7_443_005_005, 7_443_005_005, 7_443_005_005, 7_443_005_006, 7_443_005_006, 7_443_005_006,
+    7_443_005_007, 7_443_005_008, 7_443_005_008, 7_443_005_009, 7_443_005_009, 7_443_005_010,
+    7_443_005_011, 7_443_005_011, 7_443_005_012, 7_443_007_001, 7_443_004_001, 7_443_004_001,
+    7_443_004_001, 7_443_011_082, 7_443_011_095, 7_443_011_117,
+  ];
+  const weapons = [
+    weapon('Air Strike', ['Soldier'], 'f87faf790afc0d04056479f1566f09f1.png'),
+    weapon('Minigun', ['Heavy'], 'a74b4d01f56a2f93c537b4d5e8b73715.png'),
+    weapon('Mad Milk', ['Scout'], '56b94729a6e2f3fa8f0992d6fc8c1895.png'),
+    weapon("Crusader's Crossbow", ['Medic'], '9c40cbf4c4717626e8e02f0fcfbea19d.png'),
+    weapon('Grenade Launcher', ['Demoman'], 'e62935cf06f65a239f52541c2fd9472f.png'),
+    weapon("Ali Baba's Wee Booties", ['Demoman'], 'a4e0f4a0d6af7480aa80dd8fc05f6028.png', [
+      'Bootlegger',
+    ]),
+    weapon('Boston Basher', ['Scout'], 'b5d85af732f93216889c5563e54cbe16.png', [
+      'Three-Rune Blade',
+    ]),
+    weapon(
+      'All-Class Melee',
+      ['Scout', 'Soldier', 'Pyro', 'Demoman', 'Heavy', 'Engineer', 'Medic', 'Sniper', 'Spy'],
+      'cb6c1fb553e24bdf3d885d5c07a9a1cc.png',
+      [
+        'Saxxy',
+        'Bat Outta Hell',
+        'Conscientious Objector',
+        'Crossing Guard',
+        'Freedom Staff',
+        'Frying Pan',
+        'Golden Frying Pan',
+        'Ham Shank',
+        'Memory Maker',
+        'Necro Smasher',
+        'Prinny Machete',
+      ],
+    ),
+  ];
+  return {
+    mode: 'demo',
+    host,
+    kind: 'tracker',
+    id: 'sample',
+    tracker: 'sample',
+    preferredPlayer: 1,
+    players: [{ player: 1, game }],
+    names: new Map([[1, 'RED Team Server']]),
+    catalog,
+    buffWeapons: new Map(weapons.map((entry) => [entry.name, entry])),
+    classLoadouts: sampleClassLoadouts,
+    itemNames,
+    slots: [],
+    totals: [],
+    received: [{ player: 1, items: receivedIds.map((id) => [id]) }],
+    checks: [{ player: 1, locations: checked }],
+    demoSlotData: {
+      class_weapon_slots: true,
+      missions: catalog.map((entry) => entry.pop_file),
+      start_mission: catalog[0].pop_file,
+      goal: 'final_boss',
+      goal_mission: catalog[3].pop_file,
+      mission_ticket_importance: 'progression',
+      mission_modifiers: {
+        [catalog[0].pop_file]: [
+          modifier('low_gravity', 'Low Gravity', 'environment', 'Gravity is halved.'),
+          modifier('blast_plating', 'Blast Plating', 'robots', '50% blast resistance.'),
+          modifier('loaded_dice', 'Loaded Dice', 'robots', '33% base random-crit chance.'),
+          modifier(
+            'faulty_calibration',
+            'Faulty Calibration',
+            'players',
+            'Player weapons suffer severe spread and shot deviation.',
+          ),
+        ],
+        [catalog[1].pop_file]: [
+          modifier('mental', 'Mental', 'robots', 'Cloaked enemies shimmer on hit.'),
+          modifier(
+            'make_it_count',
+            'Make it Count',
+            'players',
+            'Reduced ammo and metal, slower dispenser resupply, and 2.5x non-melee damage.',
+          ),
+          modifier(
+            'loose_footing',
+            'Loose Footing',
+            'environment',
+            'Icy ground momentum with triple damage, explosion, and airblast knockback.',
+          ),
+        ],
+        [catalog[2].pop_file]: [
+          modifier('ballistic_plating', 'Ballistic Plating', 'robots', '50% bullet resistance.'),
+          modifier('overclocked_servos', 'Overclocked Servos', 'robots', '+15% robot speed.'),
+          modifier(
+            'bot_surge',
+            'Bot Surge',
+            'waves',
+            'Robot groups immediately refill open enemy slots, keeping the wave under constant pressure.',
+          ),
+        ],
+        [catalog[3].pop_file]: [
+          modifier('high_gravity', 'High Gravity', 'environment', 'Gravity is increased by 50%.'),
+          modifier(
+            'miniature_menace',
+            'Miniature Menace',
+            'robots',
+            'Robots and tanks are 50% size with 33% less health and 25% more speed.',
+          ),
+          modifier('weaponized_tanks', 'Weaponized Tanks', 'robots', 'Level 2 tank sentries.'),
+        ],
+      },
+      tracker: { starting_items: [] },
+    },
+  };
+}
+
+function modifier(key: string, name: string, kind: string, description: string) {
+  return { key, name, kind, description };
+}
+
+function mission(id: number, pop: string, name: string, difficulty: string, waves: number) {
+  const locations: Objective[] = Array.from({ length: waves }, (_, index) => ({
+    id: 7_442_000_000 + id * 100 + index + 1,
+    name: `${name} Wave ${index + 1}`,
+    kind: 'wave_cleared',
+    wave: index + 1,
+  }));
+  locations.push(
+    { id: 7_442_000_000 + id * 100 + 90, name: `${name} Tank`, kind: 'tank_destroyed' },
+    { id: 7_442_000_000 + id * 100 + 91, name: `${name} Giant`, kind: 'giant_killed' },
+    { id: 7_442_000_000 + id * 100 + 99, name: `${name} Complete`, kind: 'mission_cleared' },
+  );
+  return { pop_file: pop, name, difficulty, locations };
+}
+
+function weapon(
+  name: string,
+  classes: readonly string[],
+  filename: string,
+  aliases: readonly string[] = [],
+): Weapon {
+  return {
+    name,
+    classes,
+    icon: `assets/tf2/items/${filename}`,
+    aliases,
+  };
+}

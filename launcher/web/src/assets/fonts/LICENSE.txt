@@ -1,0 +1,11 @@
+Anton, Source Sans 3 and IBM Plex Mono are here under the SIL Open Font
+License 1.1, which allows redistribution inside a bundled application.
+
+  Anton          https://fonts.google.com/specimen/Anton
+  Source Sans 3  https://fonts.google.com/specimen/Source+Sans+3
+  IBM Plex Mono  https://fonts.google.com/specimen/IBM+Plex+Mono
+
+Only the latin subset of each is here. The files ship with the launcher rather
+than being fetched from Google: the launcher runs on loopback for one player,
+who may be offline, and a font request would be the only thing in it that left
+the machine.

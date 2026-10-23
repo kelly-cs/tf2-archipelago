@@ -32,8 +32,24 @@ func frozenKey(kind, owner string, index int) string {
 func currentIDs() map[string]int64 {
 	ids := make(map[string]int64, len(Locations)+len(Items))
 	for _, l := range Locations {
+		if l.Kind.IsTally() {
+			ids[frozenKey(l.Kind.Key(), "", l.Threshold)] = l.ID
+			continue
+		}
 		mission, ok := MissionByID(l.Mission)
 		if !ok {
+			continue
+		}
+		switch {
+		case l.Cache > 0:
+			// A cache shares the clear's kind and wave, so it is keyed as its
+			// own thing: a clear's id must not read as moved when one appears.
+			ids[frozenKey("victory_cache", mission.PopFile, int(l.Cache))] = l.ID
+			continue
+		case l.Index > 0:
+			// The nth of its wave: keyed apart from the mission's own
+			// first-of-each check, which shares the kind.
+			ids[frozenKey(l.Kind.Key()+"_n", mission.PopFile, int(l.Wave)*100+int(l.Index))] = l.ID
 			continue
 		}
 		ids[frozenKey(l.Kind.Key(), mission.PopFile, int(l.Wave))] = l.ID
@@ -50,11 +66,33 @@ func currentIDs() map[string]int64 {
 			}
 		case ItemWeaponSlot, ItemCredits:
 			ids[frozenKey(it.Kind.Key(), "", 0)] = it.ID
+		case ItemClassWeaponSlot:
+			// Keyed by the slot as well as the class: the progressive item and
+			// the named ones share a kind and a class, and only the slot tells
+			// them apart. Progressive is slot zero, which is the key every
+			// seed shipped so far was frozen under.
+			if class, ok := ClassByID(it.Class); ok {
+				ids[frozenKey(it.Kind.Key(), class.Key, int(it.Slot))] = it.ID
+			}
 		case ItemWeaponBuff:
 			buff, ok := WeaponBuffByID(it.WeaponBuff)
 			if ok {
 				ids[frozenKey(it.Kind.Key(), buff.Key, 0)] = it.ID
 			}
+		case ItemServerSetting:
+			if setting, ok := ServerSettingByID(it.ServerSetting); ok {
+				ids[frozenKey(it.Kind.Key(), setting.Key, 0)] = it.ID
+			}
+		case ItemTrap:
+			if trap, ok := TrapByID(it.Trap); ok {
+				ids[frozenKey(it.Kind.Key(), trap.Key, 0)] = it.ID
+			}
+		case ItemTrophy:
+			if mission, ok := MissionByID(it.Mission); ok {
+				ids[frozenKey(it.Kind.Key(), mission.PopFile, 0)] = it.ID
+			}
+		case ItemBotCard:
+			// New optional cards are deliberately absent from the frozen legacy IDs.
 		}
 	}
 	return ids
@@ -136,6 +174,12 @@ func TestFrozenKeysHoldOnlyStableIdentifiers(t *testing.T) {
 	for _, buff := range WeaponBuffs {
 		stable[buff.Key] = true
 	}
+	for _, trap := range Traps {
+		stable[trap.Key] = true
+	}
+	for _, setting := range ServerSettings {
+		stable[setting.Key] = true
+	}
 
 	for key := range currentIDs() {
 		parts := strings.Split(key, "/")
@@ -163,22 +207,31 @@ func recordNewIDs(frozen, current map[string]int64) error {
 }
 
 func TestLocationsCoverEveryWaveAndMission(t *testing.T) {
-	waves, clears, tanks, giants := 0, 0, 0, 0
+	waves, clears, tanks, giants, caches, kills := 0, 0, 0, 0, 0, 0
 	for _, l := range Locations {
-		switch l.Kind {
-		case ObjectiveWaveCleared:
+		switch {
+		case l.Cache > 0:
+			caches++
+		case l.Index > 0:
+			kills++
+		case l.Kind == ObjectiveWaveCleared:
 			waves++
-		case ObjectiveMissionCleared:
+		case l.Kind == ObjectiveMissionCleared:
 			clears++
-		case ObjectiveTankDestroyed:
+		case l.Kind == ObjectiveTankDestroyed:
 			tanks++
-		case ObjectiveGiantKilled:
+		case l.Kind == ObjectiveGiantKilled:
 			giants++
 		}
 	}
-	want, wantTanks, wantGiants := 0, 0, 0
+	want, wantTanks, wantGiants, wantCaches, wantKills := 0, 0, 0, 0, 0
 	for _, m := range Missions {
 		want += int(m.Waves)
+		wantCaches += int(m.Difficulty.VictoryCaches())
+		for wave := uint8(1); wave <= m.Waves; wave++ {
+			counts := m.WaveKillsAt(wave)
+			wantKills += int(counts.Giants) + int(counts.Tanks)
+		}
 		if m.HasTank {
 			wantTanks++
 		}
@@ -191,6 +244,12 @@ func TestLocationsCoverEveryWaveAndMission(t *testing.T) {
 	}
 	if clears != len(Missions) {
 		t.Errorf("%d mission clear locations, want %d", clears, len(Missions))
+	}
+	if caches != wantCaches {
+		t.Errorf("%d victory cache locations, want %d", caches, wantCaches)
+	}
+	if kills != wantKills {
+		t.Errorf("%d per-kill locations, want %d", kills, wantKills)
 	}
 	// A tank check on a mission with no tank is a location nobody can reach,
 	// and a run nobody can finish.
@@ -230,6 +289,17 @@ func TestMissionsWithoutTanksAreExplicit(t *testing.T) {
 		"Thriller Terror",
 		"Unholy Undead",
 		"Gatebot Apocalypse",
+		// Three of the Mannhattan missions on a Valve map, read off their
+		// population files by inspectPopulation with the rest.
+		"Factory Reset",
+		"Scorched Skies",
+		"Discordant",
+		"Computer Crash",
+		"Reddish Rebellion",
+		"Short Circuit Execution",
+		"Ocean Commotion",
+		"Bauernhof",
+		"White Noise",
 	}
 	if !slices.Equal(without, want) {
 		t.Errorf("missions with no tank: %v, want %v", without, want)
@@ -271,6 +341,10 @@ func TestLookupsRoundTrip(t *testing.T) {
 		if !ok || got != l {
 			t.Fatalf("LocationByID(%d) = %+v, %v", l.ID, got, ok)
 		}
+		if l.Kind.IsTally() {
+			// A milestone belongs to no mission: the run as a whole earns it.
+			continue
+		}
 		if _, ok := MissionByID(l.Mission); !ok {
 			t.Fatalf("%q belongs to unknown mission %d", l.Name, l.Mission)
 		}
@@ -294,7 +368,7 @@ func TestCommittedExportIsCurrent(t *testing.T) {
 	if err := Export(fresh); err != nil {
 		t.Fatal(err)
 	}
-	for _, name := range []string{FileMeta, FileMissions, FileItems} {
+	for _, name := range []string{FileMeta, FileMissions, FileItems, FileWeaponClasses, FileClassLoadouts} {
 		want, err := os.ReadFile(filepath.Join(fresh, name))
 		if err != nil {
 			t.Fatal(err)
@@ -310,7 +384,7 @@ func TestCommittedExportIsCurrent(t *testing.T) {
 }
 
 func TestItemPoolCoversEveryGate(t *testing.T) {
-	tickets, classes, slots := 0, 0, 0
+	tickets, classes, slots, classSlots, namedSlots := 0, 0, 0, 0, 0
 	for _, it := range Items {
 		switch it.Kind {
 		case ItemMissionTicket:
@@ -319,10 +393,26 @@ func TestItemPoolCoversEveryGate(t *testing.T) {
 			classes++
 		case ItemWeaponSlot:
 			slots += int(it.Count)
+		case ItemClassWeaponSlot:
+			// Two shapes of the same kind: one progressive item per class with
+			// a copy per slot it earns, and one item per named slot.
+			if it.Slot == 0 {
+				classSlots += int(it.Count)
+			} else {
+				namedSlots += int(it.Count)
+			}
 		case ItemCredits:
 			// Filler, counted by the pool builder rather than here.
 		case ItemWeaponBuff:
 			// Useful rewards, sampled and sometimes stacked by the pool builder.
+		case ItemTrap:
+			// Negative filler, counted by the pool builder rather than here.
+		case ItemServerSetting:
+			// One copy each, and only in the pool when the option asks for them.
+		case ItemTrophy:
+			// Locked onto a mission clear by the world, never in the pool.
+		case ItemBotCard:
+			// Optional useful rewards, bounded by the world's card-check setting.
 		}
 		if it.Classification == Progression && it.Count == 0 {
 			t.Errorf("%q is progression with no copies in the pool", it.Name)
@@ -336,5 +426,11 @@ func TestItemPoolCoversEveryGate(t *testing.T) {
 	}
 	if slots != len(WeaponSlots) {
 		t.Errorf("%d weapon slot copies, want %d", slots, len(WeaponSlots))
+	}
+	if want := len(Classes) * int(ClassSlotsEarned); classSlots != want {
+		t.Errorf("%d class weapon slot copies, want %d", classSlots, want)
+	}
+	if want := len(Classes) * int(ClassSlotsEarned); namedSlots != want {
+		t.Errorf("%d named class slot items, want %d", namedSlots, want)
 	}
 }

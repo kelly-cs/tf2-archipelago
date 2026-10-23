@@ -1,55 +1,66 @@
 # Mann vs Archipelago
 
-Ce projet transforme un serveur Team Fortress 2 Mann vs Machine en
-randomizer. Les classes, les emplacements d'arme et les missions
-commencent verrouillés. L'équipe les débloque en réussissant des vagues.
-Tout le monde sur le serveur partage les mêmes déblocages.
+Ce projet transforme un serveur Team Fortress 2 Mann vs Machine en randomizer
+[Archipelago](https://archipelago.gg).
 
-Le serveur remplit aussi l'équipe RED avec des bots, donc deux joueurs
-gagnent une partie que Valve a calibrée pour six.
+- Les classes, les emplacements d'arme et les missions commencent verrouillés.
+- Chaque vague que votre équipe réussit est un check. Les checks débloquent
+  des choses, chez vous ou dans la partie d'un autre joueur.
+- Tout le monde sur le serveur partage les mêmes déblocages.
+- Des bots remplissent les places vides de l'équipe RED. Deux personnes
+  peuvent donc jouer des vagues que Valve a calibrées pour six.
+- Vos amis n'installent rien. Ils rejoignent avec un client Team Fortress 2
+  normal.
 
-## Commencer
+## Les trois étapes
 
-Sur Windows, téléchargez `tf2ap.exe` depuis la
-[dernière version](https://github.com/m-this/tf2-archipelago/releases/latest)
-et lancez-le. Sur Linux, `tf2ap-linux-amd64` de la même version fait pareil
-dans un terminal. L'un comme l'autre demande l'adresse de votre room
-Archipelago et installe le reste.
+Chaque partie suit les mêmes trois étapes. Le livre les suit dans l'ordre.
 
-Avec Docker :
+1. **Installer le serveur.** Un seul fichier sur
+   [Windows](setup/install-windows.md) ou [Linux](setup/install-linux.md), ou
+   une pile [Docker](setup/install.md). Le premier démarrage télécharge
+   environ 14 Go de fichiers de jeu.
+2. **Créer la session Archipelago.** Choisissez les
+   [options de la partie](setup/shape-of-the-run.md), générez une seed,
+   envoyez-la sur `archipelago.gg`, puis donnez l'adresse de la room au
+   serveur. Voir [Créer la session](setup/create-the-session.md).
+3. **Inviter vos amis.** Donnez-leur une ligne de connexion. Voir
+   [Inviter vos amis](setup/invite-your-friends.md).
 
-```sh
-cp deploy/.env.example .env   # puis réglez SRCDS_RCONPW
-make seed                     # envoyez le fichier sur archipelago.gg, ouvrez
-                               # une room, puis réglez AP_HOST et AP_PORT
-make up
-make logs
-```
+Lisez ensuite [La première session](play/first-session.md) pour savoir à quoi
+ressemble la première soirée. [Le lanceur, onglet par onglet](setup/the-launcher.md)
+explique chaque écran, et [le tracker de campagne](play/tracker.md) montre la
+partie à vos joueurs.
 
-Le premier démarrage télécharge environ 14 Go de fichiers de jeu.
+## Démarrage rapide sur Windows
 
-[Installer sur Windows](setup/install-windows.md),
-[Installer sur Linux](setup/install-linux.md) et
-[Installer avec Docker](setup/install.md) couvrent les trois en détail.
+1. Téléchargez `tf2ap.exe` depuis la
+   [dernière version](https://github.com/m-this/tf2-archipelago/releases/latest).
+2. Lancez-le. Windows affiche un avertissement. Cliquez sur
+   **Informations complémentaires**, puis sur **Exécuter quand même**.
+   C'est un faux positif. Voir [Installer sur Windows](setup/install-windows.md).
+3. Appuyez sur **Start**. Attendez la fin du téléchargement.
+4. Installez l'[application Archipelago](https://github.com/ArchipelagoMW/Archipelago/releases).
+5. Dans le lanceur, ouvrez **Settings**, puis **Player options**, et appuyez
+   sur **Generate seed**.
+6. Envoyez le fichier généré sur
+   [archipelago.gg/uploads](https://archipelago.gg/uploads) et créez une room.
+7. Collez l'adresse de la room dans **Settings**, puis **Archipelago room**,
+   et appuyez sur **Restart**.
+8. Envoyez à vos amis la ligne de connexion affichée sous les boutons.
 
-## Lire le livre dans cet ordre
+## Nouveau sur Archipelago ?
 
-Ce livre s'adresse à l'hébergeur. Il suppose que vous connaissez Mann vs
-Machine et que vous n'avez jamais utilisé un randomizer. Il définit chaque
-mot avant de l'utiliser.
+Lisez d'abord [Les mots d'Archipelago, pour les joueurs MvM](archipelago-for-mvm-players.md).
+C'est une seule page. Archipelago et Mann vs Machine emploient les mêmes mots
+pour des choses différentes, et le reste du livre suppose que vous savez
+lesquelles.
 
-1. [Archipelago pour les joueurs MvM](archipelago-for-mvm-players.md) — le
-   vocabulaire. À lire en premier.
-2. [Ce que le randomizer change](what-the-randomizer-changes.md) — ce qui
-   diffère d'un serveur MvM normal.
-3. [Prérequis](setup/requirements.md) — ce qu'il faut à la machine.
-4. [La forme de la partie](setup/shape-of-the-run.md) — la longueur et la
-   difficulté d'une soirée.
-5. [Créer la session](setup/create-the-session.md) — fabrique la partie et
-   la met sur `archipelago.gg`.
-6. [Installer sur Windows](setup/install-windows.md),
-   [Installer sur Linux](setup/install-linux.md) ou
-   [Installer avec Docker](setup/install.md) — fait tourner le serveur.
-7. [Inviter vos amis](setup/invite-your-friends.md) ouvre le serveur.
-   [Les bots de votre équipe](play/defender-bots.md) dit qui remplit les
-   places vides.
+## Où trouver de l'aide
+
+- [Dépannage](operate/troubleshooting.md) trouve quelle partie est en panne.
+- **Debug logs**, dans les Settings du lanceur, écrit un seul fichier avec
+  tout ce dont une personne qui vous aide a besoin. Envoyez ce fichier quand
+  vous demandez de l'aide.
+- Les problèmes se signalent sur
+  [GitHub](https://github.com/m-this/tf2-archipelago/issues).

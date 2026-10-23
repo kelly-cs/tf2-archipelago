@@ -24,3 +24,13 @@ var WeaponSlots = []WeaponSlot{
 	{WeaponSlotSecondary, "secondary", "Secondary"},
 	{WeaponSlotMelee, "melee", "Melee"},
 }
+
+// WeaponSlotByID resolves a slot id into the slot it names.
+func WeaponSlotByID(id WeaponSlotID) (WeaponSlot, bool) {
+	for _, slot := range WeaponSlots {
+		if slot.ID == id {
+			return slot, true
+		}
+	}
+	return WeaponSlot{}, false
+}

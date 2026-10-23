@@ -1,0 +1,65 @@
+a {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.caption {
+  font-size: var(--text-sm);
+  color: var(--text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.classes {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin-top: var(--gap-sm);
+}
+
+/* A locked mercenary is dimmed and struck through rather than hidden: what you
+   cannot play yet is half of what the screen is telling you. */
+.mercenary {
+  padding: 6px 8px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line-soft);
+  background: var(--surface-void);
+  color: var(--text-disabled);
+  font-size: var(--text-sm);
+  text-align: center;
+  text-decoration: line-through;
+}
+
+.mercenary.held {
+  border-color: var(--state-good);
+  color: var(--text);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.counts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.count {
+  background: var(--surface-void);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+}
+
+.figure {
+  font-size: var(--text-lg);
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+.latest {
+  color: var(--text-dim);
+}
+
+.latest span {
+  color: var(--text);
+}

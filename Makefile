@@ -10,6 +10,14 @@ export
 GO_VERSION := $(shell sed -n 's/^go //p' go.mod)
 export GO_VERSION
 
+# go.mod owns the defender mod's version too. It is a module dependency rather
+# than a checkout, so the requirement is the pin and there is no line in
+# versions.env to keep in step with it. Read with sed rather than `go list -m`
+# so a Makefile parse costs nothing and works without a toolchain; the build
+# itself resolves it properly.
+DEFENDERBOTS_VERSION := $(shell sed -n 's|^[[:space:]]*github.com/m-this/tf2-mvm-bots-go \(v[^ ]*\).*|\1|p' go.mod)
+export DEFENDERBOTS_VERSION
+
 # The apworld owns the release version, because that is the one a release tag is
 # checked against (see version-check). Everything that has to state a version of
 # this project reads it from here.
@@ -33,6 +41,7 @@ BUILD_COMMIT := $(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)$
 # and that field has to be four numbers.
 BUILD_CHANNEL ?=
 LAUNCHER_VERSION := $(if $(BUILD_CHANNEL),$(BUILD_CHANNEL),$(RELEASE_VERSION))-$(BUILD_COMMIT)
+COMPOSE_ADMIN_OUT ?= $(DIST)/composeadmin
 
 # --project-directory pins relative paths in the compose files to the repository
 # root. --env-file replaces the default .env rather than adding to it, so both
@@ -52,29 +61,52 @@ COMPOSE_RELEASE := docker compose --project-directory . \
 
 DIST := dist
 
+# The browser interface. `ng build` writes straight into the package that
+# serves it, so there is one copy of the bundle and it cannot go stale.
+WEB := launcher/web
+SPA_DIST := launcher/internal/spa/dist
+GEN_GO := launcher/internal/gen/tf2ap/launcher/v1
+PROTO_SRC := $(shell find proto -name '*.proto')
+
 # Tools of record: pinned and run through `go run` or `uv run`, so no host
 # install is needed and a local run is byte-identical to CI.
 GOFUMPT := go run mvdan.cc/gofumpt@$(GOFUMPT_VERSION)
 GOLANGCI_LINT := go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
 GOVULNCHECK := go run golang.org/x/vuln/cmd/govulncheck@$(GOVULNCHECK_VERSION)
 RUFF := uv run --quiet --with ruff==$(RUFF_VERSION) ruff
-SHADOW := uv run --quiet --with pillow==$(PILLOW_VERSION) python docs/shadow.py
-# Ours only. deploy/bots/build/ holds seven repositories this project fetches
-# and compiles, and one of them now carries Go of its own: formatting somebody
-# else's tree is not this project's business, and a fresh checkout of it must
-# not be able to fail our own format check.
-GO_SRC := $$(find . -type f -name '*.go' -not -path './deploy/bots/build/*')
+BUF := go run github.com/bufbuild/buf/cmd/buf@$(BUF_VERSION)
+# npm is the one tool of record that is not a Go program, so it runs in a
+# container the way honkit does: nothing is installed on a laptop, and the
+# -direct targets below are for CI, which already stands in a node image.
+# The whole repository is mounted, not just $(WEB): `ng build` writes its output
+# into launcher/internal/spa, which is outside the frontend project.
+NPM := docker run --rm -u $$(id -u):$$(id -g) \
+	-v $(CURDIR):/work -w /work/$(WEB) \
+	-e HOME=/tmp -e npm_config_cache=/tmp/.npm \
+	node:$(NODE_VERSION) npm
+# Ours only, and ours means written here. deploy/bots/build/ holds seven
+# repositories this project fetches and compiles, and one of them now carries Go
+# of its own; launcher/web holds npm's tree, which carries Go too; and
+# launcher/internal/gen is buf's output, which answers to the .proto files.
+# Formatting somebody else's tree is not this project's business, and a fresh
+# checkout of one must not be able to fail our own format check.
+GO_SRC := $$(find . -type f -name '*.go' -not -path './deploy/bots/build/*' -not -path './launcher/internal/gen/*' -not -path './launcher/web/*')
 
-.PHONY: help seed up down restart logs ps rcon community-check \
-        check fmt fmt-check vet lint lint-fix fix-check vuln compile test shadows \
-        window-captures \
+.PHONY: help seed up down restart logs ps rcon winbed community-catalog community-check \
+        check fmt fmt-check vet lint lint-fix fix-check vuln compile test \
         test-fast export apworld-lint \
-		apworld-fmt apworld-test apworld-build apworld-package plugin bots bots-from-source \
+		apworld-fmt apworld-test apworld-build apworld-package plugin bots bots-gate \
         integration build docs \
         docs-build docs-down dist compose-release version-check clean \
         go-version-check \
-        launcher launcher-assets launcher-assets-common \
-        launcher-linux launcher-assets-linux captures embed-placeholders
+        launcher launcher-assets launcher-assets-common launcher-compose-admin \
+        proto proto-lint proto-fmt proto-deps \
+        web-ready web-install web-build tracker-data tracker-build web-lint web-test web-e2e web-e2e-real \
+        web-captures web-check \
+        web-ready-direct web-install-direct web-build-direct web-lint-direct \
+        web-test-direct \
+        web-e2e-direct web-check-direct \
+        launcher-linux launcher-assets-linux captures embed-placeholders toolchain
 
 help:
 	@echo "tf2-archipelago"
@@ -84,18 +116,22 @@ help:
 	@echo "  make logs          Follow logs"
 	@echo "  make rcon          Send a server command: make rcon CMD='sm_ap_status'"
 	@echo "  make check         The gate: everything CI runs"
+	@echo "  make proto         Regenerate the launcher contract from proto/"
+	@echo "  make web-build     Build the browser interface into the launcher"
+	@echo "  make tracker-build Build the public campaign tracker into ./dist/tracker"
+	@echo "  make web-e2e       Drive the interface in a browser against the fake launcher"
 	@echo "  make export        Regenerate apworld/tf2_mvm/data from gamedata/"
+	@echo "  make community-catalog Add every viable mission from the official archives"
 	@echo "  make community-check Validate community.json against community-content/tf"
 	@echo "  make plugin        Compile the SourceMod plugin"
 	@echo "  make bots          Stage the MvM defender bots the image installs"
+	@echo "  make bots-gate     Play every wave with the bots before a release (hours)"
 	@echo "  make apworld-test  Run the apworld's tests inside Archipelago"
 	@echo "  make integration   Bring up Archipelago and the bridge, drive them"
 	@echo "  make dist          Build everything a release attaches into ./dist"
 	@echo "  make launcher      Cross-compile tf2ap.exe (Windows) into ./dist"
 	@echo "  make launcher-linux Build tf2ap-linux-amd64 into ./dist"
 	@echo "  make captures      Redraw the terminal captures in docs/images"
-	@echo "  make shadows       Drop-shadow the window screenshots in docs/images/raw"
-	@echo "  make window-captures Rephotograph the launcher's window through Wine"
 	@echo "  make docs          Build the book and serve it on 127.0.0.1"
 	@echo "  make clean         Stop, remove volumes, remove build output"
 
@@ -132,7 +168,7 @@ ps: .env
 # The server reads SRCDS_RCONPW at boot, so a value changed since then needs 'make restart'.
 RCON := SRCDS_RCONPW="$$(sed -n 's/^SRCDS_RCONPW=//p' .env)" \
 	SRCDS_PORT="$$(sed -n 's/^SRCDS_PORT=//p' .env)" \
-	python3 deploy/rcon.py
+	go run ./launcher/cmd/rcon
 
 # Silenced so the password does not reach the terminal in the echoed recipe.
 rcon: .env
@@ -175,21 +211,151 @@ embed-placeholders:
 		*) printf 'PK\005\006\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000' > "$$f" ;; \
 		esac; \
 	done
+	@mkdir -p $(SPA_DIST)
+	@[ -e $(SPA_DIST)/index.html ] || \
+		printf '<!doctype html><meta charset="utf-8"><title>tf2ap</title>\n<p>The browser interface was not built. Run <code>make web-build</code>.\n' \
+			> $(SPA_DIST)/index.html
+
+# --- The browser interface ---
+#
+# proto/ is the contract between the launcher and the Angular app. Both sides
+# are generated and neither is committed: one source of truth, and a checked-in
+# copy could only ever be a second answer to what the .proto files say. So every
+# Go target depends on `proto`, which is a no-op once the tree is newer than the
+# protos it was generated from.
+proto: $(GEN_GO)
+
+$(GEN_GO): $(PROTO_SRC) proto/buf.gen.yaml proto/buf.yaml proto/buf.lock
+	cd proto && $(BUF) generate
+	@touch $(GEN_GO)
+
+proto-lint:
+	cd proto && $(BUF) lint
+	cd proto && $(BUF) format --diff --exit-code
+
+proto-fmt:
+	cd proto && $(BUF) format -w
+
+# buf.lock names the commit of every dependency, so moving one is a decision
+# rather than something a build does behind you. Not in `check`.
+proto-deps:
+	cd proto && $(BUF) dep update
+
+web-install:
+	$(NPM) ci --prefer-offline --no-audit --no-fund
+
+# Everything a frontend target needs that a fresh clone does not have.
+#
+# Three things, and forgetting any one of them fails only in CI, because a
+# machine that has built once already has all three:
+#
+#   proto               the generated contract. eslint is type-aware, so
+#                       without the TypeScript every @gen import is unresolved
+#                       and the no-unsafe-* family fires on every line.
+#   embed-placeholders  the files internal/assets embeds. The fake launcher is
+#                       a Go binary and will not compile without them.
+#   node_modules        the obvious one.
+#
+# Named once so a target added later cannot quietly want a fourth thing and
+# get away with it on a laptop that already has one.
+web-ready: proto embed-placeholders web-install
+
+web-build: web-ready
+	$(NPM) run build
+
+# The public tracker is a second entry into the same Angular source tree. It
+# shares the launcher's components and theme, but its output needs no launcher
+# or game server and can be served by any static host.
+# Angular will not reach outside its workspace for assets. Stage the generated
+# catalogues rather than commit a second copy of any of them.
+tracker-data:
+	mkdir -p $(WEB)/src/tracker/data
+	cp apworld/tf2_mvm/data/missions.json apworld/tf2_mvm/data/weapon_classes.json apworld/tf2_mvm/data/class_loadouts.json $(WEB)/src/tracker/data/
+
+tracker-build: web-ready tracker-data
+	$(NPM) run build:tracker
+
+web-lint: web-ready
+	$(NPM) run lint
+	$(NPM) run format:check
+
+web-test: web-ready
+	$(NPM) test
+
+# The browser tests drive the real app against launcher/cmd/fakelauncher: the
+# real handlers, the real WebSocket and the real form model, with no game server
+# behind them. Playwright brings the fake up itself, so this needs a browser on
+# the machine and not much else. Not in `check`: the browser is a 150 MB
+# download that no other target needs, and CI installs it in the web job.
+web-e2e: web-build
+	cd $(WEB) && npx playwright test
+
+# The browser tests against a launcher somebody started, rather than the fake.
+# It asks the half a fake cannot: that the binary a player downloads carries the
+# interface, serves it, and answers with a form.Model built from their own
+# settings. Start one first, on either platform:
+#
+#   ./dist/tf2ap-linux-amd64 -no-browser -addr 127.0.0.1:8477
+#   make web-e2e-real REAL=http://127.0.0.1:8477
+REAL ?= http://127.0.0.1:8477
+
+web-e2e-real:
+	cd $(WEB) && TF2AP_REAL=$(REAL) npx playwright test e2e/real-launcher.spec.ts
+
+# The pictures in the README and the book, redrawn against the fake launcher so
+# the same run draws the same image every time: no machine's fonts, no player's
+# home directory, no state left over from an evening of playing. Not in `check`:
+# a screenshot that differs by a pixel is not a failure.
+#
+# The fake is started here with a plain title, because the one it gives itself
+# says "(fake)" and that would be in every picture. The tracker pictures need
+# the built tracker served somewhere, so this serves dist/tracker as well.
+web-captures: web-build tracker-build
+	go run ./launcher/cmd/fakelauncher -addr 127.0.0.1:8471 -title 'Mann vs Archipelago' & \
+	python3 -m http.server -d dist/tracker 8470 --bind 127.0.0.1 >/dev/null 2>&1 & \
+	trap 'kill $$(jobs -p) 2>/dev/null' EXIT; \
+	sleep 3; \
+	cd $(WEB) && TF2AP_CAPTURE=1 TF2AP_TRACKER_URL=http://127.0.0.1:8470/ npx playwright test e2e/screenshots.spec.ts
+
+web-check: web-lint web-test web-build tracker-build
+
+# Direct targets: host npm, for CI, which already runs inside a node image, and
+# for a developer who would rather not pay the container round trip.
+web-install-direct:
+	cd $(WEB) && npm ci --prefer-offline --no-audit --no-fund
+
+web-ready-direct: proto embed-placeholders web-install-direct
+
+web-build-direct: web-ready-direct
+	cd $(WEB) && npm run build
+
+web-lint-direct: web-ready-direct
+	cd $(WEB) && npm run lint
+	cd $(WEB) && npm run format:check
+
+web-test-direct: web-ready-direct
+	cd $(WEB) && npm test
+
+web-e2e-direct: web-build-direct
+	cd $(WEB) && npx playwright install --with-deps chromium
+	cd $(WEB) && npx playwright test
+
+web-check-direct: web-lint-direct web-test-direct web-build-direct
 
 # Not in `check`: every analyzer it registers is in golangci-lint's govet.
-vet: embed-placeholders
+vet: embed-placeholders proto
 	go vet ./...
 
-lint: embed-placeholders
+lint: embed-placeholders proto
 	$(GOLANGCI_LINT) run ./...
 
-lint-fix: embed-placeholders
+lint-fix: embed-placeholders proto
 	$(GOLANGCI_LINT) run --fix ./...
 
 # `go fix` must be a no-op: whatever it would rewrite belongs in the commit.
 # `-diff` reports without touching the tree, so this is safe on a dirty working
 # copy.
-fix-check: embed-placeholders
+fix-check: embed-placeholders proto
 	@out="$$(go fix -diff ./...)"; \
 	if [ -n "$$out" ]; then \
 		printf '%s\n' "$$out"; \
@@ -199,10 +365,10 @@ fix-check: embed-placeholders
 
 # Reports only the vulnerabilities whose vulnerable symbol this code can
 # actually reach, so a hit is a bug to fix rather than a number to argue with.
-vuln: embed-placeholders
+vuln: embed-placeholders proto
 	$(GOVULNCHECK) ./...
 
-compile: embed-placeholders
+compile: embed-placeholders proto
 	go build ./...
 
 # The race detector is the only tool that sees a data race, and the bridge is
@@ -212,22 +378,68 @@ compile: embed-placeholders
 # This also guards the committed export: TestCommittedExportIsCurrent
 # regenerates it and fails if the tree is stale, which is why there is no
 # separate freshness target.
-test: embed-placeholders
-	CGO_ENABLED=1 go test -race -shuffle=on ./...
+# Not toolchain: CI runs this target on its own, and building SourcePawn from
+# source there would add several minutes to every run for tests that CI has no
+# way to require. `check` builds the toolchain before it gets here and sets
+# TF2AP_REQUIRE_SPSHELL, so the gate runs the drivers and refuses to skip them.
+# Run `make check` or `make toolchain` once to have them locally.
+test: embed-placeholders proto
+	CGO_ENABLED=1 $(SPENV) $(REQUIRE_SPSHELL) go test -race -shuffle=on ./...
+	python3 -m unittest discover -s deploy -p '*probe*_test.py'
 
-test-fast: embed-placeholders
-	go test ./...
+test-fast: embed-placeholders proto
+	$(SPENV) go test ./...
+
+# --- SourcePawn under its own VM ---
+#
+# The plugin is the one component nothing here could run, so it was checked by
+# reading its source for substrings. That catches a rename and misses a changed
+# sum. spcomp and SourcePawn's standalone VM compile and run one function of it
+# on inputs a test chooses, which catches the sum.
+#
+# The toolchain is the defender mod's: it pins the sourcepawn commit, patches
+# the clang-only tree GCC rejects and caches the build. Running its script from
+# the module cache rather than copying it means the pin cannot drift between
+# the two repositories, and SPWORK puts the output here because the module
+# cache is read-only.
+SPWORK ?= $(CURDIR)/toolchain
+SPROOT := $(SPWORK)/sourcepawn
+SPENV := SPCOMP=$(SPROOT)/objdir/spcomp/linux-x86_64/spcomp \
+	SPSHELL=$(SPROOT)/objdir/spshell/linux-x86_64/spshell \
+	SPINCLUDE=$(SPROOT)/include/core
+
+# Idempotent: a second run finds the two binaries and exits.
+toolchain:
+	SPWORK=$(SPWORK) sh $(BOTS_MOD)/tools/spshell.sh
 
 export:
 	go generate ./gamedata
 
 COMMUNITY_CONTENT ?= ./community-content/tf
+COMMUNITY_ARCHIVES ?= ./community-content/archive-assets.zip ./community-content/mlarchive-assets.zip
+community-catalog:
+	go run ./gamedata/cmd/communitycatalog $(COMMUNITY_ARCHIVES)
+
 community-check:
 	go run ./gamedata/cmd/communitycheck $(COMMUNITY_CONTENT)
 
+# The weapon catalogue and the schema import read a TF2 install: any one will
+# do, and ~/tf2-native is the one the bot test-bed keeps. The pools come from
+# the bot mod this module pins, so the catalogue follows the version in go.mod.
+TF2_DIR ?= $(HOME)/tf2-native/tf-dedicated/tf
+BOTS_MOD = $$(go list -m -f '{{.Dir}}' github.com/m-this/tf2-mvm-bots-go)
+weapons:
+	go run ./gamedata/cmd/weapons \
+		-pools $(BOTS_MOD)/plugin/source/redbots3/generated/loadouts.sp \
+		-schema $(TF2_DIR)/scripts/items/items_game.txt \
+		-english $(TF2_DIR)/resource/tf_english.txt > gamedata/weapons_generated.go
+
+import-weapons:
+	go run ./gamedata/cmd/importweapons $(TF2_DIR)/scripts/items/items_game.txt $(TF2_DIR)/resource/tf_english.txt
+
 # --- The apworld ---
 
-PYTHON_SRC := apworld/ deploy/rcon.py deploy/player-yaml.py
+PYTHON_SRC := apworld/
 
 apworld-fmt:
 	$(RUFF) format $(PYTHON_SRC)
@@ -257,11 +469,11 @@ apworld-build:
 	docker rm "$$id"
 
 # The standalone launcher only needs the packaged world, not an Archipelago
-# server image. Archipelago 0.6.7's APWorldContainer format is version 7; the
+# server image. Archipelago 0.6.8's APWorldContainer format is version 7; the
 # standard-library packager mirrors its archive layout and manifest stamping so
 # WSL users do not need Docker (or the optional zip command) to build the exe.
 apworld-package:
-	python3 deploy/package-zip.py apworld apworld/tf2_mvm $(DIST)/tf2_mvm.apworld \
+	go run ./launcher/cmd/packagezip apworld apworld/tf2_mvm $(DIST)/tf2_mvm.apworld \
 		--container-version 7
 
 # --- The plugin ---
@@ -272,17 +484,36 @@ plugin:
 # --- The defender bots ---
 
 # Stages the MvM bot stack into deploy/bots/build/package: four plugins
-# compiled from patched source, two extensions from the pinned upstream
-# releases for both Linux and Windows. The image runs this in its own stage;
-# this target is for looking at what it produces.
+# compiled from patched source and the three extensions (CBaseNPC, Actions, REST
+# in Pawn) built against the pinned SourceMod commit. SourceMod 1.13 refuses an
+# extension built for 1.12, so there is nothing to download any more. Here the
+# extensions are built for Linux and need clang and a 32-bit toolchain; the
+# Windows ones come from a Windows runner (.github/workflows/extensions.yml),
+# and BOTS_EXTENSIONS_DIR names a tree holding those, or both platforms, to use
+# instead of building. The image runs the same script in a stage of its own.
 bots:
 	./deploy/bots/build.sh
 
-# The same, but compiling the two extensions here instead of downloading them.
-# Needs clang and a 32-bit toolchain. Linux only, and only worth it when a TF2
-# update breaks CBaseNPC and the fix has to be ours.
-bots-from-source:
-	BOTS_BUILD_EXTENSIONS=1 ./deploy/bots/build.sh
+# The staged tree has to carry the platform's extensions, or the launcher built
+# from it starts a server with no defender bots and says nothing. $(1) is the
+# suffix the platform's extensions have.
+define require_extensions
+	@for name in actions.ext.2.tf2 cbasenpc.ext.2.tf2 rip.ext dhooks.ext; do \
+		[ -s "deploy/bots/build/package/addons/sourcemod/extensions/$$name.$(1)" ] || { \
+			echo "missing $$name.$(1) in deploy/bots/build/package; set BOTS_EXTENSIONS_DIR to the bundle .github/workflows/extensions.yml built" >&2; \
+			exit 1; }; \
+	done
+endef
+
+# The defender bots' release gate: every wave of every mission the game volume
+# holds, with and without Bot Surge, fails on a bot that stays in spawn or
+# stands idle, and on a wave that leaves no record. Hours, and a 14 GB game, so
+# it is run by hand on a Docker host before tagging rather than in CI. Needs
+# WAVEPROBE_GAME_VOLUME and an image from `make build`. docs/waveprobe.md.
+bots-gate: bots
+	WAVEPROBE_GATE=1 WAVEPROBE_MODE=both WAVEPROBE_WAVES=0 \
+		WAVEPROBE_RCONPW="$${WAVEPROBE_RCONPW:-$$(openssl rand -hex 24)}" \
+		bash deploy/run-botprobe.sh
 
 # --- The launcher ---
 
@@ -293,11 +524,10 @@ bots-from-source:
 # versions.env stays the single source of truth and a hand `go build` (which
 # leaves them empty) is caught by assets.RequireVersions at runtime.
 #
-# The .smx is built by `make plugin`, which only runs on Linux (spcomp is a
-# Linux binary). CI runs `make plugin` before `make launcher` on its Linux
-# runner, so the real .smx is in place. On a non-Linux host the launcher still
-# builds with whatever .smx the embed dir holds (a placeholder for dev), because
-# the plugin compile is a separate concern.
+# The .smx is built as part of every launcher asset build. spcomp is a Linux
+# binary, so release launchers are built on Linux or WSL just like CI. A direct
+# `go build` may still use the placeholder for compile-only development, but a
+# launcher produced by this target must never silently package an old plugin.
 EMBED := launcher/internal/assets/embedded
 LAUNCHER_LDFLAGS := -X github.com/m-this/tf2-archipelago/launcher/internal/assets.SourcemodBranch=$(SOURCEMOD_BRANCH) \
 	-X github.com/m-this/tf2-archipelago/launcher/internal/assets.SourcemodVersion=$(SOURCEMOD_VERSION) \
@@ -305,33 +535,35 @@ LAUNCHER_LDFLAGS := -X github.com/m-this/tf2-archipelago/launcher/internal/asset
 	-X github.com/m-this/tf2-archipelago/launcher/internal/assets.MetamodVersion=$(MMSOURCE_VERSION) \
 	-X github.com/m-this/tf2-archipelago/launcher/internal/assets.RipextVersion=$(RIPEXT_VERSION) \
 	-X github.com/m-this/tf2-archipelago/launcher/internal/assets.ArchipelagoVersion=$(ARCHIPELAGO_VERSION) \
+	-X github.com/m-this/tf2-archipelago/launcher/internal/assets.SigsegvMVMVersion=$(SIGSEGV_MVM_VERSION) \
+	-X github.com/m-this/tf2-archipelago/launcher/internal/assets.SigsegvMVMSHA256=$(SIGSEGV_MVM_SHA256) \
+	-X github.com/m-this/tf2-archipelago/launcher/internal/assets.SigsegvMVMWindowsVersion=$(SIGSEGV_MVM_WINDOWS_VERSION) \
+	-X github.com/m-this/tf2-archipelago/launcher/internal/assets.SigsegvMVMWindowsSHA256=$(SIGSEGV_MVM_WINDOWS_SHA256) \
 	-X github.com/m-this/tf2-archipelago/launcher/internal/assets.DefenderbotsVersion=$(DEFENDERBOTS_VERSION) \
+	-X github.com/m-this/tf2-archipelago/launcher/internal/assets.TF2ServerVersion=$(TF2_SERVER_VERSION) \
 	-X github.com/m-this/tf2-archipelago/launcher/internal/assets.LauncherVersion=$(LAUNCHER_VERSION)
 
 # The bots go in as a Windows-only zip: the staged tree carries both platforms'
 # extensions, and the 20 MB of Linux .so has no business inside a .exe.
 # The apworld and the plugin, which are the same bytes on either platform.
-launcher-assets-common: bots apworld-package
+launcher-assets-common: plugin bots apworld-package
 	mkdir -p $(EMBED)
 	cp $(DIST)/tf2_mvm.apworld $(EMBED)/tf2_mvm.apworld
 	cp plugin/gamedata/tf2_archipelago.txt $(EMBED)/tf2_archipelago.txt
-	@if [ -f plugin/build/tf2_archipelago.smx ]; then \
-		cp plugin/build/tf2_archipelago.smx $(EMBED)/tf2_archipelago.smx; \
-		echo "copied plugin/build/tf2_archipelago.smx into the embed dir"; \
-	else \
-		echo "no plugin/build/tf2_archipelago.smx (run 'make plugin' on Linux, or CI will) — building with the placeholder"; \
-	fi
+	cp plugin/build/tf2_archipelago.smx $(EMBED)/tf2_archipelago.smx
 
 # One platform's binaries per build: SourceMod loads the .so or the .dll by
 # platform and ignores the other, so each launcher carries only its own.
 launcher-assets: launcher-assets-common
-	python3 deploy/package-zip.py tree deploy/bots/build/package \
+	$(call require_extensions,dll)
+	go run ./launcher/cmd/packagezip tree deploy/bots/build/package \
 		$(EMBED)/defender-bots-windows.zip --exclude-suffix .so
 	curl -fsSL -o $(EMBED)/sm-ripext-windows.zip \
 		"https://github.com/ErikMinekus/sm-ripext/releases/download/$(RIPEXT_VERSION)/sm-ripext-$(RIPEXT_VERSION)-windows.zip"
 
 launcher-assets-linux: launcher-assets-common
-	python3 deploy/package-zip.py tree deploy/bots/build/package \
+	$(call require_extensions,so)
+	go run ./launcher/cmd/packagezip tree deploy/bots/build/package \
 		$(EMBED)/defender-bots-linux.zip --exclude-suffix .dll
 	curl -fsSL -o $(EMBED)/sm-ripext-linux.zip \
 		"https://github.com/ErikMinekus/sm-ripext/releases/download/$(RIPEXT_VERSION)/sm-ripext-$(RIPEXT_VERSION)-linux.zip"
@@ -354,7 +586,7 @@ launcher-assets-linux: launcher-assets-common
 # tag against, so the resource and the release cannot disagree. The manifest's
 # assemblyIdentity gets the same number, which is why it is generated and not
 # committed with a version baked into it.
-launcher: launcher-assets
+launcher: launcher-assets web-build
 	mkdir -p $(DIST)
 	sed 's/version="0\.0\.0\.0"/version="$(RELEASE_VERSION).0"/' \
 		launcher/cmd/tf2ap/tf2ap.manifest > $(DIST)/tf2ap.manifest
@@ -372,13 +604,40 @@ launcher: launcher-assets
 		-o $(DIST)/tf2ap.exe ./launcher/cmd/tf2ap
 	go run ./launcher/cmd/pechecksum $(DIST)/tf2ap.exe
 
+# The Windows wave-probe bed: winbed.exe prepares and runs a server the way the
+# launcher does, waveprobe.exe drives it, tf2_waveprobe.smx is the plugin they
+# test with. m-this/sigsegv-mvm-win's CI plays the SigMod missions with them on
+# a Windows runner. Never shipped to players.
+winbed: launcher-assets
+	mkdir -p $(DIST)/winbed
+	GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -trimpath \
+		-ldflags="-s -w $(LAUNCHER_LDFLAGS)" \
+		-o $(DIST)/winbed/winbed.exe ./launcher/cmd/winbed
+	GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -trimpath \
+		-o $(DIST)/winbed/waveprobe.exe ./launcher/cmd/waveprobe
+	GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -trimpath \
+		-o $(DIST)/winbed/rcon.exe ./launcher/cmd/rcon
+	compiler=plugin/build/sourcemod-$(SOURCEMOD_VERSION)/addons/sourcemod/scripting/spcomp64; \
+	[ -x $$compiler ] || compiler=$${compiler%64}; \
+	$$compiler -E -o$(DIST)/winbed/tf2_waveprobe.smx plugin/scripting/tf2_waveprobe.sp
+
 # No window: walk is a Win32 binding, so the Linux build is the console flow
 # the compose stack already uses. Everything else is the same program.
-launcher-linux: launcher-assets-linux
+launcher-linux: launcher-assets-linux web-build
 	mkdir -p $(DIST)
 	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath \
 		-ldflags="-s -w $(LAUNCHER_LDFLAGS)" \
 		-o $(DIST)/tf2ap-linux-amd64 ./launcher/cmd/tf2ap
+
+# The Compose admin carries placeholder install assets because SRCDS lives in a
+# different image, but it still uses installer metadata when it reports and
+# validates server-mod setup. Build it through the same version flags as the
+# native launchers so those pins can never be empty in a shipped admin image.
+launcher-compose-admin:
+	mkdir -p $(dir $(COMPOSE_ADMIN_OUT))
+	CGO_ENABLED=0 go build -trimpath \
+		-ldflags="-s -w $(LAUNCHER_LDFLAGS)" \
+		-o $(COMPOSE_ADMIN_OUT) ./launcher/cmd/composeadmin
 
 # The captures in the README and the book. They are SVG of the Linux
 # launcher's own output, so a diff says what changed in one and no machine's
@@ -408,26 +667,6 @@ captures: launcher-linux
 	$(CAPTURE_ENV) ./dist/tf2ap-linux-amd64 -status \
 		| sed "s|$$HOME|/home/player|g" \
 		| ./docs/capture.sh 'tf2ap-linux-amd64 -status' docs/images/linux-status.svg
-
-# The launcher's window, photographed. walk is a Win32 binding, so the window
-# runs under Wine on a virtual display and ImageMagick takes the picture; see
-# docs/window-shot.sh for what that needs installed. A shot taken by hand on a
-# real Windows machine and dropped in docs/images/raw/ goes through the same
-# second half.
-window-captures: launcher
-	mkdir -p docs/images/raw
-	./docs/window-shot.sh $(DIST)/tf2ap.exe docs/images/raw/launcher-main.png 30 main
-	./docs/window-shot.sh $(DIST)/tf2ap.exe docs/images/raw/launcher-settings.png 30 dialog
-	$(MAKE) shadows
-
-# The drop shadow and the transparent margins, over whatever is in
-# docs/images/raw/. Separate from taking the picture, because a picture taken
-# on Windows needs this half and not the other one.
-shadows:
-	@for raw in docs/images/raw/*.png; do \
-		[ -e "$$raw" ] || { echo "nothing in docs/images/raw"; exit 0; }; \
-		$(SHADOW) "$$raw" "docs/images/$$(basename $$raw)"; \
-	done
 
 # --- Integration ---
 
@@ -490,7 +729,8 @@ compose-release:
 		echo '# https://github.com/m-this/tf2-archipelago'; \
 		$(COMPOSE_RELEASE) --profile selfhost --profile seed config --no-interpolate \
 			| awk '$$0 == "    build:" { skip = 1; next } skip { if (match($$0, /^      /)) next; skip = 0 } { print }' \
-			| sed 's|$(CURDIR)/|./|g'; \
+			| sed 's|$(CURDIR)/|./|g' \
+			| sed 's|$${TAILSCALE_VERSION:?[^}]*}|$(TAILSCALE_VERSION)|g'; \
 	} > $(DIST)/compose.yaml
 
 # A Go test keeps the plugin and the apworld manifest on one version. The tag is
@@ -508,7 +748,14 @@ version-check:
 # Everything CI runs, cheapest failure first. Green here means green there.
 # go-version-check first: a builder on the wrong Go makes lint fail in a way
 # that reads as a linter bug rather than a stale pin.
-check: go-version-check fmt-check lint fix-check compile test vuln apworld-lint plugin apworld-test docs-build compose-release integration
+# Set on the gate, not on `test`, and the difference matters: CI runs `make
+# test` on its own, so setting it there turned a skip into a failure on a
+# machine that has no toolchain and no way to build one in reasonable time. The
+# target-specific variable reaches test through the prerequisite, which is the
+# whole point: the gate refuses to skip a differential test, and a developer
+# who has not run `make toolchain` gets a skip that names what is missing.
+check: REQUIRE_SPSHELL := TF2AP_REQUIRE_SPSHELL=1
+check: go-version-check fmt-check proto-lint lint fix-check compile web-check toolchain test vuln apworld-lint plugin apworld-test docs-build compose-release integration
 
 # The go directive owns the version. Two pins cannot read it, so this says when
 # they have drifted rather than leaving it to whoever hits the failure.

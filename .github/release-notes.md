@@ -32,13 +32,13 @@ chmod +x tf2ap-linux-amd64
 
 ## Docker
 
-Download **`compose.yaml`** and **`.env.example`**:
+Download **`compose.yaml`** and **`env.example`**:
 
 ```sh
 mkdir mann-vs-archipelago && cd mann-vs-archipelago
 base=https://github.com/m-this/tf2-archipelago/releases/latest/download
 curl -fsSLO "$base/compose.yaml"
-curl -fsSL -o .env "$base/.env.example"
+curl -fsSL -o .env "$base/env.example"
 ```
 
 Set `SRCDS_RCONPW` in `.env`, then:

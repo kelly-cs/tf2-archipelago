@@ -10,6 +10,7 @@ package state
 import (
 	"errors"
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
 	"slices"
@@ -105,48 +106,60 @@ func (s *Store) Stats() Stats {
 	return stats
 }
 
-// BindSeed ties the state to one multiworld. It reports the file it set the
-// previous run aside in, empty when it kept what it held.
+// Rebind is what BindSeed did on disk. Both empty means it kept what it held.
+type Rebind struct {
+	// Archived is the file the previous run was set aside in.
+	Archived string
+	// Restored is the archive the seed's own run was read back from.
+	Restored string
+}
+
+// BindSeed ties the state to one multiworld.
 //
 // A different seed drops the old run rather than replay ids that now mean
-// something else, and keeps a copy of the file it dropped. Learning the seed for
-// the first time keeps what is held: the bridge answers the plugin before it has
-// ever reached Archipelago.
-func (s *Store) BindSeed(seed string) (string, error) {
+// something else, and keeps a copy of the file it dropped. If that seed was
+// played here before, its newest archive is read back rather than starting it
+// empty, and the archive is left where it was. Learning the seed for the first
+// time keeps what is held: the bridge answers the plugin before it has ever
+// reached Archipelago.
+func (s *Store) BindSeed(seed string) (Rebind, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.data.Seed == seed {
-		return "", nil
+		return Rebind{}, nil
 	}
 	if s.data.Seed == "" {
 		s.data.Seed = seed
 		if err := s.persist(); err != nil {
 			s.data.Seed = ""
-			return "", err
+			return Rebind{}, err
 		}
-		return "", nil
+		return Rebind{}, nil
 	}
 
+	next, restored := latestArchive(s.path, seed)
+	if restored == "" {
+		next = snapshot{FormatVersion: FormatVersion, Seed: seed}
+	}
 	archive, err := archiveSnapshot(s.path, s.data.Seed)
 	if err != nil {
-		return "", fmt.Errorf("cannot set the previous run aside: %w", err)
+		return Rebind{}, fmt.Errorf("cannot set the previous run aside: %w", err)
 	}
 	previous, previousGrants := s.data, s.grants
-	s.data = snapshot{FormatVersion: FormatVersion, Seed: seed}
-	s.grants = nil
+	s.data, s.grants = next, grantsFrom(next.Items)
 	if err := s.persist(); err != nil {
 		// The run is still whole in the archive and in memory. Putting the file
 		// back is what keeps the two agreeing.
 		s.data, s.grants = previous, previousGrants
 		if renamed := os.Rename(archive, s.path); renamed != nil {
-			return archive, fmt.Errorf("%w, and the run stayed in %s: %w", err, archive, renamed)
+			return Rebind{Archived: archive}, fmt.Errorf("%w, and the run stayed in %s: %w", err, archive, renamed)
 		}
-		return "", err
+		return Rebind{}, err
 	}
-	// The sequence just went back to zero. A plugin blocked on a long poll has
-	// to hear that now rather than at the poll timeout.
+	// The sequence just moved under the plugin. A plugin blocked on a long poll
+	// has to hear that now rather than at the poll timeout.
 	s.broadcast()
-	return archive, nil
+	return Rebind{Archived: archive, Restored: restored}, nil
 }
 
 // AddCheck records a location the plugin reported and reports whether it was
@@ -279,10 +292,10 @@ func (s *Store) ApplyItems(index int, itemIDs []int64) error {
 //
 // Sequences count items, not grants, so this cannot index the slice.
 //
-// State grants are sent whenever they are asked for: applying one twice is the
-// same as applying it once. An effect is held back once acknowledged, because
-// the plugin asking from a lower sequence means it restarted, not that the
-// effect should happen again.
+// State grants are sent whenever they are asked for. The plugin uses their
+// sequence to avoid counting a weapon buff twice. An effect is held back once
+// acknowledged: the plugin asking from a lower sequence means it restarted,
+// not that the effect should happen again.
 func (s *Store) GrantsSince(seq int) ([]Grant, int) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -328,7 +341,7 @@ func (s *Store) Ack(seq int) error {
 func (s *Store) Unlocks() Unlocks {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return unlocksFrom(s.grants, s.data.AckedSeq)
+	return unlocksFrom(s.grants, s.data.AckedSeq, len(s.data.Items))
 }
 
 // GoalSent reports whether CLIENT_GOAL has already gone out for this run.
@@ -365,6 +378,12 @@ worse than none at all.
 
 Called on every wave the plugin reports, which is often, so it writes only when
 the record actually moves.
+
+Two records, and they answer different questions. Resume is where the team is
+now, which is what a server coming back from a crash asks. Reached is the best
+each mission has ever seen, which is what the Resume button on the mission list
+offers: a team who left Coal Town at wave three to look at Decoy should find
+Coal Town still at wave three.
 */
 func (s *Store) NoteProgress(popFile string, wave int) error {
 	if popFile == "" || wave <= 0 {
@@ -373,24 +392,78 @@ func (s *Store) NoteProgress(popFile string, wave int) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	held := s.data.Resume
-	if held.PopFile == popFile && wave <= held.Wave {
+	moved := false
+	if held := s.data.Resume; held.PopFile != popFile || wave > held.Wave {
+		s.data.Resume = Resume{PopFile: popFile, Wave: wave}
+		moved = true
+	}
+	if wave > s.data.Reached[popFile] {
+		if s.data.Reached == nil {
+			s.data.Reached = map[string]int{}
+		}
+		s.data.Reached[popFile] = wave
+		moved = true
+	}
+	if !moved {
 		return nil
 	}
-	s.data.Resume = Resume{PopFile: popFile, Wave: wave}
 	return s.persist()
+}
+
+// AddTally adds an increment the plugin reported to one running total and
+// returns the new total. A zero or negative increment changes nothing.
+func (s *Store) AddTally(kind string, delta int) (int, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if delta <= 0 {
+		return s.data.Tallies[kind], nil
+	}
+	if s.data.Tallies == nil {
+		s.data.Tallies = map[string]int{}
+	}
+	s.data.Tallies[kind] += delta
+	if err := s.persist(); err != nil {
+		s.data.Tallies[kind] -= delta
+		return s.data.Tallies[kind], err
+	}
+	return s.data.Tallies[kind], nil
+}
+
+// Tallies is every running total, copied so a caller cannot write the record
+// while holding no lock.
+func (s *Store) Tallies() map[string]int {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	copied := make(map[string]int, len(s.data.Tallies))
+	maps.Copy(copied, s.data.Tallies)
+	return copied
+}
+
+// Reached is the highest wave the team has cleared in each mission. The copy is
+// so a caller cannot write the record while holding no lock.
+func (s *Store) Reached() map[string]int {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return maps.Clone(s.data.Reached)
 }
 
 // ClearProgress forgets the record, for a mission that is finished. Without it
 // the next start drops the team into the end of a mission they already beat.
-func (s *Store) ClearProgress() error {
+func (s *Store) ClearProgress(popFile string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	if s.data.Resume == (Resume{}) {
+	_, reached := s.data.Reached[popFile]
+	if s.data.Resume == (Resume{}) && !reached {
 		return nil
 	}
 	s.data.Resume = Resume{}
+	// The high-water mark goes too, for this mission only. Offering to resume
+	// a mission the team has beaten would drop them at the end of it.
+	delete(s.data.Reached, popFile)
+	if len(s.data.Reached) == 0 {
+		s.data.Reached = nil
+	}
 	return s.persist()
 }
 

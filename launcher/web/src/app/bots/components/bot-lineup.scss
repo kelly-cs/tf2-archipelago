@@ -1,0 +1,195 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+}
+
+h3 {
+  font-size: 17px;
+}
+
+.lead {
+  margin: 0;
+  color: var(--text-dim);
+}
+
+.not-running {
+  margin: 0;
+  color: var(--state-warn);
+}
+
+/* The three team controls in one strip: whether RED is filled, to how many,
+   and whether the bots say what they buy. */
+.controls {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--gap-sm);
+}
+
+.tick {
+  display: flex;
+  gap: var(--gap-sm);
+  align-items: flex-start;
+  padding: 10px 12px;
+  background: var(--surface-inset);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.tick input {
+  margin-top: 3px;
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+}
+
+.tick strong {
+  display: block;
+  color: var(--text);
+}
+
+.tick small {
+  display: block;
+  color: var(--text-faint);
+  font-size: var(--text-xs);
+}
+
+.tick.off strong {
+  color: var(--text-dim);
+}
+
+.size {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-sm);
+  flex-wrap: wrap;
+  padding: 10px 12px;
+  background: var(--surface-inset);
+  border-radius: var(--radius);
+  color: var(--text-dim);
+}
+
+.size label {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.size input {
+  width: 64px;
+  font-family: var(--font-mono);
+  font-size: var(--text-md);
+  background: var(--surface-void);
+  border-color: var(--line);
+}
+
+.size span {
+  font-size: var(--text-xs);
+  color: var(--text-faint);
+}
+
+/* Six seats as a grid of cards: a team is looked at whole, not read down. */
+.seats {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: var(--gap-sm);
+}
+
+.seat {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-areas:
+    'number label'
+    'number class'
+    'number carries'
+    'number called';
+  gap: 6px 10px;
+  align-items: center;
+  padding: 10px 12px;
+  background: var(--surface-inset);
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+}
+
+.seat.named {
+  border-color: var(--line);
+}
+
+.number {
+  grid-area: number;
+  align-self: start;
+  font-family: var(--font-mono);
+  font-size: var(--text-xl);
+  color: var(--text-faint);
+}
+
+.seat label {
+  grid-area: label;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+
+.seat select {
+  grid-area: class;
+}
+
+.seat .carries {
+  grid-area: carries;
+  font-size: var(--text-sm);
+}
+
+.seat .called {
+  grid-area: called;
+  font-size: var(--text-sm);
+}
+
+select,
+input {
+  min-width: 0;
+  background: var(--surface-raised);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: var(--text-lg);
+  padding: 8px 10px;
+}
+
+select:disabled {
+  color: var(--text-mute);
+}
+
+/* Kept at a fixed height so the panel does not jump every time a seat changes. */
+.feedback {
+  min-height: 20px;
+  color: var(--state-good);
+}
+
+.saved {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-sm);
+  padding-top: var(--gap);
+  border-top: 1px solid var(--line-soft);
+}
+
+.bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--gap-sm);
+}
+
+.bar label {
+  font-weight: 600;
+  color: var(--text-dim);
+}
+
+.bar select {
+  flex: 1;
+  min-width: 160px;
+}
+
+.bar input {
+  flex: 1;
+  min-width: 160px;
+}

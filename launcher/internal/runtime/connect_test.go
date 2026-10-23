@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/m-this/tf2-archipelago/launcher/internal/lanaddr"
 	"github.com/m-this/tf2-archipelago/launcher/internal/settings"
 )
 
@@ -66,6 +67,15 @@ func TestConnectLinesSayWhatEachReachNeeds(t *testing.T) {
 	s.SrcdsReach = settings.ReachPort
 	if joined := strings.Join(ConnectLines(s), "\n"); !strings.Contains(joined, "27015 forwarded") {
 		t.Errorf("nothing said about forwarding the port:\n%s", joined)
+	}
+}
+
+func TestTailscaleFastDLDoesNotChangeGameConnectLines(t *testing.T) {
+	s := settings.Settings{SrcdsPort: 27015, SrcdsReach: settings.ReachSteam}
+	want := ConnectLines(s)
+	s.TailscaleFastDL = true
+	if got := ConnectLines(s); !slices.Equal(got, want) {
+		t.Fatalf("connect lines changed with Tailscale FastDL: got %q, want %q", got, want)
 	}
 }
 
@@ -155,6 +165,31 @@ func TestSourceModWasUpdated(t *testing.T) {
 	}
 }
 
+// Steam tells a running server that Valve shipped a build. Only an update and
+// a restart fix it, so the launcher shows it rather than leaving it in the log.
+func TestGameUpdateRequired(t *testing.T) {
+	for _, line := range []string{
+		"Your server needs to be restarted in order to receive the latest update.",
+		"\x1b[0;33mYour server needs to be restarted in order to receive the latest update.\x1b[0m",
+		"L 10/02/2026 - 21:04:11: Your server needs to be restarted in order to receive the latest update.",
+	} {
+		if !GameUpdateRequired(line) {
+			t.Errorf("missed Steam asking for an update: %q", line)
+		}
+	}
+	for _, line := range []string{
+		"MasterRequestRestart",
+		"Your server is out of date and will be shutdown during hibernation or changelevel, whichever comes first.",
+		"L 10/02/2026 - 21:04:11: \"player<2><[U:1:1]><Red>\" say \"Your server needs to be restarted in order to receive the latest update\"",
+		"player : Your server needs to be restarted in order to receive the latest update",
+		"",
+	} {
+		if GameUpdateRequired(line) {
+			t.Errorf("flagged an update for an ordinary line: %q", line)
+		}
+	}
+}
+
 // Over Steam the relayed address is the server's address, so the link goes
 // there rather than to an address only this network knows. It used to join a
 // local address whatever the reach was, which worked on the machine that ran
@@ -198,6 +233,14 @@ func TestItemServerLine(t *testing.T) {
 	if got := ItemServerLine(other); !strings.Contains(got, "Failed to load item schema") {
 		t.Errorf("a schema failure said %q", got)
 	}
+	colored := "\x1b[0m\x1b[38;2;255;255;255mApplying new item schema, version 538B6CDE.\x1b[0m"
+	if got, want := ItemServerLine(colored), "item server: Applying new item schema, version 538B6CDE."; got != want {
+		t.Errorf("a colored schema update said %q, want %q", got, want)
+	}
+	coloredFailure := "\x1b[31mFailed to load item schema\x1b[0m"
+	if got, want := ItemServerLine(coloredFailure), "item server: Failed to load item schema"; got != want {
+		t.Errorf("a colored schema failure said %q, want %q", got, want)
+	}
 	for _, line := range []string{
 		"Server is hibernating",
 		"L 08/26/2026 - 07:58:45: [tf2_archipelago.smx] anything",
@@ -219,7 +262,7 @@ retries", a stall at two bars, while the LAN tab of the server browser found
 the same server first try.
 */
 func TestTheRoutableAddressComesFirst(t *testing.T) {
-	preferred := preferredOutboundAddress()
+	preferred := lanaddr.Preferred()
 	if preferred == "" {
 		t.Skip("no route out of this machine, so there is no preference to check")
 	}
@@ -238,7 +281,36 @@ func TestTheRoutableAddressComesFirst(t *testing.T) {
 // The dial must not actually talk to anything: 192.0.2.1 is the documentation
 // range and nothing routes there, which is the point.
 func TestThePreferredAddressIsNotLoopback(t *testing.T) {
-	if got := preferredOutboundAddress(); got != "" && strings.HasPrefix(got, "127.") {
+	if got := lanaddr.Preferred(); got != "" && strings.HasPrefix(got, "127.") {
 		t.Errorf("preferred address = %q, which is loopback", got)
+	}
+}
+
+/*
+An address a client is told to look at is not the same question as whether this
+machine answers, and the settings that hold them are separate.
+
+A server reached over a forwarded port needs both: the launcher writes the
+address it prints in the connect lines, which is this machine on the local
+network, and a friend outside cannot reach that. Filling in the public address
+used to turn off the server it was addressing, so the fix stopped the file
+server and pointed the players at nothing.
+*/
+func TestTheDownloadURLDoesNotDecideWhetherWeServe(t *testing.T) {
+	for _, c := range []struct {
+		name string
+		s    settings.Settings
+		want string
+	}{
+		{"default", settings.Settings{FastDLPort: 27080}, ":27080"},
+		{"public address named", settings.Settings{FastDLPort: 27080, SrcdsDownloadURL: "http://198.51.100.7:27080/tf"}, ":27080"},
+		{"somebody else's host", settings.Settings{FastDLPort: 27080, SrcdsDownloadURL: "https://example.test/tf"}, ":27080"},
+		{"Tailscale Funnel", settings.Settings{FastDLPort: 27080, TailscaleFastDL: true}, "127.0.0.1:27080"},
+		{"turned off", settings.Settings{FastDLPort: 0, SrcdsDownloadURL: "https://example.test/tf"}, ""},
+		{"turned off, nothing named", settings.Settings{FastDLPort: 0}, ""},
+	} {
+		if got := FastDLListen(c.s); got != c.want {
+			t.Errorf("%s: FastDLListen = %q, want %q", c.name, got, c.want)
+		}
 	}
 }

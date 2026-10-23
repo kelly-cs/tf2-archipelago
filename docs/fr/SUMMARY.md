@@ -4,7 +4,7 @@
 
 ## Pour commencer
 
-* [Archipelago pour les joueurs MvM](archipelago-for-mvm-players.md)
+* [Les mots d'Archipelago, pour les joueurs MvM](archipelago-for-mvm-players.md)
 * [Ce que le randomizer change](what-the-randomizer-changes.md)
 
 ## Installer le serveur
@@ -13,27 +13,27 @@
 * [Installer sur Windows](setup/install-windows.md)
 * [Installer sur Linux](setup/install-linux.md)
 * [Installer avec Docker](setup/install.md)
-* [La forme de la partie](setup/shape-of-the-run.md)
+* [Le lanceur, onglet par onglet](setup/the-launcher.md)
+
+## La session Archipelago
+
 * [Créer la session](setup/create-the-session.md)
-* [Inviter vos amis](setup/invite-your-friends.md)
+* [Les options de la partie](setup/shape-of-the-run.md)
+* [Démarrer une nouvelle partie](operate/start-a-new-run.md)
 
 ## Jouer
 
+* [Inviter vos amis](setup/invite-your-friends.md)
 * [La première session](play/first-session.md)
+* [Le tracker de campagne](play/tracker.md)
 * [Commandes de chat](play/chat-commands.md)
 * [Les bots de votre équipe](play/defender-bots.md)
+* [Téléchargement rapide des cartes avec Tailscale](setup/tailscale-fastdl.md)
 
-## Faire tourner
+## Quand quelque chose ne va pas
 
 * [Dépannage](operate/troubleshooting.md)
-* [Démarrer une nouvelle partie](operate/start-a-new-run.md)
 
 ## Référence
 
-* [Cahier des charges](spec.md)
-* [Le dépôt](repository.md)
-* [ADR 0001 : Go possède les données de jeu](adr/0001-go-owns-the-game-data.md)
-* [ADR 0002 : Plugin côté serveur avec un bridge Go](adr/0002-server-side-plugin-with-a-go-bridge.md)
 * [Glossaire](glossary.md)
-* [Politique de signature de code](code-signing.md)
-* [Marques et illustrations](licences.md)

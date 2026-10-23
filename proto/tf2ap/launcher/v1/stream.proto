@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package tf2ap.launcher.v1;
+
+import "tf2ap/launcher/v1/launcher.proto";
+
+option go_package = "github.com/m-this/tf2-archipelago/launcher/internal/gen/tf2ap/launcher/v1;launcherv1";
+
+// StreamMessage is one frame of the live stream at /ws. There is no service
+// here: the stream is a WebSocket because the launcher pushes and the browser
+// only listens, and a Connect server stream would tie that to one long request.
+//
+// The first frame is always a whole snapshot, logs and all, taken after the
+// subscription started so no line falls between the two. After it, a line
+// arrives on its own and a snapshot arrives whenever anything else moved. A
+// snapshot after the first carries no logs: the lines are already there.
+message StreamMessage {
+  oneof body {
+    Snapshot snapshot = 1;
+    LogLine line = 2;
+  }
+}

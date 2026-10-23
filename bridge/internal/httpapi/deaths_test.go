@@ -27,7 +27,7 @@ func newTestServerWithDeaths(t *testing.T) (*deathlink.Feed, http.Handler) {
 	client := apclient.New(apclient.Options{
 		SlotName: "tf2", Store: store, Chat: messages, Deaths: deaths, Logger: logger,
 	})
-	return deaths, New(store, client, messages, deaths, time.Second, logger).Handler()
+	return deaths, New(store, client, messages, deaths, time.Second, false, logger).Handler()
 }
 
 func TestDeathNeedsAMultiworld(t *testing.T) {

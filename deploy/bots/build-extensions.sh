@@ -1,110 +1,202 @@
 #!/bin/sh
-# Build CBaseNPC and Actions from source, for Linux.
+# Build CBaseNPC, Actions, REST in Pawn and a patched DHooks from source into
+# $BOTS_OUT.
 #
-# Not on the normal path: build.sh downloads the pinned releases instead,
-# because nothing we change lives in these two and a C++ build costs several
-# CPU-minutes. Run this (BOTS_BUILD_EXTENSIONS=1 ./deploy/bots/build.sh) when a
-# TF2 update moves a signature CBaseNPC detours and the fix has to be ours
-# before upstream ships it. Then put the fix in deploy/patches/ and it applies
-# here.
+# SourceMod 1.13 raised the extension API to 9 and refuses every extension built
+# for 8, so none of the three can be taken from its release any more: they are
+# rebuilt against the SourceMod commit versions.env pins. A release of any of
+# them is only usable again once it is built against 1.13 itself.
 #
-# Linux only. The Windows .dll needs MSVC, so on Windows the pinned upstream
-# release is the only option.
+# The Docker image takes this path so it carries the patches in
+# deploy/patches/cbasenpc. `make bots-from-source` takes it on a laptop, which
+# is how a TF2 update that moves a signature CBaseNPC detours gets a fix of ours
+# before upstream ships one.
 #
-# Needs git, curl, python3-pip, clang and a 32-bit toolchain (gcc-multilib
-# g++-multilib). TF2's dedicated server is 32-bit, and CBaseNPC has no 64-bit
-# build at all.
+# Every source is fetched by the commit versions.env names, never by a branch,
+# so one commit of this repository builds one binary and a cache keyed on these
+# inputs cannot hold a stale one. Submodules follow from their parent's commit.
+#
+# On Linux it needs git, python3, clang and a 32-bit toolchain (gcc-multilib
+# g++-multilib). On a Windows runner it needs git, Python and MSVC's x86
+# environment already set up, and writes the .dll files. TF2's dedicated server
+# is 32-bit, and CBaseNPC has no 64-bit build at all.
 set -eu
 
 root=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
 . "$root/deploy/env/versions.env"
+
+case $(uname -s) in
+MINGW* | MSYS* | CYGWIN*) windows=1 ;;
+*) windows=0 ;;
+esac
+python=${PYTHON:-python3}
+[ "$windows" = 1 ] && python=${PYTHON:-python}
 
 work=${BOTS_WORK:-$root/deploy/bots/build}
 out=${BOTS_OUT:-$work/package}
 patches="$root/deploy/patches"
 src="$work/src"
 
-# CBaseNPC registers its safetyhook submodule over SSH, which no build host has
-# a key for.
-git config --global url."https://github.com/".insteadOf "git@github.com:"
-git config --global advice.detachedHead false
+# $1 repository, $2 commit, $3 directory under $src, then the directories a
+# sparse checkout keeps, if any.
+#
+# A checkout already at the commit is reused and reset, so the patches always
+# apply to upstream's tree and never to the previous run's.
+checkout() {
+	repo=$1 commit=$2 dir="$src/$3"
+	shift 3
+	if [ "$(git -C "$dir" rev-parse HEAD 2>/dev/null)" != "$commit" ]; then
+		echo "fetching $repo@$commit"
+		rm -rf "$dir"
+		git init --quiet "$dir"
+		git -C "$dir" remote add origin "https://github.com/$repo"
+		filter=
+		if [ $# -gt 0 ]; then
+			git -C "$dir" sparse-checkout set --cone "$@"
+			filter=--filter=blob:none
+		fi
+		git -C "$dir" fetch --quiet --depth 1 $filter origin "$commit"
+		git -C "$dir" checkout --quiet --detach FETCH_HEAD
+	fi
+	git -C "$dir" reset --quiet --hard
+	git -C "$dir" clean --quiet -fdx
 
-submodules() {
-	git -C "$src/$1" submodule update --init --recursive --depth 1 --quiet
+	head=$(git -C "$dir" rev-parse HEAD)
+	[ "$head" = "$commit" ] || {
+		echo "$repo: checked out $head, versions.env pins $commit" >&2
+		exit 1
+	}
 }
+
+# $1 repository, $2 tag, $3 commit. The release download and the include
+# checkout in build.sh go by the tag, this build by the commit, so the two have
+# to name the same source.
+tag_is() {
+	ref=$(git ls-remote --exit-code "https://github.com/$1" "refs/tags/$2")
+	tagged=${ref%%"	"*}
+	[ "$tagged" = "$3" ] || {
+		echo "$1: tag $2 is $tagged, versions.env pins $3" >&2
+		exit 1
+	}
+}
+
+# CBaseNPC registers safetyhook over SSH, which no build host has a key for.
+submodules() {
+	dir="$src/$1"
+	git -C "$dir" -c url."https://github.com/".insteadOf=git@github.com: \
+		submodule update --quiet --init --recursive --depth 1
+	status=$(git -C "$dir" submodule status --recursive)
+	unpinned=$(printf '%s\n' "$status" | grep -v '^ ' || true)
+	[ -z "$unpinned" ] || {
+		echo "$1: submodules not at the commits it records:" >&2
+		echo "$unpinned" >&2
+		exit 1
+	}
+}
+
+apply_patches() {
+	for patch in "$patches/$1"/*.patch; do
+		[ -e "$patch" ] || return 0
+		echo "applying $1/$(basename "$patch")"
+		git -C "$src/$1" apply --whitespace=nowarn "$patch"
+	done
+}
+
+tag_is TF2-DMB/CBaseNPC "$CBASENPC_VERSION" "$CBASENPC_COMMIT"
+tag_is Vinillia/actions.ext "$ACTIONS_VERSION" "$ACTIONS_COMMIT"
+tag_is ErikMinekus/sm-ripext "$RIPEXT_VERSION" "$RIPEXT_COMMIT"
 
 # The SDK is 633 MB checked out whole and the build reads four directories of
 # it. game/server is one of them: enginecallback.h lives there.
-if [ ! -d "$src/hl2sdk-tf2" ]; then
-	echo "fetching alliedmodders/hl2sdk@$HL2SDK_BRANCH"
-	git clone --quiet --depth 1 --branch "$HL2SDK_BRANCH" --filter=blob:none --sparse \
-		https://github.com/alliedmodders/hl2sdk "$src/hl2sdk-tf2"
-	git -C "$src/hl2sdk-tf2" sparse-checkout set --cone public game common lib/public/linux
+if [ "$windows" = 1 ]; then
+	sdk_libs=lib/public
+else
+	sdk_libs=lib/public/linux
 fi
+checkout alliedmodders/hl2sdk "$HL2SDK_COMMIT" hl2sdk-tf2 public game common $sdk_libs
+checkout alliedmodders/sourcemod "$SOURCEMOD_SRC_COMMIT" sourcemod
+checkout alliedmodders/metamod-source "$METAMOD_SRC_COMMIT" metamod
+checkout alliedmodders/ambuild "$AMBUILD_COMMIT" ambuild
+checkout TF2-DMB/CBaseNPC "$CBASENPC_COMMIT" cbasenpc
+checkout Vinillia/actions.ext "$ACTIONS_COMMIT" actions
+checkout ErikMinekus/sm-ripext "$RIPEXT_COMMIT" ripext
 
-if [ ! -d "$src/sourcemod" ]; then
-	echo "fetching alliedmodders/sourcemod@$SOURCEMOD_SRC_BRANCH"
-	git clone --quiet --depth 1 --branch "$SOURCEMOD_SRC_BRANCH" \
-		https://github.com/alliedmodders/sourcemod "$src/sourcemod"
-	submodules sourcemod
-fi
-
-if [ ! -d "$src/metamod" ]; then
-	echo "fetching alliedmodders/metamod-source@$METAMOD_SRC_BRANCH"
-	git clone --quiet --depth 1 --branch "$METAMOD_SRC_BRANCH" \
-		https://github.com/alliedmodders/metamod-source "$src/metamod"
-fi
-
-# build.sh already cloned both of these for their includes; only the submodules
-# and the patches are missing.
+submodules sourcemod
 submodules cbasenpc
 submodules actions
-# Already applied is not a failure: the checkout survives between runs, so a
-# second run finds its own work. See apply_patches in build.sh.
-for patch in "$patches/actions"/*.patch; do
-	[ -e "$patch" ] || break
-	git -C "$src/actions" apply --reverse --check "$patch" 2>/dev/null && continue
-	echo "applying $(basename "$patch")"
-	git -C "$src/actions" apply --whitespace=nowarn "$patch"
-done
 
-# The tf2 manifest points the linker at lib/linux; the 32-bit libraries it
-# actually links against live in lib/public/linux. CBaseNPC resolves the real
-# path itself, Actions does not.
-ln -sfn public/linux "$src/hl2sdk-tf2/lib/linux"
+apply_patches sourcemod
+apply_patches cbasenpc
+apply_patches actions
+apply_patches ripext
 
-if [ ! -d "$work/ambuild" ]; then
-	# AMBuild is not on PyPI under this name; the package comes from the repo.
-	git clone --quiet --depth 1 https://github.com/alliedmodders/ambuild "$work/ambuild"
-	pip install --quiet --break-system-packages "$work/ambuild"
+# The tf2 manifest points the linker at lib/linux (lib/public on Windows); the
+# 32-bit libraries it actually links against live in lib/public/linux
+# (lib/public/x86). CBaseNPC resolves the real path itself, Actions does not.
+if [ "$windows" = 1 ]; then
+	cp "$src"/hl2sdk-tf2/lib/public/x86/*.lib "$src/hl2sdk-tf2/lib/public/"
+else
+	ln -sfn public/linux "$src/hl2sdk-tf2/lib/linux"
+fi
+
+# AMBuild runs from its checkout rather than a pip install: nothing touches
+# the host's Python and nothing unpinned comes from PyPI.
+if [ "$windows" = 1 ]; then
+	export PYTHONPATH=$(cygpath -w "$src/ambuild")
+else
+	export PYTHONPATH="$src/ambuild" PATH="$src/ambuild/scripts:$PATH"
 fi
 
 # clang, not gcc: Actions declares a __cdecl function-pointer alias in a
 # template that gcc rejects outright.
-export CC=clang CXX=clang++
+[ "$windows" = 1 ] || export CC=clang CXX=clang++
 
-# $1 directory, $2 extra configure arguments
+# $1 directory under $src, then extra configure arguments.
 build() {
-	echo "building $1"
-	rm -rf "$src/$1/build"
-	mkdir -p "$src/$1/build"
-	# shellcheck disable=SC2086 # $2 is a deliberate argument list.
-	(cd "$src/$1/build" && python3 ../configure.py \
-		--hl2sdk-root "$src" \
-		--mms-path "$src/metamod" \
-		--sm-path "$src/sourcemod" \
-		--sdks tf2 --targets x86 $2 >/dev/null)
-	(cd "$src/$1/build" && ambuild >/dev/null)
+	name=$1
+	shift
+	build="$src/$name/build"
+	echo "building $name"
+	mkdir "$build"
+	# Both extensions print __DATE__. Dated by their commit, a rebuild of the
+	# same pins on another day is the same binary.
+	SOURCE_DATE_EPOCH=$(git -C "$src/$name" log -1 --format=%ct)
+	export SOURCE_DATE_EPOCH
+	# SourceMod is the tree the others are built against, and has no --sm-path.
+	sm_path="--sm-path $src/sourcemod"
+	[ "$name" = sourcemod ] && sm_path=
+	# One && chain: set -e does not apply inside the left side of an ||.
+	(cd "$build" &&
+		"$python" ../configure.py --hl2sdk-root "$src" --mms-path "$src/metamod" \
+			$sm_path --sdks tf2 --targets x86 "$@" &&
+		"$python" -c 'from ambuild2.run import cli_run; cli_run()') >"$src/$name.log" 2>&1 || {
+		cat "$src/$name.log" >&2
+		exit 1
+	}
 }
 
-# --extension-only because the bundled example plugin does not compile with a
-# 1.12 compiler and nothing here ships it. Configure wants a spcomp regardless.
-sm="$work/spcomp/addons/sourcemod/scripting"
-build cbasenpc "--extension-only --spcomp-path $sm/spcomp64 --sm-api-path $sm/include"
-build actions ""
+# --extension-only: the bundled example plugin is not shipped, and its plugin
+# build needs a compiler this one does not.
+build cbasenpc --extension-only
+build actions
+build ripext --enable-optimize
+# SourceMod 1.13.0-git7477 leaves DHooksInfo::int64_address unset on a virtual
+# hook, so a callback's Address `this` is sometimes an int64 passed by reference
+# (a stack address in the plugin) and sometimes a cell. Patched and built here
+# until a drop carries the fix; patch 0002 makes the build produce only dhooks.
+build sourcemod --enable-optimize --no-mysql --disable-auto-versioning
 
-cp "$src/cbasenpc/build/package/addons/sourcemod/extensions/cbasenpc.ext.2.tf2.so" \
-	"$src/actions/build/package/addons/sourcemod/extensions/actions.ext.2.tf2.so" \
+if [ "$windows" = 1 ]; then
+	suffix=dll
+else
+	suffix=so
+fi
+mkdir -p "$out/addons/sourcemod/extensions" "$out/addons/sourcemod/gamedata"
+cp "$src/cbasenpc/build/package/addons/sourcemod/extensions/cbasenpc.ext.2.tf2.$suffix" \
+	"$src/actions/build/package/addons/sourcemod/extensions/actions.ext.2.tf2.$suffix" \
+	"$src/ripext/build/package/addons/sourcemod/extensions/rip.ext.$suffix" \
+	"$out/addons/sourcemod/extensions/"
+cp "$(find "$src/sourcemod/build/extensions/dhooks" -name "dhooks.ext.$suffix" | head -n 1)" \
 	"$out/addons/sourcemod/extensions/"
 cp "$src/cbasenpc/build/package/addons/sourcemod/gamedata/cbasenpc.txt" \
 	"$src/actions/build/package/addons/sourcemod/gamedata/actions.games.txt" \

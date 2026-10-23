@@ -12,7 +12,7 @@ import pkgutil
 from dataclasses import dataclass
 
 # A version mismatch is a hard stop: half-reading a moved table makes a seed wrong undetectably.
-FORMAT_VERSION = 4
+FORMAT_VERSION = 7
 
 
 class DataFormatError(Exception):
@@ -34,12 +34,20 @@ def _load(name: str) -> dict:
 
 @dataclass(frozen=True, slots=True)
 class Location:
-    """``kind`` is the objective the plugin reports for this check."""
+    """``kind`` is the objective the plugin reports for this check.
+
+    ``cache`` counts from 1 on a victory cache, an extra check the mission
+    clear pays when the option is on, and is 0 on every other check.
+    ``index`` counts from 1 on a per-kill check, the nth giant or tank of its
+    wave, held only when the matching sanity option is on; 0 on every other.
+    """
 
     id: int
     name: str
     kind: str
     wave: int
+    cache: int
+    index: int
 
 
 @dataclass(frozen=True, slots=True)
@@ -56,7 +64,40 @@ class Mission:
     has_giant: bool
     community: bool
     playable: bool
+    requires: str
     locations: tuple[Location, ...]
+
+    def seedable_with(self, server_mods: set[str] | frozenset[str]) -> bool:
+        """Whether a server loading these mods can play the mission."""
+        return self.playable or (self.requires in SERVER_MOD_KEYS and self.requires in server_mods)
+
+    def checks(
+        self, victory_caches: bool, giantsanity: bool, tanksanity: bool
+    ) -> tuple[Location, ...]:
+        """The locations a seed holds for this mission.
+
+        Caches and per-kill locations appear only when asked for.
+        """
+        return tuple(
+            location
+            for location in self.locations
+            if (location.cache == 0 or victory_caches)
+            and (
+                location.index == 0
+                or (location.kind == "giant_killed" and giantsanity)
+                or (location.kind == "tank_destroyed" and tanksanity)
+            )
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class Milestone:
+    """A check for a running total over the whole run. ``kind`` is the tally the plugin reports."""
+
+    id: int
+    name: str
+    kind: str
+    threshold: int
 
 
 @dataclass(frozen=True, slots=True)
@@ -72,6 +113,11 @@ class Item:
     weapon_buff_id: int
     stackable: bool
     eligible: bool
+    slot: str
+    bot_name: str
+    bot_tier: str
+    bot_form: str
+    bot_stock: bool
 
 
 def _read_missions() -> tuple[Mission, ...]:
@@ -87,12 +133,15 @@ def _read_missions() -> tuple[Mission, ...]:
             has_giant=entry["has_giant"],
             community=entry["community"],
             playable=entry["playable"],
+            requires=entry.get("requires", ""),
             locations=tuple(
                 Location(
                     id=location["id"],
                     name=location["name"],
                     kind=location["kind"],
                     wave=location.get("wave", 0),
+                    cache=location.get("cache", 0),
+                    index=location.get("index", 0),
                 )
                 for location in entry["locations"]
             ),
@@ -115,6 +164,11 @@ def _read_items() -> tuple[Item, ...]:
             weapon_buff_id=entry.get("weapon_buff_id", 0),
             stackable=entry.get("stackable", False),
             eligible=entry.get("eligible", False),
+            slot=entry.get("slot", ""),
+            bot_name=entry.get("bot_name", ""),
+            bot_tier=entry.get("bot_tier", ""),
+            bot_form=entry.get("bot_form", ""),
+            bot_stock=entry.get("bot_stock", False),
         )
         for entry in _load("items.json")["items"]
     )
@@ -128,20 +182,49 @@ BASE_ID: int = _meta["base_id"]
 # Easiest tier first: the order is the ladder difficulty_pool walks.
 DIFFICULTIES: tuple[str, ...] = tuple(tier["key"] for tier in _meta["difficulties"])
 MAP_NAMES: dict[int, str] = {entry["id"]: entry["name"] for entry in _meta["maps"]}
+SERVER_MOD_KEYS: frozenset[str] = frozenset(mod["key"] for mod in _meta["server_mods"])
 
 MISSIONS: tuple[Mission, ...] = _read_missions()
 ITEMS: tuple[Item, ...] = _read_items()
 
+# The milestones belong to no mission: the run as a whole earns them, and only
+# a seed that asked for them holds them.
+MILESTONES: tuple[Milestone, ...] = tuple(
+    Milestone(id=entry["id"], name=entry["name"], kind=entry["kind"], threshold=entry["threshold"])
+    for entry in _meta["milestones"]
+)
+if not MILESTONES:
+    raise DataFormatError("the export has no milestones")
+
 LOCATION_NAME_TO_ID: dict[str, int] = {
     location.name: location.id for mission in MISSIONS for location in mission.locations
-}
+} | {milestone.name: milestone.id for milestone in MILESTONES}
 ITEM_NAME_TO_ID: dict[str, int] = {item.name: item.id for item in ITEMS}
 ITEMS_BY_NAME: dict[str, Item] = {item.name: item for item in ITEMS}
+BOT_CARD_VARIANTS: dict[tuple[str, str, str], str] = {
+    (item.bot_name, item.bot_tier, item.bot_form): item.name
+    for item in ITEMS
+    if item.kind == "bot_card"
+}
+BOT_CARD_BASES: tuple[str, ...] = tuple(
+    dict.fromkeys(item.bot_name for item in ITEMS if item.kind == "bot_card")
+)
+STOCK_BOT_CARD_BASES: tuple[str, ...] = tuple(
+    dict.fromkeys(item.bot_name for item in ITEMS if item.kind == "bot_card" and item.bot_stock)
+)
 
 TICKET_NAMES: dict[int, str] = {
     item.mission_id: item.name for item in ITEMS if item.kind == "mission_ticket"
 }
 CLASS_NAMES: tuple[str, ...] = tuple(item.name for item in ITEMS if item.kind == "class")
+
+# A medal per mission, locked onto that mission's clear when the option is on.
+# Never in the pool, so a run without the option never sees one.
+MEDAL_NAMES: dict[int, str] = {
+    item.mission_id: item.name for item in ITEMS if item.kind == "trophy"
+}
+if not MEDAL_NAMES:
+    raise DataFormatError("the export has no trophy items")
 
 # "Scout" is what a player writes in a YAML; "Class: Scout" is what the item is
 # called. The link is the class id, not the shape of the name.
@@ -152,7 +235,12 @@ CLASS_ITEM_BY_MERC: dict[str, str] = {
 if len(CLASS_ITEM_BY_MERC) != len(CLASS_NAMES):
     raise DataFormatError("a class item names a class the meta export does not have")
 
-MISSION_NAMES: frozenset[str] = frozenset(mission.name for mission in MISSIONS if mission.playable)
+# Every mission some server can play: the stock ones and those a cataloged
+# mod unlocks. A YAML may name any of them; the server_mods option decides
+# which are drawn.
+MISSION_NAMES: frozenset[str] = frozenset(
+    mission.name for mission in MISSIONS if mission.seedable_with(SERVER_MOD_KEYS)
+)
 FILLER_NAMES: tuple[str, ...] = tuple(
     item.name for item in ITEMS if item.classification == "filler"
 )
@@ -162,6 +250,17 @@ WEAPON_BUFF_NAMES: tuple[str, ...] = tuple(
 STACKABLE_WEAPON_BUFF_NAMES: frozenset[str] = frozenset(
     item.name for item in ITEMS if item.kind == "weapon_buff" and item.eligible and item.stackable
 )
+TRAP_NAMES: tuple[str, ...] = tuple(item.name for item in ITEMS if item.kind == "trap")
+if not TRAP_NAMES:
+    raise DataFormatError("the export has no trap items")
+
+# Levers on the whole server, handed over as items. Useful, never progression:
+# a wave has to stay winnable without one, so no access rule may need them.
+SERVER_SETTING_NAMES: tuple[str, ...] = tuple(
+    item.name for item in ITEMS if item.kind == "server_setting"
+)
+if not SERVER_SETTING_NAMES:
+    raise DataFormatError("the export has no server setting items")
 
 _weapon_slot_items = [item for item in ITEMS if item.kind == "weapon_slot"]
 if len(_weapon_slot_items) != 1:
@@ -171,8 +270,40 @@ if len(_weapon_slot_items) != 1:
 PROGRESSIVE_WEAPON_SLOT: str = _weapon_slot_items[0].name
 WEAPON_SLOT_COUNT: int = _weapon_slot_items[0].count
 
+# With class_weapon_slots on, the slots come per class instead: the class
+# item's name to its own progressive slot item, each of CLASS_SLOT_COUNT copies.
+_all_class_slot_items = [item for item in ITEMS if item.kind == "class_weapon_slot"]
+_class_slot_items = [item for item in _all_class_slot_items if not item.slot]
+_named_slot_items = [item for item in _all_class_slot_items if item.slot]
+CLASS_SLOT_ITEMS: dict[str, str] = {
+    CLASS_ITEM_BY_MERC[_MERC_NAMES[item.class_id]]: item.name for item in _class_slot_items
+}
+if len(CLASS_SLOT_ITEMS) != len(CLASS_NAMES):
+    raise DataFormatError("expected one class weapon slot item per class")
+CLASS_SLOT_COUNT: int = _class_slot_items[0].count
+if any(item.count != CLASS_SLOT_COUNT for item in _class_slot_items):
+    raise DataFormatError("the class weapon slot items disagree about how many slots a class earns")
+
+# And the same slots as items that name them, for class_weapon_slots: any_order.
+# In the class's own order, which is what a starting class is given first.
+CLASS_NAMED_SLOT_ITEMS: dict[str, tuple[str, ...]] = {}
+for _named in _named_slot_items:
+    _class_item = CLASS_ITEM_BY_MERC[_MERC_NAMES[_named.class_id]]
+    CLASS_NAMED_SLOT_ITEMS[_class_item] = (
+        *CLASS_NAMED_SLOT_ITEMS.get(_class_item, ()),
+        _named.name,
+    )
+if len(CLASS_NAMED_SLOT_ITEMS) != len(CLASS_NAMES):
+    raise DataFormatError("expected named weapon slot items for every class")
+if any(len(names) != CLASS_SLOT_COUNT for names in CLASS_NAMED_SLOT_ITEMS.values()):
+    raise DataFormatError("a class has named slot items for a different count of slots")
+
 ITEM_NAME_GROUPS: dict[str, set[str]] = {
     "Classes": set(CLASS_NAMES),
     "Mission Tickets": set(TICKET_NAMES.values()),
     "Weapon Buffs": set(WEAPON_BUFF_NAMES),
+    "Class Weapon Slots": set(CLASS_SLOT_ITEMS.values())
+    | {name for names in CLASS_NAMED_SLOT_ITEMS.values() for name in names},
+    "Traps": set(TRAP_NAMES),
+    "Australium Medals": set(MEDAL_NAMES.values()),
 }

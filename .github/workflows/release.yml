@@ -10,7 +10,15 @@ on:
 # No `make check`: the tag points at a commit CI already passed on main. The
 # version check below is the one thing a tag can get wrong on its own.
 jobs:
+  # SourceMod 1.13 refuses an extension built for 1.12, so the launcher's
+  # CBaseNPC, Actions, REST in Pawn and DHooks are built here, the Windows half
+  # on a Windows runner. make dist refuses a tree without both.
+  extensions:
+    if: github.server_url == 'https://github.com'
+    uses: ./.github/workflows/extensions.yml
+
   release:
+    needs: extensions
     if: github.server_url == 'https://github.com'
     runs-on: ubuntu-latest
     permissions:
@@ -30,7 +38,7 @@ jobs:
 
       # `make dist` cross-compiles the launcher, so this job needs the Go the
       # module asks for, not whatever the runner image happens to carry.
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
 
@@ -58,11 +66,43 @@ jobs:
             -t "$IMAGE/bridge:$GITHUB_REF_NAME" -t "$IMAGE/bridge:latest" .
           deploy/push-image.sh --all-tags "$IMAGE/bridge"
 
+      - name: build and push the admin UI image
+        run: |
+          . deploy/env/versions.env
+          docker build -f deploy/Dockerfile.admin \
+            --build-arg "LAUNCHER_VERSION=$GITHUB_REF_NAME" \
+            --build-arg "NODE_VERSION=$NODE_VERSION" \
+            --build-arg "TAILSCALE_VERSION=$TAILSCALE_VERSION" \
+            -t "$IMAGE/admin:$GITHUB_REF_NAME" -t "$IMAGE/admin:latest" .
+          deploy/push-image.sh --all-tags "$IMAGE/admin"
+
+      # The srcds image compiles CBaseNPC and Actions, most of its build time,
+      # and their stage changes only with their pins, patches and script. The
+      # GitHub Actions cache keeps its layers between runs, and a tag reads
+      # main's cache, so a release reuses what the nightly compiled.
+      #
+      # The gha cache needs a docker-container builder and the runtime token
+      # only a JavaScript action can see. `use: false` keeps every other
+      # `docker build` here on the daemon, where push-image.sh finds its image.
+      - uses: docker/setup-buildx-action@v4
+        id: buildx
+        with:
+          use: false
+
+      - uses: crazy-max/ghaction-github-runtime@v4
+
       - name: build and push the srcds image
         run: |
           . deploy/env/versions.env
-          docker build -f deploy/Dockerfile.srcds \
+          docker buildx build --builder "${{ steps.buildx.outputs.name }}" --load \
+            -f deploy/Dockerfile.srcds \
+            --cache-from type=gha,scope=srcds \
+            --cache-to type=gha,scope=srcds,mode=max \
             --build-arg "RIPEXT_VERSION=$RIPEXT_VERSION" \
+            --build-arg "SOURCEMOD_VERSION=$SOURCEMOD_VERSION" \
+            --build-arg "MMSOURCE_VERSION=$MMSOURCE_VERSION" \
+            --build-arg "SIGSEGV_MVM_VERSION=$SIGSEGV_MVM_VERSION" \
+            --build-arg "SIGSEGV_MVM_SHA256=$SIGSEGV_MVM_SHA256" \
             -t "$IMAGE/srcds:$GITHUB_REF_NAME" -t "$IMAGE/srcds:latest" .
           deploy/push-image.sh --all-tags "$IMAGE/srcds"
 
@@ -75,13 +115,20 @@ jobs:
             -t "$IMAGE/archipelago:latest" .
           deploy/push-image.sh --all-tags "$IMAGE/archipelago"
 
+      - uses: actions/download-artifact@v8
+        with:
+          name: extensions
+          path: extensions
+
       - name: build the files
         run: make dist
+        env:
+          BOTS_EXTENSIONS_DIR: ${{ github.workspace }}/extensions
 
       # A downloaded stack then keeps the release it came with until
       # TF2AP_VERSION says otherwise.
       - name: pin the compose file to this tag
-        run: sed -i "s/:-latest}/:-$GITHUB_REF_NAME}/g" dist/compose.yaml
+        run: sed -i -E "s/(TF2AP_VERSION:-)[^}]+/\1$GITHUB_REF_NAME/g" dist/compose.yaml
 
       # CHANGELOG.md is written for somebody who plays the game, one section per
       # tag. A release with no section still publishes: the marker is dropped
@@ -118,7 +165,7 @@ jobs:
       - name: stage the exe for signing
         if: env.SIGNPATH_API_TOKEN != ''
         id: unsigned
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: tf2ap-unsigned
           path: dist/tf2ap.exe
@@ -126,7 +173,7 @@ jobs:
 
       - name: sign the exe
         if: env.SIGNPATH_API_TOKEN != ''
-        uses: signpath/github-action-submit-signing-request@v1
+        uses: signpath/github-action-submit-signing-request@v2
         with:
           api-token: ${{ env.SIGNPATH_API_TOKEN }}
           organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
@@ -168,7 +215,7 @@ jobs:
       #
       #   gh attestation verify tf2ap.exe --repo m-this/tf2-archipelago
       - name: attest the binaries
-        uses: actions/attest-build-provenance@v3
+        uses: actions/attest-build-provenance@v4
         with:
           subject-path: |
             dist/tf2ap.exe
@@ -193,7 +240,7 @@ jobs:
         id: scan
         if: env.VT_API_KEY != ''
         continue-on-error: true
-        uses: crazy-max/ghaction-virustotal@v4
+        uses: crazy-max/ghaction-virustotal@v5
         with:
           vt_api_key: ${{ env.VT_API_KEY }}
           files: |

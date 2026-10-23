@@ -27,7 +27,7 @@ Not here yet, and deliberately not in v1: weapon ownership, canteens, allied
 robot templates, and traps. Weapon ownership still uses progressive slots;
 `WeaponBuffs` adds item-specific bonuses without unlocking a weapon.
 
-`tools/import_tf2_weapons.py` reads Valve's installed item schema to discover
+`make import-weapons` reads Valve's installed item schema to discover
 new buff targets. Its output is reviewed and appended because a game update
 must never renumber existing Archipelago ids.
 

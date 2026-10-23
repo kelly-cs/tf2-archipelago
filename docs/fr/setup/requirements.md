@@ -1,76 +1,45 @@
 # Prérequis
 
-Deux façons de lancer le serveur. **Windows** est la plus simple : un seul
-exe, sans Docker. **Docker** marche sur tous les systèmes. Les deux font
-tourner le même logiciel.
+## Choisir une façon de lancer le serveur
+
+| Façon | Pour qui | Page |
+| --- | --- | --- |
+| **Lanceur Windows** | La plupart des gens. Un seul exe, rien d'autre. | [Installer sur Windows](install-windows.md) |
+| **Lanceur Linux** | Le même programme, sur une machine Linux ou en SSH. | [Installer sur Linux](install-linux.md) |
+| **Docker** | Une machine qui fait déjà tourner des piles Docker. | [Installer avec Docker](install.md) |
+
+Les trois font tourner le même logiciel et ont les mêmes réglages.
 
 ## La machine
 
-| Chose | Ce qu'il vous faut |
+| Quoi | Ce qu'il faut |
 | --- | --- |
-| Disque | Environ 20 Go libres. Le serveur de jeu télécharge environ 14 Go au premier démarrage. |
-| Mémoire | 4 Go pour six joueurs. |
+| Disque | Environ 20 Go libres. Le serveur de jeu fait environ 14 Go et se télécharge une fois. |
+| Mémoire | 4 Go. |
 | Processeur | Deux cœurs. |
-| Réseau | Rien, pour des amis sur le même réseau ou par le relais Steam. Un port redirigé, UDP et TCP, seulement si vous choisissez cette voie. |
+| Réseau | Un accès sortant vers `archipelago.gg`. Rien à ouvrir sur la box, sauf si vous choisissez la route du port redirigé. |
 
-## Windows (recommandé)
+## Ce qu'il faut aussi à l'hébergeur
 
-| Chose | Ce qu'il vous faut |
-| --- | --- |
-| Windows | 10 ou 11, 64 bits. |
-| Le lanceur | `tf2ap.exe`, depuis la [dernière version](https://github.com/m-this/tf2-archipelago/releases/latest). |
-| Archipelago | L'[application officielle](https://github.com/ArchipelagoMW/Archipelago/releases), pour générer la seed. |
-
-Sans Docker, sans clone, sans compilateur. Voir
-[Installer sur Windows](install-windows.md).
-
-## Docker
-
-| Chose | Ce qu'il vous faut |
-| --- | --- |
-| Docker | Docker avec le plugin compose. |
-
-Les fichiers du jeu restent dans un volume Docker nommé
-`tf2-archipelago_tf2game`. Gardez ce volume. Le supprimer retélécharge
-14 Go.
-
-Voir [Installer avec Docker](install.md).
-
-## Le réseau
-
-La stack publie un port, `27015` par défaut, en UDP et en TCP. Réglez-le
-avec `SRCDS_PORT` dans `.env`.
-
-- L'UDP porte le jeu. Sans lui, personne ne peut rejoindre.
-- Le TCP porte la console distante du serveur de jeu. Il vous le faut pour
-  lancer les commandes admin dans [Dépannage](../operate/troubleshooting.md).
-
-La stack ne publie rien d'autre. Le bridge ouvre lui-même sa connexion vers la
-room sur `archipelago.gg`, et il n'écoute que sur le loopback. Voir
-[Installation](install.md) pour les services.
-
-La machine doit atteindre `archipelago.gg` sur le port de la room. Un pare-feu
-qui filtre le trafic sortant doit laisser passer ce port.
-
-Ce qu'il faut rediriger dépend de `SRCDS_REACH`, et seul `SRCDS_REACH=port`
-le demande. Par le relais Steam, le serveur sort de lui-même et rien n'a besoin
-d'entrer. Voir [Inviter vos amis](invite-your-friends.md).
+- L'[application Archipelago](https://github.com/ArchipelagoMW/Archipelago/releases)
+  officielle, pour générer la seed. Voir [Créer la session](create-the-session.md).
+- Un jeton de connexion de serveur Steam, si des amis rejoignent par
+  internet. Voir [Inviter vos amis](invite-your-friends.md). Jouer sur le
+  réseau local n'en demande pas.
 
 ## Ce dont vous n'avez pas besoin
 
-- Aucun compte Steam pour le serveur. `SRCDS_TOKEN=0` fait tourner le
-  serveur sans en avoir un, le garde hors de la liste publique des serveurs,
-  et le garde sur le réseau local : personne d'extérieur ne peut rejoindre un
-  serveur qui ne se connecte jamais. Voir
-  [Inviter vos amis](invite-your-friends.md).
-- Aucune installation de Team Fortress 2 sur l'hôte. Le conteneur télécharge
-  la sienne.
-- Aucun compte sur `archipelago.gg`. Le site héberge la session de quiconque
-  lui en envoie une. Voir [Créer la session](create-the-session.md).
+- Pas de compte Steam pour le serveur.
+- Pas de Team Fortress 2 installé sur la machine. Le serveur télécharge ses
+  propres fichiers.
+- Pas de compte sur `archipelago.gg`.
+- Rien pour les joueurs. Un client Team Fortress 2 normal suffit.
 
-## Remarque sur la sécurité
+## Note de sécurité
 
-Le serveur de jeu est un gros processus C++ qui lit le trafic réseau de
-quiconque connaît l'adresse. Faites-le tourner sur une machine où c'est
-acceptable. Si la même machine fait tourner quelque chose qui compte pour
-vous, décidez-le exprès plutôt que par défaut.
+Le serveur de jeu est un gros programme en C++ qui lit le trafic réseau de
+toute personne qui connaît l'adresse. Faites-le tourner sur une machine où
+c'est acceptable.
+
+Suite : [Installer sur Windows](install-windows.md), [Installer sur Linux](install-linux.md)
+ou [Installer avec Docker](install.md).

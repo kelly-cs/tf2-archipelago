@@ -1,0 +1,60 @@
+/* ==========================================================================
+   Shared parts: styling several screens use, in one place.
+
+   A component when there is behaviour to share, a mixin when there is only
+   appearance. A table's columns are its own and no two screens here have the
+   same ones, so what is shared is how a table looks and not what is in it.
+   Pure like the rest: nothing is emitted until something includes it.
+   ========================================================================== */
+
+/* A table of rows the player reads down. */
+@mixin table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-md);
+
+  th {
+    text-align: left;
+    font-size: var(--text-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-faint);
+    font-weight: 600;
+    padding: 0 var(--gap-sm) var(--gap-sm);
+    border-bottom: 1px solid var(--line-soft);
+  }
+
+  td {
+    padding: var(--gap-sm);
+    border-bottom: 1px solid var(--surface-hover);
+    vertical-align: middle;
+  }
+
+  tbody tr {
+    transition: background var(--quick) var(--ease-out);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    tbody tr:hover {
+      background: var(--surface-raised);
+    }
+  }
+}
+
+/* A number or an id, which reads better in the monospaced face and is dimmer
+   than the words beside it. */
+@mixin figure {
+  font-family: var(--font-mono);
+  color: var(--text-dim);
+}
+
+/* A label for a screen reader and not for the eye. Not display:none, which
+   takes it out of the accessibility tree as well. */
+@mixin only-for-screen-readers {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

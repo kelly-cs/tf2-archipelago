@@ -11,6 +11,7 @@ import (
 	"github.com/coder/websocket"
 
 	"github.com/m-this/tf2-archipelago/gamedata"
+	"github.com/m-this/tf2-archipelago/gamedata/availability"
 )
 
 // client drives the room's websocket directly, the way the bridge does, so the
@@ -171,13 +172,212 @@ func TestTheUnlockOrderDropsWhatTheRunAlreadyHolds(t *testing.T) {
 	}
 }
 
-func TestDefaultMissionsSkipTheExcluded(t *testing.T) {
-	got := defaultMissions(2, []string{"mvm_decoy"}, "", "")
-	if len(got) != 2 || got[0] != "mvm_decoy_intermediate" {
-		t.Errorf("missions = %v", got)
+func TestTestRewardsUseOnlySeedEligibleWeaponBuffs(t *testing.T) {
+	order := unlockOrder(startingInventory("mvm_decoy", ""))
+	buffs := 0
+	for _, id := range order {
+		item, known := gamedata.ItemByID(id)
+		if !known || item.Kind != gamedata.ItemWeaponBuff {
+			continue
+		}
+		buff, known := gamedata.WeaponBuffByID(item.WeaponBuff)
+		if !known || !buff.Eligible {
+			t.Errorf("test reward includes ineligible buff %q", item.Name)
+		}
+		buffs++
 	}
-	if got := defaultMissions(1, []string{"mvm_decoy"}, "", ""); len(got) != 1 || got[0] == "mvm_decoy" {
-		t.Errorf("missions = %v", got)
+	if buffs == 0 {
+		t.Fatal("test reward pool has no eligible weapon buffs")
+	}
+}
+
+func TestDefaultMissionsSkipTheExcluded(t *testing.T) {
+	for range 20 {
+		got := defaultMissions(2, []string{"mvm_decoy"}, "", "", everyPack(), false)
+		if len(got) != 2 || slices.Contains(got, "mvm_decoy") {
+			t.Errorf("missions = %v", got)
+		}
+	}
+}
+
+func TestEveryNamedMissionCanStartUnlocked(t *testing.T) {
+	missions := []string{"mvm_decoy", "mvm_coaltown_intermediate", "mvm_mannworks_advanced"}
+	start := roomStartingInventory(missions, "", true)
+
+	for _, popFile := range missions {
+		mission, known := gamedata.MissionByPopFile(popFile)
+		if !known {
+			t.Fatalf("unknown test mission %s", popFile)
+		}
+		found := false
+		for _, id := range start {
+			item, known := gamedata.ItemByID(id)
+			if known && item.Kind == gamedata.ItemMissionTicket && item.Mission == mission.ID {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Errorf("starting inventory has no ticket for %s", popFile)
+		}
+	}
+}
+
+func TestUnlockingEveryMissionIsPartOfTheSlotData(t *testing.T) {
+	room, address, err := Start(t.Context(), Options{
+		SlotName:       "tester",
+		Missions:       []string{"mvm_decoy", "mvm_coaltown_intermediate"},
+		UnlockMissions: true,
+	})
+	if err != nil {
+		t.Fatalf("Start: %v", err)
+	}
+	t.Cleanup(func() { _ = room.Close(context.Background()) })
+
+	c := dial(t, address)
+	c.await("RoomInfo")
+	c.send(map[string]any{"cmd": "Connect"})
+	connected := c.await("Connected")
+	var payload struct {
+		SlotData struct {
+			MissionTicketImportance string `json:"mission_ticket_importance"`
+		} `json:"slot_data"`
+	}
+	if err := json.Unmarshal(mustRaw(connected), &payload); err != nil {
+		t.Fatal(err)
+	}
+	if got := payload.SlotData.MissionTicketImportance; got != "useful" {
+		t.Errorf("mission ticket importance = %q, want useful", got)
+	}
+}
+
+func TestDockerChecksAndModifiersReachTheBridge(t *testing.T) {
+	room, address, err := Start(t.Context(), Options{
+		Missions:      []string{"mvm_decoy", "mvm_mannhattan"},
+		DrawModifiers: true, ModifierMin: 2, ModifierMax: 2,
+		VictoryCaches: true, MilestoneChecks: true, Giantsanity: true, Tanksanity: true,
+		ShuffleRewards: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = room.Close(context.Background()) })
+	c := dial(t, address)
+	c.await("RoomInfo")
+	c.send(map[string]any{"cmd": "Connect"})
+	connected := c.await("Connected")
+	var payload struct {
+		SlotData struct {
+			MissionModifiers map[string][]MissionModifier `json:"mission_modifiers"`
+			VictoryCaches    bool                         `json:"victory_caches"`
+			MilestoneChecks  bool                         `json:"milestone_checks"`
+			Giantsanity      bool                         `json:"giantsanity"`
+			Tanksanity       bool                         `json:"tanksanity"`
+		} `json:"slot_data"`
+	}
+	if err := json.Unmarshal(mustRaw(connected), &payload); err != nil {
+		t.Fatal(err)
+	}
+	for mission, modifiers := range payload.SlotData.MissionModifiers {
+		if len(modifiers) != 2 {
+			t.Errorf("%s has %d modifiers, want 2", mission, len(modifiers))
+		}
+	}
+	if len(payload.SlotData.MissionModifiers) != 2 || !payload.SlotData.VictoryCaches || !payload.SlotData.MilestoneChecks || !payload.SlotData.Giantsanity || !payload.SlotData.Tanksanity {
+		t.Errorf("extra checks were not announced: %+v", payload.SlotData)
+	}
+	c.send(map[string]any{"cmd": "LocationChecks", "locations": []int64{100, 101}})
+	received := c.await("ReceivedItems")
+	var reward struct {
+		Items []struct {
+			Item int64 `json:"item"`
+		} `json:"items"`
+	}
+	if err := json.Unmarshal(mustRaw(received), &reward); err != nil {
+		t.Fatal(err)
+	}
+	if len(reward.Items) != 2 {
+		t.Fatalf("got %d rewards for two checks", len(reward.Items))
+	}
+	for _, got := range reward.Items {
+		item, known := gamedata.ItemByID(got.Item)
+		if !known || item.Classification == gamedata.Filler {
+			t.Errorf("check rewarded invalid item %d", got.Item)
+		}
+	}
+}
+
+func TestDockerChecksKeepRewardingAfterPoolIsExhausted(t *testing.T) {
+	room, address, err := Start(t.Context(), Options{
+		Missions: []string{"mvm_decoy"}, ShuffleRewards: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = room.Close(context.Background()) })
+	room.mu.Lock()
+	room.items = room.items[:1]
+	room.mu.Unlock()
+	c := dial(t, address)
+	c.await("RoomInfo")
+	c.send(map[string]any{"cmd": "Connect"})
+	c.await("Connected")
+	c.send(map[string]any{"cmd": "LocationChecks", "locations": []int64{100, 101}})
+	received := c.await("ReceivedItems")
+	var payload struct {
+		Items []struct {
+			Item int64 `json:"item"`
+		} `json:"items"`
+	}
+	if err := json.Unmarshal(mustRaw(received), &payload); err != nil {
+		t.Fatal(err)
+	}
+	if len(payload.Items) != 2 || payload.Items[0].Item != payload.Items[1].Item {
+		t.Errorf("two fresh checks after a one-item pool gave %+v", payload.Items)
+	}
+}
+
+// Eight missions in the order of the settings list, and the next eight once
+// those were unticked, read from a player's chair as a randomiser that does
+// not randomise. The draw is a draw.
+func TestDefaultMissionsAreDrawnAtRandom(t *testing.T) {
+	first := defaultMissions(8, nil, "", "", everyPack(), false)
+	for range 30 {
+		if !slices.Equal(defaultMissions(8, nil, "", "", everyPack(), false), first) {
+			return
+		}
+	}
+	t.Errorf("thirty draws of eight all came out as %v", first)
+}
+
+func TestDefaultMissionsUseAllEligibleWhenCountExceedsPool(t *testing.T) {
+	mods := []string{"sigsegv-mvm"}
+	eligible := everyPack(mods...).Playable()
+	got := defaultMissions(len(eligible)+1, nil, "", "", everyPack(mods...), false)
+	if len(got) != len(eligible) {
+		t.Fatalf("requested more than %d eligible missions, got %d", len(eligible), len(got))
+	}
+	const sigmodMission = "mvm_bronx_rc2_adv_point_of_impact"
+	if !slices.Contains(got, sigmodMission) {
+		t.Fatalf("SigMod mission %q was left out", sigmodMission)
+	}
+	if slices.Contains(defaultMissions(len(eligible)+1, nil, "", "", everyPack(), false), sigmodMission) {
+		t.Fatal("a SigMod mission was offered without SigMod")
+	}
+	for _, popFile := range defaultMissions(len(eligible)+1, nil, "", "", everyPack(mods...), true) {
+		mission, _ := gamedata.MissionByPopFile(popFile)
+		if gamedata.IsCommunityMission(mission.ID) {
+			t.Fatalf("community mission %q was offered while community missions are off", popFile)
+		}
+	}
+}
+
+// The start mission is honoured whatever the draw did.
+func TestDefaultMissionsPutTheStartMissionFirst(t *testing.T) {
+	for range 20 {
+		if got := defaultMissions(3, nil, "", "mvm_decoy_advanced", everyPack(), false); got[0] != "mvm_decoy_advanced" {
+			t.Errorf("missions = %v", got)
+		}
 	}
 }
 
@@ -190,7 +390,7 @@ func TestDefaultMissionsRespectTheTier(t *testing.T) {
 		if !known {
 			t.Fatalf("%s is not a tier", key)
 		}
-		for _, popFile := range defaultMissions(8, nil, key, "") {
+		for _, popFile := range defaultMissions(8, nil, key, "", everyPack(), false) {
 			mission, ok := gamedata.MissionByPopFile(popFile)
 			if !ok {
 				t.Fatalf("drew %s, which is not a mission", popFile)
@@ -203,7 +403,7 @@ func TestDefaultMissionsRespectTheTier(t *testing.T) {
 	}
 	// An unknown key is a typo in a settings file, and draws the whole pool
 	// rather than nothing.
-	if got := defaultMissions(3, nil, "nonsense", ""); len(got) != 3 {
+	if got := defaultMissions(3, nil, "nonsense", "", everyPack(), false); len(got) != 3 {
 		t.Errorf("an unknown tier drew %v", got)
 	}
 }
@@ -211,7 +411,7 @@ func TestDefaultMissionsRespectTheTier(t *testing.T) {
 // The run begins on the first mission drawn, so a named start mission has to
 // come first even when the tier would not have drawn it at all.
 func TestDefaultMissionsStartWhereAsked(t *testing.T) {
-	got := defaultMissions(4, nil, "normal", "mvm_coaltown_advanced")
+	got := defaultMissions(4, nil, "normal", "mvm_coaltown_advanced", everyPack(), false)
 	if len(got) == 0 || got[0] != "mvm_coaltown_advanced" {
 		t.Fatalf("missions = %v", got)
 	}
@@ -220,12 +420,12 @@ func TestDefaultMissionsStartWhereAsked(t *testing.T) {
 	}
 	// Named but outside the tier: the player asked for it by name, which is
 	// more specific than the tier they asked for by key.
-	got = defaultMissions(2, nil, "expert", "mvm_decoy")
+	got = defaultMissions(2, nil, "expert", "mvm_decoy", everyPack(), false)
 	if len(got) == 0 || got[0] != "mvm_decoy" {
 		t.Errorf("missions = %v", got)
 	}
 	// Not a mission at all: ignored rather than served as one.
-	got = defaultMissions(2, nil, "normal", "mvm_nowhere")
+	got = defaultMissions(2, nil, "normal", "mvm_nowhere", everyPack(), false)
 	if slices.Contains(got, "mvm_nowhere") {
 		t.Errorf("served a mission that does not exist: %v", got)
 	}
@@ -430,5 +630,22 @@ func TestTakeNextTicketWithNoneLeft(t *testing.T) {
 	}
 	if _, found := takeNextTicket(items, len(items)); found {
 		t.Error("a pool with nothing left gave up a ticket")
+	}
+}
+
+// everyPack is a server with every community pack and the given mods.
+func everyPack(mods ...string) availability.Server {
+	return availability.Planned(gamedata.CommunityPacks(), mods)
+}
+
+// A pack the server does not have is a pack a test run never draws from.
+func TestDefaultMissionsLeaveOutAMissingPack(t *testing.T) {
+	server := availability.Planned([]string{"mlarchive-assets.zip"}, nil)
+	all := len(gamedata.Missions)
+	for _, popFile := range defaultMissions(all, nil, "", "", server, false) {
+		mission, _ := gamedata.MissionByPopFile(popFile)
+		if pack := gamedata.MissionPack(mission.ID); pack == "archive-assets.zip" {
+			t.Fatalf("drew %s from a pack the server does not have", popFile)
+		}
 	}
 }

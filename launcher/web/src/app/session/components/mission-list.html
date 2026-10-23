@@ -1,0 +1,19 @@
+<header>
+  <h2>Missions</h2>
+  <div class="line">{{ multiworldLine() }}</div>
+</header>
+
+@if (rows().length === 0) {
+  <app-empty-state>
+    No missions yet. They arrive once the bridge is on the multiworld.
+  </app-empty-state>
+} @else {
+  <app-missions-table
+    [rows]="rows()"
+    [playable]="true"
+    initialSort="status"
+    (chosen)="choose.next($event)"
+  />
+
+  <div class="line">{{ switchHint() }}</div>
+}

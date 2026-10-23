@@ -5,10 +5,14 @@ import (
 	"bytes"
 	_ "embed"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
+	"slices"
+	"strconv"
 	"strings"
 )
 
@@ -49,6 +53,7 @@ type communityMission struct {
 	HasGiant   bool      `json:"has_giant"`
 	Requires   string    `json:"requires,omitempty"`
 	Pack       string    `json:"pack,omitempty"`
+	Loadout    string    `json:"loadout,omitempty"`
 }
 
 type loadedCommunity struct {
@@ -56,6 +61,7 @@ type loadedCommunity struct {
 	Missions     []Mission
 	Requirements map[MissionID]string
 	Packs        map[MissionID]string
+	Loadouts     map[MissionID]string
 }
 
 func loadCommunity(body []byte) (loadedCommunity, error) {
@@ -80,6 +86,7 @@ func loadCommunity(body []byte) (loadedCommunity, error) {
 		Missions:     make([]Mission, 0, len(file.Missions)),
 		Requirements: make(map[MissionID]string, len(file.Missions)),
 		Packs:        make(map[MissionID]string, len(file.Missions)),
+		Loadouts:     make(map[MissionID]string, len(file.Missions)),
 	}
 	for _, entry := range file.Maps {
 		if entry.ID < CommunityIDMin {
@@ -95,11 +102,14 @@ func loadCommunity(body []byte) (loadedCommunity, error) {
 		if !known {
 			return loadedCommunity{}, fmt.Errorf("community mission %q: unknown difficulty %q", entry.PopFile, entry.Difficulty)
 		}
-		if entry.Requires != "" && entry.Requires != "no_nav" {
+		if !knownRequirement(entry.Requires) {
 			return loadedCommunity{}, fmt.Errorf("community mission %q: unknown requirement %q", entry.PopFile, entry.Requires)
 		}
 		if entry.Pack != "" && entry.Pack != "mlarchive-assets.zip" {
 			return loadedCommunity{}, fmt.Errorf("community mission %q: unknown pack %q", entry.PopFile, entry.Pack)
+		}
+		if entry.Loadout != "" && entry.Loadout != "medieval" && entry.Loadout != "medic_only" {
+			return loadedCommunity{}, fmt.Errorf("community mission %q: unknown loadout %q", entry.PopFile, entry.Loadout)
 		}
 		content.Missions = append(content.Missions, Mission{
 			ID:         entry.ID,
@@ -112,6 +122,7 @@ func loadCommunity(body []byte) (loadedCommunity, error) {
 			HasGiant:   entry.HasGiant,
 		})
 		content.Requirements[entry.ID] = entry.Requires
+		content.Loadouts[entry.ID] = entry.Loadout
 		if entry.Pack == "" {
 			entry.Pack = "archive-assets.zip"
 		}
@@ -132,11 +143,18 @@ func ValidateCommunityFiles(tfRoot string) error {
 func ValidateCommunitySources(sources ...string) error {
 	required := make(map[string]string)
 	populations := make(map[string][][]byte)
+	discoveredPopulations := make(map[string][]sourcedPopulation)
+	allPopulations := make(map[string]map[string][][]byte)
 	for _, m := range communityMaps {
 		required[filepath.ToSlash(filepath.Join("maps", m.Name+".bsp"))] = "map " + m.Name
 	}
 	for _, m := range communityMissions {
-		if IsPlayableMission(m.ID) {
+		/* A community map has to bring its own navigation mesh, or the bots
+		   have nowhere to walk. A Valve map does not: the .bsp and the .nav
+		   ship with the game, and a community mission that plays on one needs
+		   the pack for its population file and nothing else. Asking the archive
+		   for mvm_mannworks.nav is asking for a file it has no reason to hold. */
+		if MissionRequirement(m.ID) != noNavRequirement && IsCommunityMap(m.Map) {
 			if played, ok := MapByID(m.Map); ok {
 				required[filepath.ToSlash(filepath.Join("maps", played.Name+".nav"))] = "navigation mesh " + played.Name
 			}
@@ -148,44 +166,144 @@ func ValidateCommunitySources(sources ...string) error {
 		if err != nil {
 			return err
 		}
+		allPopulations[source] = make(map[string][][]byte)
 		if info.IsDir() {
-			for relative := range required {
-				path := filepath.Join(source, filepath.FromSlash(relative))
-				if file, err := os.Stat(path); err == nil && file.Mode().IsRegular() {
-					delete(required, relative)
-					if strings.HasSuffix(relative, ".pop") {
-						if body, err := os.ReadFile(path); err == nil {
-							populations[relative] = append(populations[relative], body)
-						}
-					}
-				}
+			if err := scanCommunityDirectory(source, required, populations, discoveredPopulations, allPopulations[source]); err != nil {
+				return err
 			}
 			continue
 		}
-		reader, err := zip.OpenReader(source)
-		if err != nil {
-			return fmt.Errorf("cannot read community archive %s: %w", source, err)
+		if err := scanCommunityArchive(source, required, populations, discoveredPopulations, allPopulations[source]); err != nil {
+			return err
 		}
-		for _, file := range reader.File {
-			name := filepath.ToSlash(file.Name)
-			name = strings.TrimPrefix(name, "tf/download/")
-			name = strings.TrimPrefix(name, "tf/")
-			if _, wanted := required[name]; wanted && strings.HasSuffix(name, ".pop") {
-				if opened, err := file.Open(); err == nil {
-					if body, err := io.ReadAll(opened); err == nil {
-						populations[name] = append(populations[name], body)
-					}
-					_ = opened.Close()
-				}
-			}
-			delete(required, name)
-		}
-		_ = reader.Close()
 	}
 	for relative, description := range required {
 		return fmt.Errorf("community %s is missing: %s", description, relative)
 	}
+	for relative, bodies := range discoveredPopulations {
+		popFile := strings.TrimSuffix(filepath.Base(relative), ".pop")
+		mission, cataloged := MissionByPopFile(popFile)
+		if !cataloged {
+			if _, onKnownMap := communityMapForPopFile(popFile); onKnownMap {
+				return fmt.Errorf("community mission %s is present on a cataloged map but missing from community.json", popFile)
+			}
+			continue
+		}
+		if MissionRequirement(mission.ID) == noNavRequirement {
+			continue
+		}
+		needsSigMod := sourceRequiresSigMod(bodies, MissionPack(mission.ID), allPopulations)
+		if needsSigMod != (MissionRequirement(mission.ID) == "sigsegv-mvm") {
+			return fmt.Errorf("community mission %s SigMod requirement is %t in its population file but %q in community.json", popFile, needsSigMod, MissionRequirement(mission.ID))
+		}
+		medicOnly := slices.ContainsFunc(bodies, func(body sourcedPopulation) bool {
+			return CommunityMissionMedicOnlyForCatalog(popFile, body.body)
+		})
+		if medicOnly != (MissionLoadout(mission.ID) == "medic_only") {
+			return fmt.Errorf("community mission %s Medic-only restriction is %t but loadout is %q in community.json", popFile, medicOnly, MissionLoadout(mission.ID))
+		}
+	}
 	return validatePopulationFacts(populations)
+}
+
+type sourcedPopulation struct {
+	body   []byte
+	source string
+	pack   string
+}
+
+func sourceRequiresSigMod(bodies []sourcedPopulation, pack string, includes map[string]map[string][][]byte) bool {
+	selected := make([]sourcedPopulation, 0, len(bodies))
+	for _, body := range bodies {
+		if body.pack == pack {
+			selected = append(selected, body)
+		}
+	}
+	if len(selected) == 0 {
+		selected = bodies // An extracted TF tree has no archive filename.
+	}
+	return slices.ContainsFunc(selected, func(body sourcedPopulation) bool {
+		return CommunityPopulationRequiresSigModWithIncludes(body.body, includes[body.source])
+	})
+}
+
+func scanCommunityDirectory(source string, required map[string]string, populations map[string][][]byte, discovered map[string][]sourcedPopulation, all map[string][][]byte) error {
+	populationRoot := filepath.Join(source, "scripts", "population")
+	err := filepath.WalkDir(populationRoot, func(path string, entry os.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		if entry.IsDir() || !strings.HasSuffix(strings.ToLower(entry.Name()), ".pop") {
+			return nil
+		}
+		body, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		relative := filepath.ToSlash(filepath.Join("scripts", "population", entry.Name()))
+		all[strings.ToLower(entry.Name())] = append(all[strings.ToLower(entry.Name())], body)
+		if strings.HasPrefix(entry.Name(), "mvm_") {
+			discovered[relative] = append(discovered[relative], sourcedPopulation{body: body, source: source})
+		}
+		return nil
+	})
+	if err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return err
+	}
+	for relative := range required {
+		path := filepath.Join(source, filepath.FromSlash(relative))
+		if file, err := os.Stat(path); err == nil && file.Mode().IsRegular() {
+			delete(required, relative)
+			if strings.HasSuffix(relative, ".pop") {
+				if body, err := os.ReadFile(path); err == nil {
+					populations[relative] = append(populations[relative], body)
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func scanCommunityArchive(source string, required map[string]string, populations map[string][][]byte, discovered map[string][]sourcedPopulation, all map[string][][]byte) error {
+	reader, err := zip.OpenReader(source)
+	if err != nil {
+		return fmt.Errorf("cannot read community archive %s: %w", source, err)
+	}
+	defer func() { _ = reader.Close() }()
+	for _, file := range reader.File {
+		name := filepath.ToSlash(file.Name)
+		name = strings.TrimPrefix(strings.TrimPrefix(name, "tf/download/"), "tf/")
+		if strings.HasPrefix(name, "scripts/population/") && strings.HasSuffix(strings.ToLower(name), ".pop") {
+			opened, openErr := file.Open()
+			if openErr != nil {
+				return openErr
+			}
+			body, readErr := io.ReadAll(opened)
+			_ = opened.Close()
+			if readErr != nil {
+				return readErr
+			}
+			all[strings.ToLower(filepath.Base(name))] = append(all[strings.ToLower(filepath.Base(name))], body)
+			if strings.HasPrefix(filepath.Base(name), "mvm_") {
+				discovered[name] = append(discovered[name], sourcedPopulation{body: body, source: source, pack: filepath.Base(source)})
+				if _, wanted := required[name]; wanted {
+					populations[name] = append(populations[name], body)
+				}
+			}
+		}
+		delete(required, name)
+	}
+	return nil
+}
+
+func communityMapForPopFile(popFile string) (Map, bool) {
+	var best Map
+	for _, candidate := range Maps {
+		if (popFile == candidate.Name || strings.HasPrefix(popFile, candidate.Name+"_")) && len(candidate.Name) > len(best.Name) {
+			best = candidate
+		}
+	}
+	return best, best.Name != ""
 }
 
 func validatePopulationFacts(populations map[string][][]byte) error {
@@ -245,6 +363,144 @@ func inspectPopulation(body []byte) populationFacts {
 		}
 	}
 	return facts
+}
+
+// InspectCommunityPopulation returns the immutable facts the manifest records
+// for one population file. It is exported for the archive catalogue tool; game
+// code uses the committed manifest and never parses mutable files at runtime.
+func InspectCommunityPopulation(body []byte) (waves int, hasTank, hasGiant bool) {
+	facts := inspectPopulation(body)
+	return facts.Waves, facts.HasTank, facts.HasGiant
+}
+
+// CommunityPopulationMedicOnly recognizes a ClassLimit block that excludes
+// every playable class except Medic, or Recalled to Life's map relay that
+// enforces the same restriction through its embedded VScript. Unknown or
+// incomplete blocks stay unrestricted rather than inventing a restriction.
+func CommunityPopulationMedicOnly(body []byte) bool {
+	tokens := populationTokens(body)
+	// Recalled to Life invokes this map relay at wave 1 initialization. The
+	// relay runs the BSP's recalled-to-life/mediconly.nut, which changes every
+	// RED player to Medic and forces them back when they change class.
+	if slices.Contains(tokens, "medonly_hill_init_relay") {
+		return true
+	}
+	for i := 0; i+1 < len(tokens); i++ {
+		if !strings.EqualFold(tokens[i], "ClassLimit") || tokens[i+1] != "{" {
+			continue
+		}
+		limits := make(map[string]int)
+		depth := 1
+		for at := i + 2; at < len(tokens) && depth > 0; at++ {
+			switch tokens[at] {
+			case "{":
+				depth++
+			case "}":
+				depth--
+			default:
+				if depth == 1 && at+1 < len(tokens) {
+					if limit, err := strconv.Atoi(tokens[at+1]); err == nil {
+						limits[strings.ToLower(tokens[at])] = limit
+						at++
+					}
+				}
+			}
+		}
+		for _, class := range []string{"scout", "soldier", "pyro", "demoman", "heavyweapons", "engineer", "sniper", "spy"} {
+			if limit, present := limits[class]; !present || limit != 0 {
+				return false
+			}
+		}
+		if limit, present := limits["medic"]; !present || limit > 0 {
+			return true
+		}
+	}
+	return false
+}
+
+// Villa's two missions enforce Medic through scripted map behavior rather than
+// ClassLimit blocks, so keep their catalog labels explicit.
+func CommunityMissionMedicOnlyForCatalog(popFile string, body []byte) bool {
+	switch popFile {
+	case "mvm_villa_b13f_adv_forgotten", "mvm_villa_b13f_adv_recalled_to_life":
+		return true
+	default:
+		return CommunityPopulationMedicOnly(body)
+	}
+}
+
+// CommunityPopulationRequiresSigMod recognizes extension syntax whose absence
+// changes how a mission plays. Potato files annotate most such lines with the
+// $SIGSEGV KeyValues condition. Precaching and sound download annotations are
+// delivery hints rather than mission mechanics, so those alone stay portable.
+func CommunityPopulationRequiresSigMod(body []byte) bool {
+	for raw := range strings.SplitSeq(string(body), "\n") {
+		line, _, _ := strings.Cut(raw, "//")
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		fields := strings.Fields(line)
+		key := strings.ToLower(fields[0])
+		if strings.Contains(strings.ToUpper(line), "[$SIGSEGV]") &&
+			!strings.HasPrefix(key, "precache") && key != "disablesound" {
+			return true
+		}
+		switch key {
+		case "pointtemplates", "spawntemplate", "extraspawnpoint", "extratankpath",
+			"customweapon", "extendedupgrades", "luascript", "luascriptfile", "lua",
+			"itemblacklist", "nowaitforformation", "shuffle":
+			return true
+		}
+	}
+	return false
+}
+
+// CommunityPopulationRequiresSigModWithIncludes checks the mission and its
+// #base files. Extension directives often live in shared files rather than the
+// mission itself. A shared file gated at its root by [$SIGSEGV] is optional on
+// stock TF2; the engine drops that entire block when SigMod is absent.
+func CommunityPopulationRequiresSigModWithIncludes(body []byte, files map[string][][]byte) bool {
+	visited := make(map[string]bool)
+	var scan func([]byte) bool
+	scan = func(body []byte) bool {
+		if CommunityPopulationRequiresSigMod(body) {
+			return true
+		}
+		for raw := range strings.SplitSeq(string(body), "\n") {
+			line, _, _ := strings.Cut(raw, "//")
+			fields := strings.Fields(line)
+			if len(fields) < 2 || !strings.EqualFold(fields[0], "#base") {
+				continue
+			}
+			name := strings.ToLower(filepath.Base(strings.Trim(fields[1], `"'`)))
+			if visited[name] {
+				continue
+			}
+			visited[name] = true
+			for _, included := range files[name] {
+				if !sigModGuardedRoot(included) && scan(included) {
+					return true
+				}
+			}
+		}
+		return false
+	}
+	return scan(body)
+}
+
+func sigModGuardedRoot(body []byte) bool {
+	for raw := range strings.SplitSeq(string(body), "\n") {
+		line, _, _ := strings.Cut(raw, "//")
+		fields := strings.Fields(line)
+		if len(fields) == 0 {
+			continue
+		}
+		if strings.EqualFold(fields[0], "WaveSchedule") {
+			return len(fields) > 1 && strings.EqualFold(fields[1], "[$SIGSEGV]")
+		}
+	}
+	return false
 }
 
 // populationTokens removes comments and preserves quoted template names. It
@@ -339,9 +595,10 @@ func IsCommunityMission(id MissionID) bool {
 	return ok
 }
 
-// IsPlayableMission reports whether this build can safely put a mission in a
-// seed. Community entries with a known compatibility requirement remain
-// visible to launchers but are never offered or drawn.
+// IsPlayableMission reports whether a stock server can safely put a mission
+// in a seed. Community entries with a requirement remain visible to launchers
+// but are never offered or drawn; availability.Server is the question for a
+// real server.
 func IsPlayableMission(id MissionID) bool {
 	if !IsCommunityMission(id) {
 		return true
@@ -367,9 +624,35 @@ func MissionPack(id MissionID) string {
 	return communityContent.Packs[id]
 }
 
+// CommunityPacks is every archive the catalog has missions from.
+func CommunityPacks() []string {
+	return []string{"archive-assets.zip", "mlarchive-assets.zip"}
+}
+
+// PackLabel is what a player knows a pack by, the name the launcher's Missions
+// page puts beside its tick. Blank for a pack this table does not know.
+func PackLabel(pack string) string {
+	switch pack {
+	case "archive-assets.zip":
+		return "Potato Archive"
+	case "mlarchive-assets.zip":
+		return "Moonlight Archive"
+	}
+	return ""
+}
+
 // MissionRequirement reports why a cataloged community mission is not a
 // portable choice. Blank means the mission is supported by the stock server.
 // Launchers use this to show unavailable content without making it seedable.
 func MissionRequirement(id MissionID) string {
 	return communityContent.Requirements[id]
+}
+
+// MissionLoadout reports a special class or loadout restriction.
+// Blank means the usual unrestricted MvM loadout. "medieval" describes the
+// mission's weapon roster and player-facing recommendation; it does not assert
+// that the map enables TF2's engine-level Medieval Mode. "medic_only" means
+// the mission enforces Medic on RED through its pop file or map script.
+func MissionLoadout(id MissionID) string {
+	return communityContent.Loadouts[id]
 }

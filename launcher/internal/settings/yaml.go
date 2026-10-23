@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/m-this/tf2-archipelago/gamedata"
+	"github.com/m-this/tf2-archipelago/gamedata/availability"
 )
 
 // Game is the name the apworld registers with Archipelago. It has to match
@@ -35,39 +36,78 @@ func PlayerYAML(s Settings, archipelagoVersion string) string {
 	fmt.Fprintf(&b, "  difficulty_pool: %s\n", s.MvmDifficulty)
 	fmt.Fprintf(&b, "  goal: %s\n", s.MvmGoal)
 	fmt.Fprintf(&b, "  missionsanity_percentage: %d\n", s.MvmMissionsanityPct)
+	fmt.Fprintf(&b, "  mission_modifiers: %t\n", s.MvmMissionModifiers)
+	fmt.Fprintf(&b, "  minimum_mission_modifiers: %d\n", s.MvmModifierMin)
+	fmt.Fprintf(&b, "  maximum_mission_modifiers: %d\n", s.MvmModifierMax)
+	fmt.Fprintf(&b, "  medal_on_clear: %t\n", s.MvmMedalOnClear)
+	fmt.Fprintf(&b, "  victory_caches: %t\n", s.MvmVictoryCaches)
+	fmt.Fprintf(&b, "  milestone_checks: %t\n", s.MvmMilestoneChecks)
+	fmt.Fprintf(&b, "  class_weapon_slots: %s\n", s.MvmClassWeaponSlots.OrOff())
+	fmt.Fprintf(&b, "  giantsanity: %t\n", s.MvmGiantsanity)
+	fmt.Fprintf(&b, "  tanksanity: %t\n", s.MvmTanksanity)
 	fmt.Fprintf(&b, "  death_link: %t\n", s.MvmDeathLink)
 	fmt.Fprintf(&b, "  mission_ticket_importance: %s\n", s.MvmMissionTicketImportance)
 	fmt.Fprintf(&b, "  class_unlock_importance: %s\n", s.MvmClassUnlockImportance)
 	fmt.Fprintf(&b, "  weapon_slot_importance: %s\n", s.MvmWeaponSlotImportance)
 	fmt.Fprintf(&b, "  weapon_buff_importance: %s\n", s.MvmWeaponBuffImportance)
 	fmt.Fprintf(&b, "  cash_rewards: %t\n", s.MvmCashRewards)
+	fmt.Fprintf(&b, "  bot_cards: %t\n", s.MvmBotCards)
+	fmt.Fprintf(&b, "  starting_bot_cards: %d\n", s.MvmStartingBotCards)
+	fmt.Fprintf(&b, "  starting_bot_card_mode: %s\n", s.MvmStartingBotCardMode)
 	fmt.Fprintf(&b, "  weapon_buff_percentage: %d\n", s.MvmWeaponBuffPct)
 	fmt.Fprintf(&b, "  weapon_buff_stack_chance: %d\n", s.MvmWeaponBuffStackChance)
+	fmt.Fprintf(&b, "  trap_percentage: %d\n", s.MvmTrapPct)
+	fmt.Fprintf(&b, "  server_settings: %t\n", s.MvmServerSettings)
 	fmt.Fprintf(&b, "  start_mission: %s\n", yamlString(StartMissionName(s)))
 	fmt.Fprintf(&b, "  start_class: %s\n", yamlString(startClassName(s)))
-	names := ExcludedMissionNames(s)
-	if len(names) == 0 {
-		b.WriteString("  excluded_missions: []\n")
-	} else {
-		b.WriteString("  excluded_missions:\n")
-		for _, name := range names {
-			fmt.Fprintf(&b, "    - %s\n", yamlString(name))
-		}
-	}
+	writeYAMLList(&b, "excluded_missions", ExcludedMissionNames(s))
+	fmt.Fprintf(&b, "  community_missions: %t\n", s.MvmCommunityMissions)
+	writeYAMLList(&b, "server_mods", ServerModKeys(s))
 	return b.String()
 }
 
-// ExcludedMissionNames turns the popfiles the settings hold into the names the
-// apworld option takes, in table order, dropping anything the tables do not
-// know.
+func writeYAMLList(b *strings.Builder, key string, values []string) {
+	if len(values) == 0 {
+		fmt.Fprintf(b, "  %s: []\n", key)
+		return
+	}
+	fmt.Fprintf(b, "  %s:\n", key)
+	for _, value := range values {
+		fmt.Fprintf(b, "    - %s\n", yamlString(value))
+	}
+}
+
+// ServerModKeys is the settings' mod list in catalog order, dropping anything
+// the catalog does not know: the apworld refuses a key it has never heard of.
+func ServerModKeys(s Settings) []string {
+	keys := make([]string, 0, len(s.SrcdsMods))
+	for _, key := range gamedata.ServerModKeys() {
+		if slices.Contains(s.SrcdsMods, key) {
+			keys = append(keys, key)
+		}
+	}
+	return keys
+}
+
+// ExcludedMissionNames is what the apworld option excluded_missions takes, in
+// table order: the missions the settings leave out, and those of every pack
+// they do not tick. The apworld assumes every pack is on the server, so a pack
+// it is not told about by name is a pack it draws from.
 func ExcludedMissionNames(s Settings) []string {
-	names := make([]string, 0, len(s.MvmExcludedMissions))
-	for _, mission := range gamedata.PlayableMissions() {
-		if slices.Contains(s.MvmExcludedMissions, mission.PopFile) {
+	server := MissionPool(s).Server
+	var names []string
+	for _, mission := range everyPack(s).Playable() {
+		if slices.Contains(s.MvmExcludedMissions, mission.PopFile) || !server.Check(mission).Playable() {
 			names = append(names, mission.Name)
 		}
 	}
 	return names
+}
+
+// everyPack is the server the apworld assumes: the settings' mods, and every
+// community pack.
+func everyPack(s Settings) availability.Server {
+	return availability.Planned(gamedata.CommunityPacks(), ServerModKeys(s))
 }
 
 // randomOption is what the apworld's start_mission and start_class take for
@@ -81,7 +121,7 @@ func StartMissionName(s Settings) string {
 	if s.MvmStartMission == "" {
 		return randomOption
 	}
-	for _, mission := range gamedata.PlayableMissions() {
+	for _, mission := range MissionPool(s).Server.Playable() {
 		if mission.PopFile == s.MvmStartMission {
 			return mission.Name
 		}

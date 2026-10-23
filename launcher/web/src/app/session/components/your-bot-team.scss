@@ -1,0 +1,55 @@
+@use 'parts';
+
+a {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.seats {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.seat {
+  display: grid;
+  grid-template-columns: 18px minmax(90px, auto) 1fr;
+  gap: 10px;
+  align-items: baseline;
+  padding: 8px 10px;
+  background: var(--surface-void);
+  border-radius: var(--radius);
+}
+
+.number {
+  @include parts.figure;
+
+  font-size: var(--text-sm);
+  color: var(--text-faint);
+}
+
+.class {
+  font-size: var(--text-lg);
+  font-weight: 600;
+}
+
+/* A seat the mod draws for reads dimmer: it is not a choice anybody made. */
+.class.drawn {
+  font-weight: 400;
+  color: var(--text-faint);
+  font-style: italic;
+}
+
+.weapons {
+  font-size: var(--text-sm);
+  color: var(--text-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.line {
+  font-size: var(--text-sm);
+  color: var(--text-faint);
+}

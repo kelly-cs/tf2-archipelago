@@ -12,11 +12,11 @@ import (
 // lands in Program Files.
 func candidateDirs() []string {
 	var dirs []string
-	if local := os.Getenv("LOCALAPPDATA"); local != "" {
+	if local := os.Getenv("LOCALAPPDATA"); local != "" { //nolint:forbidigo // a path Windows owns, not configuration
 		dirs = append(dirs, filepath.Join(local, "Programs", "Archipelago"))
 	}
 	for _, env := range []string{"ProgramFiles", "ProgramFiles(x86)"} {
-		if root := os.Getenv(env); root != "" {
+		if root := os.Getenv(env); root != "" { //nolint:forbidigo // a path Windows owns, not configuration
 			dirs = append(dirs, filepath.Join(root, "Archipelago"))
 		}
 	}
@@ -30,3 +30,9 @@ func generatorPath(appDir string) string {
 
 // generatorCommand runs the frozen exe as it is.
 func generatorCommand(exe string) (string, []string) { return exe, nil }
+
+func standaloneApp(string) bool { return false }
+
+func apworldInstallDir(appLocation string) (string, error) {
+	return filepath.Join(appLocation, "custom_worlds"), nil
+}

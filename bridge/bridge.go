@@ -26,7 +26,12 @@ import (
 	"github.com/m-this/tf2-archipelago/bridge/internal/state"
 	"github.com/m-this/tf2-archipelago/fakeroom"
 	"github.com/m-this/tf2-archipelago/gamedata"
+	"github.com/m-this/tf2-archipelago/gamedata/availability"
 )
+
+// APIVersion is the contract with the plugin, for a caller outside the bridge
+// that has to tell this bridge from another build's.
+const APIVersion = httpapi.APIVersion
 
 const (
 	// ShutdownGrace is how long in-flight long-polls get to finish after the
@@ -135,10 +140,7 @@ func Run(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 	// say. A test run that quietly reached a real room would send checks into
 	// somebody's actual game.
 	if cfg.TestMode {
-		room, address, err := fakeroom.Start(ctx, fakeroom.Options{
-			SlotName: cfg.SlotName,
-			Log:      func(text string) { logger.InfoContext(ctx, "test mode", "message", text) },
-		})
+		room, address, err := fakeroom.Start(ctx, dockerTestOptions(ctx, cfg, logger))
 		if err != nil {
 			return err
 		}
@@ -163,8 +165,10 @@ func Run(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 		Chat:     messages,
 		Deaths:   deaths,
 		Logger:   logger,
+
+		Missions: cfg.Missions,
 	})
-	api := httpapi.New(store, client, messages, deaths, cfg.PollTimeout, logger)
+	api := httpapi.New(store, client, messages, deaths, cfg.PollTimeout, cfg.TestMode, logger)
 	server, metrics := servers(cfg, api)
 
 	logger.InfoContext(ctx, "bridge starting",
@@ -202,4 +206,26 @@ func Run(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 		runErr = closeErr
 	}
 	return runErr
+}
+
+func dockerTestOptions(ctx context.Context, cfg config.Config, logger *slog.Logger) fakeroom.Options {
+	run := cfg.TestRun
+	return fakeroom.Options{
+		SlotName: cfg.SlotName, UnlockMissions: true,
+		MissionCount: run.MissionCount, Difficulty: run.Difficulty, Goal: run.Goal,
+		StartMission: run.StartMission, StartClass: run.StartClass, Excluded: run.Excluded,
+		Server: dockerTestServer(run.ServerMods), ExcludeCommunity: !run.CommunityMissions,
+		DeathLink: run.DeathLink, DrawModifiers: run.MissionModifiers,
+		ModifierMin: run.ModifierMin, ModifierMax: run.ModifierMax,
+		VictoryCaches: run.VictoryCaches, MilestoneChecks: run.MilestoneChecks,
+		Giantsanity: run.Giantsanity, Tanksanity: run.Tanksanity, ShuffleRewards: true,
+		Log: func(text string) { logger.InfoContext(ctx, "test mode", "message", text) },
+	}
+}
+
+// dockerTestServer is the game server a Docker test run draws for. The bridge
+// is not told which packs the admin page ticks, and the srcds container
+// installs every pack in community-content, so every pack is on it.
+func dockerTestServer(mods []string) availability.Server {
+	return availability.Planned(gamedata.CommunityPacks(), mods)
 }

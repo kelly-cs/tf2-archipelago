@@ -45,7 +45,27 @@ func validateEntities() error {
 	if err := unique("weapon slot id", len(WeaponSlots), func(i int) any { return WeaponSlots[i].ID }); err != nil {
 		return err
 	}
-	return unique("weapon slot key", len(WeaponSlots), func(i int) any { return WeaponSlots[i].Key })
+	if err := unique("weapon slot key", len(WeaponSlots), func(i int) any { return WeaponSlots[i].Key }); err != nil {
+		return err
+	}
+	return validateTraps()
+}
+
+// The plugin matches on a trap key and a seed records a trap id. A duplicate of
+// either fires the wrong effect rather than none.
+func validateTraps() error {
+	if err := unique("trap id", len(Traps), func(i int) any { return Traps[i].ID }); err != nil {
+		return err
+	}
+	if err := unique("trap key", len(Traps), func(i int) any { return Traps[i].Key }); err != nil {
+		return err
+	}
+	for _, trap := range Traps {
+		if trap.ID < 1 || trap.Key == "" || trap.Name == "" {
+			return fmt.Errorf("trap id %d has an empty or invalid identity", trap.ID)
+		}
+	}
+	return nil
 }
 
 // A slot missing from an order is a slot the progressive item can never open,
@@ -82,6 +102,15 @@ func validateMissions() error {
 		if m.ID < 1 || m.ID > MissionIDMax {
 			return fmt.Errorf("mission %q: id %d outside 1..%d", m.PopFile, m.ID, MissionIDMax)
 		}
+		if waves := waveKillsByPopFile[m.PopFile]; len(waves) > 0 && len(waves) != int(m.Waves) {
+			return fmt.Errorf("mission %q: the tables say %d waves and its population file %d", m.PopFile, m.Waves, len(waves))
+		}
+		for wave := uint8(1); wave <= m.Waves; wave++ {
+			counts := m.WaveKillsAt(wave)
+			if counts.Giants > WaveGiantsMax || counts.Tanks > WaveTanksMax || wave > WaveKillWavesMax {
+				return fmt.Errorf("mission %q wave %d: %d giants and %d tanks do not fit the id scheme", m.PopFile, wave, counts.Giants, counts.Tanks)
+			}
+		}
 		if m.Waves < 1 || m.Waves > WavesMax {
 			return fmt.Errorf("mission %q: %d waves, outside 1..%d", m.PopFile, m.Waves, WavesMax)
 		}
@@ -101,12 +130,17 @@ func validateMissions() error {
 // Map and popfile names are interpolated into server commands. Restricting
 // them to the filename vocabulary used by TF2 also prevents whitespace or a
 // command separator in an operator-authored manifest from becoming a command.
+//
+// The hyphen is in that vocabulary: mvm_mannworks_int_xlr-8 is a real popfile
+// in the Moonlight archive, and it is no more a command separator than the
+// underscore beside it. Leaving it out is not a safety property, it is a
+// mission the launcher can never offer.
 func safeConsoleName(name string) bool {
 	if name == "" {
 		return false
 	}
 	for _, r := range name {
-		if (r < 'a' || r > 'z') && (r < '0' || r > '9') && r != '_' {
+		if (r < 'a' || r > 'z') && (r < '0' || r > '9') && r != '_' && r != '-' {
 			return false
 		}
 	}

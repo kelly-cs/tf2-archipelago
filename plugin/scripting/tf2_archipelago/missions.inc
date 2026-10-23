@@ -35,6 +35,11 @@ char g_PendingPopFile[64];
 // whatever the game's cycle picked.
 char g_PlannedPopFile[64];
 
+// A tf_mvm_popfile held back until SigMod's vote guard lets it through, and
+// whether a timer is already out to send it.
+char g_DeferredPopFileCommand[64];
+bool g_DeferredPopFileArmed;
+
 // Long enough after a map change for the mission to be loadable. tf_mvm_popfile
 // reloads the mission in place, so it cannot be run while the map still is.
 #define PopFileDelay 2.0
@@ -60,6 +65,10 @@ char g_PlannedPopFile[64];
 char g_SwitchingPopFile[64];
 float g_SwitchingUntil;
 
+// Popfiles this server tried to read and could not, by name. Session-lived on
+// purpose: installing the mod the file needs means a restart anyway.
+StringMap g_RefusedPopFiles;
+
 // How long to wait for a switch before believing it will not happen. A map
 // change plus the popfile that follows it is a few seconds; a minute is the
 // point at which something else went wrong and the guard should have the
@@ -68,6 +77,8 @@ float g_SwitchingUntil;
 
 void Missions_Init()
 {
+    g_RefusedPopFiles = new StringMap();
+    Missions_HookPopulationParse();
     g_CvarStartMission = CreateConVar("tf2ap_start_mission", "",
         "The mission the server starts on, as a popfile name. Blank keeps the map's own.");
     g_CvarNextMissionDelay = CreateConVar("tf2ap_next_mission_delay", "30",
@@ -77,10 +88,102 @@ void Missions_Init()
 
 void Missions_OnConfigsExecuted()
 {
+    // A command held for the map that just ended names a mission of that map.
+    g_DeferredPopFileCommand[0] = '\0';
     if (g_PendingPopFile[0] != '\0')
     {
         CreateTimer(PopFileDelay, Timer_ApplyPendingPopFile);
     }
+}
+
+/* Ask TF2 for a mission using the map-relative name its mission picker uses.
+ *
+ * The run and bridge keep the complete popfile name because it is the stable
+ * mission id. The game command accepts that name too, except SigMod's mission
+ * vote guard mistakes every command in the first ten seconds of a map for a
+ * vote. Its allowed list contains `int_name`, not `mvm_map_int_name`, so the
+ * complete name is rejected during exactly the two-second window in which a
+ * cross-map switch lands.
+ *
+ * A relative name is TF2's normal spelling for this command. The complete id
+ * remains untouched everywhere else.
+ *
+ * The relative name only gets through that guard when the map's loose files
+ * list it, and Valve's own missions are not loose: they are in
+ * tf2_misc_dir.vpk, which the listing never reads. So "normal" for mvm_decoy
+ * was refused two seconds into the map and the map stayed on the first
+ * community file it had, at wave 0 (apw-o96). Under SigMod the command waits
+ * for the guard to close; the guard is game time, not the plugin's.
+ */
+static void Missions_ApplyPopFile(const char[] popFile, const char[] map)
+{
+    char commandName[64];
+    if (StrEqual(popFile, CaliginousCaperID, false))
+    {
+        strcopy(commandName, sizeof(commandName), "ap_caliginous_caper");
+    }
+    else if (StrEqual(popFile, map, false))
+    {
+        strcopy(commandName, sizeof(commandName), "normal");
+    }
+    else
+    {
+        char prefix[64];
+        FormatEx(prefix, sizeof(prefix), "%s_", map);
+        int prefixLength = strlen(prefix);
+        if (StrContains(popFile, prefix, false) == 0)
+        {
+            strcopy(commandName, sizeof(commandName), popFile[prefixLength]);
+        }
+        else
+        {
+            strcopy(commandName, sizeof(commandName), popFile);
+        }
+    }
+    strcopy(g_DeferredPopFileCommand, sizeof(g_DeferredPopFileCommand), commandName);
+    Missions_SendPopFileCommand();
+}
+
+static bool Missions_SigModVoteGuard()
+{
+    ConVar extensions = FindConVar("sig_pop_popmgr_extensions");
+    return extensions != null && extensions.BoolValue;
+}
+
+static void Missions_SendPopFileCommand()
+{
+    if (g_DeferredPopFileArmed || g_DeferredPopFileCommand[0] == '\0')
+    {
+        return;
+    }
+    float wait = Missions_PopFileWait(GetGameTime(), Missions_SigModVoteGuard());
+    if (wait > 0.0)
+    {
+        AP_Debug("The plugin names the mission in %.1f seconds, once SigMod accepts it.", wait);
+        g_DeferredPopFileArmed = true;
+        CreateTimer(wait, Timer_SendPopFileCommand);
+        return;
+    }
+    ServerCommand("tf_mvm_popfile %s", g_DeferredPopFileCommand);
+    g_DeferredPopFileCommand[0] = '\0';
+}
+
+// Not bound to the map: a timer that outlives one finds the command cleared, or
+// one for the new map that it sends only once the new map's guard is over.
+static Action Timer_SendPopFileCommand(Handle timer)
+{
+    g_DeferredPopFileArmed = false;
+    Missions_SendPopFileCommand();
+    return Plugin_Stop;
+}
+
+void Missions_ReloadCurrentForModifiers()
+{
+    char popFile[64];
+    char map[64];
+    MvM_PopFile(popFile, sizeof(popFile));
+    GetCurrentMap(map, sizeof(map));
+    Missions_ApplyPopFile(popFile, map);
 }
 
 // tf_mvm_popfile reloads the mission on the map that is already loaded, so the
@@ -92,7 +195,14 @@ static Action Timer_ApplyPendingPopFile(Handle timer)
         return Plugin_Stop;
     }
     AP_Debug("The plugin names the mission %s now that the map is up.", g_PendingPopFile);
-    ServerCommand("tf_mvm_popfile %s", g_PendingPopFile);
+    char currentMap[64];
+    GetCurrentMap(currentMap, sizeof(currentMap));
+    Mission pending;
+    if (Missions_Find(g_PendingPopFile, pending))
+    {
+        MissionModifiers_Apply(pending.popFile, pending.modifierFlags);
+    }
+    Missions_ApplyPopFile(g_PendingPopFile, currentMap);
     g_PendingPopFile[0] = '\0';
     return Plugin_Stop;
 }
@@ -127,6 +237,13 @@ static bool Missions_Next(const char[] current, Mission next, bool &fresh)
     {
         Mission candidate;
         if (!Bridge_MissionAt(index, candidate) || !Missions_Playable(candidate))
+        {
+            continue;
+        }
+        // A mission whose file this server does not have would load the map and
+        // never start a wave, so it is not a mission to move anybody to.
+        if (!Missions_PopFileInstalled(candidate.popFile)
+            || Missions_PopFileRefused(candidate.popFile))
         {
             continue;
         }
@@ -200,6 +317,12 @@ void Missions_OnListUpdated()
     bool inRun = playingMvM && Missions_Find(current, loaded);
     if (inRun && Missions_Playable(loaded))
     {
+        MissionModifiers_Apply(loaded.popFile, loaded.modifierFlags);
+        if (MissionModifiers_ShouldReloadBotSurgeMission())
+        {
+            AP_Debug("Bot Surge reloads the initial mission to update its support waves.");
+            Missions_ReloadCurrentForModifiers();
+        }
         return;
     }
     char why[96];
@@ -327,8 +450,181 @@ static Action Timer_LoadPlanned(Handle timer)
 // tf_mvm_popfile is a command, not a variable, and it acts on the map that is
 // loaded: it reloads the mission in place. So the map only changes when it has
 // to, and naming the mission waits for the new map when it does.
+/* Whether this server has the mission's file at all.
+ *
+ * TF2 ignores tf_mvm_popfile naming a file it cannot find, and keeps the map's
+ * own mission instead: the map loads, no wave ever starts, and the team sits on
+ * wave 0 with nothing saying why. Reported twice by Doctor Pyro, once with a
+ * bundle, and the log said only that the plugin was "still waiting for
+ * mvm_rottenburg_rev_int_breaking_walls" while "the game says mvm_rottenburg".
+ *
+ * A community mission is the way this happens: the seed draws one and the pack
+ * carrying its file was never installed on the server playing it.
+ */
+static bool Missions_PopFileInstalled(const char[] popFile)
+{
+    char path[PLATFORM_MAX_PATH];
+    if (StrEqual(popFile, CaliginousCaperID, false))
+    {
+        Format(path, sizeof(path), "scripts/population/%s.pop", CaliginousCaperRuntimePop);
+    }
+    else
+    {
+        Format(path, sizeof(path), "scripts/population/%s.pop", popFile);
+    }
+    return FileExists(path, true);
+}
+
+/* A file the server has and the game will not read.
+ *
+ * CPopulationManager::Parse returns false when it meets a populator it does not
+ * know, and the whole file is dropped: the map stays up with no waves in it and
+ * the team sits on wave 0. Doctor Pyro reported it on Breaking Walls, whose file
+ * opens with ItemBlacklist, a SigMod populator that stock TF2 rejects. The only
+ * thing the plugin said was that a wave jump "never took", which is the symptom.
+ *
+ * The engine prints `Invalid populator '<name>'` immediately before it gives up,
+ * so the console already names what it refused; what was missing was anything
+ * tying that to the mission, and any reason not to sit there.
+ */
+static void Missions_HookPopulationParse()
+{
+    GameData data = LoadGameConfigFile("tf2_archipelago");
+    if (data == null)
+    {
+        return;
+    }
+    DynamicDetour parse = DynamicDetour.FromConf(data, "CPopulationManager::Parse");
+    if (parse == null || !parse.Enable(Hook_Post, Missions_PopulationParsed))
+    {
+        // Debug, not an error: the signature is Linux-only, so every Windows
+        // server would carry this line on every map for a report it was never
+        // going to get. Those servers keep the old silent wave 0 until the
+        // Windows signature exists.
+        AP_Debug("A refused mission file will not be reported: CPopulationManager::Parse could not be hooked.");
+    }
+    delete parse;
+    delete data;
+}
+
+public MRESReturn Missions_PopulationParsed(Address populationManager, DHookReturn result)
+{
+    if (result.Value)
+    {
+        return MRES_Ignored;
+    }
+    char popFile[64];
+    if (!MvM_PopFile(popFile, sizeof(popFile)) || popFile[0] == '\0')
+    {
+        return MRES_Ignored;
+    }
+    // Not here: this runs inside the parse that is failing, and the answer to
+    // it is a changelevel. Next frame, once the game has finished giving up.
+    if (g_RefusedPopFiles != null)
+    {
+        int seen;
+        if (g_RefusedPopFiles.GetValue(popFile, seen))
+        {
+            return MRES_Ignored;
+        }
+        g_RefusedPopFiles.SetValue(popFile, 1);
+        DataPack pack = new DataPack();
+        pack.WriteString(popFile);
+        RequestFrame(Missions_ReportRefused, pack);
+    }
+    return MRES_Ignored;
+}
+
+public void Missions_ReportRefused(DataPack pack)
+{
+    char popFile[64];
+    pack.Reset();
+    pack.ReadString(popFile, sizeof(popFile));
+    delete pack;
+    Missions_NoteRefused(popFile);
+}
+
+/* Say it once per file, and keep it out of the pool for the rest of the session.
+ *
+ * Once, because the game re-parses on every wave restart and the same failure
+ * would otherwise scroll past a dozen times; the hook records it before asking
+ * for this. Out of the pool, because a mission this server cannot read is not
+ * one to move anybody to next either.
+ */
+static void Missions_NoteRefused(const char[] popFile)
+{
+    char name[64];
+    Mission mission;
+    if (Missions_Find(popFile, mission))
+    {
+        strcopy(name, sizeof(name), mission.name);
+    }
+    else
+    {
+        strcopy(name, sizeof(name), popFile);
+    }
+    // Several short lines rather than one long one: AP_Error cuts at
+    // ChatLineMax, and the first draft of this lost its own last sentence.
+    AP_Error("%s cannot be played here: the server refused %s.pop, so this map has no waves.",
+        name, popFile);
+    AP_Error("The console line above names the populator it did not know.");
+    if (FindConVar("sig_pop_popmgr_extensions") == null)
+    {
+        AP_Error("SigMod is not loaded here, and that is where those populators come from.");
+        AP_Error("Turn SigMod on in the launcher, or leave %s out of the run.", name);
+        // On Windows SigMod refuses a TF2 build its addresses were not made for,
+        // and that is the case after every Valve update until a new one ships.
+        AP_Error("If it is on, the server console says why it did not load.");
+    }
+    Missions_LeaveRefused(popFile);
+}
+
+/* Move off the mission that was refused, if the run has somewhere else to go.
+ *
+ * Reported rather than silent is the point of this, but leaving the team on a
+ * map with no waves is still leaving them stuck, and the next mission is chosen
+ * the same way a clear chooses one.
+ */
+static void Missions_LeaveRefused(const char[] popFile)
+{
+    Mission next;
+    bool fresh;
+    if (!Missions_Next(popFile, next, fresh))
+    {
+        AP_Error("Nothing else in the run is playable, so the server stays here.");
+        AP_Error("Pick one with sm_ap_mission once there is one.");
+        return;
+    }
+    AP_Announce("Moving on to %s.", next.name);
+    Missions_Load(next);
+}
+
+static bool Missions_PopFileRefused(const char[] popFile)
+{
+    int seen;
+    return g_RefusedPopFiles != null && g_RefusedPopFiles.GetValue(popFile, seen);
+}
+
 static void Missions_Load(Mission mission)
 {
+    if (Missions_PopFileRefused(mission.popFile))
+    {
+        AP_Error("%s cannot be played here: this server already refused its population file once.", mission.name);
+        return;
+    }
+    if (!Missions_PopFileInstalled(mission.popFile))
+    {
+        if (StrEqual(mission.popFile, CaliginousCaperID, false))
+        {
+            AP_Error("%s cannot be played here: %s.pop is not on this server, so the game would keep the map's own mission and never start a wave. The server makes that file from the game's own files when it starts. Restart the server, or leave the mission out of the run.",
+                mission.name, CaliginousCaperRuntimePop);
+            return;
+        }
+        AP_Error("%s cannot be played here: %s.pop is not on this server, so the game would keep the map's own mission and never start a wave. Install the community pack that carries it, or leave the mission out of the run.",
+            mission.name, mission.popFile);
+        return;
+    }
+
     LogMessage("mission switched to %s (%s) on %s", mission.name, mission.popFile, mission.map);
 
     // Before either branch: both are asking for a mission that is not loaded
@@ -336,12 +632,14 @@ static void Missions_Load(Mission mission)
     strcopy(g_SwitchingPopFile, sizeof(g_SwitchingPopFile), mission.popFile);
     g_SwitchingUntil = GetEngineTime() + SwitchGrace;
 
+    MissionModifiers_Apply(mission.popFile, mission.modifierFlags);
+
     char current[64];
     GetCurrentMap(current, sizeof(current));
     if (StrEqual(current, mission.map, false) && MvM_IsActive())
     {
         AP_Announce("Mission: %s. Reloading.", mission.name);
-        ServerCommand("tf_mvm_popfile %s", mission.popFile);
+        Missions_ApplyPopFile(mission.popFile, mission.map);
         return;
     }
     AP_Announce("Mission: %s. The map changes now.", mission.name);
@@ -371,7 +669,8 @@ void Missions_List(int client)
         }
         AP_PrintToClient(client, "%d. %s (%s), %d waves%s%s%s",
             index + 1, mission.name, mission.popFile, mission.waves,
-            Missions_Playable(mission) ? "" : " [locked]",
+            Missions_PopFileRefused(mission.popFile) ? " [refused by this server]"
+                : (Missions_PopFileInstalled(mission.popFile) ? (Missions_Playable(mission) ? "" : " [locked]") : " [not installed]"),
             mission.cleared ? " [cleared]" : "",
             StrEqual(mission.popFile, current) ? " [playing]" : "");
     }
@@ -455,6 +754,18 @@ int g_ResumeWave;
 bool g_ResumeConsulted;
 int g_ResumeTicks;
 
+/* The wave the jump asked for, and how long to keep watching for it.
+ *
+ * The jump used to be told and never checked. It said "Restored: Quarry at
+ * wave 3 of 6" and a player answered "im in the first wave again", and nothing
+ * in the log could tell the two apart. Now the announcement waits until the
+ * game agrees, and says so when it never does.
+ */
+int g_ResumeTarget;
+int g_ResumeSettleTicks;
+#define ResumeSettleTick 1.0
+#define ResumeSettleTicksMax 30
+
 // How long to keep waiting for the mission to come up before giving the
 // restore up. A changelevel plus the popfile behind it is a few seconds; past
 // two minutes something else went wrong and the team is better left alone.
@@ -504,6 +815,52 @@ void Missions_NoteResume(const char[] popFile, int wave)
     g_StartMissionApplied = true;
     g_PlannedPopFile[0] = '\0';
     AP_Announce("The server came back. %s loads again, at the wave the team had reached.", mission.name);
+    Missions_Load(mission);
+}
+
+/* Load a mission and start it at a wave.
+ *
+ * The wave is the player's, clamped to one the mission has: a number past the
+ * end would jump nowhere and a number below one is the start. Wave one needs
+ * no jump at all, which is the ordinary load.
+ *
+ * Everything else is the load-time restore's machinery, reused: the same timer
+ * waits for the mission to come up and the same watch checks the jump landed.
+ */
+void Missions_ResumeMission(int client, const char[] choice, int wave)
+{
+    Mission mission;
+    if (!Missions_Find(choice, mission))
+    {
+        AP_PrintToClient(client, "No mission %s in this run. Type !mission for the list.", choice);
+        return;
+    }
+    if (!Missions_Playable(mission))
+    {
+        AP_PrintToClient(client, "The run did not unlock %s yet. Its ticket is somewhere in the multiworld.", mission.name);
+        return;
+    }
+    if (wave < 1)
+    {
+        wave = 1;
+    }
+    if (mission.waves > 0 && wave > mission.waves)
+    {
+        AP_PrintToClient(client, "%s has %d waves, so wave %d is not one of them.", mission.name, mission.waves, wave);
+        return;
+    }
+
+    strcopy(g_ResumePopFile, sizeof(g_ResumePopFile), mission.popFile);
+    // The machinery below counts in waves cleared, and the player picked the
+    // wave they want to play: the wave before it is the one they are past.
+    g_ResumeWave = wave - 1;
+    g_ResumeTicks = 0;
+    // A player asking is not the load-time restore, so the once-only guard
+    // that stops the bridge's record dragging the team around does not apply.
+    g_ResumeConsulted = true;
+    CreateTimer(ResumeTick, Timer_Resume, _, TIMER_REPEAT);
+
+    g_PlannedPopFile[0] = '\0';
     Missions_Load(mission);
 }
 
@@ -568,9 +925,49 @@ static void Missions_Resume(Mission mission, int cleared)
             mission.popFile, playing, target);
         return;
     }
-    AP_Announce("Restored: %s at wave %d of %d. The team had cleared %d before the server stopped.",
-        mission.name, target, mission.waves, cleared);
+    AP_Debug("Putting %s back to wave %d of %d, from a record of %d cleared.",
+        mission.popFile, target, mission.waves, cleared);
     Missions_JumpToWave(target);
+
+    // The jump is asked for, not confirmed. What follows watches until the
+    // game agrees, pays the money back once it does, and says so either way.
+    g_ResumeTarget = target;
+    g_ResumeSettleTicks = 0;
+    CreateTimer(ResumeSettleTick, Timer_ResumeSettled, _, TIMER_REPEAT);
+}
+
+/* Did the jump land, and pay the team back once it has.
+ *
+ * A wave jump is a round restart, so nothing is true immediately: the wave
+ * number moves a moment later, and there is no live defender to hand money to
+ * until the respawn. Both are waited for here rather than assumed, and the
+ * announcement is held until the wave is real so the team is never told they
+ * were restored to somewhere they are not.
+ *
+ * The money is the game's own: the jump is asked for full currency, which is
+ * what the team would hold having won every wave before this one perfectly.
+ */
+static Action Timer_ResumeSettled(Handle timer)
+{
+    if (g_ResumeTarget <= 0)
+    {
+        return Plugin_Stop;
+    }
+    if (++g_ResumeSettleTicks > ResumeSettleTicksMax)
+    {
+        AP_Error("The wave jump to %d never took: the game is on wave %d. The team keeps what they have.",
+            g_ResumeTarget, MvM_WaveFromGame());
+        g_ResumeTarget = 0;
+        return Plugin_Stop;
+    }
+    if (!MvM_IsActive() || MvM_WaveFromGame() < g_ResumeTarget)
+    {
+        return Plugin_Continue;
+    }
+
+    AP_Announce("Restored: wave %d, with the money for the waves before it.", g_ResumeTarget);
+    g_ResumeTarget = 0;
+    return Plugin_Stop;
 }
 
 // tf_mvm_jump_to_wave is a cheat, and a server left with cheats on is worse
@@ -589,6 +986,10 @@ static void Missions_JumpToWave(int wave)
     char previous[8];
     cheats.GetString(previous, sizeof(previous));
     ServerCommand("sv_cheats 1");
-    ServerCommand("tf_mvm_jump_to_wave %d", wave);
+    // The second argument is the share of the skipped waves' money to hand
+    // over, and 1 is all of it: the team comes back with what perfect play
+    // would have left them holding, which is the only honest answer when the
+    // waves they are skipping are ones they had already won.
+    ServerCommand("tf_mvm_jump_to_wave %d 1", wave);
     ServerCommand("sv_cheats %s", previous);
 }

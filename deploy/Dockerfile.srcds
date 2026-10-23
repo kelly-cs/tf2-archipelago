@@ -5,7 +5,7 @@
 # file nobody sees, so our additions are staged in /opt and the entrypoint
 # installs them once SourceMod exists.
 
-FROM debian:stable-slim AS build
+FROM debian:13.7-slim AS build
 
 RUN apt-get update \
 	&& apt-get install --yes --no-install-recommends curl ca-certificates unzip \
@@ -19,53 +19,210 @@ COPY plugin/scripting ./scripting
 RUN ./build.sh
 
 
-# The MvM defender bots: the mod that fills RED so a wave tuned for six players
-# is winnable alone. Its own stage so a plugin edit does not refetch it, and so
-# the tree it stages can be copied whole.
-FROM debian:stable-slim AS bots
+# Two small commands from the launcher, because this container is the only one
+# that may write into the game tree.
+#
+# rcon: the entrypoint writes SourceMod's admin file after SourceMod appears in
+# the runtime volume, by which time the server can already have built its admin
+# cache, so the cache is refreshed over rcon.
+#
+# botfiles: renders the bots' loadouts and the pool they draw their names from,
+# out of the same environment the admin page writes. The admin container mounts
+# the game read-only on purpose, so the rendering has to happen here, and it
+# uses the launcher's own packages rather than a second copy of the weapon
+# catalogue in shell.
+#
+# The tree is listed rather than taken whole because the launcher's embedded
+# assets are .dockerignored: a COPY of everything would not compile. A test in
+# deploy keeps this list and what the two commands import in step.
+FROM golang:1.27 AS tools
+
+WORKDIR /repo
+COPY go.mod go.sum ./
+COPY gamedata gamedata
+COPY launcher/cmd/rcon launcher/cmd/rcon
+COPY launcher/cmd/botfiles launcher/cmd/botfiles
+COPY launcher/cmd/provision launcher/cmd/provision
+COPY launcher/cmd/sigmodpatch launcher/cmd/sigmodpatch
+COPY launcher/cmd/stockpop launcher/cmd/stockpop
+COPY launcher/internal/rcon launcher/internal/rcon
+COPY launcher/internal/botfiles launcher/internal/botfiles
+COPY launcher/internal/botcards launcher/internal/botcards
+COPY launcher/internal/botlive launcher/internal/botlive
+COPY launcher/internal/botloadout launcher/internal/botloadout
+COPY launcher/internal/botnames launcher/internal/botnames
+COPY launcher/internal/fastdl launcher/internal/fastdl
+COPY launcher/internal/provision launcher/internal/provision
+COPY launcher/internal/runshape launcher/internal/runshape
+COPY launcher/internal/settings launcher/internal/settings
+COPY launcher/internal/sigmodpatch launcher/internal/sigmodpatch
+COPY launcher/internal/stockpop launcher/internal/stockpop
+RUN CGO_ENABLED=0 go build -trimpath -o /rcon ./launcher/cmd/rcon \
+	&& CGO_ENABLED=0 go build -trimpath -o /botfiles ./launcher/cmd/botfiles \
+	&& CGO_ENABLED=0 go build -trimpath -o /provision ./launcher/cmd/provision \
+	&& CGO_ENABLED=0 go build -trimpath -o /stockpop ./launcher/cmd/stockpop \
+	&& CGO_ENABLED=0 go build -trimpath -o /sigmodpatch ./launcher/cmd/sigmodpatch
+
+
+# CBaseNPC, Actions and REST in Pawn, compiled against the pinned SourceMod
+# commit. SourceMod 1.13 refuses extensions built for API 8, which every release
+# of the three is. The image also carries the patches in deploy/patches/cbasenpc:
+# the released CBaseNPC can leave its tools-side navigation cache empty after a
+# changelevel.
+#
+# A minute and a half of fetching and compiling, so this stage sees nothing
+# that does not change its output, and CI keeps its layers between runs. The
+# pins arrive through a stage of their own that keeps only the extension lines
+# of versions.env: COPY --from is keyed on the content it copies, so bumping
+# any other pin leaves the build below cached.
+FROM debian:13.7-slim AS extension-pins
+
+COPY deploy/env/versions.env /versions.env
+RUN grep -E '^(HL2SDK|SOURCEMOD_SRC|METAMOD_SRC|AMBUILD|CBASENPC|ACTIONS|RIPEXT)_' \
+	/versions.env >/extension-pins.env
+
+
+# Bookworm, not Debian 13 like the stages above: these two .so files are loaded by the TF2 image
+# below, which is Bookworm, and Debian stable has moved on to a glibc newer than
+# it has. Built on stable the extensions ask for GLIBC_2.38, SourceMod loads
+# neither, and no defender bots join. The check at the end of the last stage is
+# what catches it, and it caught this.
+FROM debian:12.15-slim AS extensions
 
 RUN apt-get update \
 	&& apt-get install --yes --no-install-recommends \
-		git curl ca-certificates unzip \
+		git ca-certificates python3 clang gcc-multilib g++-multilib \
 	&& rm -rf /var/lib/apt/lists/*
 
 WORKDIR /repo
+COPY --from=extension-pins /extension-pins.env deploy/env/versions.env
+COPY deploy/patches/cbasenpc deploy/patches/cbasenpc
+COPY deploy/patches/actions deploy/patches/actions
+COPY deploy/patches/ripext deploy/patches/ripext
+COPY deploy/patches/sourcemod deploy/patches/sourcemod
+COPY deploy/bots/build-extensions.sh deploy/bots/build-extensions.sh
+RUN BOTS_OUT=/extensions sh deploy/bots/build-extensions.sh \
+	&& rm -rf deploy/bots/build
+
+
+# The MvM defender bots: the mod that fills RED so a wave tuned for six players
+# is winnable alone. Its own stage so a plugin edit does not refetch it, and so
+# the tree it stages can be copied whole.
+#
+# The mod is a Go module dependency, so staging it needs a Go toolchain. Build
+# the native extensions on Bookworm, the same Debian release as the TF2 image
+# below: binaries built on the default Go image require a newer glibc and
+# SourceMod cannot load them in the server.
+FROM golang:1.27-bookworm AS bots
+
+RUN apt-get update \
+	&& apt-get install --yes --no-install-recommends git curl ca-certificates unzip \
+	&& rm -rf /var/lib/apt/lists/*
+
+WORKDIR /repo
+COPY go.mod go.sum ./
 COPY deploy/env/versions.env deploy/env/versions.env
 COPY deploy/patches deploy/patches
 COPY deploy/bots deploy/bots
-RUN sh deploy/bots/build.sh
+# The pool the bots draw their names from. The launcher writes this file too,
+# every start, but the package carries it so a server it has never configured
+# still has names rather than six bots called "You forgot to give me a name!".
+COPY launcher/internal/botnames launcher/internal/botnames
+COPY launcher/internal/fastdl launcher/internal/fastdl
+COPY launcher/internal/provision launcher/internal/provision
+# The extensions are the ones built above, so build.sh compiles only the plugins.
+COPY --from=extensions /extensions /extensions
+RUN BOTS_EXTENSIONS_DIR=/extensions sh deploy/bots/build.sh
 
 
-FROM cm2network/tf2:sourcemod
+# cm2network/tf2:sourcemod. The image has rolling tags only, so it is pinned by digest.
+FROM cm2network/tf2@sha256:2e30546eb83f941d0321f9220dad1b509f813ad502a63915f663f28e436c26eb
 
 ARG RIPEXT_VERSION
+ARG SOURCEMOD_VERSION
+ARG MMSOURCE_VERSION
+ARG SIGSEGV_MVM_VERSION
+ARG SIGSEGV_MVM_SHA256
 
 USER root
 
+COPY deploy/sigmod-stamp.sh /usr/local/bin/tf2ap-sigmod-stamp
+COPY --from=tools /sigmodpatch /usr/local/bin/tf2ap-sigmodpatch
+
 # The staged tree mirrors the game directory, so installing it is one copy.
 RUN apt-get update \
-	&& apt-get install --yes --no-install-recommends curl ca-certificates unzip \
+	&& apt-get install --yes --no-install-recommends curl ca-certificates unzip gdb-minimal \
 	&& mkdir -p /opt/tf2-archipelago \
 	&& curl -fsSL -o /tmp/ripext.zip \
 		"https://github.com/ErikMinekus/sm-ripext/releases/download/${RIPEXT_VERSION}/sm-ripext-${RIPEXT_VERSION}-linux.zip" \
 	&& unzip -oq /tmp/ripext.zip -d /tmp/ripext \
 	&& cp -r /tmp/ripext/addons /opt/tf2-archipelago/ \
 	&& rm -rf /opt/tf2-archipelago/addons/sourcemod/scripting \
+	&& rm -rf /opt/tf2-archipelago/addons/sourcemod/extensions \
 	&& rm -rf /tmp/ripext.zip /tmp/ripext \
+	&& mkdir -p /opt/tf2-mods/sigsegv-mvm \
+	&& curl -fsSL -o /tmp/sigsegv.zip \
+		"https://github.com/m-this/sigsegv-mvm-win/releases/download/${SIGSEGV_MVM_VERSION}/package-linux.zip" \
+	&& echo "${SIGSEGV_MVM_SHA256}  /tmp/sigsegv.zip" | sha256sum -c - \
+	&& unzip -oq /tmp/sigsegv.zip -d /opt/tf2-mods/sigsegv-mvm \
+	&& /usr/local/bin/tf2ap-sigmodpatch /opt/tf2-mods/sigsegv-mvm linux \
+	&& sh /usr/local/bin/tf2ap-sigmod-stamp /opt/tf2-mods/sigsegv-mvm \
+		"${SIGSEGV_MVM_VERSION}" "${SIGSEGV_MVM_SHA256}" \
+	&& rm -f /tmp/sigsegv.zip \
 	&& apt-get purge --yes unzip curl \
 	&& apt-get autoremove --yes \
 	&& rm -rf /var/lib/apt/lists/*
 
 COPY --from=bots /repo/deploy/bots/build/package/addons \
 	/opt/tf2-archipelago/addons
+# Keep the native extensions checked against the image that actually runs
+# them. A future build-image update must fail here instead of shipping bots
+# SourceMod cannot load, which is what a newer glibc than this image's did.
+#
+# The check is the glibc version each extension asks for, not ldd's view of
+# them: they link the engine's own libtier0_srv.so and libvstdlib_srv.so, which
+# live in the game directory and are not in this image at all, so every ldd
+# here reports two libraries missing whether the build is good or not. The
+# GLIBC_x.y symbol versions are in the object's own string table, which needs
+# nothing present to read.
+RUN set -eu; \
+	provided="$(ldd --version | head -1 | grep -oE '[0-9]+\.[0-9]+$')"; \
+	[ -n "$provided" ] || { echo "cannot read this image's glibc version" >&2; exit 1; }; \
+	for name in actions.ext.2.tf2 cbasenpc.ext.2.tf2 rip.ext dhooks.ext; do \
+		file="/opt/tf2-archipelago/addons/sourcemod/extensions/$name.so"; \
+		if [ ! -s "$file" ]; then \
+			echo "missing defender-bot extension: $file" >&2; \
+			exit 1; \
+		fi; \
+		needed="$(grep -ao 'GLIBC_[0-9][0-9.]*' "$file" | sed 's/^GLIBC_//' | sort -uV | tail -1)"; \
+		[ -n "$needed" ] || continue; \
+		if [ "$(printf '%s\n%s\n' "$needed" "$provided" | sort -V | tail -1)" != "$provided" ]; then \
+			echo "$file needs glibc $needed, this image has $provided" >&2; \
+			exit 1; \
+		fi; \
+	done
 COPY --from=build /plugin/build/tf2_archipelago.smx \
 	/opt/tf2-archipelago/addons/sourcemod/plugins/tf2_archipelago.smx
+# The plugin refuses to load without its gamedata, and a server without the
+# plugin is stock Mann vs Machine with nothing saying so. The launcher embeds
+# this file; the image has to carry it the same way.
+COPY plugin/gamedata/tf2_archipelago.txt \
+	/opt/tf2-archipelago/addons/sourcemod/gamedata/tf2_archipelago.txt
 COPY deploy/srcds/tf2_archipelago.cfg \
 	/opt/tf2-archipelago/cfg/sourcemod/tf2_archipelago.cfg
 COPY deploy/srcds-entrypoint.sh /usr/local/bin/entrypoint.sh
+COPY deploy/srcds-launch.sh /usr/local/bin/tf2ap-srcds-launch.sh
+COPY --from=tools /rcon /usr/local/bin/rcon
+COPY --from=tools /botfiles /usr/local/bin/tf2ap-botfiles
+COPY --from=tools /provision /usr/local/bin/tf2ap-provision
+COPY --from=tools /stockpop /usr/local/bin/tf2ap-stockpop
 
-RUN chown -R steam:steam /opt/tf2-archipelago \
-	&& chmod +x /usr/local/bin/entrypoint.sh
+RUN chown -R steam:steam /opt/tf2-archipelago /opt/tf2-mods \
+	&& chmod +x /usr/local/bin/entrypoint.sh /usr/local/bin/tf2ap-srcds-launch.sh
+
+# srcds-launch.sh brings the game volume to these, not the base image's.
+ENV TF2AP_SOURCEMOD_VERSION=${SOURCEMOD_VERSION} \
+	TF2AP_MMSOURCE_VERSION=${MMSOURCE_VERSION}
 
 USER steam
 WORKDIR /home/steam

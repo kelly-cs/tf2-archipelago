@@ -25,7 +25,7 @@ The game server reads server.cfg once, at its own startup, so a setting the
 launcher holds but has not written is a setting the server never sees. The
 launcher used to render the file once per run, before either interface was
 reached, which left every later edit on disk and nowhere else: a class unticked
-in the terminal interface was saved, shown as unticked, and still drawn by the
+in the interface was saved, shown as unticked, and still drawn by the
 mod for the rest of the evening.
 */
 func TestStartRendersTheConfigsFromTheCurrentSettings(t *testing.T) {

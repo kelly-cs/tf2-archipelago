@@ -7,7 +7,7 @@ Archipelago community that matters, so it is the first thing said.
 `gamedata/`, a Go package, and committed as JSON under `tf2_mvm/data/`. This
 directory holds the code that reads that JSON and the logic that cannot be
 expressed as data. The reasoning is in [ADR
-0001](../docs/en/adr/0001-go-owns-the-game-data.md).
+0001](../design/adr/0001-go-owns-the-game-data.md).
 
 ## What is here
 
@@ -35,7 +35,7 @@ expressed as data. The reasoning is in [ADR
 
 ## Running it
 
-There is no Archipelago in this repo. Point a 0.6.7 checkout at this folder:
+There is no Archipelago in this repo. Point a 0.6.8 checkout at this folder:
 
 ```sh
 ln -s "$PWD/tf2_mvm" <archipelago>/worlds/tf2_mvm     # a folder must live in worlds/
@@ -69,5 +69,5 @@ toolchain.
 ## Upstream
 
 Submitting this to `ArchipelagoMW/Archipelago` is explicitly out of scope for
-v1 (`docs/en/spec.md`). A JSON-reading apworld may not be accepted as-is. Revisit
+v1 (`design/spec.md`). A JSON-reading apworld may not be accepted as-is. Revisit
 once it generates and has been played end to end.

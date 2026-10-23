@@ -1,16 +1,20 @@
 # deploy
 
-Compose stack. Two services by default, and two more that run on demand.
+Compose stack. Five services by default, and one more that runs on demand.
 
 | File | Service | Notes |
 | --- | --- | --- |
 | `compose.yml` | `srcds` | TF2 dedicated server, SourceMod plus `ripext` plus our plugin. |
 | `compose.yml` | `bridge` | Go, from `bridge/`. |
+| `compose.yml` | `admin` | The launcher web UI attached to the Compose-managed server, with read-only SRCDS and bridge logs, on host loopback. |
 | `compose.yml` | `archipelago` | The Archipelago server, unmodified, with our apworld baked in. Profile `selfhost` only. |
+| `compose.yml` | `fastdl` | Caddy serving only downloadable TF2 asset directories. |
+| `compose.yml` | `tailscale-fastdl` | Official Tailscale Funnel sidecar, signed in from the admin UI. |
 | `compose.seed.yml` | `seed` | The same image, run once to generate a seed into `./seed`. |
 | `compose.release.yml` | — | An overlay, not a stack. Names a `ghcr.io` image for each service above. |
 
-The multiworld runs on archipelago.gg by default: `make seed` writes the file,
+The stack plays a room that already exists, and needs only its address and a
+slot. The multiworld runs on archipelago.gg by default: `make seed` writes the file,
 the operator uploads it there and opens a room, and the bridge dials that room.
 `COMPOSE_PROFILES=selfhost` in `.env` hosts it here instead.
 
@@ -27,7 +31,9 @@ files above, and `--no-interpolate` keeps every `${VAR}` for the operator's
 not there. Generation comes back as the `seed` profile, since a release ships
 one file rather than two.
 
-Each service and each environment variable lives in one file. Add one to
+Each service and each environment variable lives in one file. The Caddy and
+Tailscale configurations are inline so this release artifact needs no sibling
+configuration files. Add a service to
 `compose.yml` and it reaches the released file at the next tag;
 `compose.release.yml` only has to name its image.
 
@@ -39,9 +45,10 @@ rule exactly once:
 
 - `srcds` needs **27015/udp** reachable from the internet, or nobody can join.
   There is no way around it. A game client connects directly.
-- **Everything else stays on loopback.** The bridge's HTTP API, the Archipelago
-  server's web UI and its game port, and RCON above all. RCON is never exposed,
-  not even on loopback outside the compose network.
+- **Everything else stays on loopback.** The admin UI (8477 by default), the
+  bridge's HTTP API, the Archipelago server's web UI and its game port, and
+  RCON above all. RCON itself is never exposed, not even on loopback outside
+  the compose network; the local admin UI is its guarded front door.
 
 Consequence worth being explicit about: this puts inbound game traffic on
 whatever host runs it. `srcds` is a large C++ process parsing untrusted input

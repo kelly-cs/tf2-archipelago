@@ -1,10 +1,13 @@
 package gamedata
 
 import (
+	"crypto/md5"
 	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
+	"strings"
 )
 
 // The exported JSON is what the Python apworld reads at import time. It is
@@ -13,9 +16,11 @@ import (
 // shape it does not know. See ADR 0001.
 
 const (
-	FileMeta     = "meta.json"
-	FileMissions = "missions.json"
-	FileItems    = "items.json"
+	FileMeta          = "meta.json"
+	FileMissions      = "missions.json"
+	FileItems         = "items.json"
+	FileWeaponClasses = "weapon_classes.json"
+	FileClassLoadouts = "class_loadouts.json"
 )
 
 type metaFile struct {
@@ -26,6 +31,20 @@ type metaFile struct {
 	Maps          []mapJSON        `json:"maps"`
 	Classes       []classJSON      `json:"classes"`
 	WeaponSlots   []weaponSlotJSON `json:"weapon_slots"`
+	ServerMods    []serverModJSON  `json:"server_mods"`
+	Milestones    []milestoneJSON  `json:"milestones"`
+}
+
+type milestoneJSON struct {
+	ID        int64  `json:"id"`
+	Name      string `json:"name"`
+	Kind      string `json:"kind"`
+	Threshold int    `json:"threshold"`
+}
+
+type serverModJSON struct {
+	Key  string `json:"key"`
+	Name string `json:"name"`
 }
 
 type difficultyJSON struct {
@@ -68,14 +87,17 @@ type missionJSON struct {
 	HasGiant   bool           `json:"has_giant"`
 	Community  bool           `json:"community"`
 	Playable   bool           `json:"playable"`
+	Requires   string         `json:"requires,omitempty"`
 	Locations  []locationJSON `json:"locations"`
 }
 
 type locationJSON struct {
-	ID   int64  `json:"id"`
-	Name string `json:"name"`
-	Kind string `json:"kind"`
-	Wave uint8  `json:"wave,omitempty"`
+	ID    int64  `json:"id"`
+	Name  string `json:"name"`
+	Kind  string `json:"kind"`
+	Wave  uint8  `json:"wave,omitempty"`
+	Cache uint8  `json:"cache,omitempty"`
+	Index uint8  `json:"index,omitempty"`
 }
 
 type itemsFile struct {
@@ -93,11 +115,41 @@ type itemJSON struct {
 	ClassID        ClassID   `json:"class_id,omitempty"`
 	Credits        uint16    `json:"credits,omitempty"`
 	WeaponBuffID   uint16    `json:"weapon_buff_id,omitempty"`
+	BotName        string    `json:"bot_name,omitempty"`
+	BotTier        string    `json:"bot_tier,omitempty"`
+	BotForm        string    `json:"bot_form,omitempty"`
+	BotStock       bool      `json:"bot_stock,omitempty"`
 	Stackable      bool      `json:"stackable,omitempty"`
 	Eligible       bool      `json:"eligible,omitempty"`
+
+	// Slot names the loadout slot a class slot item opens, for the seeds that
+	// hand them out by name rather than in order. Absent on every other item.
+	Slot string `json:"slot,omitempty"`
 }
 
-// Export writes the three data files into dir, replacing what is there.
+type weaponClassesFile struct {
+	FormatVersion int                 `json:"format_version"`
+	Weapons       []weaponClassesJSON `json:"weapons"`
+}
+
+type weaponClassesJSON struct {
+	Name    string   `json:"name"`
+	Classes []string `json:"classes"`
+	Icon    string   `json:"icon"`
+	Aliases []string `json:"aliases,omitempty"`
+}
+
+type classLoadoutsFile struct {
+	FormatVersion int                `json:"format_version"`
+	Classes       []classLoadoutJSON `json:"classes"`
+}
+
+type classLoadoutJSON struct {
+	Name  string   `json:"name"`
+	Slots []string `json:"slots"`
+}
+
+// Export writes the generated data files into dir, replacing what is there.
 func Export(dir string) error {
 	if err := Validate(); err != nil {
 		return fmt.Errorf("gamedata is not valid, refusing to export: %w", err)
@@ -106,9 +158,11 @@ func Export(dir string) error {
 		return err
 	}
 	files := map[string]any{
-		FileMeta:     buildMetaFile(),
-		FileMissions: buildMissionsFile(),
-		FileItems:    buildItemsFile(),
+		FileMeta:          buildMetaFile(),
+		FileMissions:      buildMissionsFile(),
+		FileItems:         buildItemsFile(),
+		FileWeaponClasses: buildWeaponClassesFile(),
+		FileClassLoadouts: buildClassLoadoutsFile(),
 	}
 	for name, content := range files {
 		body, err := json.MarshalIndent(content, "", "  ")
@@ -120,6 +174,38 @@ func Export(dir string) error {
 		}
 	}
 	return nil
+}
+
+func buildClassLoadoutsFile() classLoadoutsFile {
+	file := classLoadoutsFile{
+		FormatVersion: FormatVersion,
+		Classes:       make([]classLoadoutJSON, 0, len(Classes)),
+	}
+	for _, class := range Classes {
+		slots := make([]string, 0, len(class.SlotOrder))
+		for _, id := range class.SlotOrder {
+			slot, ok := WeaponSlotByID(id)
+			if !ok {
+				continue
+			}
+			slots = append(slots, slot.Name)
+		}
+		file.Classes = append(file.Classes, classLoadoutJSON{Name: class.Name, Slots: slots})
+	}
+	return file
+}
+
+// slotKey is the slot a named class slot item opens, and empty for every item
+// that opens none.
+func slotKey(id WeaponSlotID) string {
+	if id == 0 {
+		return ""
+	}
+	slot, ok := WeaponSlotByID(id)
+	if !ok {
+		return ""
+	}
+	return slot.Key
 }
 
 func buildMetaFile() metaFile {
@@ -135,6 +221,9 @@ func buildMetaFile() metaFile {
 	for _, d := range Difficulties {
 		meta.Difficulties = append(meta.Difficulties, difficultyJSON{d, d.Key(), d.String()})
 	}
+	for _, m := range Milestones {
+		meta.Milestones = append(meta.Milestones, milestoneJSON{m.ID, m.Name, m.Kind.Key(), m.Threshold})
+	}
 	for _, m := range Maps {
 		meta.Maps = append(meta.Maps, mapJSON{m.ID, m.Name, IsCommunityMap(m.ID)})
 	}
@@ -146,13 +235,16 @@ func buildMetaFile() metaFile {
 	for _, s := range WeaponSlots {
 		meta.WeaponSlots = append(meta.WeaponSlots, weaponSlotJSON(s))
 	}
+	for _, mod := range ServerMods {
+		meta.ServerMods = append(meta.ServerMods, serverModJSON{mod.Key, mod.Name})
+	}
 	return meta
 }
 
 func buildMissionsFile() missionsFile {
 	byMission := make(map[MissionID][]locationJSON, len(Missions))
 	for _, l := range Locations {
-		byMission[l.Mission] = append(byMission[l.Mission], locationJSON{l.ID, l.Name, l.Kind.Key(), l.Wave})
+		byMission[l.Mission] = append(byMission[l.Mission], locationJSON{l.ID, l.Name, l.Kind.Key(), l.Wave, l.Cache, l.Index})
 	}
 	file := missionsFile{
 		FormatVersion: FormatVersion,
@@ -170,6 +262,7 @@ func buildMissionsFile() missionsFile {
 			HasGiant:   m.HasGiant,
 			Community:  IsCommunityMission(m.ID),
 			Playable:   IsPlayableMission(m.ID),
+			Requires:   MissionRequirement(m.ID),
 			Locations:  byMission[m.ID],
 		})
 	}
@@ -200,9 +293,70 @@ func buildItemsFile() itemsFile {
 			ClassID:        it.Class,
 			Credits:        it.Credits,
 			WeaponBuffID:   it.WeaponBuff,
+			BotName:        it.BotName,
+			BotTier:        it.BotTier,
+			BotForm:        it.BotForm,
+			BotStock:       it.BotStock,
 			Stackable:      stackable,
 			Eligible:       eligible,
+			Slot:           slotKey(it.Slot),
 		})
 	}
 	return file
+}
+
+func buildWeaponClassesFile() weaponClassesFile {
+	file := weaponClassesFile{
+		FormatVersion: FormatVersion,
+		Weapons:       make([]weaponClassesJSON, 0, len(BuffWeapons)),
+	}
+	for _, weapon := range BuffWeapons {
+		if weapon.ID != weapon.ApplyID {
+			continue
+		}
+		classes := weaponClassNames(weapon.Name, weapon.DefIndexes)
+		if len(classes) != 0 {
+			displayName := weapon.DisplayName()
+			file.Weapons = append(file.Weapons, weaponClassesJSON{
+				Name: displayName, Classes: classes, Icon: trackerItemIconPath(displayName),
+				Aliases: weaponFamilyAliases(weapon.Name),
+			})
+		}
+	}
+	return file
+}
+
+func weaponFamilyAliases(canonical string) []string {
+	for _, family := range weaponFamilies {
+		if family[0] != canonical {
+			continue
+		}
+		// A renamed family needs its internal canonical name exposed as an alias;
+		// normally only the remaining, equivalent item definitions are aliases.
+		if canonical == allClassMeleeName {
+			return slices.Clone(family)
+		}
+		return slices.Clone(family[1:])
+	}
+	return nil
+}
+
+var tfWikiItemIconNames = map[string]string{
+	"All-Class Melee":  "Conscientious Objector",
+	"Construction PDA": "PDA Build",
+	"Destruction PDA":  "PDA Destroy",
+	"Force-a-Nature":   "Force-A-Nature",
+	"Invis Watch":      "Invisibility Watch",
+	"Sapper":           "Electro Sapper",
+	"SMG":              "Submachine Gun",
+	"Übersaw":          "Ubersaw",
+}
+
+func trackerItemIconPath(weapon string) string {
+	if filename, ok := tfWikiItemIconNames[weapon]; ok {
+		weapon = filename
+	}
+	filename := "Item_icon_" + strings.ReplaceAll(weapon, " ", "_") + ".png"
+	hash := fmt.Sprintf("%x", md5.Sum([]byte(filename)))
+	return "assets/tf2/items/" + hash + ".png"
 }

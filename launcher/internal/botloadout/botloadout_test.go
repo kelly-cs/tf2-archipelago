@@ -73,6 +73,7 @@ func TestRenderNamesEachSeat(t *testing.T) {
 	seats := Seats(
 		[]string{"engineer", "engineer", "", "medic"},
 		[]string{"gunslinger", "wrangler", "milk", ""},
+		nil,
 	)
 	got := Render(nil, seats)
 
@@ -103,7 +104,7 @@ func TestRenderNamesEachSeat(t *testing.T) {
 // A team of nothing but drawn seats writes no seats block, and nothing asks
 // for the file at all.
 func TestSeatsWithNoLoadoutsAreNotCustom(t *testing.T) {
-	seats := Seats([]string{"scout", "soldier"}, []string{"", StockKey})
+	seats := Seats([]string{"scout", "soldier"}, []string{"", StockKey}, nil)
 	if CustomSeats(seats) {
 		t.Error("stock seats asked for a loadout file")
 	}
@@ -176,7 +177,7 @@ func TestSeatNumbersAgreeWithTheComposition(t *testing.T) {
 	loadouts := []string{"", "ranger", "", "brass"}
 
 	entries := strings.Split(Composition(comp, nil), ",")
-	rendered := Render(nil, Seats(comp, loadouts))
+	rendered := Render(nil, Seats(comp, loadouts, nil))
 
 	for seat, class := range entries {
 		if class == "" {

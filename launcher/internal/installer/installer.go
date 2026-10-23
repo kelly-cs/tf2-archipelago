@@ -19,10 +19,17 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
+	"runtime"
+	"slices"
+	"sort"
 	"strings"
 	"time"
 
+	"github.com/m-this/tf2-archipelago/gamedata"
+	"github.com/m-this/tf2-archipelago/gamedata/availability"
 	"github.com/m-this/tf2-archipelago/launcher/internal/assets"
+	"github.com/m-this/tf2-archipelago/launcher/internal/sigmodpatch"
 	"github.com/m-this/tf2-archipelago/launcher/internal/winproc"
 )
 
@@ -37,6 +44,7 @@ const (
 	gameBytesNeeded           = 20 * gigabyte
 	communityProgressInterval = 250_000_000
 	communityDownloadTimeout  = 2 * time.Hour
+	sigmodKey                 = "sigsegv-mvm"
 )
 
 // communityArchiveURLs are the full Potato asset packs. The "no maps"
@@ -52,11 +60,12 @@ var communityHTTPClient = &http.Client{Timeout: communityDownloadTimeout}
 
 // Status reports what the installer did, for the UI to show.
 type Status struct {
-	SteamcmdInstalled  bool   `json:"steamcmd_installed"`
-	GameInstalled      bool   `json:"game_installed"`
-	SourcemodInstalled bool   `json:"sourcemod_installed"`
-	GameSizeGB         string `json:"game_size_gb,omitempty"`
-	Message            string `json:"message,omitempty"`
+	SteamcmdInstalled  bool     `json:"steamcmd_installed"`
+	GameInstalled      bool     `json:"game_installed"`
+	SourcemodInstalled bool     `json:"sourcemod_installed"`
+	ServerModsReady    []string `json:"server_mods_ready,omitempty"`
+	GameSizeGB         string   `json:"game_size_gb,omitempty"`
+	Message            string   `json:"message,omitempty"`
 }
 
 // Result is the outcome of an Ensure call: whether work was done, and where
@@ -68,8 +77,9 @@ type Result struct {
 }
 
 // Ensure installs whatever is missing. It prints progress to logf as it goes.
+// It does not update an installed game: UpdateGame does, before a start.
 // Cancel the context to abort a download or a steamcmd run.
-func Ensure(ctx context.Context, installRoot string, communityArchives []string, logf func(format string, args ...any)) (Result, error) {
+func Ensure(ctx context.Context, installRoot string, communityArchives, serverMods []string, logf func(format string, args ...any)) (Result, error) {
 	if err := assets.RequireVersions(); err != nil {
 		return Result{}, err
 	}
@@ -77,8 +87,8 @@ func Ensure(ctx context.Context, installRoot string, communityArchives []string,
 		return Result{}, fmt.Errorf("cannot create the install root %s: %w", installRoot, err)
 	}
 	result := Result{
-		SteamcmdDir: filepath.Join(installRoot, "steamcmd"),
-		GameDir:     filepath.Join(installRoot, "tf-dedicated"),
+		SteamcmdDir: steamcmdPath(installRoot),
+		GameDir:     gamePath(installRoot),
 	}
 
 	if !exists(result.SteamcmdDir) {
@@ -111,14 +121,19 @@ func Ensure(ctx context.Context, installRoot string, communityArchives []string,
 	// After the game, because it links what SteamCMD downloaded into where the
 	// game server looks. Every start, because it is a link and cheap, and a
 	// game directory moved between disks leaves a stale one.
-	if err := linkSteamClient(installRoot, result.SteamcmdDir); err != nil {
+	if err := ensureSteamClient(ctx, installRoot, result.SteamcmdDir, logf); err != nil {
 		return result, err
 	}
 
 	if err := installMods(ctx, filepath.Join(result.GameDir, "tf"), logf); err != nil {
 		return result, err
 	}
-	if err := installCommunityArchives(communityArchives, filepath.Join(result.GameDir, "tf"), logf); err != nil {
+	modDir := filepath.Join(result.GameDir, "tf")
+	if err := installServerMods(ctx, installRoot, modDir, serverMods, logf); err != nil {
+		return result, err
+	}
+	result.Done.ServerModsReady = ReadyServerMods(installRoot)
+	if err := installCommunityArchives(communityArchives, modDir, result.Done.ServerModsReady, logf); err != nil {
 		return result, err
 	}
 	result.Done.SourcemodInstalled = true
@@ -126,9 +141,16 @@ func Ensure(ctx context.Context, installRoot string, communityArchives []string,
 	return result, nil
 }
 
-func installCommunityArchives(archives []string, modDir string, logf func(string, ...any)) error {
+func installCommunityArchives(archives []string, modDir string, serverMods []string, logf func(string, ...any)) error {
 	if err := ValidateCommunityArchives(archives, logf); err != nil {
 		return err
+	}
+	removed, err := removeUnsupportedCommunityPopfiles(modDir, serverMods)
+	if err != nil {
+		return err
+	}
+	if removed > 0 {
+		logf("removed %d unsupported community mission popfile(s)", removed)
 	}
 	stampDir := filepath.Join(modDir, ".tf2ap-community")
 	for _, path := range archives {
@@ -136,7 +158,7 @@ func installCommunityArchives(archives []string, modDir string, logf func(string
 		if err != nil {
 			return fmt.Errorf("cannot use community pack %s: %w", path, err)
 		}
-		identity := fmt.Sprintf("%s\n%d\n%d\n", path, info.Size(), info.ModTime().UnixNano())
+		identity := fmt.Sprintf("%s\n%d\n%d\nmods=%s\n", path, info.Size(), info.ModTime().UnixNano(), strings.Join(serverMods, ","))
 		sum := sha256.Sum256([]byte(path))
 		stamp := filepath.Join(stampDir, fmt.Sprintf("%x.stamp", sum[:8]))
 		if body, err := os.ReadFile(stamp); err == nil && string(body) == identity {
@@ -144,9 +166,10 @@ func installCommunityArchives(archives []string, modDir string, logf func(string
 			continue
 		}
 		logf("installing community pack %s (this can take a minute)", filepath.Base(path))
-		if err := installCommunityZip(path, modDir); err != nil {
+		if err := installCommunityZip(path, modDir, serverMods, logf); err != nil {
 			return fmt.Errorf("cannot install community pack %s: %w", path, err)
 		}
+		logf("installed community pack: %s", filepath.Base(path))
 		if err := os.MkdirAll(stampDir, 0o755); err != nil {
 			return err
 		}
@@ -154,7 +177,112 @@ func installCommunityArchives(archives []string, modDir string, logf func(string
 			return err
 		}
 	}
+	if err := writeCommunityDownloadManifests(modDir); err != nil {
+		return fmt.Errorf("cannot prepare community asset downloads: %w", err)
+	}
 	return nil
+}
+
+// InstallCommunityArchives extracts already-downloaded community packs into a
+// TF2 content tree. Compose uses this after its attached admin downloads a
+// pack: srcds consumes that tree as a read-only host overlay, while the native
+// launcher calls the same implementation from Ensure.
+func InstallCommunityArchives(archives []string, modDir string, serverMods []string, logf func(string, ...any)) error {
+	return installCommunityArchives(archives, modDir, serverMods, logf)
+}
+
+var (
+	popBasePattern     = regexp.MustCompile(`(?im)^\s*#base\s+"?([^"\s]+)`)
+	classIconPattern   = regexp.MustCompile(`(?im)^\s*ClassIcon\s+"?([^"\s/]+)`)
+	baseTexturePattern = regexp.MustCompile(`(?i)"?\$baseTexture"?\s+"?([^"\s]+)`)
+)
+
+// writeCommunityDownloadManifests gives the SourceMod plugin the custom wave
+// icons each map's population files can use. Merely putting an asset beside
+// SRCDS makes it available to the server and FastDL; the engine still needs it
+// added to the downloadables string table before a client will request it.
+func writeCommunityDownloadManifests(modDir string) error {
+	populationDir := filepath.Join(modDir, "scripts", "population")
+	manifestDir := filepath.Join(modDir, "addons", "sourcemod", "data", "tf2_archipelago", "downloads")
+	for _, mapName := range communityMapNames {
+		matches, err := filepath.Glob(filepath.Join(populationDir, mapName+"*.pop"))
+		if err != nil {
+			return err
+		}
+		icons := make(map[string]bool)
+		visited := make(map[string]bool)
+		for _, path := range matches {
+			if err := collectPopulationIcons(path, populationDir, visited, icons); err != nil {
+				return err
+			}
+		}
+		files := communityIconFiles(modDir, icons)
+		manifest := filepath.Join(manifestDir, mapName+".txt")
+		if len(files) == 0 {
+			if err := os.Remove(manifest); err != nil && !errors.Is(err, fs.ErrNotExist) {
+				return err
+			}
+			continue
+		}
+		if err := os.MkdirAll(manifestDir, 0o755); err != nil {
+			return err
+		}
+		if err := os.WriteFile(manifest, []byte(strings.Join(files, "\n")+"\n"), 0o644); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func collectPopulationIcons(path, populationDir string, visited, icons map[string]bool) error {
+	path = filepath.Clean(path)
+	if visited[path] {
+		return nil
+	}
+	visited[path] = true
+	body, err := os.ReadFile(path)
+	if errors.Is(err, fs.ErrNotExist) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	for _, match := range classIconPattern.FindAllSubmatch(body, -1) {
+		icons[strings.ToLower(string(match[1]))] = true
+	}
+	for _, match := range popBasePattern.FindAllSubmatch(body, -1) {
+		base := filepath.Base(filepath.FromSlash(string(match[1])))
+		if err := collectPopulationIcons(filepath.Join(populationDir, base), populationDir, visited, icons); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func communityIconFiles(modDir string, icons map[string]bool) []string {
+	files := make(map[string]bool)
+	for icon := range icons {
+		material := filepath.ToSlash(filepath.Join("materials", "hud", "leaderboard_class_"+icon+".vmt"))
+		body, err := os.ReadFile(filepath.Join(modDir, filepath.FromSlash(material)))
+		if err != nil {
+			continue // A stock icon lives in TF2's VPK and needs no download.
+		}
+		files[material] = true
+		texture := "hud/leaderboard_class_" + icon
+		if match := baseTexturePattern.FindSubmatch(body); len(match) > 1 {
+			texture = string(match[1])
+		}
+		textureFile := filepath.ToSlash(filepath.Join("materials", filepath.FromSlash(texture+".vtf")))
+		if _, err := os.Stat(filepath.Join(modDir, filepath.FromSlash(textureFile))); err == nil {
+			files[textureFile] = true
+		}
+	}
+	result := make([]string, 0, len(files))
+	for path := range files {
+		result = append(result, path)
+	}
+	sort.Strings(result)
+	return result
 }
 
 // DownloadCommunityArchives is the only path that fetches community content.
@@ -165,49 +293,137 @@ func DownloadCommunityArchives(ctx context.Context, archives []string, logf func
 	for _, path := range archives {
 		_, err := os.Stat(path)
 		if errors.Is(err, fs.ErrNotExist) {
+			if _, pendingErr := os.Stat(path + communityMismatchSuffix); pendingErr == nil {
+				actual, hashErr := communityArchiveDigest(path + communityMismatchSuffix)
+				if hashErr != nil {
+					return hashErr
+				}
+				return &CommunityArchiveHashMismatchError{filepath.Base(path), communityArchiveSHA256[filepath.Base(path)], actual}
+			}
 			if err := downloadCommunityArchive(ctx, path, logf); err != nil {
 				return fmt.Errorf("cannot download community pack %s: %w", filepath.Base(path), err)
 			}
 		} else if err != nil {
 			return fmt.Errorf("cannot use community pack %s: %w", path, err)
+		} else if err := HoldMismatchedCommunityArchive(path); err != nil {
+			return err
 		}
 	}
 	return ValidateCommunityArchives(archives, logf)
+}
+
+// RepairMismatchedCommunityArchives refreshes only selected packs whose
+// existing bytes fail the catalog pin. Repair downloads to a sibling directory
+// first, so a failed or interrupted download leaves the old ZIP untouched.
+// An explicitly approved mismatch remains a deliberate choice and is skipped.
+func RepairMismatchedCommunityArchives(ctx context.Context, archives []string, logf func(string, ...any)) ([]string, error) {
+	var repaired []string
+	for _, path := range archives {
+		_, err := validateCommunityArchive(path)
+		if err == nil {
+			continue
+		}
+		if _, mismatch := errors.AsType[*CommunityArchiveHashMismatchError](err); !mismatch {
+			if !errors.Is(err, os.ErrNotExist) {
+				return repaired, err
+			}
+			if _, pendingErr := os.Stat(path + communityMismatchSuffix); errors.Is(pendingErr, os.ErrNotExist) {
+				continue
+			} else if pendingErr != nil {
+				return repaired, pendingErr
+			}
+		}
+		if err := replaceMismatchedCommunityArchive(ctx, path, logf); err != nil {
+			return repaired, fmt.Errorf("cannot repair community pack %s: %w", filepath.Base(path), err)
+		}
+		repaired = append(repaired, filepath.Base(path))
+	}
+	return repaired, nil
+}
+
+func replaceMismatchedCommunityArchive(ctx context.Context, path string, logf func(string, ...any)) error {
+	name := filepath.Base(path)
+	tmpDir, err := os.MkdirTemp(filepath.Dir(path), "."+name+"-repair-*")
+	if err != nil {
+		return err
+	}
+	keepBackup := false
+	defer func() {
+		if !keepBackup {
+			_ = os.RemoveAll(tmpDir)
+		}
+	}()
+	replacement := filepath.Join(tmpDir, name)
+	if err := downloadCommunityArchive(ctx, replacement, logf); err != nil {
+		return err
+	}
+	backup := filepath.Join(tmpDir, "previous-"+name)
+	hadOld := false
+	if _, err := os.Stat(path); err == nil {
+		if err := os.Rename(path, backup); err != nil {
+			return fmt.Errorf("move old archive aside: %w", err)
+		}
+		hadOld = true
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+	if err := os.Rename(replacement, path); err != nil {
+		if hadOld {
+			if restoreErr := os.Rename(backup, path); restoreErr != nil {
+				keepBackup = true
+				return fmt.Errorf("install replacement: %w; old archive remains at %s after restore failed: %w", err, backup, restoreErr)
+			}
+		}
+		return fmt.Errorf("install replacement: %w", err)
+	}
+	if err := os.Remove(path + communityMismatchSuffix); err != nil && !errors.Is(err, os.ErrNotExist) {
+		return fmt.Errorf("remove obsolete hash-mismatch copy: %w", err)
+	}
+	logf("repaired community pack %s with a verified download", name)
+	return nil
 }
 
 // ValidateCommunityArchives accepts only existing, readable ZIPs and performs
 // no network access. Ensure uses this before installing selected local packs.
 func ValidateCommunityArchives(archives []string, logf func(string, ...any)) error {
 	for _, path := range archives {
-		if err := validateCommunityArchive(path); err != nil {
+		ignored, err := validateCommunityArchive(path)
+		if err != nil {
 			return err
+		}
+		if ignored {
+			logf("WARNING: ignoring SHA-256 mismatch for %s after explicit approval; its missions may be unstable", filepath.Base(path))
 		}
 		logf("community pack ready: %s", filepath.Base(path))
 	}
 	return nil
 }
 
-// AvailableCommunityArchives returns the valid files from archives. It is the
-// launchers' source of truth for which community mission rows may be shown.
+// AvailableCommunityArchives finds usable local ZIP paths without reading all
+// their bytes while the settings page holds its state lock. Downloads, imports
+// and installation perform the full SHA-256 check before accepting content.
 func AvailableCommunityArchives(archives []string) []string {
 	available := make([]string, 0, len(archives))
 	for _, path := range archives {
-		if validateCommunityArchive(path) == nil {
+		reader, err := zip.OpenReader(path)
+		if err != nil {
+			continue
+		}
+		if err := reader.Close(); err == nil {
 			available = append(available, path)
 		}
 	}
 	return available
 }
 
-func validateCommunityArchive(path string) error {
-	reader, err := zip.OpenReader(path)
-	if err != nil {
-		return fmt.Errorf("community pack %s is not a valid ZIP: %w", path, err)
+// AvailableCommunityPacks is AvailableCommunityArchives by pack name, the
+// name settings and gamedata know a pack by.
+func AvailableCommunityPacks(archives []string) []string {
+	var packs []string
+	for _, path := range AvailableCommunityArchives(archives) {
+		packs = append(packs, filepath.Base(path))
 	}
-	if err := reader.Close(); err != nil {
-		return fmt.Errorf("cannot close community pack %s: %w", path, err)
-	}
-	return nil
+	return packs
 }
 
 // downloadCommunityArchive caches a recognized full asset pack next to the
@@ -217,57 +433,67 @@ func validateCommunityArchive(path string) error {
 // download.
 func downloadCommunityArchive(ctx context.Context, path string, logf func(string, ...any)) error {
 	name := filepath.Base(path)
-	url, known := communityArchiveURLs[name]
+	backupURL, known := communityArchiveURLs[name]
 	if !known {
 		return fmt.Errorf("%s is not a recognized Potato asset pack", name)
 	}
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return err
 	}
+	sources := [][]communityPart{}
+	if parts := communityGitHubParts[name]; len(parts) > 0 {
+		sources = append(sources, parts)
+	}
+	sources = append(sources, []communityPart{{URL: backupURL}})
+	var lastErr error
+	var mismatchErr *CommunityArchiveHashMismatchError
+	for i, parts := range sources {
+		err := downloadCommunityArchiveParts(ctx, path, parts, logf)
+		if err == nil {
+			_ = os.Remove(path + communityMismatchSuffix)
+			return nil
+		}
+		lastErr = err
+		if mismatch, ok := errors.AsType[*CommunityArchiveHashMismatchError](err); ok {
+			mismatchErr = mismatch
+		}
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
+		if i == 0 && len(sources) > 1 {
+			logf("WARNING: GitHub snapshot for %s failed validation or download: %v; trying Potato mirror", name, err)
+		} else {
+			logf("WARNING: Potato mirror for %s failed: %v", name, err)
+		}
+	}
+	if mismatchErr != nil {
+		return mismatchErr
+	}
+	return lastErr
+}
 
-	logf("downloading %s from %s (the full pack includes maps)", name, url)
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-	if err != nil {
-		return err
-	}
-	req.Header.Set("User-Agent", "tf2-archipelago-launcher")
-	resp, err := communityHTTPClient.Do(req)
-	if err != nil {
-		return err
-	}
-	defer func() { _ = resp.Body.Close() }()
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("%s answered %d", url, resp.StatusCode)
-	}
-
+func downloadCommunityArchiveParts(ctx context.Context, path string, parts []communityPart, logf func(string, ...any)) error {
+	name := filepath.Base(path)
 	tmp, err := os.CreateTemp(filepath.Dir(path), "."+name+"-*.partial")
 	if err != nil {
 		return err
 	}
 	tmpPath := tmp.Name()
-	keep := false
 	defer func() {
 		_ = tmp.Close()
-		if !keep {
-			_ = os.Remove(tmpPath)
-		}
+		_ = os.Remove(tmpPath)
 	}()
-	progress := &communityDownloadWriter{
-		Writer: tmp,
-		name:   name,
-		total:  resp.ContentLength,
-		next:   communityProgressInterval,
-		logf:   logf,
+	fullHash := sha256.New()
+	var written int64
+	for _, part := range parts {
+		count, err := downloadCommunityPart(ctx, part, name, io.MultiWriter(tmp, fullHash), logf)
+		if err != nil {
+			return err
+		}
+		written += count
 	}
-	written, copyErr := io.Copy(progress, resp.Body)
-	if closeErr := tmp.Close(); copyErr == nil {
-		copyErr = closeErr
-	}
-	if copyErr != nil {
-		return copyErr
-	}
-	if resp.ContentLength >= 0 && written != resp.ContentLength {
-		return fmt.Errorf("downloaded %d bytes, expected %d", written, resp.ContentLength)
+	if err := tmp.Close(); err != nil {
+		return err
 	}
 	reader, err := zip.OpenReader(tmpPath)
 	if err != nil {
@@ -276,12 +502,54 @@ func downloadCommunityArchive(ctx context.Context, path string, logf func(string
 	if err := reader.Close(); err != nil {
 		return err
 	}
+	actual := fmt.Sprintf("%x", fullHash.Sum(nil))
+	if expected := communityArchiveSHA256[name]; actual != expected {
+		if err := os.Remove(path + communityMismatchSuffix); err != nil && !errors.Is(err, os.ErrNotExist) {
+			return err
+		}
+		if err := os.Rename(tmpPath, path+communityMismatchSuffix); err != nil {
+			return fmt.Errorf("cannot hold mismatched %s: %w", name, err)
+		}
+		return &CommunityArchiveHashMismatchError{name, expected, actual}
+	}
 	if err := os.Rename(tmpPath, path); err != nil {
 		return err
 	}
-	keep = true
 	logf("downloaded %s (%.1f GB) into %s", name, float64(written)/float64(gigabyte), filepath.Dir(path))
 	return nil
+}
+
+func downloadCommunityPart(ctx context.Context, part communityPart, name string, target io.Writer, logf func(string, ...any)) (int64, error) {
+	logf("downloading %s from %s (the full pack includes maps)", name, part.URL)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, part.URL, nil)
+	if err != nil {
+		return 0, err
+	}
+	req.Header.Set("User-Agent", "tf2-archipelago-launcher")
+	resp, err := communityHTTPClient.Do(req)
+	if err != nil {
+		return 0, fmt.Errorf("%s: %w", part.URL, err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode != http.StatusOK {
+		return 0, fmt.Errorf("%s answered %d", part.URL, resp.StatusCode)
+	}
+	partHash := sha256.New()
+	progress := &communityDownloadWriter{Writer: io.MultiWriter(target, partHash), name: name, total: resp.ContentLength, next: communityProgressInterval, logf: logf}
+	count, err := io.Copy(progress, resp.Body)
+	if err != nil {
+		return 0, err
+	}
+	if resp.ContentLength >= 0 && count != resp.ContentLength {
+		return 0, fmt.Errorf("%s: downloaded %d bytes, expected %d", part.URL, count, resp.ContentLength)
+	}
+	if part.Size > 0 && count != part.Size {
+		return 0, fmt.Errorf("%s: downloaded %d bytes, expected %d", part.URL, count, part.Size)
+	}
+	if part.SHA256 != "" && fmt.Sprintf("%x", partHash.Sum(nil)) != part.SHA256 {
+		return 0, fmt.Errorf("%s: SHA-256 mismatch", part.URL)
+	}
+	return count, nil
 }
 
 type communityDownloadWriter struct {
@@ -312,7 +580,7 @@ func (w *communityDownloadWriter) Write(body []byte) (int, error) {
 // installCommunityZip streams a Potato-style tf/download tree into SRCDS's
 // tf directory. The archives are several gigabytes, so they are never read
 // into memory as the small embedded mod archives are.
-func installCommunityZip(path, modDir string) error {
+func installCommunityZip(path, modDir string, serverMods []string, logf func(string, ...any)) error {
 	file, err := os.Open(path)
 	if err != nil {
 		return err
@@ -326,17 +594,16 @@ func installCommunityZip(path, modDir string) error {
 	if err != nil {
 		return err
 	}
+	var total int64
 	for _, entry := range reader.File {
-		name := filepath.ToSlash(entry.Name)
-		var relative string
-		switch {
-		case strings.HasPrefix(name, "tf/download/"):
-			relative = strings.TrimPrefix(name, "tf/download/")
-		case strings.HasPrefix(name, "tf/"):
-			relative = strings.TrimPrefix(name, "tf/")
-		default:
-			continue
+		if relativeCommunityPath(entry.Name, serverMods) != "" && !entry.FileInfo().IsDir() {
+			total += int64(entry.UncompressedSize64)
 		}
+	}
+	written, next := int64(0), int64(communityProgressInterval)
+	archiveName := filepath.Base(path)
+	for _, entry := range reader.File {
+		relative := relativeCommunityPath(entry.Name, serverMods)
 		if relative == "" {
 			continue
 		}
@@ -356,18 +623,104 @@ func installCommunityZip(path, modDir string) error {
 		if err := extractFile(entry, target); err != nil {
 			return err
 		}
+		written += int64(entry.UncompressedSize64)
+		if written >= next || written == total {
+			logf("installing %s: %.0f%% (%.1f of %.1f GB)", archiveName,
+				100*float64(written)/float64(total), float64(written)/float64(gigabyte), float64(total)/float64(gigabyte))
+			for next <= written {
+				next += communityProgressInterval
+			}
+		}
 	}
 	return nil
 }
 
+func relativeCommunityPath(path string, serverMods []string) string {
+	name := filepath.ToSlash(path)
+	var relative string
+	switch {
+	case strings.HasPrefix(name, "tf/download/"):
+		relative = strings.TrimPrefix(name, "tf/download/")
+	case strings.HasPrefix(name, "tf/"):
+		relative = strings.TrimPrefix(name, "tf/")
+	}
+	if relative == "" || unsupportedCommunityPopfile(relative, serverMods) {
+		return ""
+	}
+	return relative
+}
+
+var communityMapNames = communityMapPolicy()
+
+func communityMapPolicy() []string {
+	maps := make([]string, 0)
+	for _, played := range gamedata.Maps {
+		if gamedata.IsCommunityMap(played.ID) {
+			maps = append(maps, strings.ToLower(played.Name))
+		}
+	}
+	return maps
+}
+
+// unsupportedCommunityPopfile recognizes only mission files belonging to
+// community maps in our catalog. It deliberately leaves robot templates and
+// population files for unrelated user-installed maps alone.
+func unsupportedCommunityPopfile(relative string, serverMods []string) bool {
+	clean := strings.ToLower(filepath.ToSlash(relative))
+	if filepath.ToSlash(filepath.Dir(clean)) != "scripts/population" || filepath.Ext(clean) != ".pop" {
+		return false
+	}
+	name := strings.TrimSuffix(filepath.Base(clean), ".pop")
+	for _, mapName := range communityMapNames {
+		if name != mapName && !strings.HasPrefix(name, mapName+"_") {
+			continue
+		}
+		mission, cataloged := gamedata.MissionByPopFile(name)
+		if !cataloged {
+			return true
+		}
+		installed := []string{gamedata.MissionPack(mission.ID)}
+		return !availability.Planned(installed, serverMods).Check(mission).Playable()
+	}
+	return false
+}
+
+// removeUnsupportedCommunityPopfiles repairs installations made by older
+// launchers even when the ZIP stamp says the pack is already installed.
+func removeUnsupportedCommunityPopfiles(modDir string, serverMods []string) (int, error) {
+	populationDir := filepath.Join(modDir, "scripts", "population")
+	entries, err := os.ReadDir(populationDir)
+	if errors.Is(err, fs.ErrNotExist) {
+		return 0, nil
+	}
+	if err != nil {
+		return 0, fmt.Errorf("cannot inspect installed community missions: %w", err)
+	}
+	removed := 0
+	for _, entry := range entries {
+		if entry.IsDir() || !unsupportedCommunityPopfile(filepath.Join("scripts", "population", entry.Name()), serverMods) {
+			continue
+		}
+		if err := os.Remove(filepath.Join(populationDir, entry.Name())); err != nil {
+			return removed, fmt.Errorf("cannot remove unsupported community mission %s: %w", entry.Name(), err)
+		}
+		removed++
+	}
+	return removed, nil
+}
+
 // installMods puts everything that loads inside the game server into tf/:
 // Metamod, SourceMod, ripext, this project's plugin and the defender bots.
-// The first two are skipped when they are already there; the rest are written
-// every time, because they are ours and a stale copy is our bug to have.
+// The first two are skipped when the pinned version is already there; the rest
+// are written every time, because they are ours and a stale copy is our bug to
+// have.
 func installMods(ctx context.Context, modDir string, logf func(string, ...any)) error {
-	if !exists(filepath.Join(modDir, "addons", "metamod")) {
-		logf("installing Metamod:Source %s", assets.MetamodVersion)
+	if reason := staleMod(modDir, metamodFiles(runtime.GOOS), metamodStamp, assets.MetamodVersion); reason != "" {
+		logf("installing Metamod:Source %s: %s", assets.MetamodVersion, reason)
 		if err := installMetamod(ctx, modDir); err != nil {
+			return err
+		}
+		if err := writeStamp(modDir, metamodStamp, assets.MetamodVersion); err != nil {
 			return err
 		}
 	}
@@ -375,11 +728,17 @@ func installMods(ctx context.Context, modDir string, logf func(string, ...any)) 
 		return err
 	}
 
-	if !exists(filepath.Join(modDir, "addons", "sourcemod")) {
-		logf("installing SourceMod %s", assets.SourcemodVersion)
+	if reason := staleMod(modDir, sourcemodFiles(runtime.GOOS), sourcemodStamp, assets.SourcemodVersion); reason != "" {
+		logf("installing SourceMod %s: %s", assets.SourcemodVersion, reason)
 		if err := installSourcemod(ctx, modDir, logf); err != nil {
 			return err
 		}
+		if err := writeStamp(modDir, sourcemodStamp, assets.SourcemodVersion); err != nil {
+			return err
+		}
+	}
+	if err := disableSourceModMapRotation(modDir); err != nil {
+		return err
 	}
 
 	logf("installing ripext %s, the plugin and the defender bots", assets.RipextVersion)
@@ -390,6 +749,408 @@ func installMods(ctx context.Context, modDir string, logf func(string, ...any)) 
 		return fmt.Errorf("cannot install the defender bots: %w", err)
 	}
 	return nil
+}
+
+// The launcher and the Archipelago plugin own mission selection. SourceMod's
+// stock nextmap plugin sees an MvM map before its population file is selected,
+// mistakes that transition for a finished round, and changes to the first
+// mapcycle entry (normally cp_dustbowl). Keep the shipped plugin available for
+// recovery, but do not let it load on this dedicated server.
+func disableSourceModMapRotation(modDir string) error {
+	pluginDir := filepath.Join(modDir, "addons", "sourcemod", "plugins")
+	active := filepath.Join(pluginDir, "nextmap.smx")
+	if _, err := os.Stat(active); errors.Is(err, os.ErrNotExist) {
+		return nil
+	} else if err != nil {
+		return fmt.Errorf("cannot inspect SourceMod nextmap plugin: %w", err)
+	}
+	disabledDir := filepath.Join(pluginDir, "disabled")
+	if err := os.MkdirAll(disabledDir, 0o755); err != nil {
+		return fmt.Errorf("cannot make SourceMod disabled plugin directory: %w", err)
+	}
+	disabled := filepath.Join(disabledDir, "nextmap.smx")
+	if _, err := os.Stat(disabled); err == nil {
+		if err := os.Remove(active); err != nil {
+			return fmt.Errorf("cannot remove the duplicate active SourceMod nextmap plugin: %w", err)
+		}
+		return nil
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return fmt.Errorf("cannot inspect disabled SourceMod nextmap plugin: %w", err)
+	}
+	if err := os.Rename(active, disabled); err != nil {
+		return fmt.Errorf("cannot disable SourceMod nextmap plugin: %w", err)
+	}
+	return nil
+}
+
+// ReadyServerMods reports launcher-managed server mods whose pinned install is
+// complete. A setting is only intent; mission selection uses this inspection
+// so a stale config cannot claim that a missing extension is available.
+func ReadyServerMods(installRoot string) []string {
+	modDir := filepath.Join(installRoot, "tf-dedicated", "tf")
+	if buildsOn(sigmodKey, runtime.GOOS) && sigmodReady(modDir) {
+		return []string{sigmodKey}
+	}
+	return nil
+}
+
+// buildsOn is gamedata's answer, named here because a mod installed by an
+// earlier release that has since lost its build is not "ready": it is what has
+// to be taken off the disk.
+func buildsOn(key, goos string) bool { return gamedata.ServerModBuildsOn(key, goos) }
+
+func sigmodReady(modDir string) bool {
+	if version, checksum := assets.SigsegvMVM(); version == "" || checksum == "" {
+		return false
+	}
+	if firstMissing(modDir, sourcemodFiles(runtime.GOOS)) != "" {
+		return false
+	}
+	if !sigmodpatch.Ready(modDir, runtime.GOOS) {
+		return false
+	}
+	want, err := sigmodStamp(modDir)
+	if err != nil {
+		return false
+	}
+	stamp, err := os.ReadFile(filepath.Join(modDir, "addons", ".tf2ap-sigsegv-mvm.stamp"))
+	return err == nil && sigmodStampMatches(string(stamp), want)
+}
+
+// The shipped convar file is a starting configuration. A server may change its
+// values without changing the pinned extension or gamedata. Keep requiring the
+// file to exist, but ignore its hash in old and new install receipts.
+func sigmodStampMatches(stamp, want string) bool {
+	gotLines, wantLines := strings.Split(stamp, "\n"), strings.Split(want, "\n")
+	if len(gotLines) != len(wantLines) {
+		return false
+	}
+	for index, line := range wantLines {
+		if strings.HasPrefix(line, "cfg/sigsegv_convars.cfg ") &&
+			strings.HasPrefix(gotLines[index], "cfg/sigsegv_convars.cfg ") {
+			continue
+		}
+		if gotLines[index] != line {
+			return false
+		}
+	}
+	return true
+}
+
+/*
+The files an install is judged by, per platform. They are hashed into the
+stamp, so a package that unpacked short of one of them is not "installed".
+
+The Windows package has no x64 extension: the port is a 32-bit DLL, which is
+the only srcds.exe Valve ships. It adds gamedata/sigsegv/windows.txt, the
+address table the Linux build has no use for and the Windows one cannot find a
+single function without.
+*/
+func sigmodFiles(goos string) []string {
+	if goos == "windows" {
+		return []string{
+			"addons/sourcemod/extensions/sigsegv.ext.2.tf2.dll",
+			"addons/sourcemod/gamedata/sigsegv/population.txt",
+			"addons/sourcemod/gamedata/sigsegv/windows.txt",
+			"cfg/sigsegv_convars.cfg",
+		}
+	}
+	return []string{
+		"addons/sourcemod/extensions/sigsegv.ext.2.tf2.so",
+		"addons/sourcemod/extensions/x64/sigsegv.ext.2.tf2.so",
+		"addons/sourcemod/gamedata/sigsegv/population.txt",
+		"cfg/sigsegv_convars.cfg",
+	}
+}
+
+// sigmodAutoload is the marker SourceMod reads to decide whether to load the
+// extension beside it. It is not in sigmodFiles: an install is judged by what
+// the package wrote, and this is the launcher's own answer to a setting, put
+// there and taken away again on every start.
+const sigmodAutoload = "addons/sourcemod/extensions/sigsegv.autoload"
+
+func sigmodStamp(modDir string) (string, error) {
+	var stamp strings.Builder
+	version, checksum := assets.SigsegvMVM()
+	fmt.Fprintf(&stamp, "%s\n%s\n", version, checksum)
+	for _, relative := range sigmodFiles(runtime.GOOS) {
+		body, err := os.ReadFile(filepath.Join(modDir, filepath.FromSlash(relative)))
+		if err != nil {
+			return "", err
+		}
+		fmt.Fprintf(&stamp, "%s %x\n", relative, sha256.Sum256(body))
+	}
+	return stamp.String(), nil
+}
+
+func installServerMods(ctx context.Context, installRoot, modDir string, requested []string, logf func(string, ...any)) error {
+	for _, key := range requested {
+		mod, known := gamedata.ServerModByKey(key)
+		if !known {
+			return fmt.Errorf("server mod %q is not supported by this launcher", key)
+		}
+		/*
+			A mod with no build here is skipped, not refused. It used to be an
+			error, which was right while the only way to select one was to ask
+			for it. It is wrong now: v1.17.0 offered SigMod on Windows, so a
+			saved config can name a mod this build has no business installing,
+			and refusing the start leaves the player with a launcher that will
+			not run and a setting they have no reason to suspect.
+
+			Whatever an earlier release put on the disk comes off here. The
+			extension ships sigsegv.autoload, so SourceMod loads it on every
+			start whatever the launcher's settings say: unticking the mod could
+			never have been the fix, and the Windows build crashed the server
+			before it finished loading. See apw-5g4.14.
+		*/
+		if !buildsOn(key, runtime.GOOS) {
+			if key == sigmodKey {
+				removed, err := removeSigmod(modDir)
+				if err != nil {
+					return err
+				}
+				if removed {
+					logf("removed the installed %s: it has no %s server build, and the server cannot start with it", mod.Name, runtime.GOOS)
+					continue
+				}
+			}
+			logf("skipping %s: it has no %s server build", mod.Name, runtime.GOOS)
+			continue
+		}
+		if key == sigmodKey {
+			version, _ := assets.SigsegvMVM()
+			if sigmodReady(modDir) {
+				logf("SigMod %s is already installed and verified", version)
+				continue
+			}
+			logf("downloading and installing SigMod %s", version)
+			data, err := cachedSigmod(ctx, installRoot)
+			if err != nil {
+				return err
+			}
+			if err := unzipTo(data, modDir); err != nil {
+				return fmt.Errorf("cannot install SigMod: %w", err)
+			}
+			if err := sigmodpatch.Patch(modDir, runtime.GOOS); err != nil {
+				return err
+			}
+			stampDir := filepath.Join(modDir, "addons")
+			if err := os.MkdirAll(stampDir, 0o755); err != nil {
+				return err
+			}
+			stamp, err := sigmodStamp(modDir)
+			if err != nil {
+				return fmt.Errorf("cannot verify installed SigMod files: %w", err)
+			}
+			if err := os.WriteFile(filepath.Join(stampDir, ".tf2ap-sigsegv-mvm.stamp"), []byte(stamp), 0o644); err != nil {
+				return err
+			}
+			if !sigmodReady(modDir) {
+				return errors.New("SigMod package was extracted but its extension, gamedata, or managed version stamp is incomplete")
+			}
+		}
+	}
+	return nil
+}
+
+/*
+SetServerModLoading writes or removes each managed mod's autoload marker, so
+the set of mods the game server loads is the set the caller names.
+
+This runs on every start, after the install. SourceMod loads an extension
+because a file named after it sits beside it, which is why a mod that crashed
+the server could not be turned off from the launcher's settings: installing it
+was loading it. Separating the two is the whole point, so the marker is written
+from the answer rather than left wherever the last unzip put it.
+
+The files stay. A player who turns SigMod off for an evening is not made to
+download it again.
+*/
+func SetServerModLoading(installRoot string, load []string) error {
+	modDir := filepath.Join(installRoot, "tf-dedicated", "tf")
+	marker := filepath.Join(modDir, filepath.FromSlash(sigmodAutoload))
+	if !slices.Contains(load, sigmodKey) {
+		if err := os.Remove(marker); err != nil && !errors.Is(err, os.ErrNotExist) {
+			return fmt.Errorf("cannot stop the game server loading SigMod: %w", err)
+		}
+		return nil
+	}
+	// Only when the extension is there: a marker beside nothing makes
+	// SourceMod complain about a missing extension on every start.
+	if firstMissing(modDir, sigmodFiles(runtime.GOOS)) != "" {
+		return nil
+	}
+	if _, err := os.Stat(marker); err == nil {
+		return nil
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return fmt.Errorf("cannot inspect the SigMod autoload marker: %w", err)
+	}
+	if err := os.MkdirAll(filepath.Dir(marker), 0o755); err != nil {
+		return err
+	}
+	if err := os.WriteFile(marker, nil, 0o644); err != nil {
+		return fmt.Errorf("cannot make the game server load SigMod: %w", err)
+	}
+	return nil
+}
+
+/*
+removeSigmod takes a managed SigMod install off the disk and reports whether
+there was one.
+
+Everything the package writes goes, and nothing else: the extension and its
+autoload marker, SigMod's own gamedata directory, the convars file, and the
+stamp that says the install is managed. The autoload marker is the one that
+matters. SourceMod loads any extension beside it on every start, so a SigMod
+that crashes the server cannot be escaped from the launcher's settings; it has
+to leave the game directory.
+
+A file that is already gone is not an error: this runs against an install that
+may be half of one.
+*/
+func removeSigmod(modDir string) (bool, error) {
+	paths := []string{
+		"addons/sourcemod/extensions/sigsegv.ext.2.tf2.dll",
+		"addons/sourcemod/extensions/sigsegv.ext.2.tf2.so",
+		"addons/sourcemod/extensions/x64/sigsegv.ext.2.tf2.so",
+		"addons/sourcemod/extensions/sigsegv.autoload",
+		"addons/sourcemod/gamedata/sigsegv",
+		"cfg/sigsegv_convars.cfg",
+		"addons/.tf2ap-sigsegv-mvm.stamp",
+	}
+	found := false
+	for _, relative := range paths {
+		target := filepath.Join(modDir, filepath.FromSlash(relative))
+		if _, err := os.Stat(target); err != nil {
+			if errors.Is(err, os.ErrNotExist) {
+				continue
+			}
+			return found, fmt.Errorf("cannot inspect %s: %w", relative, err)
+		}
+		if err := os.RemoveAll(target); err != nil {
+			return found, fmt.Errorf("cannot remove %s: %w", relative, err)
+		}
+		found = true
+	}
+	return found, nil
+}
+
+// sigmodCachePath is where this platform's SigMod package is kept between
+// installs. Clean removes the same file, so the two cannot disagree on its name.
+func sigmodCachePath(installRoot string) string {
+	version, _ := assets.SigsegvMVM()
+	return filepath.Join(installRoot, "downloads", "sigsegv-mvm-"+version+"-"+runtime.GOOS+".zip")
+}
+
+func cachedSigmod(ctx context.Context, installRoot string) ([]byte, error) {
+	cacheDir := filepath.Join(installRoot, "downloads")
+	version, _ := assets.SigsegvMVM()
+	path := sigmodCachePath(installRoot)
+	if data, err := os.ReadFile(path); err == nil && validSigmodPackage(data) {
+		return data, nil
+	}
+	data, err := fetch(ctx, sigmodURL(runtime.GOOS, version))
+	if err != nil {
+		return nil, fmt.Errorf("cannot download SigMod: %w", err)
+	}
+	if !validSigmodPackage(data) {
+		return nil, fmt.Errorf("SigMod download checksum does not match the pinned %s release", version)
+	}
+	if err := os.MkdirAll(cacheDir, 0o755); err != nil {
+		return nil, err
+	}
+	temporary := path + ".partial"
+	if err := os.WriteFile(temporary, data, 0o644); err != nil {
+		return nil, err
+	}
+	if err := os.Rename(temporary, path); err != nil {
+		return nil, err
+	}
+	return data, nil
+}
+
+func validSigmodPackage(data []byte) bool {
+	_, checksum := assets.SigsegvMVM()
+	return fmt.Sprintf("%x", sha256.Sum256(data)) == strings.ToLower(checksum)
+}
+
+/*
+The files the engine reads to load Metamod, and Metamod reads to load
+SourceMod, relative to the mod directory.
+
+A directory that exists is not a mod that loads. Cowser's server had an
+addons/ tree and started as stock Mann vs Machine, every tf2ap_ convar unknown,
+and the launcher looked at the directory, found it, and installed nothing. It
+looks for these now, and reinstalls when one is gone.
+*/
+func metamodFiles(goos string) []string {
+	if goos == "windows" {
+		return []string{"addons/metamod.vdf", "addons/metamod/bin/server.dll", "addons/metamod/bin/metamod.2.tf2.dll"}
+	}
+	return []string{"addons/metamod.vdf", "addons/metamod/bin/server.so", "addons/metamod/bin/metamod.2.tf2.so"}
+}
+
+func sourcemodFiles(goos string) []string {
+	if goos == "windows" {
+		return []string{"addons/sourcemod/bin/sourcemod_mm.dll", "addons/sourcemod/bin/sourcemod.2.tf2.dll", "addons/sourcemod/bin/sourcemod.logic.dll"}
+	}
+	return []string{"addons/sourcemod/bin/sourcemod_mm_i486.so", "addons/sourcemod/bin/sourcemod.2.tf2.so", "addons/sourcemod/bin/sourcemod.logic.so"}
+}
+
+/*
+Where the launcher records which Metamod and SourceMod it installed.
+
+Neither ships a version file, and a copy that is merely present is not enough:
+a TF2 update can change a structure the game and SourceMod both read, and only
+a newer build reads the new one. The 2026-10-02 update added a field to
+KeyValues, and the SourceMod installs that predate git7254 crashed srcds on
+every upgrade station opened (alliedmodders/sourcemod#2587, gh-179). An install
+with no stamp predates this file and is upgraded like an older one.
+*/
+const (
+	metamodStamp   = "addons/metamod/tf2ap-version.txt"
+	sourcemodStamp = "addons/sourcemod/tf2ap-version.txt"
+)
+
+// staleMod says why a mod needs installing, or empty when the pinned version
+// is there whole.
+func staleMod(modDir string, files []string, stamp, version string) string {
+	if missing := firstMissing(modDir, files); missing != "" {
+		return missing + " is missing"
+	}
+	data, err := os.ReadFile(filepath.Join(modDir, filepath.FromSlash(stamp)))
+	if err != nil {
+		return "no installed version is recorded"
+	}
+	if installed := strings.TrimSpace(string(data)); installed != version {
+		return "the installed one is " + installed
+	}
+	return ""
+}
+
+func writeStamp(modDir, stamp, version string) error {
+	return os.WriteFile(filepath.Join(modDir, filepath.FromSlash(stamp)), []byte(version+"\n"), 0o644)
+}
+
+// operatorFile is a file of a Metamod or SourceMod drop that the operator may
+// have edited, kept when an upgrade unpacks over an install. The launcher's
+// own, admins_simple.ini and server.cfg, are rewritten at every start anyway.
+func operatorFile(name string) bool {
+	return strings.HasPrefix(name, "addons/sourcemod/configs/") ||
+		strings.HasPrefix(name, "cfg/") ||
+		name == "addons/metamod/metaplugins.ini"
+}
+
+// firstMissing is the first of the files that is not a regular file under
+// modDir, or empty when every one is there.
+func firstMissing(modDir string, files []string) string {
+	for _, relative := range files {
+		info, err := os.Stat(filepath.Join(modDir, filepath.FromSlash(relative)))
+		if err != nil || !info.Mode().IsRegular() {
+			return relative
+		}
+	}
+	return ""
 }
 
 // installSteamcmd downloads and unpacks Valve's SteamCMD bootstrap: a zip on
@@ -426,25 +1187,7 @@ func installGame(ctx context.Context, steamcmdDir, gameDir string, logf func(str
 		return fmt.Errorf("SteamCMD is not in %s", steamcmdDir)
 	}
 
-	// Two runs before the real one, both of which SteamCMD needs and neither
-	// of which is allowed to fail the install.
-	//
-	// The first is the bootstrap: a freshly unpacked steamcmd.exe downloads
-	// the rest of itself and exits non-zero (7 is the usual one) to say it
-	// restarted.
-	//
-	// The second is a login and nothing else. A SteamCMD that has never logged
-	// in fails its first app_update with "Failed to install app '232250'
-	// (Missing configuration)", every time, and the same command works on the
-	// next run. Spending one session on the login is what makes the install
-	// work on the first press rather than the second.
-	logf("preparing SteamCMD")
-	if err := runSteamcmd(ctx, exe, steamcmdDir, logf, "+quit"); err != nil {
-		logf("SteamCMD updated itself (%v), carrying on", err)
-	}
-	if err := runSteamcmd(ctx, exe, steamcmdDir, logf, "+login", "anonymous", "+quit"); err != nil {
-		logf("the warm-up login did not finish (%v), carrying on", err)
-	}
+	warmUpSteamcmd(ctx, exe, steamcmdDir, logf)
 
 	// SteamCMD tokenises its own command line, so a path holding a space or an
 	// accent reaches it broken. The short form has neither, and it needs the
@@ -457,20 +1200,7 @@ func installGame(ctx context.Context, steamcmdDir, gameDir string, logf func(str
 		logf("installing into %s (the short name for %s)", installDir, gameDir)
 	}
 
-	args := []string{
-		// No console is attached, so a prompt would hang with nobody to answer
-		// it, and a failed command has to stop the script rather than carry on
-		// to +quit and report success.
-		"+@NoPromptForPassword", "1",
-		"+@ShutdownOnFailedCommand", "1",
-		"+force_install_dir", installDir,
-		"+login", "anonymous",
-		// Without fresh app info, app_update fails with "Missing
-		// configuration" however good the login was.
-		"+app_info_update", "1",
-		"+app_update", AppID, "validate",
-		"+quit",
-	}
+	args := appUpdateArgs(installDir, true)
 	logf("steamcmd %s", strings.Join(args, " "))
 	err := runSteamcmd(ctx, exe, steamcmdDir, logf, args...)
 	if err == nil {
@@ -492,6 +1222,49 @@ func installGame(ctx context.Context, steamcmdDir, gameDir string, logf func(str
 		return fmt.Errorf("SteamCMD could not install app %s: %w. %s", AppID, err, RepairAdvice)
 	}
 	return nil
+}
+
+// warmUpSteamcmd runs the two SteamCMD sessions an app_update needs first,
+// neither of which is allowed to fail the caller.
+func warmUpSteamcmd(ctx context.Context, exe, steamcmdDir string, logf func(string, ...any)) {
+	// The first is the bootstrap: a freshly unpacked steamcmd.exe downloads
+	// the rest of itself and exits non-zero (7 is the usual one) to say it
+	// restarted.
+	//
+	// The second is a login and nothing else. A SteamCMD that has never logged
+	// in fails its first app_update with "Failed to install app '232250'
+	// (Missing configuration)", every time, and the same command works on the
+	// next run. Spending one session on the login is what makes the install
+	// work on the first press rather than the second.
+	logf("preparing SteamCMD")
+	if err := runSteamcmd(ctx, exe, steamcmdDir, logf, "+quit"); err != nil {
+		logf("SteamCMD updated itself (%v), carrying on", err)
+	}
+	if err := runSteamcmd(ctx, exe, steamcmdDir, logf, "+login", "anonymous", "+quit"); err != nil {
+		logf("the warm-up login did not finish (%v), carrying on", err)
+	}
+}
+
+// appUpdateArgs is the command line that installs or updates the game in
+// installDir. validate rereads all 14 GB, so only an install asks for it.
+func appUpdateArgs(installDir string, validate bool) []string {
+	update := []string{"+app_update", AppID}
+	if validate {
+		update = append(update, "validate")
+	}
+	args := []string{
+		// No console is attached, so a prompt would hang with nobody to answer
+		// it, and a failed command has to stop the script rather than carry on
+		// to +quit and report success.
+		"+@NoPromptForPassword", "1",
+		"+@ShutdownOnFailedCommand", "1",
+		"+force_install_dir", installDir,
+		"+login", "anonymous",
+		// Without fresh app info, app_update fails with "Missing
+		// configuration" however good the login was.
+		"+app_info_update", "1",
+	}
+	return append(append(args, update...), "+quit")
 }
 
 // steamcmdStateAdvice turns the state SteamCMD reports into something a player
@@ -551,6 +1324,15 @@ func runSteamcmd(ctx context.Context, exe, dir string, logf func(string, ...any)
 		// install stopped, and it has to reach the error the window shows.
 		return fmt.Errorf("%w. %s", err, Missing32BitAdvice)
 	}
+	if output.sawStuckUpdate {
+		if err == nil {
+			return errUpdateStuck
+		}
+		return fmt.Errorf("%w (%w)", errUpdateStuck, err)
+	}
+	if err != nil && output.steamcmdError != "" {
+		return fmt.Errorf("%s (%w)", output.steamcmdError, err)
+	}
 	return err
 }
 
@@ -561,7 +1343,7 @@ func installMetamod(ctx context.Context, modDir string) error {
 	if err != nil {
 		return fmt.Errorf("cannot download Metamod:Source: %w", err)
 	}
-	return unpackTo(data, modDir)
+	return unpackKeeping(data, modDir, operatorFile)
 }
 
 // installSourcemod fetches the Windows SourceMod build and unpacks it into the
@@ -574,7 +1356,7 @@ func installSourcemod(ctx context.Context, modDir string, logf func(string, ...a
 	if err != nil {
 		return fmt.Errorf("cannot download SourceMod: %w", err)
 	}
-	return unpackTo(data, modDir)
+	return unpackKeeping(data, modDir, operatorFile)
 }
 
 // installRipextAndPlugin unpacks the embedded ripext zip and copies the plugin
@@ -608,11 +1390,11 @@ func fetch(ctx context.Context, url string) ([]byte, error) {
 	client := &http.Client{Timeout: 10 * time.Minute}
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, &HostError{URL: url, Err: err}
 	}
 	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("%s answered %d", url, resp.StatusCode)
+		return nil, &HostError{URL: url, Status: resp.StatusCode, Err: errors.New(resp.Status)}
 	}
 	return io.ReadAll(resp.Body)
 }
@@ -620,6 +1402,12 @@ func fetch(ctx context.Context, url string) ([]byte, error) {
 // unzipTo extracts a zip into dir, preserving paths. Strips no prefix: the zip
 // files we use already ship addons/sourcemod/... at the root.
 func unzipTo(zipData []byte, dir string) error {
+	return unzipKeeping(zipData, dir, nil)
+}
+
+// unzipKeeping is unzipTo leaving alone the existing files keep names: see
+// unpackKeeping.
+func unzipKeeping(zipData []byte, dir string, keep func(name string) bool) error {
 	reader, err := zip.NewReader(bytes.NewReader(zipData), int64(len(zipData)))
 	if err != nil {
 		return fmt.Errorf("cannot read the zip: %w", err)
@@ -633,6 +1421,9 @@ func unzipTo(zipData []byte, dir string) error {
 			if err := os.MkdirAll(target, 0o755); err != nil {
 				return err
 			}
+			continue
+		}
+		if kept(keep, file.Name, target) {
 			continue
 		}
 		if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
@@ -724,6 +1515,11 @@ type lineSplitter struct {
 	// saw32BitFailure is the one line worth remembering rather than only
 	// printing: it decides what the caller tells the operator to do.
 	saw32BitFailure bool
+	sawStuckUpdate  bool
+
+	// steamcmdError is SteamCMD's last "Error!" line, which says why it
+	// failed where the exit status only says that it did.
+	steamcmdError string
 }
 
 func (l *lineSplitter) Write(p []byte) (int, error) {
@@ -739,6 +1535,12 @@ func (l *lineSplitter) Write(p []byte) (int, error) {
 			l.logf("  %s", line)
 			if missing32Bit(line) {
 				l.saw32BitFailure = true
+			}
+			if stuckUpdate(line) {
+				l.sawStuckUpdate = true
+			}
+			if strings.HasPrefix(strings.TrimSpace(line), "Error!") {
+				l.steamcmdError = strings.TrimSpace(line)
 			}
 			if advice := steamcmdStateAdvice(line); advice != "" {
 				l.logf("%s", advice)
@@ -769,6 +1571,29 @@ func Clean(installRoot string) ([]string, error) {
 		filepath.Join(installRoot, "steamcmd"),
 		filepath.Join(installRoot, "tf-dedicated", "tf", "addons"),
 		filepath.Join(installRoot, "tf-dedicated", "steamapps"),
+		sigmodCachePath(installRoot),
+	}
+	var removed []string
+	for _, target := range targets {
+		if !exists(target) {
+			continue
+		}
+		if err := removeWithRetry(target); err != nil {
+			return removed, err
+		}
+		removed = append(removed, target)
+	}
+	return removed, nil
+}
+
+// Nuke removes everything the launcher installed under the root: the game
+// server, SteamCMD and the download cache. What the player made stays: the
+// settings, the player file, the run's state and the logs.
+func Nuke(installRoot string) ([]string, error) {
+	targets := []string{
+		filepath.Join(installRoot, "tf-dedicated"),
+		filepath.Join(installRoot, "steamcmd"),
+		filepath.Join(installRoot, "downloads"),
 	}
 	var removed []string
 	for _, target := range targets {

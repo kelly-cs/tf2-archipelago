@@ -19,6 +19,17 @@ import (
 
 // Run does the work, and reports a panic rather than letting it end the process.
 func Run(name string, logger *slog.Logger, work func()) {
+	_ = Result(name, logger, func() error {
+		work()
+		return nil
+	})
+}
+
+// Result runs work and turns a panic into an error after logging its stack.
+// Callers that coordinate goroutines need the error: swallowing it would leave
+// them waiting forever for a completion value the panicking goroutine never
+// sent.
+func Result(name string, logger *slog.Logger, work func() error) (err error) {
 	defer func() {
 		reason := recover()
 		if reason == nil {
@@ -30,6 +41,7 @@ func Run(name string, logger *slog.Logger, work func()) {
 				"reason", fmt.Sprint(reason),
 				"stack", string(debug.Stack()))
 		}
+		err = fmt.Errorf("%s panicked: %v", name, reason)
 	}()
-	work()
+	return work()
 }

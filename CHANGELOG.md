@@ -6,6 +6,1156 @@ in the release notes, so this file is the only place to write it.
 
 ## Unreleased
 
+### Fixed
+
+- **The Docker stack only draws from the community packs you ticked.** With
+  `MVM_EXCLUDED_MISSIONS` empty, `make seed` and the self-hosted multiworld
+  could pick a mission from a pack unticked in the admin page, and the admin
+  page counted those missions in the tier menu and the mission count. They
+  are now left out. A `.env` without `TF2AP_COMMUNITY_PACKS` still draws from
+  every pack, as before; an empty one draws from none.
+- **The Docker server plays like the launcher's.** It went to sleep when
+  the last player left, ignored the robot health set in the admin page, and
+  loaded SigMod whenever it was ticked rather than only when a mission in the
+  pool needs it. It now writes the same server.cfg and command line as the
+  launcher. The launcher in turn now keeps RED defenders out of SigMod's robot
+  limit, as Docker already did.
+
+## v1.18.4
+
+### Fixed
+
+- **The Docker stack generates the seed you set in the admin page.** Twelve
+  run options never reached `make seed` or the self-hosted multiworld:
+  mission modifiers and their minimum and maximum, the Australium Medal on
+  clear, the Grappling Hook, cash rewards, the weapon-buff share and stack
+  chance, the trap share, and bot cards with their starting count and mode.
+  The seed was generated with their defaults whatever `.env` said.
+- **A seed with a community mission whose pack is not installed stops at
+  Start.** The launcher used to start the run anyway, and you found out when
+  the run switched to that mission, sometimes an hour in. Now the server stops
+  as soon as it joins the room and names the mission and the pack to tick in
+  Settings > Missions.
+- **Unticking a community pack takes its missions out of the run.** With the
+  pack's ZIP on disk but unticked, Settings > Missions still showed its
+  missions as Ready and the seed could draw them, though Start never installs
+  an unticked pack, so the server then refused the seed. The missions now
+  leave the pool and the page says to tick the pack.
+- **The tier menu and the mission count agree.** With SigMod ticked but not
+  yet installed, the tier menu and the highest mission count you could pick
+  counted different missions, 25 against 26 for the same settings. Both now
+  count the same pool.
+- **A download site that is down no longer sends you to Repair.** When
+  alliedmods.net or another site the install downloads from fails, the launcher
+  now names the address and says to try again later. Repair would only have
+  asked the same site again.
+- **A Valve mission loads with SigMod on.** Starting on Doe's Drill, or
+  switching to any Valve mission on a map that also has community missions,
+  could leave the server at wave 0 with "Could not find a valid population
+  file" in the console. SigMod refuses a mission named in the first ten
+  seconds of a map unless it is a loose file, and Valve's are not. The server
+  now names the mission once those ten seconds are over.
+- **Taking an upgrade back no longer pays out every Cash Bundle again.** With
+  cash rewards in the run, buying an upgrade and pressing minus at the station
+  handed you all the bundle credits of the mission on top of the refund, every
+  time. The minus button now gives back what the upgrade cost and nothing more.
+  Refund All and a lost wave still keep your bundle credits.
+- **Two refunds at once no longer pay your Cash Bundles twice.** Refund All
+  twice in a row, or Refund All as a wave is lost, gave your bundle credits
+  back once per refund. With 800 in bundles, 400 came back as 2000 instead of
+  1200. They now come back once.
+- **Demoman bots reload their stickybomb launcher.** Once a Demoman had fired
+  his stickies he never reloaded them, so against the next giant he was back
+  to grenades. He also emptied the launcher on a lone robot or one standing
+  right next to him, then never set the stickies off. He now keeps the
+  launcher loaded between fights and only fires stickies he is going to
+  detonate. A Demoman with nothing but stickies, on Booties or out of pipes,
+  now sets them off on a single robot instead of letting it walk over them.
+- **Linux: a server missing `steamclient.so` says so instead of crashing.**
+  Without it the game server dies at `replay_srv.so` on every start, and the
+  launcher used to start it anyway. It now runs SteamCMD once to fetch the
+  file, refuses the start with a message naming it if that fails, and the
+  debug bundle's summary says where the link points and whether it works.
+
+## v1.18.3
+
+### Added
+
+- **`!ap loadout` equips weapons you don't own.** Pick a slot, then any weapon
+  your class can hold in it. The list puts the weapons with the most
+  Archipelago buffs first and shows how many each one has. Stock weapons are
+  not listed, since you already have them: Reset at the end of the list puts
+  your own weapon back. The choice lasts until you leave the server. It
+  applies at once in the spawn room or between waves, otherwise at your next
+  resupply. Slots the run has not unlocked stay locked. Upgrades you buy for
+  the chosen weapon stay on it, the same as for a weapon from your backpack. We
+  tested the weapon swaps and the upgrades on a server with a scripted player,
+  but no real player has opened the menu yet.
+- **Nuke, next to Repair in Settings.** It deletes the game server, SteamCMD
+  and the downloads, and the next start installs them again from nothing, 14 GB
+  included. Repair keeps the game files; Nuke does not. The run and its checks,
+  your settings, the player file and your community content folder stay. It
+  asks before it does anything.
+
+### Fixed
+
+- **Servers work on the TF2 update of 16 October 2026.** Windows SigMod
+  servers no longer refuse to start or crash on every community mission, and
+  the defender bots read item and attribute data correctly again on Windows
+  and Linux.
+- **Windows SigMod servers play every community mission to the end.** The
+  test servers now clear all 532 waves of the SigMod community missions.
+- **Spy stabs alert nearby robots** on Linux SigMod servers.
+- **The Your Eternal Reward unnerf works again on Linux.** The last TF2 update
+  had broken it.
+- **More SigMod mods work on Windows servers:** 254 of the 309 mods now load
+  in full.
+- **Caliginous Caper wave 666 no longer ends when the 64 Spies die.** Valve
+  lists the tanks that wait for the Spies ahead of them, and the game ends the
+  wave on the tick the last Spy dies, before the tanks, the crit robots and the
+  Uber Medics that follow. The repaired file now lists each group after the
+  ones it waits for. The server writes it again at start.
+- **Weapon buffs no longer pile up on Windows servers.** Each time the game
+  rebuilt your buffs, the reserve ammo and the health you were holding went up
+  by the buff again, and switching weapons rebuilds them twice. A +25% reserve
+  ammo buff read 511, 797, 1243 and kept going, and a max health buff added its
+  amount to your health every time. The buffs themselves were right. The plugin
+  now puts back the ammo and health a rebuild raised. It does not top up your
+  ammo or health when you first earn a buff; the next resupply does that. The
+  Linux server we measured did not do this. We ran ten rebuilds in a row on a
+  Windows and a Linux server with scripted defender bots, but no real player
+  has checked it yet.
+- **Windows servers run on the 2026-10-14 TF2 update.** The update moved the
+  game code SigMod patches, and a SigMod built for the old game refuses to
+  load on the new one. The Windows launcher now installs a SigMod built for TF2
+  11117211. Missions that need SigMod load again.
+- **Windows SigMod servers no longer crash when bots use items or when a
+  mission is cleared.** A bot using an item (a canteen, say) could crash the
+  server, and so could clearing a mission with a thousand robots or more. Both
+  came from game functions the Windows SigMod had not found. We played the
+  missions on a Windows server with scripted defender bots; all but one mission
+  played through, and that one still stops at its first wave.
+- **More SigMod mods work on a Windows server.** Weapon effects, death yells
+  and entity limits did nothing there, because the Windows SigMod had not found
+  the game functions they hook. They now run. We played the missions on a
+  Windows server with scripted defender bots: five of eight groups played
+  through. Three missions still lose waves (Dismal Devilry, Dust to Dust and
+  Trespasser Remaster) and are being looked at.
+
+## v1.18.1
+
+### Fixed
+
+- **Servers work again on the 2026-10-05 TF2 update.** The update changed how
+  the game finds an item attribute by its name, and three things broke:
+  - On Windows, TF2Attributes did not find that function and refused to load.
+    The Archipelago plugin and the defender bots need it, so the server started
+    with neither.
+  - On both platforms, TF Econ Data read part of the item list 36 bytes off,
+    which gave the bots wrong cosmetic slots and unusual effects. This release
+    patches it until TF Econ Data ships its own fix.
+  - SigMod crashed the server the first time somebody drew a weapon, on both
+    platforms. Its list of custom attributes named one attribute twice, and the
+    game now refuses that. SigMod linux-20261006 and 20261006 drop the
+    duplicate, and the Windows build has the addresses for the new TF2 build.
+
+  We played SigMod missions with defender bots on the new TF2 build. The team
+  won all 12 waves on Windows and 11 of 12 on Linux. The other Linux wave
+  stalls the same way it did before the update. The bots bought their upgrades
+  on both platforms.
+- **Bot Surge adds its extra support robots on Windows.** The plugin never
+  found a function that this part of Bot Surge needs on Windows, so it did
+  nothing there.
+- **Bot Surge no longer crashes the server on Brain Taker's last wave.** Some
+  community missions leave a pickup behind for every robot that dies, and it
+  stays until somebody on RED walks over it. At Bot Surge's spawn rate those
+  pickups filled the server's entity limit within about ten minutes and the
+  server crashed. Bot Surge now slows down to the mission's own pace when the
+  server gets close to the limit, and speeds back up once there is room again.
+- **A room going down no longer wipes the run.** When an archipelago.gg room
+  closes, its port can be handed to a different multiworld. The bridge
+  reconnected to that one, took it for a new run and started your progress over,
+  even though that room then refused to let it in. The bridge now only switches
+  runs once a room has accepted your slot. And if you go back to a room you
+  played here before, its run comes back as you left it instead of starting
+  empty.
+
+## v1.18.0
+
+### Fixed
+
+- **The bots can buy upgrades again, and an existing server gets SourceMod's
+  fix for the upgrade station crash.** The 2026-10-02 TF2 update changed how
+  the game stores the messages the upgrade station sends, and the SourceMod we
+  shipped read them the old way. A player opening the station crashed the
+  server, and the game refused every upgrade a bot asked for. SourceMod
+  1.12.0-git7255 reads the new layout, and the launcher and the Docker image
+  now upgrade a server that already has an older SourceMod at its next start.
+  Your own edits to SourceMod's configs are kept. We measured the bots: 35 of
+  35 purchases refused before, 44 bought after, and a player confirmed the
+  station no longer crashes their server.
+- **The debug bundle stops pointing at the wrong thing when SigMod cannot find
+  the game.** When SigMod was made for the TF2 build your server reports and
+  still finds none of the game's addresses, the game files are usually half
+  updated, and `summary.txt` now says so and tells you to press Repair, which
+  checks every game file on the next start. It used to tell you to compare two
+  version numbers that already matched. And when every bot purchase is refused
+  on a SourceMod that already has the fix, it no longer blames SourceMod.
+
+### Changed
+
+- **The debug bundle names the TF2 build the server is running.** It listed
+  every version the launcher installs and not the one they are all built
+  against, which is the version that matters most on the evening TF2 updates.
+- **The debug bundle says when two of those versions cannot work together.**
+  Above the logs it now names, in plain words, a SigMod built for a different
+  TF2 build, a SourceMod too old for the upgrade station on this one, and a run
+  where the game refused every upgrade the bots tried to buy. It compares what
+  the file already said; it still does not claim to have found your bug.
+- **The debug bundle stops sending you after a crash dump that does not
+  exist.** When SigMod catches the fault and closes the server itself, Windows
+  writes no dump, and the summary now says so and points at the two stacks
+  SigMod printed into the log instead. When a dump should exist it names the
+  folders it looked in.
+- **The debug bundle lists what it could not collect.** Two bundles from the
+  same evening held different files and there was no way to tell a missing file
+  from a file that never existed. `collected.txt` in the zip now says which it
+  was, and why.
+
+## v1.17.9
+
+### Fixed
+
+- **A Windows server with SigMod runs again after the second 2026-10-02 TF2
+  update.** Valve shipped another update the same evening. SigMod for Windows
+  only knows the TF2 build it was made for, so on the new one the server
+  crashed at start, when anybody bought an upgrade (bots included), or when a
+  player inspected a weapon. The launcher now installs a SigMod build made for
+  the new TF2.
+- **The debug bundle no longer carries your RCON password.** It promised it
+  did not, but the server's crash log repeats its command line, password
+  included, and `server.cfg` sets it. Every text file in the bundle now has the
+  passwords taken out. If you posted a bundle before, change your RCON password
+  in the launcher.
+- **The first server start after updating the launcher uses the new
+  launcher.** A launcher from before the update, still running in the
+  background, kept its connection to the room, and the server spent that start
+  unable to read what the room had unlocked. The new launcher now closes the
+  old one's connection before the server starts.
+- **A bot's upgrade the game refused is no longer announced as bought.** The
+  chat and the log said a bot bought an upgrade even when the game turned the
+  purchase down. They now only report the purchases that happened, and the log
+  names the ones the game refused.
+- **Defender bots no longer take down a busy server in four ways we caught in
+  testing.** A bot leaving in the middle of shopping, a bot asked what it sees
+  before it had finished spawning, a check that treated any bot-controlled
+  player as a robot, and a few route searches with no limit could each crash
+  or freeze the server, most often on missions with many robots.
+
+### Changed
+
+- **After a TF2 update, SigMod for Windows switches itself off instead of
+  crashing the server.** Until a launcher release brings a SigMod build for the
+  new TF2, the server runs without it: missions that need SigMod are refused
+  and the run moves on, and the debug bundle says why.
+## v1.17.8
+
+### Fixed
+
+- **Caliginous Caper plays on a server started from the Windows or Linux
+  launcher.** The server now makes the mission's file from the game's own files
+  when it starts.
+
+## v1.17.7
+
+### Fixed
+
+- **SigMod missions run again on a Windows server after the 2026-10-02 TF2
+  update.** The Windows build of SigMod crashed the server at every start on
+  the new game. The launcher now installs a build made for it. One mission,
+  Trespasser Remaster, still loses its first wave in our tests.
+- **Buying an upgrade with SigMod on a Windows server no longer stops it.** The
+  Windows build asked the game for an upgrade's name through a function it had
+  never found, and every purchase crashed the server. It now reads the name
+  itself.
+
+### Changed
+
+- **Windows labels SigMod as unstable instead of beta.** The Windows build of
+  SigMod is this project's own port, and it has crashed servers. The word says
+  that plainly.
+
+### Added
+
+- **Update TF2 from the Game server settings page.** The page shows the TF2
+  build the server has, and says when Steam has a newer one. Update TF2 stops
+  the server if it is running, updates TF2, and starts the server again, so you
+  no longer have to press Stop and Start to get the new build.
+
+## v1.17.6
+
+### Fixed
+
+- **A TF2 update no longer keeps players out of a launcher server.** The
+  launcher installed the TF2 server once and never updated it, so after a TF2
+  update the server refused every player on the new game. It now updates the
+  server each time you press Start, and gets past an update SteamCMD left
+  stuck.
+- **A Docker server whose TF2 update got stuck starts again by itself.** After
+  a failed update, SteamCMD refused every later one, and the server restarted
+  in a loop. It now sets the stuck update aside, keeps a copy of it, and
+  updates again once. If that fails too, the log says which file to look at.
+
+## v1.17.5
+
+### Fixed
+
+- **SigMod missions run again on a Linux or Docker server after the
+  2026-10-02 TF2 update.** The update changed how the game stores its key and
+  value data, and the SigMod build the server used crashed it on every start.
+  The server now installs a SigMod rebuilt for the new game. SigMod on a Windows
+  server still crashes on this TF2 update: leave SigMod missions out of the run
+  there until a Windows build follows.
+- **A run generated with v1.11 to v1.13 keeps going on this release.** The
+  server refused it at connect, so updating meant losing the run. It now plays
+  it with the options it was generated with, and every check counts.
+
+## v1.17.4
+
+### Added
+
+- **Bot cards: named defender bots you unlock during the run.** Turn on
+  **Unlockable Bot Cards** and the item pool holds cards for 15 bots. Each bot
+  has a class, a loadout and a buff of its own. A card rolls a rarity, which
+  sets its health and buff stacks, and a form: human, robot or Giant robot.
+  **Starting Bot Cards** gives some at the start, or one stock card per class.
+  Cards are useful items and never lock a mission. Off by default. By kelly-cs.
+- **The Bots page shows your cards as a deck.** Recruit cards into your six
+  seats, drag them to set who stays when a player joins, and choose the form.
+  **Apply** swaps the bots on the running server, with no restart. The tracker
+  shows the cards the run has found. In test mode every card is there.
+- **Shop where they stand**, a Bots page option. Every bot buys its upgrades
+  where it is instead of walking back to the station. A bot that shops during a
+  wave stays in the fight. Off by default. A Giant card always shops where it
+  stands, because it no longer fits through the spawn door.
+
+### Fixed
+
+- **A tank SigMod keeps off the network no longer breaks Mental.** On some
+  community missions Mental threw an error for such a tank every tick, tens of
+  thousands a run.
+- **Make it Count works on a Windows server.** It switched itself off there,
+  because the plugin could not find the dispenser's ammo function on Windows.
+- **A server whose bridge stops answering no longer runs out of memory.** The
+  plugin sent every check it was still holding again every five seconds, so
+  each giant and tank killed while the bridge was down made the traffic grow,
+  until the server stopped with "Out of memory" a few missions later. It now
+  retries the oldest check alone until the bridge answers, then sends the rest.
+- **Bots are no longer put back on the hatch over and over.** The rescue for a
+  bot that is slow to leave spawn puts it on the hatch. On most maps the hatch
+  sits next to RED's spawn, so a few seconds later the rescue moved it again.
+  An engineer that built near the hatch lost its nest before it finished.
+- **Weapon buffs no longer climb on their own.** The server counted the same
+  grants again each time it asked the bridge. A buff you had twice then showed
+  as x44 in the weapon buffs menu until the next mission. By kelly-cs.
+- **Repair fixes a community pack that fails its hash check.** Repair left the
+  old download in place, so the next install stopped on the same "SHA-256
+  mismatch". It now downloads the pack again and keeps the old file until the
+  new one checks out. A mismatch you chose to ignore is left alone. By kelly-cs.
+- **Repair on Windows also throws away the downloaded SigMod package.** It
+  only ever looked for the Linux file, so a broken download stayed in place.
+- **Every SigMod mission plays to the end on a Windows server.** The Windows
+  build of SigMod is updated, and all 95 community missions that need it now
+  play every wave, where about ten used to stop the server mid-mission. Robots
+  that change attributes, map-scripted events, bosses with several phases, bots'
+  dropped items and swords all behave as they do on a Linux server. A squad
+  with a gray robot in it no longer stalls its wave (Dust to Dust, wave 5).
+  Linux and Docker servers keep the regular SigMod release.
+
+## v1.17.3
+
+### Added
+
+- **Server mods have three answers instead of a tick: off, only when a mission
+  needs it, or always.** Installing a mod used to be the same thing as loading
+  it, because the game server loads an extension whenever its file is on the
+  disk. They are separate now. The default loads a mod only while your mission
+  pool holds a mission that names it, so a run that never asks for SigMod
+  never has it in the server. Turning a mod off leaves the download in place,
+  so turning it back on costs nothing.
+- **SigMod is offered on Windows again**, through this project's own port,
+  since upstream publishes no Windows build. It is off by default and the row
+  reads **SigMod (beta)**: the port crashed one player's server, and the new
+  loading setting is what makes it safe to offer. Leave it on **only when a
+  mission needs it** unless you are testing it. Linux, Docker and WSL download
+  upstream's build and are the safe way to play those missions today.
+- **Each reward family can be turned off.** Mission Ticket, Class Unlock and
+  Weapon Slot Importance take **Disabled - All Unlocked**: everything starts
+  unlocked and leaves the item pool, per-class slots included. Weapon Buff
+  Importance takes **Disabled - No Buffs**, and the spare checks become cash.
+  The defaults are unchanged. By kelly-cs.
+- **Remedic is labelled Medic only** in the mission table, the mission pool and
+  the start-mission choices, since its population file bans every other class.
+  By kelly-cs.
+- **Community archives are checked against a pinned hash.** The Potato and
+  Moonlight snapshots now download from this project's GitHub release first,
+  with the Potato servers as fallback, and a file whose hash differs is held
+  back until you press **Ignore hash mismatch** on the Missions page. By
+  kelly-cs.
+
+### Fixed
+
+- **A server mod can be turned off.** Whether you run the launcher or the
+  Docker stack, taking a mod out of the settings left it loading from the game
+  files it had already been installed into, with nothing on screen admitting
+  it. Both now take the marker away.
+- **Modifiers work on a Windows server.** Thirteen of the plugin's game hooks
+  had no Windows signature, so a modifier could be drawn and announced while
+  half of it did nothing. Faulty Calibration and Mental's cloak now work there,
+  and a refused mission file is reported. Bot Surge's support fillers and Make
+  it Count's dispenser limit still do nothing on Windows.
+- **A robot stuck protected in its spawn no longer holds the wave open.** After
+  two minutes the plugin removes it. Condemned Trespasser wave 2 could not end
+  without this. By kelly-cs.
+- **Bot Surge no longer loses scripted waves at once.** It shortened every
+  spawn delay, including the timers some missions use to open the hatch, so
+  Homestead Happenings wave 5 was lost after seven seconds. Only robot spawns
+  are sped up now. By kelly-cs.
+- **Caliginous Caper wave 666 has its tanks and its Halloween look.** The stock
+  file sends its tanks down a path the map does not have. The server now
+  repairs it from your game files at start. By kelly-cs.
+- **SigMod no longer kicks RED defender bots.** Its robot limit counted them,
+  so a crowded wave kicked one and the bots added it back, over and over. By
+  kelly-cs.
+- **Ten community missions are marked as needing SigMod**, among them Bionic
+  Breach, Nuclear Threat and Twilight Of Terror. They were offered without it
+  and could not run. By kelly-cs.
+- **SigMod's extra loadout menu shows its item names and title** instead of
+  `%t: %s %s %t`. On the Windows and Linux launchers, SigMod shows as not ready
+  once after this update: press **Download / set up selected server mods** to
+  apply the fix. By kelly-cs.
+- **Docker: editing SigMod's config no longer hides its missions**, and the
+  settings page no longer points at a setup button that does nothing in Docker.
+  By kelly-cs.
+- **Docker: Test mode uses the whole mission pool you asked for**, not eight,
+  and the server picks up a new test run without a restart. By kelly-cs.
+- **The item server line no longer shows terminal color codes.** By kelly-cs.
+
+## v1.17.2
+
+### Added
+
+- **A Documentation link in the launcher's footer.** It opens the book, which
+  now walks every tab and every settings page with a picture of each, and has a
+  page on the campaign tracker.
+
+### Fixed
+
+- **SigMod is off on Windows again, and a Windows server that has it installed
+  starts.** v1.17.0 offered SigMod on the Missions page on Windows. Ticking it
+  installed a build whose game server died with a corrupted heap before it
+  finished loading, on every start, and the launcher only said the server had
+  crashed. Unticking the mod could not undo it: the extension installs a file
+  that makes the server load it whatever the launcher's settings say, so the
+  crash outlived the setting. Start now takes that installation off the disk
+  and runs without it, the row on the Missions page says there is no Windows
+  build, and a run whose missions need SigMod no longer refuses to start on a
+  machine that cannot have it. Linux is unchanged. Reported by [-SAM-].
+
+## v1.17.1
+
+### Fixed
+
+- **A mission file the server cannot read now says so, and the run moves on.**
+  A community mission whose file uses syntax stock TF2 rejects left the map up
+  with no waves in it and the team on wave 0, with nothing saying why. The
+  server now names the mission, points at the console line that names what it
+  refused, says when SigMod is the missing piece, and moves to the next mission
+  in the run. Reported by Doctor Pyro on Breaking Walls.
+- **A long kill tally can no longer hold up a multiworld.** Every tally was
+  reachable from the first mission, so an item somebody else needed could be
+  placed behind "40 Tanks Destroyed" and the only way to it was replaying one
+  mission ten times over. The first tally of each kind still counts from the
+  start; the longer ones now wait for their share of the run. Reported by
+  Roseburst.
+
+## v1.17.0
+
+### Two new mission modifiers
+
+- **Mental.** The robots, the tanks and their buildings stay cloaked for the
+  whole wave. A normal hit makes one shimmer for a moment; a reveal-on-hit
+  weapon buff decloaks it properly for five seconds before it fades back.
+- **Make it Count.** Your non-melee weapons and your sentries hit for two and
+  a half times as much, and in exchange RED carries a quarter of the reserve
+  ammo and the Engineer a quarter of the metal. Dispensers top you up every
+  four seconds rather than continuously.
+- Both by kelly-cs, and both are drawn per mission like the rest: a mission
+  keeps the modifiers it was given for the whole run.
+
+### SigMod missions on a Windows server
+
+- **The 99 community missions that need SigMod now run on Windows.** They were
+  listed and locked there because rafradek publishes a Linux server build only.
+  The extension is now cross-compiled for Windows in `m-this/sigsegv-mvm-win`,
+  and the launcher downloads and verifies it the same way it does the Linux one.
+- Turn on **SigMod** on the Missions page and press **Download / set up
+  selected server mods**, exactly as on Linux. Nothing installs it otherwise:
+  it is only needed by missions that ask for it, and a run without one never
+  downloads it.
+
+### Fixed
+
+- **Defender bots ready up again after a map change.** A per-client
+  ready-command deadline kept the previous map's game clock, so the bots
+  stopped pressing F4 until the new map's clock had caught up with it. On a
+  mission switch that could leave the team standing in the spawn room.
+- **A bot is no longer called "// Managed by tf2ap. Edits here".** The names
+  file the launcher writes starts with a managed-file comment, and the mod read
+  that line as a name and let the game cut it at 31 characters. Reported with a
+  screenshot by Cowser the Khelinace.
+- **Adding a bot name works again.** Typing a name on the Bots page and pressing
+  Add this name answered `settings action "bots.name_add" is not wired` and
+  added nothing. Reported by Cowser the Khelinace.
+- **A Windows server no longer hangs when the mission changes.** The bots walked
+  navigation areas left over from the previous map and the server never came
+  back, with nothing in the log after the last bot finished shopping. Since a
+  run changes mission by changing map, every switch could meet it.
+- **Bot Surge waves that stalled now recover.** On some wave patterns the
+  endless support robots respawned fast enough to hold every enemy slot, so the
+  wave itself stopped progressing, Cybernetic Carnage wave 1 among them. After
+  twenty seconds with no progress and no tank alive, the support is cleared for
+  four seconds to let the wave through. By kelly-cs.
+- **Docker: the defender bots load again.** The v1.16.1 server image built its
+  two native extensions against a newer C library than the image runs, so
+  SourceMod could load neither and no bots joined. By kelly-cs.
+
+## v1.16.2
+
+### Fixed
+
+- Turning off SigMod or Community missions on the Missions page now takes their
+  missions out of the pool. Before, they stayed ticked: the pool looked full,
+  and Check Run Selection still asked for SigMod after you had turned it off.
+  If the start mission was one of them, the start goes back to Any and the
+  server boots on its default map again. By kelly-cs.
+- A mission that stayed ticked after its requirement went away can be unticked.
+  Its row used to be locked, so it could not be taken out of the pool.
+- All in the pool no longer puts community missions back while Community
+  missions is off.
+
+## v1.16.1
+
+### Weapon slots, found in any order
+
+- **Weapon slots per class is now three ways, not two.** Off is one progressive
+  item for everybody. Progressive is what v1.16.0 shipped: an item per class,
+  opening that class's slots in its own order. **Any order** is the same
+  eighteen slots as items that name them, found in whatever order the
+  multiworld puts them in, so a Scout can find his melee before his secondary.
+- Safe because the slot a class is played with still comes free with the class:
+  the Medigun for a Medic, the Knife for a Spy. Nobody is left holding only
+  their worst weapon.
+- The items read as what they are: "Spy Revolver Slot" in somebody else's
+  spoiler log, rather than a progressive item nobody outside the run can place.
+- Same eighteen items either way, so a run needs no more room for them than it
+  did. A yaml saying `true` still means progressive.
+
+### Fixed
+
+- A mission whose file this server does not have is said so and skipped, rather
+  than loading its map and sitting on wave 0 for ever. TF2 ignores a mission
+  file it cannot find and keeps the map's own, so a run that drew a community
+  mission without the pack that carries it stopped dead with nothing saying
+  why. `!missions` marks those `[not installed]`.
+
+### The bots have names you choose
+
+- **A Names section on the Bots page.** The bots draw from a pool of names as
+  they take their seats, and the pool is yours: add your own, and leave out any
+  of the ones this launcher ships. The list is kept as what you changed rather
+  than as a copy, so names added in a later release still reach you.
+- It works the same in the Docker stack, through `SRCDS_BOT_NAMES_EXCLUDED` and
+  `SRCDS_BOT_NAMES_ADDED` in `.env`.
+- **A name for a seat.** Seat 3 can be called Gravel Pit Gary every run: the bot
+  that sits there is given the name instead of drawing one. The rest of the
+  seats keep drawing.
+- Renaming a seat costs the team nothing. The bots are renamed where they stand,
+  rather than rebuilt: a new team would lose the upgrades it had bought, which
+  is a steep price for a change of name. Bots at 0.16.0.
+- The pool itself is read when a map starts, so adding or removing a name
+  reaches the bots on the next mission.
+
+### Fixed
+
+- In the Docker stack the bots played stock weapons whatever the admin page
+  said. The loadouts reached `.env` and stopped there: nothing wrote the file
+  the mod reads, and nothing turned on the setting that makes it read one. A
+  loadout built on the Loadouts page was also forgotten at the next restart,
+  because `.env` is the whole of what the page remembers and the built ones
+  were never written to it.
+- A team saved on the admin page was forgotten the same way, for the same
+  reason.
+
+## v1.16.0
+
+The Docker stack gets the launcher's browser interface, five new ways to pay
+checks, and the bugs that came with running the stack on a plain Docker Engine.
+Nothing here changes a run in progress: a seed keeps the options it was made
+with. Bots at 0.15.2.
+
+### The admin page
+
+- **A browser interface for Compose.** `docker compose up -d` now serves the
+  same page the native launcher opens, on **http://127.0.0.1:8477**: the run
+  and its missions, what the multiworld has unlocked, your bot team, and the
+  server and bridge logs with the search over them. `docker compose logs admin`
+  prints the address, and `TF2AP_ADMIN_PORT` in `.env` moves it.
+- It stays on loopback, because the page can send server commands. For a
+  server on another machine, forward it: `ssh -L 8477:127.0.0.1:8477 user@host`.
+- Docker keeps the server's lifecycle. Start, Stop and Restart print the
+  Compose command to run rather than pretending to do it themselves: the page
+  has no Docker socket, and giving it one would give it the whole host.
+- The Settings tab writes `.env`, the file Compose already reads, keeping its
+  comments and everything in it the launcher does not own. Settings the
+  containers read apply on `docker compose up -d --force-recreate`; seed
+  options apply the next time the seed runs.
+- **Join address.** A setting for the address the Join button hands to players.
+  Blank discovers a local one. Name your public IP or DNS for a forwarded
+  server, or the WSL address when Docker runs in WSL and TF2 runs on Windows.
+- Community packs download from the page, with the progress on the page rather
+  than buried in the log, and the running server picks the extracted files up
+  within about thirty seconds. Nothing to rebuild.
+- SigMod ships in the image, and the page now recognises it as installed
+  instead of offering to install what is already there.
+- **Tailscale needs no auth key.** Set up / check Funnel signs the bundled
+  service in through a link in the browser, and the login survives restarts in
+  a volume of its own. Its Compose profile and `TAILSCALE_AUTHKEY` are both
+  gone; the switch on its own is enough.
+
+### More checks, without more missions
+
+Five options, all off by default. Each one adds checks to a seed, so a short
+run has something to fill it and a long one has more to find.
+
+- **Victory caches.** A mission clear is worth checks scaled by its tier: one
+  at normal, two at intermediate, three at advanced, five at expert and
+  haunted.
+- **Milestone checks.** Running totals over the whole run, whatever mission
+  they happened in: robots, giants and tanks destroyed. Something to grind when
+  a wave will not fall.
+- **Giantsanity** and **Tanksanity.** A check for every giant, and for every
+  tank, of every wave, beside the mission's own first of each. The counts come
+  out of Valve's own mission files, so community missions pay only their first.
+  Empire Escalation alone holds eighty-two giants, Cataclysm eleven tanks.
+- **Weapon slots per class.** Each class earns its own two slots instead of one
+  item opening a slot for everybody, and its first slot comes free with the
+  class: the Medigun for a Medic, the Knife for a Spy. Eighteen items in the
+  pool where there were three, so a run with few missions may not fit them.
+
+### The tracker has an address
+
+- The visual campaign tracker is published at
+  <https://m-this.github.io/tf2-archipelago/tracker/>. Paste a room or tracker
+  link and share the page; nobody has to host it.
+
+### The bots
+
+The mod moves to 0.15.2.
+
+- The mercenaries stopped shouting over each other in the break. A bot pressed
+  ready on every frame the game refused one, which is every frame for the first
+  seconds after a wave ends, and every press spoke its Ready line. It presses
+  once a second now.
+- In the Docker stack they stopped moving after a map change. The navigation
+  they read was emptied by the changelevel and nothing filled it again, so only
+  a restart brought them back. By kelly-cs.
+
+### Fixed
+
+- The Docker stack finds the Steam relay address, the way the launcher started
+  doing in v1.14.0: from the server's own console file, the only place it
+  lands. Join could say "waiting" for a whole session on a relay server that
+  was working perfectly.
+- On Docker Engine the page could not save anything at all: every Save and
+  every pack download failed with a permission error. Docker Desktop hides the
+  file ownership behind it, so testing there never hit it.
+- Saving any setting, against a multiworld hosted inside the stack, turned TLS
+  on for it. The bridge then never reconnected.
+- A stack that kept the example's `MVM_START_MISSION=random` could not generate
+  a seed. It had been refusing since v1.11.0.
+- A crash in the container leaves a `debug.log` with a stack in it. The image
+  asked the server for one and had no debugger to produce it.
+- Admins listed in `.env` got no permissions until somebody reloaded the admin
+  cache by hand. The server is told about the list as soon as it is written.
+- Test mode left missions locked until the starting inventory arrived, so the
+  first map change could be refused.
+- A mission drawn with zero modifiers still drew one.
+- Weapon buffs offered flags the weapon already carries, and five weapons were
+  offered buffs that do nothing on them. A buff in the pool now changes
+  something on the weapon it names.
+- Max health buffs followed the class rather than the player holding them.
+
+## v1.15.0
+
+- The mission list could vanish mid-run. Any mission nobody had cleared a
+  wave in yet, which is most of them on a normal run, threw an error the
+  plugin never recovered from, leaving "the bridge has not answered" for the
+  rest of the session.
+- Rootless Podman, the default on Bazzite, could fail to write the server's
+  admin list on start and stop picking up plugin updates until the container
+  was restarted by hand.
+
+## v1.14.0
+
+Missions that change their own rules, a tracker your spectators can open, SigMod
+missions the launcher installs itself, and the Grappling Hook fix the last
+release left on nightly. Bots at 0.15.1.
+
+### The run
+
+- **Mission modifiers.** A `mission_modifiers` option, off by default, gives
+  every drawn mission its own rules: low or high gravity, robots plated against
+  blast, fire or bullets, robots 15% faster or half size, robots that can crit,
+  tanks carrying an invulnerable sentry, waves that refill the moment a robot
+  dies, aim that wanders off the crosshair, ground with no grip, and
+  mercenaries who take a quarter more damage. The seed chooses once per mission
+  and keeps the combination, so a mission you return to plays the same twists
+  again. One or two a mission by default, and `minimum_mission_modifiers` and
+  `maximum_mission_modifiers` set the range.
+- **A tracker for spectators.** A web page anybody with the link can open:
+  which missions are cleared, what has been checked, what the multiworld has
+  unlocked, and the weapon buffs each class carries and at what level. Viewers
+  need no room password, the page needs no server of its own, and a live
+  tracker refreshes once a minute. The room has to have tracking enabled, and
+  a seed made with an older apworld cannot show its starting inventory.
+- Test mode hands you the missions you picked. The missions you ticked into
+  the pool are unlocked from the start, so `!mission` can switch to any of
+  them straight away instead of only the one you start on.
+- A wave picker beside Play on the mission list. Pick a wave and the mission
+  starts there, with the money the game gives for having won every wave
+  before it. It opens on the wave your team got to, so the mission you left
+  part way through is one click from where you left it.
+- The run remembers the highest wave you reached in every mission, not only
+  the one you were on. Going to look at another mission no longer throws the
+  first one's progress away.
+- The wave restore now waits for the game to agree before it says it worked.
+  It used to announce the wave it had asked for, which is why a player could
+  read "Restored: Quarry at wave 3 of 6" and be standing in wave one. If the
+  jump never takes, the log says so and names the wave the game is actually
+  on.
+
+### Weapon buffs
+
+- Skins and decorated weapons draw from the gun they are a copy of. A buff
+  rolled for the Holy Mackerel used to belong to the Holy Mackerel alone; it
+  is a Bat buff now, and the same goes for the decorated versions of weapons
+  you already own. The Self-Aware Beauty Mark counts as Jarate.
+- Weapons that are the same gun under different names share one pool. The
+  Saxxy, the Conscientious Objector and the other all-class melees draw one
+  "All-Class Melee" buff between them instead of one each, and the Bootlegger
+  draws what Ali Baba's Wee Booties draws. Fewer duplicate rolls, and every
+  roll lands on a weapon that can use it.
+- Your own explosions no longer bleed, ignite, milk or Jarate you. The hit
+  effects were written where the game could read them on self-inflicted blast
+  damage, so rocket jumping with a bleed rocket launcher bled its owner.
+
+### The launcher
+
+- SigMod community missions install themselves. On Linux the launcher
+  downloads SigMod, loads it, and the missions that need it come off their
+  lock. The Docker image already carried it. On Windows they stay locked:
+  SigMod has no Windows build, and porting it is its own project.
+- A seed made by a different apworld version says what to do about it. The
+  refusal named two numbers and no action, and two people a week apart asked
+  what they meant. It names the two ways out now: regenerate the seed with the
+  apworld that shipped with this launcher, or run the launcher the seed was
+  made for.
+- The Rewards toggles say what they switch. "Rewards" is "Grappling Hook", and
+  the labels read "enabled" and "disabled" instead of "in the pool" and
+  "include cash filler".
+- Joining from the launcher works when Steam's relay is in use. The relay
+  address sometimes reached the launcher and sometimes only the game's own
+  console log, which the launcher reads now.
+- Community missions hand their wave icons to joining players over the HTTP
+  download. They showed on the machine running the server and nowhere else.
+
+### Fixed
+
+- The Grappling Hook can be turned on. The launcher wrote every option the
+  apworld takes except that one, so a run generated from its tf2.yaml never
+  had the hook in it and hand-editing the file was the only way in. It is a
+  row on the Rewards page now, under Server levers.
+- A held Grappling Hook shows on the Unlocks screen. The screen listed four
+  kinds of unlock and the hook is a fifth, so it arrived, the plugin turned
+  it on, and nothing said so.
+
+### The bots
+
+The mod moves to 0.15.1.
+
+- A robot sent where the navigation mesh has no ground no longer takes the
+  wave down with it. The list of walkable tiles around a point came back
+  empty and was read as if it had entries. By kelly-cs.
+- The medic spends the break healing, so his über is full when the wave
+  starts. The charge never built: every wave opened with it empty, and a
+  mission got one über where it now gets seven. Measured on Decoy.
+- A released über keeps the beam on the player it started on, instead of
+  drifting to whoever was nearest when the button went down.
+- The medic heals the biggest body, and only a player who calls for him jumps
+  the queue. A quiet player standing in spawn used to hold the top of the
+  list for a whole wave while the beam landed on whoever was nearby.
+
+## v1.13.0
+
+The launcher has one screen now, and it opens in your browser.
+
+### The new interface
+
+- Double-click the launcher and a browser opens on it. Same screen on Windows
+  and on Linux, so a screenshot in Discord is a screenshot of what you have.
+- Everything is on it: the connect line, the run and its missions, what the
+  multiworld has unlocked, your bot team, the log with a search over it, and
+  every setting.
+- The log holds twenty thousand lines and stays quick to scroll, and the search
+  narrows it as you type. The server command box is under it.
+- The mission table sorts on any column, searches, and says why a mission is not
+  ready rather than leaving it out.
+- Leaving the tab open behind the game costs nothing: it stops listening while
+  it is hidden and picks the state back up when you come back to it.
+- Closing the tab leaves the server running. On Windows the launcher sits in
+  the notification area while it does: click the icon to get the page back,
+  right-click it for Quit. Quit on the screen stops it too.
+- The settings open when you go to them. There is no button to press first.
+- A settings page with sections shows them as tabs across the top, one at a
+  time. Bots is Team, Classes, Looks and Loadouts, each a screen rather than
+  a scroll; a search still finds a setting whatever tab it is on.
+- The Team tab is a grid of six seats with the fill controls above it; the
+  Classes tab is one line per class, allowed or not and what it carries.
+- Loadouts is a builder: pick the class, a weapon per slot, name it. The
+  saved ones are a list with Load and Remove on each line.
+- The mission pool is one table, the same one the Play screen has, with a
+  tick per mission and the tier beside it. It was drawn twice.
+- The console is under the missions on the Play screen, the same width, with
+  the search, the command box, Save debug logs and Clear this view. There is
+  no Console tab.
+- Join is in the header, left of Start, and the Bot Switcher has Apply:
+  the seats are a draft, and a lineup built there was gone on the next
+  visit because nothing wrote it.
+- Star on GitHub, in a footer that stays put.
+
+### Gone
+
+- The old settings window and the terminal interface are both gone. The
+  browser is what you get.
+- `-tui` and `-web` are gone with them. `-console` still prints the log and
+  nothing over it, for a machine with no desktop; `-configure` still asks the
+  questions in a terminal.
+- New: `-no-browser` prints the address instead of opening one, and `-addr`
+  says where to serve.
+
+### If the browser does not open
+
+The address is printed either way. Open it yourself. On WSL the launcher asks
+the Windows browser rather than one inside the distribution, where you could
+not see it.
+
+### Fixed
+
+- A saved loadout handed to a seat or a class plays that loadout. It played
+  stock: the menu wrote the loadout's name where its key belongs. A settings
+  file written by 1.12 still works, the name is understood too.
+
+## v1.12.0
+
+Traps, a medal on every mission clear, a Grappling Hook the multiworld can hand
+you, maps that download over HTTP, thirty more community missions, and a long
+pass over the weapon buffs from Cowser's sheet and kelly-cs's issues. Bots at
+2.52.3. The settings screen says what it did with a Save and where it put the
+file, and a save stops ending the mission you are four waves into.
+
+### The run
+
+- **Traps.** A `trap_percentage` option puts traps in the pool, one percent by
+  default and zero for none. The one that exists soaks the whole team in
+  Jarate: ten seconds of 35% more damage taken and no crits, bots included. It
+  belongs to the multiworld like any other item, so it is another player
+  opening a chest that does it to you. One that arrives between waves waits
+  for the next one: Jarate on a team standing at the upgrade station is no
+  trap at all.
+- **Australium Medals.** `medal_on_clear`, off by default, locks a medal onto
+  every mission clear and takes those checks out of the pool. Both goals read
+  them: Final Boss asks for the goal mission's own, missionsanity counts them.
+- **The Grappling Hook.** Turn on `server_settings` in your YAML and the
+  multiworld can hand your team Mannpower's hook for the rest of the run. It is
+  useful, never progression: no wave needs it.
+- A `community_missions` option keeps every community mission out of a run in
+  one line, instead of naming each in `excluded_missions`.
+- Thirty community missions that play on a Valve map are on the lists. Every
+  mission in the catalogue named one of its own community maps, so Moonlight's
+  Trouble in Mann Town on Coaltown and Manntenance on Mannworks were in the
+  downloaded assets and on no list. They need their pack for the population
+  file and nothing else. A run that keeps every mission draws from 112 at the
+  normal floor instead of 82, and the defaults do not move: community missions
+  still start excluded. Reported by Glitch.
+- Community missions can name a server mod they need. The Docker image carries
+  SigMod and loads it with `SRCDS_MODS=sigsegv-mvm`; the seed's `server_mods`
+  option draws those missions only for a server that has it. The Windows
+  launcher shows them locked: SigMod has no Windows build.
+- Wicked Wizardry and Fiefdom Fiasco on Frostwynd are Medieval missions: the
+  map keeps only melee and medieval-era weapons, so most weapon slot unlocks do
+  nothing there. The launcher says so where you pick missions for the pool,
+  where you choose the starting mission, and on the session list, so a run
+  does not walk into one by surprise. By kelly-cs.
+- A server that restarts goes back to the wave the team had reached. The bridge
+  writes the wave down as checks come in, and the plugin reloads the mission and
+  jumps forward, never back, when the server comes up again. A crash cost the
+  team every wave it had cleared.
+- A run that crossed the 1.10 upgrade had every mission it had cleared read as
+  "collected", and a missionsanity goal counted none of them. The old state file
+  could not say which checks were yours, and they all were. kelly-cs's run.
+- The bridge no longer drops the room every second in a multiworld with many
+  games. It asked for every game's item names at once and the reply was too big
+  to read, so nothing you checked ever reached the room. EMann's bundle showed
+  it fifty-nine times.
+- Test mode draws its missions at random from the pool, the way a real seed
+  does. It took the first ones in the settings list, which looked like a
+  randomizer that does not randomize.
+
+### Weapon buffs
+
+- The run's buffs are yours and not the station's. Refunding an upgrade used to
+  take them, and they came back as purchased, infinitely refundable upgrade
+  levels that stacked again on each refund. They are held apart from MvM's
+  shopping now and survive refunds, wave transitions and loadout changes.
+- The upgrade station no longer opens the buff window by itself. That window
+  took the number keys, which are your weapon slots, for twenty seconds. The
+  station lists your loadout's buffs in chat, and `!ap buffs` opens the window
+  when you want it.
+- Explode on ignite is gone from the pool: on a minigun it ended a wave on its
+  own.
+- Über on hit is a Medic buff. It used to be offered on mediguns only, which
+  never land a hit, so it did nothing wherever it fell. It is on his syringe
+  guns, his saws and the Crusader's Crossbow now: 1% a syringe, because they
+  land far faster, and 5% everywhere else.
+- Ninety-six buff and weapon pairs that did nothing are out of the pool, from
+  Cowser's sheet: accuracy on weapons with no spread, reload and clip buffs on
+  weapons with no clip, kill buffs on the two jumpers, fire rate on sniper
+  rifles, and the like. Existing seeds keep their ids.
+- Eight pairs came in from the same sheet. A thrown jar counts as a hit, so
+  Jarate and Mad Milk draw ignite and heal on hit. The Gas Passer never fires
+  and still gets kills through its afterburn, so it draws the on-kill buffs.
+- Projectile penetration is no longer offered on explosives: a rocket that
+  penetrates does not explode where it was aimed. Armor piercing is a knife buff
+  only, since the game reads it on backstabs and nowhere else.
+- Bleed lands one stack per enemy instead of one per hit, which made a syringe
+  gun a wave-ender. Melee fire rate stops at +50%: past it the swing outran its
+  own animation and hit nothing.
+- "No self-inflicted blast damage" and rocket-jump protection work on rocket,
+  grenade and stickybomb launchers, and zero self-damage keeps the explosion and
+  the blast-jump push. The game reads both on the player, not the weapon, so the
+  buff on the weapon never reached them.
+- Bleed, milk, Jarate and the marks land on a direct hit with the jar itself.
+- A locked weapon slot takes the wearable in it too. A Demoman with a locked
+  secondary charged with a shield, and one with a locked primary kept the boots
+  and held nothing. Gunboats, Mantreads, the Razorback and the other
+  slot-filling wearables follow the same rule.
+- Linux servers get the extra arrows and flares. The projectile-count fanout had
+  Windows gamedata only, so a Docker server logged both fanouts disabled and
+  every extra bolt was a plain clone.
+- Extra Crusader's Crossbow bolts heal. The fanout built them as plain arrows,
+  which hurt a robot and do nothing for a teammate. They now come off the game's
+  own arrow factory with their launcher set, so a bolt that reaches a teammate
+  heals him, penetration carries over, and the weapon still fires one sound
+  however many bolts leave it. By kelly-cs.
+- Heal on hit and speed boost on hit work on Jarate and Mad Milk. The game
+  reads both off a weapon attack, and a jar splash is not one, so a soaked
+  robot gave the thrower nothing. The plugin pays them now, once per soaked
+  enemy.
+- The on-kill buffs credit the weapon that killed, not the one in hand. A robot
+  that burned down after the Pyro put the Gas Passer away paid the flamethrower's
+  buffs, or nothing.
+- `sm_ap_buff_slot` puts a test buff on a holstered weapon, a shield or a
+  watch, and `tf2ap_buffs_for_defender_bots` lets the bots carry the run's
+  buffs so a buff can be measured on a server with no player.
+- Movement speed, jump height and health regeneration are passive. They used to
+  work only while the weapon that carried them was out, which is not how MvM's
+  own class upgrades read; a Scout who rolls movement speed on his bat is faster
+  with the scattergun in his hands too, and two weapons carrying the same buff
+  add up.
+- Recharge speed is off the Gas Passer. It fills the item meter and the buff
+  scales the effect bar, which is a different meter, so it never reached it.
+- The Flying Guillotine no longer draws clip size, reserve ammo or reload speed.
+  It recharges, so it holds no rounds for any of them to act on.
+- A server where no buff applies at all says why in its log. The plugin hangs
+  the buffs off an attribute provider it attaches through VScript, because
+  TF2Utils' equip offset is stale on current Windows TF2, and a server with no
+  VScript VM refuses that input. The refusal was dropped and came back a step
+  later as the provider not providing attributes, which is a symptom no debug
+  bundle could explain. Nine of those lines in four minutes sat behind Likai's
+  screenshot.
+
+### Balancing
+
+- Robot health scaling works, and holds. Setting it above 100% left the robots
+  at the mission's health and setting it below moved nothing: the number was
+  written somewhere the game recomputes a moment later. It is a straight
+  multiplier now, 10% to 1000%, applied after the game finishes building the
+  robot, read back, and the server log says what each robot ended up worth.
+
+### Getting a server up
+
+- The server hands out maps over HTTP from the machine it runs on, so a friend
+  joining without a community map downloads it instead of watching Transmission
+  reach the end and start over. On the local network there is nothing to set up.
+  A friend joining from outside needs the download port forwarded and your
+  public address in `SRCDS_DOWNLOADURL`, or a Tailscale Funnel: the launcher
+  publishes the download through it when you have one, on Windows and Linux and
+  with the Compose stack. Without either they fall back to the old transfer.
+- The launcher says in its log when a newer release is out, with the link. It
+  still does not replace itself: download the new exe and run it.
+- A server whose Metamod or SourceMod went missing is repaired on the next start
+  instead of playing stock Mann vs Machine with every setting ignored, and a
+  debug bundle says so when it happened.
+- The Docker server plays the randomiser again. The image shipped without the
+  plugin's gamedata, so the plugin refused to load and the server came up as
+  plain Mann vs Machine with nothing saying so.
+- The Docker server writes its player file with the same code as the launcher,
+  so both carry the reward importance options and the same defaults.
+  `MVM_COMMUNITY_MISSIONS` reaches the launcher's settings too.
+- The game server starts with `-debug`, so a crash leaves a stack in
+  `debug.log` even when Breakpad never started, and the bundle carries it. Two
+  bundles arrived with an access violation and nothing naming the function.
+- A debug bundle only carries the game server's own crash dumps, not every
+  program's on the machine. Two bundles carried GameBar and a Tony Hawk game.
+- The community mission installer skips the missions a pack cannot support.
+
+### The launcher
+
+- An **Unlocks** tab, window and terminal, lists what the multiworld has handed
+  the run: classes, weapon slots, missions and weapon buffs, with the level a
+  repeated buff reached.
+- The install folder is a setting, with Browse beside it, instead of a choice
+  the installer screen made once and never offered again. Changing it does not
+  move what is already downloaded, and the help says so.
+- **Show the settings file** opens the folder holding `config.json`, which is
+  under the OS config directory and not in the install folder. Two players went
+  looking for it in the install folder, found nothing, and concluded that
+  nothing had saved.
+- A Save that is refused says so where you are looking: a message box, and the
+  page holding the reason. A refusal used to be a small label beside a box on
+  another tab, so a player could set a login token three times over while the
+  room address two pages away was what stopped every one of them. Every refusal
+  is in the log now as well, so a debug bundle carries it.
+- A failed write keeps the screen up with your answers on it and names the path
+  it could not write.
+- Save asks the room whether it is listening, and says which of "live", "not
+  there" or "did not answer" it got. None of the three refuses the save: a room
+  you have not made yet is not a mistake. Start used to be where you found out,
+  with "AP_PORT is not set", and one player spent seventeen minutes on that.
+- The mission count you may ask for is the number the seed can actually draw.
+  The ceiling counted every mission in the catalogue, including the community
+  ones a fresh settings file leaves out and any needing a server mod you do not
+  load, so the tier rows offered 82 missions at the normal floor where the run
+  held 29. Both numbers now count what the generator counts, and the generator
+  says in its log when the pool is smaller than the ask. Reported by [-SAM-].
+- The settings window is laid out like a settings window again. Moving the rows
+  into one declaration flattened it: the Bots page became one list of
+  thirty-nine rows where it had been four sub-tabs, every button took a line
+  with its own name in the label column beside it, Debug logs, Repair and Reset
+  settings left the bottom bar for a page, and a page of three settings spread
+  its rows down the window instead of leaving the space at the bottom. The
+  window nests, groups and lays out again: Bots holds Team, Classes, Looks and
+  Loadouts; the seats and the classes sit two to a line; buttons share a line;
+  numbers are the width of a number rather than of the window; and the three
+  buttons that are about the launcher are along the bottom where they were.
+- SourceMod's one automatic restart waits for the settings window to close. The
+  updater fetches gamedata and asks for a restart whenever it likes, so the
+  server came round in the middle of an edit and looked like the edit had done
+  it: Sirknobbles reported changing the bot team as restarting the server, but
+  only when the window had been open long enough. A save that restarts anyway
+  loads the new gamedata itself.
+- A save restarts the server only for a setting the server reads at startup.
+  Saving a mission count ended the mission the team was four waves into and
+  brought the server back exactly as it was. A **Restart on save** tick sits
+  beside Save and shows only when what is on screen would need one, never with
+  the server down, so a lineup changed between waves costs the run nothing.
+  Reported by Likai.
+- A run of nothing but community missions has missions again. The community
+  switch was absent from every settings file written before the option existed,
+  so it loaded as off, and no screen had a row to turn it back on once it was
+  the field that empties the pool. It has one on the Missions page, and a
+  community mission's Compatibility column reads "community missions are off"
+  while the switch is, so the table stops looking full over an empty pool.
+  Reported by Peppy.
+- A run selection the launcher refuses is reported as refused. The button
+  dropped the error naming the empty pool and printed "Selection is valid: 0
+  eligible mission(s) provide 0 checks for 0 unlocks" over it. From Peppy's
+  screenshot.
+- The mission table sorts on its headers, and a row it was told about redraws.
+  The "In the pool" column kept its old answer until the mouse passed over the
+  line, and a tick the launcher had refused was drawn as taken. The headers
+  looked pressable and did nothing, which with eighty-five missions makes
+  finding one a nightmare. The table opens sorted by mission name. Reported by
+  EZKSupernova.
+- The settings window opens on a number saved outside the bounds it has now.
+  The mission pool can shrink under a count already saved, and the window
+  refuses to build at all for one number box starting outside its range, so
+  nothing opened. The stale value sits on the nearest bound, where you can see
+  it and save it. By kelly-cs.
+- Terminal tabs that list more than fits scroll, and the last line counts what
+  is off the screen. The Unlocks and Bot Switcher lists were cut at the body
+  height and said nothing about the rest.
+- `-web` opts into an experimental browser interface, the same screens on
+  Windows and Linux, served on loopback by the launcher itself. The window and
+  the terminal interface stay the defaults until a later cutover. By kelly-cs.
+
+### The bots
+
+The mod moves from 2.39.0 to 2.52.3.
+
+- The medic answers a player who calls for him. A human pressed the call and
+  the bot medic carried on healing whichever bot it had picked; reported by
+  Cowser and by Peppy. Measured with a stand-in player calling on Decoy: the
+  caller held the beam up to a quarter of the time against 2% before, every
+  wave cleared either way.
+- The engineer's break is a plan, not a walk. Every engineer claims his four
+  spots before anybody moves, jumps to each rather than walking, and never
+  builds on another engineer's ground. On Decoy with two engineers the
+  teleporter entrance stands at 21 to 30 seconds of the break against 37 to 45,
+  and the exit at 26 to 38 against 50 to 58. The cost is on the record: the
+  wrench is what applies a level, and an engineer who jumps swings it less, so
+  the sentry sits at level three in 76% of samples rather than 85%.
+- Two engineers who pick the same nest no longer land inside each other. The
+  sentry was the one building whose jump onto its spot skipped the check for
+  room to stand, so a pair holding one nest were put on the same coordinate and
+  neither could move until the stuck recovery threw one of them out. Reported by
+  Cowser on Mannworks, where five engineers share four nest spots and the pair
+  spent the whole break wedged with no sentry between them.
+- A teleporter exit puts you down on a side with ground beside it. The exit
+  ring never looked down, so a player taking the teleporter could land where the
+  engineer never stood.
+- A bot's loadout slot is emptied only for an item the game can give. A Heavy
+  joined RED on Rottenburg with no weapon at all.
+- Halloween cosmetics are out of the bots' hat pool. The game refuses to attach
+  a holiday item out of season, and the refusal threw an error that cost the
+  bot the rest of its cosmetics.
+- A bot moved out of spawn is put where a standing player fits. The recovery
+  teleported onto anything and asked for a route in the same tick.
+- Five map spots stand on the ground. Four nest and dispenser spots on
+  Mannhattan and Mannworks sat in holes beside the mesh, and Rottenburg's fourth
+  sniper spot was written 213 units above it, so every side was refused.
+- A bot taking a seat no longer inherits the last bot's answers: the health,
+  ammo and revive searches around where the previous bot stood cleared with the
+  seat, so a new bot stops walking to a pack it cannot reach.
+- The server no longer crashes on a map change after a custom loadout file
+  was loaded. Two handles the mod had closed were read back after the change.
+- The final wave's send-off is a taunt. The last wave neither danced nor
+  kicked.
+
+Bigrock's rock-top nest and teleporter spots are still built at the foot of the
+rock: the engineer cannot climb, and the building goes where he stands. Open.
+
 ## v1.11.0
 
 Change the bot team mid-run, build your own loadouts, scale robot health, and

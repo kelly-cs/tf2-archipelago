@@ -1,0 +1,153 @@
+@use 'sass:map';
+
+/* ==========================================================================
+   Design tokens: the Admin Console palette, one source of truth.
+
+   Runtime values are CSS custom properties, emitted once into :root by the
+   global stylesheet. Components read them ambiently as var(--x); nothing is
+   emitted on @use, so importing this partial costs nothing until something
+   references it. Breakpoints stay SCSS: a media query cannot read a custom
+   property.
+   ========================================================================== */
+
+$breakpoints: (
+  'sm': 640px,
+  'md': 900px,
+  'lg': 1200px,
+);
+
+@mixin respond($name) {
+  @media (min-width: map.get($breakpoints, $name)) {
+    @content;
+  }
+}
+
+@mixin root {
+  :root {
+    /* Surfaces, darkest first. The page, the raised panel, the sunken slot a
+       command line or a log sits in. */
+    --surface-void: #120c06;
+    --surface-page: #1c150d;
+    --surface-nav: #1f170e;
+    --surface-panel: #221a10;
+    --surface-header: #241b10;
+    --surface-raised: #2a2013;
+    --surface-hover: #352a18;
+
+    /* A slot inside a panel: a seat row, a count tile, a table's header row.
+       Darker than the panel it sits in, lighter than the page behind it. */
+    --surface-inset: #1a130b;
+
+    /* The log, which is its own thing: a wall of text wants a shade off the
+       page so the panel edge is visible without a border doing the work. */
+    --surface-log: #181109;
+
+    /* A row the eye has to keep its place along. Barely there on purpose. */
+    --zebra: rgb(255 255 255 / 2%);
+
+    /* Lines, lightest last. */
+    --line-soft: #3a2d1a;
+    --line: #4a3a22;
+    --line-strong: #5a4830;
+
+    /* Text, brightest first. */
+    --text: #f1e6c8;
+    --text-dim: #c9b895;
+    --text-faint: #a8916b;
+    --text-disabled: #6b5c42;
+
+    /* Dimmer than dim, brighter than disabled: a timestamp, a locked row, a
+       line that is there to be skipped over unless you are looking for it. */
+    --text-mute: #8a7a5c;
+    --text-locked: #7d6e50;
+
+    /* The log's own text. Warmer than --text-dim, because a screen of
+       monospace at --text-dim reads as switched off. */
+    --text-log: #e3d6b6;
+
+    /* The one accent: Mann Co. gold. Everything the player presses. */
+    --accent: #e0ac4f;
+    --accent-bright: #f0c46e;
+
+    /* What a state means. Good is the RED team's olive, bad is its red. */
+    --state-good: #7a9a3f;
+    --state-warn: #e08b82;
+    --state-bad: #b8483f;
+    --state-info: #8bb8db;
+
+    /* Stop is red because stopping a server mid-wave is a thing to mean. */
+    --state-stop: #c25c56;
+
+    /* A tier, and the tint behind it. Four colours the player learns once and
+       reads everywhere a mission is named. */
+    --tier-normal: #8bb8db;
+    --tier-intermediate: #7a9a3f;
+    --tier-advanced: #e0ac4f;
+    --tier-expert: #e08b82;
+    --tier-normal-bg: rgb(139 184 219 / 12%);
+    --tier-intermediate-bg: rgb(122 154 63 / 14%);
+    --tier-advanced-bg: rgb(224 172 79 / 14%);
+    --tier-expert-bg: rgb(224 139 130 / 14%);
+
+    /* The tint behind something chosen, and behind something allowed. */
+    --accent-tint: rgb(224 172 79 / 12%);
+    --accent-tint-strong: rgb(224 172 79 / 18%);
+    --good-tint: rgb(122 154 63 / 12%);
+
+    /* Where a source in the log came from. */
+    --source-srcds: #8bb8db;
+    --source-rcon: #e0ac4f;
+    --source-launcher: #c9bb99;
+    --source-install: #e08b82;
+
+    --font-display: 'Anton', 'Arial Narrow', sans-serif;
+    --font-body: 'Source Sans 3', system-ui, sans-serif;
+    --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+
+    --text-xxs: 12.5px;
+    --text-xs: 12px;
+    --text-sm: 13px;
+    --text-md: 14px;
+    --text-lg: 15px;
+    --text-row: 16px;
+    --text-xl: 18px;
+    --title: 20px;
+    --title-lg: 22px;
+    --title-page: 26px;
+
+    /* A connect line is read off the screen and typed into a console, so it is
+       the largest thing on the page that is not a heading. */
+    --text-command: 19px;
+
+    /* Uppercase needs air between the letters or it reads as one word. */
+    --caps-spacing: 0.06em;
+
+    --radius: 4px;
+    --radius-panel: 6px;
+    --radius-pill: 20px;
+
+    --gap-xs: 4px;
+    --gap-sm: 8px;
+    --gap: 12px;
+    --gap-lg: 18px;
+    --gap-xl: 22px;
+
+    /*
+     * Two curves and three durations, so nothing on screen moves at a pace of
+     * its own.
+     *
+     * ease-out for anything arriving or leaving: it starts fast, which is the
+     * moment the player is watching. Never ease-in, which delays exactly then
+     * and reads as a slow interface at the same duration. ease-drawer is for
+     * something moving across the screen rather than appearing on it.
+     */
+    --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+    --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+
+    /* A press has to feel answered, so it is the fastest thing here. Nothing
+       goes over 300ms: past that a screen stops feeling responsive. */
+    --press: 140ms;
+    --quick: 160ms;
+    --settle: 220ms;
+  }
+}

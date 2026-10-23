@@ -1,0 +1,29 @@
+:host {
+  display: block;
+  background: var(--surface-panel);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-panel);
+  padding: var(--gap) var(--gap-lg);
+}
+
+.bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--gap-sm);
+  padding-bottom: var(--gap);
+}
+
+h3 {
+  font-size: var(--text-xl);
+  margin-right: auto;
+}
+
+.count {
+  font-size: var(--text-sm);
+  color: var(--text-faint);
+}
+
+.bar app-search-box {
+  min-width: 200px;
+}

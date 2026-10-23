@@ -24,7 +24,15 @@ concurrency:
 # GitHub-only, like the release job: ghcr.io, the release API and the `gh` CLI
 # are all GitHub's. The Forgejo mirror reads this file and skips it.
 jobs:
+  # SourceMod 1.13 refuses an extension built for 1.12, so the launcher's
+  # CBaseNPC, Actions, REST in Pawn and DHooks are built here, the Windows half
+  # on a Windows runner. make dist refuses a tree without both.
+  extensions:
+    if: github.server_url == 'https://github.com'
+    uses: ./.github/workflows/extensions.yml
+
   nightly:
+    needs: extensions
     if: github.server_url == 'https://github.com'
     runs-on: ubuntu-latest
     permissions:
@@ -39,7 +47,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
 
@@ -63,11 +71,43 @@ jobs:
           docker build -f deploy/Dockerfile.bridge -t "$IMAGE/bridge:nightly" .
           deploy/push-image.sh "$IMAGE/bridge:nightly"
 
+      - name: build and push the admin UI image
+        run: |
+          . deploy/env/versions.env
+          docker build -f deploy/Dockerfile.admin \
+            --build-arg "LAUNCHER_VERSION=nightly" \
+            --build-arg "NODE_VERSION=$NODE_VERSION" \
+            --build-arg "TAILSCALE_VERSION=$TAILSCALE_VERSION" \
+            -t "$IMAGE/admin:nightly" .
+          deploy/push-image.sh "$IMAGE/admin:nightly"
+
+      # The srcds image compiles CBaseNPC and Actions, most of its build time,
+      # and their stage changes only with their pins, patches and script. The
+      # GitHub Actions cache keeps its layers between runs, and a tag reads
+      # main's cache, so a release reuses what the nightly compiled.
+      #
+      # The gha cache needs a docker-container builder and the runtime token
+      # only a JavaScript action can see. `use: false` keeps every other
+      # `docker build` here on the daemon, where push-image.sh finds its image.
+      - uses: docker/setup-buildx-action@v4
+        id: buildx
+        with:
+          use: false
+
+      - uses: crazy-max/ghaction-github-runtime@v4
+
       - name: build and push the srcds image
         run: |
           . deploy/env/versions.env
-          docker build -f deploy/Dockerfile.srcds \
+          docker buildx build --builder "${{ steps.buildx.outputs.name }}" --load \
+            -f deploy/Dockerfile.srcds \
+            --cache-from type=gha,scope=srcds \
+            --cache-to type=gha,scope=srcds,mode=max \
             --build-arg "RIPEXT_VERSION=$RIPEXT_VERSION" \
+            --build-arg "SOURCEMOD_VERSION=$SOURCEMOD_VERSION" \
+            --build-arg "MMSOURCE_VERSION=$MMSOURCE_VERSION" \
+            --build-arg "SIGSEGV_MVM_VERSION=$SIGSEGV_MVM_VERSION" \
+            --build-arg "SIGSEGV_MVM_SHA256=$SIGSEGV_MVM_SHA256" \
             -t "$IMAGE/srcds:nightly" .
           deploy/push-image.sh "$IMAGE/srcds:nightly"
 
@@ -83,11 +123,20 @@ jobs:
       # bundle instead of the release version this was built past. Without it a
       # build from main after 1.9.0 calls itself 1.9.0 and a player reporting a
       # bug on it looks like a player on the release.
+      - uses: actions/download-artifact@v8
+        with:
+          name: extensions
+          path: extensions
+
       - name: build the files
         run: make dist BUILD_CHANNEL=nightly
+        env:
+          BOTS_EXTENSIONS_DIR: ${{ github.workspace }}/extensions
 
       - name: pin the compose file to nightly
-        run: sed -i "s/:-latest}/:-nightly}/g" dist/compose.yaml
+        run: |
+          sed -i -E "s/(TF2AP_VERSION:-)[^}]+/\1nightly/g" dist/compose.yaml
+          sed -i "s|ghcr.io/m-this/tf2-archipelago|ghcr.io/${{ github.repository }}|g" dist/compose.yaml
 
       # The notes are the commit list since the last real tag, which is the thing
       # a CHANGELOG.md section gets written from. `git describe` finds that tag;
@@ -138,7 +187,7 @@ jobs:
       # attestation is the only check somebody has on a file this workflow built,
       # and a nightly build is exactly the file nobody has a reason to trust.
       - name: attest the binaries
-        uses: actions/attest-build-provenance@v3
+        uses: actions/attest-build-provenance@v4
         with:
           subject-path: |
             dist/tf2ap.exe

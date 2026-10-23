@@ -12,13 +12,18 @@
 
 // The plugin-facing contract. The bridge reports its own; a mismatch means one
 // half of the compose file was updated and the other was not.
-#define BridgeAPIVersion 3
+#define BridgeAPIVersion 6
 
-// A mission is at most nine objectives, so nearing this means the bridge has been gone a long time.
-#define PendingMax 64
+// With every giant a check, one wave of Caliginous Caper queues eighty, so
+// nearing this means the bridge has been gone a long time.
+#define PendingMax 512
 
 // Slow enough not to hammer a bridge that is down, quick enough to land a wave before the next one.
 #define RetryInterval 5.0
+
+// A bridge restart can replace the test room without changing the map. The
+// plugin must notice the new seed before its cached mission list goes stale.
+#define RunCheckInterval 15.0
 
 // A player may speak to the multiworld this often. The bridge has its own
 // guard; this one exists to tell the player which of them it was.
@@ -31,6 +36,25 @@ enum
     Unlock_Mission,
 };
 
+enum
+{
+    MissionModifier_LowGravity = (1 << 0),
+    MissionModifier_HighGravity = (1 << 1),
+    MissionModifier_BlastPlating = (1 << 2),
+    MissionModifier_FragileMercenaries = (1 << 3),
+    MissionModifier_OverclockedServos = (1 << 4),
+    MissionModifier_BotSurge = (1 << 5),
+    MissionModifier_ThermalShielding = (1 << 6),
+    MissionModifier_BallisticPlating = (1 << 7),
+    MissionModifier_LoadedDice = (1 << 8),
+    MissionModifier_WeaponizedTanks = (1 << 9),
+    MissionModifier_MiniatureMenace = (1 << 10),
+    MissionModifier_FaultyCalibration = (1 << 11),
+    MissionModifier_LooseFooting = (1 << 12),
+    MissionModifier_Mental = (1 << 13),
+    MissionModifier_OneInTheChamber = (1 << 14),
+};
+
 // One mission of the run, as the bridge describes it. The map is the field the
 // plugin cannot work out for itself: a popfile name does not reliably contain
 // the map it runs on.
@@ -40,8 +64,13 @@ enum struct Mission
     char name[64];
     char map[64];
     int waves;
+    int modifierFlags;
     bool unlocked;
     bool cleared;
+
+    // The highest wave the team has cleared here, zero for none. What the
+    // Resume button goes back to, and it outlives a switch to another mission.
+    int waveReached;
 }
 
 enum struct Objective
@@ -56,7 +85,19 @@ enum struct Objective
     // The wave counts in the tables come from the wiki and none of them has
     // been checked against a running server.
     int wavesTotal;
+
+    // How many fell, for a tally. Zero for every other kind.
+    int count;
+    // Which giant or tank of the wave this was, counted from 1, for the
+    // per-kill checks. Zero for the mission's own first of each and for every
+    // other kind.
+    int index;
 }
+
+// A tally is not idempotent the way a check is, so every report carries this
+// session and its id: the bridge answers a repeat of one it already took
+// without counting it again. Picked once per plugin load.
+int g_TallySession;
 
 ConVar g_CvarBridgeURL;
 ConVar g_CvarChat;
@@ -67,6 +108,11 @@ ArrayList g_Pending;
 // answers, which is why the switcher says so rather than showing an empty list.
 ArrayList g_Missions;
 bool g_FetchingMissions;
+bool g_CheckingRun;
+bool g_TestRunCanChange;
+bool g_RunRefreshPending;
+int g_RunGeneration;
+char g_RunSeed[96];
 
 /* When a loop has already booked its own next request
  *
@@ -105,18 +151,22 @@ bool g_PollingDeaths;
 int g_DeathSeq = -1;
 
 int g_NextObjectiveID = 1;
+
+// Whether the last objective post failed, and how many posts are out. Every
+// queued objective used to go again every RetryInterval whatever happened to
+// the last round, so a bridge that did not answer grew the queue and the
+// traffic with every kill until the server ran out of memory in the HTTP
+// extension. While it fails, only the oldest goes; the rest follow once it
+// answers, and a round does not start while the last one is out. A round
+// whose answers never came is over after ObjectiveRoundLimit seconds of
+// engine time, three times a request's own timeout.
+#define ObjectiveRoundLimit 30.0
+bool g_ObjectivesFailing;
+int g_ObjectivesInFlight;
+float g_ObjectivesSentAt;
+
 bool g_PollingGrants;
 bool g_FetchingUnlocks;
-int g_GrantSeq;
-
-// The sequence of the effect the plugin is holding, zero for none. An effect
-// happens once, so one that cannot happen yet is not acknowledged; the bridge
-// keeps sending it, which is also what carries it across a plugin reload.
-int g_HeldSeq;
-
-// How far the bridge has been told the plugin got. Effects at or below it are
-// never sent again, which is what stops a reload paying the run's cash twice.
-int g_AckedSeq;
 
 char g_LastBridgeError[192];
 float g_LastSaid[MAXPLAYERS + 1];
@@ -129,8 +179,19 @@ void Bridge_Init()
         "Write what the other players in the multiworld say to the chat.", _, true, 0.0, true, 1.0);
     g_Pending = new ArrayList(sizeof(Objective));
     g_Missions = new ArrayList(sizeof(Mission));
+    g_TallySession = GetRandomInt(1, 2147483647);
     // No TIMER_FLAG_NO_MAPCHANGE: it dies at the first map change, a queued check must survive one.
     CreateTimer(RetryInterval, Timer_DrainPending, _, TIMER_REPEAT);
+    CreateTimer(RunCheckInterval, Timer_CheckRun, _, TIMER_REPEAT);
+}
+
+static Action Timer_CheckRun(Handle timer)
+{
+    if (g_TestRunCanChange)
+    {
+        Bridge_CheckRun();
+    }
+    return Plugin_Continue;
 }
 
 static HTTPRequest BridgeRequest(const char[] path)
@@ -155,7 +216,7 @@ void Bridge_LastError(char[] buffer, int maxlength)
 
 int Bridge_Sequence()
 {
-    return g_GrantSeq;
+    return GrantCursor_Sequence();
 }
 
 // What sm_ap_status prints about the chat relay: whether a request is in
@@ -192,6 +253,71 @@ static void OnVersionChecked(HTTPResponse response, any value, const char[] erro
         return;
     }
     AP_Debug("The bridge answered, API version %d.", version);
+    // Older API v5 bridges do not send this optional field. Treat their runs
+    // as fixed rather than throwing during plugin startup.
+    bool hasTestMode = health.HasKey("test_mode");
+    g_TestRunCanChange = hasTestMode && health.GetBool("test_mode");
+    Bridge_NoteRunSeed(health);
+}
+
+// The mission list and unlock set are snapshots of a seed. A Docker test room
+// gets a new seed when the bridge restarts, even if srcds keeps running.
+void Bridge_CheckRun()
+{
+    if (g_CheckingRun)
+    {
+        return;
+    }
+    HTTPRequest request = BridgeRequest("/healthz");
+    request.Timeout = 10;
+    g_CheckingRun = true;
+    request.Get(OnRunChecked);
+}
+
+static void OnRunChecked(HTTPResponse response, any value, const char[] error)
+{
+    g_CheckingRun = false;
+    if (!StrEqual(error, "") || response.Status != HTTPStatus_OK)
+    {
+        return;
+    }
+    JSONObject health = view_as<JSONObject>(response.Data);
+    if (health.GetInt("api_version") == BridgeAPIVersion)
+    {
+        Bridge_NoteRunSeed(health);
+    }
+}
+
+static void Bridge_NoteRunSeed(JSONObject health)
+{
+    if (!health.GetBool("connected") || !health.HasKey("seed"))
+    {
+        return;
+    }
+    char seed[sizeof(g_RunSeed)];
+    health.GetString("seed", seed, sizeof(seed));
+    if (seed[0] == '\0')
+    {
+        return;
+    }
+    if (StrEqual(seed, g_RunSeed))
+    {
+        if (g_RunRefreshPending)
+        {
+            Bridge_FetchMissions();
+        }
+        return;
+    }
+    bool changed = g_RunSeed[0] != '\0';
+    strcopy(g_RunSeed, sizeof(g_RunSeed), seed);
+    g_RunGeneration++;
+    g_RunRefreshPending = true;
+    if (changed)
+    {
+        AP_Debug("The bridge run changed; the plugin refreshes missions and unlocks.");
+    }
+    Bridge_FetchUnlocks();
+    Bridge_FetchMissions();
 }
 
 // Queued before it is sent, so a failed send leaves it where the retry timer will find it.
@@ -217,9 +343,63 @@ void Bridge_ReportObjective(const char[] kind, const char[] popFile, int wave, i
     strcopy(objective.popFile, sizeof(objective.popFile), popFile);
     objective.wave = wave;
     objective.wavesTotal = wavesTotal;
+    objective.count = 0;
+    objective.index = 0;
     g_Pending.PushArray(objective);
 
     AP_Debug("The plugin queued %s %s wave %d.", kind, popFile, wave);
+    Bridge_SendObjective(objective);
+}
+
+// A tally rides the same queue as a check, so it survives a bridge that is
+// down the same way. What fell, and in which mission, for the log.
+void Bridge_ReportTally(const char[] kind, const char[] popFile, int count)
+{
+    if (count <= 0)
+    {
+        return;
+    }
+    if (g_Pending.Length >= PendingMax)
+    {
+        AP_Error("The objective queue is full at %d. The plugin dropped %s %d.", PendingMax, kind, count);
+        return;
+    }
+    LogMessage("tally %s %d on %s queued for the bridge", kind, count, popFile);
+
+    Objective objective;
+    objective.id = g_NextObjectiveID++;
+    strcopy(objective.kind, sizeof(objective.kind), kind);
+    strcopy(objective.popFile, sizeof(objective.popFile), popFile);
+    objective.wave = 0;
+    objective.wavesTotal = 0;
+    objective.count = count;
+    objective.index = 0;
+    g_Pending.PushArray(objective);
+    Bridge_SendObjective(objective);
+}
+
+// The nth giant or tank of a wave. Reported for every one the team kills;
+// the bridge decides which are checks, from the seed and the tables.
+void Bridge_ReportWaveKill(const char[] kind, const char[] popFile, int wave, int index, int wavesTotal)
+{
+    if (g_Pending.Length >= PendingMax)
+    {
+        AP_Error("The objective queue is full at %d. The plugin dropped %s %s wave %d #%d.",
+            PendingMax, kind, popFile, wave, index);
+        return;
+    }
+    LogMessage("objective %s %s wave %d #%d (mission length %d) queued for the bridge",
+        kind, popFile, wave, index, wavesTotal);
+
+    Objective objective;
+    objective.id = g_NextObjectiveID++;
+    strcopy(objective.kind, sizeof(objective.kind), kind);
+    strcopy(objective.popFile, sizeof(objective.popFile), popFile);
+    objective.wave = wave;
+    objective.wavesTotal = wavesTotal;
+    objective.count = 0;
+    objective.index = index;
+    g_Pending.PushArray(objective);
     Bridge_SendObjective(objective);
 }
 
@@ -230,9 +410,15 @@ static void Bridge_SendObjective(Objective objective)
     body.SetString("popfile", objective.popFile);
     body.SetInt("wave", objective.wave);
     body.SetInt("waves_total", objective.wavesTotal);
+    body.SetInt("count", objective.count);
+    body.SetInt("session", g_TallySession);
+    body.SetInt("id", objective.id);
+    body.SetInt("index", objective.index);
 
     HTTPRequest request = BridgeRequest("/objective");
     request.Timeout = 10;
+    g_ObjectivesInFlight++;
+    g_ObjectivesSentAt = GetEngineTime();
     request.Post(body, OnObjectivePosted, objective.id);
     delete body;
 }
@@ -254,6 +440,13 @@ static int Bridge_FindPending(int id)
 // Dequeued only once the bridge has it on disk; it is idempotent, so a needless retry is free.
 static void OnObjectivePosted(HTTPResponse response, any value, const char[] error)
 {
+    if (g_ObjectivesInFlight > 0)
+    {
+        g_ObjectivesInFlight--;
+    }
+    g_ObjectivesFailing = !StrEqual(error, "")
+        || (response.Status != HTTPStatus_NoContent && response.Status != HTTPStatus_BadRequest);
+
     int index = Bridge_FindPending(value);
     if (index == -1)
     {
@@ -315,7 +508,7 @@ static Action Timer_DrainPending(Handle timer)
     {
         Bridge_PollDeaths();
     }
-    if (g_GrantSeq > g_AckedSeq)
+    if (GrantCursor_AckDue() != 0)
     {
         Bridge_SendAck();
     }
@@ -323,8 +516,14 @@ static Action Timer_DrainPending(Handle timer)
     {
         return Plugin_Continue;
     }
-    AP_Debug("The plugin sends %d queued objective(s) again.", g_Pending.Length);
-    for (int index = 0; index < g_Pending.Length; index++)
+    if (g_ObjectivesInFlight > 0 && GetEngineTime() < g_ObjectivesSentAt + ObjectiveRoundLimit)
+    {
+        return Plugin_Continue;
+    }
+    g_ObjectivesInFlight = 0;
+    int resend = g_ObjectivesFailing ? 1 : g_Pending.Length;
+    AP_Debug("The plugin sends %d of %d queued objective(s) again.", resend, g_Pending.Length);
+    for (int index = 0; index < resend; index++)
     {
         Objective objective;
         g_Pending.GetArray(index, objective);
@@ -339,12 +538,13 @@ static Action Timer_DrainPending(Handle timer)
 // that come later.
 static void Bridge_SendAck()
 {
+    int seq = GrantCursor_AckDue();
     JSONObject body = new JSONObject();
-    body.SetInt("seq", g_GrantSeq);
+    body.SetInt("seq", seq);
 
     HTTPRequest request = BridgeRequest("/grants/ack");
     request.Timeout = 10;
-    request.Post(body, OnAcked, g_GrantSeq);
+    request.Post(body, OnAcked, seq);
     delete body;
 }
 
@@ -356,9 +556,7 @@ static void OnAcked(HTTPResponse response, any value, const char[] error)
         // underneath the plugin. Retrying the same number every five seconds
         // would never stop; asking what the run is now does.
         AP_Debug("The bridge refused the acknowledgement of sequence %d. The plugin resyncs.", value);
-        g_GrantSeq = 0;
-        g_AckedSeq = 0;
-        g_HeldSeq = 0;
+        GrantCursor_Restart();
         Bridge_FetchUnlocks();
         return;
     }
@@ -367,17 +565,10 @@ static void OnAcked(HTTPResponse response, any value, const char[] error)
         AP_Debug("The bridge did not take the acknowledgement of sequence %d. The plugin tries again.", value);
         return;
     }
-    // A run restart zeroes both cursors while an acknowledgement may still be
-    // in flight. Letting that late answer set the cursor above where the plugin
-    // now is stops it acknowledging anything for the rest of the run.
-    if (value > g_GrantSeq)
+    if (!GrantCursor_Acknowledged(value))
     {
         AP_Debug("An acknowledgement of sequence %d arrived from a run that ended.", value);
         return;
-    }
-    if (value > g_AckedSeq)
-    {
-        g_AckedSeq = value;
     }
     AP_Debug("The bridge acknowledged sequence %d.", value);
 }
@@ -413,16 +604,24 @@ void Bridge_FetchMissions()
     HTTPRequest request = BridgeRequest("/missions");
     request.Timeout = 10;
     g_FetchingMissions = true;
-    request.Get(OnMissions);
+    request.Get(OnMissions, g_RunGeneration);
 }
 
 static void OnMissions(HTTPResponse response, any value, const char[] error)
 {
     g_FetchingMissions = false;
 
+    // A response started before a bridge restart cannot replace the new
+    // run's list, even if it arrives after the new seed was observed.
+    if (value != g_RunGeneration)
+    {
+        Bridge_FetchMissions();
+        return;
+    }
+
     if (!StrEqual(error, "") || response.Status != HTTPStatus_OK)
     {
-        AP_Debug("The plugin cannot get the mission list. It tries again at the next map.");
+        AP_Debug("The plugin cannot get the mission list. It tries again at the next run check or map.");
         return;
     }
     JSONObject payload = view_as<JSONObject>(response.Data);
@@ -442,12 +641,30 @@ static void OnMissions(HTTPResponse response, any value, const char[] error)
         entry.GetString("name", mission.name, sizeof(mission.name));
         entry.GetString("map", mission.map, sizeof(mission.map));
         mission.waves = entry.GetInt("waves");
+        mission.modifierFlags = 0;
+        if (entry.HasKey("modifiers"))
+        {
+            JSONArray modifiers = view_as<JSONArray>(entry.Get("modifiers"));
+            for (int modifierIndex = 0; modifierIndex < modifiers.Length; modifierIndex++)
+            {
+                JSONObject modifier = view_as<JSONObject>(modifiers.Get(modifierIndex));
+                char key[40];
+                modifier.GetString("key", key, sizeof(key));
+                mission.modifierFlags |= MissionModifiers_FlagForKey(key);
+                delete modifier;
+            }
+            delete modifiers;
+        }
         mission.unlocked = entry.GetBool("unlocked");
         mission.cleared = entry.GetBool("cleared");
+        // omitempty on the bridge's side: absent for a mission nobody has
+        // cleared a wave in, which is most of them on a fresh run.
+        mission.waveReached = entry.HasKey("wave_reached") ? entry.GetInt("wave_reached") : 0;
         g_Missions.PushArray(mission);
         delete entry;
     }
     delete missions;
+    g_RunRefreshPending = false;
 
     AP_Debug("The plugin holds %d mission(s) of the run.", g_Missions.Length);
 
@@ -544,19 +761,29 @@ static void OnUnlocks(HTTPResponse response, any value, const char[] error)
     }
     JSONObject payload = view_as<JSONObject>(response.Data);
 
+    if (!payload.HasKey("snapshot_seq"))
+    {
+        Bridge_NoteError("The bridge sent an unlock set without its snapshot sequence.");
+        g_UnlocksRetryAt = GetGameTime() + RetryInterval;
+        CreateTimer(RetryInterval, Timer_FetchUnlocksAgain);
+        return;
+    }
+
     Unlocks_Clear();
 
     // The bridge answers with the sequence it has been acknowledged up to, not
     // with how far its item list reaches. Anything between the two is state the
-    // plugin is about to be handed again, which costs nothing, plus every
-    // effect it never received. Taking the item count here instead would step
+    // plugin must deduplicate, plus every effect it never received. Taking
+    // the item count here instead would step
     // over an unapplied cash bundle and lose it for good.
-    g_GrantSeq = payload.GetInt("resume_from");
+    // The snapshot already counted every state grant through snapshot_seq.
+    // Polling from resume_from may send them again to recover a held effect.
+    GrantCursor_Resume(payload.GetInt("resume_from"), payload.GetInt("snapshot_seq"));
     ApplyUnlockSet(payload);
     g_HaveUnlocks = true;
     Bridge_ClearError();
 
-    AP_Debug("The plugin applied the unlock set at sequence %d.", g_GrantSeq);
+    AP_Debug("The plugin applied the unlock set at sequence %d.", GrantCursor_Sequence());
     Unlocks_ApplyToAll();
     Missions_OnListUpdated();
 
@@ -582,6 +809,10 @@ static void ApplyUnlockSet(JSONObject payload)
         AP_Error("The bridge sent an unlock set this plugin cannot read.");
         return;
     }
+
+    // Which rule the slot keys are read under. Absent from a bridge that
+    // predates the option, which is a seed without it.
+    Unlocks_SetClassSlotMode(payload.HasKey("class_weapon_slots") && payload.GetBool("class_weapon_slots"));
 
     JSONObjectKeys kinds = byKind.Keys();
     // Wider than any kind the bridge can send. ReadKey truncates without
@@ -623,7 +854,7 @@ static char[] GrantLabel(const char[] kind)
     {
         strcopy(label, sizeof(label), "Class");
     }
-    else if (StrEqual(kind, "weapon_slot"))
+    else if (StrEqual(kind, "weapon_slot") || StrEqual(kind, "class_weapon_slot"))
     {
         strcopy(label, sizeof(label), "Weapon slot");
     }
@@ -634,6 +865,10 @@ static char[] GrantLabel(const char[] kind)
     else if (StrEqual(kind, "weapon_buff"))
     {
         strcopy(label, sizeof(label), "Weapon buff");
+    }
+    else if (StrEqual(kind, "server_setting"))
+    {
+        strcopy(label, sizeof(label), "Server setting");
     }
     else
     {
@@ -646,6 +881,12 @@ static char[] GrantLabel(const char[] kind)
 // here rather than beside the unlock set it writes into.
 static bool Bridge_ApplyKind(const char[] kind, const char[] key)
 {
+    // Bot cards belong to the launcher roster. The game plugin only needs to
+    // acknowledge their grant so subsequent items are not held behind them.
+    if (StrEqual(kind, "bot_card"))
+    {
+        return true;
+    }
     if (StrEqual(kind, "class"))
     {
         Unlocks_GrantClass(key);
@@ -656,6 +897,11 @@ static bool Bridge_ApplyKind(const char[] kind, const char[] key)
         Unlocks_GrantSlot(key);
         return true;
     }
+    if (StrEqual(kind, "class_weapon_slot"))
+    {
+        Unlocks_GrantClassSlot(key);
+        return true;
+    }
     if (StrEqual(kind, "mission_ticket"))
     {
         Unlocks_GrantMission(key);
@@ -664,6 +910,11 @@ static bool Bridge_ApplyKind(const char[] kind, const char[] key)
     if (StrEqual(kind, "weapon_buff"))
     {
         return WeaponBuffs_Grant(key);
+    }
+    if (StrEqual(kind, "server_setting"))
+    {
+        Unlocks_GrantServerSetting(key);
+        return true;
     }
     return false;
 }
@@ -676,7 +927,7 @@ void Bridge_PollGrants()
         return;
     }
     char path[64];
-    FormatEx(path, sizeof(path), "/grants?since=%d", g_GrantSeq);
+    FormatEx(path, sizeof(path), "/grants?since=%d", GrantCursor_Sequence());
 
     HTTPRequest request = BridgeRequest(path);
     // Longer than the bridge's own poll timeout, so a timeout here always means something is wrong.
@@ -711,12 +962,9 @@ static void OnGrants(HTTPResponse response, any value, const char[] error)
     JSONObject payload = view_as<JSONObject>(response.Data);
 
     // A bridge behind this plugin means the run restarted: these grants belong to a different one.
-    if (payload.GetInt("seq") < g_GrantSeq)
+    if (GrantCursor_RunRestarted(payload.GetInt("seq")))
     {
         AP_Error("The run restarted. The plugin asks for the unlock set again.");
-        g_GrantSeq = 0;
-        g_AckedSeq = 0;
-        g_HeldSeq = 0;
         Bridge_FetchUnlocks();
         return;
     }
@@ -734,7 +982,7 @@ static void OnGrants(HTTPResponse response, any value, const char[] error)
     }
     Bridge_ClearError();
     Unlocks_ApplyToAll();
-    if (g_GrantSeq > g_AckedSeq)
+    if (GrantCursor_AckDue() != 0)
     {
         Bridge_SendAck();
     }
@@ -742,7 +990,7 @@ static void OnGrants(HTTPResponse response, any value, const char[] error)
     // answers at once with the same grant. Asking straight away would be a
     // loop as fast as the loopback; asking on the retry timer is what turns
     // the hold into a wait for the upgrade station.
-    if (g_HeldSeq != 0)
+    if (GrantCursor_Holding())
     {
         Bridge_PollGrantsLater();
         return;
@@ -760,15 +1008,6 @@ static Action Timer_PollAgain(Handle timer)
 static void ApplyGrant(JSONObject grant)
 {
     int seq = grant.GetInt("seq");
-
-    // Applied once. The bridge holds an effect back once it is acknowledged,
-    // but the acknowledgement is a round trip and this is what covers it.
-    if (seq <= g_GrantSeq)
-    {
-        AP_Debug("The bridge re-sent sequence %d, which the plugin already applied.", seq);
-        return;
-    }
-
     char kind[24], key[64], name[64];
     grant.GetString("kind", kind, sizeof(kind));
     if (!grant.GetString("key", key, sizeof(key)))
@@ -780,61 +1019,72 @@ static void ApplyGrant(JSONObject grant)
         strcopy(name, sizeof(name), key);
     }
 
-    if (StrEqual(kind, "credits"))
+    bool credits = StrEqual(kind, "credits");
+    bool trap = StrEqual(kind, "trap");
+    GrantStep step = GrantCursor_Receive(seq, credits || trap);
+    if (step == GrantStep_Applied)
     {
-        if (!ApplyCredits(seq, grant.GetInt("amount")))
+        AP_Debug("The bridge re-sent sequence %d, which the plugin already applied.", seq);
+        return;
+    }
+    if (step == GrantStep_Skip)
+    {
+        return;
+    }
+    if (step == GrantStep_Try)
+    {
+        if (credits)
         {
+            int amount = grant.GetInt("amount");
+            if (GrantCursor_Settle(seq, PayCredits(amount)))
+            {
+                AP_Announce("%d credits are waiting for the upgrade station.", amount);
+            }
             return;
         }
-    }
-    else if (Bridge_ApplyKind(kind, key))
-    {
-        // A held effect stops the cursor, so every grant behind it arrives
-        // again on the next poll. State grants are replayed on purpose, and
-        // saying so once is the difference between news and a chat full of it.
-        if (g_HeldSeq == 0)
+        if (GrantCursor_Settle(seq, FireTrap(key)))
         {
-            AP_Announce("%s unlocked: %s", GrantLabel(kind), name);
+            AP_Announce("%s is waiting for the next wave.", name);
         }
+        return;
     }
-    else
+    if (!Bridge_ApplyKind(kind, key))
     {
         AP_Error("The bridge sent a grant of kind %s. This plugin does not know it.", kind);
+        return;
     }
-
-    // The cursor is how far every effect has been applied, not every grant. A
-    // state grant past a held effect is applied and not acknowledged: applying
-    // it twice changes nothing, and moving the cursor over the effect would
-    // lose it.
-    if (g_HeldSeq == 0)
+    // Behind a held effect the grant is new, but chat is already saying why
+    // the cursor stopped.
+    if (!GrantCursor_Holding())
     {
-        g_GrantSeq = seq;
+        AP_Announce("%s unlocked: %s", GrantLabel(kind), name);
     }
 }
 
-// Pays a Cash Bundle, or holds it for a moment when it survives. False when it
-// held: the caller then leaves the cursor where it is, and the bridge sends
-// this grant again on the next poll.
-//
-// Effects are strictly ordered. A second bundle behind a held one waits too,
-// because a grant applied out of order is one the acknowledgement cannot
-// describe: the cursor is a single number.
-static bool ApplyCredits(int seq, int amount)
+// Pays a Cash Bundle. False when it has to wait: money paid into a wave the
+// team then loses goes back with the wave, so it waits for the upgrade station.
+static bool PayCredits(int amount)
 {
-    if (g_HeldSeq != 0 && seq != g_HeldSeq)
+    return MvM_CanPayCredits() && MvM_GrantCredits(amount) != 0;
+}
+
+/* Fires a trap. False when there is no wave to ruin: credits wait for the
+ * upgrade station and traps wait for the robots. It is the same wait, since a
+ * trap that lands between waves soaks a team standing at the shop.
+ *
+ * A key this plugin cannot read is said once, then counted as fired. Holding an
+ * effect that can never apply blocks every effect behind it.
+ */
+static bool FireTrap(const char[] key)
+{
+    if (!MvM_WaveInProgress())
     {
         return false;
     }
-    if (!MvM_CanPayCredits() || MvM_GrantCredits(amount) == 0)
+    if (!Traps_Apply(key))
     {
-        if (g_HeldSeq != seq)
-        {
-            g_HeldSeq = seq;
-            AP_Announce("%d credits are waiting for the upgrade station.", amount);
-        }
-        return false;
+        AP_Error("The bridge sent a trap named %s. This plugin does not know it.", key);
     }
-    g_HeldSeq = 0;
     return true;
 }
 

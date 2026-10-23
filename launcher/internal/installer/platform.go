@@ -8,7 +8,7 @@ import (
 )
 
 /*
-Where the three downloads come from, per platform.
+Where the launcher-managed downloads come from, per platform.
 
 Valve and AlliedModders both publish one archive per platform, and they do not
 agree on the format: SteamCMD is a zip on Windows and a tarball on Linux, and
@@ -37,6 +37,16 @@ func metamodURL() string {
 func sourcemodURL() string {
 	return fmt.Sprintf("https://sm.alliedmods.net/smdrop/%s/sourcemod-%s-%s",
 		assets.SourcemodBranch, assets.SourcemodVersion, platformArchive())
+}
+
+// sigmodURL is the verified package for this platform. Both are released by
+// m-this/sigsegv-mvm-win: Linux from its master, which follows upstream, and
+// Windows from the port. Each platform has its own pin and its own file.
+func sigmodURL(goos, version string) string {
+	if goos == "windows" {
+		return fmt.Sprintf("https://github.com/m-this/sigsegv-mvm-win/releases/download/%s/package-windows.zip", version)
+	}
+	return fmt.Sprintf("https://github.com/m-this/sigsegv-mvm-win/releases/download/%s/package-linux.zip", version)
 }
 
 // platformArchive is the tail both AlliedModders drops share: the platform and

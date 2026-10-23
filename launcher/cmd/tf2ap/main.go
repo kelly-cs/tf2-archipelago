@@ -12,26 +12,30 @@ package main
 
 import (
 	"context"
+	_ "embed"
 	"errors"
 	"flag"
 	"fmt"
 	"log/slog"
 	"os"
 	"os/signal"
-	"path/filepath"
+	goruntime "runtime"
 	"strings"
 	"syscall"
+	"time"
 
+	"github.com/m-this/tf2-archipelago/gamedata/availability"
 	"github.com/m-this/tf2-archipelago/launcher/internal/assets"
 	"github.com/m-this/tf2-archipelago/launcher/internal/generate"
-	"github.com/m-this/tf2-archipelago/launcher/internal/gui"
 	"github.com/m-this/tf2-archipelago/launcher/internal/installer"
 	"github.com/m-this/tf2-archipelago/launcher/internal/runshape"
 	"github.com/m-this/tf2-archipelago/launcher/internal/runtime"
 	"github.com/m-this/tf2-archipelago/launcher/internal/settings"
 	"github.com/m-this/tf2-archipelago/launcher/internal/srcdsconfig"
-	"github.com/m-this/tf2-archipelago/launcher/internal/tui"
+	"github.com/m-this/tf2-archipelago/launcher/internal/tailscalefastdl"
+	"github.com/m-this/tf2-archipelago/launcher/internal/tray"
 	"github.com/m-this/tf2-archipelago/launcher/internal/ui"
+	"github.com/m-this/tf2-archipelago/launcher/internal/webapi"
 )
 
 const version = "dev"
@@ -61,8 +65,8 @@ func run(logger *slog.Logger) error {
 	roomFlag := flag.String("room", "", "the Archipelago room address, as host:port")
 	yamlFlag := flag.String("yaml", "", "write the Archipelago player file to this path, then exit")
 	envFlag := flag.Bool("env", false, "list the environment variables that override the configuration, then exit")
-	consoleFlag := flag.Bool("console", false, "print the log and nothing else, with no interface over it")
-	tuiFlag := flag.Bool("tui", false, "the terminal interface, on a platform whose default is the window")
+	consoleFlag, addressFlag, noBrowserFlag := interfaceFlags()
+	setupFunnelFlag := flag.Bool("setup-funnel", false, "check Tailscale Funnel authorization, then exit")
 	showVersion := flag.Bool("version", false, "print the version and exit")
 	flag.Parse()
 
@@ -83,6 +87,9 @@ func run(logger *slog.Logger) error {
 	// The environment wins over the file, and is never written back: an
 	// override for one run must not become the saved answer.
 	s := settings.ApplyEnv(saved)
+	if *setupFunnelFlag {
+		return setupFunnel()
+	}
 
 	if *roomFlag != "" {
 		room, err := settings.ParseRoom(*roomFlag)
@@ -102,8 +109,7 @@ func run(logger *slog.Logger) error {
 	}
 
 	if *installFlag {
-		_, err := installer.Ensure(context.Background(), s.InstallRoot, settings.CommunityArchives(s), logf(logger))
-		return err
+		return install(logger, s)
 	}
 
 	if *configureFlag {
@@ -118,18 +124,77 @@ func run(logger *slog.Logger) error {
 		return nil
 	}
 
-	if gui.Available() && !*consoleFlag && !*tuiFlag {
-		return gui.Run(s, nil)
+	return launchInterface(logger, s, *consoleFlag, *addressFlag, *noBrowserFlag)
+}
+
+// install installs what is missing and brings the game to Steam's latest build.
+func install(logger *slog.Logger, s settings.Settings) error {
+	if _, err := installer.Ensure(context.Background(), s.InstallRoot, settings.CommunityArchives(s), settings.ServerModKeys(s), logf(logger)); err != nil {
+		return err
 	}
-	return guided(logger, s, !*consoleFlag)
+	return installer.StartAnyway(installer.UpdateGame(context.Background(), s.InstallRoot, logf(logger)), logf(logger))
+}
+
+// trayIcon is the same picture the .exe carries, for the notification area.
+//
+//go:embed tf2ap.ico
+var trayIcon []byte
+
+// The launcher has one face and it is a browser. -console is what is left of
+// the others: the log and nothing over it, for Docker, for a server with no
+// desktop, and for anyone who would rather read it in a terminal.
+func interfaceFlags() (console *bool, address *string, noBrowser *bool) {
+	console = flag.Bool("console", false, "print the log and nothing else, with no interface over it")
+	address = flag.String("addr", "", "serve the interface here instead of 127.0.0.1 on a free port")
+	noBrowser = flag.Bool("no-browser", false, "print the address instead of opening a browser on it")
+	return console, address, noBrowser
+}
+
+func launchInterface(logger *slog.Logger, s settings.Settings, console bool, address string, noBrowser bool) error {
+	if console {
+		return guided(logger, s)
+	}
+	return tray.Run(trayIcon, func(serving tray.Serving) error {
+		return webapi.Run(s, logger, webapi.Options{
+			Address:     address,
+			OpenBrowser: !noBrowser,
+			Serving:     serving,
+		})
+	})
 }
 
 func printVersion() {
 	v := assets.Versions()
 	fmt.Printf("tf2ap %s\n", version)
-	for _, name := range []string{"metamod", "sourcemod", "ripext", "archipelago"} {
+	for _, name := range []string{"metamod", "sourcemod", "ripext", "sigsegv-mvm", "archipelago"} {
 		fmt.Printf("  %-12s %s\n", name+":", v[name])
 	}
+}
+
+func setupFunnel() error {
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+	result, err := tailscalefastdl.Authorize(ctx)
+	if err != nil {
+		if _, ok := errors.AsType[*tailscalefastdl.OperatorRequiredError](err); ok {
+			fmt.Println("Tailscale needs one-time permission for your user to manage Funnel.")
+			fmt.Println()
+			fmt.Println("sudo tailscale set --operator=$USER")
+			fmt.Println()
+			fmt.Println("After that succeeds, rerun this launcher with -setup-funnel.")
+			return errors.New("tailscale Funnel setup needs operator permission")
+		}
+		return err
+	}
+	if result.ApprovalURL != "" {
+		fmt.Println("Approve Tailscale Funnel in a browser, then run -setup-funnel again:")
+		fmt.Println(result.ApprovalURL)
+		return nil
+	}
+	if result.Ready {
+		fmt.Println("Tailscale Funnel is ready for this tailnet.")
+	}
+	return nil
 }
 
 /*
@@ -142,7 +207,7 @@ either the terminal interface or the plain log, which is what -console asks for
 and what a service or a CI job wants: an interface that draws over the whole
 screen writes nothing useful into a file.
 */
-func guided(logger *slog.Logger, s settings.Settings, interactive bool) error {
+func guided(logger *slog.Logger, s settings.Settings) error {
 	// The question comes before the 14 GB, so a player who mistyped the address
 	// finds out in a second rather than after the download.
 	s, err := ensureConfigured(ui.New(), s)
@@ -161,10 +226,6 @@ func guided(logger *slog.Logger, s settings.Settings, interactive bool) error {
 	}
 	summary(s)
 
-	if interactive && tui.Available() {
-		return tui.Run(s, logger)
-	}
-
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 	fmt.Println("starting the server. press Ctrl-C to stop.")
@@ -174,6 +235,9 @@ func guided(logger *slog.Logger, s settings.Settings, interactive bool) error {
 // writeStarterYAML drops the player file next to the game files, for the
 // Archipelago app to generate from.
 func writeStarterYAML(s settings.Settings) error {
+	if err := settings.CheckServerModsReady(s, installer.ReadyServerMods(s.InstallRoot)); err != nil {
+		return err
+	}
 	path, err := settings.WritePlayerFile(s, assets.ArchipelagoVersion)
 	if err != nil {
 		return err
@@ -183,9 +247,19 @@ func writeStarterYAML(s settings.Settings) error {
 }
 
 func ensureInstalled(s settings.Settings, logger *slog.Logger) settings.Settings {
-	result, err := installer.Ensure(context.Background(), s.InstallRoot, settings.CommunityArchives(s), logf(logger))
+	result, err := installer.Ensure(context.Background(), s.InstallRoot, settings.CommunityArchives(s), settings.ServerModKeys(s), logf(logger))
 	if err != nil {
-		logger.Error("install failed", "error", err, "advice", installer.RepairAdvice)
+		logger.Error("install failed", "error", err, "advice", installer.Advice(err))
+		os.Exit(1)
+	}
+	if err := installer.StartAnyway(installer.UpdateGame(context.Background(), s.InstallRoot, logf(logger)), logf(logger)); err != nil {
+		logger.Error("TF2 update failed", "error", err)
+		os.Exit(1)
+	}
+	// Which mods this run loads, as opposed to has installed. The autoload
+	// marker is written or removed from the setting before srcds reads it.
+	if err := installer.SetServerModLoading(s.InstallRoot, settings.ServerModsToLoad(s, goruntime.GOOS)); err != nil {
+		logger.Error("server mod loading", "error", err)
 		os.Exit(1)
 	}
 	if result.Done.Message != "" {
@@ -329,6 +403,10 @@ func configureServer(p *ui.Prompt, s settings.Settings) settings.Settings {
 		fmt.Printf("  %-6s %s\n", reach, reach.Help())
 	}
 	s = askReach(p, s)
+	s.TailscaleFastDL = p.Bool("Publish map downloads with Tailscale Funnel", s.TailscaleFastDL)
+	if s.TailscaleFastDL {
+		fmt.Println("  Run tf2ap -setup-funnel once if this tailnet has not approved Funnel yet.")
+	}
 	return s
 }
 
@@ -352,10 +430,10 @@ func configureRun(p *ui.Prompt, s settings.Settings) settings.Settings {
 
 	fmt.Println("The easiest tier a mission may come from. Harder tiers are")
 	fmt.Println("always in as well, so the pool shrinks as the floor rises.")
-	tiers := runshape.Tiers()
+	tiers := runshape.Tiers(settings.MissionPool(s))
 	s.MvmDifficulty = p.Select("Difficulty floor", tierOptions(tiers), s.MvmDifficulty)
 
-	pool := runshape.MissionsInPool(s.MvmDifficulty)
+	pool := runshape.MissionsInPool(settings.MissionPool(s), s.MvmDifficulty)
 	s.MvmMissionCount = p.IntRange("Missions the run uses, out of that pool",
 		s.MvmMissionCount, 1, pool)
 	fmt.Printf("  about %d waves.\n", wavesFor(tiers, s.MvmDifficulty, s.MvmMissionCount))
@@ -377,6 +455,7 @@ func configureRun(p *ui.Prompt, s settings.Settings) settings.Settings {
 		s.MvmWeaponBuffPct = p.IntRange("Percent of spare checks that award buffs", s.MvmWeaponBuffPct, 0, 100)
 	}
 	s.MvmWeaponBuffStackChance = p.IntRange("Chance to stack an existing numeric buff", s.MvmWeaponBuffStackChance, 0, 100)
+	s.MvmTrapPct = p.IntRange("Percent of spare checks that hold a trap instead of a reward", s.MvmTrapPct, 0, 100)
 	s.MvmExcludedMissions = settings.SplitList(p.Text(
 		"Missions the run never draws (comma-separated popfiles, e.g. mvm_ghost_town_666)",
 		strings.Join(s.MvmExcludedMissions, ",")))
@@ -397,12 +476,8 @@ func configureInstall(p *ui.Prompt, s settings.Settings) settings.Settings {
 // missionOptions lists Valve missions plus missions whose community archives
 // validate locally. gamedata owns the catalog; see ADR 0001.
 func missionOptions(s settings.Settings) []ui.Option {
-	availablePaths := installer.AvailableCommunityArchives(settings.KnownCommunityArchives(s.CommunityContentDir))
-	availablePacks := make([]string, 0, len(availablePaths))
-	for _, path := range availablePaths {
-		availablePacks = append(availablePacks, filepath.Base(path))
-	}
-	choices := runshape.MissionChoicesForPacks(availablePacks)
+	availablePacks := installer.AvailableCommunityPacks(settings.KnownCommunityArchives(s.CommunityContentDir))
+	choices := runshape.MissionChoicesFor(availability.Planned(availablePacks, nil))
 	options := make([]ui.Option, 0, len(choices))
 	for _, choice := range choices {
 		options = append(options, ui.Option{Value: choice.PopFile, Label: choice.Label})
@@ -445,10 +520,24 @@ func showStatus(s settings.Settings) {
 	fmt.Printf("Room:          %s (tls=%v)\n", settings.Room{Host: s.APHost, Port: s.APPort}, s.APTls)
 	fmt.Printf("Slot:          %s\n", s.APSlotName)
 	fmt.Printf("Server:        %s on port %d (reach=%s)\n", s.SrcdsHostname, s.SrcdsPort, reachStatus(s))
+	fmt.Printf("FastDL:        %s\n", fastDLStatus(s))
 	fmt.Printf("Start mission: %s\n", runshape.MissionLabel(s.SrcdsStartMission))
 	fmt.Printf("Run:           %d missions, %s, goal=%s\n", s.MvmMissionCount, s.MvmDifficulty, s.MvmGoal)
 	fmt.Printf("Bots:          %s\n", botsStatus(s))
 	fmt.Printf("RCON password: %s\n", masked(s.SrcdsRconPw))
+}
+
+func fastDLStatus(s settings.Settings) string {
+	if s.FastDLPort <= 0 {
+		return "off"
+	}
+	if s.TailscaleFastDL {
+		return fmt.Sprintf("Tailscale Funnel on local port %d", s.FastDLPort)
+	}
+	if s.SrcdsDownloadURL != "" {
+		return s.SrcdsDownloadURL
+	}
+	return fmt.Sprintf("launcher HTTP server on port %d", s.FastDLPort)
 }
 
 // appDirStatus says where the Archipelago app is, or that it was not found and
@@ -483,6 +572,9 @@ func showEnv() {
 }
 
 func writeYAML(s settings.Settings, path string) error {
+	if err := settings.CheckServerModsReady(s, installer.ReadyServerMods(s.InstallRoot)); err != nil {
+		return err
+	}
 	content := settings.PlayerYAML(s, assets.ArchipelagoVersion)
 	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
 		return fmt.Errorf("cannot write %s: %w", path, err)

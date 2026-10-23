@@ -22,8 +22,10 @@ import (
 	"github.com/m-this/tf2-archipelago/bridge"
 	"github.com/m-this/tf2-archipelago/bridge/config"
 	"github.com/m-this/tf2-archipelago/fakeroom"
-	"github.com/m-this/tf2-archipelago/gamedata"
+	"github.com/m-this/tf2-archipelago/gamedata/availability"
+	"github.com/m-this/tf2-archipelago/launcher/internal/fastdl"
 	"github.com/m-this/tf2-archipelago/launcher/internal/installer"
+	"github.com/m-this/tf2-archipelago/launcher/internal/provision"
 	"github.com/m-this/tf2-archipelago/launcher/internal/settings"
 	"github.com/m-this/tf2-archipelago/launcher/internal/srcdsconfig"
 	"github.com/m-this/tf2-archipelago/launcher/internal/winproc"
@@ -45,13 +47,27 @@ func closeTestRoom(room *fakeroom.Room) {
 // blocks until the context is cancelled or one of them stops. The bridge gets
 // a head start so the plugin can reach /unlocks on first load.
 func Run(ctx context.Context, s settings.Settings, logger *slog.Logger) error {
+	prepared, err := prepareTailscaleFastDL(ctx, s, func(text string) {
+		logger.InfoContext(ctx, "download server", "detail", text)
+	})
+	if err != nil {
+		return err
+	}
+	s = prepared
+	if s.TailscaleFastDL {
+		defer stopTailscaleFastDL(ctx, s, func(cleanupCtx context.Context, text string) {
+			logger.InfoContext(cleanupCtx, "download server", "detail", text)
+		})
+	}
 	// Console mode has no interface to change a setting from, but it shares
 	// this entry point with anything that does. Rendering here keeps the one
 	// rule: a server that starts, starts from the settings it was given.
 	if err := srcdsconfig.Install(s); err != nil {
 		return err
 	}
-	bridgeCfg, err := bridgeConfig(s)
+	bridgeCfg, err := bridgeConfigReplacingStale(ctx, s, func(text string) {
+		logger.InfoContext(ctx, "bridge", "detail", text)
+	})
 	if err != nil {
 		return err
 	}
@@ -86,6 +102,9 @@ func Run(ctx context.Context, s settings.Settings, logger *slog.Logger) error {
 	go Guard("the game server", say, func() {
 		srcdsErr <- runSrcds(srcdsCtx, s, logger)
 	})
+	go Guard("the download server", say, func() {
+		serveFastDL(srcdsCtx, s, func(text string) { logger.InfoContext(ctx, "download server", "detail", text) })
+	})
 
 	select {
 	case <-ctx.Done():
@@ -98,6 +117,40 @@ func Run(ctx context.Context, s settings.Settings, logger *slog.Logger) error {
 	case err := <-srcdsErr:
 		logger.ErrorContext(ctx, "game server stopped", "error", err)
 		return fmt.Errorf("game server stopped: %w", err)
+	}
+}
+
+/*
+FastDLListen is where the content server binds, and empty is not serving.
+
+The port decides that on its own, and SrcdsDownloadURL does not come into it.
+The two answer different questions -- where a client is told to look, and
+whether this machine answers -- and an operator who fills in a public address
+so that friends outside the network can reach this server would otherwise turn
+off the server they were addressing.
+*/
+func FastDLListen(s settings.Settings) string {
+	if s.FastDLPort <= 0 {
+		return ""
+	}
+	if s.TailscaleFastDL {
+		return "127.0.0.1:" + strconv.Itoa(s.FastDLPort)
+	}
+
+	return ":" + strconv.Itoa(s.FastDLPort)
+}
+
+// serveFastDL runs the content file server for the life of ctx. A port that
+// is taken costs the players their HTTP download and nothing else: the game
+// server's own transfer is still on, so it is a line in the log, not a stop.
+func serveFastDL(ctx context.Context, s settings.Settings, say func(string)) {
+	listen := FastDLListen(s)
+	if listen == "" {
+		return
+	}
+	gameDir := filepath.Join(s.InstallRoot, "tf-dedicated", "tf")
+	if err := fastdl.Serve(ctx, gameDir, listen); err != nil {
+		say("the download server did not start, so maps come from the game server itself: " + err.Error())
 	}
 }
 
@@ -123,6 +176,7 @@ func bridgeConfig(s settings.Settings) (config.Config, error) {
 		Password:       s.APPassword,
 		Listen:         "127.0.0.1:24680",
 		StatePath:      statePath,
+		Missions:       new(missionServer(s)),
 	}
 	if s.MetricsPort > 0 {
 		cfg.MetricsListen = "127.0.0.1:" + fmt.Sprintf("%d", s.MetricsPort)
@@ -130,120 +184,30 @@ func bridgeConfig(s settings.Settings) (config.Config, error) {
 	return cfg, nil
 }
 
+// missionServer is what the bridge refuses a seed against: the packs and mods
+// these settings tick, and what Start installed of them.
+func missionServer(s settings.Settings) availability.Server {
+	return availability.Server{
+		Platform:      goruntime.GOOS,
+		PacksSelected: s.CommunityPacks,
+		PacksPresent:  installer.AvailableCommunityPacks(settings.KnownCommunityArchives(s.CommunityContentDir)),
+		ModsSelected:  settings.ServerModKeys(s),
+		ModsVerified:  installer.ReadyServerMods(s.InstallRoot),
+	}
+}
+
+// RunServer starts the game server alone, with the configuration Run would
+// write and no bridge or room beside it. It is what the unattended wave probe
+// plays against: the plugin finds no bridge and stays out of the way.
+func RunServer(ctx context.Context, s settings.Settings, logger *slog.Logger) error {
+	if err := srcdsconfig.Install(s); err != nil {
+		return err
+	}
+	return runSrcds(ctx, s, logger)
+}
+
 func runSrcds(ctx context.Context, s settings.Settings, logger *slog.Logger) error {
 	return runSrcdsWithSink(ctx, s, logger, nil)
-}
-
-// srcdsArgs is the command line the game server starts with. It is separate
-// from starting it, and pure, because the reach decides four arguments at once
-// and a wrong combination is a server nobody can join: a test says which
-// arguments each reach produces without downloading 14 GB to find out.
-//
-// The dash flags come first and the console commands after, which is the order
-// the game's own scripts use. The commands run in the order they are given,
-// and sv_lan has to be settled before the map loads and the server tries to
-// log in to Steam.
-func srcdsArgs(s settings.Settings, exeName string) []string {
-	// Not s.SrcdsReach: a reach with no login token behind it cannot log in,
-	// and a server that cannot log in refuses every player. It stays local.
-	reach := s.EffectiveReach()
-
-	// -console on both, for the same reason spelled two ways. On Windows,
-	// srcds.exe without it opens its own window and waits for a click on
-	// Start, so the launcher sits there having apparently done nothing. On
-	// Linux it is the flag every server runs with: srcds_linux without it
-	// brings up an interactive text console, and this launcher gives it no
-	// terminal to bring it up on. The server then holds its port, burns a
-	// fifth of a core and never finishes loading the map.
-	//
-	// -condebug writes the same console to tf/console.log. The launcher already
-	// pipes the console into its own window and its own log, so this looks like
-	// the same thing twice, and it is not: the launcher's log covers the run the
-	// launcher is having, and a player who hits a bug restarts before asking
-	// about it. The game's file is the one that survives that restart, and it is
-	// what the debug bundle promises.
-	/* -debug is what makes a crash readable.
-
-	Two access violations arrived in a debug bundle with no dump beside them, so
-	the function the server died in is unknown and the cause with it. Source
-	writes debug.log on a crash when this is set, with a stack, and that file
-	does not depend on Breakpad having started. It costs nothing on a server
-	that never crashes. */
-	flags := []string{"-game", "tf", "-usercon", "-console", "-condebug", "-debug"}
-	// -ip 0.0.0.0 binds every interface. Without it srcds binds to whatever
-	// its hostname resolves to, and on Debian that is 127.0.1.1: the game
-	// answers on every address, the rcon port answers only on that one, and
-	// the launcher's own rcon box gets "connection refused" from a server
-	// running perfectly well.
-	//
-	// Only where sv_lan is off. The engine keeps whatever -ip says as the
-	// address it believes it is on, and a LAN server compares every joining
-	// player against it: same class C or refused. Told 0.0.0.0, it compares
-	// them against 0.0.0.0, which nothing matches, and the server turns away
-	// every player on the network with "LAN servers are restricted to local
-	// clients (class C)". Only the loopback address gets in, because that is
-	// checked before the comparison. RconAddresses covers the bind instead.
-	if !reach.Lan() {
-		flags = append(flags, "-ip", "0.0.0.0")
-	}
-	if exeName == "srcds.exe" {
-		// A crash dialog is a Windows idea, and it waits for a click too.
-		//
-		// -nowatchdog does not belong here. The watchdog is POSIX only: tier0
-		// arms it with alarm() and SIGALRM, and every one of the four
-		// Plat_*WatchdogTimer functions is an empty stub in the Windows build.
-		// Passing the flag would read like protection that was never there.
-		flags = append(flags, "-nocrashdialog")
-	} else {
-		// The engine watchdog kills the server when a frame takes too long.
-		// On Linux that fires under load the same box survives fine otherwise,
-		// and it is most of why a native Linux server is reported as crashing
-		// far more than Docker or Windows. A stress run that killed the
-		// watchdog build inside nine minutes ran clean without it.
-		//
-		// What is lost is the kill on a genuinely hung frame, so a real
-		// infinite loop now hangs instead of restarting. That is the better
-		// failure: it leaves a process to attach to, and the hangs this mod
-		// has actually produced were slow frames rather than hangs.
-		//
-		// There is no middle setting to reach for. tier0 parses this with a
-		// strstr over the command line, the timeout is whatever the engine
-		// passed capped at five minutes, and the one scale factor is 1 in a
-		// release build and 10 in a debug one. On or off is the whole choice.
-		flags = append(flags, "-nowatchdog")
-	}
-	if reach.SteamNetworking() {
-		// Asks Valve for the relayed address. Without it sv_use_steam_networking
-		// alone changes nothing a player outside the network can use.
-		flags = append(flags, "-enablefakeip")
-	}
-
-	commands := []string{
-		"+maxplayers", strconv.Itoa(s.SrcdsMaxPlayers),
-		"+map", StartMap(s),
-		"+hostport", strconv.Itoa(s.SrcdsPort),
-		"+rcon_password", s.SrcdsRconPw,
-		"+sv_lan", boolArg(reach.Lan()),
-	}
-	if reach.SteamNetworking() {
-		commands = append(commands, "+sv_use_steam_networking", "1")
-	}
-	// A server in LAN mode never logs in, so a token left over from an earlier
-	// evening is not passed and cannot put it on the public list by accident.
-	if reach.NeedsToken() && settings.HasToken(s.SrcdsToken) {
-		commands = append(commands, "+sv_setsteamaccount", s.SrcdsToken)
-	}
-	if s.SrcdsPw != "" {
-		commands = append(commands, "+sv_password", s.SrcdsPw)
-	}
-	return append(flags, commands...)
-}
-
-func boolArg(on bool) string {
-	if on {
-		return "1"
-	}
-	return "0"
 }
 
 // srcdsEnv is the environment the game server runs with: this process's own,
@@ -274,10 +238,19 @@ func runSrcdsWithSink(ctx context.Context, s settings.Settings, logger *slog.Log
 	if _, err := os.Stat(filepath.Join(gameDir, "srcds_run")); err == nil {
 		exeName = "srcds_run"
 	}
+	if exeName == "srcds_run" {
+		if err := installer.InspectSteamClient(s.InstallRoot).Err; err != nil {
+			return fmt.Errorf("the game server would crash at replay_srv.so: %w. %s", err, installer.RepairAdvice)
+		}
+	}
 	// Before the server opens it: -condebug appends, and one file holding every
 	// evening ever played is a file nobody can send anywhere.
 	RotateConsoleLog(gameDir)
-	cmd := exec.CommandContext(ctx, filepath.Join(gameDir, exeName), srcdsArgs(s, exeName)...)
+	server, err := provision.For(s, srcdsconfig.Host(exeName))
+	if err != nil {
+		return err
+	}
+	cmd := exec.CommandContext(ctx, filepath.Join(gameDir, exeName), server.Args...)
 	cmd.Dir = gameDir
 	cmd.Env = srcdsEnv(s)
 	winproc.KillGroup(cmd)
@@ -304,11 +277,26 @@ func runSrcdsWithSink(ctx context.Context, s settings.Settings, logger *slog.Log
 	if err := cmd.Start(); err != nil {
 		return fmt.Errorf("cannot start the game server: %w", err)
 	}
+	// Most srcds output reaches stdout, but the engine occasionally writes the
+	// FakeIP allocation only to the -condebug file. That address controls the
+	// Join button and is the only address remote players can use in Steam relay
+	// mode, so follow the durable console for that one signal as well. Both
+	// sources share a deduplicating sink because the usual case writes it twice.
+	outputSink := sink
+	watchCtx, stopWatching := context.WithCancel(ctx)
+	if sink != nil {
+		outputSink = dedupeFakeIPSink(sink)
+	}
 	var wg sync.WaitGroup
 	wg.Add(2)
-	go pipeLines(stdout, "srcds", logger, sink, &wg)
-	go pipeLines(stderr, "srcds", logger, sink, &wg)
+	go pipeLines(stdout, "srcds", logger, outputSink, &wg)
+	go pipeLines(stderr, "srcds", logger, outputSink, &wg)
+	if outputSink != nil {
+		wg.Add(1)
+		go watchConsoleFakeIP(watchCtx, filepath.Join(gameDir, "tf", ConsoleLogName), outputSink, &wg)
+	}
 	waitErr := cmd.Wait()
+	stopWatching()
 	wg.Wait()
 	// A non-nil waitErr after context cancellation is the subprocess being
 	// killed, which is expected and not an error to report.
@@ -316,17 +304,6 @@ func runSrcdsWithSink(ctx context.Context, s settings.Settings, logger *slog.Log
 		return nil //nolint:nilerr // context cancellation kills the subprocess; the wait error is expected
 	}
 	return waitErr
-}
-
-// StartMap is the map the start mission runs on. A mission the tables do not
-// know is taken as a map name, which is what an older setting held.
-func StartMap(s settings.Settings) string {
-	if mission, ok := gamedata.MissionByPopFile(s.SrcdsStartMission); ok {
-		if played, ok := gamedata.MapByID(mission.Map); ok {
-			return played.Name
-		}
-	}
-	return s.SrcdsStartMission
 }
 
 // report says something to whoever is listening. The window passes a sink and

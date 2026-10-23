@@ -1,7 +1,6 @@
-// Package srcdsconfig renders the game server's configuration files from the
-// launcher's settings. It is the Go port of the install_server_cfg and
-// install_admin functions in deploy/srcds-entrypoint.sh: server.cfg,
-// admins_simple.ini, and the plugin's own tf2_archipelago.cfg.
+// Package srcdsconfig writes the game server's configuration files from the
+// launcher's settings: server.cfg through provision, admins_simple.ini, the
+// bots' files, and the plugin's own tf2_archipelago.cfg.
 package srcdsconfig
 
 import (
@@ -9,12 +8,16 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
-	"text/template"
 
 	"github.com/m-this/tf2-archipelago/launcher/internal/assets"
+	"github.com/m-this/tf2-archipelago/launcher/internal/botfiles"
 	"github.com/m-this/tf2-archipelago/launcher/internal/botlive"
 	"github.com/m-this/tf2-archipelago/launcher/internal/botloadout"
+	"github.com/m-this/tf2-archipelago/launcher/internal/botnames"
+	"github.com/m-this/tf2-archipelago/launcher/internal/lanaddr"
+	"github.com/m-this/tf2-archipelago/launcher/internal/provision"
 	"github.com/m-this/tf2-archipelago/launcher/internal/settings"
 )
 
@@ -24,60 +27,46 @@ import (
 // start.
 func Install(s settings.Settings) error {
 	gameDir := filepath.Join(s.InstallRoot, "tf-dedicated", "tf")
-	if err := installServerCfg(gameDir, s); err != nil {
+	server, err := Server(s)
+	if err != nil {
+		return err
+	}
+	if _, err := server.Install(gameDir); err != nil {
 		return err
 	}
 	if err := installAdmins(gameDir, s.SrcdsAdminSteamIDs); err != nil {
 		return err
 	}
 	if err := installBotLoadout(gameDir, botlive.LibraryOf(s), s.SrcdsBotLoadouts,
-		botloadout.Seats(s.SrcdsBotTeamComp, s.SrcdsBotSeatLoadouts)); err != nil {
+		botlive.SeatsOf(s)); err != nil {
+		return err
+	}
+	if err := installBotNames(gameDir, s); err != nil {
 		return err
 	}
 	return installPluginCfg(gameDir)
 }
 
-func installServerCfg(gameDir string, s settings.Settings) error {
-	target := filepath.Join(gameDir, "cfg", "server.cfg")
-	if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
-		return fmt.Errorf("cannot create the cfg directory: %w", err)
+// Host is the machine the launcher runs on, starting exe.
+func Host(exe string) provision.Host {
+	return provision.Host{GOOS: runtime.GOOS, Exe: exe, LanHost: lanaddr.Preferred()}
+}
+
+// Server is what the game server starts with on this machine.
+func Server(s settings.Settings) (provision.Server, error) {
+	exe := "srcds_run"
+	if runtime.GOOS == "windows" {
+		exe = "srcds.exe"
 	}
-	rendered, err := RenderServerCfg(s)
-	if err != nil {
-		return err
-	}
-	return writeIfChanged(target, []byte(rendered))
+	return provision.For(s, Host(exe))
 }
 
 // RenderServerCfg returns what server.cfg holds for these settings, without
 // writing it. The debug bundle uses it to say whether the file the server is
 // reading still matches the settings the launcher holds.
 func RenderServerCfg(s settings.Settings) (string, error) {
-	tmpl, err := template.New("server.cfg").Parse(assets.ServerCfgTemplate())
-	if err != nil {
-		return "", fmt.Errorf("cannot parse the server.cfg template: %w", err)
-	}
-	var buf bytes.Buffer
-	if err := tmpl.Execute(&buf, map[string]any{
-		"Hostname":          s.SrcdsHostname,
-		"RconPassword":      s.SrcdsRconPw,
-		"PlayerPassword":    s.SrcdsPw,
-		"Lan":               boolToInt(s.EffectiveReach().Lan()),
-		"BotsMode":          botsMode(s.SrcdsBots),
-		"BotTeamSize":       s.SrcdsBotTeamSize,
-		"BotClassBlacklist": botloadout.Blacklist(s.SrcdsBotClassBlacklist),
-		"BotTeamComp":       botloadout.Composition(s.SrcdsBotTeamComp, s.SrcdsBotClassBlacklist),
-		"BotCustomLoadouts": boolToInt(botlive.LibraryOf(s).Anything(s.SrcdsBotLoadouts,
-			botloadout.Seats(s.SrcdsBotTeamComp, s.SrcdsBotSeatLoadouts))),
-		"BotUpgradesChat": boolToInt(s.BotUpgradesChat),
-		"BluHealth":       scaleOf(s.SrcdsBluHealthPct),
-		"BotHats":         boolToInt(s.SrcdsBotHats),
-		"BotHatEffects":   boolToInt(s.SrcdsBotHatEffects),
-		"StartMission":    s.SrcdsStartMission,
-	}); err != nil {
-		return "", fmt.Errorf("cannot render server.cfg: %w", err)
-	}
-	return buf.String(), nil
+	server, err := Server(s)
+	return server.ServerCfg, err
 }
 
 // installAdmins writes admins_simple.ini from a comma/space/newline-separated
@@ -113,7 +102,7 @@ func installAdmins(gameDir, list string) error {
 // decides", and stock everywhere is the mod's own default.
 func installBotLoadout(gameDir string, library botloadout.Library, picks map[string]string, seats []botloadout.Seat) error {
 	target := filepath.Join(gameDir, "addons", "sourcemod", "configs", "defenderbots", "loadout.cfg")
-	if !library.Anything(picks, seats) {
+	if !library.Anything(picks, seats) && !botloadout.Named(seats) {
 		if err := os.Remove(target); err != nil && !os.IsNotExist(err) {
 			return fmt.Errorf("cannot remove %s: %w", target, err)
 		}
@@ -123,6 +112,22 @@ func installBotLoadout(gameDir string, library botloadout.Library, picks map[str
 		return nil
 	}
 	return writeIfChanged(target, []byte(library.Render(picks, seats)))
+}
+
+/*
+installBotNames writes the pool the bots draw their names from.
+
+Unlike the loadout file this one is always written, because the mod reads it
+whatever the settings say and a missing one leaves every bot called "You forgot
+to give me a name!". The mod's package ships the same list, so a server the
+launcher has never configured still has one.
+*/
+func installBotNames(gameDir string, s settings.Settings) error {
+	target := botfiles.NamesPath(gameDir)
+	if _, err := os.Stat(filepath.Dir(target)); os.IsNotExist(err) {
+		return nil
+	}
+	return writeIfChanged(target, []byte(botnames.Render(s.SrcdsBotNamesExcluded, s.SrcdsBotNamesAdded)))
 }
 
 // installPluginCfg drops the plugin's config once. After that the file belongs
@@ -198,39 +203,6 @@ func splitAdmins(list string) []string {
 		return r == ',' || r == '\n' || r == '\t' || r == ' '
 	})
 	return out
-}
-
-// botsMode maps the on/off setting to the mod's convar: 2 is AUTO_BOTS, 0
-// leaves the bots to an admin.
-func botsMode(enabled bool) int {
-	if enabled {
-		return 2
-	}
-	return 0
-}
-
-/*
-	scaleOf is the mod's float for a percentage the settings hold.
-
-The mod refuses anything under 0.1 and reads 1.0 as off, so a page nobody has
-touched writes 1.0 and changes nothing. A zero is somebody who has not set it
-rather than somebody asking for harmless robots.
-*/
-func scaleOf(pct int) string {
-	if pct <= 0 || pct > 100 {
-		return "1.0"
-	}
-	if pct < 10 {
-		pct = 10
-	}
-	return fmt.Sprintf("%.2f", float64(pct)/100.0)
-}
-
-func boolToInt(b bool) int {
-	if b {
-		return 1
-	}
-	return 0
 }
 
 func writeIfChanged(path string, content []byte) error {

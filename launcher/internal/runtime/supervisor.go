@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"sync"
 	"syscall"
 	"time"
@@ -15,8 +16,12 @@ import (
 	"github.com/m-this/tf2-archipelago/bridge"
 	"github.com/m-this/tf2-archipelago/bridge/config"
 	"github.com/m-this/tf2-archipelago/fakeroom"
+	"github.com/m-this/tf2-archipelago/gamedata"
+	"github.com/m-this/tf2-archipelago/launcher/internal/assets"
+	"github.com/m-this/tf2-archipelago/launcher/internal/release"
 	"github.com/m-this/tf2-archipelago/launcher/internal/settings"
 	"github.com/m-this/tf2-archipelago/launcher/internal/srcdsconfig"
+	"github.com/m-this/tf2-archipelago/launcher/internal/tailscalefastdl"
 )
 
 // roomCloseGrace bounds the wait when the test room is asked to stop.
@@ -42,11 +47,21 @@ type Supervisor struct {
 	logger   *slog.Logger
 	sink     Sink
 
-	mu      sync.Mutex
-	cancel  context.CancelFunc
-	done    chan struct{}
-	running bool
-	stopped bool // a Stop the operator asked for, so the exit is not an error
+	mu          sync.Mutex
+	startCancel context.CancelFunc
+	startDone   chan struct{}
+	starting    bool
+	cancel      context.CancelFunc
+	done        chan struct{}
+	running     bool
+	stopped     bool // a Stop the operator asked for, so the exit is not an error
+
+	configureTailscale tailscaleConfigure
+	disableTailscale   tailscaleDisable
+
+	// releaseOnce asks GitHub about a newer launcher once per process, on the
+	// first start, and says so in the log when there is one.
+	releaseOnce sync.Once
 }
 
 // NewSupervisor returns a stopped supervisor. sink may be nil.
@@ -54,7 +69,13 @@ func NewSupervisor(s settings.Settings, logger *slog.Logger, sink Sink) *Supervi
 	if sink == nil {
 		sink = func(Line) {}
 	}
-	return &Supervisor{settings: s, logger: logger, sink: sink}
+	return &Supervisor{
+		settings:           s,
+		logger:             logger,
+		sink:               sink,
+		configureTailscale: tailscalefastdl.Configure,
+		disableTailscale:   tailscalefastdl.Disable,
+	}
 }
 
 // Settings returns the settings the next Start will use.
@@ -72,11 +93,12 @@ func (s *Supervisor) SetSettings(next settings.Settings) {
 	s.settings = next
 }
 
-// Running reports whether the pair is up.
+// Running reports whether the pair is starting or up. Setup counts so the UI
+// presents Stop instead of offering a second concurrent Start.
 func (s *Supervisor) Running() bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return s.running
+	return s.starting || s.running
 }
 
 // Start brings up the bridge and the game server. It returns once both have
@@ -84,43 +106,66 @@ func (s *Supervisor) Running() bool {
 // the reason they stopped (nil for a Stop the operator asked for).
 func (s *Supervisor) Start(onExit func(error)) error {
 	s.mu.Lock()
-	if s.running {
+	if s.starting || s.running {
 		s.mu.Unlock()
 		return errors.New("the server is already running")
 	}
-	cfg, err := bridgeConfig(s.settings)
+	current := s.settings
+	setupCtx, cancelSetup := context.WithCancel(context.Background())
+	startDone := make(chan struct{})
+	s.starting, s.startCancel, s.startDone = true, cancelSetup, startDone
+	s.mu.Unlock()
+
+	defer close(startDone)
+	defer cancelSetup()
+	funnelActive, handedOff := false, false
+	defer func() {
+		if funnelActive && !handedOff {
+			stopTailscaleFastDLWith(setupCtx, current, s.emitWithContext, s.disableTailscale)
+		}
+	}()
+
+	// Funnel may invoke the Tailscale CLI for up to twenty seconds. It must run
+	// outside s.mu: the Windows event loop calls Running while this is in
+	// progress, and holding the mutex there freezes the whole settings window.
+	prepared, err := prepareTailscaleFastDLWith(setupCtx, current, s.emit, s.configureTailscale)
 	if err != nil {
-		s.mu.Unlock()
-		return err
+		return s.finishStart(err)
+	}
+	current = prepared
+	funnelActive = current.TailscaleFastDL
+	cfg, err := bridgeConfigReplacingStale(setupCtx, current, s.emit)
+	if err != nil {
+		return s.finishStart(err)
 	}
 	// The game server reads server.cfg once, at its own startup, so the file
 	// has to hold the settings this start is using. Rendering it here rather
 	// than once per launcher run is what makes a class unticked in the
 	// interface reach the server it is unticked for.
-	if err := srcdsconfig.Install(s.settings); err != nil {
-		s.mu.Unlock()
-		return err
+	if err := srcdsconfig.Install(current); err != nil {
+		return s.finishStart(err)
 	}
 	ctxRoom, cancelRoom := context.WithCancel(context.Background())
-	room, err := s.startTestRoom(ctxRoom, &cfg)
+	room, err := StartTestRoom(ctxRoom, current, &cfg, s.emit)
 	if err != nil {
 		cancelRoom()
-		s.mu.Unlock()
-		return err
+		return s.finishStart(err)
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan struct{})
-	stopRoom := func() {
-		cancelRoom()
-		if room != nil {
-			stop, cancelStop := context.WithTimeout(context.Background(), roomCloseGrace)
-			_ = room.Close(stop)
-			cancelStop()
-		}
+	stopRoom := testRoomStopper(cancelRoom, room)
+	s.mu.Lock()
+	if !s.starting {
+		s.mu.Unlock()
+		cancel()
+		stopRoom()
+		return nil
 	}
+	s.starting, s.startCancel, s.startDone = false, nil, nil
 	s.cancel, s.done, s.running, s.stopped = cancel, done, true, false
-	current := s.settings
+	s.announceRelease()
 	s.mu.Unlock()
+	handedOff = true
 
 	s.emit("starting the bridge and the game server")
 	// The reach asked for is not always the one the server gets, and the
@@ -130,34 +175,68 @@ func (s *Supervisor) Start(onExit func(error)) error {
 		s.emit("no login token, so the server stays on the local network: " +
 			string(current.SrcdsReach) + " needs one from steamcommunity.com/dev/managegameservers")
 	}
+	s.launchProcesses(ctx, current, cfg, cancel, done, stopRoom, onExit)
+	return nil
+}
 
+// finishStart releases the short-lived starting reservation. Stop clears that
+// reservation before cancelling setup, in which case cancellation is an
+// operator-requested stop rather than a startup error to show in the UI.
+func (s *Supervisor) finishStart(err error) error {
+	s.mu.Lock()
+	stopped := !s.starting
+	s.starting, s.startCancel, s.startDone = false, nil, nil
+	s.mu.Unlock()
+	if stopped {
+		return nil
+	}
+	return err
+}
+
+func (s *Supervisor) launchProcesses(ctx context.Context, current settings.Settings, cfg config.Config,
+	cancel context.CancelFunc, done chan struct{}, stopRoom func(), onExit func(error),
+) {
 	/* Each of these outlives this call, so a panic on any of them takes the
 	   launcher down with the server it is supervising. guard turns that into a
 	   line in the log a debug bundle carries. */
-	bridgeErr := make(chan error, 1)
+	bridgeErr, srcdsErr := make(chan error, 1), make(chan error, 1)
+	navigationRefresh := make(chan struct{}, 1)
+	srcdsSink := func(line Line) {
+		s.sink(line)
+		if isMVMMapChange(line) {
+			select {
+			case navigationRefresh <- struct{}{}:
+			default:
+			}
+		}
+	}
 	go Guard("the bridge", s.emit, func() {
 		bridgeErr <- bridge.Run(ctx, cfg, s.bridgeLogger())
 	})
-
-	srcdsErr := make(chan error, 1)
 	go Guard("the game server", s.emit, func() {
-		srcdsErr <- runSrcdsWithSink(ctx, current, s.logger, s.sink)
+		srcdsErr <- runSrcdsWithSink(ctx, current, s.logger, srcdsSink)
+	})
+	go Guard("the defender navigation refresher", s.emit, func() {
+		s.watchNavigationRefresh(ctx, current, navigationRefresh)
 	})
 	go Guard("the SourceMod error watcher", s.emit, func() {
 		watchSourcemodErrors(ctx, filepath.Join(current.InstallRoot, "tf-dedicated"), s.sink)
 	})
+	go Guard("the download server", s.emit, func() {
+		serveFastDL(ctx, current, s.emit)
+	})
 
 	go Guard("the supervisor", s.emit, func() {
-		s.await(session{
+		s.await(ctx, session{
 			cancel:    cancel,
 			done:      done,
 			bridgeErr: bridgeErr,
 			srcdsErr:  srcdsErr,
 			stopRoom:  stopRoom,
 			onExit:    onExit,
+			settings:  current,
 		})
 	})
-	return nil
 }
 
 // exitGrace bounds the wait for the second half to exit. Longer than the delay
@@ -173,12 +252,13 @@ type session struct {
 	srcdsErr  chan error
 	stopRoom  func()
 	onExit    func(error)
+	settings  settings.Settings
 }
 
 // await watches the pair and reports why they stopped. Whichever of the two
 // ends first ends the other: a bridge with no server has nothing to serve, and
 // a server with no bridge records nothing. It returns once both are gone.
-func (s *Supervisor) await(run session) {
+func (s *Supervisor) await(ctx context.Context, run session) {
 	defer close(run.done)
 	defer run.stopRoom()
 
@@ -205,6 +285,7 @@ func (s *Supervisor) await(run session) {
 	case <-time.After(exitGrace):
 		s.emit("the game server has not exited yet, carrying on without it")
 	}
+	stopTailscaleFastDLWith(ctx, run.settings, s.emitWithContext, s.disableTailscale)
 
 	s.mu.Lock()
 	asked := s.stopped
@@ -223,10 +304,34 @@ func (s *Supervisor) await(run session) {
 	}
 }
 
+func (s *Supervisor) emitWithContext(_ context.Context, text string) {
+	s.emit(text)
+}
+
+func testRoomStopper(cancel context.CancelFunc, room *fakeroom.Room) func() {
+	return func() {
+		cancel()
+		if room != nil {
+			closeTestRoom(room)
+		}
+	}
+}
+
 // Stop takes both down and waits for them. Stopping a stopped supervisor does
 // nothing.
 func (s *Supervisor) Stop() {
 	s.mu.Lock()
+	if s.starting {
+		s.starting = false
+		cancel, done := s.startCancel, s.startDone
+		s.mu.Unlock()
+
+		s.emit("stopping")
+		cancel()
+		<-done
+		s.emit("stopped")
+		return
+	}
 	if !s.running {
 		s.mu.Unlock()
 		return
@@ -244,10 +349,6 @@ func (s *Supervisor) Stop() {
 func (s *Supervisor) Restart(onExit func(error)) error {
 	s.Stop()
 	return s.Start(onExit)
-}
-
-func (s *Supervisor) startTestRoom(ctx context.Context, cfg *config.Config) (*fakeroom.Room, error) {
-	return StartTestRoom(ctx, s.settings, cfg, s.emit)
 }
 
 /*
@@ -274,22 +375,55 @@ func StartTestRoom(
 	if emit == nil {
 		emit = func(string) {}
 	}
+	missions := testModeMissions(s)
+	var modifiers map[string][]fakeroom.MissionModifier
+	if s.MvmMissionModifiers {
+		modifiers = fakeroom.DrawMissionModifiers(missions, s.MvmModifierMin, s.MvmModifierMax)
+	}
 	room, address, err := fakeroom.Start(ctx, fakeroom.Options{
-		SlotName:     s.APSlotName,
-		Goal:         s.MvmGoal,
-		MissionCount: s.MvmMissionCount,
-		Excluded:     s.MvmExcludedMissions,
-		Difficulty:   s.MvmDifficulty,
-		StartMission: s.MvmStartMission,
-		StartClass:   s.MvmStartClass,
-		DeathLink:    s.MvmDeathLink,
-		Log:          emit,
+		SlotName:         s.APSlotName,
+		Missions:         missions,
+		UnlockMissions:   true,
+		Goal:             s.MvmGoal,
+		StartClass:       s.MvmStartClass,
+		DeathLink:        s.MvmDeathLink,
+		MissionModifiers: modifiers,
+		Log:              emit,
 	})
 	if err != nil {
 		return nil, err
 	}
 	cfg.ArchipelagoURL = address
 	return room, nil
+}
+
+// testModeMissions is every mission the settings leave eligible, rather than
+// the smaller random draw a generated multiworld uses. Test mode is the place
+// to try the selected maps and switch between them before committing to a
+// seed, so MvmMissionCount does not narrow this list.
+func testModeMissions(s settings.Settings) []string {
+	floor, _ := gamedata.DifficultyByKey(s.MvmDifficulty)
+	var missions []string
+	for _, mission := range settings.MissionPool(s).Missions() {
+		if mission.Difficulty >= floor {
+			missions = append(missions, mission.PopFile)
+		}
+	}
+	if at := slices.Index(missions, s.MvmStartMission); at > 0 {
+		missions = slices.Insert(slices.Delete(slices.Clone(missions), at, at+1), 0, s.MvmStartMission)
+	}
+	return missions
+}
+
+// announceRelease says once, off the start path, when a newer launcher is out.
+func (s *Supervisor) announceRelease() {
+	s.releaseOnce.Do(func() {
+		go func() {
+			if line := (release.Check{Current: assets.LauncherVersion}).Notice(context.Background()); line != "" {
+				s.emit(line)
+			}
+		}()
+	})
 }
 
 func (s *Supervisor) emit(text string) {

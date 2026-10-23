@@ -120,6 +120,11 @@ func (c Class) LoadoutByKey(key string) Loadout {
 	return stock
 }
 
+// hasPreset is whether a key names one of the presets the class ships with.
+func (c Class) hasPreset(key string) bool {
+	return slices.ContainsFunc(c.Loadouts, func(loadout Loadout) bool { return loadout.Key == key })
+}
+
 // Custom reports whether any class has a preset other than stock, which is
 // what decides whether the mod's custom loadouts are turned on at all.
 func Custom(picks map[string]string) bool {
@@ -171,23 +176,43 @@ func (l Library) Render(picks map[string]string, seats []Seat) string {
 	return b.String()
 }
 
-// Seat is one place on RED: the class it plays and the loadout it carries.
-// An empty class is a seat the mod draws for itself.
+// Seat is one place on RED: the class it plays, the loadout it carries and the
+// name it is given. An empty class is a seat the mod draws for itself, and an
+// empty name one whose bot draws from the name pool.
 type Seat struct {
-	Class   string
-	Loadout string
+	Class         string
+	Loadout       string
+	Name          string
+	Card          bool
+	Robot         bool
+	Giant         bool
+	Tier          int
+	Cosmetic      int
+	Unusual       bool
+	UnusualEffect int
+	Innates       []Innate
+}
+
+// Innate is a normal AP effect granted to every carried weapon, with its
+// card-tier stack count.
+type Innate struct {
+	Effect int
+	Stacks int
 }
 
 // Seats pairs the team's classes with the loadouts chosen for each place. The
 // two lists are stored apart because the classes are also what the mod's
 // team_composition convar carries, and a seat with no loadout of its own is
 // not the same as a seat playing stock: it falls back to the class's pick.
-func Seats(comp, loadouts []string) []Seat {
+func Seats(comp, loadouts, names []string) []Seat {
 	seats := make([]Seat, 0, len(comp))
 	for index, class := range comp {
 		seat := Seat{Class: class}
 		if index < len(loadouts) {
 			seat.Loadout = loadouts[index]
+		}
+		if index < len(names) {
+			seat.Name = names[index]
 		}
 		seats = append(seats, seat)
 	}
@@ -197,7 +222,7 @@ func Seats(comp, loadouts []string) []Seat {
 // CustomSeats reports whether any seat asks for weapons of its own.
 func CustomSeats(seats []Seat) bool {
 	for _, seat := range seats {
-		if seat.Class == "" || seat.Loadout == "" || seat.Loadout == StockKey {
+		if seat.Class == "" || (seat.Loadout == "" && !seat.Card) || (seat.Loadout == StockKey && !seat.Card) {
 			continue
 		}
 		return true
@@ -226,6 +251,26 @@ func (l Library) writeSeats(b *strings.Builder, seats []Seat) {
 		}
 		fmt.Fprintf(b, "\t\t\"%d\"\n\t\t{\n", index+1)
 		fmt.Fprintf(b, "\t\t\t\"class\"\t\"%s\"\n", class.Key)
+		if seat.Name != "" {
+			fmt.Fprintf(b, "\t\t\t\"name\"\t\"%s\"\n", seat.Name)
+		}
+		if seat.Card {
+			fmt.Fprintf(b, "\t\t\t\"card\"\t\"1\"\n\t\t\t\"tier\"\t\"%d\"\n", seat.Tier)
+			fmt.Fprintf(b, "\t\t\t\"cosmetic\"\t\"%d\"\n", seat.Cosmetic)
+			if seat.Unusual {
+				b.WriteString("\t\t\t\"unusual\"\t\"1\"\n")
+				fmt.Fprintf(b, "\t\t\t\"unusual_effect\"\t\"%d\"\n", seat.UnusualEffect)
+			}
+			if seat.Robot {
+				b.WriteString("\t\t\t\"robot\"\t\"1\"\n")
+			}
+			if seat.Giant {
+				b.WriteString("\t\t\t\"giant\"\t\"1\"\n")
+			}
+			for i, innate := range seat.Innates {
+				fmt.Fprintf(b, "\t\t\t\"innate_%d\"\t\"%d,%d\"\n", i+1, innate.Effect, innate.Stacks)
+			}
+		}
 		writeSlots(b, "\t\t\t", l.Loadout(class, seat.Loadout))
 		b.WriteString("\t\t}\n")
 	}

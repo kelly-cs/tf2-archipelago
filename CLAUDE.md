@@ -9,6 +9,119 @@ a SourceMod plugin, and a Windows launcher that does the server setup for you.
 - `bridge/` — Go. It connects the game server to the multiworld.
 - `plugin/` — the SourceMod side. `launcher/` — the Windows .exe that players run.
 
+## The settings are declared once
+
+`launcher/internal/form` holds one `Spec` per row: its label, its help, what
+values it takes, and how it is read off and written back. `Build` turns the
+specs and the state into a `Model` of plain data, and every interface draws
+that. No closures and no styling in a `Model`, so it encodes as JSON and the
+planned web mode is a renderer rather than a fourth hand-written list.
+
+    Build(state, env) -> Model -> the interface draws it
+                                      |
+                                      v
+                    Apply(state, env, Change) -> State -> Build again
+
+Adding a setting is a line in `form.Specs` and nothing else. Adding one to an
+interface is not a thing that happens.
+
+- `Specs` is a function, not a variable. The Missions page has a row per
+  mission and which missions exist depends on the asset packs on disk; the
+  Loadouts page has a row per slot and the Spy's slots are not everybody's.
+- `State` is the settings plus a `Draft`. The team name being typed and the
+  loadout being built are not settings: nothing in the config file holds them
+  and leaving the page throws them away. Both interfaces used to keep that
+  scratch themselves, which is why the loadout builder was the one part the two
+  did not agree about even in shape.
+- A row that is parsed rather than stored is `Deferred`. The room address is
+  the only one: reaching `archipelago.gg:12345` means passing through `a`, so
+  the row keeps what was typed and Save is where an address that never became
+  one is refused.
+- `TestEverySettingIsOnAPageOrSaysWhyNot` walks `settings.Settings` and refuses
+  a field no row writes. `notOnAPage` carries the exceptions with the reason
+  for each. An entry there is a decision, not a way to quieten the test.
+- `settings.Persist` is what saving means, for every interface: fill in the RCON
+  password, refuse settings nothing could act on, write the file. Call it while
+  the screen is still up. A write that fails has to be reported with the
+  player's answers still in front of them, and reporting it afterwards is what
+  `apw-ep5` was reported as.
+- A missing or unparseable room does not refuse a Save. It used to, and that was
+  the mechanism of `apw-ep5`: the reporter was setting a login token two pages
+  from a field they could not see. `internal/roomcheck` asks the room once the
+  settings are written, and points at archipelago.gg or Test mode when there is
+  nothing there. Advice, never a refusal.
+
+There is one interface now and it is a browser. `internal/webapi` holds the
+launcher's state and answers the contract in `proto/tf2ap/launcher/v1`; the
+Angular app in `launcher/web` renders `form.Model` and nothing else. The window,
+the terminal interface and Kelly's hand-written page are gone, and so are walk,
+bubbletea, lipgloss and termenv. `launcher/README.md` has the shape of it.
+
+What that bought: a setting is one `Spec` and no interface has a list to keep in
+step, a person helping a player can be looked at the same screen, and Linux
+stopped getting the interface that was unreadable next to the server's own
+output.
+
+`uiparity` is gone with them. It compared the window's source with the
+terminal's using a regular expression, which could only ask whether the two
+wrote the same struct fields and never whether they told the player the same
+thing. They did not: nine rows had different help text and nobody had chosen one
+of the differences. Where they differed the window's wording was kept, and that
+wording is what the browser draws.
+
+## The browser interface, without a game server
+
+`launcher/cmd/fakelauncher` answers the whole contract with nothing behind it:
+the real Connect handlers, the real WebSocket and a real `form.Model` built from
+`settings.Defaults`, with no game server, no bridge and no multiworld. `make
+web-e2e` drives the real app against it in a browser, so the run is the same
+every time on a machine with no Team Fortress 2 on it.
+
+The fake is not a second launcher. Every answer it gives is built by the same
+`Snapshot.Proto` the real one uses, and its mission table is built from the rows
+`form` actually declares, so a table of invented ids cannot pass. What it makes
+up is the state a run would be in.
+
+`make web-check` is the rest: eslint, prettier, the component tests, and `ng
+build` under a 500 kB initial budget that is an error rather than a warning.
+
+## Running the plugin without a server
+
+`make toolchain` builds SourcePawn's standalone compiler and VM, using the
+defender mod's own script out of the module cache so the pinned commit cannot
+drift between the two repositories. `gamedata/spdriver_test.go` then compiles a
+plugin function and runs it on inputs a test chooses.
+
+`plugin/scripting/tf2_archipelago/weapon_buff_levels.inc` is what makes that
+possible. It owns the buff levels the run granted and every decision that reads
+them: what goes on the provider and at what value, what a kill, a hit or a jar
+pays, stomps, self-inflicted blasts, disposable sentries and confirmed shots.
+Its state is `static`, so `weapon_buffs.inc` cannot write it and only carries the
+answers to the engine. It includes nothing itself, and both the plugin and the
+driver include it. A function belongs there when it needs no native: no entity
+property, no SDKCall, no TF2 lookup, not even `RoundToFloor` or `StrEqual`,
+which the standalone VM does not bind, and no constant out of a SourceMod
+include either. Amounts the engine wants whole come back as floats for the
+adapter to round. `gamedata/weapon_buff_levels_test.go` drives it grant by grant
+and think by think.
+
+State can go there too, not only decisions. `grant_ledger.inc` owns the grant
+cursor and the bundle ledger as `static` globals, and the HTTP callbacks and
+the station hook only call it: JSON and entity properties in, `SetEntProp` and
+the acknowledgement out. `gamedata/grant_ledger_test.go` replays whole
+scenarios through the same calls. A rule about money paid once belongs behind
+that interface, not in a callback.
+
+Prefer running a function to reading it. The tests that look for substrings in
+`weapon_buffs.inc` cannot tell a rename from a rewrite: inverting the cooldown
+floor so every cooldown collapses to the minimum leaves every watched string in
+place and they pass. What is still read is what needs the engine, and moving one
+of those over means first making it need nothing, which is a change to the
+plugin rather than to its tests.
+
+`make check` sets `TF2AP_REQUIRE_SPSHELL`, so a driver fails there rather than
+skipping. Without the toolchain a developer gets a skip naming what to run.
+
 ## Build
 
 Use the Makefile. `make help` lists every target.
@@ -20,8 +133,32 @@ make seed                       # generate a seed
 make up down logs rcon          # start the server on this machine
 ```
 
+Build on Linux. The plugin compiler spcomp is a Linux binary, and every
+launcher asset build compiles the plugin. So `make launcher` and `make check`
+do not run on Windows. Use WSL, which is what CI uses.
+
+`go build` still works anywhere for a compile check. The launcher it makes
+carries a placeholder plugin, so never ship one built that way.
+
+Move the defender mod with `go get github.com/m-this/tf2-mvm-bots-go@<tag>`.
+The go.mod requirement is what the debug bundle prints, so a bundle now names a
+release rather than a commit, and turning one back into a commit means resolving
+the tag against the repository. `bots-pin-check` used to refuse a tag for that
+reason and is gone: `go get` rewrites a tagged commit to its tag, so the check
+and tagging a release could never both hold.
+
 `.github/workflows/release.yml` copies the `CHANGELOG.md` section that matches
 the tag into the release notes. Players read it. Keep developer notes out.
+
+`.github/workflows/tf2-build-watch.yml` asks Valve every two hours which TF2
+build is live and opens an issue when it is not `TF2_SERVER_VERSION` in
+`deploy/env/versions.env`. That issue says what to check. Bump the pin last,
+once the SigMod and SourceMod pins are right, because the pin is what closes it.
+
+`TF2_SERVER_VERSION` is also linked into the launcher as
+`assets.TF2ServerVersion`, and the debug bundle compares it with the build srcds
+printed at start. Bumping it before the pins are right therefore silences the
+bundle as well as the watcher.
 
 ## Triage from Discord
 

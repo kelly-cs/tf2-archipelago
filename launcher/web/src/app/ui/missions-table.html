@@ -1,0 +1,111 @@
+<div class="scroller">
+  <table>
+    <thead>
+      <tr>
+        @for (column of columns(); track column.key) {
+          <th
+            scope="col"
+            [attr.aria-sort]="
+              key() === column.key ? (ascending() ? 'ascending' : 'descending') : 'none'
+            "
+          >
+            <button type="button" (click)="sortOn(column.key)">
+              {{ column.label }}
+              @if (key() === column.key) {
+                <span aria-hidden="true">{{ ascending() ? '▲' : '▼' }}</span>
+              }
+            </button>
+          </th>
+        }
+        @if (playable()) {
+          <th scope="col"><span class="sr-only">Play</span></th>
+        }
+      </tr>
+    </thead>
+    <tbody>
+      @for (row of sorted(); track row.key) {
+        <tr [class.playing]="row.playing" [class.dim]="row.dim">
+          @if (pool()) {
+            <td class="tick">
+              <input
+                type="checkbox"
+                [checked]="row.on"
+                [disabled]="row.disabled"
+                [attr.aria-label]="row.name"
+                (change)="toggled.emit(row.key)"
+              />
+            </td>
+          }
+          <td class="name">
+            {{ row.name }}
+            @if (row.loadout) {
+              <span class="loadout">{{ row.loadout }}</span>
+            }
+          </td>
+          @if (playable()) {
+            <td class="modifiers">
+              @if (row.modifiers.length) {
+                <span class="modifier-list">
+                  @for (modifier of row.modifiers; track modifier.name) {
+                    <span
+                      class="modifier"
+                      [attr.data-kind]="modifier.kind"
+                      [title]="modifier.description"
+                    >
+                      <app-modifier-icon [modifier]="modifier.key" />
+                      <span>
+                        <small>{{ modifier.kind }}</small>
+                        <strong>{{ modifier.name }}</strong>
+                      </span>
+                    </span>
+                  }
+                </span>
+              } @else {
+                <span class="no-modifiers">Standard issue</span>
+              }
+            </td>
+          }
+          <td>{{ row.map }}</td>
+          <td><app-tier [tier]="row.tier" /></td>
+          <td>{{ row.source }}</td>
+          <td class="waves">{{ row.waves }}</td>
+          <td class="status" [class]="row.tone">
+            @if (row.badge) {
+              <app-badge [tone]="row.tone === 'good' ? 'good' : 'warn'">{{ row.status }}</app-badge>
+            } @else {
+              {{ row.status }}
+            }
+          </td>
+          @if (mods()) {
+            <td class="mods">{{ row.mods }}</td>
+          }
+          @if (playable()) {
+            <td class="play">
+              <span class="play-controls">
+                @if (row.waveChoices.length > 0) {
+                  <select
+                    class="wave"
+                    [attr.aria-label]="'Start ' + row.name + ' at a wave'"
+                    [value]="row.waveStart"
+                    (change)="selectWave(row.key, +$any($event.target).value)"
+                  >
+                    @for (wave of row.waveChoices; track wave) {
+                      <option [value]="wave" [selected]="wave === row.waveStart">
+                        Wave {{ wave }}
+                      </option>
+                    }
+                  </select>
+                }
+                @if (row.play) {
+                  <app-button size="small" tone="primary" (press)="choose(row)">
+                    {{ row.play }}
+                  </app-button>
+                }
+              </span>
+            </td>
+          }
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>

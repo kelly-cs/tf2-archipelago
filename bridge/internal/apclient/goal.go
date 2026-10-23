@@ -7,12 +7,24 @@ import (
 	"github.com/m-this/tf2-archipelago/gamedata"
 )
 
+// oldestFormatVersion is the oldest seed this bridge still reads. Every id of
+// formats 4 through 7 is still in gamedata/testdata/ids-frozen.json under the
+// same key, and a key a format 4 seed lacks reads as that feature off, which is
+// how the v1.11.0 to v1.13.0 apworlds played. Format 2 was never checked.
+const oldestFormatVersion = 4
+
 // validate rejects a seed from an apworld this binary may disagree with about what an id means.
 func (s SlotData) validate() error {
-	if s.FormatVersion != gamedata.FormatVersion {
+	if s.FormatVersion < oldestFormatVersion || s.FormatVersion > gamedata.FormatVersion {
+		// Two numbers and no action was what this used to say, and two people
+		// a week apart asked the same question in Discord about it. The
+		// numbers are the evidence; the sentence after them is the fix.
 		return fmt.Errorf(
-			"seed has data format version %d, this bridge reads %d",
-			s.FormatVersion, gamedata.FormatVersion,
+			"seed has data format version %d, this bridge reads %d through %d: "+
+				"the seed was generated with a different tf2_mvm apworld. "+
+				"Regenerate it with the apworld that came with this launcher, "+
+				"or run the launcher the seed was made for",
+			s.FormatVersion, oldestFormatVersion, gamedata.FormatVersion,
 		)
 	}
 	if len(s.Missions) == 0 {

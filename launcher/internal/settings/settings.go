@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 
 	"github.com/m-this/tf2-archipelago/gamedata"
 	"github.com/m-this/tf2-archipelago/launcher/internal/botloadout"
@@ -23,8 +24,8 @@ type Settings struct {
 	// live. Default is <home>/tf2-archipelago.
 	InstallRoot string `json:"install_root"`
 
-	// ArchipelagoDir is where the Archipelago app is, when it is not where its
-	// installer puts it. Empty means look in the usual places.
+	// ArchipelagoDir is where the Archipelago app is, when it is not in a usual
+	// location. On Linux this may name the AppImage itself. Empty auto-detects.
 	ArchipelagoDir string `json:"archipelago_dir,omitempty"`
 
 	// CommunityContentDir holds downloaded or user-supplied community archives.
@@ -41,18 +42,66 @@ type Settings struct {
 	APHost     string `json:"ap_host"`
 	APPort     int    `json:"ap_port"`
 	APTls      bool   `json:"ap_tls"`
+	APRoomURL  string `json:"ap_room_url,omitempty"`
 	APSlotName string `json:"ap_slot_name"`
 	APPassword string `json:"ap_password,omitempty"`
 
 	// Game server.
-	SrcdsHostname      string `json:"srcds_hostname"`
-	SrcdsRconPw        string `json:"srcds_rcon_pw,omitempty"`
-	SrcdsPw            string `json:"srcds_pw,omitempty"`
-	SrcdsPort          int    `json:"srcds_port"`
+	SrcdsHostname string `json:"srcds_hostname"`
+	SrcdsRconPw   string `json:"srcds_rcon_pw,omitempty"`
+	SrcdsPw       string `json:"srcds_pw,omitempty"`
+	SrcdsPort     int    `json:"srcds_port"`
+	// SrcdsJoinHost is the address printed and handed to Steam. Empty lets the
+	// launcher discover a local address; a Compose host behind WSL or NAT can
+	// name the address its players actually reach.
+	SrcdsJoinHost      string `json:"srcds_join_host,omitempty"`
 	SrcdsMaxPlayers    int    `json:"srcds_max_players"`
 	SrcdsToken         string `json:"srcds_token"`
 	SrcdsReach         Reach  `json:"srcds_reach"`
 	SrcdsAdminSteamIDs string `json:"srcds_admin_steamids,omitempty"`
+
+	// SrcdsMods are the server mods the game server loads, by the keys
+	// gamedata catalogs. A community mission that needs one is offered only
+	// when the mod is here, and the player file names the same mods so the
+	// seed and the server agree. The launcher downloads and verifies selected
+	// mods when it prepares the server; platform support comes from gamedata.
+	SrcdsMods []string `json:"srcds_mods"`
+
+	/*
+		SrcdsModLoading decides when a selected mod is actually loaded by the
+		game server, as opposed to merely installed.
+
+		A SourceMod extension loads because a file named after it sits beside
+		it, so "installed" and "loaded" used to be the same thing and a mod
+		that crashed the server could not be escaped from these settings. They
+		are separate now: the launcher writes that marker at Start and takes it
+		away again, so Off keeps a downloaded mod on the disk and out of the
+		process.
+
+		ModLoadingRequired is the default and the reason this exists. Nothing
+		loads an engine-patching extension into a run whose missions never ask
+		for it.
+	*/
+	SrcdsModLoading ModLoading `json:"srcds_mod_loading,omitempty"`
+	/*
+		FastDLPort is where the launcher serves the game's maps and other
+		content over HTTP, on this machine, so a joining client downloads
+		a community map from here rather than through the game server. 0
+		turns the server off.
+
+		SrcdsDownloadURL is the whole sv_downloadurl value, for an
+		operator who knows an address this machine cannot work out. The
+		two are separate on purpose: this one says where a client is told
+		to look, the port above says whether this machine answers. A
+		server reached over a forwarded port needs both, because the
+		address friends use is the router's and nothing here can see it.
+	*/
+	FastDLPort       int    `json:"fastdl_port"`
+	SrcdsDownloadURL string `json:"srcds_download_url,omitempty"`
+	// TailscaleFastDL asks Tailscale Funnel to publish only the downloadable
+	// content directories and gives its public HTTPS URL to SRCDS. It changes
+	// no game-server address or reach setting. Only the server runs Tailscale.
+	TailscaleFastDL bool `json:"tailscale_fastdl,omitempty"`
 
 	// SrcdsStartMission is the popfile the server loads first. The map comes
 	// with it: gamedata knows which map a mission runs on.
@@ -84,6 +133,17 @@ type Settings struct {
 	// A team named here beats the blacklist.
 	SrcdsBotTeamComp []string `json:"srcds_bot_team_comp,omitempty"`
 
+	/* The pool the bots draw their names from, as the difference from the
+	   list this launcher ships.
+
+	   What is out and what was added, rather than the whole list: a name added
+	   to the shipped file in a later release then reaches a settings file
+	   written before it existed, which a stored copy of the list never would.
+	   People get attached to their teams, and a name is most of what a bot is
+	   to the person playing beside it. */
+	SrcdsBotNamesExcluded []string `json:"srcds_bot_names_excluded,omitempty"`
+	SrcdsBotNamesAdded    []string `json:"srcds_bot_names_added,omitempty"`
+
 	// SrcdsBotTeamPresets are teams somebody named and kept: the seats, their
 	// loadouts, and the classes the mod may draw from. Naming a team is the
 	// point of the Bots tab, and naming it twice because the last one was
@@ -98,6 +158,15 @@ type Settings struct {
 	// A seat with no entry falls back to the class's own pick.
 	SrcdsBotSeatLoadouts []string `json:"srcds_bot_seat_loadouts,omitempty"`
 
+	// SrcdsBotSeatNames is the name each seat is given, in the same order. A
+	// seat with no entry draws from the pool as it always did, which is every
+	// seat until somebody names one.
+	SrcdsBotSeatNames []string `json:"srcds_bot_seat_names,omitempty"`
+	// SrcdsBotCardForms is each card's form, "human" or "giant", keyed
+	// by card id rather than by seat, so reordering the squad never changes a
+	// card's form. A card with no entry is a robot.
+	SrcdsBotCardForms map[string]string `json:"srcds_bot_card_forms,omitempty"`
+
 	/* SrcdsBotCustomLoadouts is the loadouts the player has built, keyed by the
 	 * name they gave. A seat or a class names one with the custom: prefix, so a
 	 * built loadout is a loadout key like any other and nothing downstream has
@@ -111,6 +180,9 @@ type Settings struct {
 	// BotUpgradesChat writes what the bots buy at the upgrade station to the
 	// chat. Off by default: it is a line per purchase.
 	BotUpgradesChat bool `json:"bot_upgrades_chat"`
+	// SrcdsBotBuyAnywhere lets every bot buy its upgrades where it stands
+	// instead of walking to a station. Off is how the mod has always played.
+	SrcdsBotBuyAnywhere bool `json:"srcds_bot_buy_anywhere"`
 
 	// What the bots look like, which changes nothing about how they play. A
 	// hat each is on and so is the unusual effect on it: six mercenaries in the
@@ -131,10 +203,36 @@ type Settings struct {
 
 	// Run shape, for seed generation guidance (the launcher does not generate
 	// seeds itself, but it can write a starter YAML for the Archipelago app).
-	MvmMissionCount     int      `json:"mvm_mission_count"`
-	MvmDifficulty       string   `json:"mvm_difficulty"`
-	MvmGoal             string   `json:"mvm_goal"`
-	MvmMissionsanityPct int      `json:"mvm_missionsanity_percentage"`
+	MvmMissionCount     int    `json:"mvm_mission_count"`
+	MvmDifficulty       string `json:"mvm_difficulty"`
+	MvmGoal             string `json:"mvm_goal"`
+	MvmMissionsanityPct int    `json:"mvm_missionsanity_percentage"`
+	MvmMissionModifiers bool   `json:"mvm_mission_modifiers"`
+	MvmModifierMin      int    `json:"mvm_minimum_mission_modifiers"`
+	MvmModifierMax      int    `json:"mvm_maximum_mission_modifiers"`
+	// MvmMedalOnClear locks a medal onto every mission clear and makes the
+	// goal read the medals held. It costs the multiworld one check a mission.
+	MvmMedalOnClear bool `json:"mvm_medal_on_clear"`
+	// MvmVictoryCaches makes a mission clear worth checks scaled by its tier:
+	// one at normal, two at intermediate, three at advanced, five at expert
+	// and haunted. More checks without more missions.
+	MvmVictoryCaches bool `json:"mvm_victory_caches"`
+	// MvmMilestoneChecks puts the running-total checks in the seed: so many
+	// robots, giants and tanks destroyed over the whole run, whatever mission
+	// they fell in. Something to grind when a wave will not fall.
+	MvmMilestoneChecks bool `json:"mvm_milestone_checks"`
+	// MvmClassWeaponSlots opens loadout slots class by class: nine progressive
+	// items of two copies in place of one of three, each class's first slot
+	// free with the class. A longer run with a much larger pool.
+	MvmClassWeaponSlots ClassSlots `json:"mvm_class_weapon_slots"`
+	// MvmGiantsanity and MvmTanksanity make every giant and every tank of
+	// every wave a check, beside the mission's own first of each.
+	MvmGiantsanity bool `json:"mvm_giantsanity"`
+	MvmTanksanity  bool `json:"mvm_tanksanity"`
+	// MvmServerSettings puts the server-setting items in the pool. One exists,
+	// the Grappling Hook, and it turns Mannpower's hook on for everybody for
+	// the rest of the run.
+	MvmServerSettings   bool     `json:"mvm_server_settings"`
 	MvmDeathLink        bool     `json:"mvm_death_link"`
 	MvmExcludedMissions []string `json:"mvm_excluded_missions,omitempty"`
 
@@ -146,17 +244,26 @@ type Settings struct {
 	MvmStartMission string `json:"mvm_start_mission,omitempty"`
 	MvmStartClass   string `json:"mvm_start_class,omitempty"`
 
+	MvmCommunityMissions       bool   `json:"mvm_community_missions"`
 	MvmMissionTicketImportance string `json:"mvm_mission_ticket_importance"`
 	MvmClassUnlockImportance   string `json:"mvm_class_unlock_importance"`
 	MvmWeaponSlotImportance    string `json:"mvm_weapon_slot_importance"`
 	MvmWeaponBuffImportance    string `json:"mvm_weapon_buff_importance"`
 	MvmCashRewards             bool   `json:"mvm_cash_rewards"`
-	MvmWeaponBuffPct           int    `json:"mvm_weapon_buff_percentage"`
-	MvmWeaponBuffStackChance   int    `json:"mvm_weapon_buff_stack_chance"`
+	MvmBotCards                bool   `json:"mvm_bot_cards"`
+	MvmStartingBotCards        int    `json:"mvm_starting_bot_cards"`
+	MvmStartingBotCardMode     string `json:"mvm_starting_bot_card_mode"`
+	// SrcdsBotCardRolls pins the AP reward variant selected for each named seat.
+	SrcdsBotCardRolls        map[string]string `json:"srcds_bot_card_rolls,omitempty"`
+	MvmWeaponBuffPct         int               `json:"mvm_weapon_buff_percentage"`
+	MvmWeaponBuffStackChance int               `json:"mvm_weapon_buff_stack_chance"`
 
-	/* The three levers that bend a mission for a short team, each the scale at
-	 * one human on RED rising to 1.0 at six. 1.0 is off, and all three are off
-	 * until a run says otherwise.
+	// MvmTrapPct is how much of the run's spare space is traps. Zero is off,
+	// and a player who wrote zero keeps it: withAppearanceDefaults fills the
+	// default only when the file never mentions the key.
+	MvmTrapPct int `json:"mvm_trap_percentage"`
+
+	/* A direct multiplier for every robot. 100 percent is neutral.
 	 *
 	 * Percentages rather than the mod's floats, because a settings page with
 	 * 0.7 in a box asks the player to know what the 1.0 end means.
@@ -166,6 +273,10 @@ type Settings struct {
 	// Whether to enable the metrics listener and on what port.
 	MetricsPort int `json:"metrics_port"`
 }
+
+// FastDLPortDefault matches FASTDL_PORT in deploy/.env.example. Off the game
+// port, whose TCP side srcds already holds for rcon.
+const FastDLPortDefault = 27080
 
 // Defaults returns the factory settings, matching deploy/.env.example.
 func Defaults() Settings {
@@ -185,25 +296,38 @@ func Defaults() Settings {
 		// combination that cannot work: the server never logs in to Steam, so
 		// it answers the query and then refuses the join.
 		SrcdsReach:                 ReachLan,
+		FastDLPort:                 FastDLPortDefault,
 		SrcdsBots:                  true,
 		SrcdsBotTeamSize:           6,
 		SrcdsBotHats:               true,
 		SrcdsBotHatEffects:         true,
+		MvmClassWeaponSlots:        ClassSlotsOff,
 		MvmMissionCount:            8,
 		MvmDifficulty:              "intermediate",
 		MvmGoal:                    "final_boss",
 		MvmMissionsanityPct:        80,
+		MvmModifierMin:             1,
+		MvmModifierMax:             2,
 		MvmExcludedMissions:        defaultExcludedMissions(),
+		MvmCommunityMissions:       true,
 		MvmMissionTicketImportance: "progression",
 		MvmClassUnlockImportance:   "progression",
 		MvmWeaponSlotImportance:    "progression",
 		MvmWeaponBuffImportance:    "useful",
+		MvmStartingBotCardMode:     "draw_random",
 		MvmWeaponBuffPct:           75,
 		MvmWeaponBuffStackChance:   25,
-		SrcdsBluHealthPct:          100,
+		MvmTrapPct:                 1,
+		SrcdsBluHealthPct:          RobotHealthPercentNeutral,
 		MetricsPort:                24681,
 	}
 }
+
+const (
+	RobotHealthPercentMin     = 10
+	RobotHealthPercentNeutral = 100
+	RobotHealthPercentMax     = 1000
+)
 
 // BotTeam is one saved team: what each seat plays and holds, and which classes
 // the mod may draw the rest from. The same three things the Bots tab edits, so
@@ -211,6 +335,8 @@ func Defaults() Settings {
 type BotTeam struct {
 	Comp          []string          `json:"comp,omitempty"`
 	SeatLoadouts  []string          `json:"seat_loadouts,omitempty"`
+	SeatNames     []string          `json:"seat_names,omitempty"`
+	CardForms     map[string]string `json:"card_forms,omitempty"`
 	ClassLoadouts map[string]string `json:"class_loadouts,omitempty"`
 	Blacklist     []string          `json:"blacklist,omitempty"`
 }
@@ -220,6 +346,8 @@ func BotTeamOf(s Settings) BotTeam {
 	return BotTeam{
 		Comp:          slices.Clone(s.SrcdsBotTeamComp),
 		SeatLoadouts:  slices.Clone(s.SrcdsBotSeatLoadouts),
+		SeatNames:     slices.Clone(s.SrcdsBotSeatNames),
+		CardForms:     maps.Clone(s.SrcdsBotCardForms),
 		ClassLoadouts: maps.Clone(s.SrcdsBotLoadouts),
 		Blacklist:     slices.Clone(s.SrcdsBotClassBlacklist),
 	}
@@ -229,6 +357,8 @@ func BotTeamOf(s Settings) BotTeam {
 func WithBotTeam(s Settings, team BotTeam) Settings {
 	s.SrcdsBotTeamComp = slices.Clone(team.Comp)
 	s.SrcdsBotSeatLoadouts = slices.Clone(team.SeatLoadouts)
+	s.SrcdsBotSeatNames = slices.Clone(team.SeatNames)
+	s.SrcdsBotCardForms = maps.Clone(team.CardForms)
 	s.SrcdsBotLoadouts = maps.Clone(team.ClassLoadouts)
 	s.SrcdsBotClassBlacklist = slices.Clone(team.Blacklist)
 	return s
@@ -304,6 +434,10 @@ func (s Settings) withAppearanceDefaults(data []byte) Settings {
 		Effects               *bool `json:"srcds_bot_hat_effects"`
 		WeaponBuffPct         *int  `json:"mvm_weapon_buff_percentage"`
 		WeaponBuffStackChance *int  `json:"mvm_weapon_buff_stack_chance"`
+		TrapPct               *int  `json:"mvm_trap_percentage"`
+		CommunityMissions     *bool `json:"mvm_community_missions"`
+		ModifierMin           *int  `json:"mvm_minimum_mission_modifiers"`
+		ModifierMax           *int  `json:"mvm_maximum_mission_modifiers"`
 	}
 	// A file that parsed once parses again; anything else has already been
 	// reported by the caller.
@@ -323,6 +457,22 @@ func (s Settings) withAppearanceDefaults(data []byte) Settings {
 	if said.WeaponBuffStackChance == nil {
 		s.MvmWeaponBuffStackChance = d.MvmWeaponBuffStackChance
 	}
+	if said.TrapPct == nil {
+		s.MvmTrapPct = d.MvmTrapPct
+	}
+	/* A file written before this option existed loads it as off, and off means
+	   the generator draws no community mission at all. That was invisible until
+	   the pool started counting the way the generator counts, and then it was a
+	   player with every community mission ticked and a run of nothing. */
+	if said.CommunityMissions == nil {
+		s.MvmCommunityMissions = d.MvmCommunityMissions
+	}
+	if said.ModifierMin == nil {
+		s.MvmModifierMin = d.MvmModifierMin
+	}
+	if said.ModifierMax == nil {
+		s.MvmModifierMax = d.MvmModifierMax
+	}
 	return s
 }
 
@@ -337,6 +487,63 @@ func Render(s Settings) (string, error) {
 }
 
 // Save writes the config file, creating the directory.
+/*
+	usable refuses settings the launcher could not act on.
+
+Only the answers that would break something before the player saw why. An
+install root is the one: it is a folder now that the settings screen offers it,
+and an empty one sends MkdirAll at the process's working directory while a
+relative one resolves against wherever the .exe happened to be started from.
+Both go wrong somewhere far from the box that caused it.
+
+Everything else a player can type wrong is already refused by the row that holds
+it, because form knows the bounds and the options.
+*/
+func usable(s Settings) error {
+	root := strings.TrimSpace(s.InstallRoot)
+	if root == "" {
+		return fmt.Errorf("the install folder is empty: it is where the game files go, so it has to be a folder")
+	}
+	if !filepath.IsAbs(root) {
+		return fmt.Errorf("the install folder %q is not a full path, so where it ends up depends on where the launcher was started from", root)
+	}
+	return nil
+}
+
+/*
+Persist is what saving settings means: fill in an RCON password, refuse a run
+the seed could not hold, then write the file.
+
+It returns what it wrote rather than what it was given. The password is filled
+in here, so the caller's copy is not what ended up on disk, and handing back the
+argument would leave the launcher talking to a server with a password it does
+not know.
+
+Call this before closing whatever screen the player is on. A write that fails
+has to be reported while their answers are still in front of them: doing it
+afterwards leaves a player looking at a log line for a window that is gone, and
+that is what apw-ep5 was reported as.
+*/
+func Persist(s Settings) (Settings, error) {
+	if err := usable(s); err != nil {
+		return s, err
+	}
+	if s.SrcdsRconPw == "" {
+		password, err := NewRconPassword()
+		if err != nil {
+			return s, fmt.Errorf("cannot make an RCON password: %w", err)
+		}
+		s.SrcdsRconPw = password
+	}
+	if _, err := CheckRunSelection(s); err != nil {
+		return s, err
+	}
+	if err := Save(s); err != nil {
+		return s, err
+	}
+	return s, nil
+}
+
 func Save(s Settings) error {
 	path, err := Path()
 	if err != nil {
@@ -400,7 +607,7 @@ func (s Settings) withDefaults() Settings {
 	if s.SrcdsStartMission == "" {
 		s.SrcdsStartMission = startMissionFor(s.SrcdsStartMap, d.SrcdsStartMission)
 	}
-	if mission, known := gamedata.MissionByPopFile(s.SrcdsStartMission); known && !gamedata.IsPlayableMission(mission.ID) {
+	if mission, known := gamedata.MissionByPopFile(s.SrcdsStartMission); !known || !MissionPool(s).Server.Check(mission).Playable() {
 		s.SrcdsStartMission = d.SrcdsStartMission
 	}
 	s.SrcdsStartMap = ""
@@ -446,8 +653,19 @@ func (s Settings) withDefaults() Settings {
 	if s.MvmWeaponBuffImportance == "" {
 		s.MvmWeaponBuffImportance = d.MvmWeaponBuffImportance
 	}
+	if s.MvmStartingBotCardMode == "" {
+		s.MvmStartingBotCardMode = d.MvmStartingBotCardMode
+	}
+	return withListenerDefaults(s, d)
+}
+
+// withListenerDefaults fills the two ports the launcher itself listens on.
+func withListenerDefaults(s, d Settings) Settings {
 	if s.MetricsPort == 0 {
 		s.MetricsPort = d.MetricsPort
+	}
+	if s.FastDLPort == 0 {
+		s.FastDLPort = d.FastDLPort
 	}
 	return s
 }
@@ -459,8 +677,10 @@ func withCommunityDefaults(s, defaults Settings) Settings {
 	if s.MvmExcludedMissions == nil {
 		s.MvmExcludedMissions = slices.Clone(defaults.MvmExcludedMissions)
 	}
-	if mission, known := gamedata.MissionByPopFile(s.MvmStartMission); known && !gamedata.IsPlayableMission(mission.ID) {
-		s.MvmStartMission = ""
+	if s.MvmStartMission != "" {
+		if mission, known := gamedata.MissionByPopFile(s.MvmStartMission); !known || !MissionPool(s).Server.Check(mission).Playable() {
+			s.MvmStartMission = ""
+		}
 	}
 	return s
 }
@@ -527,3 +747,64 @@ func startMissionFor(mapName, fallback string) string {
 	}
 	return fallback
 }
+
+/*
+How the loadout slots are handed out, as the apworld spells it.
+
+Three answers rather than two since 1.16.1: off is one progressive item for
+everybody, progressive is one per class opening that class's slots in its own
+order, and any order is the same slots as items that name them, found in
+whatever order the multiworld puts them in.
+
+A settings file written before this held a boolean, and "true" and "false" are
+what it reads as: the apworld takes both as aliases, and so does ClassSlotsOn.
+*/
+type ClassSlots string
+
+const (
+	ClassSlotsOff         ClassSlots = "off"
+	ClassSlotsProgressive ClassSlots = "progressive"
+	ClassSlotsAnyOrder    ClassSlots = "any_order"
+)
+
+/*
+UnmarshalJSON takes the boolean this used to be as well as the word it is now.
+
+v1.16.0 shipped it as a toggle, so every settings file written by it holds
+true or false here. Refusing those would lose the whole file: one unreadable
+field and the launcher would fall back to defaults for the room, the bots and
+everything else somebody had set.
+*/
+func (c *ClassSlots) UnmarshalJSON(body []byte) error {
+	var word string
+	if err := json.Unmarshal(body, &word); err == nil {
+		*c = ClassSlots(word).OrOff()
+		return nil
+	}
+	var on bool
+	if err := json.Unmarshal(body, &on); err != nil {
+		return fmt.Errorf("mvm_class_weapon_slots is neither a word nor a yes or no: %s", body)
+	}
+	*c = ClassSlotsOff
+	if on {
+		*c = ClassSlotsProgressive
+	}
+	return nil
+}
+
+// OrOff is the value to act on, and off for anything unset or unknown: a seed
+// refusing to generate over a typo is worse than one played with the default.
+func (c ClassSlots) OrOff() ClassSlots {
+	switch c {
+	case ClassSlotsProgressive, "true":
+		return ClassSlotsProgressive
+	case ClassSlotsAnyOrder:
+		return ClassSlotsAnyOrder
+	default:
+		return ClassSlotsOff
+	}
+}
+
+// On is whether the slots come per class at all, which is the only thing the
+// item count depends on: both modes hand out the same eighteen items.
+func (c ClassSlots) On() bool { return c.OrOff() != ClassSlotsOff }

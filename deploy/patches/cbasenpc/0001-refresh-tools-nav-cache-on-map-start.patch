@@ -1,0 +1,48 @@
+diff --git a/extension/extension.cpp b/extension/extension.cpp
+index df7ba60..a6c04f4 100644
+--- a/extension/extension.cpp
++++ b/extension/extension.cpp
+@@ -14,6 +14,7 @@
+ #include "pluginentityfactory.h"
+ #include "cbasenpc_behavior.h"
+ #include "serialrefresher.h"
++#include "toolsnav_mesh.h"
+ 
+ class CTakeDamageInfoHack;
+ SH_DECL_MANUALEXTERN1_void(MEvent_Killed, CTakeDamageInfoHack &);
+@@ -164,6 +165,10 @@ bool CBaseNPCExt::RegisterConCommandBase(ConCommandBase* var) {
+ }
+ 
+ void CBaseNPCExt::OnCoreMapStart(edict_t* edictlist, int edictCount, int clientMax) {
++	// The extension can load before the first navigation mesh and its
++	// CNavMesh::Load detour does not reliably observe later changelevels in TF2.
++	// Rebuild the tools-side cache once SourceMod says the new map is ready.
++	ToolsNavMesh->Load();
+ }
+ 
+ void CBaseNPCExt::OnCoreMapEnd() {
+diff --git a/extension/sourcesdk/nav_mesh.cpp b/extension/sourcesdk/nav_mesh.cpp
+index cd297fb..cfe8190 100644
+--- a/extension/sourcesdk/nav_mesh.cpp
++++ b/extension/sourcesdk/nav_mesh.cpp
+@@ -90,6 +90,7 @@ bool CNavMesh::Init(SourceMod::IGameConfig* config, char* error, size_t maxlengt
+ 
+ void CNavMesh::OnCoreMapEnd()
+ {
++	ToolsNavMesh->Clear();
+ }
+ 
+ void CNavMesh::SDK_OnUnload()
+diff --git a/extension/toolsnav_mesh.cpp b/extension/toolsnav_mesh.cpp
+index 5cefe52..4aff278 100644
+--- a/extension/toolsnav_mesh.cpp
++++ b/extension/toolsnav_mesh.cpp
+@@ -21,7 +21,7 @@ void CToolsNavMesh::Load()
+ {
+ 	this->Clear();
+ 
+-	if (pTheNavAreas->Count() <= 0)
++	if (pTheNavAreas == nullptr || pTheNavAreas->Count() <= 0)
+ 	{
+ 		return;
+ 	}

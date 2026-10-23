@@ -61,7 +61,13 @@ Gunslinger.
 func (l Library) Loadout(class Class, key string) Loadout {
 	name := CustomName(key)
 	if name == "" {
-		return class.LoadoutByKey(key)
+		if key == "" || class.hasPreset(key) {
+			return class.LoadoutByKey(key)
+		}
+		// A bare name. Releases 1.12 and before wrote a saved loadout's name
+		// into the settings where the key belongs, so a file from one of them
+		// still names its loadout this way.
+		name = key
 	}
 	built, found := l.Built[name]
 	if !found || built.Class != class.Key {
@@ -95,6 +101,23 @@ func (l Library) weapons(built Built) string {
 }
 
 /*
+Named reports whether any seat was given a name.
+
+Apart from Anything because the two ask for different things. A name means the
+file has to exist, since the mod reads a seat's name out of it whatever the
+weapons say; it does not mean the mod should hand out weapons, which is what
+sm_redbots_manager_use_custom_loadouts turns on.
+*/
+func Named(seats []Seat) bool {
+	for _, seat := range seats {
+		if seat.Name != "" && seat.Class != "" {
+			return true
+		}
+	}
+	return false
+}
+
+/*
 Anything reports whether this team asks for weapons at all, which is what
 decides whether the loadout file is written and the mod told to read it.
 
@@ -108,6 +131,9 @@ func (l Library) Anything(picks map[string]string, seats []Seat) bool {
 		}
 	}
 	for _, seat := range seats {
+		if seat.Card {
+			return true
+		}
 		class, found := ClassByKey(seat.Class)
 		if !found {
 			continue

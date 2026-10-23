@@ -1,0 +1,33 @@
+# Disposable game server for the unattended wave-completion smoke test.
+# Uses its own game volume and publishes only loopback RCON. Never combine this
+# file with compose.yml: that file names the live server and game volume.
+name: tf2-archipelago-waveprobe
+
+services:
+  srcds:
+    image: ${WAVEPROBE_SRCDS_IMAGE:-tf2-archipelago-srcds:latest}
+    restart: "no"
+    # All shards use loopback-published RCON; sharing Docker's bridge avoids
+    # consuming one subnet per disposable server during large sweeps.
+    network_mode: bridge
+    environment:
+      SRCDS_HOSTNAME: TF2 Archipelago Wave Probe
+      SRCDS_RCONPW: ${WAVEPROBE_RCONPW:?set a separate WAVEPROBE_RCONPW}
+      SRCDS_PORT: 27015
+      SRCDS_MAXPLAYERS: 32
+      SRCDS_STARTMAP: mvm_decoy
+      SRCDS_LAN: 1
+      SRCDS_REACH: lan
+      SRCDS_BOTS: 0
+      SRCDS_MODS: sigsegv-mvm
+      TF2AP_TEST_MODE: 0
+    ports:
+      - "127.0.0.1:${WAVEPROBE_RCON_PORT:-27035}:27015/tcp"
+    volumes:
+      - tf2game_waveprobe:/home/steam/tf-dedicated
+      - ../community-content:/opt/tf2-community-pack:ro
+      - ../plugin/build/tf2_waveprobe.smx:/opt/tf2-archipelago/addons/sourcemod/plugins/tf2_waveprobe.smx:ro
+      - ../plugin/build/tf2_archipelago.smx:/opt/tf2-archipelago/addons/sourcemod/plugins/tf2_archipelago.smx:ro
+
+volumes:
+  tf2game_waveprobe:

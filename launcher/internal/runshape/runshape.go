@@ -11,7 +11,45 @@ import (
 	"strings"
 
 	"github.com/m-this/tf2-archipelago/gamedata"
+	"github.com/m-this/tf2-archipelago/gamedata/availability"
 )
+
+/*
+	Pool is every mission the generator may draw, before a difficulty floor
+
+narrows it further.
+
+It is _available_missions in apworld/tf2_mvm/__init__.py, in Go: a mission the
+server can play, community missions only while they are on, and nothing the
+player left out. Counting any other pool is what apw-2kw was reported as. The
+launcher counted gamedata.PlayableMissions(), which is neither: it offered a
+player 82 missions and the run they generated drew 29, because the 53 community
+missions the ceiling counted were all in the exclusion list a fresh settings
+file starts with.
+
+The zero value is the smallest honest pool: Valve missions, no packs, no mods,
+nothing excluded. settings.MissionPool builds the real one.
+*/
+type Pool struct {
+	Server    availability.Server
+	Community bool
+	Excluded  []string
+}
+
+// Missions is the pool, in table order.
+func (p Pool) Missions() []gamedata.Mission {
+	var out []gamedata.Mission
+	for _, mission := range p.Server.Playable() {
+		if !p.Community && gamedata.IsCommunityMission(mission.ID) {
+			continue
+		}
+		if slices.Contains(p.Excluded, mission.PopFile) {
+			continue
+		}
+		out = append(out, mission)
+	}
+	return out
+}
 
 // Tier is one choice of difficulty floor: the easiest tier a run may draw, and
 // how many missions that leaves in the pool. A choice includes every harder
@@ -27,14 +65,15 @@ type Tier struct {
 // Haunted is left out as a useful launcher preset. It holds only Caliginous
 // Caper, so it has no mission-ticket progression and commits the run to one
 // unusually long 666-robot mission. Hand-authored YAML may still use it.
-func Tiers() []Tier {
+func Tiers(pool Pool) []Tier {
+	missions := pool.Missions()
 	tiers := make([]Tier, 0, len(gamedata.Difficulties))
 	for _, difficulty := range gamedata.Difficulties {
 		if difficulty == gamedata.DifficultyHaunted {
 			continue
 		}
 		tier := Tier{Key: difficulty.Key()}
-		for _, mission := range gamedata.PlayableMissions() {
+		for _, mission := range missions {
 			if mission.Difficulty >= difficulty {
 				tier.Missions++
 				tier.Waves += int(mission.Waves)
@@ -47,13 +86,13 @@ func Tiers() []Tier {
 
 // MissionsInPool reports how many missions a difficulty key leaves to draw. An
 // unknown key gives the whole pool, which is what the generator does.
-func MissionsInPool(key string) int {
-	for _, tier := range Tiers() {
+func MissionsInPool(pool Pool, key string) int {
+	for _, tier := range Tiers(pool) {
 		if tier.Key == key {
 			return tier.Missions
 		}
 	}
-	return len(gamedata.PlayableMissions())
+	return len(pool.Missions())
 }
 
 // Label describes a tier in one line, for a menu.
@@ -103,57 +142,76 @@ type MissionChoice struct {
 }
 
 // MissionChoices lists every mission the tables know, in table order, which
-// is map by map and easiest first.
+// is map by map and easiest first. A mission that needs a server mod is not
+// one of them: no server is assumed to load one.
 func MissionChoices() []MissionChoice {
-	return MissionChoicesForPacks([]string{"archive-assets.zip", "mlarchive-assets.zip"})
+	return MissionChoicesFor(availability.Planned(
+		[]string{"archive-assets.zip", "mlarchive-assets.zip"}, nil))
 }
 
-// VisibleMissions is the mission table a launcher may populate from the packs
-// that exist locally. Valve missions are always present. Portable community
-// missions and the locked no-NAV rows appear only after their owning archive
-// has been downloaded or supplied locally; RafMod-only missions stay hidden.
-func VisibleMissions(availablePacks []string) []gamedata.Mission {
-	var visible []gamedata.Mission
-	for _, mission := range gamedata.Missions {
-		pack := gamedata.MissionPack(mission.ID)
-		switch {
-		case pack == "" && gamedata.IsPlayableMission(mission.ID):
-			visible = append(visible, mission)
-		case pack != "" && slices.Contains(availablePacks, pack) &&
-			(gamedata.IsPlayableMission(mission.ID) || gamedata.MissionRequirement(mission.ID) == "no_nav"):
-			visible = append(visible, mission)
-		}
-	}
-	return visible
-}
+/*
+MissionChoicesFor is the menu that picks where a run begins, for one server.
 
-// MissionChoicesForPacks excludes unavailable and locked community missions
-// from menus that can actually select a starting mission.
-func MissionChoicesForPacks(availablePacks []string) []MissionChoice {
-	playable := VisibleMissions(availablePacks)
-	choices := make([]MissionChoice, 0, len(playable))
-	for _, mission := range playable {
-		if !gamedata.IsPlayableMission(mission.ID) {
+A mission whose pack is on disk and not ticked is offered: picking it ticks the
+pack, which is all that stood in its way. Any other reason keeps it off the
+menu, and the mission table says why.
+*/
+func MissionChoicesFor(server availability.Server) []MissionChoice {
+	var choices []MissionChoice
+	for _, verdict := range server.Shown() {
+		if !verdict.Playable() && verdict.Reason != availability.PackOff {
 			continue
 		}
+		mission := verdict.Mission
 		played, _ := gamedata.MapByID(mission.Map)
+		loadout := MissionLoadoutLabel(mission)
+		if loadout != "" {
+			loadout = ", " + loadout
+		}
 		choices = append(choices, MissionChoice{
 			PopFile: mission.PopFile,
-			Label: fmt.Sprintf("[%s] %s - %s (%s, %d waves)",
-				missionSource(mission), played.Name, mission.Name, mission.Difficulty.Key(), mission.Waves),
+			Label: fmt.Sprintf("[%s] %s - %s (%s, %d waves%s)",
+				availability.Source(mission, nil), played.Name, mission.Name, mission.Difficulty.Key(), mission.Waves, loadout),
 		})
 	}
 	return choices
 }
 
-func missionSource(mission gamedata.Mission) string {
-	switch gamedata.MissionPack(mission.ID) {
-	case "archive-assets.zip":
-		return "Potato Archive"
-	case "mlarchive-assets.zip":
-		return "Moonlight Archive"
+// MissionLoadoutLabel is LoadoutLabel for a mission of the catalog.
+func MissionLoadoutLabel(mission gamedata.Mission) string {
+	return LoadoutLabel(gamedata.MissionLoadout(mission.ID))
+}
+
+// LoadoutLabel tags a mission with a special class or loadout restriction.
+// Blank means the usual unrestricted mission.
+func LoadoutLabel(loadout string) string {
+	switch loadout {
+	case "medieval":
+		return "Medieval"
+	case "medic_only":
+		return "Medic only"
 	}
-	return "Valve"
+	return ""
+}
+
+/*
+LoadoutNote says what the tag costs the player, for the place that has room
+for a sentence.
+
+A Medieval mission keeps only melee and the medieval-era weapons, so the slot
+unlocks a run has earned buy nothing there and a team that has not unlocked
+melee yet has nothing to fight with. The player has to know that before the
+seed draws the mission or the run switches to it, which is why the launcher
+says it in the pool, the start-mission list and the session list alike.
+*/
+func LoadoutNote(loadout string) string {
+	switch loadout {
+	case "medieval":
+		return "Medieval: melee and medieval-era weapons only, so most slot unlocks do nothing here."
+	case "medic_only":
+		return "Medic only: this mission requires RED players to use Medic."
+	}
+	return ""
 }
 
 // MissionLabel is the label of one popfile, or the popfile itself when the
@@ -171,15 +229,10 @@ func MissionLabel(popFile string) string {
 // seed draws it. An empty popfile or class name means this.
 const AnyLabel = "Any - the run draws it"
 
-// StartMissionChoices is MissionChoices with the draw in front, for the menu
-// that decides where a run begins. The empty popfile is the draw.
-func StartMissionChoices() []MissionChoice {
-	return append([]MissionChoice{{PopFile: "", Label: AnyLabel}}, MissionChoices()...)
-}
-
-// StartMissionChoicesForPacks is the availability-aware start menu.
-func StartMissionChoicesForPacks(availablePacks []string) []MissionChoice {
-	return append([]MissionChoice{{PopFile: "", Label: AnyLabel}}, MissionChoicesForPacks(availablePacks)...)
+// StartMissionChoices is MissionChoicesFor with the draw in front, for the
+// menu that decides where a run begins. The empty popfile is the draw.
+func StartMissionChoices(server availability.Server) []MissionChoice {
+	return append([]MissionChoice{{PopFile: "", Label: AnyLabel}}, MissionChoicesFor(server)...)
 }
 
 // StartMissionLabel is what StartMissionChoices shows for one popfile.

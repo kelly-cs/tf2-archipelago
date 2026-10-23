@@ -1,73 +1,43 @@
 # Requirements
 
-There are two ways to run the server. **Windows** is the easiest: one exe, no
-Docker. **Docker** works on any operating system. Both run the same software.
+## Pick a way to run the server
+
+| Way | Who it is for | Page |
+| --- | --- | --- |
+| **Windows launcher** | Most people. One exe, nothing else. | [Install on Windows](install-windows.md) |
+| **Linux launcher** | The same program, on a Linux machine or over SSH. | [Install on Linux](install-linux.md) |
+| **Docker** | A machine that already runs Docker stacks. | [Install with Docker](install.md) |
+
+All three run the same software and have the same settings.
 
 ## The machine
 
 | Thing | What you need |
 | --- | --- |
-| Disk | About 20 GB free. The game server downloads about 14 GB at the first start. |
-| Memory | 4 GB for six players. |
+| Disk | About 20 GB free. The game server is about 14 GB and downloads once. |
+| Memory | 4 GB. |
 | Processor | Two cores. |
-| Network | Nothing, for friends on the same network or over Steam's relay. One forwarded port, UDP and TCP, only if you choose that route. |
+| Network | Outgoing access to `archipelago.gg`. Nothing to open on the router unless you choose the forwarded-port route. |
 
-## Windows (recommended)
+## What the host also needs
 
-| Thing | What you need |
-| --- | --- |
-| Windows | 10 or 11, 64-bit. |
-| The launcher | `tf2ap.exe` from the [latest release](https://github.com/m-this/tf2-archipelago/releases/latest). |
-| Archipelago | The official [Archipelago app](https://github.com/ArchipelagoMW/Archipelago/releases), to generate the seed. |
-
-No Docker, no clone, no compiler. See
-[Install on Windows](install-windows.md).
-
-## Docker
-
-| Thing | What you need |
-| --- | --- |
-| Docker | Docker with the compose plugin. |
-
-The game files stay in a Docker volume named `tf2-archipelago_tf2game`. Keep
-that volume. Removing it downloads the 14 GB again.
-
-See [Install with Docker](install.md).
-
-## The network
-
-The stack publishes one port, `27015` by default, on UDP and on TCP. Set it
-with `SRCDS_PORT` in `.env`.
-
-- UDP carries the game. Without it nobody can join.
-- TCP carries the remote console of the game server. You need it to run the
-  admin commands in [Troubleshooting](../operate/troubleshooting.md).
-
-The stack publishes nothing else. The bridge opens its own connection out to
-the room on `archipelago.gg` and listens on loopback only. See
-[Install](install.md) for the services.
-
-The machine needs to reach `archipelago.gg` on the port of the room. A firewall
-that filters outgoing traffic has to let that port through.
-
-Whether anything has to be forwarded depends on `SRCDS_REACH`, and only
-`SRCDS_REACH=port` asks for it. Over Steam's relay the server reaches out and
-nothing has to come in. See
-[Invite your friends](invite-your-friends.md).
+- The official [Archipelago app](https://github.com/ArchipelagoMW/Archipelago/releases),
+  to generate the seed. See [Create the session](create-the-session.md).
+- A Steam game server login token, if friends join over the internet. See
+  [Invite your friends](invite-your-friends.md). Playing on the local network
+  needs none.
 
 ## What you do not need
 
-- No Steam account for the server. `SRCDS_TOKEN=0` runs the server without one
-  and keeps it out of the public server list, and on the local network: nobody
-  outside it can join a server that never logs in. See
-  [Invite your friends](invite-your-friends.md).
-- No Team Fortress 2 installation on the host. The container downloads its own.
-- No account on `archipelago.gg`. The website hosts a session for anybody who
-  uploads one. See [Create the session](create-the-session.md).
+- No Steam account for the server.
+- No Team Fortress 2 install on the host. The server downloads its own files.
+- No account on `archipelago.gg`.
+- Nothing for the players. A normal Team Fortress 2 client is enough.
 
 ## Security note
 
-The game server is a large C++ process that reads network traffic from anybody
-who knows the address. Run it on a machine where that is acceptable. If the
-same machine runs something that matters to you, decide that on purpose rather
-than by default.
+The game server is a large C++ program that reads network traffic from anybody
+who knows the address. Run it on a machine where that is acceptable.
+
+Next: [Install on Windows](install-windows.md), [Install on Linux](install-linux.md)
+or [Install with Docker](install.md).

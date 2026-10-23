@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/m-this/tf2-archipelago/launcher/internal/botnames"
 	"github.com/m-this/tf2-archipelago/launcher/internal/settings"
 )
 
@@ -67,7 +68,8 @@ func TestInstallServerCfg(t *testing.T) {
 // say why. A reach with no token behind it is the other way round: sv_lan 0
 // there is a server that refuses everybody, local players included.
 func TestServerCfgFollowsTheReach(t *testing.T) {
-	const token = "C7A1B2E3D4F5A6B7C8D9E0F1A2B3C4D5"
+	// Obviously not a token, so a secret scanner has nothing to flag.
+	const token = "NOT-A-REAL-TOKEN-0000000000000000"
 	for _, c := range []struct {
 		name  string
 		reach settings.Reach
@@ -150,6 +152,41 @@ func TestInstallAdminsSkipsWithoutSourcemod(t *testing.T) {
 	}
 }
 
+/*
+The pool the bots draw their names from reaches the game, and says what the
+settings asked for rather than the shipped list.
+
+Written on every start, unlike the loadout file: the mod reads this one
+whatever the settings say, and a server without it calls every bot "You forgot
+to give me a name!".
+*/
+func TestInstallWritesTheNamePool(t *testing.T) {
+	installRoot := t.TempDir()
+	configs := filepath.Join(gameDir(installRoot), "addons", "sourcemod", "configs", "defenderbots")
+	if err := os.MkdirAll(configs, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	s := settings.Settings{
+		InstallRoot:           installRoot,
+		SrcdsBotNamesAdded:    []string{"Gravel Pit Gary"},
+		SrcdsBotNamesExcluded: botnames.Shipped()[:1],
+	}
+	if err := Install(s); err != nil {
+		t.Fatalf("Install: %v", err)
+	}
+
+	body, err := os.ReadFile(filepath.Join(configs, "bot_names.txt"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(body), "Gravel Pit Gary") {
+		t.Errorf("the added name is not in the pool:\n%s", body)
+	}
+	if strings.Contains(string(body), botnames.Shipped()[0]) {
+		t.Errorf("%s was left out and is still in the pool", botnames.Shipped()[0])
+	}
+}
+
 // TestInstallPluginCfg checks the plugin config is copied once, then left to
 // whoever runs the server.
 func TestInstallPluginCfg(t *testing.T) {
@@ -220,6 +257,23 @@ func TestInstallServerCfgCarriesTheRunAndTheBots(t *testing.T) {
 		if !strings.Contains(string(cfg), want) {
 			t.Errorf("missing %q in:\n%s", want, cfg)
 		}
+	}
+}
+
+// A server with nobody on it hibernates the moment its map is up, and its game
+// clock stops there. The start mission waits for SigMod's first ten seconds of
+// game time to pass, so it waited until somebody joined (apw-o96).
+func TestInstallServerCfgKeepsTheServerAwake(t *testing.T) {
+	s := settings.Settings{InstallRoot: t.TempDir()}
+	if err := Install(s); err != nil {
+		t.Fatalf("Install: %v", err)
+	}
+	cfg, err := os.ReadFile(filepath.Join(gameDir(s.InstallRoot), "cfg", "server.cfg"))
+	if err != nil {
+		t.Fatalf("cannot read server.cfg: %v", err)
+	}
+	if !strings.Contains(string(cfg), "sv_hibernate_when_empty 0") {
+		t.Errorf("an empty server hibernates and drops the plugin's mission switch:\n%s", cfg)
 	}
 }
 
@@ -355,5 +409,53 @@ func TestTheDebugLevelSomebodyChoseIsLeftAlone(t *testing.T) {
 	body, _ := os.ReadFile(target)
 	if !strings.Contains(string(body), `tf2ap_debug "2"`) {
 		t.Errorf("a chosen level was overwritten:\n%s", body)
+	}
+}
+
+func TestServerCfgCarriesTheDownloadURL(t *testing.T) {
+	s := settings.Settings{
+		InstallRoot:      t.TempDir(),
+		SrcdsReach:       settings.ReachLan,
+		SrcdsDownloadURL: "https://example.test/tf",
+	}
+	body, err := RenderServerCfg(s)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := directive(body, "sv_downloadurl"); got != `"https://example.test/tf"` {
+		t.Errorf("sv_downloadurl = %q:\n%s", got, body)
+	}
+	s.SrcdsDownloadURL, s.FastDLPort = "", 0
+	body, err = RenderServerCfg(s)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := directive(body, "sv_downloadurl"); got != "" {
+		t.Errorf("sv_downloadurl = %q with nothing to point it at:\n%s", got, body)
+	}
+}
+
+// SigMod counts RED defender bots as invaders and kicks them in crowded waves
+// unless this is off. The image wrote it; the launcher did not.
+func TestServerCfgLeavesREDOutOfSigModsRobotLimit(t *testing.T) {
+	s := settings.Defaults()
+	s.SrcdsRconPw = "test"
+	s.SrcdsMods = []string{"sigsegv-mvm"}
+	s.SrcdsModLoading = settings.ModLoadingAlways
+	body, err := RenderServerCfg(s)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(body, "sig_mvm_robot_limit_fix_red 0\n") {
+		t.Fatalf("server.cfg with SigMod loaded leaves RED in the robot limit:\n%s", body)
+	}
+
+	s.SrcdsMods = nil
+	body, err = RenderServerCfg(s)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(body, "sig_mvm_robot_limit_fix_red") {
+		t.Fatalf("server.cfg without SigMod names a SigMod convar:\n%s", body)
 	}
 }

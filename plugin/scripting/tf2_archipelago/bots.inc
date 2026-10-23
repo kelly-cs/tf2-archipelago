@@ -10,6 +10,9 @@
 ConVar g_CvarBotUpgradesChat;
 ConVar g_CvarBotsWaitForPlayers;
 ConVar g_CvarBotsBackfill;
+ConVar g_CvarRobotHealthScale;
+ConVar g_CvarDefenderRobotHealthScale;
+float g_MissionRobotHealthScale = 1.0;
 
 // Whether the hold is on, so it is said once rather than twice a second.
 bool g_Holding;
@@ -29,6 +32,10 @@ bool g_Holding;
 // outlast the bots landing.
 #define BotTrimDelay 3.0
 
+bool g_BotsWaveRunning;
+// Zero when no wave is running. A late plugin load recovers an active wave.
+int g_CurrentWave;
+
 // The upgrade names, in the order scripts/items/mvm_upgrades.txt lists the
 // entries the game actually loads. That order is the index MVM_Upgrade carries:
 // checked against CMannVsMachineUpgradeManager with sm_dump_upgrades in
@@ -42,6 +49,28 @@ ArrayList g_UpgradeNames;
 
 // When the next fill may ask, so that one ask is not made five times over.
 float g_NextFill;
+
+// Villa's roof boss arena has no NAV connection from the ordinary map. Its
+// scripted player teleport skips bots, so late-spawning defenders need the
+// same one-way transfer. The house and ghost rooms have NAV routes and are
+// left to the defender mod's normal movement.
+float g_NextVillaEscort[MAXPLAYERS + 1];
+#define VillaMapName "mvm_villa_b13f"
+#define VillaRecalledPop "mvm_villa_b13f_adv_recalled_to_life"
+#define VillaRoofDestinationName "roof_player_destination"
+#define VillaEscortInterval 2.0
+// Where a bot nobody ranked stands in line: behind every seat, as the defender
+// mod puts a seat nobody named.
+#define BotsUnrankedSeat 1000
+#define VillaRoomMinX -9900.0
+#define VillaRoomMaxX -7400.0
+#define VillaRoomMinY 2500.0
+#define VillaRoomMaxY 5000.0
+#define VillaRoomMinZ 650.0
+#define VillaRoomMaxZ 1600.0
+float g_VillaRoofDestination[3] = {-9024.0, 5056.0, 2448.0};
+int g_VillaRoofDestinationRef;
+bool g_VillaRoofDestinationSearched;
 
 /* How long an ask is given to become a player before another one is made.
  *
@@ -71,20 +100,231 @@ void Bots_Init()
         "Hold the bots unready until every player on RED is ready.", _, true, 0.0, true, 1.0);
     g_CvarBotsBackfill = CreateConVar("tf2ap_bots_backfill", "1",
         "Put a bot back on RED when a player leaves between waves.", _, true, 0.0, true, 1.0);
+    // The launcher owns this value. DONTRECORD keeps AutoExecConfig from
+    // writing its default into tf2_archipelago.cfg after server.cfg supplied
+    // the selected value.
+    g_CvarRobotHealthScale = CreateConVar("tf2ap_robot_health_scale", "1.0",
+        "Direct robot health multiplier; relayed to the defender-bot mod.",
+        FCVAR_NOTIFY | FCVAR_DONTRECORD, true, 0.1, true, 10.0);
+    g_CvarRobotHealthScale.AddChangeHook(Bots_RobotHealthScaleChanged);
     g_UpgradeNames = new ArrayList(ByteCountToCells(64));
 
     // No TIMER_FLAG_NO_MAPCHANGE on either: they must outlive every map change.
     CreateTimer(BotReadyInterval, Timer_HoldBotsReady, _, TIMER_REPEAT);
     CreateTimer(BotFillInterval, Timer_FillTeam, _, TIMER_REPEAT);
+    CreateTimer(VillaEscortInterval, Timer_VillaEscort, _, TIMER_REPEAT);
+}
+
+void Bots_OnConfigsExecuted()
+{
+    Bots_ApplyRobotHealthScale();
+}
+
+public void Bots_RobotHealthScaleChanged(ConVar convar,
+    const char[] oldValue, const char[] newValue)
+{
+    Bots_ApplyRobotHealthScale();
+}
+
+static void Bots_ApplyRobotHealthScale()
+{
+    if (g_CvarDefenderRobotHealthScale == null)
+    {
+        g_CvarDefenderRobotHealthScale = FindConVar("sm_redbots_manager_blu_health_scale");
+    }
+    if (g_CvarDefenderRobotHealthScale == null)
+    {
+        AP_Error("The defender-bot robot health ConVar is unavailable; health scaling cannot run.");
+        return;
+    }
+
+    float wanted = g_CvarRobotHealthScale.FloatValue * g_MissionRobotHealthScale;
+    if (wanted > 10.0)
+    {
+        wanted = 10.0;
+    }
+    g_CvarDefenderRobotHealthScale.FloatValue = wanted;
+    AP_Debug("Robot health scale applied: tf2ap %.2f, defender bots %.2f.",
+        wanted, g_CvarDefenderRobotHealthScale.FloatValue);
+}
+
+void Bots_SetMissionRobotHealthScale(float scale)
+{
+    g_MissionRobotHealthScale = scale;
+    Bots_ApplyRobotHealthScale();
 }
 
 void Bots_OnMapStart()
 {
+    g_BotsWaveRunning = false;
     Bots_LoadUpgradeNames();
 
     // The clock this is measured against restarts with the map, so a deadline
     // left over from a long one would hold the fill off on the next.
     g_NextFill = 0.0;
+    for (int client = 1; client <= MaxClients; client++)
+    {
+        g_NextVillaEscort[client] = 0.0;
+    }
+    g_VillaRoofDestinationRef = INVALID_ENT_REFERENCE;
+    g_VillaRoofDestinationSearched = false;
+}
+
+public Action Timer_VillaEscort(Handle timer)
+{
+    Bots_PublishDirective();
+    float now = GetEngineTime();
+    // Villa's scripted finale can continue after the game marks wave 6 done.
+    // The human player's arrival on the roof is the reliable phase signal.
+    if (!MvM_IsActive())
+    {
+        return Plugin_Continue;
+    }
+    char map[64];
+    GetCurrentMap(map, sizeof(map));
+    if (!StrEqual(map, VillaMapName))
+    {
+        return Plugin_Continue;
+    }
+    char pop[PLATFORM_MAX_PATH];
+    if (!MvM_PopFile(pop, sizeof(pop))
+        || !StrEqual(pop, VillaRecalledPop))
+    {
+        return Plugin_Continue;
+    }
+
+    if (!g_VillaRoofDestinationSearched)
+    {
+        g_VillaRoofDestinationSearched = true;
+        for (int entity = MaxClients + 1; entity < GetMaxEntities(); entity++)
+        {
+            if (!IsValidEntity(entity) || !HasEntProp(entity, Prop_Data, "m_iName"))
+            {
+                continue;
+            }
+            char name[40];
+            GetEntPropString(entity, Prop_Data, "m_iName", name, sizeof(name));
+            if (StrEqual(name, VillaRoofDestinationName))
+            {
+                g_VillaRoofDestinationRef = EntIndexToEntRef(entity);
+                GetEntPropVector(entity, Prop_Data, "m_vecAbsOrigin", g_VillaRoofDestination);
+                break;
+            }
+        }
+        if (g_VillaRoofDestinationRef == INVALID_ENT_REFERENCE)
+        {
+            AP_Debug("Villa roof destination entity was not found; using authored fallback coordinates.");
+        }
+    }
+    float destination[3];
+    destination = g_VillaRoofDestination;
+    int destinationEntity = EntRefToEntIndex(g_VillaRoofDestinationRef);
+    if (destinationEntity > MaxClients && IsValidEntity(destinationEntity)
+        && HasEntProp(destinationEntity, Prop_Data, "m_vecAbsOrigin"))
+    {
+        GetEntPropVector(destinationEntity, Prop_Data, "m_vecAbsOrigin", destination);
+    }
+
+    float botPosition[3];
+    // The roof destination exists before the finale. Villa moves human players
+    // there only when the boss enters its final phase, so follow that signal.
+    bool playerOnRoof = false;
+    for (int client = 1; client <= MaxClients; client++)
+    {
+        if (!IsClientInGame(client) || IsFakeClient(client) || !IsPlayerAlive(client)
+            || !MvM_IsDefender(client))
+        {
+            continue;
+        }
+        GetClientAbsOrigin(client, botPosition);
+        if (GetVectorDistance(botPosition, destination) < 1200.0)
+        {
+            playerOnRoof = true;
+            break;
+        }
+    }
+    if (!playerOnRoof)
+    {
+        return Plugin_Continue;
+    }
+    for (int bot = 1; bot <= MaxClients; bot++)
+    {
+        if (!MvM_IsDefender(bot) || !IsFakeClient(bot) || IsClientSourceTV(bot)
+            || !IsPlayerAlive(bot) || now < g_NextVillaEscort[bot])
+        {
+            continue;
+        }
+        GetClientAbsOrigin(bot, botPosition);
+        if (GetVectorDistance(botPosition, destination) < 650.0)
+        {
+            continue;
+        }
+        TeleportEntity(bot, destination, NULL_VECTOR, NULL_VECTOR);
+        g_NextVillaEscort[bot] = now + 10.0;
+        AP_Debug("Villa moved defender %N to the disconnected roof arena.", bot);
+    }
+    return Plugin_Continue;
+}
+
+// The defender mod only knows how to carry out these short lived orders.
+// Archipelago owns Villa's mission, wave, and room choice. Refreshing each
+// order also makes a plugin reload or mission switch clear it automatically.
+void Bots_PublishDirective()
+{
+    if (GetFeatureStatus(FeatureType_Native, "Defenderbots_SetDirective") != FeatureStatus_Available)
+    {
+        return;
+    }
+    char map[64], pop[PLATFORM_MAX_PATH];
+    GetCurrentMap(map, sizeof(map));
+    bool villa = MvM_IsActive() && StrEqual(map, VillaMapName)
+        && MvM_PopFile(pop, sizeof(pop))
+        && StrEqual(pop, VillaRecalledPop);
+    int wave = g_CurrentWave > 0 ? g_CurrentWave : MvM_WaveFromGame();
+    bool combat = villa && wave >= 2 && wave <= 5
+        && GameRules_GetRoundState() == RoundState_RoundRunning;
+    float goal[3] = {-8637.5, 5712.5, 896.2};
+    if (combat && wave == 5)
+    {
+        // Villa's hunt script picks one of seven rooms at runtime. Its BLU
+        // robots appear inside the chosen room; their live position follows
+        // that choice without duplicating the script's random order here.
+        for (int robot = 1; robot <= MaxClients; robot++)
+        {
+            if (!IsClientInGame(robot) || !IsFakeClient(robot) || !IsPlayerAlive(robot)
+                || GetClientTeam(robot) != TeamBlue)
+            {
+                continue;
+            }
+            float position[3];
+            GetClientAbsOrigin(robot, position);
+            if (position[0] > VillaRoomMinX && position[0] < VillaRoomMaxX
+                && position[1] > VillaRoomMinY && position[1] < VillaRoomMaxY
+                && position[2] > VillaRoomMinZ && position[2] < VillaRoomMaxZ)
+            {
+                goal = position;
+                break;
+            }
+        }
+    }
+    for (int bot = 1; bot <= MaxClients; bot++)
+    {
+        if (MvM_IsDefender(bot) && IsFakeClient(bot) && !IsClientSourceTV(bot))
+        {
+            Defenderbots_SetDirective(bot, combat, goal, combat, villa || BotCards_IsGiant(bot));
+        }
+    }
+}
+
+void Bots_OnWaveBegin()
+{
+    g_BotsWaveRunning = true;
+    g_VillaRoofDestinationSearched = false;
+}
+
+void Bots_OnWaveEnd()
+{
+    g_BotsWaveRunning = false;
 }
 
 // Every "attribute" line the file means, in file order. Read through the game's
@@ -159,6 +399,46 @@ static bool SplitQuoted(const char[] line, char[] key, int keyMax, char[] value,
     return true;
 }
 
+/* What the client held when an MVM_Upgrade arrived, before the game saw it.
+ *
+ * The line below is written after the game has handled the command, and it
+ * used to say "bought" whatever the game did. apw-bjf's log is every bot
+ * "buying" damage bonus over and over at 400 credits that never moved, which
+ * read as purchases and were refusals. -1 is "not measured".
+ */
+static int g_CreditsBeforeUpgrade[MAXPLAYERS + 1] = { -1, ... };
+
+static int CreditsOf(int client)
+{
+    return HasEntProp(client, Prop_Send, "m_nCurrency")
+        ? GetEntProp(client, Prop_Send, "m_nCurrency") : -1;
+}
+
+public Action OnClientCommandKeyValues(int client, KeyValues kv)
+{
+    if (client <= 0 || client > MaxClients)
+    {
+        return Plugin_Continue;
+    }
+    char name[32];
+    kv.GetSectionName(name, sizeof(name));
+    g_CreditsBeforeUpgrade[client] = StrEqual(name, "MVM_Upgrade") ? CreditsOf(client) : -1;
+    return Plugin_Continue;
+}
+
+/* Whether the game turned the command down: the credits did not move.
+ *
+ * The game takes the money for each step as it applies it, and gives it back for
+ * each step it takes off, so a balance that did not move is a request the game
+ * refused. Unmeasured is not a refusal.
+ */
+static bool UpgradeRefused(int client, int credits)
+{
+    int before = g_CreditsBeforeUpgrade[client];
+    g_CreditsBeforeUpgrade[client] = -1;
+    return before >= 0 && credits >= 0 && before == credits;
+}
+
 /* Every purchase and every sale at the upgrade station.
  *
  * The game handles it; this only says what it was. For the mod's bots that is
@@ -180,12 +460,12 @@ public void OnClientCommandKeyValues_Post(int client, KeyValues kv)
     if (!StrEqual(name, "MVM_Upgrade"))
     {
         // The money side wants the refund as much as this wants the purchase.
-        MvM_OnCommandKeyValues(client, name, 0);
+        MvM_OnCommandKeyValues(client, name);
         return;
     }
     if (!kv.JumpToKey("upgrade"))
     {
-        MvM_OnCommandKeyValues(client, name, 0);
+        MvM_OnCommandKeyValues(client, name);
         return;
     }
     int slot = kv.GetNum("itemslot", -1);
@@ -193,10 +473,7 @@ public void OnClientCommandKeyValues_Post(int client, KeyValues kv)
     int count = kv.GetNum("count", 1);
     kv.GoBack();
 
-    /* The count is read before the money side is told, because its sign is the
-     * only thing that separates a sale from a refund. The minus button on the
-     * station sends this same command with a negative count. */
-    MvM_OnCommandKeyValues(client, name, count);
+    MvM_OnCommandKeyValues(client, name);
 
     // The mod asks for zero charges when a bot's canteen is already full. The
     // game does nothing with it, so neither does anything here.
@@ -219,23 +496,26 @@ public void OnClientCommandKeyValues_Post(int client, KeyValues kv)
      * The same reasoning as the sale a player makes: what a station shows and
      * what the game does are two things, and only the second moves money.
      */
-    int credits = HasEntProp(client, Prop_Send, "m_nCurrency")
-        ? GetEntProp(client, Prop_Send, "m_nCurrency") : -1;
+    int credits = CreditsOf(client);
+    bool refused = UpgradeRefused(client, credits);
+    char verb[16];
+    strcopy(verb, sizeof(verb), refused ? (count < 0 ? "asked to sell" : "asked for") : (count < 0 ? "sold" : "bought"));
 
     if (!IsFakeClient(client))
     {
-        AP_Debug("%N %s %s (%s) x%d, and holds %d credits.",
-            client, count < 0 ? "sold" : "bought", upgrade, SlotLabel(slot), count < 0 ? -count : count,
-            credits);
+        AP_Debug("%N %s %s (%s) x%d%s, and holds %d credits.",
+            client, verb, upgrade, SlotLabel(slot), count < 0 ? -count : count,
+            refused ? ", which the game refused" : "", credits);
         return;
     }
     // The log takes every bot purchase whatever the chat is set to: the chat is
     // one line per tier and unreadable during a wave, and the log is what a
     // debug bundle carries.
-    AP_Debug("%N %s %s (%s) x%d, and holds %d credits.",
-        client, count < 0 ? "sold" : "bought", upgrade, SlotLabel(slot), count < 0 ? -count : count,
-        credits);
-    if (!g_CvarBotUpgradesChat.BoolValue)
+    AP_Debug("%N %s %s (%s) x%d%s, and holds %d credits.",
+        client, verb, upgrade, SlotLabel(slot), count < 0 ? -count : count,
+        refused ? ", which the game refused" : "", credits);
+    // A refusal is nothing the team needs told: the bot tries the next one.
+    if (refused || !g_CvarBotUpgradesChat.BoolValue)
     {
         return;
     }
@@ -300,7 +580,7 @@ void Bots_MakeRoom()
     }
     int size = DefenderTeamSize();
     int onRed = 0;
-    int bot = 0;
+    bool leaving[MAXPLAYERS + 1];
     for (int client = 1; client <= MaxClients; client++)
     {
         if (!IsClientInGame(client) || GetClientTeam(client) != TeamRed)
@@ -308,17 +588,67 @@ void Bots_MakeRoom()
             continue;
         }
         onRed++;
-        if (IsFakeClient(client))
-        {
-            bot = client;
-        }
     }
+    int bot = Bots_LowestPriorityBot(leaving);
     if (onRed < size || bot == 0)
     {
         return;
     }
     AP_Debug("RED is full at %d. A bot leaves for the player who arrived.", onRed);
     KickClient(bot, "Making room for a player");
+}
+
+// The bot that leaves first, among those not already leaving. Who that is,
+// is the defender mod's rule (named seats kept, the last named seat first), so
+// this asks it rather than reading the loadout file a second time. Between
+// equals the newest bot goes: the game hands out the lowest free slot, so the
+// bot that arrived last holds the highest number.
+static int Bots_LowestPriorityBot(bool[] leaving)
+{
+    int chosen = 0;
+    int lowest = -1;
+    for (int client = 1; client <= MaxClients; client++)
+    {
+        if (leaving[client] || !IsClientInGame(client) || !IsFakeClient(client)
+            || IsClientSourceTV(client) || GetClientTeam(client) != TeamRed
+            || !Bots_IsDefenderBot(client))
+        {
+            continue;
+        }
+        int rank = Bots_SeatRank(client);
+        if (rank > lowest || (rank == lowest && client > chosen))
+        {
+            chosen = client;
+            lowest = rank;
+        }
+    }
+    return chosen;
+}
+
+// Whether the defender mod answers for this fake client. A robot a mission put
+// on RED (trespasser's military, remedic's Chief Medic) is a fake client on RED
+// too, and it is not a seat anybody can give back: kicking it loses the wave.
+// A mod too old to have the native answers for nobody, so every bot stays one.
+static bool Bots_IsDefenderBot(int client)
+{
+    if (GetFeatureStatus(FeatureType_Native, "Defenderbots_GetSeatRank") != FeatureStatus_Available)
+    {
+        return true;
+    }
+    return Defenderbots_GetSeatRank(client) >= 0;
+}
+
+// How late in line this bot stands when somebody has to leave, as the defender
+// mod ranks it. A bot the mod does not answer for, or a mod too old to have the
+// native, ranks behind every seat, so every bot is equal and the newest leaves.
+int Bots_SeatRank(int client)
+{
+    if (GetFeatureStatus(FeatureType_Native, "Defenderbots_GetSeatRank") != FeatureStatus_Available)
+    {
+        return BotsUnrankedSeat;
+    }
+    int rank = Defenderbots_GetSeatRank(client);
+    return rank < 0 ? BotsUnrankedSeat : rank;
 }
 
 // How many seats RED holds. The game's own number, and six when it will not say.
@@ -330,6 +660,11 @@ static int DefenderTeamSize()
         return teamSize.IntValue;
     }
     return DefenderTeamSizeDefault;
+}
+
+int Bots_DefenderTeamSize()
+{
+    return DefenderTeamSize();
 }
 
 // UNVERIFIED m_bPlayerReady on the game rules, which is what the F4 sets and
@@ -477,7 +812,7 @@ void Bots_OnClientLeft(int client)
  */
 static void Bots_Fill()
 {
-    if (!g_CvarBotsBackfill.BoolValue || !MvM_IsActive())
+    if (!g_CvarBotsBackfill.BoolValue || !MvM_IsActive() || g_BotsWaveRunning)
     {
         return;
     }
@@ -561,7 +896,7 @@ static void Bots_Fill()
  * the same way, and this is the one rule that covers both. It is also where
  * Bots_MakeRoom already lives: whose seat it is, is this plugin's question.
  *
- * Bots only, newest first. A human is never in the surplus.
+ * Bots only, lowest selected priority first. A human is never in the surplus.
  */
 void Bots_TrimSurplus()
 {
@@ -589,15 +924,15 @@ void Bots_TrimSurplus()
             onRed++;
         }
     }
-    // Highest index last in, near enough: the game hands out the lowest free
-    // slot, so the bots that arrived last hold the highest numbers.
-    for (int client = MaxClients; client >= 1 && onRed > size; client--)
+    bool leaving[MAXPLAYERS + 1];
+    while (onRed > size)
     {
-        if (!IsClientInGame(client) || !IsFakeClient(client) || IsClientSourceTV(client)
-            || GetClientTeam(client) != TeamRed)
+        int client = Bots_LowestPriorityBot(leaving);
+        if (client == 0)
         {
-            continue;
+            break;
         }
+        leaving[client] = true;
         AP_Debug("RED holds %d of %d. %N leaves.", onRed, size, client);
         KickClient(client, "RED is full");
         onRed--;

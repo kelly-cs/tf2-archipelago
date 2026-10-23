@@ -55,10 +55,20 @@ type Unlocks struct {
 	// cash bundle that arrived while no plugin was listening is not in it. A
 	// cursor set to the length of the item list would sit above that bundle and
 	// the bridge would never hand it over. Resuming from the acknowledged
-	// sequence re-sends some state the plugin already has, which costs nothing,
-	// and every effect it never got.
-	ResumeFrom int                 `json:"resume_from"`
-	ByKind     map[string][]string `json:"unlocks"`
+	// sequence re-sends state grants the plugin already has and every effect it
+	// never got. The plugin must skip those state grants by sequence: numeric
+	// weapon buffs are not idempotent when applied twice.
+	ResumeFrom int `json:"resume_from"`
+	// SnapshotSeq is the last item position included in this unlock snapshot.
+	// The plugin can skip state grants at or below it when polling from the
+	// earlier acknowledgement to recover effects that are still waiting.
+	SnapshotSeq int                 `json:"snapshot_seq"`
+	ByKind      map[string][]string `json:"unlocks"`
+
+	// ClassWeaponSlots is the seed opening slots class by class rather than
+	// with one item for every class. The plugin reads the slot keys it holds
+	// either way; this says which rule to enforce with them.
+	ClassWeaponSlots bool `json:"class_weapon_slots"`
 }
 
 // Of is the keys held for one kind, and nothing for a kind that is not state.
@@ -71,17 +81,25 @@ func (u Unlocks) Of(kind gamedata.ItemKind) []string { return u.ByKind[kind.Key(
 func grantsFrom(itemIDs []int64) []Grant {
 	grants := make([]Grant, 0, len(itemIDs))
 	slotsGranted := 0
+	classSlotsGranted := map[gamedata.ClassID]int{}
 	for index, id := range itemIDs {
 		item, known := gamedata.ItemByID(id)
 		if !known {
 			continue
 		}
-		grant, ok := grantFor(item, slotsGranted)
+		grant, ok := grantFor(item, slotsGranted, classSlotsGranted[item.Class])
 		if !ok {
 			continue
 		}
-		if item.Kind == gamedata.ItemWeaponSlot {
+		switch item.Kind {
+		case gamedata.ItemWeaponSlot:
 			slotsGranted++
+		case gamedata.ItemClassWeaponSlot:
+			if item.Slot == 0 {
+				classSlotsGranted[item.Class]++
+			}
+		default:
+			// Nothing else is progressive, so nothing else is counted.
 		}
 		grant.Seq = index + 1
 		grant.OneShot = item.Kind.OneShot()
@@ -90,10 +108,27 @@ func grantsFrom(itemIDs []int64) []Grant {
 	return grants
 }
 
-// grantFor is where the progressive weapon slot stops being progressive: copy n
-// becomes the nth slot in gamedata's order.
-func grantFor(item gamedata.Item, slotsGranted int) (Grant, bool) {
+// grantFor is where a progressive weapon slot stops being progressive: copy n
+// becomes the nth slot in gamedata's order, and copy n of a class's own item
+// the nth earned slot in that class's order.
+func grantFor(item gamedata.Item, slotsGranted, classSlotsGranted int) (Grant, bool) {
 	switch item.Kind {
+	case gamedata.ItemClassWeaponSlot:
+		class, ok := gamedata.ClassByID(item.Class)
+		if !ok {
+			return Grant{}, false
+		}
+		// An item that names its slot is not progressive: which slot it opens
+		// is the item, not how many came before it.
+		slot, ok := gamedata.WeaponSlotByID(item.Slot)
+		if item.Slot == 0 {
+			slot, ok = class.SlotForCopy(classSlotsGranted + 1)
+		}
+		if !ok {
+			return Grant{}, false
+		}
+		return Grant{Kind: item.Kind.Key(), Key: class.Key + "/" + slot.Key, Name: class.Name + ": " + slot.Name}, true
+
 	case gamedata.ItemMissionTicket:
 		mission, ok := gamedata.MissionByID(item.Mission)
 		if !ok {
@@ -125,6 +160,23 @@ func grantFor(item gamedata.Item, slotsGranted int) (Grant, bool) {
 		}
 		return Grant{Kind: item.Kind.Key(), Key: buff.Key, Name: item.Name}, true
 
+	case gamedata.ItemTrap:
+		trap, ok := gamedata.TrapByID(item.Trap)
+		if !ok {
+			return Grant{}, false
+		}
+		return Grant{Kind: item.Kind.Key(), Key: trap.Key, Name: item.Name}, true
+
+	case gamedata.ItemServerSetting:
+		setting, ok := gamedata.ServerSettingByID(item.ServerSetting)
+		if !ok {
+			return Grant{}, false
+		}
+		return Grant{Kind: item.Kind.Key(), Key: setting.Key, Name: item.Name}, true
+
+	case gamedata.ItemBotCard:
+		return Grant{Kind: item.Kind.Key(), Key: item.Name, Name: item.Name}, true
+
 	default:
 		return Grant{}, false
 	}
@@ -135,9 +187,16 @@ func grantFor(item gamedata.Item, slotsGranted int) (Grant, bool) {
 //
 // Every state kind gets an entry even when it is empty, so the shape a plugin
 // parses does not change with what the run happens to hold.
-func unlocksFrom(grants []Grant, resumeFrom int) Unlocks {
-	unlocks := Unlocks{ResumeFrom: resumeFrom, ByKind: make(map[string][]string, len(gamedata.ItemKinds))}
+func unlocksFrom(grants []Grant, resumeFrom, snapshotSeq int) Unlocks {
+	unlocks := Unlocks{
+		ResumeFrom:  resumeFrom,
+		SnapshotSeq: snapshotSeq,
+		ByKind:      make(map[string][]string, len(gamedata.ItemKinds)),
+	}
 	for _, kind := range gamedata.ItemKinds {
+		if !kind.Granted() {
+			continue
+		}
 		if !kind.OneShot() {
 			unlocks.ByKind[kind.Key()] = []string{}
 		}

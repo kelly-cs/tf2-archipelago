@@ -1,0 +1,107 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+}
+
+h3 {
+  font-size: 17px;
+}
+
+.lead {
+  margin: 0;
+  color: var(--text-dim);
+}
+
+.classes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* A card per slot: the weapon it holds, big, and the menu to change it under. */
+.slots {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--gap-sm);
+}
+
+.slot {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  background: var(--surface-inset);
+  border-radius: var(--radius);
+}
+
+.slot label {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-faint);
+}
+
+.held {
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--text);
+}
+
+select,
+input {
+  min-width: 0;
+  background: var(--surface-raised);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: var(--text-md);
+  padding: 8px 10px;
+}
+
+.bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--gap-sm);
+}
+
+.bar label {
+  font-weight: 600;
+  color: var(--text-dim);
+}
+
+.bar input {
+  flex: 1;
+  min-width: 180px;
+}
+
+.feedback {
+  min-height: 20px;
+  color: var(--state-good);
+}
+
+.saved {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.saved li {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-sm);
+  padding: 6px 12px;
+  background: var(--surface-inset);
+  border-radius: var(--radius);
+}
+
+.saved .name {
+  flex: 1;
+  font-weight: 600;
+}

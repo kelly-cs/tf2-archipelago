@@ -1,0 +1,90 @@
+syntax = "proto3";
+
+package tf2ap.launcher.v1;
+
+import "buf/validate/validate.proto";
+import "tf2ap/launcher/v1/form.proto";
+import "tf2ap/launcher/v1/launcher.proto";
+
+option go_package = "github.com/m-this/tf2-archipelago/launcher/internal/gen/tf2ap/launcher/v1;launcherv1";
+
+// SettingsService is the settings screen. Every call answers with the rebuilt
+// model, because a change can move another row's bounds or add and remove rows
+// outright: ticking a community asset pack adds a row per mission in it.
+//
+// Importing local asset packs is not an RPC. The packs live on the same machine
+// as the launcher, so missions.import_assets reads them out of the community
+// content folder through DispatchAction, the way the terminal interface always
+// has, rather than uploading gigabytes through the browser.
+service SettingsService {
+  rpc OpenSettings(OpenSettingsRequest) returns (OpenSettingsResponse);
+  rpc ChangeSetting(ChangeSettingRequest) returns (ChangeSettingResponse);
+  rpc DispatchAction(DispatchActionRequest) returns (DispatchActionResponse);
+  rpc SaveSettings(SaveSettingsRequest) returns (SaveSettingsResponse);
+  rpc CancelSettings(CancelSettingsRequest) returns (CancelSettingsResponse);
+}
+
+message OpenSettingsRequest {
+  // The page to land on, empty for the first one.
+  string page = 1 [(buf.validate.field).string.max_len = 64];
+}
+
+// Screen is what every settings call answers with. Not a Model on its own: a
+// change can move another row's bounds, add and remove rows outright, and move
+// the mission table under them, and a screen that redrew only the row that was
+// touched is the bug the window and the web view each had once.
+message Screen {
+  // The rows, absent when the settings screen is closed. A Model with no tabs
+  // is a screen with nothing on it, which is a different thing.
+  Model model = 1;
+  string page = 2;
+  repeated MissionPoolRow mission_pool = 3;
+
+  // Saving would restart a running server, so the screen asks first.
+  bool restart_needed = 4;
+}
+
+message OpenSettingsResponse {
+  Screen screen = 1;
+}
+
+message ChangeSettingRequest {
+  Change change = 1 [(buf.validate.field).required = true];
+}
+
+message ChangeSettingResponse {
+  Screen screen = 1;
+}
+
+message DispatchActionRequest {
+  string id = 1 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 128
+  }];
+}
+
+message DispatchActionResponse {
+  Screen screen = 1;
+}
+
+message SaveSettingsRequest {
+  // Restart a running server once the file is written, where the change needs
+  // one. The screen asks first, so the answer travels with the save.
+  bool restart = 1;
+}
+
+// SaveSettingsResponse reports a refusal rather than failing the call: settings
+// nothing could act on are a thing the player has to fix with their answers
+// still in front of them, not a transport error.
+message SaveSettingsResponse {
+  bool saved = 1;
+  string refusal = 2;
+
+  // The screen as it stands after the attempt, so a refusal is drawn with the
+  // player's answers still in front of them.
+  Screen screen = 3;
+}
+
+message CancelSettingsRequest {}
+
+message CancelSettingsResponse {}

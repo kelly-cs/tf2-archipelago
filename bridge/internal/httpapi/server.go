@@ -30,7 +30,7 @@ import (
 // APIVersion is the contract with the plugin. The plugin reads it at startup
 // and says so in chat when it does not match: the two ship in one compose file,
 // so a mismatch means one image was updated and the other was not.
-const APIVersion = 3
+const APIVersion = 6
 
 // wavesObservedMax bounds what the game is believed about a mission's length.
 // The property behind it has never been seen answer, so anything past what a
@@ -42,6 +42,21 @@ type objectiveRequest struct {
 	Kind    string `json:"kind"`
 	PopFile string `json:"popfile"`
 	Wave    uint8  `json:"wave"`
+
+	// Count is how many fell, for a tally. Zero for every other kind.
+	Count int `json:"count"`
+
+	// Session and ID make a retried tally recognisable: the plugin picks a
+	// session at load and numbers its reports, so a report the bridge took
+	// but could not answer is not added twice. Both zero for every other
+	// kind, which never needed it because a check is idempotent by nature.
+	Session int64 `json:"session"`
+	ID      int64 `json:"id"`
+
+	// Index is which giant or tank of the wave this one was, counted from 1,
+	// for a per-kill check. Zero for the mission's own first-of-each check
+	// and for every other kind.
+	Index uint8 `json:"index"`
 
 	// WavesTotal is how many waves the game says the mission has, zero when it
 	// would not say. Every wave count in gamedata comes from the wiki and none
@@ -104,16 +119,23 @@ type deathsResponse struct {
 // name does not contain one that can be relied on (mvm_ghost_town_666 runs on
 // mvm_ghost_town), and gamedata is where that fact already lives.
 type mission struct {
-	PopFile  string `json:"popfile"`
-	Name     string `json:"name"`
-	Map      string `json:"map"`
-	Waves    int    `json:"waves"`
-	Unlocked bool   `json:"unlocked"`
+	PopFile   string                     `json:"popfile"`
+	Name      string                     `json:"name"`
+	Map       string                     `json:"map"`
+	Waves     int                        `json:"waves"`
+	Loadout   string                     `json:"loadout,omitempty"`
+	Unlocked  bool                       `json:"unlocked"`
+	Modifiers []apclient.MissionModifier `json:"modifiers,omitempty"`
 
 	// Cleared is the mission clear check being on the bridge's disk. The plugin
 	// chains from a cleared mission to the next unlocked one that is not, so
 	// it has to know both.
 	Cleared bool `json:"cleared"`
+
+	// WaveReached is the highest wave the team has ever cleared here, and what
+	// the Resume button offers to go back to. Absent for a mission nobody has
+	// won a wave in, and for one the team has beaten.
+	WaveReached int `json:"wave_reached,omitempty"`
 
 	/* Played is this server having actually cleared it.
 	 *
@@ -179,7 +201,8 @@ type waveFailure struct {
 // embedded structs that ever grow the same json tag lose both fields silently,
 // with nothing to fail a build or a test.
 type healthResponse struct {
-	APIVersion int `json:"api_version"`
+	APIVersion int  `json:"api_version"`
+	TestMode   bool `json:"test_mode"`
 
 	Connected    bool     `json:"connected"`
 	Slot         string   `json:"slot"`
@@ -207,12 +230,18 @@ type Server struct {
 	chat        *chat.Log
 	deaths      *deathlink.Feed
 	pollTimeout time.Duration
+	testMode    bool
 	logger      *slog.Logger
 
 	// drift is what the game said about missions the tables disagree with. It
 	// is observation, not state: it belongs to this process, not to the run.
 	driftMu sync.Mutex
 	drift   map[string]int
+
+	// tallySeen is the last tally report taken per kind, so a retry of it is
+	// not counted twice. See postTally.
+	tallyMu   sync.Mutex
+	tallySeen map[gamedata.ObjectiveKind]tallyReport
 
 	// failures counts the waves the team lost, keyed by mission and wave. Same
 	// nature as drift, and the reason it exists is that a lost wave used to
@@ -229,7 +258,7 @@ type waveKey struct {
 
 func New(
 	store *state.Store, client *apclient.Client, messages *chat.Log, deaths *deathlink.Feed,
-	pollTimeout time.Duration, logger *slog.Logger,
+	pollTimeout time.Duration, testMode bool, logger *slog.Logger,
 ) *Server {
 	return &Server{
 		store:       store,
@@ -237,8 +266,10 @@ func New(
 		chat:        messages,
 		deaths:      deaths,
 		pollTimeout: pollTimeout,
+		testMode:    testMode,
 		logger:      logger,
 		drift:       make(map[string]int),
+		tallySeen:   make(map[gamedata.ObjectiveKind]tallyReport),
 	}
 }
 
@@ -272,6 +303,14 @@ func (s *Server) postObjective(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "unknown objective kind "+request.Kind, http.StatusBadRequest)
 		return
 	}
+	if kind.IsTally() {
+		s.postTally(w, r, kind, request)
+		return
+	}
+	if request.Index > 0 {
+		s.postWaveKill(w, r, kind, request)
+		return
+	}
 	location, resolved := gamedata.LocationByObjective(kind, request.PopFile, request.Wave)
 	if !resolved {
 		http.Error(w, "no such objective", http.StatusBadRequest)
@@ -289,8 +328,115 @@ func (s *Server) postObjective(w http.ResponseWriter, r *http.Request) {
 	if fresh {
 		s.logger.InfoContext(r.Context(), "check recorded", "location", location.Name)
 	}
+	for _, cache := range victoryCachesPaidBy(location, s.client.Health().VictoryCaches) {
+		if _, err := s.store.AddCheck(cache.ID); err != nil {
+			s.logger.ErrorContext(r.Context(), "cannot record a victory cache",
+				"location", cache.Name, "error", err)
+		}
+	}
 	s.noteProgress(r.Context(), kind, request.PopFile, int(request.Wave))
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// victoryCachesPaidBy is every extra check a mission clear pays when the seed
+// holds victory caches: nothing for any other objective, and nothing for a
+// seed without them, since a check the room does not hold is a check refused.
+func victoryCachesPaidBy(location gamedata.Location, held bool) []gamedata.Location {
+	if !held || location.Kind != gamedata.ObjectiveMissionCleared {
+		return nil
+	}
+	mission, ok := gamedata.MissionByID(location.Mission)
+	if !ok {
+		return nil
+	}
+	return mission.VictoryCacheLocations()
+}
+
+/*
+postTally adds what fell in a wave to its running total and records every
+milestone the new total crosses, when the seed holds them.
+
+A tally is not idempotent the way a check is: the same report taken twice is a
+total inflated by a wave. The plugin retries a report the bridge never
+answered, so the last report of each session is remembered and a repeat of it
+is answered with the total it already produced. In memory only: a bridge
+restart between the two costs at worst one wave counted twice.
+*/
+func (s *Server) postTally(w http.ResponseWriter, r *http.Request, kind gamedata.ObjectiveKind, request objectiveRequest) {
+	if request.Count < 0 || request.Count > tallyCountMax {
+		http.Error(w, "tally count out of range", http.StatusBadRequest)
+		return
+	}
+	s.tallyMu.Lock()
+	repeat := request.ID != 0 && s.tallySeen[kind] == tallyReport{request.Session, request.ID}
+	if !repeat {
+		s.tallySeen[kind] = tallyReport{request.Session, request.ID}
+	}
+	s.tallyMu.Unlock()
+	if repeat {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+	total, err := s.store.AddTally(kind.Counter().Key(), request.Count)
+	if err != nil {
+		s.logger.ErrorContext(r.Context(), "cannot record a tally", "kind", kind.Key(), "error", err)
+		http.Error(w, "cannot record the tally", http.StatusInternalServerError)
+		return
+	}
+	if s.client.Health().MilestoneChecks {
+		for _, milestone := range gamedata.MilestonesReached(kind, total) {
+			fresh, err := s.store.AddCheck(milestone.ID)
+			if err != nil {
+				s.logger.ErrorContext(r.Context(), "cannot record a milestone",
+					"location", milestone.Name, "error", err)
+				continue
+			}
+			if fresh {
+				s.logger.InfoContext(r.Context(), "check recorded", "location", milestone.Name)
+			}
+		}
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// postWaveKill records the nth giant or tank of a wave, when the seed holds
+// per-kill checks of that kind. A kill past what the tables say the wave
+// holds, or in a mission nobody scrubbed, is answered and dropped: the plugin
+// reports what it sees, and only the tables know what is a check.
+func (s *Server) postWaveKill(w http.ResponseWriter, r *http.Request, kind gamedata.ObjectiveKind, request objectiveRequest) {
+	health := s.client.Health()
+	held := (kind == gamedata.ObjectiveGiantKilled && health.Giantsanity) ||
+		(kind == gamedata.ObjectiveTankDestroyed && health.Tanksanity)
+	if !held {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+	location, resolved := gamedata.LocationByWaveKill(kind, request.PopFile, request.Wave, request.Index)
+	if !resolved {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+	fresh, err := s.store.AddCheck(location.ID)
+	if err != nil {
+		s.logger.ErrorContext(r.Context(), "cannot record a check",
+			"location", location.Name, "error", err)
+		http.Error(w, "cannot record the check", http.StatusInternalServerError)
+		return
+	}
+	if fresh {
+		s.logger.InfoContext(r.Context(), "check recorded", "location", location.Name)
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// tallyCountMax bounds one report: a wave holds hundreds of robots, not
+// thousands, and a count past this is a bug on the wire rather than a wave.
+const tallyCountMax = 1000
+
+// tallyReport identifies one report from one plugin session.
+type tallyReport struct {
+	Session int64
+	ID      int64
 }
 
 /*
@@ -309,9 +455,9 @@ func (s *Server) noteProgress(ctx context.Context, kind gamedata.ObjectiveKind, 
 	case gamedata.ObjectiveWaveCleared:
 		err = s.store.NoteProgress(popFile, wave)
 	case gamedata.ObjectiveMissionCleared:
-		err = s.store.ClearProgress()
-	case gamedata.ObjectiveTankDestroyed, gamedata.ObjectiveGiantKilled:
-		// Neither says a wave was won, so neither moves the record.
+		err = s.store.ClearProgress(popFile)
+	default:
+		// Nothing else says a wave was won, so nothing else moves the record.
 		return
 	}
 	if err != nil {
@@ -408,7 +554,9 @@ func (s *Server) waveFailures() []waveFailure {
 // getUnlocks serves everything that should be true right now. The plugin asks
 // on load and on every map change rather than remembering it.
 func (s *Server) getUnlocks(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, s.logger, s.store.Unlocks())
+	unlocks := s.store.Unlocks()
+	unlocks.ClassWeaponSlots = s.client.Health().ClassWeaponSlots
+	writeJSON(w, s.logger, unlocks)
 }
 
 // getMissions serves the run's missions, in the order the seed drew them, each
@@ -423,6 +571,8 @@ func (s *Server) getMissions(w http.ResponseWriter, r *http.Request) {
 		s.store.Checks(),
 		s.store.Played(),
 		health.MissionTicketImportance == "useful",
+		s.store.Reached(),
+		health.MissionModifiers,
 	)
 	for _, popFile := range unknown {
 		s.logger.WarnContext(r.Context(), "the seed holds a mission the tables do not",
@@ -439,8 +589,15 @@ func (s *Server) getMissions(w http.ResponseWriter, r *http.Request) {
 // and reports the ones the tables do not know. A seed from a newer gamedata is
 // the only way that happens, and skipping such a mission beats serving a name
 // and a map this binary would be guessing at.
-func missionsFor(drawn, unlocked []string, checks, own []int64, unlockAll bool) ([]mission, []string) {
+func missionsFor(drawn, unlocked []string, checks, own []int64, unlockAll bool,
+	reached map[string]int,
+	modifierSets ...map[string][]apclient.MissionModifier,
+) ([]mission, []string) {
 	missions := make([]mission, 0, len(drawn))
+	modifiers := map[string][]apclient.MissionModifier{}
+	if len(modifierSets) > 0 && modifierSets[0] != nil {
+		modifiers = modifierSets[0]
+	}
 	var unknown []string
 	for _, popFile := range drawn {
 		known, ok := gamedata.MissionByPopFile(popFile)
@@ -450,13 +607,16 @@ func missionsFor(drawn, unlocked []string, checks, own []int64, unlockAll bool) 
 		}
 		played, _ := gamedata.MapByID(known.Map)
 		missions = append(missions, mission{
-			PopFile:  known.PopFile,
-			Name:     known.Name,
-			Map:      played.Name,
-			Waves:    int(known.Waves),
-			Unlocked: unlockAll || slices.Contains(unlocked, known.PopFile),
-			Cleared:  slices.Contains(checks, known.ClearLocationID()),
-			Played:   slices.Contains(own, known.ClearLocationID()),
+			PopFile:     known.PopFile,
+			Name:        known.Name,
+			Map:         played.Name,
+			Waves:       int(known.Waves),
+			Loadout:     gamedata.MissionLoadout(known.ID),
+			Unlocked:    unlockAll || slices.Contains(unlocked, known.PopFile),
+			Cleared:     slices.Contains(checks, known.ClearLocationID()),
+			Played:      slices.Contains(own, known.ClearLocationID()),
+			WaveReached: reached[known.PopFile],
+			Modifiers:   modifiers[known.PopFile],
 		})
 	}
 	return missions, unknown
@@ -669,6 +829,7 @@ func (s *Server) getHealth(w http.ResponseWriter, r *http.Request) {
 	session, run := s.client.Health(), s.store.Stats()
 	writeJSON(w, s.logger, healthResponse{
 		APIVersion: APIVersion,
+		TestMode:   s.testMode,
 
 		Connected:    session.Connected,
 		Slot:         session.Slot,

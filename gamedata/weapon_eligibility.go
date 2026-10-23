@@ -2,12 +2,17 @@ package gamedata
 
 import "slices"
 
-// weaponFamilies are mechanically identical item definitions. The first name
-// owns the reward pool; every member resolves to that pool in the plugin. This
-// keeps a reward useful when a player swaps a stock weapon for its promotional
-// or cosmetic reskin.
+// weaponFamilies are mechanically identical item definitions and temporary
+// entities representing the same loadout item. The first name owns the reward
+// pool; every member resolves to that pool in the plugin.
 var weaponFamilies = [][]string{
-	{"Sapper", "Ap-Sap", "Snack Attack"},
+	// Choosing a building replaces the Construction PDA (definition 25) with
+	// the Builder toolbox (definition 28, named PDA in the item schema).
+	{"Construction PDA", "PDA"},
+	// The Red-Tape Recorder's construction reversal has no meaningful
+	// distinction from sapper damage against MvM robot buildings, so all
+	// sapper models share one reward pool here.
+	{"Sapper", "Ap-Sap", "Snack Attack", "Red-Tape Recorder"},
 	{"Minigun", "Iron Curtain", "Reissued Iron Curtain", "Deflector"},
 	{"Pistol", "Lugermorph", "Reissued Lugermorph", "C.A.P.P.E.R"},
 	{"Invis Watch", "Enthusiast's Timepiece", "Reissued Enthusiast's Timepiece", "Quäckenbirdt"},
@@ -15,8 +20,9 @@ var weaponFamilies = [][]string{
 	{"Flame Thrower", "Rainblower", "Nostromo Napalmer"},
 	{"Rocket Launcher", "Original"},
 	{"Huntsman", "Fortified Compound"},
+	{"Ali Baba's Wee Booties", "Bootlegger"},
 	{"Mad Milk", "Mutated Milk"},
-	{"Flying Guillotine", "Self-Aware Beauty Mark"},
+	{"Jarate", "Self-Aware Beauty Mark"},
 	{"Sniper Rifle", "AWPer Hand"},
 	{"Machina", "Shooting Star"},
 	{"Revolver", "Big Kill"},
@@ -26,6 +32,7 @@ var weaponFamilies = [][]string{
 	{"Eyelander", "Nessie's Nine Iron", "Horseless Headless Horsemann's Headtaker"},
 	{"Bottle", "Scottish Handshake"},
 	{"Bat", "Holy Mackerel", "Unarmed Combat", "Batsaber"},
+	{"Boston Basher", "Three-Rune Blade"},
 	{"Knife", "Black Rose", "Sharp Dresser"},
 	{"Your Eternal Reward", "Wanga Prick"},
 	{"Wrench", "Golden Wrench"},
@@ -103,6 +110,8 @@ var attackRequiredEffects = names(
 
 var (
 	banners         = names("Battalion's Backup", "Buff Banner", "Concheror")
+	demomanShields  = names("Chargin' Targe", "Splendid Screen", "Tide Turner")
+	stompWeapons    = names("Mantreads", "Thermal Thruster")
 	mediguns        = names("Kritzkrieg", "Medi Gun", "Quick-Fix", "Vaccinator")
 	airblastWeapons = names("Backburner", "Degreaser", "Dragon's Fury", "Flame Thrower")
 	flamethrowers   = names("Backburner", "Degreaser", "Dragon's Fury", "Flame Thrower", "Phlogistinator")
@@ -124,11 +133,29 @@ var (
 	)
 )
 
+// projectileDestructionWeapons are the guns whose primary fire can reasonably
+// intercept an enemy rocket or grenade. TF2 implements attack_projectiles only
+// in CTFMinigun, so the plugin supplies the same forward sweep for the other
+// hitscan bullet and non-explosive energy weapons in this explicit list.
+var projectileDestructionWeapons = names(
+	"Ambassador", "Baby Face's Blaster", "Back Scatter", "Bazaar Bargain", "Brass Beast",
+	"Classic", "Cleaner's Carbine", "Diamondback", "Enforcer", "Family Business",
+	"Force-a-Nature", "Frontier Justice", "Hitman's Heatmaker", "Huo-Long Heater",
+	"L'Étranger", "Machina", "Minigun", "Natascha", "Panic Attack", "Pistol",
+	"Pomson 6000", "Pretty Boy's Pocket Pistol", "Reserve Shooter", "Revolver",
+	"Righteous Bison", "Scattergun", "Short Circuit", "Shortstop", "Shotgun", "SMG",
+	"Sniper Rifle", "Soda Popper", "Sydney Sleeper", "Tomislav", "Widowmaker", "Winger",
+)
+
 var engineerWeapons = names(
 	"Construction PDA", "Destruction PDA", "Eureka Effect", "Frontier Justice", "Gunslinger",
 	"Jag", "Panic Attack", "PDA", "Pistol", "Pomson 6000", "Rescue Ranger", "Short Circuit",
 	"Shotgun", "Southern Hospitality", "Widowmaker", "Wrangler", "Wrench",
 )
+
+// spyKnives are the weapons a backstab comes from, which is the only hit the
+// game reads armor piercing on.
+var spyKnives = names("Big Earner", "Conniver's Kunai", "Knife", "Spy-Cicle", "Your Eternal Reward")
 
 var (
 	watches          = names("Cloak and Dagger", "Dead Ringer", "Invis Watch")
@@ -142,6 +169,30 @@ var meterWeapons = names(
 	"Battalion's Backup", "Bonk! Atomic Punch", "Buff Banner", "Concheror", "Crit-a-Cola",
 	"Dalokohs Bar", "Flying Guillotine", "Gas Passer", "Jarate", "Mad Milk", "Sandman",
 	"Sandvich", "Second Banana", "Wrap Assassin",
+)
+
+// itemMeterWeapons fill CTFWeaponBase's item meter rather than the effect bar
+// every other recharging weapon uses. Their rate is mult_item_meter_charge_rate
+// and effectbar_recharge_rate reaches neither, which is what a player saw as
+// recharge speed doing nothing on the Gas Passer (gh-32 note 69). Read off the
+// two weapons' own item_meter_charge_rate in the game's item schema.
+var itemMeterWeapons = names("Gas Passer", "Thermal Thruster")
+
+// magazineEffects need a magazine or a reserve to act on. A weapon that
+// recharges holds neither, so every one of these is inert on it.
+var magazineEffects = names(
+	"clip-size", "reload-rate", "max-ammo", "secondary-ammo", "ammo-regen",
+)
+
+// The Medic weapons that land a hit, which is what an ÜberCharge-on-hit buff
+// needs. A medigun never hits, and the shared all-class melees would put the
+// buff in eight other classes' pools where nothing carries an ÜberCharge.
+var (
+	medicSyringeGuns   = names("Blutsauger", "Overdose", "Syringe Gun")
+	medicAttackWeapons = names(
+		"Amputator", "Blutsauger", "Bonesaw", "Crusader's Crossbow", "Overdose",
+		"Solemn Vow", "Syringe Gun", "Vita-Saw", "Übersaw",
+	)
 )
 
 var consumables = names(
@@ -178,15 +229,54 @@ var projectileWeapons = names(
 	"Stickybomb Launcher", "Syringe Gun", "Wrap Assassin",
 )
 
+// straightProjectileWeapons fire what flies until it hits: a rocket has no
+// range to lengthen, so projectile range is inert on every launcher (gh-32,
+// note 54). The arcing and expiring projectiles keep it.
+var straightProjectileWeapons = names(
+	"Air Strike", "Beggar's Bazooka", "Black Box", "Cow Mangler 5000", "Direct Hit",
+	"Liberty Launcher", "Rocket Jumper", "Rocket Launcher",
+)
+
+// spyRevolvers draw their reserve from the primary pool, whatever slot they
+// sit in, so a secondary-ammo buff has no rounds to add (gh-32, note 46).
+var spyRevolvers = names("Ambassador", "Diamondback", "Enforcer", "L'Étranger", "Revolver")
+
 var projectileCountExtras = names(
 	"Gas Passer", "Jarate", "Mad Milk", "Sandman", "Wrap Assassin",
 )
 
 var (
-	thrownSubstances     = names("Jarate", "Mad Milk")
-	substanceEffects     = names("bleed", "mad-milk", "gasoline", "mark-for-death", "jarate")
+	thrownSubstances = names("Jarate", "Mad Milk")
+
+	/* What a thrown jar still counts as a hit for
+
+	A direct hit with a jar registers as one, so the on-hit attributes fire from
+	it: bleed, ignite, heal on hit and the two marks. Cowser checked each in
+	game, gh-32 note 9, and notes 10 and 22 point back at it for ignite and heal
+	on hit. Knockback is not here: he argues it should stay allowed in general
+	and says nothing about a jar throwing anybody. The on-kill effects are not
+	here either, because neither jar kills. */
+	substanceEffects = names(
+		"bleed", "mad-milk", "mark-for-death", "jarate", "ignite", "heal-on-hit",
+	)
+
 	jarProjectileEffects = names(
 		"projectile-count", "projectile-speed", "projectile-range", "projectile-penetration",
+	)
+)
+
+/*
+killCapableNonAttackers do not swing or fire and still get kills.
+
+The Gas Passer is the one: its gas ignites and the afterburn finishes people,
+so an on-kill attribute has something to fire on. Every other weapon that
+performs no attack is excluded from these by attackRequiredEffects, which is
+right for a Sandvich and wrong for this. gh-32, note 7.
+*/
+var (
+	killCapableNonAttackers = names("Gas Passer")
+	onKillEffects           = names(
+		"heal-on-kill", "crits-on-kill", "minicrits-on-kill", "speed-on-kill",
 	)
 )
 
@@ -198,32 +288,12 @@ var cliplessWeapons = names(
 
 func weaponEffectEligible(weapon BuffWeapon, effect WeaponEffect) bool {
 	name, key := weapon.Name, effect.Key
-	if passiveWeapons[name] {
+	if cutBySheet(name, key) || cutByNative(name, key) {
 		return false
 	}
-	// Jars do not perform weapon attacks, so most item attributes are inert on
-	// them. Their intentionally small pool consists only of their thrown
-	// projectile, recharge meter, and splash substances implemented by the
-	// plugin's PlayerJarated hook.
-	if thrownSubstances[name] {
-		return jarProjectileEffects[key] || substanceEffects[key] || key == "meter-recharge"
+	if decided, eligible := eligibilityByShape(name, key); decided {
+		return eligible
 	}
-	// Projectile count is implemented for both bullets and entities. Thrown
-	// meters and the two projectile melees are intentional exceptions to the
-	// usual non-attacking/melee filters.
-	if key == "projectile-count" {
-		return projectileCountExtras[name] || (!nonAttackingWeapons[name] && !meleeWeapons[name] && (!flamethrowers[name] || name == "Dragon's Fury"))
-	}
-	if key == "projectile-speed" || key == "projectile-range" || key == "projectile-penetration" {
-		return projectileWeapons[name]
-	}
-	if nonAttackingWeapons[name] && attackRequiredEffects[key] {
-		return false
-	}
-	if meleeWeapons[name] && rangedOnlyEffects[key] {
-		return false
-	}
-
 	switch key {
 	case "clip-size", "reload-rate":
 		return !cliplessWeapons[name]
@@ -233,8 +303,10 @@ func weaponEffectEligible(weapon BuffWeapon, effect WeaponEffect) bool {
 		return sniperRifles[name]
 	case "banner-duration":
 		return banners[name]
-	case "healing", "healing-received", "uber-rate", "uber-on-hit", "uber-duration":
+	case "healing", "healing-received", "uber-rate", "uber-duration":
 		return mediguns[name]
+	case "uber-on-hit":
+		return medicAttackWeapons[name]
 	case "airblast-power", "airblast-rate", "charged-airblast", "airblast-cost":
 		return airblastWeapons[name]
 	case "building-health", "sentry-fire-rate", "disposable-sentry", "metal-regen", "max-metal", "construction-rate", "repair-rate":
@@ -255,11 +327,70 @@ func weaponEffectEligible(weapon BuffWeapon, effect WeaponEffect) bool {
 		return watches[name]
 	case "cloak-on-hit", "cloak-on-kill":
 		return spyAttackWeapons[name]
+	case "armor-piercing":
+		return spyKnives[name]
 	case "meter-recharge":
-		return meterWeapons[name]
+		// A banner fills on damage dealt, not on a clock, so the recharge
+		// rate reaches nothing on it (gh-32, note 69).
+		return meterWeapons[name] && !itemMeterWeapons[name] && !banners[name]
 	case "gesture-speed":
 		return consumables[name]
 	default:
 		return true
 	}
+}
+
+/*
+eligibilityByShape answers what the weapon's shape decides before its mechanic
+is looked at, and says whether it answered.
+
+Passives draw nothing. Explode on ignite is out of the pool on every weapon: on
+a minigun it ended a wave on its own, and the effect keeps its ID because seeds
+hold it. Jars do not perform weapon attacks, so most item attributes are inert
+on them; their pool is their thrown projectile, their recharge meter and the
+splash substances the plugin's PlayerJarated hook applies. Projectile count is
+implemented for bullets and entities alike, and the thrown meters and the two
+projectile melees are the deliberate exceptions to the non-attacking and melee
+filters. A rocket that penetrates does not explode where it was aimed, so
+penetration stays off explosives and on arrows, syringes and flares.
+*/
+func eligibilityByShape(name, key string) (decided, eligible bool) {
+	switch {
+	case stompWeapons[name] && (key == "ammo-on-hit" || key == "damage" ||
+		key == "base-health-on-kill" ||
+		(onKillEffects[key] && key != "heal-on-kill")),
+		name == "Thermal Thruster" && key == "clip-size":
+		return true, true
+	case key == "base-health-on-kill":
+		return true, false
+	case passiveWeapons[name], key == "gasoline":
+		return true, false
+	case thrownSubstances[name]:
+		return true, jarProjectileEffects[key] || substanceEffects[key] || key == "meter-recharge"
+	case key == "projectile-count":
+		return true, projectileCountExtras[name] ||
+			(!nonAttackingWeapons[name] && !meleeWeapons[name] && (!flamethrowers[name] || name == "Dragon's Fury"))
+	case key == "projectile-speed":
+		return true, projectileWeapons[name]
+	case key == "projectile-range":
+		return true, projectileWeapons[name] && !straightProjectileWeapons[name]
+	case key == "secondary-ammo" && spyRevolvers[name]:
+		return true, false
+	case key == "projectile-penetration":
+		return true, projectileWeapons[name] && !explosiveWeapons[name]
+	case key == "destroy-projectiles":
+		return true, projectileDestructionWeapons[name]
+	// A recharging weapon holds charges, not rounds. The Thermal Thruster is
+	// the exception above, where clip size buys a launch instead.
+	case meterWeapons[name] && magazineEffects[key]:
+		return true, false
+	case demomanShields[name] && key == "ammo-on-hit":
+		return true, true
+	case killCapableNonAttackers[name] && onKillEffects[key]:
+		return true, true
+	case nonAttackingWeapons[name] && attackRequiredEffects[key],
+		meleeWeapons[name] && rangedOnlyEffects[key]:
+		return true, false
+	}
+	return false, false
 }

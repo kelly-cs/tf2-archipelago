@@ -1,7 +1,9 @@
 package gamedata
 
 import (
+	"net/url"
 	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
@@ -83,7 +85,125 @@ func TestOnlyCuratedPermutationsAreEligibleRewards(t *testing.T) {
 	}
 }
 
-func TestFunctionalReskinsShareOneRewardPool(t *testing.T) {
+func TestAmmoOnHitEligibilityIncludesShieldsButNotManmelter(t *testing.T) {
+	for _, shield := range []string{"Chargin' Targe", "Splendid Screen", "Tide Turner"} {
+		if !buffNamed(t, shield, "ammo-on-hit").Eligible {
+			t.Errorf("%s/ammo-on-hit is not eligible", shield)
+		}
+	}
+	if buffNamed(t, "Manmelter", "ammo-on-hit").Eligible {
+		t.Error("Manmelter/ammo-on-hit is eligible")
+	}
+	for _, weapon := range []string{"Mantreads", "Thermal Thruster"} {
+		if !buffNamed(t, weapon, "ammo-on-hit").Eligible {
+			t.Errorf("%s/ammo-on-hit is not eligible", weapon)
+		}
+	}
+	// An energy weapon has no reserve for add_onhit_addammo to fill, so the
+	// sheet marks the cell N. WeaponBuffs_AddAmmoOnHit pays the hit into
+	// m_flEnergy instead, which is a fifth of a Cow Mangler clip a hit.
+	for _, weapon := range []string{"Cow Mangler 5000", "Righteous Bison", "Pomson 6000"} {
+		if !buffNamed(t, weapon, "ammo-on-hit").Eligible {
+			t.Errorf("%s/ammo-on-hit is not eligible", weapon)
+		}
+	}
+}
+
+func TestStompWeaponSpecialBuffsAreEligibleAndDescribed(t *testing.T) {
+	for _, weapon := range []string{"Mantreads", "Thermal Thruster"} {
+		buff := buffNamed(t, weapon, "damage")
+		if !buff.Eligible {
+			t.Errorf("%s/damage is not eligible", weapon)
+		}
+		if buff.Description != "+5× fall-damage multiplier" {
+			t.Errorf("%s/damage description = %q", weapon, buff.Description)
+		}
+		for _, effect := range []string{"base-health-on-kill", "crits-on-kill", "minicrits-on-kill", "speed-on-kill"} {
+			if !buffNamed(t, weapon, effect).Eligible {
+				t.Errorf("%s/%s is not eligible", weapon, effect)
+			}
+		}
+		if buffNamed(t, weapon, "heal-on-kill").Eligible {
+			t.Errorf("%s still draws the ordinary heal-on-kill effect", weapon)
+		}
+	}
+	for _, weapon := range BuffWeapons {
+		if stompWeapons[weapon.Name] {
+			continue
+		}
+		if buffNamed(t, weapon.Name, "base-health-on-kill").Eligible {
+			t.Errorf("non-stomp weapon %s draws base-health-on-kill", weapon.Name)
+		}
+	}
+	clip := buffNamed(t, "Thermal Thruster", "clip-size")
+	if !clip.Eligible {
+		t.Error("Thermal Thruster/clip-size is not eligible")
+	}
+	if clip.Description != "+1 launch charge" {
+		t.Errorf("Thermal Thruster/clip-size description = %q", clip.Description)
+	}
+}
+
+func TestPluginAttributesStompKillEffectsToTheWearable(t *testing.T) {
+	body, err := os.ReadFile("../plugin/scripting/tf2_archipelago/weapon_buffs.inc")
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(body)
+	death := substanceSourceFunction(t, "public void WeaponBuffs_PlayerDeath")
+	for _, required := range []string{
+		`event.GetString("weapon", eventWeapon`,
+		`event.GetString("weapon_logclassname", logWeapon`,
+		`StrEqual(eventWeapon, "mantreads")`,
+		`StrEqual(logWeapon, "rocketpack_stomp")`,
+		"WeaponBuffs_EntityInLoadoutSlot(attacker, Slot_Secondary)",
+		"BuffLevels_Stomp(weapon)",
+		"WeaponBuffs_ApplyStompKillEffects(attacker, entity, weapon)",
+	} {
+		if !strings.Contains(death, required) {
+			t.Errorf("stomp death attribution has no %q", required)
+		}
+	}
+	for _, required := range []string{
+		`HookEvent("player_death", WeaponBuffs_PlayerDeath)`,
+		"BuffLevels_StompKillHeal(weapon, WeaponBuffs_ClassBaseHealth(attacker))",
+		"float(maximum) * 1.5",
+		"SetEntityHealth(attacker, health + healed)",
+		"TFCond_CritOnKill",
+		"TFCond_MiniCritOnKill",
+		"TFCond_SpeedBuffAlly",
+	} {
+		if !strings.Contains(text, required) {
+			t.Errorf("stomp kill-effect implementation has no %q", required)
+		}
+	}
+}
+
+func TestPluginImplementsStompDamageAndThermalClipSize(t *testing.T) {
+	body, err := os.ReadFile("../plugin/scripting/tf2_archipelago/weapon_buffs.inc")
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(body)
+	for _, required := range []string{
+		`HookEvent("rocketpack_launch", WeaponBuffs_RocketPackLaunch)`,
+		"BuffLevels_Of(weapon, ClipSizeEffect)",
+		"WeaponBuffs_RocketPackLaunchCost()",
+		"WeaponBuffs_ThermalThrusterEffectiveCost(weapon)",
+		"stockCharges + levels - 1",
+		`SetEntPropFloat(client, Prop_Send, "m_flItemChargeMeter"`,
+		"damagecustom == TF_CUSTOM_BOOTS_STOMP",
+		"BuffLevels_StompDamageScale(",
+		`strcopy(description, maxlength, "+1 launch charge")`,
+		`strcopy(description, maxlength, "+5x fall-damage multiplier")`,
+	} {
+		if !strings.Contains(text, required) {
+			t.Errorf("special stomp buff implementation has no %q", required)
+		}
+	}
+}
+
+func TestWeaponFamiliesShareOneRewardPool(t *testing.T) {
 	for _, family := range weaponFamilies {
 		canonical := weaponNamed(t, family[0])
 		for _, name := range family {
@@ -97,9 +217,108 @@ func TestFunctionalReskinsShareOneRewardPool(t *testing.T) {
 				}
 			}
 			if name != canonical.Name && buffNamed(t, name, "damage").Eligible {
-				t.Errorf("reskin %s has a separate eligible reward pool", name)
+				t.Errorf("family member %s has a separate eligible reward pool", name)
 			}
 		}
+	}
+}
+
+func TestRequestedReskinsUseTheirMechanicalWeaponPool(t *testing.T) {
+	for member, canonicalName := range map[string]string{
+		"Holy Mackerel":          "Bat",
+		"Unarmed Combat":         "Bat",
+		"Mutated Milk":           "Mad Milk",
+		"Self-Aware Beauty Mark": "Jarate",
+		"Flying Guillotine":      "Flying Guillotine",
+		"Red-Tape Recorder":      "Sapper",
+	} {
+		memberWeapon := weaponNamed(t, member)
+		canonical := weaponNamed(t, canonicalName)
+		if memberWeapon.ApplyID != canonical.ID {
+			t.Errorf("%s applies to weapon %d, want %s (%d)", member, memberWeapon.ApplyID, canonicalName, canonical.ID)
+		}
+	}
+}
+
+func TestDecoratedWeaponDefinitionsUseTheirUnderlyingWeaponPool(t *testing.T) {
+	// TF2's current item schema has one decorated weapon definition at every
+	// index from 15000 through 15158 except the unused 15093. Keep the snapshot
+	// exhaustive so adding one example cannot leave the rest silently broken.
+	seen := make(map[int]string)
+	for _, weapon := range legacyWeaponBuffs {
+		for _, definition := range weapon.DefIndexes {
+			if definition < 15000 || definition > 15158 {
+				continue
+			}
+			if previous, ok := seen[definition]; ok {
+				t.Errorf("decorated definition %d belongs to both %s and %s", definition, previous, weapon.Weapon)
+			}
+			seen[definition] = weapon.Weapon
+		}
+	}
+	for definition := 15000; definition <= 15158; definition++ {
+		if definition == 15093 {
+			continue
+		}
+		if _, ok := seen[definition]; !ok {
+			t.Errorf("decorated definition %d has no weapon buff pool", definition)
+		}
+	}
+
+	for definition, want := range map[int]string{
+		15008: "Medi Gun",
+		15029: "Scattergun", // Backcountry Blaster
+		15030: "Flame Thrower",
+		15157: "Scattergun", // Corsair
+	} {
+		if got := seen[definition]; got != want {
+			t.Errorf("decorated definition %d uses %q buffs, want %q", definition, got, want)
+		}
+	}
+}
+
+func TestAllClassMeleeHasAPlayerFacingGroupName(t *testing.T) {
+	damage := buffNamed(t, "Saxxy", "damage")
+	if got := damage.ItemName(); got != "Weapon Buff: All-Class Melee — +10% damage" {
+		t.Fatalf("Saxxy family reward name = %q", got)
+	}
+	if damage.ApplyWeaponID != weaponNamed(t, "Conscientious Objector").ApplyID {
+		t.Fatal("All-Class Melee no longer shares the Conscientious Objector pool")
+	}
+}
+
+func TestEquivalentReskinsShareTheirBaseWeaponPool(t *testing.T) {
+	for base, reskin := range map[string]string{
+		"Ali Baba's Wee Booties": "Bootlegger",
+		"Boston Basher":          "Three-Rune Blade",
+	} {
+		canonical := weaponNamed(t, base)
+		if got := weaponNamed(t, reskin).ApplyID; got != canonical.ID {
+			t.Errorf("%s applies to weapon %d, want %s (%d)", reskin, got, base, canonical.ID)
+		}
+		if buffNamed(t, reskin, "damage").Eligible {
+			t.Errorf("%s has a separate eligible reward pool", reskin)
+		}
+		if !slices.Contains(weaponFamilyAliases(base), reskin) {
+			t.Errorf("tracker aliases for %s omit %s", base, reskin)
+		}
+	}
+}
+
+func TestBuilderToolboxSharesTheConstructionPDABuffPool(t *testing.T) {
+	construction := weaponNamed(t, "Construction PDA")
+	builder := weaponNamed(t, "PDA")
+	if builder.ApplyID != construction.ID {
+		t.Fatalf("builder toolbox applies to weapon %d, want Construction PDA %d", builder.ApplyID, construction.ID)
+	}
+	if !slices.Contains(construction.DefIndexes, 28) {
+		t.Errorf("Construction PDA definitions = %v, want builder toolbox definition 28", construction.DefIndexes)
+	}
+	if !buffNamed(t, "Construction PDA", "disposable-sentry").Eligible {
+		t.Error("Construction PDA cannot draw the disposable-sentry buff")
+	}
+	if buffNamed(t, "PDA", "disposable-sentry").Eligible {
+		t.Error("builder toolbox has a separate disposable-sentry reward pool")
 	}
 }
 
@@ -110,7 +329,7 @@ func TestMechanicSpecificEffectsStayOnTheirWeapons(t *testing.T) {
 	}{
 		{[]string{"airblast-power", "airblast-rate", "charged-airblast", "airblast-cost"}, airblastWeapons},
 		{[]string{"building-health", "sentry-fire-rate", "disposable-sentry", "metal-regen", "max-metal", "construction-rate", "repair-rate"}, engineerWeapons},
-		{[]string{"healing", "healing-received", "uber-rate", "uber-on-hit", "uber-duration"}, mediguns},
+		{[]string{"healing", "healing-received", "uber-rate", "uber-duration"}, mediguns},
 		{[]string{"banner-duration"}, banners},
 		{[]string{"cloak-duration", "cloak-regen"}, watches},
 		{[]string{"cloak-on-hit", "cloak-on-kill"}, spyAttackWeapons},
@@ -152,18 +371,73 @@ func TestThrownMetersAndProjectileMeleesKeepProjectileUpgrades(t *testing.T) {
 	}
 }
 
+// Less what the jar already does to whoever it lands on: Mad Milk milks, and
+// a Jarated robot already takes mini-crits, which is all a mark would add.
 func TestJarateAndMadMilkOnlyDrawProjectileRechargeAndSubstanceBuffs(t *testing.T) {
 	for _, name := range []string{"Jarate", "Mad Milk"} {
 		for _, effect := range WeaponEffects {
-			want := jarProjectileEffects[effect.Key] || substanceEffects[effect.Key] || effect.Key == "meter-recharge"
+			want := (jarProjectileEffects[effect.Key] || substanceEffects[effect.Key] || effect.Key == "meter-recharge") &&
+				!cutByNative(name, effect.Key)
 			if got := buffNamed(t, name, effect.Key).Eligible; got != want {
 				t.Errorf("%s/%s eligible = %t, want %t", name, effect.Key, got, want)
 			}
 		}
-		for _, effect := range []string{"bleed", "mad-milk", "gasoline", "mark-for-death", "jarate"} {
+	}
+	for _, effect := range []string{"bleed", "mad-milk", "jarate"} {
+		if !buffNamed(t, "Jarate", effect).Eligible {
+			t.Errorf("Jarate lost substance effect %s", effect)
+		}
+	}
+	for _, effect := range []string{"bleed", "mark-for-death", "jarate"} {
+		if !buffNamed(t, "Mad Milk", effect).Eligible {
+			t.Errorf("Mad Milk lost substance effect %s", effect)
+		}
+	}
+}
+
+func TestDirectHitWeaponsDrawSubstanceBuffs(t *testing.T) {
+	for _, name := range []string{"Minigun", "Pistol", "Scattergun"} {
+		for _, effect := range []string{"bleed", "ignite", "mad-milk", "mark-for-death"} {
 			if !buffNamed(t, name, effect).Eligible {
-				t.Errorf("%s lost substance effect %s", name, effect)
+				t.Errorf("%s lost direct-hit substance effect %s", name, effect)
 			}
+		}
+	}
+	if !buffNamed(t, "Sniper Rifle", "jarate").Eligible {
+		t.Error("Sniper Rifle lost direct-hit Jarate")
+	}
+}
+
+// A jar that lands on somebody registers as a hit, so the on-hit attributes
+// fire from it. Cowser checked each in game, gh-32.
+func TestThrownJarsDrawTheOnHitBuffs(t *testing.T) {
+	for _, name := range []string{"Jarate", "Mad Milk"} {
+		for _, effect := range []string{"ignite", "heal-on-hit"} {
+			if !buffNamed(t, name, effect).Eligible {
+				t.Errorf("%s lost on-hit effect %s", name, effect)
+			}
+		}
+		// Neither jar kills, so nothing fires an on-kill attribute.
+		for _, effect := range []string{"heal-on-kill", "crits-on-kill", "speed-on-kill"} {
+			if buffNamed(t, name, effect).Eligible {
+				t.Errorf("%s draws %s and cannot get a kill", name, effect)
+			}
+		}
+	}
+}
+
+// The Gas Passer performs no attack and still gets kills, through the afterburn
+// its gas leaves behind. gh-32, note 7.
+func TestTheGasPasserDrawsTheOnKillBuffs(t *testing.T) {
+	for _, effect := range []string{"heal-on-kill", "crits-on-kill", "minicrits-on-kill", "speed-on-kill"} {
+		if !buffNamed(t, "Gas Passer", effect).Eligible {
+			t.Errorf("Gas Passer lost on-kill effect %s", effect)
+		}
+	}
+	// It still swings at nobody, so the attack effects stay off it.
+	for _, effect := range []string{"damage", "fire-rate", "reload-rate"} {
+		if buffNamed(t, "Gas Passer", effect).Eligible {
+			t.Errorf("Gas Passer draws %s and performs no attack", effect)
 		}
 	}
 }
@@ -203,20 +477,209 @@ func TestGeneratedPluginCatalogContainsEveryBuffKey(t *testing.T) {
 	}
 }
 
+func substanceSourceFunction(t *testing.T, signature string) string {
+	t.Helper()
+	body, err := os.ReadFile("../plugin/scripting/tf2_archipelago/weapon_buffs.inc")
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(body)
+	start := strings.Index(text, signature)
+	if start < 0 {
+		t.Fatalf("weapon buffs have no %s", signature)
+	}
+	open := strings.IndexByte(text[start:], '{')
+	if open < 0 {
+		t.Fatalf("weapon buffs have no body for %s", signature)
+	}
+	open += start
+	depth := 0
+	for index := open; index < len(text); index++ {
+		switch text[index] {
+		case '{':
+			depth++
+		case '}':
+			depth--
+			if depth == 0 {
+				return text[start : index+1]
+			}
+		}
+	}
+	t.Fatalf("weapon buffs have an unterminated body for %s", signature)
+	return ""
+}
+
+// Which effects stay off the provider is TestTheProviderCarriesOnlyWhatNoOtherPathPays.
+func TestWeaponBuffSubstancesUseTheSharedHitPath(t *testing.T) {
+	apply := substanceSourceFunction(t, "static void WeaponBuffs_ApplyHitEffects")
+	for _, effect := range []string{
+		"BuffLevels_HitEffects(weapon, hit)", "TF2_MakeBleed", "TF2_IgnitePlayer", "TFCond_Milked", "TFCond_Gas",
+		"TFCond_MarkedForDeath", "TFCond_Jarated",
+	} {
+		if !strings.Contains(apply, effect) {
+			t.Fatalf("shared hit path does not apply %s", effect)
+		}
+	}
+
+	jar := substanceSourceFunction(t, "public void WeaponBuffs_ApplySubstances")
+	if !strings.Contains(jar, "WeaponBuffs_ApplyHitEffects(victim, attacker, weapon)") {
+		t.Fatal("jar splashes bypass the shared hit-effect path")
+	}
+
+	damage := substanceSourceFunction(t, "public void WeaponBuffs_OnTakeDamagePost")
+	for _, guard := range []string{
+		"victim == attacker",
+		"GetClientTeam(victim) == GetClientTeam(attacker)",
+		"WeaponBuffs_IsDamageOverTime(attacker, inflictor, damagecustom)",
+		"WeaponBuffs_IsSubstanceProjectile(inflictorClass)",
+	} {
+		if !strings.Contains(damage, guard) {
+			t.Fatalf("direct-hit path lost guard %q", guard)
+		}
+	}
+	if !strings.Contains(damage, "WeaponBuffs_ForEntity(weapon)") ||
+		!strings.Contains(damage, "WeaponBuffs_ApplyHitEffects(victim, attacker, catalog)") {
+		t.Fatal("direct hits do not resolve the canonical weapon and apply its hit effects")
+	}
+}
+
+func TestPluginImplementsActiveHealthRegenInsteadOfBrokenSchemaHealing(t *testing.T) {
+	body, err := os.ReadFile("../plugin/scripting/tf2_archipelago/weapon_buffs.inc")
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(body)
+	for _, required := range []string{
+		// That the provider leaves it to this timer is run, not read:
+		// TestTheProviderCarriesOnlyWhatNoOtherPathPays.
+		"CreateTimer(1.0, Timer_WeaponBuffHealthRegen",
+		"WeaponBuffs_LoadoutLevels(client, ActiveHealthRegenEffect)",
+		"GetEntProp(resource, Prop_Send, \"m_iMaxHealth\", 4, client)",
+		"SetEntityHealth(client, health + healed)",
+	} {
+		if !strings.Contains(text, required) {
+			t.Errorf("active health regeneration implementation has no %q", required)
+		}
+	}
+}
+
+func TestPluginImplementsAmmoOnHitForClippedAndMeleeWeapons(t *testing.T) {
+	body, err := os.ReadFile("../plugin/scripting/tf2_archipelago/weapon_buffs.inc")
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(body)
+	for _, required := range []string{
+		"WeaponBuffs_AddAmmoOnHit(attacker, weapon, catalog)",
+		"GetPlayerWeaponSlot(attacker, TFWeaponSlot_Primary)",
+		"GetEntProp(ammoWeapon, Prop_Send, \"m_iPrimaryAmmoType\")",
+		"GivePlayerAmmo(attacker, amount, ammoType, true)",
+		"WeaponBuffs_SuppliesPrimaryAmmo(entity)",
+		"tf_wearable_demoshield",
+		"BuffStomp_Mantreads",
+		"FindEntityByClassname(tank, \"tank_boss\")",
+		"SDKHook(tank, SDKHook_OnTakeDamagePost, WeaponBuffs_OnTankTakeDamagePost)",
+		"WeaponBuffs_AddAmmoOnHit(attacker, weapon, catalog)",
+	} {
+		if !strings.Contains(text, required) {
+			t.Errorf("ammo-on-hit implementation has no %q", required)
+		}
+	}
+
+	thermal := substanceSourceFunction(t, "static void WeaponBuffs_AddThermalThrusterCharge")
+	for _, required := range []string{
+		`GetEntPropFloat(attacker, Prop_Send,`,
+		`"m_flItemChargeMeter", Slot_Secondary)`,
+		"WeaponBuffs_ThermalThrusterEffectiveCost(weapon) * float(amount)",
+		`SetEntPropFloat(attacker, Prop_Send, "m_flItemChargeMeter"`,
+	} {
+		if !strings.Contains(thermal, required) {
+			t.Errorf("Thermal Thruster charge restoration has no %q", required)
+		}
+	}
+
+	resolver := substanceSourceFunction(t, "static int WeaponBuffs_WeaponOfHit")
+	for _, required := range []string{
+		"damagecustom == TF_CUSTOM_BOOTS_STOMP",
+		"WeaponBuffs_EntityInLoadoutSlot(attacker, Slot_Secondary)",
+		"BuffLevels_Stomp(",
+	} {
+		if !strings.Contains(resolver, required) {
+			t.Errorf("stomp hit resolver has no %q", required)
+		}
+	}
+
+	energy := substanceSourceFunction(t, "static float WeaponBuffs_EnergyShotCost")
+	for _, required := range []string{
+		"tf_weapon_particle_cannon",
+		"tf_weapon_raygun",
+		"tf_weapon_drg_pomson",
+		"return 5.0",
+	} {
+		if !strings.Contains(energy, required) {
+			t.Errorf("energy-weapon shot cost has no %q", required)
+		}
+	}
+	for _, required := range []string{
+		"WeaponBuffs_EnergyShotCost(ammoWeapon)",
+		"energyPerShot * float(amount)",
+		"WeaponBuffs_EnergyMaxCharge(ammoWeapon, energyPerShot)",
+		"EnergyClipSizeAttributeClass",
+		"SetEntPropFloat(ammoWeapon, Prop_Send, \"m_flEnergy\", energy)",
+	} {
+		if !strings.Contains(text, required) {
+			t.Errorf("energy ammo-on-hit implementation has no %q", required)
+		}
+	}
+
+	apply := substanceSourceFunction(t, "void WeaponBuffs_Apply(int client)")
+	for _, required := range []string{
+		"effect == ClipSizeEffect",
+		"EnergyClipSizeAttributeClass",
+		"TF2Attrib_SetByName(provider, EnergyClipSizeAttribute, value)",
+	} {
+		if !strings.Contains(apply, required) {
+			t.Errorf("energy clip-size implementation has no %q", required)
+		}
+	}
+
+	tank := substanceSourceFunction(t, "public void WeaponBuffs_OnTankTakeDamagePost")
+	for _, guard := range []string{
+		"damage <= 0.0",
+		"GetClientTeam(attacker) == GetEntProp(tank, Prop_Send, \"m_iTeamNum\")",
+		"WeaponBuffs_IsDamageOverTime(attacker, inflictor, damagecustom)",
+	} {
+		if !strings.Contains(tank, guard) {
+			t.Errorf("tank ammo-on-hit path lost guard %q", guard)
+		}
+	}
+
+	damageOverTime := substanceSourceFunction(t, "static bool WeaponBuffs_IsDamageOverTime")
+	for _, required := range []string{
+		"damagecustom == TF_CUSTOM_BLEEDING",
+		"damagecustom == TF_CUSTOM_BURNING && inflictor == attacker",
+	} {
+		if !strings.Contains(damageOverTime, required) {
+			t.Errorf("damage-over-time classifier has no %q", required)
+		}
+	}
+}
+
 func TestEveryRequestedSillyEffectKeepsItsStackingMode(t *testing.T) {
 	wanted := map[string]BuffMode{
-		"projectile-count": BuffPercentage,
-		"projectile-speed": BuffPercentage,
-		"bleed":            BuffAdd,
-		"afterburn-damage": BuffPercentage,
-		"airborne-crits":   BuffToggle,
-		"ignite":           BuffToggle,
-		"gasoline":         BuffToggle,
-		"mad-milk":         BuffToggle,
-		"no-self-blast":    BuffToggle,
-		"heal-on-kill":     BuffAdd,
-		"slow-on-hit":      BuffToggle,
-		"gesture-speed":    BuffPercentage,
+		"projectile-count":    BuffPercentage,
+		"projectile-speed":    BuffPercentage,
+		"bleed":               BuffAdd,
+		"afterburn-damage":    BuffPercentage,
+		"airborne-crits":      BuffToggle,
+		"ignite":              BuffToggle,
+		"gasoline":            BuffToggle,
+		"mad-milk":            BuffToggle,
+		"no-self-blast":       BuffToggle,
+		"heal-on-kill":        BuffAdd,
+		"slow-on-hit":         BuffToggle,
+		"gesture-speed":       BuffPercentage,
+		"base-health-on-kill": BuffAdd,
 	}
 	for _, effect := range WeaponEffects {
 		if mode, ok := wanted[effect.Key]; ok {
@@ -233,10 +696,11 @@ func TestEveryRequestedSillyEffectKeepsItsStackingMode(t *testing.T) {
 
 func TestRequestedSecondPassEffectValues(t *testing.T) {
 	wanted := map[string]float32{
-		"heal-on-kill":  15,
-		"no-self-blast": 1,
-		"slow-on-hit":   1,
-		"gesture-speed": 0.50,
+		"heal-on-kill":        15,
+		"no-self-blast":       1,
+		"slow-on-hit":         1,
+		"gesture-speed":       0.50,
+		"base-health-on-kill": 50,
 	}
 	for _, effect := range WeaponEffects {
 		if value, ok := wanted[effect.Key]; ok {
@@ -262,6 +726,17 @@ func TestWeaponEffectsUseDistinctSchemaAttributes(t *testing.T) {
 	}
 	if got := seen["bullets per shot bonus"]; got != "projectile-count" {
 		t.Errorf("projectile-count schema mapping = %q, want bullets per shot bonus", got)
+	}
+}
+
+func TestWeaponEffectAttributeClassesComplete(t *testing.T) {
+	if got, want := len(WeaponEffectAttributeClasses), len(WeaponEffects); got != want {
+		t.Fatalf("attribute classes: got %d, want %d", got, want)
+	}
+	for index, class := range WeaponEffectAttributeClasses {
+		if class == "" {
+			t.Errorf("%s has no engine attribute class", WeaponEffects[index].Key)
+		}
 	}
 }
 
@@ -304,6 +779,248 @@ func TestItemExportMarksOnlyNumericBuffsStackable(t *testing.T) {
 		if item.Stackable != want {
 			t.Errorf("%s stackable = %t, want %t for mode %d",
 				buff.Key, item.Stackable, want, buff.Mode)
+		}
+	}
+}
+
+func TestEveryEligibleBuffNamesTheClassesThatCanEquipIt(t *testing.T) {
+	for _, buff := range WeaponBuffs {
+		if buff.Eligible && len(weaponClassNames(buff.Weapon, buff.DefIndexes)) == 0 {
+			t.Errorf("eligible buff %q has no equipping class", buff.ItemName())
+		}
+	}
+	for _, test := range []struct {
+		weapon string
+		want   []string
+	}{
+		{"Air Strike", []string{"Soldier"}},
+		{"Mad Milk", []string{"Scout"}},
+		{"Crusader's Crossbow", []string{"Medic"}},
+		{"Shotgun", []string{"Soldier", "Pyro", "Heavy", "Engineer"}},
+		{"Saxxy", []string{"Scout", "Soldier", "Pyro", "Demoman", "Heavy", "Engineer", "Medic", "Sniper", "Spy"}},
+	} {
+		buff := buffNamed(t, test.weapon, "damage")
+		if got := weaponClassNames(buff.Weapon, buff.DefIndexes); !slices.Equal(got, test.want) {
+			t.Errorf("%s classes = %v, want %v", test.weapon, got, test.want)
+		}
+	}
+}
+
+func TestWeaponClassExportCarriesWeaponClasses(t *testing.T) {
+	icons := make(map[string]string)
+	for _, weapon := range buildWeaponClassesFile().Weapons {
+		icons[weapon.Name] = weapon.Icon
+		if weapon.Name != "Air Strike" {
+			continue
+		}
+		if !slices.Equal(weapon.Classes, []string{"Soldier"}) {
+			t.Fatalf("Air Strike export classes = %v, want Soldier", weapon.Classes)
+		}
+		if want := "assets/tf2/items/f87faf790afc0d04056479f1566f09f1.png"; weapon.Icon != want {
+			t.Fatalf("Air Strike icon = %q, want %q", weapon.Icon, want)
+		}
+	}
+	if icons["Air Strike"] == "" {
+		t.Fatal("Air Strike is missing from weapon class export")
+	}
+	if icons["Saxxy"] != "" {
+		t.Fatal("Saxxy is still exposed as a separate tracker weapon")
+	}
+	if want := trackerItemIconPath("Conscientious Objector"); icons[allClassMeleeName] != want {
+		t.Errorf("All-Class Melee icon = %q, want %q", icons[allClassMeleeName], want)
+	}
+	for weapon, filename := range tfWikiItemIconNames {
+		want := trackerItemIconPath(filename)
+		if got := icons[weapon]; got != want {
+			t.Errorf("%s icon = %q, want %q", weapon, got, want)
+		}
+	}
+}
+
+func TestWeaponClassExportIconsAreBundled(t *testing.T) {
+	for _, weapon := range buildWeaponClassesFile().Weapons {
+		icon, err := url.PathUnescape(weapon.Icon)
+		if err != nil {
+			t.Fatalf("%s icon path %q: %v", weapon.Name, weapon.Icon, err)
+		}
+		if !strings.HasPrefix(icon, "assets/tf2/items/") {
+			t.Errorf("%s icon is not a bundled asset: %q", weapon.Name, weapon.Icon)
+			continue
+		}
+		name := strings.TrimSuffix(filepath.Base(icon), ".png")
+		if len(name) != 32 || strings.Trim(name, "0123456789abcdef") != "" {
+			t.Errorf("%s icon has an embed-unsafe filename: %q", weapon.Name, weapon.Icon)
+		}
+		if _, err := os.Stat(filepath.Join("../launcher/web/src", filepath.FromSlash(icon))); err != nil {
+			t.Errorf("%s icon %q is not bundled: %v", weapon.Name, weapon.Icon, err)
+		}
+	}
+}
+
+// Explode on ignite ended waves on its own once substances landed on direct
+// hits (gh-17). It is out of the pool everywhere and keeps its ID.
+func TestExplodeOnIgniteIsOfferedNowhere(t *testing.T) {
+	for _, buff := range WeaponBuffs {
+		if buff.EffectID == 16 && buff.Eligible {
+			t.Errorf("%s still offers explode on ignite", buff.Weapon)
+		}
+	}
+	if _, ok := WeaponBuffByID(buffNamed(t, "Minigun", "gasoline").ID); !ok {
+		t.Error("the effect lost its ID, which seeds hold")
+	}
+}
+
+// A rocket that penetrates does not explode where it was aimed (gh-21).
+func TestProjectilePenetrationStaysOffExplosives(t *testing.T) {
+	for name, want := range map[string]bool{
+		"Rocket Launcher": false, "Grenade Launcher": false, "Loose Cannon": false, "Scorch Shot": false,
+		"Huntsman": true, "Crusader's Crossbow": true, "Syringe Gun": true, "Flare Gun": true,
+	} {
+		if got := buffNamed(t, name, "projectile-penetration").Eligible; got != want {
+			t.Errorf("%s penetration eligible = %t, want %t", name, got, want)
+		}
+	}
+}
+
+func TestProjectileDestructionOnlyDrawsOnBulletAndEnergyGuns(t *testing.T) {
+	for _, weapon := range BuffWeapons {
+		buff := buffNamed(t, weapon.Name, "destroy-projectiles")
+		want := weapon.ID == weapon.ApplyID && projectileDestructionWeapons[weapon.Name]
+		if buff.Eligible != want {
+			t.Errorf("%s destroy-projectiles eligibility = %v, want %v", weapon.Name, buff.Eligible, want)
+		}
+	}
+
+	for _, name := range []string{
+		"Rocket Launcher", "Grenade Launcher", "Stickybomb Launcher", "Flare Gun",
+		"Jarate", "Mad Milk", "Huntsman", "Syringe Gun", "Knife", "Mantreads",
+		"Thermal Thruster", "Wrangler",
+	} {
+		if buffNamed(t, name, "destroy-projectiles").Eligible {
+			t.Errorf("%s draws projectile destruction", name)
+		}
+	}
+
+	for _, name := range []string{"Scattergun", "Shotgun", "Sniper Rifle", "Pistol", "Pomson 6000", "Righteous Bison", "Short Circuit", "Minigun"} {
+		if !buffNamed(t, name, "destroy-projectiles").Eligible {
+			t.Errorf("%s does not draw projectile destruction", name)
+		}
+	}
+}
+
+// The game reads armor piercing on a backstab and nowhere else (gh-25).
+func TestArmorPiercingIsAKnifeBuff(t *testing.T) {
+	for name, want := range map[string]bool{
+		"Knife": true, "Your Eternal Reward": true, "Conniver's Kunai": true, "Big Earner": true, "Spy-Cicle": true,
+		"Revolver": false, "Minigun": false, "Rocket Launcher": false, "Kukri": false,
+	} {
+		if got := buffNamed(t, name, "armor-piercing").Eligible; got != want {
+			t.Errorf("%s armor piercing eligible = %t, want %t", name, got, want)
+		}
+	}
+}
+
+// Every pair the sheet cuts names a weapon and an effect the tables know, and
+// the cut only ever removes: a pair the rules already refuse is redundant here
+// and worth a line less.
+func TestSheetCutsNameRealWeaponsAndEffects(t *testing.T) {
+	effects := map[string]bool{}
+	for _, effect := range WeaponEffects {
+		effects[effect.Key] = true
+	}
+	for name, keys := range sheetCuts {
+		weaponNamed(t, name)
+		for key := range keys {
+			if !effects[key] {
+				t.Errorf("%s cuts %q, which is not an effect", name, key)
+			}
+			if buffNamed(t, name, key).Eligible {
+				t.Errorf("%s/%s is still eligible", name, key)
+			}
+		}
+	}
+	for name, want := range map[string]bool{"Rocket Launcher": false, "Scattergun": true} {
+		if got := buffNamed(t, name, "accuracy").Eligible; got != want {
+			t.Errorf("%s accuracy eligible = %t, want %t", name, got, want)
+		}
+	}
+}
+
+// Über on hit needs a hit and an ÜberCharge to put it in. A medigun heals and
+// never hits, so the sheet marks it N on all four; the Medic's syringe guns and
+// saws do both, at the two rates a player asked for (gh-32).
+func TestUberOnHitFollowsTheMedicsAttackWeapons(t *testing.T) {
+	want := map[string]string{
+		"Syringe Gun":         "+1% ÜberCharge on hit",
+		"Blutsauger":          "+1% ÜberCharge on hit",
+		"Overdose":            "+1% ÜberCharge on hit",
+		"Übersaw":             "+5% ÜberCharge on hit",
+		"Bonesaw":             "+5% ÜberCharge on hit",
+		"Vita-Saw":            "+5% ÜberCharge on hit",
+		"Amputator":           "+5% ÜberCharge on hit",
+		"Solemn Vow":          "+5% ÜberCharge on hit",
+		"Crusader's Crossbow": "+5% ÜberCharge on hit",
+	}
+	for _, buff := range WeaponBuffs {
+		if buff.EffectID != 40 {
+			continue
+		}
+		description, wanted := want[buff.Weapon]
+		if buff.Eligible != wanted {
+			t.Errorf("%s über on hit eligible = %t, want %t", buff.Weapon, buff.Eligible, wanted)
+		}
+		if wanted && buff.Description != description {
+			t.Errorf("%s über on hit reads %q, want %q", buff.Weapon, buff.Description, description)
+		}
+	}
+	// A medigun is the one Medic weapon it stays off.
+	for _, name := range []string{"Medi Gun", "Kritzkrieg", "Quick-Fix", "Vaccinator"} {
+		if buffNamed(t, name, "uber-on-hit").Eligible {
+			t.Errorf("%s offers über on hit and never lands one", name)
+		}
+	}
+}
+
+/*
+Movement, jump height and health regeneration read off the whole loadout, the
+way MvM's own class upgrades do, rather than off the weapon in hand.
+
+Which effects are passive, how the loadout sums them and what the attribute is
+worth are run in weapon_buff_levels_test.go. What is left is the wiring around
+it, and the wiring reads entity properties and calls TF2Attrib, so reading the
+source is still the best that can be done for it.
+*/
+func TestPassiveBuffsReadTheWholeLoadout(t *testing.T) {
+	body, err := os.ReadFile("../plugin/scripting/tf2_archipelago/weapon_buffs.inc")
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(body)
+	for _, required := range []string{
+		"WeaponBuffs_ApplyPassives(client, provider)",
+	} {
+		if !strings.Contains(text, required) {
+			t.Errorf("passive buff wiring has no %q", required)
+		}
+	}
+	levels := substanceSourceFunction(t, "static int WeaponBuffs_LoadoutLevels")
+	for _, required := range []string{
+		"WeaponBuffs_EntityInLoadoutSlot(client, slot)",
+		"BuffLevels_Loadout(weapons, sizeof(weapons), effect)",
+	} {
+		if !strings.Contains(levels, required) {
+			t.Errorf("loadout level sum has no %q", required)
+		}
+	}
+	apply := substanceSourceFunction(t, "static void WeaponBuffs_ApplyPassives")
+	for _, required := range []string{
+		"WeaponBuffs_LoadoutLevels(client, effect)",
+		"g_WeaponEffectAttributeClasses[effect], client",
+		"BuffLevels_PassiveValue(effect, levels, base)",
+		"TF2Attrib_SetByName(provider, g_WeaponEffectAttributes[effect]",
+	} {
+		if !strings.Contains(apply, required) {
+			t.Errorf("passive application has no %q", required)
 		}
 	}
 }

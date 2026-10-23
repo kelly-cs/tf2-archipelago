@@ -23,6 +23,8 @@ ZIPs into a player-selected cache folder and install them into SRCDS. It labels 
 separately in both the pool table and start-mission menu. See the
 [community-content guide](../community-content/README.md) for the verified
 archive layout, custom-upgrade findings, build commands, and RafMod boundary.
+The [archive snapshot hashes](../docs/en/community-archives.md) document the
+exact ZIPs the launcher accepts and how to review a mismatch.
 
 ## Layout
 
@@ -34,13 +36,17 @@ archive layout, custom-upgrade findings, build commands, and RafMod boundary.
 | `internal/installer` | SteamCMD, TF2 server, Metamod, SourceMod, ripext, plugin, bots |
 | `internal/srcdsconfig` | Renders `server.cfg`, `admins_simple.ini`, `tf2_archipelago.cfg` |
 | `internal/runtime` | The `srcds.exe` subprocess and the in-process bridge, interleaved |
-| `internal/gui` | The window: log view, Start/Stop, settings dialog, rcon box |
+| `internal/webapi` | The launcher as the browser talks to it: state, Connect services, `/ws` |
+| `internal/spa` | The Angular build, embedded and served |
+| `internal/browser` | Opening the player's browser, per desktop |
+| `internal/tray` | The icon in the Windows notification area: open the page, Quit |
+| `web/` | The Angular app. Not part of the Go module: see `web/go.mod` |
 | `internal/generate` | Drives the Archipelago app's generator: installs the apworld, writes the player file, runs it |
 | `internal/debugbundle` | The zip a play-tester sends: logs, settings without passwords, player file |
 | `../fakeroom` | The multiworld of one that test mode serves, shared with the bridge |
-| `internal/rcon` | Source RCON client, the Go port of `deploy/rcon.py` |
+| `internal/rcon` | Source RCON client, shared by the command box and `cmd/rcon`, which `make rcon` runs |
 | `internal/runshape` | The run's choices, counted from `gamedata` |
-| `internal/ui` | Console prompts, and the console the window build attaches to |
+| `internal/ui` | Console prompts, for `-configure` and the first-run question |
 
 ## Configuration
 
@@ -54,28 +60,86 @@ already uses, so a compose operator's file works here unchanged. An environment
 value is never written back: an override for one run must not become the saved
 answer.
 
-## The window and the console
+Each variable is one line of `settings.EnvVars`: its field, how it is spelled,
+and the Compose services that read it. `ApplyEnv`, the `.env` the Compose admin
+page writes, and the tests against `compose.yml` and `.env.example` all come
+from that line.
 
-`tf2ap.exe` with no arguments opens the window on Windows. `runtime.Supervisor`
-owns the pair of processes behind the Start and Stop buttons, and every log
-line reaches the view through its sink. The exe links with `-H windowsgui`, so
-a double-click opens no console; `ui.AttachConsole` gives the flags their
-output back when a terminal started them.
+## One face, and it is a browser
 
-`-console` runs the old prompt flow, which is also what every other platform
-gets: `gui.Available()` is false there.
+`tf2ap` with no arguments serves the interface on 127.0.0.1 on a port the
+operating system picks, prints the address, and opens a browser on it. That is
+the same program and the same screen on Windows and on Linux.
 
-Three Win32 details the window depends on, each found by running the exe under
-Wine:
+Loopback only, one player, no authentication and no CSRF token: the four
+passwords never cross a network. What the mux does check is that the request is
+for the address the listener bound. Comparing `Origin` with `Host` is not enough
+on its own, because a DNS-rebinding attacker controls both, so `Host` is pinned
+to the authority the listener actually took.
 
-- `runtime.LockOSThread` in `gui.Run`. Windows delivers a window's messages to
-  the thread that created it, and Go moves a goroutine between threads at any
-  blocking call.
-- `CREATE_NO_WINDOW` on the game server (`runtime.hideConsole`). srcds is a
-  console program and this is not, so Windows gives the child a console of its
-  own. That console leaves this window half laid out.
-- The settings dialog reads its fields in the Save handler. Closing a dialog
-  destroys its children, and a destroyed control reads back empty.
+| Flag | What it does |
+| --- | --- |
+| *(none)* | Serve on a free loopback port, open a browser |
+| `-addr host:port` | Serve here instead |
+| `-no-browser` | Print the address, open nothing |
+| `-console` | The log and nothing over it, for Docker and for a machine with no desktop |
+| `-configure` | The console prompts, then exit |
+
+Closing the browser tab leaves the server running. On Windows the launcher is
+an icon in the notification area while it runs: a click opens the page again,
+and the right-click menu has Quit. Quit in the interface stops it too, and so
+does Ctrl-C in a console.
+
+Opening the browser is `internal/browser`, and WSL is the awkward one:
+`xdg-open` there either does nothing or opens a browser inside the distribution
+that the player cannot see, so the Windows browser is asked instead through
+`wslview` or `cmd.exe /c start`. Windows reaches the listener on 127.0.0.1
+through WSL's own localhost forwarding, so the address needs no rewriting. A
+desktop with no opener is normal over SSH and on a minimal install, so a failure
+prints the address and carries on rather than stopping the launcher.
+
+## The contract
+
+`proto/tf2ap/launcher/v1` is what the two halves agree on. `form.proto` mirrors
+`form.Model` field for field, so the Angular renderer never needs a second
+source for what a row is: adding a setting is still one `Spec`.
+
+Neither generated tree is committed. `make proto` writes Go into
+`launcher/internal/gen` and TypeScript into `launcher/web/src/gen`, and every Go
+target depends on it, so `make test` and `make lint` generate first.
+`TestProtoKindsMatchFormKinds` fails in both directions when a `Kind` is added
+to one side only.
+
+Requests go over Connect. The live state is a WebSocket at `/ws`, because only
+one side ever speaks: the launcher pushes and the browser listens. The first
+frame is the whole state with its log; after it a line arrives on its own and
+the whole state arrives without the log whenever anything else moved. Bounded
+on both sides: twenty thousand lines kept, a hundred and twenty-eight events
+queued, and a browser that falls further behind is sent the whole state again
+rather than left drawing one that has moved on.
+
+A tab left open costs nothing. Hidden, the socket closes and the launcher drops
+the listener; visible again, it opens and its first frame is the whole state.
+
+## Running the interface without a game server
+
+`launcher/cmd/fakelauncher` answers the same contract with nothing behind it:
+the real handlers, the real WebSocket and a real `form.Model`, with no game
+server, no bridge, no Steam install and no multiworld. It is what the browser
+tests drive, and it is useful by hand:
+
+```sh
+make web-build
+go run ./launcher/cmd/fakelauncher -addr 127.0.0.1:8471
+```
+
+It is never shipped: no release target builds it and the launcher does not
+import it.
+
+```sh
+make web-check   # eslint, prettier, the component tests, the 500 kB budget
+make web-e2e     # Playwright against the fake launcher
+```
 
 ## How it fits
 
@@ -100,7 +164,10 @@ landed in. The player uploads that archive to archipelago.gg.
 - `defender-bots-windows.zip` (gitignored, built by `make bots`, `.so` stripped)
 - `tf2_mvm.apworld` (gitignored, built without Docker by `make apworld-package`)
 - `tf2_archipelago.cfg` (committed)
-- `server.cfg.tmpl` (committed)
+
+`server.cfg.tmpl` lives in `internal/provision` instead. That package decides
+server.cfg, the srcds command line and the mods loaded for both the launcher
+and the Docker image, which calls it as `tf2ap-provision`.
 
 The first three are build artefacts, and a hand `go build` needs placeholders
 in their place. Such a build also leaves the version strings empty, so

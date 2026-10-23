@@ -26,6 +26,11 @@ CLASSIFICATIONS = {
     "trap": ItemClassification.trap,
 }
 
+# The class_weapon_slots value that hands the slots out by name instead of in
+# the class's own order. Not spelled "random", which Archipelago keeps for
+# "roll this option for me" on every option there is.
+ANY_ORDER = 2
+
 BUFF_REQUIREMENTS = {
     "normal": 1,
     "intermediate": 2,
@@ -38,8 +43,135 @@ IMPORTANCE_OPTION_BY_KIND = {
     "mission_ticket": "mission_ticket_importance",
     "class": "class_unlock_importance",
     "weapon_slot": "weapon_slot_importance",
+    "class_weapon_slot": "weapon_slot_importance",
     "weapon_buff": "weapon_buff_importance",
 }
+
+MISSION_MODIFIERS = (
+    {
+        "key": "low_gravity",
+        "name": "Low Gravity",
+        "kind": "environment",
+        "description": "World gravity is halved, giving everyone much more airtime.",
+        "exclusive_group": "gravity",
+    },
+    {
+        "key": "high_gravity",
+        "name": "High Gravity",
+        "kind": "environment",
+        "description": "Gravity is increased by 50%, making airtime hard-earned.",
+        "exclusive_group": "gravity",
+    },
+    {
+        "key": "blast_plating",
+        "name": "Blast Plating",
+        "kind": "robots",
+        "description": "Enemy robots have 50% blast resistance.",
+        "exclusive_group": "",
+    },
+    {
+        "key": "thermal_shielding",
+        "name": "Thermal Shielding",
+        "kind": "robots",
+        "description": "Enemy robots have 50% fire resistance.",
+        "exclusive_group": "",
+    },
+    {
+        "key": "ballistic_plating",
+        "name": "Ballistic Plating",
+        "kind": "robots",
+        "description": "Enemy robots have 50% bullet resistance.",
+        "exclusive_group": "",
+    },
+    {
+        "key": "fragile_mercenaries",
+        "name": "Fragile Mercenaries",
+        "kind": "players",
+        "description": "Human defenders take 25% more damage.",
+        "exclusive_group": "",
+    },
+    {
+        "key": "overclocked_servos",
+        "name": "Overclocked Servos",
+        "kind": "robots",
+        "description": "Enemy robots move 15% faster.",
+        "exclusive_group": "",
+    },
+    {
+        "key": "loaded_dice",
+        "name": "Loaded Dice",
+        "kind": "robots",
+        "description": "Every enemy robot weapon can randomly crit, with a 33% base chance.",
+        "exclusive_group": "",
+    },
+    {
+        "key": "weaponized_tanks",
+        "name": "Weaponized Tanks",
+        "kind": "robots",
+        "description": (
+            "Each tank carries an invulnerable level 2 sentry until the tank is destroyed."
+        ),
+        "exclusive_group": "",
+    },
+    {
+        "key": "miniature_menace",
+        "name": "Miniature Menace",
+        "kind": "robots",
+        "description": "Robots and tanks are 50% size with 33% less health and 25% more speed.",
+        "exclusive_group": "",
+    },
+    {
+        "key": "bot_surge",
+        "name": "Bot Surge",
+        "kind": "waves",
+        "description": (
+            "Robot groups immediately refill open enemy slots, keeping the wave under "
+            "constant pressure."
+        ),
+        "exclusive_group": "",
+    },
+    {
+        "key": "faulty_calibration",
+        "name": "Faulty Calibration",
+        "kind": "players",
+        "description": (
+            "Player weapons suffer severe bullet and flame spread, while projectiles "
+            "and precision shots deviate from the crosshair."
+        ),
+        "exclusive_group": "",
+    },
+    {
+        "key": "loose_footing",
+        "name": "Loose Footing",
+        "kind": "environment",
+        "description": (
+            "Ground friction and acceleration are heavily reduced, giving everyone icy "
+            "momentum, while all knockback is tripled."
+        ),
+        "exclusive_group": "",
+    },
+    {
+        "key": "mental",
+        "name": "Mental",
+        "kind": "robots",
+        "description": (
+            "Enemies stay cloaked. Normal hits briefly reveal a shimmer; "
+            "reveal-on-hit buffs decloak for five seconds."
+        ),
+        "exclusive_group": "",
+    },
+    {
+        "key": "make_it_count",
+        "name": "Make it Count",
+        "kind": "players",
+        "description": (
+            "RED non-melee weapons and sentries deal 2.5x damage. RED reserve ammo and "
+            "Engineer metal capacity are reduced by 75%; dispensers supply ammo and metal "
+            "every four seconds."
+        ),
+        "exclusive_group": "",
+    },
+)
 
 
 class TF2MvMItem(Item):
@@ -96,7 +228,9 @@ class TF2MvMWorld(World):
     start_mission: data.Mission
     goal_mission: data.Mission
     start_items: list[str]
+    bot_card_rewards: list[str]
     missionsanity_target: int
+    mission_modifiers: dict[str, list[dict[str, str]]]
 
     def generate_early(self) -> None:
         available = self._available_missions()
@@ -107,6 +241,16 @@ class TF2MvMWorld(World):
             )
         asked = self._asked_start_mission(available)
         wanted = min(self.options.mission_count.value, len(available))
+        if wanted < self.options.mission_count.value:
+            logging.warning(
+                "%s: asked for %d missions and the pool holds %d, so the run uses %d. "
+                "Turn more missions on, name the mods they need in server_mods, "
+                "or lower difficulty_pool.",
+                self.player_name,
+                self.options.mission_count.value,
+                len(available),
+                wanted,
+            )
         drawn = self._draw(available, wanted, asked)
         spare = [mission for mission in available if mission not in drawn]
 
@@ -130,6 +274,7 @@ class TF2MvMWorld(World):
         self.missions = sorted(drawn, key=self._tier_order)
         self.start_mission = asked or self.missions[0]
         self.goal_mission = self.missions[-1]
+        self.mission_modifiers = self._draw_mission_modifiers()
         # Clearing the start mission would win on the spot, which is not a run.
         if (
             self.options.goal.current_key == "final_boss"
@@ -146,11 +291,65 @@ class TF2MvMWorld(World):
         self.missionsanity_target = max(1, math.ceil(len(self.missions) * share))
 
         requirement = REQUIREMENTS[self.start_mission.difficulty]
-        self.start_items = [
-            data.TICKET_NAMES[self.start_mission.id],
-            *self._start_classes(requirement.classes),
-            *[data.PROGRESSIVE_WEAPON_SLOT] * requirement.slots,
-        ]
+        tickets = (
+            [data.TICKET_NAMES[mission.id] for mission in self.missions]
+            if self.options.mission_ticket_importance.current_key == "disabled"
+            else [data.TICKET_NAMES[self.start_mission.id]]
+        )
+        classes = (
+            list(data.CLASS_NAMES)
+            if self.options.class_unlock_importance.current_key == "disabled"
+            else self._start_classes(requirement.classes)
+        )
+        if self.options.weapon_slot_importance.current_key == "disabled":
+            if self.options.class_weapon_slots.value == ANY_ORDER:
+                slots = [name for names in data.CLASS_NAMED_SLOT_ITEMS.values() for name in names]
+            elif self.options.class_weapon_slots.value:
+                slots = [
+                    name
+                    for name in data.CLASS_SLOT_ITEMS.values()
+                    for _ in range(data.CLASS_SLOT_COUNT)
+                ]
+            else:
+                slots = [data.PROGRESSIVE_WEAPON_SLOT] * data.WEAPON_SLOT_COUNT
+        elif self.options.class_weapon_slots.value == ANY_ORDER:
+            # Named slots are still handed out in the class's own order to
+            # start with: the tier says how many, and the first of a class's
+            # order is the one it is played with.
+            slots = [
+                name
+                for class_item in classes
+                for name in data.CLASS_NAMED_SLOT_ITEMS[class_item][: requirement.slots - 1]
+            ]
+        elif self.options.class_weapon_slots.value:
+            # Each starting class holds its free first slot and earns the rest
+            # of what the tier asks for.
+            slots = [
+                data.CLASS_SLOT_ITEMS[name]
+                for name in classes
+                for _ in range(requirement.slots - 1)
+            ]
+        else:
+            slots = [data.PROGRESSIVE_WEAPON_SLOT] * requirement.slots
+        self.start_items = [*tickets, *classes, *slots]
+        self.bot_card_rewards = []
+        if self.options.bot_cards.value:
+            if self.options.starting_bot_card_mode.current_key == "stock_classes":
+                starters = list(data.STOCK_BOT_CARD_BASES)
+            else:
+                starters = self.random.sample(
+                    data.BOT_CARD_BASES, self.options.starting_bot_cards.value
+                )
+            self.start_items.extend(self._roll_bot_card(base) for base in starters)
+            remaining = [base for base in data.BOT_CARD_BASES if base not in starters]
+            self.random.shuffle(remaining)
+            self.bot_card_rewards = [self._roll_bot_card(base) for base in remaining]
+
+    def _roll_bot_card(self, base: str) -> str:
+        # Two independent draws: a Giant is not intrinsically Legendary.
+        tier = self.random.choices(("Common", "Elite", "Legendary"), (50, 40, 10))[0]
+        form = self.random.choices(("Human", "Robot", "Giant"), (50, 40, 10))[0]
+        return data.BOT_CARD_VARIANTS[(base, tier, form)]
 
     def _asked_start_mission(self, available: list[data.Mission]) -> data.Mission | None:
         """The mission start_mission names, or None for the easiest one drawn."""
@@ -165,6 +364,45 @@ class TF2MvMWorld(World):
             f"{self.options.difficulty_pool.current_key} pool does not hold, or "
             f"excluded_missions keeps out."
         )
+
+    def _draw_mission_modifiers(self) -> dict[str, list[dict[str, str]]]:
+        if not self.options.mission_modifiers.value:
+            return {}
+        minimum = self.options.minimum_mission_modifiers.value
+        maximum = self.options.maximum_mission_modifiers.value
+        if minimum > maximum:
+            raise OptionError(
+                f"{self.player_name}: minimum_mission_modifiers ({minimum}) is greater than "
+                f"maximum_mission_modifiers ({maximum})."
+            )
+
+        assignments: dict[str, list[dict[str, str]]] = {}
+        for mission in self.missions:
+            wanted = self.random.randint(minimum, maximum)
+            candidates = list(MISSION_MODIFIERS)
+            self.random.shuffle(candidates)
+            picked: list[dict[str, str]] = []
+            groups: set[str] = set()
+            for modifier in candidates:
+                # Before the append, or a draw of zero never matches and the
+                # mission gets every modifier the exclusive groups allow.
+                if len(picked) == wanted:
+                    break
+                group = modifier["exclusive_group"]
+                if group and group in groups:
+                    continue
+                picked.append(
+                    {
+                        "key": modifier["key"],
+                        "name": modifier["name"],
+                        "kind": modifier["kind"],
+                        "description": modifier["description"],
+                    }
+                )
+                if group:
+                    groups.add(group)
+            assignments[mission.pop_file] = picked
+        return assignments
 
     def _draw(
         self, available: list[data.Mission], wanted: int, asked: data.Mission | None
@@ -189,40 +427,105 @@ class TF2MvMWorld(World):
         for mission in self.missions:
             region = Region(mission.name, self.player, self.multiworld)
             region.add_locations(
-                {location.name: location.id for location in mission.locations}, TF2MvMLocation
+                {location.name: location.id for location in self._checks(mission)}, TF2MvMLocation
             )
             self.multiworld.regions.append(region)
             menu.connect(region, f"Deploy to {mission.name}", self._deploy_rule(mission))
+        # Any open mission progresses a milestone, and the start mission is
+        # always open, so the region needs no rule of its own. The milestones
+        # themselves do: see _milestone_rule.
+        if self.options.milestone_checks.value:
+            grind = Region("Milestones", self.player, self.multiworld)
+            grind.add_locations(
+                {milestone.name: milestone.id for milestone in data.MILESTONES}, TF2MvMLocation
+            )
+            self.multiworld.regions.append(grind)
+            menu.connect(grind, "Grind")
+            for location in grind.locations:
+                rule = self._milestone_rule(location.name)
+                if rule is not None:
+                    location.access_rule = rule
 
     def create_items(self) -> None:
         for name in self.start_items:
             self.push_precollected(self.create_item(name))
 
+        self._lock_medals()
+
         pool = [
             self.create_item(data.TICKET_NAMES[mission.id])
             for mission in self.missions
             if mission is not self.start_mission
+            and self.options.mission_ticket_importance.current_key != "disabled"
         ]
         pool += [
             self.create_item(name) for name in data.CLASS_NAMES if name not in self.start_items
         ]
-        slots_held = self.start_items.count(data.PROGRESSIVE_WEAPON_SLOT)
-        pool += [
-            self.create_item(data.PROGRESSIVE_WEAPON_SLOT)
-            for _ in range(data.WEAPON_SLOT_COUNT - slots_held)
-        ]
+        if self.options.class_weapon_slots.value == ANY_ORDER:
+            for names in data.CLASS_NAMED_SLOT_ITEMS.values():
+                pool += [self.create_item(name) for name in names if name not in self.start_items]
+        elif self.options.class_weapon_slots.value:
+            for slot_item in data.CLASS_SLOT_ITEMS.values():
+                held = self.start_items.count(slot_item)
+                pool += [self.create_item(slot_item) for _ in range(data.CLASS_SLOT_COUNT - held)]
+        else:
+            slots_held = self.start_items.count(data.PROGRESSIVE_WEAPON_SLOT)
+            pool += [
+                self.create_item(data.PROGRESSIVE_WEAPON_SLOT)
+                for _ in range(data.WEAPON_SLOT_COUNT - slots_held)
+            ]
 
-        # Buffs and cash share the non-progression space. Numeric permutations
-        # may repeat as levels; toggle permutations remain unique.
-        open_slots = self._check_count(self.missions) - len(pool)
-        buff_count = open_slots
-        if self.options.cash_rewards.value:
+        # A server setting is one copy and takes one check, like a trap: the
+        # run gains a lever and loses a reward, which is the trade for it.
+        if self.options.server_settings.value:
+            pool += [self.create_item(name) for name in data.SERVER_SETTING_NAMES]
+
+        # Traps, buffs and cash share the non-progression space. A trap takes a
+        # check from a reward rather than adding one. Rounded up, so any share
+        # above zero puts at least one trap in a run too small for a whole
+        # percent; zero stays zero.
+        open_slots = self._free_check_count() - len(pool)
+        if self.options.bot_cards.value:
+            card_count = min(max(0, open_slots), len(self.bot_card_rewards))
+            pool += [self.create_item(name) for name in self.bot_card_rewards[:card_count]]
+            open_slots -= card_count
+        trap_count = min(
+            open_slots, math.ceil(open_slots * self.options.trap_percentage.value / 100)
+        )
+        pool += [self.create_item(self.random.choice(data.TRAP_NAMES)) for _ in range(trap_count)]
+        open_slots -= trap_count
+
+        # Numeric buff permutations may repeat as levels; toggles remain unique.
+        buff_count = (
+            0 if self.options.weapon_buff_importance.current_key == "disabled" else open_slots
+        )
+        if self.options.cash_rewards.value and buff_count:
             buff_count = math.ceil(open_slots * self.options.weapon_buff_percentage.value / 100)
         if self.options.weapon_buff_importance.current_key == "progression":
             buff_count = max(buff_count, max(BUFF_REQUIREMENTS.values()))
         pool += [self.create_item(name) for name in self._draw_weapon_buffs(buff_count)]
-        pool += [self.create_filler() for _ in range(self._check_count(self.missions) - len(pool))]
+        pool += [self.create_filler() for _ in range(self._free_check_count() - len(pool))]
         self.multiworld.itempool += pool
+
+    def _lock_medals(self) -> None:
+        """Put each mission's medal on its own clear, out of the multiworld."""
+        if not self.options.medal_on_clear.value:
+            return
+        for mission in self.missions:
+            location = self.get_location(f"{mission.name} Complete")
+            location.place_locked_item(self.create_item(data.MEDAL_NAMES[mission.id]))
+
+    def _free_check_count(self) -> int:
+        """Checks the pool may fill, which is every check less the locked ones.
+
+        A locked medal holds its clear, so filling that many more items than
+        there are free locations is a generation failure rather than a full
+        pool.
+        """
+        checks = self._check_count(self.missions)
+        if self.options.medal_on_clear.value:
+            checks -= len(self.missions)
+        return checks
 
     def _draw_weapon_buffs(self, count: int) -> list[str]:
         """Draw reward names, repeating numeric buffs but never toggles."""
@@ -251,14 +554,20 @@ class TF2MvMWorld(World):
         item = data.ITEMS_BY_NAME[name]
         classification = item.classification
         if option_name := IMPORTANCE_OPTION_BY_KIND.get(item.kind):
-            classification = getattr(self.options, option_name).current_key
+            mode = getattr(self.options, option_name).current_key
+            # Archipelago only collects advancement items into logic state.
+            # Disabled unlocks are all precollected, never placed in the pool.
+            classification = "progression" if mode == "disabled" else mode
         return TF2MvMItem(name, CLASSIFICATIONS[classification], item.id, self.player)
 
     def get_filler_item_name(self) -> str:
         return self.random.choice(data.FILLER_NAMES)
 
     def fill_slot_data(self) -> dict[str, object]:
-        # Only what the bridge cannot work out from gamedata alone.
+        # What the bridge cannot work out from gamedata alone, plus the small
+        # piece of generated state the public tracker API otherwise omits.
+        # Use MultiWorld's final list rather than self.start_items: common
+        # start-inventory options can add precollected items of their own.
         return {
             "format_version": data.FORMAT_VERSION,
             "missions": [mission.pop_file for mission in self.missions],
@@ -267,67 +576,180 @@ class TF2MvMWorld(World):
             "goal_mission": self.goal_mission.pop_file,
             "missionsanity_target": self.missionsanity_target,
             "death_link": bool(self.options.death_link.value),
+            "server_mods": sorted(self.options.server_mods.value),
             "mission_ticket_importance": self.options.mission_ticket_importance.current_key,
+            "mission_modifiers": self.mission_modifiers,
+            "victory_caches": bool(self.options.victory_caches.value),
+            "milestone_checks": bool(self.options.milestone_checks.value),
+            "class_weapon_slots": bool(self.options.class_weapon_slots.value),
+            "class_weapon_slots_any_order": self.options.class_weapon_slots.value == ANY_ORDER,
+            "giantsanity": bool(self.options.giantsanity.value),
+            "tanksanity": bool(self.options.tanksanity.value),
+            "tracker": {
+                "version": 1,
+                "starting_items": [
+                    item.name for item in self.multiworld.precollected_items[self.player]
+                ],
+            },
         }
 
     def _available_missions(self) -> list[data.Mission]:
         floor = data.DIFFICULTIES.index(self.options.difficulty_pool.current_key)
         allowed = data.DIFFICULTIES[floor:]
         excluded = self.options.excluded_missions.value
+        mods = self.options.server_mods.value
+        community = bool(self.options.community_missions.value)
         return [
             mission
             for mission in data.MISSIONS
-            if mission.playable and mission.difficulty in allowed and mission.name not in excluded
+            if mission.seedable_with(mods)
+            and mission.difficulty in allowed
+            and mission.name not in excluded
+            and (community or not mission.community)
         ]
 
     @staticmethod
     def _tier_order(mission: data.Mission) -> tuple[int, int]:
         return data.DIFFICULTIES.index(mission.difficulty), mission.id
 
-    @staticmethod
-    def _check_count(missions: list[data.Mission]) -> int:
+    def _checks(self, mission: data.Mission) -> tuple[data.Location, ...]:
+        return mission.checks(
+            bool(self.options.victory_caches.value),
+            bool(self.options.giantsanity.value),
+            bool(self.options.tanksanity.value),
+        )
+
+    def _check_count(self, missions: list[data.Mission]) -> int:
         # The export decides how many checks a mission holds. Counting the
         # waves and adding one for the clear stopped being that the day a
-        # mission grew a tank check.
-        return sum(len(mission.locations) for mission in missions)
+        # mission grew a tank check. The caches and per-kill checks are the
+        # options' to add, and the milestones belong to the run rather than to
+        # a mission.
+        checks = sum(len(self._checks(mission)) for mission in missions)
+        if self.options.milestone_checks.value:
+            checks += len(data.MILESTONES)
+        return checks
 
     def _shortfall(self, missions: list[data.Mission], start: data.Mission | None) -> int:
         """Unlock items owed minus the checks there is room for; filler only closes a surplus."""
         if start is None:
             start = min(missions, key=self._tier_order)
         requirement = REQUIREMENTS[start.difficulty]
-        unlocks = (
-            len(missions)
-            - 1
-            + len(data.CLASS_NAMES)
-            - requirement.classes
-            + data.WEAPON_SLOT_COUNT
-            - requirement.slots
+        if self.options.weapon_slot_importance.current_key == "disabled":
+            slot_unlocks = 0
+        elif self.options.class_weapon_slots.value:
+            slot_unlocks = len(data.CLASS_SLOT_ITEMS) * data.CLASS_SLOT_COUNT - (
+                len(data.CLASS_NAMES)
+                if self.options.class_unlock_importance.current_key == "disabled"
+                else requirement.classes
+            ) * (requirement.slots - 1)
+        else:
+            slot_unlocks = data.WEAPON_SLOT_COUNT - requirement.slots
+        ticket_unlocks = (
+            0
+            if self.options.mission_ticket_importance.current_key == "disabled"
+            else len(missions) - 1
         )
+        class_unlocks = (
+            0
+            if self.options.class_unlock_importance.current_key == "disabled"
+            else len(data.CLASS_NAMES) - requirement.classes
+        )
+        unlocks = ticket_unlocks + class_unlocks + slot_unlocks
         if self.options.weapon_buff_importance.current_key == "progression":
             unlocks += max(BUFF_REQUIREMENTS.values())
         return unlocks - self._check_count(missions)
+
+    def _milestone_rule(self, name: str) -> Callable[[CollectionState], bool] | None:
+        """How many missions a tally has to wait for.
+
+        Every milestone used to sit in sphere 0, so a progression item could be
+        placed behind "40 Tanks Destroyed" on the first move. Roseburst reported
+        what that costs: a multiworld held up while one player replayed Village
+        Vanguard ten times, because the only tanks they could reach were there.
+
+        The tally is still reachable the moment the run starts, so this is not
+        about possibility, it is about depth. The k-th tally of its kind waits
+        for its share of the run's mission tickets, so the long ones sit behind
+        most of the run and nothing early can hide behind them.
+
+        Tickets that are not progression cannot gate anything, and that setting
+        already asks for a shallower run, so it keeps the old behaviour.
+        """
+        if self.options.mission_ticket_importance.current_key != "progression":
+            return None
+        kind = next((one.kind for one in data.MILESTONES if one.name == name), None)
+        if kind is None:
+            return None
+        ranked = sorted(
+            (one for one in data.MILESTONES if one.kind == kind), key=lambda one: one.threshold
+        )
+        rank = next(index for index, one in enumerate(ranked) if one.name == name)
+        # The smallest of each kind stays where it was, open from the first
+        # mission: a hundred robots die in one wave. The largest waits for all
+        # but one of the tickets, and never the whole run, since the last one
+        # may be the goal's own.
+        if len(ranked) < 2:
+            return None
+        share = rank / (len(ranked) - 1)
+        wanted = round(share * (len(self.missions) - 1))
+        if wanted <= 0:
+            return None
+        player = self.player
+
+        def reached(state: CollectionState) -> bool:
+            return state.has_group("Mission Tickets", player, wanted)
+
+        return reached
 
     def _deploy_rule(self, mission: data.Mission) -> Callable[[CollectionState], bool]:
         ticket = data.TICKET_NAMES[mission.id]
         requirement: Requirement = REQUIREMENTS[mission.difficulty]
         player = self.player
+        per_class = bool(self.options.class_weapon_slots.value)
+        any_order = self.options.class_weapon_slots.value == ANY_ORDER
+
+        def deployable_classes(state: CollectionState) -> int:
+            # A class counts once it is held with the slots the tier asks
+            # for: its free first slot, plus the ones it has earned. Which is
+            # copies of one item, or that many of its named slots.
+            if any_order:
+                return sum(
+                    1
+                    for class_name, names in data.CLASS_NAMED_SLOT_ITEMS.items()
+                    if state.has(class_name, player)
+                    and sum(state.has(name, player) for name in names) >= requirement.slots - 1
+                )
+            return sum(
+                1
+                for class_name, slot_item in data.CLASS_SLOT_ITEMS.items()
+                if state.has(class_name, player)
+                and state.has(slot_item, player, requirement.slots - 1)
+            )
 
         def can_deploy(state: CollectionState) -> bool:
             ticket_ready = (
-                self.options.mission_ticket_importance.current_key == "useful"
+                self.options.mission_ticket_importance.current_key != "progression"
                 or state.has(ticket, player)
             )
-            classes_ready = (
-                self.options.class_unlock_importance.current_key == "useful"
-                or state.has_group("Classes", player, requirement.classes)
-            )
-            slots_ready = self.options.weapon_slot_importance.current_key == "useful" or state.has(
-                data.PROGRESSIVE_WEAPON_SLOT, player, requirement.slots
-            )
+            if per_class:
+                ready = (
+                    self.options.class_unlock_importance.current_key != "progression"
+                    and self.options.weapon_slot_importance.current_key != "progression"
+                ) or deployable_classes(state) >= requirement.classes
+                classes_ready = slots_ready = ready
+            else:
+                classes_ready = (
+                    self.options.class_unlock_importance.current_key != "progression"
+                    or state.has_group("Classes", player, requirement.classes)
+                )
+                slots_ready = (
+                    self.options.weapon_slot_importance.current_key != "progression"
+                    or state.has(data.PROGRESSIVE_WEAPON_SLOT, player, requirement.slots)
+                )
             buffs_ready = (
                 mission is self.start_mission
-                or self.options.weapon_buff_importance.current_key == "useful"
+                or self.options.weapon_buff_importance.current_key != "progression"
                 or state.has_group("Weapon Buffs", player, BUFF_REQUIREMENTS[mission.difficulty])
             )
             return ticket_ready and classes_ready and slots_ready and buffs_ready
@@ -335,14 +757,20 @@ class TF2MvMWorld(World):
         return can_deploy
 
     def _final_boss_rule(self) -> Callable[[CollectionState], bool]:
-        goal = f"{self.goal_mission.name} Complete"
         player = self.player
+        if self.options.medal_on_clear.value:
+            medal = data.MEDAL_NAMES[self.goal_mission.id]
+            return lambda state: state.has(medal, player)
+        goal = f"{self.goal_mission.name} Complete"
         return lambda state: state.can_reach_location(goal, player)
 
     def _missionsanity_rule(self) -> Callable[[CollectionState], bool]:
-        clears = [f"{mission.name} Complete" for mission in self.missions]
         target = self.missionsanity_target
         player = self.player
+        if self.options.medal_on_clear.value:
+            medals = tuple(data.MEDAL_NAMES[mission.id] for mission in self.missions)
+            return lambda state: state.has_from_list_unique(medals, player, target)
+        clears = [f"{mission.name} Complete" for mission in self.missions]
         return lambda state: (
             sum(state.can_reach_location(clear, player) for clear in clears) >= target
         )

@@ -13,6 +13,7 @@ package assets
 import (
 	_ "embed"
 	"fmt"
+	"runtime"
 )
 
 //go:embed embedded/tf2_archipelago.smx
@@ -27,9 +28,6 @@ var apworld []byte
 //go:embed embedded/tf2_archipelago.cfg
 var pluginConfig []byte
 
-//go:embed embedded/server.cfg.tmpl
-var serverCfgTemplate string
-
 // Version constants. Injected via -ldflags "-X ...". Empty means the binary
 // was built without the Makefile (a hand build), which is fine for development
 // but the installer refuses to run without them set.
@@ -40,6 +38,14 @@ var (
 	MetamodVersion     = ""
 	RipextVersion      = ""
 	ArchipelagoVersion = ""
+	SigsegvMVMVersion  = ""
+	SigsegvMVMSHA256   = ""
+
+	// The Windows SigMod build is a separate project with its own numbering,
+	// because upstream publishes a Linux package only. SigsegvMVM picks the
+	// pair this platform installs.
+	SigsegvMVMWindowsVersion = ""
+	SigsegvMVMWindowsSHA256  = ""
 
 	// LauncherVersion is this build of the launcher itself: the release it
 	// belongs to and the commit it was built from. The commit is the useful
@@ -51,6 +57,21 @@ var (
 	// installs no separate download, so nothing gates on it; it is here because
 	// a crash report that does not say which bots were playing cannot be read.
 	DefenderbotsVersion = ""
+
+	/* TF2ServerVersion is the TF2 build deploy/env/versions.env says the pins
+	   above were last checked against.
+
+	   Not a version of anything this project ships, and nothing installs by it.
+	   It is here because the pins that matter most are keyed to the game: a
+	   SigMod build knows one ServerVersion, and SourceMod reads a KeyValues
+	   layout a TF2 update can move. The debug bundle compares this with the
+	   build srcds says it started on, which is the comparison that took an
+	   evening of reading Breakpad output by hand on 2026-10-02.
+
+	   It is not in Versions(): RequireVersions gates installs on that map, and
+	   a launcher that does not know this number can still install correctly.
+	   It only loses the comparison. */
+	TF2ServerVersion = ""
 )
 
 // Plugin returns the compiled SourceMod plugin bytecode.
@@ -81,18 +102,26 @@ func Apworld() []byte { return apworld }
 // cfg/sourcemod/ directory.
 func PluginConfig() []byte { return pluginConfig }
 
-// ServerCfgTemplate returns the server.cfg text/template source. See
-// srcdsconfig for the fields it expects.
-func ServerCfgTemplate() string { return serverCfgTemplate }
+// SigsegvMVM is the SigMod release this platform installs: the version and the
+// checksum of the package to download. Nothing above this asks which platform
+// it is on, so a Windows launcher cannot reach for the Linux package.
+func SigsegvMVM() (version, checksum string) {
+	if runtime.GOOS == "windows" {
+		return SigsegvMVMWindowsVersion, SigsegvMVMWindowsSHA256
+	}
+	return SigsegvMVMVersion, SigsegvMVMSHA256
+}
 
 // Versions reports the pinned tool versions, for display and for refusing to
 // install when the binary was built without them.
 func Versions() map[string]string {
+	sigsegvMVMVersion, _ := SigsegvMVM()
 	return map[string]string{
 		"sourcemod":    SourcemodVersion,
 		"metamod":      MetamodVersion,
 		"ripext":       RipextVersion,
 		"archipelago":  ArchipelagoVersion,
+		"sigsegv-mvm":  sigsegvMVMVersion,
 		"defenderbots": DefenderbotsVersion,
 		"launcher":     LauncherVersion,
 	}
@@ -120,6 +149,9 @@ func RequireVersions() error {
 		if value == "" {
 			return fmt.Errorf("asset version %s is empty: build with `make launcher` so -ldflags injects it from deploy/env/versions.env", name)
 		}
+	}
+	if _, checksum := SigsegvMVM(); checksum == "" {
+		return fmt.Errorf("asset version sigsegv-mvm checksum is empty: build with `make launcher` so -ldflags injects it from deploy/env/versions.env")
 	}
 	return nil
 }

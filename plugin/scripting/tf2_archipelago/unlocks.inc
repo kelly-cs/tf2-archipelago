@@ -19,7 +19,27 @@ bool g_UnlocksTestOverride;
 
 bool g_ClassUnlocked[view_as<int>(TFClass_Engineer) + 1];
 bool g_SlotUnlocked[Slot_Count];
+
+// The seed opening slots class by class. The bridge says so with the unlock
+// set, and the keys then arrive as class/slot rather than as a count: a class
+// holds its first slot with the class and the ones granted here.
+bool g_ClassSlotMode;
+bool g_ClassSlotUnlocked[view_as<int>(TFClass_Engineer) + 1][Slot_Count];
 StringMap g_UnlockedMissions;
+
+/* The server settings the run has been handed, by key
+ *
+ * State like a class unlock: granting one twice is granting it once, so the bridge resends the
+ * whole set freely and this only has to be idempotent. Kept as the set rather than as the convar
+ * value so a map change can put every one of them back without asking the bridge again.
+ */
+static StringMap g_GrantedSettings;
+
+// Every setting this plugin knows, and the convar each one turns on. The wire
+// says what was granted; which lever that is belongs here.
+static const char g_SettingKeys[][] = { "grappling_hook" };
+static const char g_SettingConVars[][] = { "tf_grapplinghook_enable" };
+
 
 // Indexed by TFClassType, whose order is not the class menu's order. Checked against tf2.inc.
 char g_ClassKeys[view_as<int>(TFClass_Engineer) + 1][] = {
@@ -61,6 +81,50 @@ int g_SlotOrder[view_as<int>(TFClass_Engineer) + 1][Slot_Count] = {
 void Unlocks_Init()
 {
     g_UnlockedMissions = new StringMap();
+    g_GrantedSettings = new StringMap();
+}
+
+void Unlocks_GrantServerSetting(const char[] key)
+{
+    for (int i = 0; i < sizeof(g_SettingKeys); i++)
+    {
+        if (!StrEqual(g_SettingKeys[i], key, false))
+        {
+            continue;
+        }
+        g_GrantedSettings.SetValue(key, true);
+        Unlocks_ApplyServerSettings();
+        return;
+    }
+    LogError("The bridge granted the server setting %s. This plugin does not know it.", key);
+}
+
+/* Written every map start as well as on the grant
+ *
+ * A convar a plugin set is not a convar the next map keeps: server.cfg runs again and puts the
+ * host's value back. The set is what survives, so it is replayed rather than trusted to stick.
+ */
+void Unlocks_ApplyServerSettings()
+{
+    if (g_GrantedSettings == null)
+    {
+        return;
+    }
+    for (int i = 0; i < sizeof(g_SettingKeys); i++)
+    {
+        bool granted;
+        if (!g_GrantedSettings.GetValue(g_SettingKeys[i], granted) || !granted)
+        {
+            continue;
+        }
+        ConVar convar = FindConVar(g_SettingConVars[i]);
+        if (convar == null)
+        {
+            LogError("The run granted %s and this server has no %s.", g_SettingKeys[i], g_SettingConVars[i]);
+            continue;
+        }
+        convar.SetInt(1);
+    }
 }
 
 void Unlocks_Clear()
@@ -74,7 +138,16 @@ void Unlocks_Clear()
     {
         g_SlotUnlocked[slot] = false;
     }
+    g_ClassSlotMode = false;
+    for (int class = 0; class < sizeof(g_ClassSlotUnlocked); class++)
+    {
+        for (int slot = 0; slot < Slot_Count; slot++)
+        {
+            g_ClassSlotUnlocked[class][slot] = false;
+        }
+    }
     g_UnlockedMissions.Clear();
+    g_GrantedSettings.Clear();
     WeaponBuffs_Clear();
 }
 
@@ -124,6 +197,30 @@ void Unlocks_GrantSlot(const char[] key)
     g_SlotUnlocked[slot] = true;
 }
 
+void Unlocks_SetClassSlotMode(bool on)
+{
+    g_ClassSlotMode = on;
+}
+
+// A class's own slot, spelled class/slot by the bridge.
+void Unlocks_GrantClassSlot(const char[] key)
+{
+    char parts[2][32];
+    if (ExplodeString(key, "/", parts, sizeof(parts), sizeof(parts[])) != 2)
+    {
+        LogError("The bridge granted the class weapon slot %s. This plugin cannot read it.", key);
+        return;
+    }
+    TFClassType class = Unlocks_ClassFromKey(parts[0]);
+    int slot = Unlocks_SlotFromKey(parts[1]);
+    if (class == TFClass_Unknown || slot == -1)
+    {
+        LogError("The bridge granted the class weapon slot %s. This plugin does not know it.", key);
+        return;
+    }
+    g_ClassSlotUnlocked[view_as<int>(class)][slot] = true;
+}
+
 void Unlocks_GrantMission(const char[] popFile)
 {
     g_UnlockedMissions.SetValue(popFile, true);
@@ -161,6 +258,12 @@ bool Unlocks_SlotsEnforced()
     if (!g_HaveUnlocks || g_UnlocksTestOverride)
     {
         return false;
+    }
+    // Per class, a slot is open with the class or with its own item, so the
+    // slots are enforced exactly when the classes are.
+    if (g_ClassSlotMode)
+    {
+        return Unlocks_ClassesEnforced();
     }
     for (int slot = 0; slot < Slot_Count; slot++)
     {
@@ -336,6 +439,11 @@ static int Unlocks_SlotsHeld()
 
 static bool Unlocks_SlotOpen(TFClassType class, int slot, int held)
 {
+    if (g_ClassSlotMode)
+    {
+        return slot == g_SlotOrder[view_as<int>(class)][0]
+            || g_ClassSlotUnlocked[view_as<int>(class)][slot];
+    }
     for (int position = 0; position < held; position++)
     {
         if (g_SlotOrder[view_as<int>(class)][position] == slot)
@@ -344,6 +452,70 @@ static bool Unlocks_SlotOpen(TFClassType class, int slot, int held)
         }
     }
     return false;
+}
+
+// Whether the run lets this class hold anything in this slot right now.
+bool Unlocks_SlotAvailable(TFClassType class, int slot)
+{
+    return !Unlocks_SlotsEnforced() || Unlocks_SlotOpen(class, slot, Unlocks_SlotsHeld());
+}
+
+/* The loadout slot a wearable occupies, for the ones that take a weapon's
+ * place. A shield, a pair of boots, a backpack: none is a weapon, so the strip
+ * below walks past them, and the slot they sit in stays in use with the lock
+ * on it. k-kaneta's Demoman charged with a locked secondary, and with a locked
+ * primary kept his boots and held nothing. The class matters for the B.A.S.E.
+ * Jumper, which is a Soldier's secondary and a Demoman's primary. Anything not
+ * listed, hats included, answers -1 and is left alone.
+ */
+int Unlocks_WearableSlot(TFClassType class, int defindex)
+{
+    switch (defindex)
+    {
+        case 131, 406, 1099, 1144:
+        {
+            return class == TFClass_DemoMan ? Slot_Secondary : -1;
+        }
+        case 405, 608:
+        {
+            return class == TFClass_DemoMan ? Slot_Primary : -1;
+        }
+        case 133, 444:
+        {
+            return class == TFClass_Soldier ? Slot_Secondary : -1;
+        }
+        case 1101:
+        {
+            if (class == TFClass_Soldier)
+            {
+                return Slot_Secondary;
+            }
+            return class == TFClass_DemoMan ? Slot_Primary : -1;
+        }
+        case 57, 231, 642:
+        {
+            return class == TFClass_Sniper ? Slot_Secondary : -1;
+        }
+    }
+    return -1;
+}
+
+static void Unlocks_StripWearables(int client, TFClassType class, int held)
+{
+    int entity = -1;
+    while ((entity = FindEntityByClassname(entity, "tf_wearable*")) != -1)
+    {
+        if (GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity") != client)
+        {
+            continue;
+        }
+        int slot = Unlocks_WearableSlot(class, GetEntProp(entity, Prop_Send, "m_iItemDefinitionIndex"));
+        if (slot < 0 || Unlocks_SlotOpen(class, slot, held))
+        {
+            continue;
+        }
+        TF2_RemoveWearable(client, entity);
+    }
 }
 
 // Every inventory application: spawn, resupply locker, and the upgrade station's loadout changes.
@@ -370,6 +542,7 @@ void Unlocks_EnforceSlots(int client)
         }
         TF2_RemoveWeaponSlot(client, slot);
     }
+    Unlocks_StripWearables(client, class, held);
     if (removedActive)
     {
         SwitchToAnyWeapon(client, class, held);
@@ -379,9 +552,14 @@ void Unlocks_EnforceSlots(int client)
 // Removing the held weapon leaves no viewmodel and no attack, and the player cannot switch back.
 static void SwitchToAnyWeapon(int client, TFClassType class, int held)
 {
-    for (int position = 0; position < held; position++)
+    for (int position = 0; position < Slot_Count; position++)
     {
-        int weapon = GetPlayerWeaponSlot(client, g_SlotOrder[view_as<int>(class)][position]);
+        int slot = g_SlotOrder[view_as<int>(class)][position];
+        if (!Unlocks_SlotOpen(class, slot, held))
+        {
+            continue;
+        }
+        int weapon = GetPlayerWeaponSlot(client, slot);
         if (weapon == -1)
         {
             continue;

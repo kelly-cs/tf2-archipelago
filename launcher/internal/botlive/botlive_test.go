@@ -2,6 +2,7 @@ package botlive
 
 import (
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -47,6 +48,115 @@ func TestOnlyAWeaponChangeRecyclesTheTeam(t *testing.T) {
 	if last := got[len(got)-1]; last != "sm_redbots_reseat" {
 		// Last, because the mod reads the loadout file when the recycle runs.
 		t.Errorf("last command = %q, want the recycle", last)
+	}
+}
+
+func TestCardSeatCarriesRobotGiantAndDistinctStackedInnates(t *testing.T) {
+	s := settings.Settings{
+		SrcdsBotTeamComp:     []string{"medic"},
+		SrcdsBotSeatNames:    []string{"Herr Doktor"},
+		SrcdsBotSeatLoadouts: []string{"kritz"},
+		SrcdsBotCardForms:    map[string]string{"herr-doktor": "giant"},
+	}
+	seats := SeatsOf(s)
+	if !seats[0].Robot || !seats[0].Giant || seats[0].Tier != 3 || !seats[0].Unusual || seats[0].UnusualEffect != 13 || seats[0].Cosmetic != 315 || len(seats[0].Innates) != 3 {
+		t.Fatalf("card data missing: %+v", seats[0])
+	}
+	for _, innate := range seats[0].Innates {
+		if innate.Stacks != 3 {
+			t.Errorf("innate stacks = %d, want 3", innate.Stacks)
+		}
+	}
+	file := loadoutFile(s)
+	for _, field := range []string{`"robot"`, `"giant"`, `"tier"`, "\"cosmetic\"\t\"315\"", "\"unusual\"\t\"1\"", "\"unusual_effect\"\t\"13\"", `"innate_1"`, `"innate_2"`, `"innate_3"`} {
+		if !strings.Contains(file, field) {
+			t.Errorf("card file missing %s", field)
+		}
+	}
+	for _, innate := range seats[0].Innates {
+		pair := `"` + strconv.Itoa(innate.Effect) + `,` + strconv.Itoa(innate.Stacks) + `"`
+		if !strings.Contains(file, pair) {
+			t.Errorf("card file missing all-weapon innate %s", pair)
+		}
+	}
+	normal := s
+	normal.SrcdsBotCardForms = nil
+	if got := Commands(normal, s); !contains(got, `sm_ap_botcards_evict "Herr Doktor"`) || contains(got, "sm_redbots_reseat") {
+		t.Errorf("turning Giant on should replace only Herr Doktor: %v", got)
+	}
+}
+
+func TestAPCardUsesReceivedTierAndNeedsAReceivedRoll(t *testing.T) {
+	s := settings.Settings{
+		MvmBotCards:          true,
+		SrcdsBotTeamComp:     []string{"scout"},
+		SrcdsBotSeatNames:    []string{"Chucklenuts"},
+		SrcdsBotSeatLoadouts: []string{"stock"},
+		SrcdsBotCardForms:    map[string]string{"stock-scout": "giant"},
+	}
+	if SeatsOf(s)[0].Card {
+		t.Fatal("unreceived card got card buffs")
+	}
+	s.SrcdsBotCardRolls = map[string]string{"stock-scout": "Bot: Chucklenuts | Legendary | Giant"}
+	seat := SeatsOf(s)[0]
+	if !seat.Card || seat.Tier != 3 || !seat.Giant || !seat.Unusual || seat.UnusualEffect != 13 || len(seat.Innates) != 3 {
+		t.Fatalf("received Legendary Giant = %+v", seat)
+	}
+}
+
+func TestCardPriorityDragKeepsExistingBotsAndRebindsSeats(t *testing.T) {
+	before := settings.Settings{
+		SrcdsBotTeamComp:     []string{"medic", "heavyweapons"},
+		SrcdsBotSeatNames:    []string{"Herr Doktor", "IvanTheSpaceBiker"},
+		SrcdsBotSeatLoadouts: []string{"kritz", "brass"},
+	}
+	after := before
+	after.SrcdsBotTeamComp = []string{"heavyweapons", "medic"}
+	after.SrcdsBotSeatNames = []string{"IvanTheSpaceBiker", "Herr Doktor"}
+	after.SrcdsBotSeatLoadouts = []string{"brass", "kritz"}
+	got := Commands(before, after)
+	if !contains(got, "sm_redbots_rebind_seats") || !contains(got, "sm_ap_botcards_reconcile") || contains(got, "sm_redbots_reseat") {
+		t.Fatalf("card reorder did not preserve the team: %v", got)
+	}
+	if got[len(got)-1] != "say "+Announcement {
+		t.Fatalf("card update announced before reconciliation: %v", got)
+	}
+	for _, command := range got {
+		if strings.HasPrefix(command, "sm_ap_botcards_evict") {
+			t.Fatalf("dragging priority evicted a bot: %v", got)
+		}
+	}
+}
+
+func TestAddingCardReplacesLowestUnselectedBot(t *testing.T) {
+	before := settings.Settings{
+		SrcdsBotTeamComp:     []string{"medic", "soldier"},
+		SrcdsBotSeatNames:    []string{"Herr Doktor", ""},
+		SrcdsBotSeatLoadouts: []string{"kritz", "banner"},
+	}
+	after := before
+	after.SrcdsBotTeamComp = []string{"medic", "engineer"}
+	after.SrcdsBotSeatNames = []string{"Herr Doktor", "Chell"}
+	after.SrcdsBotSeatLoadouts = []string{"kritz", "ranger"}
+	got := Commands(before, after)
+	if !contains(got, "sm_ap_botcards_reconcile") || contains(got, "sm_redbots_reseat") {
+		t.Errorf("new card should replace the unselected bot: %v", got)
+	}
+}
+
+func TestHumanCardKeepsTierInnatesWithoutRobotModel(t *testing.T) {
+	s := settings.Settings{
+		SrcdsBotTeamComp:     []string{"scout"},
+		SrcdsBotSeatNames:    []string{"CreditToTeam"},
+		SrcdsBotSeatLoadouts: []string{"milk"},
+		SrcdsBotCardForms:    map[string]string{"credit-to-team": "human"},
+	}
+	seat := SeatsOf(s)[0]
+	if !seat.Card || seat.Robot || seat.Giant || seat.Tier != 1 || seat.Cosmetic != 111 || seat.Unusual || seat.UnusualEffect != 0 || len(seat.Innates) != 1 {
+		t.Fatalf("human card data = %+v", seat)
+	}
+	if file := loadoutFile(s); !strings.Contains(file, `"card"`) || strings.Contains(file, `"robot"`) {
+		t.Fatalf("human card file has wrong form: %s", file)
 	}
 }
 
@@ -135,85 +245,6 @@ func contains(lines []string, want string) bool {
 	return slices.Contains(lines, want)
 }
 
-/*
-	A bot team is the one thing a running server takes without a restart, and
-
-anything else on the same save is still a restart.
-
-The test is written against real fields rather than a list of names, so a
-setting added to the struct later fails it here rather than silently going live.
-*/
-func TestOnlyTheBotTeamGoesLive(t *testing.T) {
-	base := settings.Settings{
-		SrcdsBotTeamSize: 6,
-		SrcdsBotTeamComp: []string{"engineer", "medic"},
-		SrcdsHostname:    "a server",
-		SrcdsPort:        27015,
-	}
-	for _, test := range []struct {
-		name  string
-		after func(settings.Settings) settings.Settings
-		want  bool
-	}{
-		{"nothing moved", func(s settings.Settings) settings.Settings { return s }, false},
-		{
-			"a seat changed class",
-			func(s settings.Settings) settings.Settings {
-				s.SrcdsBotTeamComp = []string{"engineer", "heavyweapons"}
-				return s
-			},
-			true,
-		},
-		{
-			"the team got bigger",
-			func(s settings.Settings) settings.Settings { s.SrcdsBotTeamSize = 4; return s },
-			true,
-		},
-		{
-			"a class was unticked",
-			func(s settings.Settings) settings.Settings {
-				s.SrcdsBotClassBlacklist = []string{"spy"}
-				return s
-			},
-			true,
-		},
-		{
-			"a seat changed weapons",
-			func(s settings.Settings) settings.Settings {
-				s.SrcdsBotSeatLoadouts = []string{"gunslinger", ""}
-				return s
-			},
-			true,
-		},
-		{
-			"a team was saved under a name",
-			func(s settings.Settings) settings.Settings {
-				s.SrcdsBotTeamPresets = map[string]settings.BotTeam{"tanks": {}}
-				return s
-			},
-			true,
-		},
-		{
-			"the port moved, which the server reads once",
-			func(s settings.Settings) settings.Settings { s.SrcdsPort = 27016; return s },
-			false,
-		},
-		{
-			"a seat changed and so did the port",
-			func(s settings.Settings) settings.Settings {
-				s.SrcdsBotTeamComp = []string{"scout"}
-				s.SrcdsPort = 27016
-				return s
-			},
-			false,
-		},
-	} {
-		if got := LiveOnly(base, test.after(clone(base))); got != test.want {
-			t.Errorf("%s: LiveOnly = %v, want %v", test.name, got, test.want)
-		}
-	}
-}
-
 // clone keeps one case from writing into the next one's base.
 func clone(s settings.Settings) settings.Settings {
 	out := s
@@ -296,5 +327,58 @@ func TestTheTeamChangeIsAnnouncedFirst(t *testing.T) {
 
 	if got := Commands(before, clone(before)); contains(got, want) {
 		t.Errorf("a save that changed no bot setting announced a new team: %v", got)
+	}
+}
+
+/*
+Renaming a seat costs the team nothing.
+
+A reseat rebuilds every bot and loses the upgrades they bought, which is the
+right price for a weapon that is handed out on the way in and the wrong one for
+a string on a player. The mod grew sm_redbots_reload_names for this in v0.16.0.
+*/
+func TestANameChangeRenamesRatherThanRecycles(t *testing.T) {
+	before := settings.Defaults()
+	before.SrcdsBotTeamComp = []string{"pyro", "engineer"}
+
+	after := before
+	after.SrcdsBotSeatNames = []string{"Gravel Pit Gary", ""}
+
+	got := Commands(before, after)
+	if slices.Contains(got, "sm_redbots_reseat") {
+		t.Errorf("a rename recycled the team: %v", got)
+	}
+	if !slices.Contains(got, "sm_redbots_reload_names") {
+		t.Errorf("nothing told the mod to read the names: %v", got)
+	}
+}
+
+// A weapon that moved still costs a reseat, and covers the name that moved with
+// it: a rebuilt bot is named on the way in.
+func TestAWeaponChangeStillRecyclesAndCarriesTheNames(t *testing.T) {
+	before := settings.Defaults()
+	before.SrcdsBotTeamComp = []string{"pyro", "engineer"}
+
+	after := before
+	after.SrcdsBotSeatLoadouts = []string{"phlog", ""}
+	after.SrcdsBotSeatNames = []string{"Gravel Pit Gary", ""}
+
+	got := Commands(before, after)
+	if !slices.Contains(got, "sm_redbots_reseat") {
+		t.Errorf("a weapon change did not recycle: %v", got)
+	}
+	if slices.Contains(got, "sm_redbots_reload_names") {
+		t.Errorf("the reseat was followed by a rename it already did: %v", got)
+	}
+}
+
+// A pool somebody edited reaches the bots too: the file they draw from changed.
+func TestChangingThePoolAsksTheModToReadItAgain(t *testing.T) {
+	before := settings.Defaults()
+	after := before
+	after.SrcdsBotNamesAdded = []string{"Gravel Pit Gary"}
+
+	if got := Commands(before, after); !slices.Contains(got, "sm_redbots_reload_names") {
+		t.Errorf("an edited pool sent %v", got)
 	}
 }

@@ -16,6 +16,62 @@
 # mistake worth being able to make.
 name: tf2-archipelago
 
+# Inline configs keep the released compose.yaml self-contained.
+configs:
+  fastdl_caddy:
+    content: |
+      :80 {
+        @health path /tf /tf/
+        respond @health "TF2 Archipelago FastDL is ready." 200
+        handle_path /tf/* {
+          @content path /maps/* /materials/* /models/* /sound/* /particles/* /resource/*
+          handle @content {
+            root * /srv/tf-dedicated/tf
+            file_server
+          }
+          respond 404
+        }
+        respond 404
+      }
+  tailscale_fastdl_ready:
+    content: |
+      #!/bin/sh
+      set -eu
+      # With FastDL off the sidecar's job is to wait, and a service doing its
+      # job is healthy. Otherwise `docker compose ps` shows it unhealthy for
+      # the life of every stack that never asked for Funnel.
+      [ "$${TAILSCALE_FASTDL:-0}" = 1 ] || exit 0
+      socket=/run/tf2ap-fastdl/tailscaled.sock
+      status="$$(tailscale --socket="$$socket" status --json)"
+      dns_name="$$(
+        printf '%s\n' "$$status" |
+          sed -n 's/^[[:space:]]*"DNSName":[[:space:]]*"\([^"]*\)".*/\1/p' |
+          head -n 1
+      )"
+      dns_name="$${dns_name%.}"
+      case "$$dns_name" in
+        *.ts.net) ;;
+        *) exit 1 ;;
+      esac
+      case "$$dns_name" in
+        *[!A-Za-z0-9.-]*) exit 1 ;;
+      esac
+      funnel="$$(tailscale --socket="$$socket" funnel status --json)"
+      case "$$funnel" in *'"/tf"'*) ;; *) exit 1 ;; esac
+      case "$$funnel" in *'"AllowFunnel"'*true*) ;; *) exit 1 ;; esac
+      temporary=/run/tf2ap-fastdl/url.new
+      printf 'https://%s/tf\n' "$$dns_name" >"$$temporary"
+      mv "$$temporary" /run/tf2ap-fastdl/url
+  tailscale_fastdl_start:
+    content: |
+      #!/bin/sh
+      set -eu
+      rm -f /run/tf2ap-fastdl/url /run/tf2ap-fastdl/url.new
+      exec /usr/local/bin/tailscaled \
+        --tun=userspace-networking \
+        --statedir=/var/lib/tailscale \
+        --socket=/run/tf2ap-fastdl/tailscaled.sock
+
 services:
   # The multiworld, hosted here rather than on archipelago.gg. Off unless
   # COMPOSE_PROFILES=selfhost, and it wants AP_HOST=archipelago with
@@ -38,9 +94,35 @@ services:
       MVM_GOAL: ${MVM_GOAL:-}
       MVM_MISSIONSANITY_PERCENTAGE: ${MVM_MISSIONSANITY_PERCENTAGE:-}
       MVM_DEATH_LINK: ${MVM_DEATH_LINK:-}
+      MVM_VICTORY_CACHES: ${MVM_VICTORY_CACHES:-}
+      MVM_MILESTONE_CHECKS: ${MVM_MILESTONE_CHECKS:-}
+      MVM_CLASS_WEAPON_SLOTS: ${MVM_CLASS_WEAPON_SLOTS:-}
+      MVM_MISSION_TICKET_IMPORTANCE: ${MVM_MISSION_TICKET_IMPORTANCE:-}
+      MVM_CLASS_UNLOCK_IMPORTANCE: ${MVM_CLASS_UNLOCK_IMPORTANCE:-}
+      MVM_WEAPON_SLOT_IMPORTANCE: ${MVM_WEAPON_SLOT_IMPORTANCE:-}
+      MVM_WEAPON_BUFF_IMPORTANCE: ${MVM_WEAPON_BUFF_IMPORTANCE:-}
+      MVM_GIANTSANITY: ${MVM_GIANTSANITY:-}
+      MVM_TANKSANITY: ${MVM_TANKSANITY:-}
       MVM_EXCLUDED_MISSIONS: ${MVM_EXCLUDED_MISSIONS:-}
       MVM_START_MISSION: ${MVM_START_MISSION:-}
       MVM_START_CLASS: ${MVM_START_CLASS:-}
+      MVM_COMMUNITY_MISSIONS: ${MVM_COMMUNITY_MISSIONS:-}
+      # No default: a .env without the key leaves it unset, which playeryaml
+      # reads as every pack, and an empty one as none.
+      TF2AP_COMMUNITY_PACKS:
+      MVM_MISSION_MODIFIERS: ${MVM_MISSION_MODIFIERS:-}
+      MVM_MINIMUM_MISSION_MODIFIERS: ${MVM_MINIMUM_MISSION_MODIFIERS:-}
+      MVM_MAXIMUM_MISSION_MODIFIERS: ${MVM_MAXIMUM_MISSION_MODIFIERS:-}
+      MVM_MEDAL_ON_CLEAR: ${MVM_MEDAL_ON_CLEAR:-}
+      MVM_SERVER_SETTINGS: ${MVM_SERVER_SETTINGS:-}
+      MVM_CASH_REWARDS: ${MVM_CASH_REWARDS:-}
+      MVM_BOT_CARDS: ${MVM_BOT_CARDS:-}
+      MVM_STARTING_BOT_CARDS: ${MVM_STARTING_BOT_CARDS:-}
+      MVM_STARTING_BOT_CARD_MODE: ${MVM_STARTING_BOT_CARD_MODE:-}
+      MVM_WEAPON_BUFF_PERCENTAGE: ${MVM_WEAPON_BUFF_PERCENTAGE:-}
+      MVM_WEAPON_BUFF_STACK_CHANCE: ${MVM_WEAPON_BUFF_STACK_CHANCE:-}
+      MVM_TRAP_PERCENTAGE: ${MVM_TRAP_PERCENTAGE:-}
+      SRCDS_MODS: ${SRCDS_MODS:-}
       AP_PORT: ${AP_PORT:?set AP_PORT in .env}
       AP_SLOT_NAME: ${AP_SLOT_NAME:-tf2}
       AP_PASSWORD: ${AP_PASSWORD:-}
@@ -57,6 +139,15 @@ services:
       dockerfile: deploy/Dockerfile.srcds
       args:
         RIPEXT_VERSION: ${RIPEXT_VERSION:?set it in deploy/env/versions.env}
+        SOURCEMOD_VERSION: ${SOURCEMOD_VERSION:?set it in deploy/env/versions.env}
+        MMSOURCE_VERSION: ${MMSOURCE_VERSION:?set it in deploy/env/versions.env}
+        SIGSEGV_MVM_VERSION: ${SIGSEGV_MVM_VERSION:?set it in deploy/env/versions.env}
+        SIGSEGV_MVM_SHA256: ${SIGSEGV_MVM_SHA256:?set it in deploy/env/versions.env}
+    # SRCDS reads its console input during startup. This also keeps its output
+    # line-buffered, matching the native launcher and the upstream image's
+    # supported Compose example.
+    stdin_open: true
+    tty: true
     restart: unless-stopped
     environment:
       SRCDS_HOSTNAME: ${SRCDS_HOSTNAME:-Mann vs Archipelago}
@@ -70,6 +161,11 @@ services:
       TF2AP_BOT_UPGRADES_CHAT: ${TF2AP_BOT_UPGRADES_CHAT:-0}
       SRCDS_TOKEN: ${SRCDS_TOKEN:-0}
       SRCDS_ADMIN_STEAMIDS: ${SRCDS_ADMIN_STEAMIDS:-}
+      SRCDS_MODS: ${SRCDS_MODS:-}
+      SRCDS_MOD_LOADING: ${SRCDS_MOD_LOADING:-}
+      MVM_START_MISSION: ${MVM_START_MISSION:-}
+      MVM_EXCLUDED_MISSIONS: ${MVM_EXCLUDED_MISSIONS:-}
+      MVM_COMMUNITY_MISSIONS: ${MVM_COMMUNITY_MISSIONS:-}
       SRCDS_LAN: ${SRCDS_LAN:-1}
       SRCDS_REACH: ${SRCDS_REACH:-}
       SRCDS_BOTS: ${SRCDS_BOTS:-1}
@@ -77,8 +173,21 @@ services:
       SRCDS_BOT_TEAM_SIZE: ${SRCDS_BOT_TEAM_SIZE:-6}
       SRCDS_BOT_CLASS_BLACKLIST: ${SRCDS_BOT_CLASS_BLACKLIST:-}
       SRCDS_BOT_TEAM_COMP: ${SRCDS_BOT_TEAM_COMP:-}
+      SRCDS_BOT_LOADOUTS: ${SRCDS_BOT_LOADOUTS:-}
+      SRCDS_BOT_SEAT_LOADOUTS: ${SRCDS_BOT_SEAT_LOADOUTS:-}
+      SRCDS_BOT_CARD_FORMS: ${SRCDS_BOT_CARD_FORMS:-}
+      SRCDS_BOT_CUSTOM_LOADOUTS: ${SRCDS_BOT_CUSTOM_LOADOUTS:-}
+      SRCDS_BOT_NAMES_EXCLUDED: ${SRCDS_BOT_NAMES_EXCLUDED:-}
+      SRCDS_BOT_NAMES_ADDED: ${SRCDS_BOT_NAMES_ADDED:-}
+      SRCDS_BOT_SEAT_NAMES: ${SRCDS_BOT_SEAT_NAMES:-}
       SRCDS_BOT_HATS: ${SRCDS_BOT_HATS:-1}
+      SRCDS_BOT_BUY_ANYWHERE: ${SRCDS_BOT_BUY_ANYWHERE:-0}
       SRCDS_BOT_HAT_EFFECTS: ${SRCDS_BOT_HAT_EFFECTS:-0}
+      SRCDS_BLU_HEALTH_PCT: ${SRCDS_BLU_HEALTH_PCT:-}
+      FASTDL_HOST: ${FASTDL_HOST:-}
+      FASTDL_PORT: ${FASTDL_PORT:-27080}
+      SRCDS_DOWNLOADURL: ${SRCDS_DOWNLOADURL:-}
+      TAILSCALE_FASTDL: ${TAILSCALE_FASTDL:-0}
     ports:
       # The only public port in the stack, and it is the game's.
       - "${SRCDS_PORT:-27015}:${SRCDS_PORT:-27015}/udp"
@@ -87,12 +196,65 @@ services:
       # of its own: it runs in this container's namespace. Loopback unless
       # BRIDGE_METRICS_BIND says otherwise.
       - "${BRIDGE_METRICS_BIND:-127.0.0.1}:${BRIDGE_METRICS_PORT:-24681}:${BRIDGE_METRICS_PORT:-24681}/tcp"
+      # The admin service shares this network namespace too. Bind it only to
+      # host loopback: the page can send RCON commands.
+      - "127.0.0.1:${TF2AP_ADMIN_PORT:-8477}:8477/tcp"
     volumes:
       - tf2game:/home/steam/tf-dedicated
       # A normal TF2 content tree: maps/, scripts/population/, scripts/items/,
       # materials/, models/, sound/ and scripts/vscripts/ all keep their native
       # paths. Restarting srcds installs files changed on the host.
       - ./community-content:/opt/tf2-community-pack:ro
+      - tailscale_fastdl_runtime:/run/tf2ap-fastdl:ro
+  # The game's content over HTTP, for clients joining without a community
+  # map. Read-only on the game volume, and it answers only under maps/,
+  # materials/, models/, sound/, particles/ and resource/: cfg/ holds the rcon
+  # password. Reachable wherever the game port is, and nowhere else: no
+  # forwarding here beyond what the game already needs.
+  fastdl:
+    image: caddy:2.11.7-alpine
+    restart: unless-stopped
+    ports:
+      - "${FASTDL_BIND:-0.0.0.0}:${FASTDL_PORT:-27080}:80/tcp"
+    volumes:
+      - tf2game:/srv/tf-dedicated:ro
+    configs:
+      - source: fastdl_caddy
+        target: /etc/caddy/Caddyfile
+
+  # Public HTTPS for FastDL without a forwarded router port. It shares
+  # Caddy's network namespace because Tailscale intentionally proxies only to
+  # loopback HTTP backends. The official image owns login, certificates and
+  # Funnel; Caddy remains the only process allowed to read the game volume.
+  tailscale-fastdl:
+    image: tailscale/tailscale:${TAILSCALE_VERSION:?set it in deploy/env/versions.env}
+    restart: unless-stopped
+    network_mode: "service:fastdl"
+    # containerboot expects an auth key before it starts. Running the daemon
+    # directly lets the admin UI initiate interactive login and show its URL.
+    entrypoint: ["/config/start.sh"]
+    environment:
+      TAILSCALE_FASTDL: ${TAILSCALE_FASTDL:-0}
+    volumes:
+      - tailscale_fastdl_state:/var/lib/tailscale
+      - tailscale_fastdl_runtime:/run/tf2ap-fastdl
+    configs:
+      - source: tailscale_fastdl_start
+        target: /config/start.sh
+        mode: 0555
+      - source: tailscale_fastdl_ready
+        target: /config/ready.sh
+        mode: 0555
+    healthcheck:
+      test: ["CMD", "/config/ready.sh"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+      start_period: 5s
+    depends_on:
+      fastdl:
+        condition: service_started
+        restart: true
 
   bridge:
     build:
@@ -111,6 +273,22 @@ services:
     network_mode: "service:srcds"
     environment:
       TF2AP_TEST_MODE: ${TF2AP_TEST_MODE:-0}
+      MVM_MISSION_COUNT: ${MVM_MISSION_COUNT:-}
+      MVM_DIFFICULTY: ${MVM_DIFFICULTY:-}
+      MVM_GOAL: ${MVM_GOAL:-}
+      MVM_START_MISSION: ${MVM_START_MISSION:-}
+      MVM_START_CLASS: ${MVM_START_CLASS:-}
+      MVM_EXCLUDED_MISSIONS: ${MVM_EXCLUDED_MISSIONS:-}
+      MVM_COMMUNITY_MISSIONS: ${MVM_COMMUNITY_MISSIONS:-}
+      SRCDS_MODS: ${SRCDS_MODS:-}
+      MVM_DEATH_LINK: ${MVM_DEATH_LINK:-}
+      MVM_MISSION_MODIFIERS: ${MVM_MISSION_MODIFIERS:-}
+      MVM_MINIMUM_MISSION_MODIFIERS: ${MVM_MINIMUM_MISSION_MODIFIERS:-}
+      MVM_MAXIMUM_MISSION_MODIFIERS: ${MVM_MAXIMUM_MISSION_MODIFIERS:-}
+      MVM_VICTORY_CACHES: ${MVM_VICTORY_CACHES:-}
+      MVM_MILESTONE_CHECKS: ${MVM_MILESTONE_CHECKS:-}
+      MVM_GIANTSANITY: ${MVM_GIANTSANITY:-}
+      MVM_TANKSANITY: ${MVM_TANKSANITY:-}
       AP_HOST: ${AP_HOST:?set AP_HOST in .env}
       AP_PORT: ${AP_PORT:?set AP_PORT in .env}
       AP_TLS: ${AP_TLS:-false}
@@ -118,6 +296,7 @@ services:
       AP_PASSWORD: ${AP_PASSWORD:-}
       BRIDGE_LISTEN: 127.0.0.1:24680
       BRIDGE_STATE: /data/bridge.json
+      BRIDGE_LOG_FILE: /data/bridge.log
       # Metrics answer on every interface of the shared namespace; what decides
       # who can reach them is the published port above, not this.
       BRIDGE_METRICS_LISTEN: 0.0.0.0:${BRIDGE_METRICS_PORT:-24681}
@@ -131,6 +310,83 @@ services:
     # all, and the bridge queues and reconnects on its own either way, so boot
     # order was never what made this correct.
 
+  # The launcher's browser interface, attached to the Compose-managed bridge
+  # and game server. Docker remains the lifecycle authority and .env remains
+  # the settings authority; the page monitors the run and keeps mission and
+  # RCON controls without requiring the Docker socket.
+  admin:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.admin
+      args:
+        LAUNCHER_VERSION: ${LAUNCHER_VERSION:-compose}
+        NODE_VERSION: ${NODE_VERSION:?set it in deploy/env/versions.env}
+        TAILSCALE_VERSION: ${TAILSCALE_VERSION:?set it in deploy/env/versions.env}
+    restart: unless-stopped
+    network_mode: "service:srcds"
+    # This is the same file the page writes. Loading it as the container's
+    # environment means every form.Spec survives a recreation without a
+    # second hand-maintained list of settings here. The explicit values below
+    # are runtime wiring and win when a name overlaps.
+    env_file:
+      - path: ./.env
+        required: false
+    # Root, because the sidecar's tailscaled admits only uid 0 over its socket.
+    # Every capability is dropped and DAC_OVERRIDE alone comes back: without it
+    # uid 0 obeys the mode bits like anybody else, and .env and
+    # community-content belong to the host user, so Save and the pack downloads
+    # fail with "permission denied" on a plain Docker Engine. Docker Desktop
+    # fakes bind-mount ownership, which is what hid that. The root filesystem
+    # and both service-log volumes stay read-only. .env is written in place,
+    # which keeps the host file's owner and inode; the files a download creates
+    # are root's on the host.
+    user: "0:0"
+    read_only: true
+    cap_drop: [ALL]
+    cap_add: [DAC_OVERRIDE]
+    security_opt: [no-new-privileges:true]
+    environment:
+      TF2AP_ADMIN_LISTEN: 0.0.0.0:8477
+      TF2AP_ADMIN_AUTHORITY: 127.0.0.1:${TF2AP_ADMIN_PORT:-8477}
+      TF2AP_JOIN_HOST: ${TF2AP_JOIN_HOST:-127.0.0.1}
+      TF2AP_ADMIN_SRCDS_LOG: /srv/tf-dedicated/tf/console.log
+      TF2AP_ADMIN_BRIDGE_LOG: /srv/bridge/bridge.log
+      TF2AP_ADMIN_ENV_FILE: /config/compose.env
+      # ReadyServerMods resolves tf-dedicated/tf beneath the install root. The
+      # named volume is mounted at exactly that path under /srv.
+      TF2AP_INSTALL_ROOT: /srv
+      # Downloads land in the host overlay mounted below, not in the admin
+      # image's read-only /root default. The srcds service mounts the same
+      # directory read-only and continuously syncs its tf/ tree into the game.
+      TF2AP_COMMUNITY_CONTENT_DIR: /opt/tf2-community-pack
+      TF2AP_TAILSCALE_SOCKET: /run/tf2ap-fastdl/tailscaled.sock
+      TAILSCALE_HOSTNAME: ${TAILSCALE_HOSTNAME:-tf2-fastdl}
+      TF2AP_TEST_MODE: ${TF2AP_TEST_MODE:-0}
+      AP_HOST: ${AP_HOST:?set AP_HOST in .env}
+      AP_PORT: ${AP_PORT:?set AP_PORT in .env}
+      AP_SLOT_NAME: ${AP_SLOT_NAME:-tf2}
+      SRCDS_RCONPW: ${SRCDS_RCONPW:?set SRCDS_RCONPW in .env}
+      SRCDS_PW: ${SRCDS_PW:-}
+      SRCDS_PORT: ${SRCDS_PORT:-27015}
+      SRCDS_STARTMAP: ${SRCDS_STARTMAP:-mvm_decoy}
+      SRCDS_START_MISSION: ${SRCDS_START_MISSION:-}
+      SRCDS_REACH: ${SRCDS_REACH:-}
+      SRCDS_LAN: ${SRCDS_LAN:-1}
+      SRCDS_TOKEN: ${SRCDS_TOKEN:-0}
+    volumes:
+      # -condebug writes the server console here. Read-only is enough to stream
+      # it into the page and gives the admin process no way to alter the game.
+      - tf2game:/srv/tf-dedicated:ro
+      - bridgestate:/srv/bridge:ro
+      - tailscale_fastdl_runtime:/run/tf2ap-fastdl
+      - ./community-content:/opt/tf2-community-pack
+      - ./.env:/config/compose.env
+    depends_on:
+      bridge:
+        condition: service_healthy
+      tailscale-fastdl:
+        condition: service_started
+
 volumes:
   # 14 GB of game files. Keep it.
   tf2game:
@@ -140,3 +396,8 @@ volumes:
   apoutput:
   # The bridge's check queue and unlock set.
   bridgestate:
+  # The Tailscale node identity survives image and machine restarts. The auth
+  # key is needed only for the first successful login.
+  tailscale_fastdl_state:
+  # A generated URL shared with srcds. It holds no Tailscale credentials.
+  tailscale_fastdl_runtime:

@@ -10,29 +10,63 @@ import (
 // Selection is the part of the launcher settings that determines whether an
 // Archipelago run has enough locations to hold its unlock items.
 type Selection struct {
+	Pool
 	Difficulty   string
 	MissionCount int
-	Excluded     []string
 	StartMission string
+	// VictoryCaches counts the extra checks a clear pays, the way the
+	// generator will.
+	VictoryCaches bool
+	// MilestoneChecks counts the running-total checks the way the generator
+	// will: every one of them, since any mission progresses them.
+	MilestoneChecks bool
+	// ClassWeaponSlots counts the slot items the way the generator will: two
+	// per class less what the starting tier hands out, instead of three less
+	// the tier's slots.
+	ClassWeaponSlots bool
+	// Giantsanity and Tanksanity count the per-kill checks the way the
+	// generator will.
+	Giantsanity bool
+	Tanksanity  bool
 }
 
 // Preflight is the useful accounting behind a successful selection check.
-// Eligible is the whole pool the generator may widen into, not necessarily
-// how many missions the finished seed draws.
+// Eligible is the whole pool the generator may widen into. Requested is what
+// the settings ask for and Drawn is what the run gets, which are two different
+// numbers whenever the pool is smaller than the ask.
 type Preflight struct {
 	Eligible        int
 	Requested       int
+	Drawn           int
 	AvailableChecks int
 	RequiredUnlocks int
 }
 
-// Summary is suitable for a launcher status line after a successful check.
+/*
+	Summary is suitable for a launcher status line after a successful check.
+
+A report with nothing in it is not one: CheckSelection returns the zero value
+beside every error it gives, so a caller that drops the error and prints this
+used to say a pool of no missions was valid. Saying so here as well, because an
+invariant that lives only in the callers is one line from being untrue.
+*/
 func (p Preflight) Summary() string {
+	if p.Eligible == 0 {
+		return "This selection has no missions in it. Check the difficulty floor, the mission pool and whether community missions are on."
+	}
 	message := fmt.Sprintf(
 		"Selection is valid: %d eligible mission(s) provide %d checks for %d unlocks.",
 		p.Eligible, p.AvailableChecks, p.RequiredUnlocks,
 	)
-	if p.Requested < p.Eligible {
+	switch {
+	// The generator takes the smaller of the two and says so only in its own
+	// log, which is not a place the player who typed the number ever looks.
+	case p.Requested > p.Drawn:
+		message += fmt.Sprintf(
+			" The run asks for %d mission(s) and the pool holds %d, so it uses %d. Turn more missions on, load the mods they need, or lower the difficulty floor.",
+			p.Requested, p.Eligible, p.Drawn,
+		)
+	case p.Requested < p.Eligible:
 		message += fmt.Sprintf(
 			" The generator requests %d and can add eligible missions automatically if its draw needs more checks.",
 			p.Requested,
@@ -70,8 +104,8 @@ func CheckSelection(selection Selection) (Preflight, error) {
 	}
 
 	var eligible []gamedata.Mission
-	for _, mission := range gamedata.PlayableMissions() {
-		if mission.Difficulty < floor || slices.Contains(selection.Excluded, mission.PopFile) {
+	for _, mission := range selection.Missions() {
+		if mission.Difficulty < floor {
 			continue
 		}
 		eligible = append(eligible, mission)
@@ -99,15 +133,24 @@ func CheckSelection(selection Selection) (Preflight, error) {
 
 	checks := 0
 	for _, mission := range eligible {
-		checks += missionCheckCount(mission)
+		checks += missionCheckCount(mission, selection.VictoryCaches, selection.Giantsanity, selection.Tanksanity)
+	}
+	if selection.MilestoneChecks {
+		checks += len(gamedata.Milestones)
 	}
 	requirement := missionRequirements[start.Difficulty]
+	slotUnlocks := len(gamedata.WeaponSlots) - requirement.slots
+	if selection.ClassWeaponSlots {
+		slotUnlocks = len(gamedata.Classes)*int(gamedata.ClassSlotsEarned) -
+			requirement.classes*(requirement.slots-1)
+	}
 	unlocks := len(eligible) - 1 +
 		len(gamedata.Classes) - requirement.classes +
-		len(gamedata.WeaponSlots) - requirement.slots
+		slotUnlocks
 	report := Preflight{
 		Eligible:        len(eligible),
-		Requested:       min(selection.MissionCount, len(eligible)),
+		Requested:       selection.MissionCount,
+		Drawn:           min(selection.MissionCount, len(eligible)),
 		AvailableChecks: checks,
 		RequiredUnlocks: unlocks,
 	}
@@ -129,8 +172,20 @@ func easiestMission(missions []gamedata.Mission) gamedata.Mission {
 	})
 }
 
-func missionCheckCount(mission gamedata.Mission) int {
+func missionCheckCount(mission gamedata.Mission, victoryCaches, giantsanity, tanksanity bool) int {
 	checks := int(mission.Waves) + 1 // waves plus mission clear
+	if victoryCaches {
+		checks += int(mission.Difficulty.VictoryCaches())
+	}
+	for wave := uint8(1); wave <= mission.Waves; wave++ {
+		counts := mission.WaveKillsAt(wave)
+		if giantsanity {
+			checks += int(counts.Giants)
+		}
+		if tanksanity {
+			checks += int(counts.Tanks)
+		}
+	}
 	if mission.HasTank {
 		checks++
 	}

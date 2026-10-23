@@ -96,6 +96,33 @@ func TestProgressiveWeaponSlotsGrantInTableOrder(t *testing.T) {
 	}
 }
 
+// A class's own progressive item opens that class's slots in its own order,
+// less the first, which comes with the class: a Medic's copies open the
+// Syringe Gun and then the Bonesaw, the Medigun being his from the start.
+func TestClassWeaponSlotsGrantInTheClassOrder(t *testing.T) {
+	store := openTemp(t)
+	var medic gamedata.Class
+	for _, class := range gamedata.Classes {
+		if class.Key == "medic" {
+			medic = class
+		}
+	}
+	item := medic.SlotItemID()
+	if err := store.ApplyItems(0, []int64{item, item, item}); err != nil {
+		t.Fatal(err)
+	}
+	grants, _ := store.GrantsSince(0)
+	if len(grants) != int(gamedata.ClassSlotsEarned) {
+		t.Fatalf("%d grants for %d earned slots plus a spare copy", len(grants), gamedata.ClassSlotsEarned)
+	}
+	if grants[0].Key != "medic/primary" || grants[1].Key != "medic/melee" {
+		t.Fatalf("grants = %q, %q", grants[0].Key, grants[1].Key)
+	}
+	if held := store.Unlocks().Of(gamedata.ItemClassWeaponSlot); len(held) != 2 {
+		t.Fatalf("unlock set holds %v", held)
+	}
+}
+
 func TestApplyItemsContinuesAndResets(t *testing.T) {
 	store := openTemp(t)
 	mission := firstMission(t)
@@ -238,8 +265,8 @@ func TestLearningTheSeedKeepsChecksTakenBeforeIt(t *testing.T) {
 		t.Fatal(err)
 	}
 	archive, err := store.BindSeed("first")
-	if err != nil || archive != "" {
-		t.Fatalf("first bind: archive=%q err=%v", archive, err)
+	if err != nil || archive != (Rebind{}) {
+		t.Fatalf("first bind: archive=%+v err=%v", archive, err)
 	}
 	if len(store.Checks()) != 1 {
 		t.Fatal("the queued check did not survive learning the seed")
@@ -257,16 +284,16 @@ func TestANewSeedDropsTheOldRun(t *testing.T) {
 	}
 
 	archive, err := store.BindSeed("first")
-	if err != nil || archive != "" {
-		t.Fatalf("rebinding the same seed: archive=%q err=%v", archive, err)
+	if err != nil || archive != (Rebind{}) {
+		t.Fatalf("rebinding the same seed: archive=%+v err=%v", archive, err)
 	}
 	if len(store.Checks()) != 1 {
 		t.Fatal("rebinding the same seed dropped the run")
 	}
 
 	archive, err = store.BindSeed("second")
-	if err != nil || archive == "" {
-		t.Fatalf("rebinding a new seed: archive=%q err=%v", archive, err)
+	if err != nil || archive.Archived == "" {
+		t.Fatalf("rebinding a new seed: archive=%+v err=%v", archive, err)
 	}
 	if len(store.Checks()) != 0 {
 		t.Fatal("the previous run's checks survived a new seed")
@@ -337,6 +364,34 @@ func TestAnAcknowledgedEffectIsNotSentAgain(t *testing.T) {
 	after, _ := store.GrantsSince(0)
 	if len(after) != 1 || after[0].Kind != gamedata.ItemClass.Key() {
 		t.Fatalf("after the acknowledgement: %+v", after)
+	}
+}
+
+// A trap is an effect, so it reaches the plugin by key and never joins the
+// unlock set. A trap in the unlock set would fire again on every map change.
+func TestATrapIsAnEffectAndNotAnUnlock(t *testing.T) {
+	store := openTemp(t)
+	trap := gamedata.Traps[0]
+
+	if err := store.ApplyItems(0, []int64{trap.ItemID()}); err != nil {
+		t.Fatal(err)
+	}
+	grants, _ := store.GrantsSince(0)
+	if len(grants) != 1 {
+		t.Fatalf("grants = %+v", grants)
+	}
+	if grants[0].Kind != gamedata.ItemTrap.Key() || grants[0].Key != trap.Key {
+		t.Fatalf("the plugin was told %q/%q, wanted trap/%s", grants[0].Kind, grants[0].Key, trap.Key)
+	}
+	if held := store.Unlocks().Of(gamedata.ItemTrap); len(held) != 0 {
+		t.Fatalf("the unlock set holds %v", held)
+	}
+
+	if err := store.Ack(1); err != nil {
+		t.Fatal(err)
+	}
+	if after, _ := store.GrantsSince(0); len(after) != 0 {
+		t.Fatalf("the trap was sent again after the acknowledgement: %+v", after)
 	}
 }
 
@@ -515,10 +570,10 @@ func TestANewSeedKeepsTheOldRunOnDisk(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if archive == "" {
+	if archive.Archived == "" {
 		t.Fatal("the dropped run was not set aside anywhere")
 	}
-	body, err := os.ReadFile(archive)
+	body, err := os.ReadFile(archive.Archived)
 	if err != nil {
 		t.Fatalf("the dropped run left nothing behind: %v", err)
 	}
@@ -637,12 +692,23 @@ func TestRepeatedWeaponBuffCopiesSurviveUnlockResync(t *testing.T) {
 		}
 	}
 	store := openTemp(t)
-	if err := store.ApplyItems(0, []int64{item.ID, item.ID, item.ID}); err != nil {
+	// The cash between buff copies remains unacknowledged. The snapshot must
+	// still name the later buff's position so polling for cash cannot count it
+	// a second time.
+	if err := store.ApplyItems(0, []int64{item.ID, item.ID, cashBundleID(t), item.ID}); err != nil {
 		t.Fatal(err)
 	}
-	held := store.Unlocks().Of(gamedata.ItemWeaponBuff)
+	snapshot := store.Unlocks()
+	if snapshot.ResumeFrom != 0 || snapshot.SnapshotSeq != 4 {
+		t.Fatalf("snapshot cursors = (%d, %d), want (0, 4)", snapshot.ResumeFrom, snapshot.SnapshotSeq)
+	}
+	held := snapshot.Of(gamedata.ItemWeaponBuff)
 	if len(held) != 3 || held[0] != held[1] || held[1] != held[2] {
 		t.Fatalf("repeated weapon buff unlocks = %v, want three copies", held)
+	}
+	grants, latest := store.GrantsSince(snapshot.ResumeFrom)
+	if len(grants) != 4 || latest != snapshot.SnapshotSeq || grants[3].Seq != 4 {
+		t.Fatalf("retry from acknowledged sequence = %+v, latest %d", grants, latest)
 	}
 }
 
@@ -701,5 +767,188 @@ func TestPlayedSurvivesAReopen(t *testing.T) {
 	played := reopened.Played()
 	if len(played) != 1 || played[0] != mission.ClearLocationID() {
 		t.Fatalf("played %v after a reopen, want the clear", played)
+	}
+}
+
+/*
+Played arrived without a format bump, so a version 3 file can be from either
+side of that day. kelly-cs's run crossed it: every mission the team had cleared
+read as collected afterwards and the missionsanity goal counted none of them
+(gh-16). A version 3 file with no played key is from before, and everything it
+checked was played here.
+*/
+func TestAVersionThreeFileWithoutPlayedTakesItsChecksAsPlayed(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "bridge.json")
+	mission := firstMission(t)
+	before := fmt.Sprintf(
+		`{"format_version":3,"seed":"first","checks":[%d,%d],"items":[],"goal_sent":false}`,
+		mission.WaveLocationID(1), mission.ClearLocationID(),
+	)
+	if err := os.WriteFile(path, []byte(before), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	store, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := store.Played(); len(got) != 2 {
+		t.Fatalf("played = %v, want both checks the file held", got)
+	}
+
+	// A version 3 file that wrote the key is from after, and an empty list
+	// there means nothing was played, whatever the room had adopted.
+	after := fmt.Sprintf(
+		`{"format_version":3,"seed":"first","checks":[%d],"played":[],"items":[],"goal_sent":false}`,
+		mission.WaveLocationID(1),
+	)
+	other := filepath.Join(t.TempDir(), "bridge.json")
+	if err := os.WriteFile(other, []byte(after), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	store, err = Open(other)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := store.Played(); len(got) != 0 {
+		t.Errorf("played = %v, want none: the file said so", got)
+	}
+}
+
+/*
+TestAServerSettingGrantsAsStateAndSurvivesAResend.
+
+A lever on the whole server is state like a class, not an effect like credits.
+The grant stream may carry a copy twice, because that is how state is resent,
+and what must not double is the unlock set: the plugin reads the set, and
+applying the same key again is applying it once.
+*/
+func TestAServerSettingGrantsAsStateAndSurvivesAResend(t *testing.T) {
+	store := openTemp(t)
+
+	setting := gamedata.ServerSettings[0]
+	var itemID int64
+	for _, item := range gamedata.Items {
+		if item.Kind == gamedata.ItemServerSetting && item.ServerSetting == setting.ID {
+			itemID = item.ID
+		}
+	}
+	if itemID == 0 {
+		t.Fatal("no server setting item in the pool")
+	}
+
+	if err := store.ApplyItems(0, []int64{itemID, itemID}); err != nil {
+		t.Fatal(err)
+	}
+
+	grants, _ := store.GrantsSince(0)
+	if len(grants) == 0 {
+		t.Fatal("the setting granted nothing")
+	}
+	for i, grant := range grants {
+		if grant.Kind != gamedata.ItemServerSetting.Key() || grant.Key != setting.Key {
+			t.Errorf("grant %d is %q/%q, want %q/%q", i, grant.Kind, grant.Key,
+				gamedata.ItemServerSetting.Key(), setting.Key)
+		}
+	}
+	if held := store.Unlocks().Of(gamedata.ItemServerSetting); len(held) != 1 || held[0] != setting.Key {
+		t.Errorf("the unlock set holds %v", held)
+	}
+}
+
+// A seed played here before comes back with its run, from the newest copy set
+// aside, and the copy stays on disk.
+func TestASeedPlayedBeforeComesBack(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "bridge.json")
+	store, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	mission := firstMission(t)
+	if _, err := store.BindSeed("first"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.AddCheck(mission.WaveLocationID(1)); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.BindSeed("second"); err != nil {
+		t.Fatal(err)
+	}
+
+	bound, err := store.BindSeed("first")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bound.Restored != filepath.Join(dir, "bridge.first.json") {
+		t.Fatalf("restored from %q", bound.Restored)
+	}
+	if got := store.Checks(); len(got) != 1 {
+		t.Fatalf("the run came back holding %v", got)
+	}
+	if _, err := os.Stat(bound.Restored); err != nil {
+		t.Fatalf("the archive was consumed: %v", err)
+	}
+
+	if _, err := store.AddCheck(mission.WaveLocationID(2)); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.BindSeed("second"); err != nil {
+		t.Fatal(err)
+	}
+	bound, err = store.BindSeed("first")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := store.Checks(); len(got) != 2 {
+		t.Fatalf("restored %q holding %v, want the newer copy", bound.Restored, got)
+	}
+
+	reopened, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if stats := reopened.Stats(); stats.Seed != "first" || stats.Checks != 2 {
+		t.Fatalf("on disk: %+v", stats)
+	}
+}
+
+// An archive that is not this seed's run is never read back as one.
+func TestAnArchiveOfAnotherRunIsNotRestored(t *testing.T) {
+	tests := []struct {
+		name string
+		body string
+	}{
+		{"unreadable", "{not json"},
+		{"another seed folded onto the name", `{"format_version": 4, "seed": "a_b", "checks": [1]}`},
+		{"a newer format", `{"format_version": 99, "seed": "a/b", "checks": [1]}`},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			dir := t.TempDir()
+			path := filepath.Join(dir, "bridge.json")
+			archive := filepath.Join(dir, "bridge.a_b.json")
+			if err := os.WriteFile(archive, []byte(test.body), 0o644); err != nil {
+				t.Fatal(err)
+			}
+			store, err := Open(path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, err := store.BindSeed("first"); err != nil {
+				t.Fatal(err)
+			}
+
+			bound, err := store.BindSeed("a/b")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if bound.Restored != "" || len(store.Checks()) != 0 {
+				t.Fatalf("restored %q holding %v", bound.Restored, store.Checks())
+			}
+			body, err := os.ReadFile(archive)
+			if err != nil || string(body) != test.body {
+				t.Fatalf("the archive changed: %q %v", body, err)
+			}
+		})
 	}
 }
