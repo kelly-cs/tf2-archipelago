@@ -1,0 +1,30 @@
+name: Daily stability
+
+on:
+  schedule:
+    - cron: '17 5 * * *'
+  workflow_dispatch:
+
+# The fork's main has independent launcher work and predates the upstream
+# wave harness. Keep only this dispatcher here; execute the full implementation
+# from the stability branch without merging that harness into main.
+permissions:
+  actions: write
+
+concurrency:
+  group: stability-dispatch
+  cancel-in-progress: false
+
+jobs:
+  dispatch:
+    if: github.repository == 'kelly-cs/tf2-archipelago' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Run the fork's stability branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh workflow run stability.yml --ref stability
+          echo 'Dispatched [the stability branch](https://github.com/kelly-cs/tf2-archipelago/actions/workflows/stability.yml?query=branch%3Astability).' >> "$GITHUB_STEP_SUMMARY"
