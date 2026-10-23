@@ -92,13 +92,18 @@ defender mod's own script out of the module cache so the pinned commit cannot
 drift between the two repositories. `gamedata/spdriver_test.go` then compiles a
 plugin function and runs it on inputs a test chooses.
 
-`plugin/scripting/tf2_archipelago/weapon_buffs_math.inc` is what makes that
-possible. It holds the decisions that need nothing but their arguments and the
-generated tables, it includes nothing itself, and both the plugin and the driver
-include it. A function belongs there when it needs no native: no entity
+`plugin/scripting/tf2_archipelago/weapon_buff_levels.inc` is what makes that
+possible. It owns the buff levels the run granted and every decision that reads
+them: what goes on the provider and at what value, what a kill, a hit or a jar
+pays, stomps, self-inflicted blasts, disposable sentries and confirmed shots.
+Its state is `static`, so `weapon_buffs.inc` cannot write it and only carries the
+answers to the engine. It includes nothing itself, and both the plugin and the
+driver include it. A function belongs there when it needs no native: no entity
 property, no SDKCall, no TF2 lookup, not even `RoundToFloor` or `StrEqual`,
 which the standalone VM does not bind, and no constant out of a SourceMod
-include either.
+include either. Amounts the engine wants whole come back as floats for the
+adapter to round. `gamedata/weapon_buff_levels_test.go` drives it grant by grant
+and think by think.
 
 State can go there too, not only decisions. `grant_ledger.inc` owns the grant
 cursor and the bundle ledger as `static` globals, and the HTTP callbacks and

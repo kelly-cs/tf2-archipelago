@@ -27,7 +27,7 @@ this plugin's hand-written code. spcomp compiles a driver and SourcePawn's
 standalone VM runs it, and what comes back is what the function computes, on
 inputs this test chose. No game server, no map, no client.
 
-The driver includes weapon_buffs_math.inc rather than pasting text out of it.
+The driver includes weapon_buff_levels.inc rather than pasting text out of it.
 That file exists for this: it holds the decisions that need no native, it
 includes nothing itself, and the plugin includes it too. So what runs here is
 the text the plugin compiles, not a copy and not an extract.
@@ -47,7 +47,7 @@ const requireEnv = "TF2AP_REQUIRE_SPSHELL"
 
 const (
 	pluginDir   = "../plugin/scripting/tf2_archipelago"
-	mathSource  = pluginDir + "/weapon_buffs_math.inc"
+	mathSource  = pluginDir + "/weapon_buff_levels.inc"
 	dataSource  = pluginDir + "/weapon_buffs_data.inc"
 	buffsSource = pluginDir + "/weapon_buffs.inc"
 )
@@ -56,7 +56,7 @@ const (
 // they are included. They ship with the plugin; none is written here.
 var driverIncludes = []string{
 	"weapon_buffs_data.inc",
-	"weapon_buffs_math.inc",
+	"weapon_buff_levels.inc",
 	"grant_ledger.inc",
 	"mission_modifiers_math.inc",
 	"loadout_math.inc",
@@ -136,9 +136,9 @@ moves one. The second of those leaves every string the scraping tests watch for
 in place, and they pass on it.
 */
 func TestProjectileDestructionCooldownIsTheDeclaredCurve(t *testing.T) {
-	base := floatDefine(t, mathSource, "ProjectileDestructionBaseCooldown")
-	step := floatDefine(t, mathSource, "ProjectileDestructionCooldownStep")
-	floor := floatDefine(t, mathSource, "ProjectileDestructionMinimumCooldown")
+	base := floatDefine(t, "ProjectileDestructionBaseCooldown")
+	step := floatDefine(t, "ProjectileDestructionCooldownStep")
+	floor := floatDefine(t, "ProjectileDestructionMinimumCooldown")
 
 	levels := []int{1, 2, 3, 4, 5, 8, 20}
 	var calls strings.Builder

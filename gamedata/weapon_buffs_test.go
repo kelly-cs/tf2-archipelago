@@ -157,8 +157,7 @@ func TestPluginAttributesStompKillEffectsToTheWearable(t *testing.T) {
 		`StrEqual(eventWeapon, "mantreads")`,
 		`StrEqual(logWeapon, "rocketpack_stomp")`,
 		"WeaponBuffs_EntityInLoadoutSlot(attacker, Slot_Secondary)",
-		`StrEqual(g_WeaponNames[weapon], "Mantreads")`,
-		`StrEqual(g_WeaponNames[weapon], "Thermal Thruster")`,
+		"BuffLevels_Stomp(weapon)",
 		"WeaponBuffs_ApplyStompKillEffects(attacker, entity, weapon)",
 	} {
 		if !strings.Contains(death, required) {
@@ -167,16 +166,12 @@ func TestPluginAttributesStompKillEffectsToTheWearable(t *testing.T) {
 	}
 	for _, required := range []string{
 		`HookEvent("player_death", WeaponBuffs_PlayerDeath)`,
-		"g_WeaponEffectLevels[weapon][BaseHealthOnKillEffect]",
-		"WeaponBuffs_ClassBaseHealth(attacker)",
-		"g_WeaponEffectIncrements[BaseHealthOnKillEffect]",
+		"BuffLevels_StompKillHeal(weapon, WeaponBuffs_ClassBaseHealth(attacker))",
 		"float(maximum) * 1.5",
-		"int maximum = baseHealth",
 		"SetEntityHealth(attacker, health + healed)",
 		"TFCond_CritOnKill",
 		"TFCond_MiniCritOnKill",
 		"TFCond_SpeedBuffAlly",
-		"effect == DamageEffect || WeaponBuffs_IsOnKillEffect(effect)",
 	} {
 		if !strings.Contains(text, required) {
 			t.Errorf("stomp kill-effect implementation has no %q", required)
@@ -192,14 +187,13 @@ func TestPluginImplementsStompDamageAndThermalClipSize(t *testing.T) {
 	text := string(body)
 	for _, required := range []string{
 		`HookEvent("rocketpack_launch", WeaponBuffs_RocketPackLaunch)`,
-		"g_WeaponEffectLevels[weapon][ClipSizeEffect]",
+		"BuffLevels_Of(weapon, ClipSizeEffect)",
 		"WeaponBuffs_RocketPackLaunchCost()",
 		"WeaponBuffs_ThermalThrusterEffectiveCost(weapon)",
 		"stockCharges + levels - 1",
 		`SetEntPropFloat(client, Prop_Send, "m_flItemChargeMeter"`,
 		"damagecustom == TF_CUSTOM_BOOTS_STOMP",
-		"g_WeaponEffectLevels[catalog][DamageEffect]",
-		"StompFallDamagePerLevel * float(levels)",
+		"BuffLevels_StompDamageScale(",
 		`strcopy(description, maxlength, "+1 launch charge")`,
 		`strcopy(description, maxlength, "+5x fall-damage multiplier")`,
 	} {
@@ -515,20 +509,11 @@ func substanceSourceFunction(t *testing.T, signature string) string {
 	return ""
 }
 
+// Which effects stay off the provider is TestTheProviderCarriesOnlyWhatNoOtherPathPays.
 func TestWeaponBuffSubstancesUseTheSharedHitPath(t *testing.T) {
-	manual := substanceSourceFunction(t, "static bool WeaponBuffs_IsManualHitEffect")
-	for _, effect := range []string{
-		"BleedEffect", "IgniteEffect", "MadMilkEffect", "GasolineEffect",
-		"MarkForDeathEffect", "JarateEffect",
-	} {
-		if !strings.Contains(manual, "effect == "+effect) {
-			t.Fatalf("manual hit-effect classifier does not include %s", effect)
-		}
-	}
-
 	apply := substanceSourceFunction(t, "static void WeaponBuffs_ApplyHitEffects")
 	for _, effect := range []string{
-		"TF2_MakeBleed", "TF2_IgnitePlayer", "TFCond_Milked", "TFCond_Gas",
+		"BuffLevels_HitEffects(weapon, hit)", "TF2_MakeBleed", "TF2_IgnitePlayer", "TFCond_Milked", "TFCond_Gas",
 		"TFCond_MarkedForDeath", "TFCond_Jarated",
 	} {
 		if !strings.Contains(apply, effect) {
@@ -556,11 +541,6 @@ func TestWeaponBuffSubstancesUseTheSharedHitPath(t *testing.T) {
 		!strings.Contains(damage, "WeaponBuffs_ApplyHitEffects(victim, attacker, catalog)") {
 		t.Fatal("direct hits do not resolve the canonical weapon and apply its hit effects")
 	}
-
-	provider := substanceSourceFunction(t, "void WeaponBuffs_Apply(int client)")
-	if !strings.Contains(provider, "if (WeaponBuffs_IsManualHitEffect(effect))") {
-		t.Fatal("generic provider can apply hostile hit effects before the guarded hit path")
-	}
 }
 
 func TestPluginImplementsActiveHealthRegenInsteadOfBrokenSchemaHealing(t *testing.T) {
@@ -570,14 +550,12 @@ func TestPluginImplementsActiveHealthRegenInsteadOfBrokenSchemaHealing(t *testin
 	}
 	text := string(body)
 	for _, required := range []string{
-		// ActiveHealthRegenEffect's number moved to weapon_buffs_math.inc with
-		// the predicate that reads it, and the predicate is run rather than
-		// read: TestOnlyTheNamedEffectsArePassive.
+		// That the provider leaves it to this timer is run, not read:
+		// TestTheProviderCarriesOnlyWhatNoOtherPathPays.
 		"CreateTimer(1.0, Timer_WeaponBuffHealthRegen",
 		"WeaponBuffs_LoadoutLevels(client, ActiveHealthRegenEffect)",
 		"GetEntProp(resource, Prop_Send, \"m_iMaxHealth\", 4, client)",
 		"SetEntityHealth(client, health + healed)",
-		"if (WeaponBuffs_IsPassiveEffect(effect))",
 	} {
 		if !strings.Contains(text, required) {
 			t.Errorf("active health regeneration implementation has no %q", required)
@@ -592,15 +570,13 @@ func TestPluginImplementsAmmoOnHitForClippedAndMeleeWeapons(t *testing.T) {
 	}
 	text := string(body)
 	for _, required := range []string{
-		"#define AmmoOnHitEffect 69",
 		"WeaponBuffs_AddAmmoOnHit(attacker, weapon, catalog)",
 		"GetPlayerWeaponSlot(attacker, TFWeaponSlot_Primary)",
 		"GetEntProp(ammoWeapon, Prop_Send, \"m_iPrimaryAmmoType\")",
 		"GivePlayerAmmo(attacker, amount, ammoType, true)",
 		"WeaponBuffs_SuppliesPrimaryAmmo(entity)",
 		"tf_wearable_demoshield",
-		"Mantreads",
-		"if (effect == AmmoOnHitEffect)",
+		"BuffStomp_Mantreads",
 		"FindEntityByClassname(tank, \"tank_boss\")",
 		"SDKHook(tank, SDKHook_OnTakeDamagePost, WeaponBuffs_OnTankTakeDamagePost)",
 		"WeaponBuffs_AddAmmoOnHit(attacker, weapon, catalog)",
@@ -626,8 +602,7 @@ func TestPluginImplementsAmmoOnHitForClippedAndMeleeWeapons(t *testing.T) {
 	for _, required := range []string{
 		"damagecustom == TF_CUSTOM_BOOTS_STOMP",
 		"WeaponBuffs_EntityInLoadoutSlot(attacker, Slot_Secondary)",
-		"Mantreads",
-		"Thermal Thruster",
+		"BuffLevels_Stomp(",
 	} {
 		if !strings.Contains(resolver, required) {
 			t.Errorf("stomp hit resolver has no %q", required)
@@ -1006,49 +981,12 @@ func TestUberOnHitFollowsTheMedicsAttackWeapons(t *testing.T) {
 	}
 }
 
-// The plugin pays the syringe guns' one percent itself, because one increment
-// per effect is all the generated table carries.
-func TestPluginSplitsTheUberOnHitRate(t *testing.T) {
-	increment := substanceSourceFunction(t, "static float WeaponBuffs_EffectIncrement")
-	for _, required := range []string{
-		"effect == UberOnHitEffect",
-		"WeaponBuffs_IsSyringeGun(weapon)",
-		"return SyringeUberOnHitFraction",
-		"return g_WeaponEffectIncrements[effect]",
-	} {
-		if !strings.Contains(increment, required) {
-			t.Errorf("per-weapon increment has no %q", required)
-		}
-	}
-	syringe := substanceSourceFunction(t, "static bool WeaponBuffs_IsSyringeGun")
-	for _, required := range []string{"Blutsauger", "Overdose", "Syringe Gun"} {
-		if !strings.Contains(syringe, required) {
-			t.Errorf("syringe gun test has no %q", required)
-		}
-	}
-	body, err := os.ReadFile("../plugin/scripting/tf2_archipelago/weapon_buffs.inc")
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, required := range []string{
-		"#define UberOnHitEffect 39",
-		"#define SyringeUberOnHitFraction 0.01",
-		"WeaponBuffs_EffectIncrement(weapon, effect) * float(levels)",
-	} {
-		if !strings.Contains(string(body), required) {
-			t.Errorf("über on hit rate split has no %q", required)
-		}
-	}
-}
-
 /*
 Movement, jump height and health regeneration read off the whole loadout, the
 way MvM's own class upgrades do, rather than off the weapon in hand.
 
-Which effects are passive is no longer asked here. That set moved to
-weapon_buffs_math.inc and TestOnlyTheNamedEffectsArePassive runs the predicate
-over every effect the generated table holds, which is a better answer than
-looking for three names in a function body. What is left is the wiring around
+Which effects are passive, how the loadout sums them and what the attribute is
+worth are run in weapon_buff_levels_test.go. What is left is the wiring around
 it, and the wiring reads entity properties and calls TF2Attrib, so reading the
 source is still the best that can be done for it.
 */
@@ -1060,7 +998,6 @@ func TestPassiveBuffsReadTheWholeLoadout(t *testing.T) {
 	text := string(body)
 	for _, required := range []string{
 		"WeaponBuffs_ApplyPassives(client, provider)",
-		"if (WeaponBuffs_IsPassiveEffect(effect))",
 	} {
 		if !strings.Contains(text, required) {
 			t.Errorf("passive buff wiring has no %q", required)
@@ -1068,9 +1005,8 @@ func TestPassiveBuffsReadTheWholeLoadout(t *testing.T) {
 	}
 	levels := substanceSourceFunction(t, "static int WeaponBuffs_LoadoutLevels")
 	for _, required := range []string{
-		"for (int slot = 0; slot <= 5; slot++)",
 		"WeaponBuffs_EntityInLoadoutSlot(client, slot)",
-		"levels += g_WeaponEffectLevels[weapon][effect]",
+		"BuffLevels_Loadout(weapons, sizeof(weapons), effect)",
 	} {
 		if !strings.Contains(levels, required) {
 			t.Errorf("loadout level sum has no %q", required)
@@ -1080,6 +1016,7 @@ func TestPassiveBuffsReadTheWholeLoadout(t *testing.T) {
 	for _, required := range []string{
 		"WeaponBuffs_LoadoutLevels(client, effect)",
 		"g_WeaponEffectAttributeClasses[effect], client",
+		"BuffLevels_PassiveValue(effect, levels, base)",
 		"TF2Attrib_SetByName(provider, g_WeaponEffectAttributes[effect]",
 	} {
 		if !strings.Contains(apply, required) {

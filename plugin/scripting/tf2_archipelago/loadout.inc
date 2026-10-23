@@ -150,12 +150,7 @@ static bool Loadout_Eligible(int client)
 
 static int Loadout_BuffCount(int weapon)
 {
-    int count = 0;
-    for (int effect = 0; effect < WeaponEffectCount; effect++)
-    {
-        count += g_WeaponEffectLevels[weapon][effect];
-    }
-    return count;
+    return BuffLevels_Count(weapon);
 }
 
 // The schema position this class holds in an unlock slot, or -1.
