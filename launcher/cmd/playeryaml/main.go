@@ -26,7 +26,7 @@ func main() {
 		fmt.Fprintln(os.Stderr, "usage: playeryaml <archipelago version>")
 		os.Exit(2)
 	}
-	s := settings.ApplyEnv(settings.Defaults())
+	s := settings.ApplyEnv(settings.ComposeDefaults())
 	if err := checkNames(s); err != nil {
 		fmt.Fprintln(os.Stderr, "cannot write the player file:", err)
 		os.Exit(1)

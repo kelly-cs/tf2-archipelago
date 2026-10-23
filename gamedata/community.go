@@ -597,8 +597,8 @@ func IsCommunityMission(id MissionID) bool {
 
 // IsPlayableMission reports whether a stock server can safely put a mission
 // in a seed. Community entries with a requirement remain visible to launchers
-// but are never offered or drawn; IsMissionPlayableWith is the question for a
-// server that loads mods.
+// but are never offered or drawn; availability.Server is the question for a
+// real server.
 func IsPlayableMission(id MissionID) bool {
 	if !IsCommunityMission(id) {
 		return true
@@ -622,6 +622,11 @@ func PlayableMissions() []Mission {
 // names without importing the launcher from gamedata.
 func MissionPack(id MissionID) string {
 	return communityContent.Packs[id]
+}
+
+// CommunityPacks is every archive the catalog has missions from.
+func CommunityPacks() []string {
+	return []string{"archive-assets.zip", "mlarchive-assets.zip"}
 }
 
 // PackLabel is what a player knows a pack by, the name the launcher's Missions

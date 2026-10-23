@@ -105,17 +105,16 @@ func CheckServerModsReady(s Settings, ready []string) error {
 
 // MissionPool is the part of the settings that decides which missions the
 // generator may draw at all. One place builds it, so the ceiling the launcher
-// offers, the tier labels and the preflight all count the pool the apworld
-// counts rather than three different ones.
+// offers, the tier labels, the preflight and the player file all count the
+// pool the apworld draws from rather than different ones.
 //
-// The server is the one the apworld assumes: every ticked mod set up, which
-// Start sees to before it runs. It assumes every pack too, because the player
-// file has no word for packs and a container that writes it cannot see them.
-// The Missions page takes an unticked pack's missions out of the excluded list
-// instead, and that list is what reaches the generator.
+// The server is the one Start sets up: every ticked mod installed and every
+// ticked pack in place. An unticked pack is never installed, so its missions
+// are out, and the player file names them as excluded because it has no word
+// for packs.
 func MissionPool(s Settings) runshape.Pool {
 	return runshape.Pool{
-		Server:    availability.Planned([]string{CommunityPackPotato, CommunityPackMoonlight}, ServerModKeys(s)),
+		Server:    availability.Planned(s.CommunityPacks, ServerModKeys(s)),
 		Community: s.MvmCommunityMissions,
 		Excluded:  s.MvmExcludedMissions,
 	}

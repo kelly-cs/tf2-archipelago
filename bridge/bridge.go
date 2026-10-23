@@ -26,6 +26,7 @@ import (
 	"github.com/m-this/tf2-archipelago/bridge/internal/state"
 	"github.com/m-this/tf2-archipelago/fakeroom"
 	"github.com/m-this/tf2-archipelago/gamedata"
+	"github.com/m-this/tf2-archipelago/gamedata/availability"
 )
 
 // APIVersion is the contract with the plugin, for a caller outside the bridge
@@ -213,11 +214,18 @@ func dockerTestOptions(ctx context.Context, cfg config.Config, logger *slog.Logg
 		SlotName: cfg.SlotName, UnlockMissions: true,
 		MissionCount: run.MissionCount, Difficulty: run.Difficulty, Goal: run.Goal,
 		StartMission: run.StartMission, StartClass: run.StartClass, Excluded: run.Excluded,
-		ServerMods: run.ServerMods, ExcludeCommunity: !run.CommunityMissions,
+		Server: dockerTestServer(run.ServerMods), ExcludeCommunity: !run.CommunityMissions,
 		DeathLink: run.DeathLink, DrawModifiers: run.MissionModifiers,
 		ModifierMin: run.ModifierMin, ModifierMax: run.ModifierMax,
 		VictoryCaches: run.VictoryCaches, MilestoneChecks: run.MilestoneChecks,
 		Giantsanity: run.Giantsanity, Tanksanity: run.Tanksanity, ShuffleRewards: true,
 		Log: func(text string) { logger.InfoContext(ctx, "test mode", "message", text) },
 	}
+}
+
+// dockerTestServer is the game server a Docker test run draws for. The bridge
+// is not told which packs the admin page ticks, and the srcds container
+// installs every pack in community-content, so every pack is on it.
+func dockerTestServer(mods []string) availability.Server {
+	return availability.Planned(gamedata.CommunityPacks(), mods)
 }

@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/m-this/tf2-archipelago/gamedata"
 	"github.com/m-this/tf2-archipelago/launcher/internal/runshape"
 )
 
@@ -65,6 +66,7 @@ func TestCheckRunSelectionRejectsInvalidModifierBounds(t *testing.T) {
 // ceiling has to move with the exclusion list rather than ignore it.
 func TestKeepingACommunityMissionRaisesTheCeiling(t *testing.T) {
 	s := Defaults()
+	s.CommunityPacks = gamedata.CommunityPacks()
 	before := runshape.MissionsInPool(MissionPool(s), s.MvmDifficulty)
 
 	kept := "mvm_kelly_rc1b_adv_homestead_happenings"
