@@ -23,6 +23,7 @@ import (
 	"github.com/m-this/tf2-archipelago/bridge/config"
 	"github.com/m-this/tf2-archipelago/fakeroom"
 	"github.com/m-this/tf2-archipelago/gamedata"
+	"github.com/m-this/tf2-archipelago/gamedata/availability"
 	"github.com/m-this/tf2-archipelago/launcher/internal/fastdl"
 	"github.com/m-this/tf2-archipelago/launcher/internal/installer"
 	"github.com/m-this/tf2-archipelago/launcher/internal/settings"
@@ -175,12 +176,24 @@ func bridgeConfig(s settings.Settings) (config.Config, error) {
 		Password:       s.APPassword,
 		Listen:         "127.0.0.1:24680",
 		StatePath:      statePath,
-		PopulationDir:  filepath.Join(s.InstallRoot, "tf-dedicated", "tf", "scripts", "population"),
+		Missions:       new(missionServer(s)),
 	}
 	if s.MetricsPort > 0 {
 		cfg.MetricsListen = "127.0.0.1:" + fmt.Sprintf("%d", s.MetricsPort)
 	}
 	return cfg, nil
+}
+
+// missionServer is what the bridge refuses a seed against: the packs and mods
+// these settings tick, and what Start installed of them.
+func missionServer(s settings.Settings) availability.Server {
+	return availability.Server{
+		Platform:      goruntime.GOOS,
+		PacksSelected: s.CommunityPacks,
+		PacksPresent:  installer.AvailableCommunityPacks(settings.KnownCommunityArchives(s.CommunityContentDir)),
+		ModsSelected:  settings.ServerModKeys(s),
+		ModsVerified:  installer.ReadyServerMods(s.InstallRoot),
+	}
 }
 
 // RunServer starts the game server alone, with the configuration Run would

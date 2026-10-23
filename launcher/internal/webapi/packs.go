@@ -15,12 +15,7 @@ import (
 )
 
 func availableCommunityPackNames(folder string) []string {
-	paths := installer.AvailableCommunityArchives(settings.KnownCommunityArchives(strings.TrimSpace(folder)))
-	result := make([]string, 0, len(paths))
-	for _, path := range paths {
-		result = append(result, filepath.Base(path))
-	}
-	return result
+	return installer.AvailableCommunityPacks(settings.KnownCommunityArchives(strings.TrimSpace(folder)))
 }
 
 func importedCommunityPackNames(folder string, available []string) []string {

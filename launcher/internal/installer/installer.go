@@ -416,6 +416,16 @@ func AvailableCommunityArchives(archives []string) []string {
 	return available
 }
 
+// AvailableCommunityPacks is AvailableCommunityArchives by pack name, the
+// name settings and gamedata know a pack by.
+func AvailableCommunityPacks(archives []string) []string {
+	var packs []string
+	for _, path := range AvailableCommunityArchives(archives) {
+		packs = append(packs, filepath.Base(path))
+	}
+	return packs
+}
+
 // downloadCommunityArchive caches a recognized full asset pack next to the
 // locally supplied packs. A partial response is written under a temporary
 // name and validated before rename, so cancelling the explicit download can

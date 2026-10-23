@@ -11,6 +11,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/m-this/tf2-archipelago/gamedata/availability"
 )
 
 // Config is everything the bridge needs to start. Nothing here changes while it runs.
@@ -37,10 +39,11 @@ type Config struct {
 
 	StatePath string
 
-	// PopulationDir is the game server's scripts/population directory. The
-	// bridge refuses a seed whose community missions have no file there. Empty
-	// skips the check: a bridge in its own container cannot see that disk.
-	PopulationDir string
+	// Missions is what the game server has: the packs and mods the launcher
+	// running this bridge ticked and found. The bridge refuses a seed that
+	// draws a mission the server cannot play. Nil skips the check: a bridge in
+	// its own container is told neither.
+	Missions *availability.Server
 
 	// PollTimeout is how long GET /grants is held open; the plugin's own timeout must be longer.
 	PollTimeout time.Duration
