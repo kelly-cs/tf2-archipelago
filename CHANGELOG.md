@@ -19,6 +19,15 @@ in the release notes, so this file is the only place to write it.
   the run switched to that mission, sometimes an hour in. Now the server stops
   as soon as it joins the room and names the mission and the pack to tick in
   Settings > Missions.
+- **Unticking a community pack takes its missions out of the run.** With the
+  pack's ZIP on disk but unticked, Settings > Missions still showed its
+  missions as Ready and the seed could draw them, though Start never installs
+  an unticked pack, so the server then refused the seed. The missions now
+  leave the pool and the page says to tick the pack.
+- **The tier menu and the mission count agree.** With SigMod ticked but not
+  yet installed, the tier menu and the highest mission count you could pick
+  counted different missions, 25 against 26 for the same settings. Both now
+  count the same pool.
 - **A download site that is down no longer sends you to Repair.** When
   alliedmods.net or another site the install downloads from fails, the launcher
   now names the address and says to try again later. Repair would only have
@@ -34,6 +43,10 @@ in the release notes, so this file is the only place to write it.
   handed you all the bundle credits of the mission on top of the refund, every
   time. The minus button now gives back what the upgrade cost and nothing more.
   Refund All and a lost wave still keep your bundle credits.
+- **Two refunds at once no longer pay your Cash Bundles twice.** Refund All
+  twice in a row, or Refund All as a wave is lost, gave your bundle credits
+  back once per refund. With 800 in bundles, 400 came back as 2000 instead of
+  1200. They now come back once.
 - **Demoman bots reload their stickybomb launcher.** Once a Demoman had fired
   his stickies he never reloaded them, so against the next giant he was back
   to grenades. He also emptied the launcher on a lone robot or one standing
