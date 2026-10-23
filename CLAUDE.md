@@ -100,6 +100,13 @@ property, no SDKCall, no TF2 lookup, not even `RoundToFloor` or `StrEqual`,
 which the standalone VM does not bind, and no constant out of a SourceMod
 include either.
 
+State can go there too, not only decisions. `grant_ledger.inc` owns the grant
+cursor and the bundle ledger as `static` globals, and the HTTP callbacks and
+the station hook only call it: JSON and entity properties in, `SetEntProp` and
+the acknowledgement out. `gamedata/grant_ledger_test.go` replays whole
+scenarios through the same calls. A rule about money paid once belongs behind
+that interface, not in a callback.
+
 Prefer running a function to reading it. The tests that look for substrings in
 `weapon_buffs.inc` cannot tell a rename from a rewrite: inverting the cooldown
 floor so every cooldown collapses to the minimum leaves every watched string in
