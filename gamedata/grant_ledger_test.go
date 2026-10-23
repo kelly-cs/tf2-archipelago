@@ -207,7 +207,7 @@ void press(int client, StationCommand command, int cost)
     {
         held = 400;
     }
-    if (BundleLedger_Station(command))
+    if (BundleLedger_Station(client, command))
     {
         held = BundleLedger_Restore(client, held);
     }
@@ -248,6 +248,8 @@ func TestTheLedgerIsPerClientAndPerMap(t *testing.T) {
     BundleLedger_Clear();
     BundleLedger_Pay(1, 200);
     BundleLedger_Pay(2, 700);
+    BundleLedger_WaveLost(1);
+    BundleLedger_WaveLost(2);
     printnum(BundleLedger_Restore(1, -300));
     printnum(BundleLedger_Restore(2, 100));
     BundleLedger_Forget(2);
@@ -261,5 +263,44 @@ func TestTheLedgerIsPerClientAndPerMap(t *testing.T) {
 	want := []int32{0, 800, 200, 0, 0, 0, 0}
 	if !slices.Equal(got, want) {
 		t.Fatalf("ledger = %v, want %v", got, want)
+	}
+}
+
+/*
+Two restores before the frame that puts the ledger back pay it once.
+
+A respec, or a lost wave, sets the balance to the game's record; doing it twice
+sets it to the same record. The restore runs a frame later, once per command,
+so two in one frame each added the whole ledger: 400 recorded and 800 of
+bundles came back as 2000. A bundle paid between a restore and its frame is
+already on the balance and must not come back twice either.
+*/
+func TestTwoRestoresInOneFramePayTheLedgerOnce(t *testing.T) {
+	got := driver{body: `
+    BundleLedger_Clear();
+    BundleLedger_Pay(1, 800);
+    int frames;
+    if (BundleLedger_Station(1, StationCommand_Respec)) frames++;
+    BundleLedger_WaveLost(1);
+    if (BundleLedger_Station(1, StationCommand_Respec)) frames++;
+    int held = 400;
+    for (int frame = 0; frame < frames + 1; frame++)
+    {
+        held = BundleLedger_Restore(1, held);
+    }
+    printnum(frames);
+    printnum(held);
+
+    BundleLedger_WaveLost(1);
+    held = 400;
+    BundleLedger_Pay(1, 100);
+    held += 100;
+    held = BundleLedger_Restore(1, held);
+    printnum(held);
+    printnum(BundleLedger_Credits(1));
+`}.run(t)
+	want := []int32{2, 1200, 1300, 900}
+	if !slices.Equal(got, want) {
+		t.Fatalf("restores = %v, want %v", got, want)
 	}
 }

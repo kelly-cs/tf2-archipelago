@@ -168,6 +168,11 @@ enum StationCommand
  */
 static int g_BundleCredits[BundleLedgerClients];
 
+// What the balance lacks since the game last restored its record: the whole
+// ledger then, nothing once BundleLedger_Restore put it back. A second restore
+// before the frame runs lacks the same amount, not twice it.
+static int g_BundleMissing[BundleLedgerClients];
+
 void BundleLedger_Pay(int client, int amount)
 {
     g_BundleCredits[client] += amount;
@@ -183,6 +188,7 @@ int BundleLedger_Credits(int client)
 void BundleLedger_Forget(int client)
 {
     g_BundleCredits[client] = 0;
+    g_BundleMissing[client] = 0;
 }
 
 void BundleLedger_Clear()
@@ -195,20 +201,34 @@ void BundleLedger_Clear()
 
 /* The upgrade station sent command. True when the game rewrote the balance from
  * its record, so BundleLedger_Restore has to run once the game has written it.
+ * Every call that says so asks for a restore; only one of them pays.
  *
  * A respec does. An upgrade does not, in either direction: the minus button pays
  * one upgrade's cost back onto the balance the player holds, bundles included,
  * and putting the ledger back there paid every bundle again on each press (#98).
  */
-bool BundleLedger_Station(StationCommand command)
+bool BundleLedger_Station(int client, StationCommand command)
 {
-    return command == StationCommand_Respec;
+    if (command != StationCommand_Respec)
+    {
+        return false;
+    }
+    g_BundleMissing[client] = g_BundleCredits[client];
+    return true;
 }
 
-// The balance to write after the game restored its record to held. Never below
-// zero: bundles spent on top of a record that never held them run past it.
+// A lost wave restores the same record a respec does, to everyone.
+void BundleLedger_WaveLost(int client)
+{
+    g_BundleMissing[client] = g_BundleCredits[client];
+}
+
+// The balance to write after the game restored its record to held, and held
+// itself when nothing is missing. Never below zero: bundles spent on top of a
+// record that never held them run past it.
 int BundleLedger_Restore(int client, int held)
 {
-    int owed = held + g_BundleCredits[client];
+    int owed = held + g_BundleMissing[client];
+    g_BundleMissing[client] = 0;
     return owed > 0 ? owed : 0;
 }

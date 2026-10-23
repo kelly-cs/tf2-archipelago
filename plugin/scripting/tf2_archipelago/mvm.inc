@@ -357,7 +357,7 @@ stock void MvM_OnCommandKeyValues(int client, const char[] name)
     }
     if (command != StationCommand_Other)
     {
-        if (BundleLedger_Station(command))
+        if (BundleLedger_Station(client, command))
         {
             RequestFrame(Frame_RestoreBundles, GetClientUserId(client));
         }
@@ -387,6 +387,7 @@ stock void MvM_RestoreBundlesAll()
         // Whoever was paid is whoever is owed, so this walks defenders too.
         if (MvM_IsDefender(client))
         {
+            BundleLedger_WaveLost(client);
             RequestFrame(Frame_RestoreBundles, GetClientUserId(client));
         }
     }
