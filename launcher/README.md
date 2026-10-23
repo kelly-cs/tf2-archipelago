@@ -60,6 +60,11 @@ already uses, so a compose operator's file works here unchanged. An environment
 value is never written back: an override for one run must not become the saved
 answer.
 
+Each variable is one line of `settings.EnvVars`: its field, how it is spelled,
+and the Compose services that read it. `ApplyEnv`, the `.env` the Compose admin
+page writes, and the tests against `compose.yml` and `.env.example` all come
+from that line.
+
 ## One face, and it is a browser
 
 `tf2ap` with no arguments serves the interface on 127.0.0.1 on a port the
