@@ -16,10 +16,6 @@
 // Keeps each missing-property complaint to one line rather than one per frame.
 StringMap g_WarnedProps;
 
-// The bundles handed to each player that the game's own record never saw.
-// Read in full where it is written back, below.
-static int g_BundleCredits[MAXPLAYERS + 1];
-
 void MvM_Init()
 {
     g_WarnedProps = new StringMap();
@@ -323,41 +319,8 @@ static bool MvM_DropCredits(int client, int amount)
     }
     int held = GetEntProp(client, Prop_Send, "m_nCurrency");
     SetEntProp(client, Prop_Send, "m_nCurrency", held + amount);
-    g_BundleCredits[client] += amount;
+    BundleLedger_Pay(client, amount);
     return true;
-}
-
-/* What the game does not know it paid.
- *
- * A bundle written straight onto m_nCurrency is money the game's own record of
- * the wave never saw, and the refund button does not hand back what was spent:
- * it restores that record. So the bundles vanish, which is the bug a play-test
- * found by spending 1200 and refunding into 400.
- *
- * The ledger is per client and it only grows, because the record the game
- * restores never contains a single credit of ours. Correct balance after any
- * restore is therefore the game's number plus everything we ever added. It is
- * cleared on a map change, where the game clears its own side too.
- */
-// Everything a bundle ever added to this client, which is what the game's own
-// record of the wave is missing. Read across the plugin boundary by the defender
-// bot mod, so a bot that respawns is not reset to a number with no bundles in it.
-stock int MvM_BundleCredits(int client)
-{
-    return (client >= 0 && client <= MAXPLAYERS) ? g_BundleCredits[client] : 0;
-}
-
-stock void MvM_ForgetBundles(int client)
-{
-    g_BundleCredits[client] = 0;
-}
-
-stock void MvM_OnMapStart()
-{
-    for (int client = 0; client <= MaxClients; client++)
-    {
-        g_BundleCredits[client] = 0;
-    }
 }
 
 /* Every command the upgrade station sends, so a refund can be put right.
@@ -394,7 +357,7 @@ stock void MvM_OnCommandKeyValues(int client, const char[] name)
     }
     if (command != StationCommand_Other)
     {
-        if (MvM_StationRestoresRecord(command))
+        if (BundleLedger_Station(command))
         {
             RequestFrame(Frame_RestoreBundles, GetClientUserId(client));
         }
@@ -443,14 +406,14 @@ static void Frame_RestoreBundles(any userid)
         return;
     }
     int held = GetEntProp(client, Prop_Send, "m_nCurrency");
-    int owed = MvM_CreditsOwed(held, g_BundleCredits[client]);
+    int owed = BundleLedger_Restore(client, held);
     if (owed == held)
     {
         return;
     }
     SetEntProp(client, Prop_Send, "m_nCurrency", owed);
     AP_Debug("%N came back to %d credits, and %d of bundles put that at %d.",
-        client, held, g_BundleCredits[client], owed);
+        client, held, BundleLedger_Credits(client), owed);
 }
 
 // The names a currency pack's amount might go by, newest guess first. Checked
