@@ -109,7 +109,7 @@ jobs:
           password = secrets.token_hex(24)
           print('::add-mask::' + password, flush=True)
           os.environ['WAVEPROBE_RCONPW'] = password
-          root = pathlib.Path(os.environ['RUNNER_TEMP']) / ('tf2ap-stability-' + os.environ['GITHUB_RUN_ID'] + '-' + os.environ['GITHUB_RUN_ATTEMPT'])
+          root = pathlib.Path(os.environ['STABILITY_GAME_PARENT']) / ('tf2ap-stability-' + os.environ['GITHUB_RUN_ID'] + '-' + os.environ['GITHUB_RUN_ATTEMPT'])
           with open(os.environ['GITHUB_ENV'], 'a') as env:
               env.write('STABILITY_ROOT=' + str(root) + '\n')
           sys.exit(subprocess.call([sys.executable, 'deploy/stability-run.py',

@@ -69,6 +69,8 @@ install Linux’s 32-bit runtime libraries. Cleanup refuses to run on a personal
 or self-hosted machine. Disk checks require 35 GiB free for native installs and
 45 GiB for Docker. A runner that cannot meet that check produces an explicit
 host-setup error; it never silently drops community maps to fit.
+Windows uses the roomiest available volume, so a small workspace drive does
+not waste space reclaimed on the system drive.
 
 GitHub-hosted jobs have a [six-hour execution limit](https://docs.github.com/en/actions/reference/limits).
 Each measurement job is capped at 350 minutes, with a 4.5-hour test/install

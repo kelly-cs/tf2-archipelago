@@ -12,9 +12,12 @@ def main():
     if os.environ.get("STABILITY_RUNNER_ENVIRONMENT") != "github-hosted":
         raise RuntimeError("SDK cleanup is allowed only on an ephemeral GitHub-hosted runner")
     if os.name == "nt":
-        # Keep Python, Node, MSVC and the VC runtimes the test actually uses.
+        # Keep Python, Node and the installed VC runtime DLLs. Native builds
+        # happen in other jobs; this VM only executes the downloaded binaries.
         paths = [Path("C:/Android"), Path("C:/Program Files/Android"),
-                 Path("C:/Program Files/dotnet"), Path("C:/Program Files/Java")]
+                 Path("C:/Program Files/dotnet"), Path("C:/Program Files/Java"),
+                 Path("C:/Program Files/Microsoft Visual Studio"),
+                 Path("C:/Program Files (x86)/Microsoft Visual Studio")]
         tools = Path(os.environ["RUNNER_TOOL_CACHE"])
         paths += [tools / name for name in ("CodeQL", "Go", "Java_Temurin-Hotspot_jdk", "Ruby", "PyPy")]
         for path in paths:
@@ -22,15 +25,25 @@ def main():
                 shutil.rmtree(path, ignore_errors=True)
     else:
         subprocess.run(["sudo", "rm", "-rf", "/usr/share/dotnet", "/usr/local/lib/android",
-                        "/opt/ghc", "/usr/share/swift", "/opt/hostedtoolcache/CodeQL"], check=True)
+                        "/opt/ghc", "/usr/local/.ghcup", "/usr/share/swift", "/usr/lib/jvm",
+                        "/opt/hostedtoolcache/CodeQL"], check=True)
         subprocess.run(["sudo", "apt-get", "update", "-qq"], check=True)
         subprocess.run(["sudo", "apt-get", "install", "-y", "lib32gcc-s1", "lib32stdc++6"], check=True)
-    root = Path(os.environ["RUNNER_TEMP"])
+    candidates = [Path(os.environ["RUNNER_TEMP"])]
+    if os.name == "nt":
+        # Windows workspaces often sit on a small D: volume even when C: has
+        # plenty of reclaimed SDK space. Install on the roomiest volume.
+        candidates.append(Path("C:/tf2ap-stability"))
+    for path in candidates:
+        path.mkdir(parents=True, exist_ok=True)
+    root = max(candidates, key=lambda path: shutil.disk_usage(path).free)
     free = shutil.disk_usage(root).free / 1024**3
     required = 45 if os.environ["STABILITY_ENV"] == "docker" else 35
     print(f"Game volume: {root.anchor}; free {free:.1f} GiB; required {required} GiB", flush=True)
     if free < required:
         raise RuntimeError(f"insufficient disk: {free:.1f} GiB available, {required} GiB required")
+    with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as env:
+        env.write(f"STABILITY_GAME_PARENT={root}\n")
 
 
 if __name__ == "__main__":
