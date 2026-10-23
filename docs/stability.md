@@ -1,12 +1,10 @@
 # Daily stability
 
 The [daily report](https://github.com/kelly-cs/tf2-archipelago/releases/tag/stability)
-measures the fork’s `stability` branch on native **Ubuntu 24.04**, **Windows**, and
+measures the fork’s `main` branch on native **Ubuntu 24.04**, **Windows**, and
 the **production Docker image** built from that commit. It runs daily at 05:17
-UTC through a dispatcher on the fork’s `main` branch. Start it manually through
-Actions → Daily stability → Run workflow, selecting `main` to dispatch or
-`stability` to run the checks directly. The dispatcher and test workflow share
-the filename `stability.yml` so GitHub can register it on the default branch.
+UTC. Start it manually through Actions → Daily stability → Run workflow,
+selecting `main`.
 The README widgets link to the report. They show the measurement date; results
 older than 36 hours are stale, including when scheduling stops. A green badge
 from a previous day is not evidence about a subsequent TF2 update.
@@ -79,18 +77,17 @@ the initial capacity choice; adjust the matrix, shard arguments and report
 shard count together after inspecting a complete run. Standard hosted runner
 availability and the fork’s Actions settings still apply.
 
-The implementation lives on `stability`, based on upstream’s newer test harness,
-because the fork’s `main` predates that harness and has independent changes.
-Only the small daily dispatcher, these instructions and README widgets are added
-to fork `main`; they do not merge upstream’s launcher into it. The tests measure
-the exact `stability` commit shown in the report, not the older fork `main`.
+The fork’s main now includes the parent’s latest main and the stability
+implementation. Every report identifies the exact merged source commit.
+The report job publishes the full report to a dedicated prerelease, leaving
+`releases/latest` alone. Its three badge JSON endpoints are also published in
+one commit to `stability-badges`, served through `raw.githubusercontent.com`.
+Shields blocks `github.com` release URLs as custom endpoints; raw-content URLs
+are supported. The badge branch contains generated JSON only.
 
-The report job publishes to **kelly-cs/tf2-archipelago** only when executing the
-`stability` ref. Its dedicated prerelease has stable asset URLs and never moves
-`releases/latest`. Actions defaults remain read-only; just the dispatcher gets
-`actions: write`, and the report job gets `contents: write`. No extra secrets or
-Steam account are needed. The prerelease’s assets must remain mutable.
-Until the first report is published, badges have no data.
+Actions defaults remain read-only; only the report job receives `contents: write`
+to update the report assets and badge branch. No extra secrets or Steam account
+are needed. The prerelease’s assets must remain mutable.
 
 ## Evidence and local use
 
@@ -101,7 +98,7 @@ extension lists, server logs, SourceMod logs and TF2 manifest/version files.
 The Actions run has the same evidence retained for 30 days, so previous daily
 measurements remain available even when the latest assets are replaced.
 
-Check out `stability` first. Build the beds with `BOTS_EXTENSIONS_DIR=/path/to/extensions make stability-bed`.
+Check out the fork’s `main` first. Build the beds with `BOTS_EXTENSIONS_DIR=/path/to/extensions make stability-bed`.
 Then, from the repository root, on the environment being measured:
 
 ```sh

@@ -386,6 +386,7 @@ compile: embed-placeholders proto
 test: embed-placeholders proto
 	CGO_ENABLED=1 $(SPENV) $(REQUIRE_SPSHELL) go test -race -shuffle=on ./...
 	python3 -m unittest discover -s deploy -p '*probe*_test.py'
+	python3 -m unittest discover -s deploy -p 'stability*_test.py'
 
 test-fast: embed-placeholders proto
 	$(SPENV) go test ./...
@@ -620,6 +621,20 @@ winbed: launcher-assets
 	compiler=plugin/build/sourcemod-$(SOURCEMOD_VERSION)/addons/sourcemod/scripting/spcomp64; \
 	[ -x $$compiler ] || compiler=$${compiler%64}; \
 	$$compiler -E -o$(DIST)/winbed/tf2_waveprobe.smx plugin/scripting/tf2_waveprobe.sp
+
+# The same launcher installer and wave driver on native Linux and Windows.
+.PHONY: stability-bed
+.NOTPARALLEL: stability-bed
+stability-bed: launcher-assets-linux winbed
+	mkdir -p $(DIST)/linuxbed
+	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath \
+		-ldflags="-s -w $(LAUNCHER_LDFLAGS)" \
+		-o $(DIST)/linuxbed/winbed ./launcher/cmd/winbed
+	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath \
+		-o $(DIST)/linuxbed/waveprobe ./launcher/cmd/waveprobe
+	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath \
+		-o $(DIST)/linuxbed/rcon ./launcher/cmd/rcon
+	cp $(DIST)/winbed/tf2_waveprobe.smx $(DIST)/linuxbed/
 
 # No window: walk is a Win32 binding, so the Linux build is the console flow
 # the compose stack already uses. Everything else is the same program.
