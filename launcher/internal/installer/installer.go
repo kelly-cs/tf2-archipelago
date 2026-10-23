@@ -27,6 +27,7 @@ import (
 	"time"
 
 	"github.com/m-this/tf2-archipelago/gamedata"
+	"github.com/m-this/tf2-archipelago/gamedata/availability"
 	"github.com/m-this/tf2-archipelago/launcher/internal/assets"
 	"github.com/m-this/tf2-archipelago/launcher/internal/sigmodpatch"
 	"github.com/m-this/tf2-archipelago/launcher/internal/winproc"
@@ -415,6 +416,16 @@ func AvailableCommunityArchives(archives []string) []string {
 	return available
 }
 
+// AvailableCommunityPacks is AvailableCommunityArchives by pack name, the
+// name settings and gamedata know a pack by.
+func AvailableCommunityPacks(archives []string) []string {
+	var packs []string
+	for _, path := range AvailableCommunityArchives(archives) {
+		packs = append(packs, filepath.Base(path))
+	}
+	return packs
+}
+
 // downloadCommunityArchive caches a recognized full asset pack next to the
 // locally supplied packs. A partial response is written under a temporary
 // name and validated before rename, so cancelling the explicit download can
@@ -665,7 +676,11 @@ func unsupportedCommunityPopfile(relative string, serverMods []string) bool {
 			continue
 		}
 		mission, cataloged := gamedata.MissionByPopFile(name)
-		return !cataloged || !gamedata.IsMissionPlayableWith(mission.ID, serverMods)
+		if !cataloged {
+			return true
+		}
+		installed := []string{gamedata.MissionPack(mission.ID)}
+		return !availability.Planned(installed, serverMods).Check(mission).Playable()
 	}
 	return false
 }

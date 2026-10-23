@@ -607,7 +607,7 @@ func (s Settings) withDefaults() Settings {
 	if s.SrcdsStartMission == "" {
 		s.SrcdsStartMission = startMissionFor(s.SrcdsStartMap, d.SrcdsStartMission)
 	}
-	if mission, known := gamedata.MissionByPopFile(s.SrcdsStartMission); !known || !gamedata.IsMissionPlayableWith(mission.ID, ServerModKeys(s)) {
+	if mission, known := gamedata.MissionByPopFile(s.SrcdsStartMission); !known || !MissionPool(s).Server.Check(mission).Playable() {
 		s.SrcdsStartMission = d.SrcdsStartMission
 	}
 	s.SrcdsStartMap = ""
@@ -678,7 +678,7 @@ func withCommunityDefaults(s, defaults Settings) Settings {
 		s.MvmExcludedMissions = slices.Clone(defaults.MvmExcludedMissions)
 	}
 	if s.MvmStartMission != "" {
-		if mission, known := gamedata.MissionByPopFile(s.MvmStartMission); !known || !gamedata.IsMissionPlayableWith(mission.ID, ServerModKeys(s)) {
+		if mission, known := gamedata.MissionByPopFile(s.MvmStartMission); !known || !MissionPool(s).Server.Check(mission).Playable() {
 			s.MvmStartMission = ""
 		}
 	}

@@ -19,12 +19,12 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
-	"path/filepath"
 	goruntime "runtime"
 	"strings"
 	"syscall"
 	"time"
 
+	"github.com/m-this/tf2-archipelago/gamedata/availability"
 	"github.com/m-this/tf2-archipelago/launcher/internal/assets"
 	"github.com/m-this/tf2-archipelago/launcher/internal/generate"
 	"github.com/m-this/tf2-archipelago/launcher/internal/installer"
@@ -476,12 +476,8 @@ func configureInstall(p *ui.Prompt, s settings.Settings) settings.Settings {
 // missionOptions lists Valve missions plus missions whose community archives
 // validate locally. gamedata owns the catalog; see ADR 0001.
 func missionOptions(s settings.Settings) []ui.Option {
-	availablePaths := installer.AvailableCommunityArchives(settings.KnownCommunityArchives(s.CommunityContentDir))
-	availablePacks := make([]string, 0, len(availablePaths))
-	for _, path := range availablePaths {
-		availablePacks = append(availablePacks, filepath.Base(path))
-	}
-	choices := runshape.MissionChoicesForPacks(availablePacks)
+	availablePacks := installer.AvailableCommunityPacks(settings.KnownCommunityArchives(s.CommunityContentDir))
+	choices := runshape.MissionChoicesFor(availability.Planned(availablePacks, nil))
 	options := make([]ui.Option, 0, len(choices))
 	for _, choice := range choices {
 		options = append(options, ui.Option{Value: choice.PopFile, Label: choice.Label})

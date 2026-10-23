@@ -24,6 +24,7 @@ import (
 	"github.com/m-this/tf2-archipelago/bridge/internal/guard"
 	"github.com/m-this/tf2-archipelago/bridge/internal/state"
 	"github.com/m-this/tf2-archipelago/gamedata"
+	"github.com/m-this/tf2-archipelago/gamedata/availability"
 )
 
 const (
@@ -66,10 +67,10 @@ type Options struct {
 	Deaths   *deathlink.Feed
 	Logger   *slog.Logger
 
-	// PopulationDir is the game server's scripts/population directory, where a
-	// community pack puts its missions. Empty leaves the check to the plugin,
-	// which is all a bridge in another container can do.
-	PopulationDir string
+	// Missions is what the game server has, for refusing a seed it cannot
+	// play. Nil leaves that to the plugin, which is all a bridge in another
+	// container can do.
+	Missions *availability.Server
 }
 
 // Client is one Archipelago session, reconnected as needed.
@@ -443,7 +444,7 @@ func (c *Client) onConnected(
 	if err := slot.validate(); err != nil {
 		return permanentError{err}
 	}
-	if err := uninstalledPacks(c.opts.PopulationDir, slot.Missions); err != nil {
+	if err := unplayable(c.opts.Missions, slot.Missions); err != nil {
 		return permanentError{err}
 	}
 	if err := c.bindSeed(ctx); err != nil {

@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/m-this/tf2-archipelago/gamedata"
+	"github.com/m-this/tf2-archipelago/gamedata/availability"
 )
 
 /*
@@ -18,30 +19,27 @@ import (
 
 narrows it further.
 
-It is _available_missions in apworld/tf2_mvm/__init__.py, in Go: a community
-mission is drawable only when community missions are on, and one that names a
-server mod only when the server loads that mod. Counting any other pool is what
-apw-2kw was reported as. The launcher counted gamedata.PlayableMissions(), which
-is neither: it offered a player 82 missions and the run they generated drew 29,
-because the 53 community missions the ceiling counted were all in the exclusion
-list a fresh settings file starts with.
+It is _available_missions in apworld/tf2_mvm/__init__.py, in Go: a mission the
+server can play, community missions only while they are on, and nothing the
+player left out. Counting any other pool is what apw-2kw was reported as. The
+launcher counted gamedata.PlayableMissions(), which is neither: it offered a
+player 82 missions and the run they generated drew 29, because the 53 community
+missions the ceiling counted were all in the exclusion list a fresh settings
+file starts with.
 
-The zero value is the smallest honest pool: Valve missions, no mods, nothing
-excluded. settings.MissionPool builds the real one.
+The zero value is the smallest honest pool: Valve missions, no packs, no mods,
+nothing excluded. settings.MissionPool builds the real one.
 */
 type Pool struct {
-	Mods      []string
+	Server    availability.Server
 	Community bool
 	Excluded  []string
 }
 
 // Missions is the pool, in table order.
 func (p Pool) Missions() []gamedata.Mission {
-	out := make([]gamedata.Mission, 0, len(gamedata.Missions))
-	for _, mission := range gamedata.Missions {
-		if !gamedata.IsMissionPlayableWith(mission.ID, p.Mods) {
-			continue
-		}
+	var out []gamedata.Mission
+	for _, mission := range p.Server.Playable() {
 		if !p.Community && gamedata.IsCommunityMission(mission.ID) {
 			continue
 		}
@@ -144,46 +142,27 @@ type MissionChoice struct {
 }
 
 // MissionChoices lists every mission the tables know, in table order, which
-// is map by map and easiest first.
+// is map by map and easiest first. A mission that needs a server mod is not
+// one of them: no server is assumed to load one.
 func MissionChoices() []MissionChoice {
-	return MissionChoicesForPacks([]string{"archive-assets.zip", "mlarchive-assets.zip"})
+	return MissionChoicesFor(availability.Planned(
+		[]string{"archive-assets.zip", "mlarchive-assets.zip"}, nil))
 }
 
-// VisibleMissions is the mission table a launcher may populate from the packs
-// that exist locally. Valve missions are always present. Community missions
-// appear only after their owning archive has been downloaded or supplied
-// locally, the locked ones included: a row that says why it is locked beats a
-// mission that is not there.
-func VisibleMissions(availablePacks []string) []gamedata.Mission {
-	var visible []gamedata.Mission
-	for _, mission := range gamedata.Missions {
-		pack := gamedata.MissionPack(mission.ID)
-		switch {
-		case pack == "" && gamedata.IsPlayableMission(mission.ID):
-			visible = append(visible, mission)
-		case pack != "" && slices.Contains(availablePacks, pack):
-			visible = append(visible, mission)
-		}
-	}
-	return visible
-}
+/*
+MissionChoicesFor is the menu that picks where a run begins, for one server.
 
-// MissionChoicesForPacks excludes unavailable and locked community missions
-// from menus that can actually select a starting mission.
-func MissionChoicesForPacks(availablePacks []string) []MissionChoice {
-	return MissionChoicesForPacksAndMods(availablePacks, nil)
-}
-
-// MissionChoicesForPacksAndMods is the selectable mission list for an
-// inspected server. A mod name in settings is not enough: callers pass only
-// mods whose managed installation was verified.
-func MissionChoicesForPacksAndMods(availablePacks, serverMods []string) []MissionChoice {
-	playable := VisibleMissions(availablePacks)
-	choices := make([]MissionChoice, 0, len(playable))
-	for _, mission := range playable {
-		if !gamedata.IsMissionPlayableWith(mission.ID, serverMods) {
+A mission whose pack is on disk and not ticked is offered: picking it ticks the
+pack, which is all that stood in its way. Any other reason keeps it off the
+menu, and the mission table says why.
+*/
+func MissionChoicesFor(server availability.Server) []MissionChoice {
+	var choices []MissionChoice
+	for _, verdict := range server.Shown() {
+		if !verdict.Playable() && verdict.Reason != availability.PackOff {
 			continue
 		}
+		mission := verdict.Mission
 		played, _ := gamedata.MapByID(mission.Map)
 		loadout := MissionLoadoutLabel(mission)
 		if loadout != "" {
@@ -192,7 +171,7 @@ func MissionChoicesForPacksAndMods(availablePacks, serverMods []string) []Missio
 		choices = append(choices, MissionChoice{
 			PopFile: mission.PopFile,
 			Label: fmt.Sprintf("[%s] %s - %s (%s, %d waves%s)",
-				missionSource(mission), played.Name, mission.Name, mission.Difficulty.Key(), mission.Waves, loadout),
+				availability.Source(mission, nil), played.Name, mission.Name, mission.Difficulty.Key(), mission.Waves, loadout),
 		})
 	}
 	return choices
@@ -235,13 +214,6 @@ func LoadoutNote(loadout string) string {
 	return ""
 }
 
-func missionSource(mission gamedata.Mission) string {
-	if label := gamedata.PackLabel(gamedata.MissionPack(mission.ID)); label != "" {
-		return label
-	}
-	return "Valve"
-}
-
 // MissionLabel is the label of one popfile, or the popfile itself when the
 // tables do not know it.
 func MissionLabel(popFile string) string {
@@ -257,19 +229,10 @@ func MissionLabel(popFile string) string {
 // seed draws it. An empty popfile or class name means this.
 const AnyLabel = "Any - the run draws it"
 
-// StartMissionChoices is MissionChoices with the draw in front, for the menu
-// that decides where a run begins. The empty popfile is the draw.
-func StartMissionChoices() []MissionChoice {
-	return append([]MissionChoice{{PopFile: "", Label: AnyLabel}}, MissionChoices()...)
-}
-
-// StartMissionChoicesForPacks is the availability-aware start menu.
-func StartMissionChoicesForPacks(availablePacks []string) []MissionChoice {
-	return append([]MissionChoice{{PopFile: "", Label: AnyLabel}}, MissionChoicesForPacks(availablePacks)...)
-}
-
-func StartMissionChoicesForPacksAndMods(availablePacks, serverMods []string) []MissionChoice {
-	return append([]MissionChoice{{PopFile: "", Label: AnyLabel}}, MissionChoicesForPacksAndMods(availablePacks, serverMods)...)
+// StartMissionChoices is MissionChoicesFor with the draw in front, for the
+// menu that decides where a run begins. The empty popfile is the draw.
+func StartMissionChoices(server availability.Server) []MissionChoice {
+	return append([]MissionChoice{{PopFile: "", Label: AnyLabel}}, MissionChoicesFor(server)...)
 }
 
 // StartMissionLabel is what StartMissionChoices shows for one popfile.

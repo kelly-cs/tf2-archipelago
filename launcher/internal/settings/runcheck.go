@@ -6,6 +6,7 @@ import (
 	"slices"
 
 	"github.com/m-this/tf2-archipelago/gamedata"
+	"github.com/m-this/tf2-archipelago/gamedata/availability"
 	"github.com/m-this/tf2-archipelago/launcher/internal/runshape"
 )
 
@@ -106,9 +107,15 @@ func CheckServerModsReady(s Settings, ready []string) error {
 // generator may draw at all. One place builds it, so the ceiling the launcher
 // offers, the tier labels and the preflight all count the pool the apworld
 // counts rather than three different ones.
+//
+// The server is the one the apworld assumes: every ticked mod set up, which
+// Start sees to before it runs. It assumes every pack too, because the player
+// file has no word for packs and a container that writes it cannot see them.
+// The Missions page takes an unticked pack's missions out of the excluded list
+// instead, and that list is what reaches the generator.
 func MissionPool(s Settings) runshape.Pool {
 	return runshape.Pool{
-		Mods:      ServerModKeys(s),
+		Server:    availability.Planned([]string{CommunityPackPotato, CommunityPackMoonlight}, ServerModKeys(s)),
 		Community: s.MvmCommunityMissions,
 		Excluded:  s.MvmExcludedMissions,
 	}

@@ -53,6 +53,7 @@ func TestSessionMissionShowsReadableRestriction(t *testing.T) {
 func TestMissionPoolRowsNameRequiredServerMods(t *testing.T) {
 	state := form.NewState(settings.Defaults())
 	state.Settings.SrcdsMods = []string{"sigsegv-mvm"}
+	state.Settings.CommunityPacks = []string{settings.CommunityPackPotato, settings.CommunityPackMoonlight}
 	rows := testMissionPoolRows(state, []string{
 		settings.CommunityPackPotato,
 		settings.CommunityPackMoonlight,
@@ -73,11 +74,11 @@ func TestAttachedMissionPoolExplainsMissingSigmodFiles(t *testing.T) {
 	state := form.NewState(settings.Defaults())
 	state.Settings.SrcdsMods = []string{"sigsegv-mvm"}
 	available := []string{settings.CommunityPackPotato}
-	built := form.Build(state, form.Env{CommunityAvailable: available, Platform: "linux", ManagedExternally: true})
-	rows := missionPoolRows(state, built, missionPoolSources{availablePacks: available, managedExternally: true})
+	env := form.Env{CommunityAvailable: available, Platform: "linux", ManagedExternally: true}
+	rows := missionPoolRows(state, form.Build(state, env), form.Availability(state, env), nil)
 	for _, row := range rows {
 		if row.Field == "missions.pool.mvm_bronx_rc2_adv_point_of_impact" {
-			if row.Compatibility != form.MissingServerModReason("SigMod", true) {
+			if row.Compatibility != "SigMod files are missing or incomplete in the server volume; recreate the container" {
 				t.Fatalf("attached SigMod compatibility = %q", row.Compatibility)
 			}
 			return
@@ -120,7 +121,7 @@ func TestSelectedSigModMissionCanBeUntickedInTable(t *testing.T) {
 	rows := testMissionPoolRows(state, []string{settings.CommunityPackPotato}, nil)
 	for _, row := range rows {
 		if row.Field == "missions.pool."+pop {
-			if row.Disabled || row.Compatibility != "Turn on SigMod above" {
+			if row.Disabled || row.Compatibility != "Turn on SigMod, then press Download / set up selected server mods" {
 				t.Fatalf("selected SigMod row = %+v", row)
 			}
 			return
@@ -130,8 +131,8 @@ func TestSelectedSigModMissionCanBeUntickedInTable(t *testing.T) {
 }
 
 func testMissionPoolRows(state form.State, available, ready []string) []MissionPoolRow {
-	built := form.Build(state, form.Env{CommunityAvailable: available, ServerModsReady: ready, Platform: "linux"})
-	return missionPoolRows(state, built, missionPoolSources{availablePacks: available, readyMods: ready})
+	env := form.Env{CommunityAvailable: available, ServerModsReady: ready, Platform: "linux"}
+	return missionPoolRows(state, form.Build(state, env), form.Availability(state, env), nil)
 }
 
 func TestPoolNoneClearsTheNamedStartMission(t *testing.T) {
@@ -424,4 +425,23 @@ func TestEveryStateOnlyActionReachesFormAct(t *testing.T) {
 			t.Errorf("form.Act answers %q and Dispatch does not route it: %v", spec.ID, err)
 		}
 	}
+}
+
+// The table said Ready for a mission whose pack was on disk and not ticked.
+// Start never installs such a pack, and the bridge refused the seed that drew
+// the mission: two answers for one mission.
+func TestMissionTableAndBridgeAgreeOnAnUntickedPack(t *testing.T) {
+	const homestead = "mvm_kelly_rc1b_adv_homestead_happenings"
+	state := form.NewState(settings.Defaults())
+	state.Settings.MvmExcludedMissions = nil
+	rows := testMissionPoolRows(state, []string{settings.CommunityPackPotato}, nil)
+	for _, row := range rows {
+		if row.Field == "missions.pool."+homestead {
+			if row.Compatibility != "Tick Potato Archive" {
+				t.Fatalf("the table says %q for a mission of an unticked pack", row.Compatibility)
+			}
+			return
+		}
+	}
+	t.Fatal("the mission is missing from the table")
 }
