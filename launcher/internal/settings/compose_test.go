@@ -87,7 +87,6 @@ func TestEveryVariableOutsideTheContainersSaysWhy(t *testing.T) {
 	launcherOnly := map[string]string{
 		"TF2AP_INSTALL_ROOT":          "the admin service sets it to the mounted volume",
 		"TF2AP_COMMUNITY_CONTENT_DIR": "the admin service sets it to the mounted overlay",
-		"TF2AP_COMMUNITY_PACKS":       "the admin page downloads the packs; srcds syncs what is on disk",
 		"TF2AP_ARCHIPELAGO_DIR":       "the launcher's own Archipelago install",
 		"AP_ROOM":                     "a launcher spelling of AP_HOST, AP_PORT and AP_TLS",
 		"AP_ROOM_URL":                 "shown by the admin page only",

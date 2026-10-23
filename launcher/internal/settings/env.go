@@ -37,7 +37,7 @@ var (
 var EnvVars = []EnvVar{
 	{"TF2AP_INSTALL_ROOT", nil},
 	{"TF2AP_COMMUNITY_CONTENT_DIR", nil},
-	{"TF2AP_COMMUNITY_PACKS", nil},
+	{"TF2AP_COMMUNITY_PACKS", playerFile},
 	{"TF2AP_TEST_MODE", []string{"srcds", "bridge"}},
 	{"TF2AP_ARCHIPELAGO_DIR", nil},
 	{"AP_ROOM", nil},
