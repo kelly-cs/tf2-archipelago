@@ -52,7 +52,7 @@ native int Defenderbots_GetSeatRank(int client);
 #include "tf2_archipelago/botswitch.inc"
 #include "tf2_archipelago/downloads.inc"
 
-#define PLUGIN_VERSION "1.18.3"
+#define PLUGIN_VERSION "1.18.4"
 
 // Only used when the wave events turn out not to exist.
 #define WavePollInterval 1.0
