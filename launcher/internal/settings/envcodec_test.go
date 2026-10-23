@@ -1,10 +1,12 @@
 package settings
 
 import (
-	"bufio"
+	"flag"
+	"maps"
 	"os"
 	"path/filepath"
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 
@@ -145,27 +147,24 @@ func TestEveryFieldIsInTheFixture(t *testing.T) {
 	}
 }
 
+var update = flag.Bool("update", false, "rewrite testdata/*.env from EnvValues")
+
 // readEnvFile reads a golden file in the shape composeenv writes:
 // NAME='value', with \' for a quote.
 func readEnvFile(t *testing.T, name string) map[string]string {
 	t.Helper()
-	file, err := os.Open(filepath.Join("testdata", name))
+	body, err := os.ReadFile(filepath.Join("testdata", name))
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer file.Close()
 	values := map[string]string{}
-	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		key, value, ok := strings.Cut(scanner.Text(), "=")
+	for line := range strings.Lines(string(body)) {
+		key, value, ok := strings.Cut(strings.TrimSuffix(line, "\n"), "=")
 		if !ok {
-			t.Fatalf("%s: %q is not NAME=value", name, scanner.Text())
+			t.Fatalf("%s: %q is not NAME=value", name, line)
 		}
 		value = strings.TrimSuffix(strings.TrimPrefix(value, "'"), "'")
 		values[key] = strings.ReplaceAll(value, `\'`, "'")
-	}
-	if err := scanner.Err(); err != nil {
-		t.Fatal(err)
 	}
 	return values
 }
@@ -234,5 +233,59 @@ func TestApplyEnvEdges(t *testing.T) {
 				t.Errorf("\n got %+v\nwant %+v", got, want)
 			}
 		})
+	}
+}
+
+/*
+EnvValues writes what composeenv wrote before the table existed, for every
+field and for none. -update rewrites the files, and the diff is the review.
+*/
+func TestEnvValuesMatchesTheGoldenFiles(t *testing.T) {
+	for file, s := range map[string]Settings{"every_field.env": everyField(), "zero.env": {}} {
+		t.Run(file, func(t *testing.T) {
+			got := EnvValues(s)
+			if *update {
+				var out strings.Builder
+				for _, name := range slices.Sorted(maps.Keys(got)) {
+					out.WriteString(name + "='" + strings.ReplaceAll(got[name], "'", `\'`) + "'\n")
+				}
+				if err := os.WriteFile(filepath.Join("testdata", file), []byte(out.String()), 0o644); err != nil {
+					t.Fatal(err)
+				}
+			}
+			if want := readEnvFile(t, file); !maps.Equal(got, want) {
+				t.Errorf("EnvValues differs from %s:\n got %v\nwant %v", file, got, want)
+			}
+		})
+	}
+}
+
+/*
+Every field the admin page writes reads back as it was.
+
+This is what keeps the two directions from drifting: a variable read and not
+written, or written in a spelling the reader does not take, fails here.
+*/
+func TestEnvValuesRoundTrip(t *testing.T) {
+	want := withoutUncarried(everyField())
+	for name, value := range EnvValues(want) {
+		t.Setenv(name, value)
+	}
+	if got := ApplyEnv(Settings{}); !reflect.DeepEqual(got, want) {
+		t.Errorf("\n got %+v\nwant %+v", got, want)
+	}
+}
+
+// Every variable is read, and none is listed twice.
+func TestEveryVariableIsDeclaredOnce(t *testing.T) {
+	seen := map[string]bool{}
+	for _, v := range EnvVars {
+		if seen[v.Name] {
+			t.Errorf("%s is declared twice", v.Name)
+		}
+		seen[v.Name] = true
+		if v.read == nil {
+			t.Errorf("%s is declared but nothing reads it", v.Name)
+		}
 	}
 }
