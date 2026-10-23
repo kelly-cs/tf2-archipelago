@@ -25,7 +25,7 @@ func excludingAllBut(popFiles ...string) []string {
 		keep[popFile] = true
 	}
 	var excluded []string
-	for _, mission := range gamedata.MissionsPlayableWith(gamedata.ServerModKeys()) {
+	for _, mission := range everything().Server.Playable() {
 		if !keep[mission.PopFile] {
 			excluded = append(excluded, mission.PopFile)
 		}

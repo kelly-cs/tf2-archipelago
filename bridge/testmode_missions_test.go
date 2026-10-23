@@ -20,7 +20,7 @@ import (
 // this is the mission list and inventory the launcher ultimately displays.
 func TestDockerTestModeServesEverySigModMission(t *testing.T) {
 	mods := []string{"sigsegv-mvm"}
-	eligible := gamedata.MissionsPlayableWith(mods)
+	eligible := dockerTestServer(mods).Playable()
 	if len(eligible) <= len(gamedata.PlayableMissions()) {
 		t.Fatal("fixture no longer has more SigMod missions than the unmodded pool")
 	}

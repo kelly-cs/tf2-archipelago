@@ -1,7 +1,5 @@
 package gamedata
 
-import "slices"
-
 // ServerMod is a server-side mod a community mission can name in its
 // `requires` field. The server that plays the mission must have it loaded.
 // Keys are permanent: a seed generated with server_mods naming one must mean
@@ -116,28 +114,6 @@ func MissingNavigationMesh(id MissionID) string {
 		return ""
 	}
 	return "maps/" + played.Name + ".nav"
-}
-
-// IsMissionPlayableWith reports whether a server that loads mods can put the
-// mission in a seed. A mission with no requirement always can; one that
-// names a mod can when the mod is among those; a no_nav mission never can.
-func IsMissionPlayableWith(id MissionID, mods []string) bool {
-	if IsPlayableMission(id) {
-		return true
-	}
-	mod := MissionServerMod(id)
-	return mod != "" && slices.Contains(mods, mod)
-}
-
-// MissionsPlayableWith is PlayableMissions for a server that loads mods.
-func MissionsPlayableWith(mods []string) []Mission {
-	out := make([]Mission, 0, len(Missions))
-	for _, mission := range Missions {
-		if IsMissionPlayableWith(mission.ID, mods) {
-			out = append(out, mission)
-		}
-	}
-	return out
 }
 
 // RequirementLabel says in one line why a mission is not offered, for a

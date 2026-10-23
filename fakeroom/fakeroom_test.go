@@ -11,6 +11,7 @@ import (
 	"github.com/coder/websocket"
 
 	"github.com/m-this/tf2-archipelago/gamedata"
+	"github.com/m-this/tf2-archipelago/gamedata/availability"
 )
 
 // client drives the room's websocket directly, the way the bridge does, so the
@@ -192,7 +193,7 @@ func TestTestRewardsUseOnlySeedEligibleWeaponBuffs(t *testing.T) {
 
 func TestDefaultMissionsSkipTheExcluded(t *testing.T) {
 	for range 20 {
-		got := defaultMissions(2, []string{"mvm_decoy"}, "", "", nil, false)
+		got := defaultMissions(2, []string{"mvm_decoy"}, "", "", everyPack(), false)
 		if len(got) != 2 || slices.Contains(got, "mvm_decoy") {
 			t.Errorf("missions = %v", got)
 		}
@@ -340,9 +341,9 @@ func TestDockerChecksKeepRewardingAfterPoolIsExhausted(t *testing.T) {
 // those were unticked, read from a player's chair as a randomiser that does
 // not randomise. The draw is a draw.
 func TestDefaultMissionsAreDrawnAtRandom(t *testing.T) {
-	first := defaultMissions(8, nil, "", "", nil, false)
+	first := defaultMissions(8, nil, "", "", everyPack(), false)
 	for range 30 {
-		if !slices.Equal(defaultMissions(8, nil, "", "", nil, false), first) {
+		if !slices.Equal(defaultMissions(8, nil, "", "", everyPack(), false), first) {
 			return
 		}
 	}
@@ -351,8 +352,8 @@ func TestDefaultMissionsAreDrawnAtRandom(t *testing.T) {
 
 func TestDefaultMissionsUseAllEligibleWhenCountExceedsPool(t *testing.T) {
 	mods := []string{"sigsegv-mvm"}
-	eligible := gamedata.MissionsPlayableWith(mods)
-	got := defaultMissions(len(eligible)+1, nil, "", "", mods, false)
+	eligible := everyPack(mods...).Playable()
+	got := defaultMissions(len(eligible)+1, nil, "", "", everyPack(mods...), false)
 	if len(got) != len(eligible) {
 		t.Fatalf("requested more than %d eligible missions, got %d", len(eligible), len(got))
 	}
@@ -360,10 +361,10 @@ func TestDefaultMissionsUseAllEligibleWhenCountExceedsPool(t *testing.T) {
 	if !slices.Contains(got, sigmodMission) {
 		t.Fatalf("SigMod mission %q was left out", sigmodMission)
 	}
-	if slices.Contains(defaultMissions(len(eligible)+1, nil, "", "", nil, false), sigmodMission) {
+	if slices.Contains(defaultMissions(len(eligible)+1, nil, "", "", everyPack(), false), sigmodMission) {
 		t.Fatal("a SigMod mission was offered without SigMod")
 	}
-	for _, popFile := range defaultMissions(len(eligible)+1, nil, "", "", mods, true) {
+	for _, popFile := range defaultMissions(len(eligible)+1, nil, "", "", everyPack(mods...), true) {
 		mission, _ := gamedata.MissionByPopFile(popFile)
 		if gamedata.IsCommunityMission(mission.ID) {
 			t.Fatalf("community mission %q was offered while community missions are off", popFile)
@@ -374,7 +375,7 @@ func TestDefaultMissionsUseAllEligibleWhenCountExceedsPool(t *testing.T) {
 // The start mission is honoured whatever the draw did.
 func TestDefaultMissionsPutTheStartMissionFirst(t *testing.T) {
 	for range 20 {
-		if got := defaultMissions(3, nil, "", "mvm_decoy_advanced", nil, false); got[0] != "mvm_decoy_advanced" {
+		if got := defaultMissions(3, nil, "", "mvm_decoy_advanced", everyPack(), false); got[0] != "mvm_decoy_advanced" {
 			t.Errorf("missions = %v", got)
 		}
 	}
@@ -389,7 +390,7 @@ func TestDefaultMissionsRespectTheTier(t *testing.T) {
 		if !known {
 			t.Fatalf("%s is not a tier", key)
 		}
-		for _, popFile := range defaultMissions(8, nil, key, "", nil, false) {
+		for _, popFile := range defaultMissions(8, nil, key, "", everyPack(), false) {
 			mission, ok := gamedata.MissionByPopFile(popFile)
 			if !ok {
 				t.Fatalf("drew %s, which is not a mission", popFile)
@@ -402,7 +403,7 @@ func TestDefaultMissionsRespectTheTier(t *testing.T) {
 	}
 	// An unknown key is a typo in a settings file, and draws the whole pool
 	// rather than nothing.
-	if got := defaultMissions(3, nil, "nonsense", "", nil, false); len(got) != 3 {
+	if got := defaultMissions(3, nil, "nonsense", "", everyPack(), false); len(got) != 3 {
 		t.Errorf("an unknown tier drew %v", got)
 	}
 }
@@ -410,7 +411,7 @@ func TestDefaultMissionsRespectTheTier(t *testing.T) {
 // The run begins on the first mission drawn, so a named start mission has to
 // come first even when the tier would not have drawn it at all.
 func TestDefaultMissionsStartWhereAsked(t *testing.T) {
-	got := defaultMissions(4, nil, "normal", "mvm_coaltown_advanced", nil, false)
+	got := defaultMissions(4, nil, "normal", "mvm_coaltown_advanced", everyPack(), false)
 	if len(got) == 0 || got[0] != "mvm_coaltown_advanced" {
 		t.Fatalf("missions = %v", got)
 	}
@@ -419,12 +420,12 @@ func TestDefaultMissionsStartWhereAsked(t *testing.T) {
 	}
 	// Named but outside the tier: the player asked for it by name, which is
 	// more specific than the tier they asked for by key.
-	got = defaultMissions(2, nil, "expert", "mvm_decoy", nil, false)
+	got = defaultMissions(2, nil, "expert", "mvm_decoy", everyPack(), false)
 	if len(got) == 0 || got[0] != "mvm_decoy" {
 		t.Errorf("missions = %v", got)
 	}
 	// Not a mission at all: ignored rather than served as one.
-	got = defaultMissions(2, nil, "normal", "mvm_nowhere", nil, false)
+	got = defaultMissions(2, nil, "normal", "mvm_nowhere", everyPack(), false)
 	if slices.Contains(got, "mvm_nowhere") {
 		t.Errorf("served a mission that does not exist: %v", got)
 	}
@@ -629,5 +630,22 @@ func TestTakeNextTicketWithNoneLeft(t *testing.T) {
 	}
 	if _, found := takeNextTicket(items, len(items)); found {
 		t.Error("a pool with nothing left gave up a ticket")
+	}
+}
+
+// everyPack is a server with every community pack and the given mods.
+func everyPack(mods ...string) availability.Server {
+	return availability.Planned(gamedata.CommunityPacks(), mods)
+}
+
+// A pack the server does not have is a pack a test run never draws from.
+func TestDefaultMissionsLeaveOutAMissingPack(t *testing.T) {
+	server := availability.Planned([]string{"mlarchive-assets.zip"}, nil)
+	all := len(gamedata.Missions)
+	for _, popFile := range defaultMissions(all, nil, "", "", server, false) {
+		mission, _ := gamedata.MissionByPopFile(popFile)
+		if pack := gamedata.MissionPack(mission.ID); pack == "archive-assets.zip" {
+			t.Fatalf("drew %s from a pack the server does not have", popFile)
+		}
 	}
 }

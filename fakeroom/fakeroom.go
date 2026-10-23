@@ -28,6 +28,7 @@ import (
 	"github.com/coder/websocket"
 
 	"github.com/m-this/tf2-archipelago/gamedata"
+	"github.com/m-this/tf2-archipelago/gamedata/availability"
 )
 
 // Room is a running fake multiworld. Close it to stop it.
@@ -81,9 +82,9 @@ type Options struct {
 	Goal           string
 	Log            func(string)
 	MissionCount   int
-	// ServerMods and ExcludeCommunity keep the Docker test pool aligned with
-	// the missions the configured game server can actually play.
-	ServerMods       []string
+	// Server and ExcludeCommunity keep the Docker test pool to the missions
+	// the configured game server can actually play.
+	Server           availability.Server
 	ExcludeCommunity bool
 
 	// Excluded is the popfiles a test run leaves out, the way the real
@@ -145,7 +146,7 @@ func Start(ctx context.Context, options Options) (*Room, string, error) {
 	missions := options.Missions
 	if len(missions) == 0 {
 		missions = defaultMissions(options.MissionCount, options.Excluded,
-			options.Difficulty, options.StartMission, options.ServerMods, options.ExcludeCommunity)
+			options.Difficulty, options.StartMission, options.Server, options.ExcludeCommunity)
 	}
 	start := roomStartingInventory(missions, options.StartClass, options.UnlockMissions)
 	modifiers := options.MissionModifiers
@@ -686,10 +687,10 @@ const buffsUpFront = 8
 //
 // The floor is a floor, not a filter: picking intermediate draws intermediate
 // and everything harder, which is what difficulty_pool means.
-func defaultMissions(count int, excluded []string, difficulty, startMission string, mods []string, excludeCommunity bool) []string {
+func defaultMissions(count int, excluded []string, difficulty, startMission string, server availability.Server, excludeCommunity bool) []string {
 	floor, known := gamedata.DifficultyByKey(difficulty)
 
-	playable := gamedata.MissionsPlayableWith(mods)
+	playable := server.Playable()
 	pool := make([]string, 0, len(playable))
 	for _, mission := range playable {
 		if excludeCommunity && gamedata.IsCommunityMission(mission.ID) {
@@ -718,7 +719,7 @@ func defaultMissions(count int, excluded []string, difficulty, startMission stri
 			pool = slices.Insert(slices.Delete(slices.Clone(pool), at, at+1), 0, startMission)
 		} else if at == -1 {
 			if mission, known := gamedata.MissionByPopFile(startMission); known &&
-				gamedata.IsMissionPlayableWith(mission.ID, mods) &&
+				server.Check(mission).Playable() &&
 				(!excludeCommunity || !gamedata.IsCommunityMission(mission.ID)) {
 				pool = append([]string{startMission}, pool...)
 			}

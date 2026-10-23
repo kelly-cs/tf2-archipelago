@@ -54,7 +54,7 @@ func TestMissingNavigationMeshNamesTheMapAsset(t *testing.T) {
 	}
 }
 
-func TestPlayableWithModsFollowsTheCatalog(t *testing.T) {
+func TestMissionServerModFollowsTheCatalog(t *testing.T) {
 	saved := communityContent
 	defer func() { communityContent = saved }()
 	content, err := loadCommunity([]byte(modManifest))
@@ -63,21 +63,6 @@ func TestPlayableWithModsFollowsTheCatalog(t *testing.T) {
 	}
 	communityContent = content
 
-	for _, c := range []struct {
-		id   MissionID
-		mods []string
-		want bool
-	}{
-		{200, nil, false},
-		{200, []string{"sigsegv-mvm"}, true},
-		{201, []string{"sigsegv-mvm"}, false},
-		{202, nil, true},
-		{1, nil, true},
-	} {
-		if got := IsMissionPlayableWith(c.id, c.mods); got != c.want {
-			t.Errorf("IsMissionPlayableWith(%d, %v) = %t, want %t", c.id, c.mods, got, c.want)
-		}
-	}
 	if got := MissionServerMod(200); got != "sigsegv-mvm" {
 		t.Errorf("MissionServerMod = %q", got)
 	}
