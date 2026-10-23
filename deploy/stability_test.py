@@ -171,6 +171,10 @@ class StabilityTest(unittest.TestCase):
             (game / "tf/steam.inf").write_bytes(b"PatchVersion=123\r\nServerVersion=999\r\n")
             self.assertEqual(runner.installed_version(game), "999")
 
+    def test_live_rcon_server_version_does_not_require_a_breakpad_console_line(self):
+        reply = "Network PatchVersion: 111\nProtocol version: 24\nServer version:       999\n"
+        self.assertEqual(runner.running_version(Path("/no-game-needed"), reply), "999")
+
     @unittest.skipIf(os.name == "nt", "POSIX executable fixtures; real Windows uses .exe beds")
     def test_runner_executes_plan_install_start_probe_retry_and_report(self):
         # Exercise process orchestration and the real report/retry scripts with

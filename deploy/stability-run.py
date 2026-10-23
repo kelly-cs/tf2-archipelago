@@ -40,9 +40,13 @@ def installed_version(game):
     return match[1]
 
 
-def running_version(game):
-    # The launcher's debug bundle reads this same engine startup line. A depot
-    # manifest or steam.inf alone does not prove which binary is running.
+def running_version(game, evidence=""):
+    # Prefer the live engine's RCON reply. On Linux the Breakpad startup line
+    # is in stdout and can be absent from -condebug's console.log.
+    current = re.findall(r"^\s*Server version:\s*(\d+)\s*$", evidence, re.MULTILINE | re.IGNORECASE)
+    if current:
+        return current[-1]
+    # Older engine output: the startup line used by the debug bundle.
     console = (game / "tf/console.log").read_text(encoding="utf-8", errors="replace")
     versions = re.findall(r"Using Breakpad minidump system\. Version: (\d+)", console)
     if not versions:
@@ -184,7 +188,7 @@ def main(opt):
             raise RuntimeError("startup did not load the mod, extensions and probe within 15 minutes")
         meta["startup"] = True
         meta["installed_version"] = installed_version(game)
-        meta["running_version"] = running_version(game)
+        meta["running_version"] = running_version(game, evidence)
         meta["latest_at_start"] = live_version()
         if not meta["installed_version"] == meta["running_version"] == meta["latest_at_start"]:
             raise ValueError("TF2 changed during setup; rerun against the new build")
