@@ -4,6 +4,17 @@ What each release changes, for somebody who plays the game. The workflow in
 `.github/workflows/release.yml` reads the section matching the tag and puts it
 in the release notes, so this file is the only place to write it.
 
+## Unreleased
+
+### Fixed
+
+- **The Docker stack only draws from the community packs you ticked.** With
+  `MVM_EXCLUDED_MISSIONS` empty, `make seed` and the self-hosted multiworld
+  could pick a mission from a pack unticked in the admin page, and the admin
+  page counted those missions in the tier menu and the mission count. They
+  are now left out. A `.env` without `TF2AP_COMMUNITY_PACKS` still draws from
+  every pack, as before; an empty one draws from none.
+
 ## v1.18.4
 
 ### Fixed

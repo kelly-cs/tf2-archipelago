@@ -20,7 +20,7 @@ func main() {
 }
 
 func run(logger *slog.Logger) error {
-	s := settings.ApplyEnv(settings.Defaults())
+	s := settings.ApplyEnv(settings.ComposeDefaults())
 	authority := env("TF2AP_ADMIN_AUTHORITY", "127.0.0.1:8477")
 	logger.Info("TF2 Archipelago admin UI", "url", "http://"+authority)
 	logger.Info("Docker Compose owns server lifecycle; the Settings tab writes .env")

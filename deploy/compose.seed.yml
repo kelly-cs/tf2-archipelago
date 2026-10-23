@@ -38,7 +38,9 @@ services:
       MVM_START_MISSION: ${MVM_START_MISSION:-}
       MVM_START_CLASS: ${MVM_START_CLASS:-}
       MVM_COMMUNITY_MISSIONS: ${MVM_COMMUNITY_MISSIONS:-}
-      TF2AP_COMMUNITY_PACKS: ${TF2AP_COMMUNITY_PACKS:-}
+      # No default: a .env without the key leaves it unset, which playeryaml
+      # reads as every pack, and an empty one as none.
+      TF2AP_COMMUNITY_PACKS:
       MVM_MISSION_MODIFIERS: ${MVM_MISSION_MODIFIERS:-}
       MVM_MINIMUM_MISSION_MODIFIERS: ${MVM_MINIMUM_MISSION_MODIFIERS:-}
       MVM_MAXIMUM_MISSION_MODIFIERS: ${MVM_MAXIMUM_MISSION_MODIFIERS:-}

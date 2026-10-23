@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/m-this/tf2-archipelago/gamedata"
+	"github.com/m-this/tf2-archipelago/gamedata/availability"
 )
 
 // Game is the name the apworld registers with Archipelago. It has to match
@@ -88,17 +89,25 @@ func ServerModKeys(s Settings) []string {
 	return keys
 }
 
-// ExcludedMissionNames turns the popfiles the settings hold into the names the
-// apworld option takes, in table order, dropping anything the tables do not
-// know.
+// ExcludedMissionNames is what the apworld option excluded_missions takes, in
+// table order: the missions the settings leave out, and those of every pack
+// they do not tick. The apworld assumes every pack is on the server, so a pack
+// it is not told about by name is a pack it draws from.
 func ExcludedMissionNames(s Settings) []string {
-	names := make([]string, 0, len(s.MvmExcludedMissions))
-	for _, mission := range gamedata.MissionsPlayableWith(ServerModKeys(s)) {
-		if slices.Contains(s.MvmExcludedMissions, mission.PopFile) {
+	server := MissionPool(s).Server
+	var names []string
+	for _, mission := range everyPack(s).Playable() {
+		if slices.Contains(s.MvmExcludedMissions, mission.PopFile) || !server.Check(mission).Playable() {
 			names = append(names, mission.Name)
 		}
 	}
 	return names
+}
+
+// everyPack is the server the apworld assumes: the settings' mods, and every
+// community pack.
+func everyPack(s Settings) availability.Server {
+	return availability.Planned(gamedata.CommunityPacks(), ServerModKeys(s))
 }
 
 // randomOption is what the apworld's start_mission and start_class take for
@@ -112,7 +121,7 @@ func StartMissionName(s Settings) string {
 	if s.MvmStartMission == "" {
 		return randomOption
 	}
-	for _, mission := range gamedata.MissionsPlayableWith(ServerModKeys(s)) {
+	for _, mission := range MissionPool(s).Server.Playable() {
 		if mission.PopFile == s.MvmStartMission {
 			return mission.Name
 		}
