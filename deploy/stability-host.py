@@ -47,10 +47,14 @@ def main():
     if os.name != "nt":
         subprocess.run(["sudo", "dpkg", "--add-architecture", "i386"], check=True, timeout=60)
         subprocess.run(["sudo", "apt-get", "update", "-qq"], check=True, timeout=300)
-        subprocess.run(["sudo", "apt-get", "install", "-y", "lib32gcc-s1", "lib32stdc++6", "libc6-i386", "lib32z1",
+        # Bound the whole apt process group: a Python timeout on sudo alone
+        # left apt/dpkg running after the step had already reported failure.
+        subprocess.run(["sudo", "timeout", "--signal=TERM", "--kill-after=30s", "20m",
+                        "env", "DEBIAN_FRONTEND=noninteractive", "apt-get",
+                        "-o", "Acquire::Retries=3", "-o", "Acquire::http::Timeout=30",
+                        "-o", "Acquire::https::Timeout=30", "install", "-y", "--no-install-recommends", "lib32gcc-s1", "lib32stdc++6", "libc6-i386", "lib32z1",
                         "libtinfo6:i386", "libncurses6:i386", "libbz2-1.0:i386",
-                        "libcurl4t64:i386", "libcurl3t64-gnutls:i386", "libsdl2-2.0-0:i386"], check=True, timeout=600,
-                       env={**os.environ, "DEBIAN_FRONTEND": "noninteractive"})
+                        "libcurl4t64:i386", "libcurl3t64-gnutls:i386", "libsdl2-2.0-0:i386"], check=True)
     root = max(candidates, key=lambda path: shutil.disk_usage(path).free)
     free = shutil.disk_usage(root).free / 1024**3
     print(f"Game volume: {root.anchor}; free {free:.1f} GiB; required {required} GiB", flush=True)

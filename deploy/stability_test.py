@@ -116,6 +116,21 @@ class StabilityTest(unittest.TestCase):
             self.assertTrue(any("libcurl4t64:i386" in call.args[0] for call in run.call_args_list))
             self.assertIn("STABILITY_GAME_PARENT=",(root/"env").read_text())
 
+    @unittest.skipIf(os.name == "nt", "Linux package setup fixture")
+    def test_failed_dependency_install_cannot_export_a_ready_game_root(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            def install_fails(command, **kwargs):
+                if "install" in command:
+                    raise host.subprocess.CalledProcessError(124, command)
+            with mock.patch.dict(os.environ, {"STABILITY_RUNNER_ENVIRONMENT": "github-hosted",
+                    "STABILITY_ENV": "ubuntu24", "RUNNER_TEMP": str(root/"game"), "GITHUB_ENV": str(root/"env")}), \
+                    mock.patch.object(host.shutil, "disk_usage", return_value=SimpleNamespace(free=100*1024**3)), \
+                    mock.patch.object(host.subprocess, "run", side_effect=install_fails):
+                with self.assertRaises(host.subprocess.CalledProcessError):
+                    host.main()
+            self.assertFalse((root/"env").exists())
+
     def test_badge_update_is_one_commit_with_all_environments(self):
         with tempfile.TemporaryDirectory() as temp:
             directory = Path(temp)
