@@ -1,12 +1,16 @@
-# Experimental Reverse MvM wave probe
+# Reverse MvM wave probe
 
 The daily and local stability sweeps use `-reverse-objectives` to attempt every
-playable reverse mission: 112 wave/mode cases across eleven missions, with
-Bot Surge off and on. All 2,454 playable cases count in the denominator. The
-previous profile excluded 78 reverse cases because only three bomb/carrier
+playable reverse mission: 122 wave/mode cases across twelve missions, with
+Bot Surge off and on. All 2,628 catalog cases count in the denominator. The
+previous profile excluded 78 playable reverse cases because only three bomb/carrier
 missions had been validated; that profile remains available as `-reverse-bombs`
-for comparison, but is no longer the daily default. The catalog's `no_nav`
-missions cannot be selected for play and remain outside the playable plan.
+for comparison, but is no longer the daily default. The catalog audit also
+recovered Cyberia's ten reverse wave/mode cases by recognizing its embedded
+navigation; no current catalog mission is excluded.
+
+See the [full local validation report](audits/full-reverse-20261024/REPORT.md) for
+measured results, retained failures, and the navigation catalog recovery.
 
 ## Completion evidence
 
@@ -78,7 +82,7 @@ dist/linuxbed/waveprobe -rcon 127.0.0.1:27035 \
   -reverse-objectives -mode both -speed 50 -timeout 180s
 ```
 
-For the daily reverse-only plan (112 planned and zero unsupported cases):
+For the daily reverse-only plan (122 planned and zero unsupported cases):
 
 ```sh
 dist/linuxbed/waveprobe -plan -mission all -mode both \
@@ -89,7 +93,7 @@ Keep the first run's JSONL and debug snapshots before retesting a specific
 nonpass with the same profile and a longer wall budget. Hosted and local runners
 record `reverse_objectives=1` in their config, and retries preserve that flag. The
 manual `reverse-smoke` workflow scope tests Breaking Walls on all three
-environments without publishing full-catalog badges. The full daily profile includes all reverse missions.
+environments without publishing full-catalog badges. The full daily profile includes all playable reverse missions.
 
 ## What this measures
 
@@ -97,9 +101,9 @@ Teleporting the fake player into objective volumes exercises real pickup,
 capture permissions, authored hatch locks and engine/SigMod completion logic.
 It does not validate walking routes, player survival, gate reachability, or
 whether a human can physically navigate to that volume. Allied carriers use
-their own AI and navigation. Timers, payloads, multi-stage gates, and objectives
-without a flag capture may require additional simulators; they must not be
-marked supported solely because RED robots can be cleared.
+their own AI and navigation. Future missions with different payloads or
+multi-stage mechanics need native witnesses of their own; clearing RED robots
+alone does not establish objective completion.
 
 The local investigation's initial kill-only baseline, candidate snapshots,
 per-wave native capture evidence and reports are saved separately under
@@ -124,9 +128,17 @@ fires those outputs. Missing buildings or stage outputs cannot pass.
 
 Autumnull's finale requires a native death of its named `Overseer` boss, as
 Computer Crash requires `THE CORRUPTED`. Hideout wave 4 observes the authored
-`boss_deploy_relay` output for tank delivery; its combat finale requires native
+`boss_deploy_relay` output for tank delivery, or a native flag capture when
+the authored player permissions allow it. Both require native BLU victory and
+wave completion. Its combat finale requires native
 BLU victory, observed enemy defeats and wave completion. These exceptions are
 bound to exact mission/wave keys in the independent report validator.
+
+Cyberia's Arctic Arrangement uses native control-point objectives on waves 1–3
+and 5. Wave 4 is its authored combat/tank stage: a native BLU win, wave completion,
+enemy defeats and all five enemy tank deaths (four control boxes plus the main
+RED tank) are required. Bomb captures cannot substitute for either profile.
+The corrected profile is compared at both 20× and 50× in the local audit.
 
 The fixtures exercise objective completion, not a complete human playthrough.
 A local Linux Docker run cannot establish native Windows or Ubuntu startup;

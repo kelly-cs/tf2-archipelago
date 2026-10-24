@@ -1,11 +1,11 @@
 # Unattended MvM wave sweep
 
 `deploy/run-waveprobe.sh` starts disposable Docker servers and runs every
-catalog mission with and without Bot Surge. It skips missions marked `no_nav`,
+catalog mission with and without Bot Surge. It skips any future missions marked `no_nav` (the current catalog has none),
 which cannot run in the game. The live Compose project is never restarted.
 
 The local wrapper and daily checker enable all playable reverse missions with
-`-reverse-objectives`: 112 reverse wave/mode cases and 2,454 total cases in the
+`-reverse-objectives`: 122 reverse wave/mode cases and 2,628 total cases in the
 current catalog. Reverse failures count against the percentage. See
 [reverse coverage](reverse-waveprobe.md) for the objective witnesses and limits.
 Set `WAVEPROBE_REVERSE_OBJECTIVES=0` to use the earlier bomb/carrier subset, or
