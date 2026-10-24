@@ -85,6 +85,19 @@ class StabilityTest(unittest.TestCase):
                 mock.patch.object(runner.subprocess, "run", return_value=SimpleNamespace(stdout='["127.0.0.1","172.20.144.1"]')):
             self.assertEqual(runner.rcon_hosts("windows"), ["127.0.0.1", "172.20.144.1"])
 
+    def test_windows_interface_timeout_retains_readiness_candidates(self):
+        with mock.patch.object(runner.os, "name", "nt"), \
+                mock.patch.object(runner.socket, "getaddrinfo", return_value=[(None,None,None,None,("172.27.48.1",0))]), \
+                mock.patch.object(runner.subprocess, "run", side_effect=runner.subprocess.TimeoutExpired("powershell", 60)), \
+                mock.patch("builtins.print"):
+            self.assertEqual(runner.rcon_hosts("windows"), ["127.0.0.1", "172.27.48.1"])
+
+    def test_failed_native_discovery_retains_loopback(self):
+        with mock.patch.object(runner.socket, "getaddrinfo", side_effect=runner.socket.gaierror("unavailable")), \
+                mock.patch.object(runner.subprocess, "run", side_effect=OSError("unavailable")), \
+                mock.patch("builtins.print"):
+            self.assertEqual(runner.rcon_hosts("ubuntu24"), ["127.0.0.1"])
+
     def test_host_cleanup_refuses_a_personal_machine(self):
         with mock.patch.dict(os.environ, {"STABILITY_RUNNER_ENVIRONMENT": "self-hosted"}):
             with self.assertRaisesRegex(RuntimeError, "only on an ephemeral"):

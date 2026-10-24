@@ -113,19 +113,32 @@ def crash_evidence(output):
 
 def rcon_hosts(environment):
     hosts = ["127.0.0.1"]
-    if environment != "docker":
+    if environment == "docker":
+        return hosts
+    try:
         hosts += sorted({row[4][0] for row in socket.getaddrinfo(socket.gethostname(), None, socket.AF_INET)})
-        if os.name == "nt":
-            command = ["powershell", "-NoProfile", "-Command",
-                       "@(Get-NetIPAddress -AddressFamily IPv4 | ForEach-Object { $_.IPAddress }) | ConvertTo-Json -Compress"]
-        else:
-            command = ["hostname", "-I"]
-        result = subprocess.run(command, capture_output=True, text=True, timeout=15, check=True)
+    except OSError as exc:
+        print(f"stability: hostname address lookup unavailable: {exc}", flush=True)
+    # Get-NetIPAddress initializes CIM on Windows and can take longer than the
+    # address lookup budget on a busy hosted runner. Enumerate via .NET instead.
+    # This supplements loopback/DNS; discovery failure must not abort readiness.
+    if os.name == "nt":
+        command = ["powershell", "-NoProfile", "-NonInteractive", "-Command",
+                   "@([System.Net.NetworkInformation.NetworkInterface]::GetAllNetworkInterfaces() | "
+                   "ForEach-Object { $_.GetIPProperties().UnicastAddresses } | "
+                   "Where-Object { $_.Address.AddressFamily -eq [System.Net.Sockets.AddressFamily]::InterNetwork } | "
+                   "ForEach-Object { $_.Address.IPAddressToString }) | ConvertTo-Json -Compress"]
+    else:
+        command = ["hostname", "-I"]
+    try:
+        result = subprocess.run(command, capture_output=True, text=True, timeout=60, check=True)
         if os.name == "nt":
             addresses = json.loads(result.stdout)
             hosts += [addresses] if isinstance(addresses, str) else (addresses or [])
         else:
             hosts += [address for address in result.stdout.split() if ":" not in address]
+    except (subprocess.SubprocessError, OSError, ValueError) as exc:
+        print(f"stability: supplemental interface lookup unavailable; trying loopback and hostname addresses: {exc}", flush=True)
     return list(dict.fromkeys(hosts))
 
 
