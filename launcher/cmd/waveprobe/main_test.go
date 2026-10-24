@@ -325,8 +325,8 @@ func TestReverseSelectionIsExplicitAndKeepsUnsupportedCoverageByDefault(t *testi
 		if err := file.Close(); err != nil {
 			t.Fatal(err)
 		}
-		if cases != 112 {
-			t.Errorf("reverse cases=%d want=112", cases)
+		if cases != 122 {
+			t.Errorf("reverse cases=%d want=122", cases)
 		}
 	}
 }
@@ -397,7 +397,7 @@ func TestDailyReverseBombProfileIncludesOnlyValidatedMissions(t *testing.T) {
 			t.Fatal("payload mission was enabled by the bomb profile")
 		}
 	}
-	if reverseCases != 34 || counts["planned"] != 2376 || counts["unsupported_reverse"] != 78 {
+	if reverseCases != 34 || counts["planned"] != 2540 || counts["unsupported_reverse"] != 88 {
 		t.Fatalf("reverse=%d, plan=%v", reverseCases, counts)
 	}
 }
@@ -433,7 +433,7 @@ func TestFullReverseProfileHasNoExcludedPlayableMissions(t *testing.T) {
 			}
 		}
 	}
-	if total != 2454 || reverse != 112 {
+	if total != 2628 || reverse != 122 {
 		t.Fatalf("coverage changed: %d total, %d reverse; inspect the playable catalog", total, reverse)
 	}
 }
