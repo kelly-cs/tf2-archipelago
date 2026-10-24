@@ -110,7 +110,7 @@ def reverse_completion_witness(key, row):
             return method == "native-escort" and objective.get("escort_stages") == 3
     if mission == "mvm_hideout_b3_rev_adv_galois":
         if wave == 4:
-            return positive("tank_deliveries")
+            return positive("tank_deliveries") or positive("captures")
         if wave == 5:
             return method == "native-combat-victory" and type(row.get("bots")) is int and row["bots"] > 0
     return positive("captures")

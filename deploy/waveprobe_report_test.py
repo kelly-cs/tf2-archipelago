@@ -50,12 +50,16 @@ class ReportOutcomeTest(unittest.TestCase):
                         self.assertEqual(summary["passed_cases"], expected)
 
     def test_capture_cannot_replace_a_different_native_objective_or_blu_victory(self):
+        self.assertTrue(report.reverse_completion_witness(
+            ("mvm_hideout_b3_rev_adv_galois", "surge", 4),
+            {"objective": {"captures": 1, "blu_won": True}}))
         for mission, wave in [
             ("mvm_teien_rc6_rev_adv_shogun_slaughter", 1),
             ("mvm_robotfactory_b30_rev_adv_short_circuit_execution", 1),
             ("mvm_robotfactory_b30_rev_adv_short_circuit_execution", 2),
             ("mvm_coaltown_rev_adv_computer_crash", 6),
             ("mvm_autumnull_rc2_rev_exp_codename_omega", 6),
+            ("mvm_hideout_b3_rev_adv_galois", 5),
         ]:
             with self.subTest(mission=mission):
                 self.assertFalse(report.reverse_completion_witness(
