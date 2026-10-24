@@ -30,6 +30,7 @@ type options struct {
 	loadWait   time.Duration
 	shard      int
 	shards     int
+	partition  string
 	startWave  int
 	endWave    int
 	failFast   bool
@@ -191,11 +192,12 @@ func main() {
 	flag.StringVar(&opt.mission, "mission", "all", "population file name or all")
 	flag.StringVar(&opt.mode, "mode", "both", "normal, surge, or both")
 	flag.IntVar(&opt.seed, "seed", 1, "seed for each spawn's 15-25 game-second lifetime")
-	flag.IntVar(&opt.speed, "speed", 20, "isolated server host_timescale")
+	flag.IntVar(&opt.speed, "speed", 50, "isolated server host_timescale")
 	flag.DurationVar(&opt.timeout, "timeout", 15*time.Minute, "wall-clock timeout after the wave starts")
 	flag.DurationVar(&opt.loadWait, "load-timeout", 90*time.Second, "wall-clock timeout for a map or mission load")
 	flag.IntVar(&opt.shard, "shard", 0, "zero-based mission shard")
 	flag.IntVar(&opt.shards, "shards", 1, "number of mission shards")
+	flag.StringVar(&opt.partition, "partition", "", "balanced mission partition JSON (legacy CRC32 when empty)")
 	flag.IntVar(&opt.startWave, "start-wave", 1, "first wave to test (single mission only)")
 	flag.IntVar(&opt.endWave, "end-wave", 0, "last wave to test (0 means mission end)")
 	flag.BoolVar(&opt.failFast, "fail-fast", false, "stop after the first failed wave")
@@ -218,8 +220,8 @@ func run(opt options) error {
 	if opt.shards < 1 || opt.shard < 0 || opt.shard >= opt.shards {
 		return errors.New("shard must be in [0, shards)")
 	}
-	if opt.speed < 1 || opt.speed > 20 {
-		return errors.New("speed must be between 1 and 20")
+	if opt.speed < 1 || opt.speed > 50 {
+		return errors.New("speed must be between 1 and 50")
 	}
 	if opt.timeout <= 0 || opt.loadWait <= 0 {
 		return errors.New("time limits must be positive")
@@ -480,6 +482,23 @@ func classifyWave(status probeStatus, err error) string {
 }
 
 func selectMissions(opt options) ([]gamedata.Mission, error) {
+	var partitions struct {
+		Shards   int            `json:"shards"`
+		Missions map[string]int `json:"missions"`
+	}
+	if opt.partition != "" {
+		body, err := os.ReadFile(opt.partition)
+		if err != nil {
+			return nil, err
+		}
+		if err := json.Unmarshal(body, &partitions); err != nil {
+			return nil, err
+		}
+		if partitions.Shards != opt.shards {
+			return nil, errors.New("partition shard count differs from -shards")
+		}
+	}
+
 	installed := map[string]bool{}
 	if opt.pops != "" {
 		body, err := os.ReadFile(opt.pops)
@@ -508,7 +527,15 @@ func selectMissions(opt options) ([]gamedata.Mission, error) {
 			(requirement != "sigsegv-mvm" && opt.onlySig) {
 			continue
 		}
-		if crc32.ChecksumIEEE([]byte(mission.PopFile))%uint32(opt.shards) != uint32(opt.shard) {
+		assigned := int(crc32.ChecksumIEEE([]byte(mission.PopFile)) % uint32(opt.shards))
+		if opt.partition != "" {
+			value, ok := partitions.Missions[mission.PopFile]
+			if !ok || value < 0 || value >= opt.shards {
+				return nil, fmt.Errorf("partition missing or invalid for %s", mission.PopFile)
+			}
+			assigned = value
+		}
+		if assigned != opt.shard {
 			continue
 		}
 		if opt.pops != "" && gamedata.IsCommunityMission(mission.ID) && !installed[mission.PopFile] {

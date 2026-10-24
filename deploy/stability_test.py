@@ -24,12 +24,14 @@ report = module("stability-report")
 runner = module("stability-run")
 host = module("stability-host")
 publisher = module("stability-publish")
+partitioner = module("waveprobe_partition")
+local = module("local-waveprobe")
 
 
 class StabilityTest(unittest.TestCase):
     def setUp(self):
         self.meta = {"commit": "abc", "startup": True, "fresh": True,
-                     "completed": True, "robot_limiter": True, "crash_free": True, "installed_version": "123"}
+                     "completed": True, "robot_limiter": True, "crash_free": True, "speed": 50, "installed_version": "123"}
         self.summary = {"eligible_cases": 100, "passed_cases": 50, "tested_cases": 50}
 
     def test_interrupted_run_cannot_score_100_percent(self):
@@ -48,6 +50,32 @@ class StabilityTest(unittest.TestCase):
     def test_bad_or_empty_plan_cannot_pass(self):
         for summary in ({}, {"eligible_cases": 1, "passed_cases": 2, "tested_cases": 1}):
             self.assertIsNone(report.evaluate(self.meta, summary, "abc")["score"])
+
+    def test_balanced_missions_stay_whole_and_are_order_independent(self):
+        plan = [{"mission": name, "state": "planned", "wave": wave, "mode": "normal"}
+                for name, count in (("a", 12), ("b", 10), ("c", 8), ("d", 6), ("e", 4))
+                for wave in range(count)]
+        manifest = partitioner.partition(plan, 2)
+        self.assertEqual(manifest, partitioner.partition(list(reversed(plan)), 2))
+        self.assertEqual(sum(manifest["planned_cases"]), 40)
+        self.assertLessEqual(max(manifest["planned_cases"])-min(manifest["planned_cases"]), 4)
+        self.assertEqual(set(manifest["missions"]), {"a", "b", "c", "d", "e"})
+        with self.assertRaises(ValueError):
+            partitioner.assignment(manifest, "missing", 2)
+        with self.assertRaises(ValueError):
+            partitioner.assignment(manifest, "a", 3)
+
+    def test_local_worker_limit_respects_memory_disk_and_host_reserve(self):
+        self.assertEqual(local.capacity(32, 58, 100, 16), 12)
+        self.assertEqual(local.capacity(32, 14, 100, 16), 2)
+        self.assertEqual(local.capacity(32, 58, 34, 16), 2)
+        self.assertEqual(local.capacity(32, 7, 100, 16), 0)
+        self.assertEqual(local.capacity(32, 58, 29, 16), 0)
+
+    def test_native_rcon_uses_local_interfaces_and_docker_uses_only_published_loopback(self):
+        with mock.patch.object(runner.socket, "getaddrinfo", return_value=[(None,None,None,None,("172.20.144.1",0))]):
+            self.assertEqual(runner.rcon_hosts("windows"), ["127.0.0.1", "172.20.144.1"])
+            self.assertEqual(runner.rcon_hosts("docker"), ["127.0.0.1"])
 
     def test_host_cleanup_refuses_a_personal_machine(self):
         with mock.patch.dict(os.environ, {"STABILITY_RUNNER_ENVIRONMENT": "self-hosted"}):
@@ -105,6 +133,19 @@ class StabilityTest(unittest.TestCase):
             self.assertFalse(meta["completed"])
             self.assertIn("shard 1: missing result", meta["error"])
             self.assertIsNone(report.evaluate(meta, partial, "abc", "123")["score"])
+
+    def test_missing_partition_never_falls_back_to_hash_or_stale_passes(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            plan = root / "plan.jsonl"
+            plan.write_text(json.dumps({"mission":"fixture", "wave":1, "mode":"normal", "map":"mvm_decoy", "state":"planned"}) + "\n")
+            report.combine_shards(root/"evidence", plan, 2, "abc", root/"missing.json")
+            meta = json.loads((root/"evidence/docker/environment.json").read_text())
+            self.assertFalse(meta["fresh"])
+            self.assertIn("invalid canonical partition", meta["error"])
+            summary = json.loads((root/"evidence/docker/SUMMARY.json").read_text())
+            self.assertEqual(summary["eligible_cases"], 1)
+            self.assertEqual(summary["passed_cases"], 0)
 
     def test_no_results_are_rendered_and_archived_as_failures(self):
         with tempfile.TemporaryDirectory() as temp:

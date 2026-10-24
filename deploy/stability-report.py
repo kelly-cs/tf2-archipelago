@@ -10,6 +10,7 @@ import subprocess
 import sys
 import zipfile
 import zlib
+from waveprobe_partition import assignment
 
 ENVIRONMENTS = {"ubuntu24": "Ubuntu 24.04", "docker": "Docker", "windows": "Windows"}
 
@@ -26,7 +27,8 @@ def records(path):
     return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
 
 
-def combine_shards(source, plan_path, shards, commit):
+def combine_shards(source, plan_path, shards, commit, partition_path=None):
+    manifest = read_json(partition_path) if partition_path else None
     """Rebuild each environment from the full canonical plan, never just returned shards."""
     for environment in ENVIRONMENTS:
         root = source / environment
@@ -41,6 +43,17 @@ def combine_shards(source, plan_path, shards, commit):
         else:
             shutil.copy2(plan_path, root / "plan.jsonl")
             plan = records(plan_path)
+        partition_valid = True
+        if partition_path is not None:
+            try:
+                for row in plan:
+                    assignment(manifest, row["mission"], shards)
+                if not manifest or manifest.get("shards") != shards:
+                    raise ValueError("partition is absent or has the wrong shard count")
+            except (ValueError, KeyError, TypeError) as error:
+                partition_valid = False
+                meta.update(fresh=False, completed=False)
+                errors.append("invalid canonical partition: " + str(error))
         for shard in range(shards):
             path = root / f"part-{shard}"
             evidence = read_json(path / "environment.json")
@@ -55,9 +68,9 @@ def combine_shards(source, plan_path, shards, commit):
             meta["completed"] &= valid and evidence.get("completed") is True
             meta["robot_limiter"] &= valid and evidence.get("robot_limiter") is True
             meta["crash_free"] &= valid and evidence.get("crash_free") is True
-            if not valid:
+            if not valid or not partition_valid:
                 continue
-            expected = {case_key(row) for row in plan if zlib.crc32(row["mission"].encode()) % shards == shard}
+            expected = {case_key(row) for row in plan if (assignment(manifest, row["mission"], shards) if manifest else zlib.crc32(row["mission"].encode()) % shards) == shard}
             actual = {case_key(row) for row in records(path / "plan.jsonl")} if (path / "plan.jsonl").exists() else set()
             if actual != expected:
                 errors.append(f"shard {shard}: wave plan differs from its canonical partition")
@@ -70,10 +83,10 @@ def combine_shards(source, plan_path, shards, commit):
                 with destination.open("w", encoding="utf-8") as stream:
                     for file in sorted(path.glob(f"{phase}-*.jsonl")):
                         stream.write(file.read_text(encoding="utf-8"))
-        for field in ("installed_version", "running_version", "host"):
+        for field in ("installed_version", "running_version", "host", "speed"):
             values = {part.get(field) for part in meta["shards"] if part.get(field)}
             meta[field] = next(iter(values)) if len(values) == 1 else "mixed or unknown"
-            if field.endswith("version") and len(values) != 1:
+            if (field.endswith("version") or field == "speed") and len(values) != 1:
                 meta["fresh"] = False
         starts = [part["started_utc"] for part in meta["shards"] if part.get("started_utc")]
         finishes = [part["finished_utc"] for part in meta["shards"] if part.get("finished_utc")]
@@ -160,7 +173,7 @@ def main(source, output, commit, run_url, check_live=False):
         (output / f"{key}.json").write_text(json.dumps(badge) + "\n")
     lines += ["", "Score = passed / every eligible planned wave/mode case, with startup, live-build, enabled robot limiter and crash-log checks required. "
               "Unrun waves count against the score; failed startup, unverified checks or recorded engine crashes have no numeric score.", "",
-              "Each mission runs every wave at 20× with Bot Surge off and on. Nonpasses are retried at a 900-second "
+              "Each mission runs every wave at the recorded speed with Bot Surge off and on. Nonpasses are retried at a 900-second "
               "wall limit; the original 180-second results remain in the evidence. A pass is a completion witness "
               "from this automated probe, not a guarantee for every player strategy.", "",
               "Reverse MvM objectives are unsupported by this probe and excluded from the denominator. "
@@ -203,9 +216,10 @@ if __name__ == "__main__":
     parser.add_argument("--check-live", action="store_true", help="verify Valve's live build again at publication")
     parser.add_argument("--shards", type=int, default=1)
     parser.add_argument("--plan", type=Path, help="canonical full plan emitted by the build job")
+    parser.add_argument("--partition", type=Path, help="balanced mission manifest from the same build")
     args = parser.parse_args()
     if args.shards > 1:
         if args.plan is None:
             parser.error("--plan is required with --shards")
-        combine_shards(args.source, args.plan, args.shards, args.commit)
+        combine_shards(args.source, args.plan, args.shards, args.commit, args.partition)
     raise SystemExit(0 if main(args.source, args.output, args.commit, args.run_url, args.check_live) else 1)

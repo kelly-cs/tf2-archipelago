@@ -9,6 +9,7 @@ import platform
 import re
 import shutil
 import signal
+import socket
 import subprocess
 import sys
 import time
@@ -110,6 +111,13 @@ def crash_evidence(output):
     return failures
 
 
+def rcon_hosts(environment):
+    hosts = ["127.0.0.1"]
+    if environment != "docker":
+        hosts += sorted({row[4][0] for row in socket.getaddrinfo(socket.gethostname(), None, socket.AF_INET)})
+    return list(dict.fromkeys(hosts))
+
+
 def main(opt):
     out = opt.output.resolve()
     out.mkdir(parents=True, exist_ok=True)
@@ -129,8 +137,15 @@ def main(opt):
     shards = getattr(opt, "shards", 1)
     if shards < 1 or not 0 <= shard < shards:
         raise ValueError("shard must be in [0, shards)")
+    speed = getattr(opt, "speed", 50)
+    if not 1 <= speed <= 50:
+        raise ValueError("speed must be between 1 and 50")
     partition = ["-shards", str(shards), "-shard", str(shard)]
-    meta = {"environment": opt.environment, "shard": shard, "shards": shards,
+    manifest = getattr(opt, "partition", None)
+    if manifest:
+        shutil.copy2(manifest, out / "global-partition.json")
+        partition += ["-partition", str((out / "global-partition.json").resolve())]
+    meta = {"environment": opt.environment, "shard": shard, "shards": shards, "speed": speed,
             "started_utc": dt.datetime.now(dt.timezone.utc).isoformat(),
             "commit": os.environ.get("GITHUB_SHA", "local"), "host": platform.platform(),
             "run_url": os.environ.get("STABILITY_RUN_URL", ""), "startup": False,
@@ -169,7 +184,7 @@ def main(opt):
             raise ValueError("Windows must run natively")
         run([binary("waveprobe"), "-plan", "-mode", "both", *partition], "plan.jsonl", 60)
         (out / "config.txt").write_text(
-            f"shards=1\nspeed=20\nseed=1\nfirst_pass_timeout=180s\nwave_timeout=900s\n"
+            f"shards=1\nspeed={speed}\nseed=1\nfirst_pass_timeout=180s\nwave_timeout=900s\n"
             f"base_port={port}\nstarted_utc={meta['started_utc']}\nsource_commit={meta['commit']}\n")
         meta["latest_before"] = live_version()
         run([binary("winbed"), "-root", str(root), "-probe", str(bed / "tf2_waveprobe.smx"),
@@ -197,10 +212,14 @@ def main(opt):
         with (out / "server.log").open("w", encoding="utf-8") as log:
             process = subprocess.Popen(args, stdout=log, stderr=log, start_new_session=os.name != "nt",
                                        creationflags=subprocess.CREATE_NEW_CONSOLE if os.name == "nt" else 0)
+        hosts = rcon_hosts(opt.environment)
+        host_index = 0
         ready_limit = min(deadline, time.monotonic() + 900)
         while time.monotonic() < ready_limit:
             if process.poll() is not None:
                 raise RuntimeError("server exited before readiness")
+            os.environ["SRCDS_RCON_HOST"] = hosts[host_index % len(hosts)]
+            host_index += 1
             try:
                 evidence = "\n".join(rcon(cmd) for cmd in
                                      ["version", "sm plugins list", "sm exts list", "sm_waveprobe_status"])
@@ -212,6 +231,10 @@ def main(opt):
             time.sleep(5)
         else:
             raise RuntimeError("startup did not load the mod, extensions and probe within 15 minutes")
+        address = os.environ["SRCDS_RCON_HOST"]
+        meta["rcon_host"] = address
+        with (out / "config.txt").open("a") as config:
+            config.write(f"rcon_host={address}\n")
         meta["startup"] = True
         meta["installed_version"] = installed_version(game)
         meta["running_version"] = running_version(game, evidence)
@@ -220,8 +243,8 @@ def main(opt):
             raise ValueError("TF2 changed during setup; rerun against the new build")
         meta["fresh"] = True
         check_robot_limiter(rcon, out / "robot-limiter-before.txt")
-        run([binary("waveprobe"), "-rcon", f"127.0.0.1:{port}", "-mission", "all",
-                      "-mode", "both", "-speed", "20", "-seed", "1", "-timeout", "180s", *partition],
+        run([binary("waveprobe"), "-rcon", f"{address}:{port}", "-mission", "all",
+                      "-mode", "both", "-speed", str(speed), "-seed", "1", "-timeout", "180s", *partition],
                      "shard-0.jsonl", check=False)
         run([sys.executable, "deploy/waveprobe-retest.py", str(out), binary("waveprobe"), "0"],
             "retest.log")
@@ -286,4 +309,6 @@ if __name__ == "__main__":
     parser.add_argument("--hours", type=float, default=20)
     parser.add_argument("--shards", type=int, default=1)
     parser.add_argument("--shard", type=int, default=0)
+    parser.add_argument("--speed", type=int, default=50)
+    parser.add_argument("--partition", type=Path)
     sys.exit(main(parser.parse_args()))

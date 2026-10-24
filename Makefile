@@ -516,6 +516,14 @@ bots-gate: bots
 		WAVEPROBE_RCONPW="$${WAVEPROBE_RCONPW:-$$(openssl rand -hex 24)}" \
 		bash deploy/run-botprobe.sh
 
+# Resource-bounded local wave sweep; uses shared immutable Docker game layers.
+.PHONY: waveprobe-local waveprobe-plan
+waveprobe-local:
+	python3 deploy/local-waveprobe.py
+
+waveprobe-plan:
+	python3 deploy/local-waveprobe.py --plan
+
 # --- The launcher ---
 
 # The all-in-one Windows exe. The .smx and the ripext Windows zip are embedded

@@ -27,8 +27,11 @@ def main():
         subprocess.run(["sudo", "rm", "-rf", "/usr/share/dotnet", "/usr/local/lib/android",
                         "/opt/ghc", "/usr/local/.ghcup", "/usr/share/swift", "/usr/lib/jvm",
                         "/opt/hostedtoolcache/CodeQL"], check=True)
+        subprocess.run(["sudo", "dpkg", "--add-architecture", "i386"], check=True)
         subprocess.run(["sudo", "apt-get", "update", "-qq"], check=True)
-        subprocess.run(["sudo", "apt-get", "install", "-y", "lib32gcc-s1", "lib32stdc++6"], check=True)
+        subprocess.run(["sudo", "apt-get", "install", "-y", "lib32gcc-s1", "lib32stdc++6", "libc6-i386", "lib32z1",
+                        "libtinfo6:i386", "libncurses6:i386", "libbz2-1.0:i386",
+                        "libcurl4t64:i386", "libcurl3t64-gnutls:i386", "libsdl2-2.0-0:i386"], check=True)
     candidates = [Path(os.environ["RUNNER_TEMP"])]
     if os.name == "nt":
         # Windows workspaces often sit on a small D: volume even when C: has
@@ -54,7 +57,7 @@ if __name__ == "__main__":
         output.mkdir(exist_ok=True)
         (output / "environment.json").write_text(json.dumps({
             "environment": os.environ.get("STABILITY_ENV"),
-            "shard": int(os.environ.get("STABILITY_SHARD", "0")), "shards": 6,
+            "shard": int(os.environ.get("STABILITY_SHARD", "0")), "shards": int(os.environ.get("STABILITY_SHARDS", "12")),
             "commit": os.environ.get("GITHUB_SHA"), "startup": False,
             "fresh": False, "completed": False,
             "error": "host setup failed: " + str(error)}, indent=2) + "\n", encoding="utf-8")

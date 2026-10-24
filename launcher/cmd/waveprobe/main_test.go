@@ -1,7 +1,10 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/m-this/tf2-archipelago/gamedata"
@@ -199,5 +202,51 @@ func TestHeadlessWakeReadback(t *testing.T) {
 		if cvarMatches(reply, "tf_allow_server_hibernation", 0) {
 			t.Fatalf("accepted unverified wake-up: %q", reply)
 		}
+	}
+}
+
+func TestPartitionManifestOverridesHashAndRefusesIncompleteCoverage(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "partition.json")
+	assignments := make(map[string]int)
+	for i, mission := range gamedata.Missions {
+		assignments[mission.PopFile] = i % 3
+	}
+	write := func(shards int) {
+		t.Helper()
+		body, err := json.Marshal(map[string]any{"shards": shards, "missions": assignments})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, body, 0600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	write(3)
+	seen := make(map[string]bool)
+	for shard := range 3 {
+		selected, err := selectMissions(options{mission: "all", includeSig: true, shards: 3, shard: shard, partition: path})
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, mission := range selected {
+			if seen[mission.PopFile] || assignments[mission.PopFile] != shard {
+				t.Fatalf("invalid assignment for %s", mission.PopFile)
+			}
+			seen[mission.PopFile] = true
+		}
+	}
+	for _, mission := range gamedata.Missions {
+		if gamedata.MissionRequirement(mission.ID) != "no_nav" && !seen[mission.PopFile] {
+			t.Fatalf("missing %s", mission.PopFile)
+		}
+	}
+	write(4)
+	if _, err := selectMissions(options{mission: "all", shards: 3, partition: path}); err == nil {
+		t.Fatal("accepted wrong shard count")
+	}
+	clear(assignments)
+	write(3)
+	if _, err := selectMissions(options{mission: "all", shards: 3, partition: path}); err == nil {
+		t.Fatal("accepted a missing mission")
 	}
 }

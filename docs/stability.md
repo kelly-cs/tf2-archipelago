@@ -9,7 +9,7 @@ The README widgets link to the report. They show the measurement date; results
 older than 36 hours are stale, including when scheduling stops. A green badge
 from a previous day is not evidence about a subsequent TF2 update.
 
-Each of six shards per environment gets a fresh disposable install of TF2 and both community
+Each of twelve shards per environment gets a fresh disposable install of TF2 and both community
 packs, using the launcher's installer and pinned mod dependencies. Startup
 requires RCON, SourceMod, the Archipelago plugin, the wave probe, and no failed
 plugin or extension loads. The Docker check runs the production entrypoint,
@@ -39,7 +39,7 @@ includes the dependency pins and both the running and installed version.
 
 The [existing wave probe](waveprobe.md) supplies the plan and the detailed
 reports: every eligible mission on every catalog map, every wave, Bot Surge
-off and on, at requested 20× speed and seed 1. It screens at 180 real seconds
+off and on, at requested 50× speed and seed 1. It screens at 180 real seconds
 per wave, then retries every nonpass at 900 real seconds. The game's completion
 event is the pass criterion. First-pass records survive retries. Nonpasses
 carry spawn/kill/alive counts, progress and timeline/debug evidence.
@@ -66,15 +66,22 @@ The [local speed comparison](audits/speedprobe-wake-20261023/REPORT.md) tested
 Decoy Expert with the wake-up fix and production robot limiter enabled. 50×
 passed five full runs across four seeds, averaging 48.4 seconds versus 89.4 at
 20×. Higher tested settings intermittently lost the last wave's completion
-during automatic map changes. This is one-map evidence; the daily sweep stays
-at 20× pending validation across the full catalog and environments.
+during automatic map changes. This is one-map evidence; the daily sweep now uses 50× to validate that candidate across the full catalog and environments.
 
 ## Hosted runner setup
 
-The fork has no self-hosted runner requirement. Six mission shards run for each
+The fork has no self-hosted runner requirement. Twelve balanced mission shards run for each
 of Ubuntu 24.04, Docker on Ubuntu 24.04, and native Windows Server 2022, using
-standard GitHub-hosted runners. At most twelve measurement jobs run together.
-Each shard is deterministic (`CRC32(mission) % 6`) and runs both Bot Surge modes.
+standard GitHub-hosted runners. At most eighteen measurement jobs run together.
+A deterministic manifest assigns whole missions by planned wave/mode count,
+longest first, to the least-loaded shard. The current catalog has 2,342 planned
+cases; twelve shards receive 194–196 each. Both Bot Surge modes stay together.
+The workflow's Run dialog can select 6, 12, 18 or 20 shards per environment and
+12, 18 or 20 concurrent jobs. The daily defaults are twelve and eighteen;
+standard Free accounts allow twenty concurrent hosted jobs across workflows.
+GitHub supplies a separate VM to each matrix job; these are not multiple game
+servers competing for a single runner. More shards add fresh-install overhead,
+so the default avoids a third batch of downloads.
 The build emits the complete canonical plan; aggregation checks every returned
 shard against its assigned partition and reconstructs coverage from that full
 plan. A missing or failed shard cannot shrink the denominator or become green.
@@ -138,7 +145,7 @@ To combine downloaded environment artifacts placed in `evidence/<environment>/pa
 ```sh
 python3 deploy/stability-report.py evidence dashboard \
   --commit <tested-commit> --run-url <actions-run-url> --check-live \
-  --shards 6 --plan <canonical-plan.jsonl>
+  --shards 12 --plan <canonical-plan.jsonl> --partition <partition.json>
 ```
 
 Missing environment artifacts still produce an explicit failing report and

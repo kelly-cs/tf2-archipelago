@@ -65,10 +65,10 @@ number of game copies:
 
 ```sh
 export WAVEPROBE_RCONPW="$(openssl rand -hex 24)"
-WAVEPROBE_SHARDS=6 WAVEPROBE_SPEED=20 bash deploy/run-waveprobe.sh
+WAVEPROBE_SHARDS=6 WAVEPROBE_SPEED=50 bash deploy/run-waveprobe.sh
 ```
 
-`WAVEPROBE_SHARDS`, `WAVEPROBE_SPEED` (1–20),
+`WAVEPROBE_SHARDS`, `WAVEPROBE_SPEED` (1–50; default 50),
 `WAVEPROBE_FIRST_PASS_TIMEOUT` (default `180s`), and `WAVEPROBE_TIMEOUT`
 (default `900s`) control runtime. Every nonpass from the first pass is retried
 automatically with the full 900 real-second limit before the final report is
@@ -127,6 +127,42 @@ done < docs/audits/waveprobe-YYYYMMDD-HHMMSS/projects.txt
 
 Keep the pristine `tf2-archipelago-waveprobe_tf2game_waveprobe` source volume
 until you no longer need new sweeps. It is never used as a shard volume.
+
+## Local concurrency and shared image layers
+
+`make waveprobe-plan` prints the available CPU, RAM and Docker disk budget.
+`make waveprobe-local` prepares a local image, then runs a resource-bounded
+number of isolated workers at 50×. Set `WAVEPROBE_SRCDS_IMAGE` to the production
+image to test and `WAVEPROBE_SOURCE_VOLUME` to a pristine test game volume;
+the source is read-only. The current Ryzen 9950X3D/61 GiB machine's resource
+plan selects twelve workers, each limited to two CPUs and 3 GiB RAM, leaving
+four physical cores, eight GiB RAM and a disk reserve for the host.
+
+Each worker shares immutable game image layers and writes into its private
+container layer. No writable game directory is shared between workers. This
+avoids a full game copy per shard. The first preparation needs space for both
+the copy and image commit plus a 30 GiB reserve; later runs reuse the image
+only while its base image and live TF2 version still match. Every worker still
+runs the production entrypoint's normal SteamCMD update. The prepared image
+is a warm wave fixture; fresh-install startup remains the separate daily CI
+check, and preparation logs remain in the run directory.
+
+The direct command allows a lower worker count or a forced image rebuild:
+
+```sh
+python3 deploy/local-waveprobe.py --plan
+python3 deploy/local-waveprobe.py --workers 8
+python3 deploy/local-waveprobe.py --rebuild
+```
+
+Whole missions are assigned by the recorded `partition.json`, balancing the
+number of planned wave/mode cases instead of hashing mission names. First
+passes and retries use the same manifest. Old run directories without a
+manifest retain their original CRC32 partition on resume.
+
+The sweep stops its own workers and keeps them for resuming. After finishing,
+remove only the containers named in that run's `projects.txt`; their writable
+layers are then freed. The prepared image stays cached for the next sweep.
 
 ## Defender bot runs
 

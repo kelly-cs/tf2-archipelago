@@ -4,12 +4,26 @@ on:
   schedule:
     - cron: '17 5 * * *'
   workflow_dispatch:
+    inputs:
+      shards:
+        description: Mission shards per environment
+        type: choice
+        options: ['12', '6', '18', '20']
+        default: '12'
+      parallel:
+        description: Maximum concurrent hosted measurement jobs
+        type: choice
+        options: ['18', '12', '20']
+        default: '18'
 
 permissions:
   contents: read
 
 env:
   STABILITY_PUBLISH_REF: refs/heads/main
+  STABILITY_SHARDS: ${{ inputs.shards || '12' }}
+  STABILITY_PARALLEL: ${{ inputs.parallel || '18' }}
+  STABILITY_SPEED: '50'
 
 concurrency:
   group: daily-stability
@@ -24,6 +38,9 @@ jobs:
     needs: extensions
     runs-on: ubuntu-24.04
     timeout-minutes: 90
+    outputs:
+      shards_json: ${{ steps.partition.outputs.shards_json }}
+      parallel: ${{ steps.partition.outputs.parallel }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-go@v7
@@ -39,6 +56,16 @@ jobs:
         run: make stability-bed
       - name: Record the full canonical wave plan
         run: dist/linuxbed/waveprobe -plan -mode both > dist/plan.jsonl
+      - name: Balance whole missions over the canonical plan
+        id: partition
+        run: |
+          python3 deploy/waveprobe_partition.py dist/plan.jsonl dist/partition.json --shards "$STABILITY_SHARDS"
+          python3 - <<'PY'
+          import json, os
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              output.write('shards_json=' + json.dumps(list(range(int(os.environ['STABILITY_SHARDS'])))) + '\n')
+              output.write('parallel=' + os.environ['STABILITY_PARALLEL'] + '\n')
+          PY
       - uses: actions/upload-artifact@v7
         with:
           name: stability-beds
@@ -46,15 +73,16 @@ jobs:
             dist/linuxbed
             dist/winbed
             dist/plan.jsonl
+            dist/partition.json
           if-no-files-found: error
 
   measure:
     needs: build
     strategy:
       fail-fast: false
-      max-parallel: 12
+      max-parallel: ${{ fromJSON(needs.build.outputs.parallel) }}
       matrix:
-        shard: [0, 1, 2, 3, 4, 5]
+        shard: ${{ fromJSON(needs.build.outputs.shards_json) }}
         environment: [ubuntu24, docker, windows]
         include:
           - environment: ubuntu24
@@ -117,7 +145,9 @@ jobs:
           sys.exit(subprocess.call([sys.executable, 'deploy/stability-run.py',
               '--environment', os.environ['STABILITY_ENV'], '--bed', str(bed),
               '--root', str(root), '--output', 'stability-result',
-              '--hours', '4.5', '--shards', '6', '--shard', os.environ['STABILITY_SHARD']]))
+              '--hours', '4.5', '--speed', os.environ['STABILITY_SPEED'],
+              '--shards', os.environ['STABILITY_SHARDS'], '--shard', os.environ['STABILITY_SHARD'],
+              '--partition', 'beds/partition.json']))
       - name: Preserve results even when startup or waves fail
         if: always()
         uses: actions/upload-artifact@v7
@@ -159,21 +189,23 @@ jobs:
           path: measurements
       - name: Collect environment evidence
         run: |
-          mkdir -p evidence
-          for environment in ubuntu24 docker windows; do
-            mkdir -p "evidence/$environment"
-            for shard in 0 1 2 3 4 5; do
-              if [ -d "measurements/stability-$environment-$shard" ]; then
-                mv "measurements/stability-$environment-$shard" "evidence/$environment/part-$shard"
-              fi
-            done
-          done
+          python3 - <<'PY'
+          import os, pathlib, shutil
+          for environment in ('ubuntu24', 'docker', 'windows'):
+              root = pathlib.Path('evidence') / environment
+              root.mkdir(parents=True, exist_ok=True)
+              for shard in range(int(os.environ['STABILITY_SHARDS'])):
+                  source = pathlib.Path('measurements') / f'stability-{environment}-{shard}'
+                  if source.exists():
+                      shutil.move(str(source), str(root / f'part-{shard}'))
+          PY
       - name: Calculate the scores (missing environments are failures)
         id: score
         continue-on-error: true
         run: |
           python3 deploy/stability-report.py evidence dashboard --commit "$GITHUB_SHA" --run-url "$RUN_URL" --check-live \
-            --shards 6 --plan measurements/stability-beds/plan.jsonl
+            --shards "$STABILITY_SHARDS" --plan measurements/stability-beds/plan.jsonl \
+            --partition measurements/stability-beds/partition.json
       - name: Show the consolidated dashboard
         if: always()
         run: cat dashboard/REPORT.md >> "$GITHUB_STEP_SUMMARY"
