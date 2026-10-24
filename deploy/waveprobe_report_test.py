@@ -49,6 +49,23 @@ class ReportOutcomeTest(unittest.TestCase):
                         self.assertEqual(summary["eligible_cases"], 1)
                         self.assertEqual(summary["passed_cases"], expected)
 
+    def test_capture_cannot_replace_a_different_native_objective_or_blu_victory(self):
+        for mission, wave in [
+            ("mvm_teien_rc6_rev_adv_shogun_slaughter", 1),
+            ("mvm_robotfactory_b30_rev_adv_short_circuit_execution", 1),
+            ("mvm_robotfactory_b30_rev_adv_short_circuit_execution", 2),
+            ("mvm_coaltown_rev_adv_computer_crash", 6),
+            ("mvm_autumnull_rc2_rev_exp_codename_omega", 6),
+        ]:
+            with self.subTest(mission=mission):
+                self.assertFalse(report.reverse_completion_witness(
+                    (mission, "normal", wave),
+                    {"objective": {"captures": 1, "blu_won": True}}))
+        for victory in (False, None):
+            self.assertFalse(report.reverse_completion_witness(
+                ("mvm_rottenburg_rev_int_breaking_walls", "normal", 1),
+                {"objective": {"captures": 1, "blu_won": victory}}))
+
     def test_supported_reverse_counts_in_score_but_missing_capture_evidence_does_not(self):
         with tempfile.TemporaryDirectory() as folder:
             root = pathlib.Path(folder)
@@ -59,7 +76,7 @@ class ReportOutcomeTest(unittest.TestCase):
                 for row, state in [(ordinary, "planned"), (reverse, "planned"), (unsupported, "unsupported_reverse")]))
             for captures in [1, 0]:
                 rows = [{**ordinary, "state": "passed", "outcome": "passed"},
-                        {**reverse, "state": "passed", "outcome": "passed", "objective": {"captures": captures}}]
+                        {**reverse, "state": "passed", "outcome": "passed", "objective": {"captures": captures, "blu_won": True}}]
                 (root/"shard-0.jsonl").write_text("".join(json.dumps(row) + "\n" for row in rows))
                 with contextlib.redirect_stdout(io.StringIO()):
                     report.main(root)
