@@ -104,7 +104,7 @@ def prepare(image, source_volume, tag, rcon_binary, output, port=27195):
         call(['docker','exec','--user','root',name,'sh','-c',
               'rm -f /home/steam/tf-dedicated/tf/cfg/server.cfg /home/steam/tf-dedicated/tf/console*.log /home/steam/tf-dedicated/*.pid; rm -rf /home/steam/tf-dedicated/tf/addons/sourcemod/logs'])
         call(['docker','stop',name],timeout=60)
-        changes=['docker','commit','--change','ENTRYPOINT '+json.dumps(config.get('Entrypoint') or []),
+        changes=['docker','commit','--change','ENTRYPOINT '+json.dumps(config.get('Entrypoint') or ['/usr/bin/env']),
                  '--change','CMD '+json.dumps(config.get('Cmd') or []),
                  '--change','LABEL tf2ap.prepared-version='+latest,
                  '--change','LABEL tf2ap.base-image='+call(['docker','image','inspect','--format','{{.Id}}',image]).stdout.strip(),name,tag]
