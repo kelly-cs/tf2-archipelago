@@ -339,6 +339,16 @@ def main(opt):
                 subprocess.run([sys.executable, "deploy/waveprobe-report.py", str(out)],
                                stdout=report, check=True)
     summary = json.loads((out / "SUMMARY.json").read_text()) if (out / "SUMMARY.json").exists() else {}
+    print(f"stability result: {summary.get('passed_cases', 0)}/{summary.get('eligible_cases', 0)} "
+          f"eligible cases passed after retries; startup={meta['startup']}, fresh={meta['fresh']}, "
+          f"completed={meta['completed']}, crash_free={meta['crash_free']}, "
+          f"robot_limiter={meta['robot_limiter']}", flush=True)
+    nonpasses = {name: count for name, count in summary.get("outcomes", {}).items()
+                 if count and name not in ("passed", "reverse objective")}
+    if nonpasses:
+        print("stability nonpassing outcomes: " + json.dumps(nonpasses, sort_keys=True), flush=True)
+    if meta.get("error"):
+        print("stability measurement error: " + meta["error"], flush=True)
     return 0 if (meta["startup"] and meta["fresh"] and meta["completed"] and meta["crash_free"]
                  and summary.get("eligible_cases", 0) > 0
                  and summary.get("passed_cases") == summary.get("eligible_cases")) else 1
