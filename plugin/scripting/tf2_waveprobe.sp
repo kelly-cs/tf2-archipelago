@@ -40,6 +40,13 @@ int g_Defender;
 TFClassType g_DefenderClass = TFClass_Scout;
 int g_PlayerTeam = 2;
 int g_EnemyTeam = 3;
+bool g_ReverseObjectives;
+float g_ObjectiveVisitAt;
+int g_ObjectiveVisits;
+int g_ObjectivePickups;
+int g_ObjectiveCaptures;
+bool g_ReverseBluWon;
+bool g_ConfigsReady;
 int g_SpawnSerial;
 int g_BotKills;
 #define ALLY_TANK_GRACE_SECONDS 15.0
@@ -110,6 +117,10 @@ public void OnPluginStart()
         "Arm a wave test: sm_waveprobe_arm <wave> [seed]");
     RegAdminCmd("sm_waveprobe_status", Command_Status, ADMFLAG_ROOT,
         "Print machine-readable wave test state");
+    RegAdminCmd("sm_waveprobe_reverse_objectives", Command_ReverseObjectives, ADMFLAG_ROOT,
+        "Opt in to experimental physical reverse-objective simulation: <0|1>");
+    RegAdminCmd("sm_waveprobe_objectives", Command_Objectives, ADMFLAG_ROOT,
+        "Print reverse objective entities without changing them");
     RegAdminCmd("sm_waveprobe_debug", Command_Debug, ADMFLAG_ROOT,
         "Print a snapshot of the wave and living invaders");
     RegAdminCmd("sm_waveprobe_reset", Command_Reset, ADMFLAG_ROOT,
@@ -126,12 +137,24 @@ public void OnPluginStart()
     HookEvent("player_spawn", Event_PlayerSpawn);
     HookEvent("player_death", Event_PlayerDeath);
     HookEvent("teamplay_flag_event", Event_FlagEvent);
+    HookEvent("teamplay_round_win", Event_ReverseRoundWin);
     CreateTimer(PROBE_TICK, Timer_Probe, _, TIMER_REPEAT);
 }
 
 public void OnMapStart()
 {
+    g_ConfigsReady = false;
     ResetProbe();
+}
+
+public void OnConfigsExecuted()
+{
+    g_ConfigsReady = true;
+}
+
+public void OnMapEnd()
+{
+    g_ConfigsReady = false;
 }
 
 public void OnPluginEnd()
@@ -171,6 +194,11 @@ public void ClientSpawnPost(int client)
 
 static void ResetProbe()
 {
+    g_ObjectiveVisitAt = 0.0;
+    g_ObjectiveVisits = 0;
+    g_ObjectivePickups = 0;
+    g_ObjectiveCaptures = 0;
+    g_ReverseBluWon = false;
     g_State = Probe_Idle;
     g_ExpectedWave = 0;
     g_ObservedWave = 0;
@@ -402,7 +430,7 @@ public Action Command_Status(int client, int argc)
         if (progress > 100.0) progress = 100.0;
     }
     ReplyToCommand(client,
-        "WAVEPROBE state=%s reason=%s map=%s pop=%s max=%d gamewave=%d expected=%d observed=%d botspawns=%d tankspawns=%d bots=%d tanks=%d attempts=%d alive=%d remaining=%d initial=%d progress=%.1f red=%d blue=%d defender=%d defteam=%d defclass=%d playerteam=%d enemyteam=%d elapsed=%.1f",
+        "WAVEPROBE state=%s reason=%s map=%s pop=%s max=%d gamewave=%d expected=%d observed=%d botspawns=%d tankspawns=%d bots=%d tanks=%d attempts=%d alive=%d remaining=%d initial=%d progress=%.1f red=%d blue=%d defender=%d defteam=%d defclass=%d playerteam=%d enemyteam=%d elapsed=%.1f objectives=%d pickups=%d captures=%d configsready=%d",
         state, g_FailureReason[0] == '\0' ? "none" : g_FailureReason,
         map, pop, maxWaves, gameWave, g_ExpectedWave,
         g_ObservedWave, g_BotSpawns, g_TankSpawns, g_BotKills, g_TankKills,
@@ -411,7 +439,98 @@ public Action Command_Status(int client, int argc)
         g_Defender, g_Defender > 0 && IsClientInGame(g_Defender) ? GetClientTeam(g_Defender) : 0,
         g_Defender > 0 && IsClientInGame(g_Defender) ? view_as<int>(TF2_GetPlayerClass(g_Defender)) : 0,
         g_PlayerTeam, g_EnemyTeam,
-        GetGameTime() - (g_StartedAt > 0.0 ? g_StartedAt : g_ArmedAt));
+        GetGameTime() - (g_StartedAt > 0.0 ? g_StartedAt : g_ArmedAt), g_ObjectiveVisits, g_ObjectivePickups, g_ObjectiveCaptures, g_ConfigsReady);
+    return Plugin_Handled;
+}
+
+public Action Command_ReverseObjectives(int client, int argc)
+{
+    char arg[8];
+    GetCmdArg(1, arg, sizeof(arg));
+    if (argc != 1 || (!StrEqual(arg, "0") && !StrEqual(arg, "1")))
+    {
+        ReplyToCommand(client, "usage: sm_waveprobe_reverse_objectives <0|1>");
+        return Plugin_Handled;
+    }
+    g_ReverseObjectives = StrEqual(arg, "1");
+    ReplyToCommand(client, "WAVEPROBE reverse_objectives=%d", g_ReverseObjectives);
+    return Plugin_Handled;
+}
+
+static void VisitObjective(int entity)
+{
+    float mins[3], maxs[3], center[3], velocity[3];
+    if (!EntityBounds(entity, mins, maxs)) return;
+    for (int axis = 0; axis < 3; axis++) center[axis] = (mins[axis] + maxs[axis]) * 0.5;
+    TeleportEntity(g_Defender, center, NULL_VECTOR, velocity);
+    g_ObjectiveVisits++;
+    LogMessage("WAVEPROBE reverse visit entity=%d position=%.1f,%.1f,%.1f", entity, center[0], center[1], center[2]);
+}
+
+// Experimental bomb-delivery fixture. Do not fire outputs, enable zones,
+// change team filters or manufacture wins. The authored mission decides when
+// its hatch accepts a real flag-carrying player entering the enabled volume.
+static void SimulateReverseObjectives(float now)
+{
+    if (!g_ReverseObjectives || g_PlayerTeam != 3 || g_Defender < 1
+        || !IsClientInGame(g_Defender) || !IsPlayerAlive(g_Defender)
+        || now - g_StartedAt < 30.0 || now < g_ObjectiveVisitAt) return;
+    g_ObjectiveVisitAt = now + 10.0;
+    ConVar capture = FindConVar("sig_mvm_bluhuman_flag_capture");
+    ConVar pickup = FindConVar("sig_mvm_bluhuman_flag_pickup");
+    // Missions that forbid human deployment need their authored allied
+    // carrier. Do not steal its bomb or override the mission's policy.
+    if (capture == null || !capture.BoolValue || pickup == null || !pickup.BoolValue) return;
+    bool carrying = false;
+    int flag = -1, available = -1;
+    while ((flag = FindEntityByClassname(flag, "item_teamflag")) != -1)
+    {
+        int owner = GetEntPropEnt(flag, Prop_Send, "m_hOwnerEntity");
+        if (owner == g_Defender) carrying = true;
+        if (owner > 0) continue;
+        if (HasEntProp(flag, Prop_Send, "m_bDisabled") && GetEntProp(flag, Prop_Send, "m_bDisabled") != 0) continue;
+        if (GetEntProp(flag, Prop_Send, "m_iTeamNum") != g_PlayerTeam) continue;
+        if (available == -1) available = flag;
+    }
+    if (!carrying)
+    {
+        if (available > 0) VisitObjective(available);
+        return;
+    }
+    int zone = -1;
+    while ((zone = FindEntityByClassname(zone, "func_capturezone")) != -1)
+    {
+        if (GetEntProp(zone, Prop_Data, "m_bDisabled") != 0) continue;
+        int team = GetEntProp(zone, Prop_Send, "m_iTeamNum");
+        if (team != 0 && team != g_PlayerTeam) continue;
+        VisitObjective(zone);
+        return;
+    }
+}
+
+public Action Command_Objectives(int client, int argc)
+{
+    static const char classes[][] = { "item_teamflag", "func_capturezone", "trigger_capture_area", "team_control_point", "func_tracktrain", "team_round_timer" };
+    for (int c = 0; c < sizeof(classes); c++)
+    {
+        int entity = -1;
+        while ((entity = FindEntityByClassname(entity, classes[c])) != -1)
+        {
+            char name[128];
+            GetEntPropString(entity, Prop_Data, "m_iName", name, sizeof(name));
+            float mins[3], maxs[3], center[3];
+            if (EntityBounds(entity, mins, maxs))
+                for (int axis = 0; axis < 3; axis++) center[axis] = (mins[axis] + maxs[axis]) * 0.5;
+            int team = HasEntProp(entity, Prop_Send, "m_iTeamNum") ? GetEntProp(entity, Prop_Send, "m_iTeamNum") : -1;
+            int disabled = HasEntProp(entity, Prop_Data, "m_bDisabled") ? GetEntProp(entity, Prop_Data, "m_bDisabled")
+                : (HasEntProp(entity, Prop_Send, "m_bDisabled") ? GetEntProp(entity, Prop_Send, "m_bDisabled") : -1);
+            int owner = HasEntProp(entity, Prop_Send, "m_hOwnerEntity") ? GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity") : -1;
+            ReplyToCommand(client, "WAVEPROBE_OBJECTIVE entity=%d class=%s name=%s team=%d disabled=%d owner=%d center=%.1f,%.1f,%.1f", entity, classes[c], name, team, disabled, owner, center[0], center[1], center[2]);
+        }
+    }
+    ConVar capture = FindConVar("sig_mvm_bluhuman_flag_capture");
+    ConVar pickup = FindConVar("sig_mvm_bluhuman_flag_pickup");
+    ReplyToCommand(client, "WAVEPROBE_REVERSE enabled=%d visits=%d pickups=%d captures=%d human_capture=%d human_pickup=%d", g_ReverseObjectives, g_ObjectiveVisits, g_ObjectivePickups, g_ObjectiveCaptures, capture == null ? -1 : capture.IntValue, pickup == null ? -1 : pickup.IntValue);
     return Plugin_Handled;
 }
 
@@ -489,6 +608,13 @@ public void Event_WaveComplete(Event event, const char[] name, bool dontBroadcas
     {
         return;
     }
+    if (g_PlayerTeam == 3 && g_ReverseObjectives && (g_ObjectiveCaptures < 1 || !g_ReverseBluWon))
+    {
+        g_State = Probe_Failed;
+        strcopy(g_FailureReason, sizeof(g_FailureReason), "objective_unwitnessed");
+        LogError("WAVEPROBE reverse completion without native capture and BLU win evidence");
+        return;
+    }
     g_State = Probe_Passed;
     LogMessage("WAVEPROBE passed wave=%d seconds=%.1f bots=%d tanks=%d",
         g_ObservedWave, GetGameTime() - g_StartedAt, g_BotKills, g_TankKills);
@@ -525,8 +651,37 @@ public void Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast
 // its popfile names: accursed's Chief took the bomb at its spawn and never
 // killed the entity wave 6 waits on. So a robot with a boss health bar drops
 // the bomb as it takes it, and lives until the wear-down reaches it.
+public void Event_ReverseRoundWin(Event event, const char[] name, bool dontBroadcast)
+{
+    if (g_PlayerTeam != 3) return;
+    LogMessage("WAVEPROBE reverse round_win team=%d state=%d expected=%d observed=%d captures=%d", event.GetInt("team"), view_as<int>(g_State), g_ExpectedWave, g_ObservedWave, g_ObjectiveCaptures);
+    if (!g_ReverseObjectives || g_State != Probe_Running) return;
+    int winner = event.GetInt("team");
+    if (winner == g_PlayerTeam) g_ReverseBluWon = true;
+    else if (winner == g_EnemyTeam)
+    {
+        // SigMod's reverse bookkeeping can suppress mvm_wave_failed. The
+        // native winning team remains authoritative about a lost objective.
+        g_State = Probe_Failed;
+        strcopy(g_FailureReason, sizeof(g_FailureReason), "wave_failed");
+    }
+}
+
 public void Event_FlagEvent(Event event, const char[] name, bool dontBroadcast)
 {
+    int player = event.GetInt("player");
+    if (g_PlayerTeam == 3)
+    {
+        LogMessage("WAVEPROBE reverse flag raw event=%d player=%d team=%d state=%d expected=%d observed=%d", event.GetInt("eventtype"), player, player >= 1 && player <= MaxClients && IsClientInGame(player) ? GetClientTeam(player) : -1, view_as<int>(g_State), g_ExpectedWave, g_ObservedWave);
+    }
+    if (g_State == Probe_Running && g_PlayerTeam == 3 && player >= 1 && player <= MaxClients
+        && IsClientInGame(player) && GetClientTeam(player) == g_PlayerTeam)
+    {
+        int type = event.GetInt("eventtype");
+        if (type == 1) g_ObjectivePickups++;
+        if (type == 2) g_ObjectiveCaptures++;
+        LogMessage("WAVEPROBE reverse flag event=%d player=%d", type, player);
+    }
     if (g_State != Probe_Running || event.GetInt("eventtype") != 1) return;
     int carrier = event.GetInt("player");
     if (carrier < 1 || carrier > MaxClients || !IsClientInGame(carrier) || GetClientTeam(carrier) != g_EnemyTeam
@@ -625,6 +780,7 @@ static bool IsWaveRobot(int bot)
     if (bot == g_Defender || !IsClientInGame(bot)) return false;
     int team = GetClientTeam(bot);
     if (team == g_EnemyTeam) return true;
+    if (g_PlayerTeam == 3 && team == g_PlayerTeam) return false;
     if (team < 1 || !IsFakeClient(bot) || !HasEntProp(bot, Prop_Send, "m_iszClassIcon")) return false;
     char icon[64];
     GetEntPropString(bot, Prop_Send, "m_iszClassIcon", icon, sizeof(icon));
@@ -881,7 +1037,8 @@ public Action Timer_Probe(Handle timer)
     }
 
     float now = GetGameTime();
-    CaptureWhenStalled(now);
+    if (g_PlayerTeam != 3) CaptureWhenStalled(now);
+    SimulateReverseObjectives(now);
     RefreshAwaitedAllies(now);
     for (int bot = 1; bot <= MaxClients; bot++)
     {
@@ -935,7 +1092,7 @@ public Action Timer_Probe(Handle timer)
         if (!IsRealTank(tank)) continue;
         int slot = RegisterTank(tank);
         if (slot < 0) return Plugin_Continue;
-        if (enemyTank && GetEntProp(tank, Prop_Send, "m_iTeamNum") == g_PlayerTeam)
+        if ((enemyTank || g_PlayerTeam == 3) && GetEntProp(tank, Prop_Send, "m_iTeamNum") == g_PlayerTeam)
         {
             g_TankDeadline[slot] = now + ALLY_TANK_GRACE_SECONDS;
             continue;
