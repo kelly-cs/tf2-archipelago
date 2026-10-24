@@ -227,7 +227,7 @@ func TestPartitionManifestOverridesHashAndRefusesIncompleteCoverage(t *testing.T
 		if err != nil {
 			t.Fatal(err)
 		}
-		if err := os.WriteFile(path, body, 0600); err != nil {
+		if err := os.WriteFile(path, body, 0o600); err != nil {
 			t.Fatal(err)
 		}
 	}
