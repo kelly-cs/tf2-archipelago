@@ -70,6 +70,18 @@ class ReportOutcomeTest(unittest.TestCase):
                 ("mvm_rottenburg_rev_int_breaking_walls", "normal", 1),
                 {"objective": {"captures": 1, "blu_won": victory}}))
 
+    def test_arctic_tank_stage_requires_all_five_enemy_tank_deaths(self):
+        key = ("mvm_cyberia_rc6a_rev_arctic_arrangement", "normal", 4)
+        for tanks, victory, want in [(5, True, True), (4, True, False), (0, True, False), (5, False, False)]:
+            self.assertEqual(report.reverse_completion_witness(key, {
+                "bots": 8, "tanks": tanks,
+                "objective": {"method": "native-combat-victory", "blu_won": victory}}), want)
+        for wave in [1, 2, 3, 5]:
+            self.assertTrue(report.reverse_completion_witness((key[0], "normal", wave), {
+                "objective": {"method": "native-route-objective", "blu_won": True, "point_captures": 1}}))
+            self.assertFalse(report.reverse_completion_witness((key[0], "normal", wave), {
+                "objective": {"captures": 1, "blu_won": True}}))
+
     def test_supported_reverse_counts_in_score_but_missing_capture_evidence_does_not(self):
         with tempfile.TemporaryDirectory() as folder:
             root = pathlib.Path(folder)

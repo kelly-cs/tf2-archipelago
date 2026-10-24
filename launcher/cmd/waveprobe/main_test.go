@@ -486,3 +486,15 @@ func TestReadNativeRepairCompletionAfterWorldCleanup(t *testing.T) {
 		t.Fatalf("native completion after cleanup classified %s", got)
 	}
 }
+
+func TestArcticArrangementUsesAuthoredPointAndTankObjectives(t *testing.T) {
+	for wave := 1; wave <= 5; wave++ {
+		want := "route"
+		if wave == 4 {
+			want = "combat-victory"
+		}
+		if got := reverseObjectiveKind("mvm_cyberia_rc6a_rev_arctic_arrangement", wave); got != want {
+			t.Errorf("wave %d kind=%q want=%q", wave, got, want)
+		}
+	}
+}

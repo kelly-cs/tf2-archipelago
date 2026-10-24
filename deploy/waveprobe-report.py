@@ -99,8 +99,11 @@ def reverse_completion_witness(key, row):
         return method == "native-combat-clear" and positive("target_kills")
     if objective.get("blu_won") is not True:
         return False
+    arctic = mission == "mvm_cyberia_rc6a_rev_arctic_arrangement"
+    if arctic and wave == 4:
+        return method == "native-combat-victory" and type(row.get("tanks")) is int and row["tanks"] >= 5 and type(row.get("bots")) is int and row["bots"] > 0
     robotfactory = "mvm_robotfactory_b30_rev_adv_short_circuit_execution"
-    route = mission == "mvm_teien_rc6_rev_adv_shogun_slaughter" or (mission == robotfactory and wave == 3)
+    route = arctic or mission == "mvm_teien_rc6_rev_adv_shogun_slaughter" or (mission == robotfactory and wave == 3)
     if route:
         return method == "native-route-objective" and positive("point_captures")
     if mission == robotfactory:
