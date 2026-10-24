@@ -45,10 +45,18 @@ jobs:
     needs: extensions
     runs-on: ubuntu-24.04
     timeout-minutes: 90
+    # Production CI writes its bots cache here using gzip (no zstd binary).
+    # Cache versions include compression, so the plain Ubuntu VM misses it.
+    container:
+      image: debian:stable-slim
     outputs:
       shards_json: ${{ steps.partition.outputs.shards_json }}
       parallel: ${{ steps.partition.outputs.parallel }}
     steps:
+      - name: Prepare the production CI build environment
+        run: |
+          apt-get update
+          apt-get install --yes --no-install-recommends nodejs git ca-certificates curl unzip make
       - uses: actions/checkout@v7
       - uses: actions/setup-go@v7
         with:
@@ -59,7 +67,7 @@ jobs:
           path: extensions
       # Reuse CI's exact production dependency cache. build.sh still verifies
       # its pin stamps and recompiles the plugins; no floating fallback compiler.
-      - uses: actions/cache/restore@v5
+      - uses: actions/cache/restore@v6
         with:
           path: deploy/bots/build
           key: bots-${{ hashFiles('deploy/env/versions.env', 'deploy/patches/**', 'deploy/bots/*.sh', 'go.mod', 'go.sum') }}

@@ -102,7 +102,9 @@ GitHub supplies a separate VM to each matrix job; these are not multiple game
 servers competing for a single runner. More shards add fresh-install overhead,
 so shards and concurrency are separate controls. Twelve concurrent workers leave
 eight slots on a Free account for the existing CI and release builds.
-The build restores the same exact dependency-cache key as production CI, then
+The build uses production CI's Debian container and cache action, matching its
+gzip cache format as well as the exact dependency key. GitHub includes compression
+in a cache's version; a zstd-capable Ubuntu VM misses the gzip entry. The build then
 checks the pinned build stamps and recompiles the plugins. This retains the
 pinned compiler when its original download is temporarily unavailable; a cold
 cache still requires the original pinned upstream artifact.

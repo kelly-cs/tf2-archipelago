@@ -19,5 +19,7 @@
   ],
   "final_source_commit": "939f877",
   "arctic_native_profiles": "10/10 passed at 20x and 50x with final health, version, limiter and unchanged staged/installed plugin proof",
-  "final_health_regressions": "transient RCON failure, incomplete configs and persistent unhealthy timeout"
+  "final_health_regressions": "transient RCON failure, incomplete configs and persistent unhealthy timeout",
+  "production_ci_debian_container_bed_build": "complete Linux and Windows beds built successfully with pinned Go 1.27.0 and the production Debian tool packages",
+  "production_cache_format": "gzip; computed version matches the stored exact dependency cache entry"
 }
