@@ -30,6 +30,7 @@ type options struct {
 	loadWait   time.Duration
 	shard      int
 	shards     int
+	partition  string
 	startWave  int
 	endWave    int
 	failFast   bool
@@ -191,11 +192,12 @@ func main() {
 	flag.StringVar(&opt.mission, "mission", "all", "population file name or all")
 	flag.StringVar(&opt.mode, "mode", "both", "normal, surge, or both")
 	flag.IntVar(&opt.seed, "seed", 1, "seed for each spawn's 15-25 game-second lifetime")
-	flag.IntVar(&opt.speed, "speed", 20, "isolated server host_timescale")
+	flag.IntVar(&opt.speed, "speed", 50, "isolated server host_timescale")
 	flag.DurationVar(&opt.timeout, "timeout", 15*time.Minute, "wall-clock timeout after the wave starts")
 	flag.DurationVar(&opt.loadWait, "load-timeout", 90*time.Second, "wall-clock timeout for a map or mission load")
 	flag.IntVar(&opt.shard, "shard", 0, "zero-based mission shard")
 	flag.IntVar(&opt.shards, "shards", 1, "number of mission shards")
+	flag.StringVar(&opt.partition, "partition", "", "balanced mission partition JSON (legacy CRC32 when empty)")
 	flag.IntVar(&opt.startWave, "start-wave", 1, "first wave to test (single mission only)")
 	flag.IntVar(&opt.endWave, "end-wave", 0, "last wave to test (0 means mission end)")
 	flag.BoolVar(&opt.failFast, "fail-fast", false, "stop after the first failed wave")
@@ -218,8 +220,8 @@ func run(opt options) error {
 	if opt.shards < 1 || opt.shard < 0 || opt.shard >= opt.shards {
 		return errors.New("shard must be in [0, shards)")
 	}
-	if opt.speed < 1 || opt.speed > 20 {
-		return errors.New("speed must be between 1 and 20")
+	if opt.speed < 1 || opt.speed > 50 {
+		return errors.New("speed must be between 1 and 50")
 	}
 	if opt.timeout <= 0 || opt.loadWait <= 0 {
 		return errors.New("time limits must be positive")
@@ -287,6 +289,18 @@ func (s *server) prepare(opt options) error {
 	if _, err := s.exec("sv_cheats 1"); err != nil {
 		return err
 	}
+	// Fake clients do not wake MvM like a human connection. Keep this headless
+	// test awake so SigMod's production robot allocator can populate its pool.
+	// This is also the fixture used by SigMod's Linux and Windows test beds;
+	// do not disable sig_mvm_robot_limit or alter tf_mvm_max_invaders instead.
+	if _, err := s.exec("tf_allow_server_hibernation 0"); err != nil {
+		return err
+	}
+	if reply, err := s.exec("tf_allow_server_hibernation"); err != nil {
+		return fmt.Errorf("read tf_allow_server_hibernation: %w", err)
+	} else if !cvarMatches(reply, "tf_allow_server_hibernation", 0) {
+		return fmt.Errorf("headless server wake-up did not stick: %q", reply)
+	}
 	// A bot reaching the hatch would test an undefended loss, not population
 	// progression. Valve provides this cvar specifically for bot testing.
 	if _, err := s.exec("tf_bot_flag_kill_on_touch 1"); err != nil {
@@ -304,7 +318,7 @@ func (s *server) prepare(opt options) error {
 	}
 	if reply, err := s.exec("host_timescale"); err != nil {
 		return fmt.Errorf("read host_timescale: %w", err)
-	} else if !timescaleMatches(reply, opt.speed) {
+	} else if !cvarMatches(reply, "host_timescale", opt.speed) {
 		return fmt.Errorf("host_timescale %d did not stick: %q", opt.speed, reply)
 	}
 	return nil
@@ -468,6 +482,23 @@ func classifyWave(status probeStatus, err error) string {
 }
 
 func selectMissions(opt options) ([]gamedata.Mission, error) {
+	var partitions struct {
+		Shards   int            `json:"shards"`
+		Missions map[string]int `json:"missions"`
+	}
+	if opt.partition != "" {
+		body, err := os.ReadFile(opt.partition)
+		if err != nil {
+			return nil, err
+		}
+		if err := json.Unmarshal(body, &partitions); err != nil {
+			return nil, err
+		}
+		if partitions.Shards != opt.shards {
+			return nil, errors.New("partition shard count differs from -shards")
+		}
+	}
+
 	installed := map[string]bool{}
 	if opt.pops != "" {
 		body, err := os.ReadFile(opt.pops)
@@ -496,7 +527,15 @@ func selectMissions(opt options) ([]gamedata.Mission, error) {
 			(requirement != "sigsegv-mvm" && opt.onlySig) {
 			continue
 		}
-		if crc32.ChecksumIEEE([]byte(mission.PopFile))%uint32(opt.shards) != uint32(opt.shard) {
+		assigned := int(crc32.ChecksumIEEE([]byte(mission.PopFile)) % uint32(opt.shards))
+		if opt.partition != "" {
+			value, ok := partitions.Missions[mission.PopFile]
+			if !ok || value < 0 || value >= opt.shards {
+				return nil, fmt.Errorf("partition missing or invalid for %s", mission.PopFile)
+			}
+			assigned = value
+		}
+		if assigned != opt.shard {
 			continue
 		}
 		if opt.pops != "" && gamedata.IsCommunityMission(mission.ID) && !installed[mission.PopFile] {
@@ -630,9 +669,9 @@ func parseStatus(reply string) (probeStatus, error) {
 	return status, nil
 }
 
-func timescaleMatches(reply string, speed int) bool {
+func cvarMatches(reply, name string, want int) bool {
 	equals := strings.IndexByte(reply, '=')
-	if equals < 0 {
+	if equals < 0 || strings.Trim(strings.TrimSpace(reply[:equals]), "\"") != name {
 		return false
 	}
 	start := strings.IndexByte(reply[equals+1:], '"')
@@ -645,7 +684,7 @@ func timescaleMatches(reply string, speed int) bool {
 		return false
 	}
 	value, err := strconv.ParseFloat(reply[start+1:start+1+end], 64)
-	return err == nil && value == float64(speed)
+	return err == nil && value == float64(want)
 }
 
 func (s *server) await(timeout time.Duration, predicate func(probeStatus) bool) error {

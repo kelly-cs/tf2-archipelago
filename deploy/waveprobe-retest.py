@@ -11,6 +11,7 @@ import sys
 import threading
 import re
 import zlib
+from waveprobe_partition import assignment
 
 
 def rows(path):
@@ -72,11 +73,13 @@ def main(run_dir, binary, worker_ids, source_shards=None):
                     latest[key] = row
                 if path.name.startswith(phase + "-"):
                     completed.add(key)
+    partition_path = run_dir / "partition.json"
+    manifest = json.loads(partition_path.read_text()) if partition_path.exists() else None
     candidates = []
     for key, planned in plan.items():
         if planned["state"] != "planned":
             continue
-        if zlib.crc32(key[0].encode()) % shards not in source_shards:
+        if (assignment(manifest, key[0], shards) if manifest else zlib.crc32(key[0].encode()) % shards) not in source_shards:
             continue
         if key in completed and latest[key]["state"] != "inconclusive":
             continue
@@ -115,7 +118,7 @@ def main(run_dir, binary, worker_ids, source_shards=None):
                     (mission, mode, wave), map_name = pending.get_nowait()
                 except queue.Empty:
                     return
-                command = [str(binary), "-rcon", f"127.0.0.1:{port}",
+                command = [str(binary), "-rcon", f"{settings.get('rcon_host', '127.0.0.1')}:{port}",
                            "-mission", mission, "-mode", mode,
                            "-start-wave", str(wave), "-end-wave", str(wave),
                            "-speed", settings.get("speed", "20"), "-timeout", wall_limit,
