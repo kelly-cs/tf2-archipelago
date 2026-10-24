@@ -316,11 +316,14 @@ def main(opt):
                      "shard-0.jsonl", check=False)
         run([sys.executable, "deploy/waveprobe-retest.py", str(out), binary("waveprobe"), "0"],
             "retest.log")
-        wait_for_health(rcon, out / "final-health.txt", min(deadline, time.monotonic() + 120))
+        final_health = wait_for_health(rcon, out / "final-health.txt", min(deadline, time.monotonic() + 120))
+        meta["running_version_after"] = running_version(game, final_health)
+        meta["installed_version_after"] = installed_version(game)
         check_robot_limiter(rcon, out / "robot-limiter-after.txt")
         meta["robot_limiter"] = True
         meta["latest_after"] = live_version()
-        meta["fresh"] = meta["latest_after"] == meta["installed_version"]
+        meta["fresh"] = (meta["latest_after"] == meta["installed_version"]
+                         == meta["installed_version_after"] == meta["running_version_after"])
         meta["completed"] = True
     except (Exception, KeyboardInterrupt) as error:
         meta["error"] = str(error)

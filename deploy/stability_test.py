@@ -404,6 +404,8 @@ class StabilityTest(unittest.TestCase):
             meta = json.loads((output / "environment.json").read_text())
             summary = json.loads((output / "SUMMARY.json").read_text())
             self.assertTrue(meta["startup"] and meta["fresh"] and meta["completed"])
+            self.assertEqual(meta["running_version_after"], "123")
+            self.assertEqual(meta["installed_version_after"], "123")
             self.assertEqual(summary["passed_cases"], 2)
             self.assertEqual(summary["tested_cases"], summary["eligible_cases"])
             self.assertIn("Retesting 0", (output / "retest.log").read_text())
