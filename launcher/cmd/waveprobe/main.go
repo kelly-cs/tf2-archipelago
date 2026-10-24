@@ -302,6 +302,12 @@ func run(opt options) error {
 }
 
 func reverseObjectiveKind(pop string, wave int) string {
+	if pop == "mvm_cyberia_rc6a_rev_arctic_arrangement" {
+		if wave == 4 {
+			return "combat-victory"
+		}
+		return "route"
+	}
 	if pop == "mvm_robotfactory_b30_rev_adv_short_circuit_execution" && wave == 2 {
 		return "escort"
 	}
