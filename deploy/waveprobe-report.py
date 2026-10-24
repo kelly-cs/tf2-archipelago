@@ -93,29 +93,27 @@ def reverse_completion_witness(key, row):
         return False
     def positive(name):
         return type(objective.get(name)) is int and objective[name] > 0
-    if positive("captures"):
-        return True
     method = objective.get("method")
     bosses = {"mvm_coaltown_rev_adv_computer_crash", "mvm_autumnull_rc2_rev_exp_codename_omega"}
-    if mission in bosses and wave == 6 and method == "native-combat-clear":
-        return positive("target_kills")
+    if mission in bosses and wave == 6:
+        return method == "native-combat-clear" and positive("target_kills")
     if objective.get("blu_won") is not True:
         return False
     robotfactory = "mvm_robotfactory_b30_rev_adv_short_circuit_execution"
     route = mission == "mvm_teien_rc6_rev_adv_shogun_slaughter" or (mission == robotfactory and wave == 3)
-    if route and method == "native-route-objective":
-        return positive("point_captures")
+    if route:
+        return method == "native-route-objective" and positive("point_captures")
     if mission == robotfactory:
-        if wave == 1 and method == "native-repair":
-            return objective.get("repairs") == 5 or objective.get("repair_completed") is True
-        if wave == 2 and method == "native-escort":
-            return objective.get("escort_stages") == 3
+        if wave == 1:
+            return method == "native-repair" and (objective.get("repairs") == 5 or objective.get("repair_completed") is True)
+        if wave == 2:
+            return method == "native-escort" and objective.get("escort_stages") == 3
     if mission == "mvm_hideout_b3_rev_adv_galois":
         if wave == 4:
             return positive("tank_deliveries")
-        if wave == 5 and method == "native-combat-victory":
-            return type(row.get("bots")) is int and row["bots"] > 0
-    return False
+        if wave == 5:
+            return method == "native-combat-victory" and type(row.get("bots")) is int and row["bots"] > 0
+    return positive("captures")
 
 
 def main(run_dir):

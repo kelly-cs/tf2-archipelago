@@ -181,7 +181,7 @@ def main(source, output, commit, run_url, check_live=False, scope="full", *, mea
               "wall limit; the original 180-second results remain in the evidence. A pass is a completion witness "
               "from this automated probe, not a guarantee for every player strategy.", "",
               "All playable reverse objectives are included in the full-profile denominator. Failures and missing objective evidence count against the percentage. "
-              "Missions without navigation are excluded by the catalog. Neither exclusion is a pass.", "",
+              "Missions without navigation are outside the catalog's playable plan; those blocked entries are not passes.", "",
               "Download **stability-evidence.zip** for all environment reports, raw results, startup evidence, "
               "TF2 manifests, and server/SourceMod logs. Previous daily runs retain their evidence as Actions artifacts.", ""]
     for key, label in ENVIRONMENTS.items():
