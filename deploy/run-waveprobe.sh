@@ -8,8 +8,10 @@ shards=${WAVEPROBE_SHARDS:-6}
 speed=${WAVEPROBE_SPEED:-50}
 reverse_bombs=${WAVEPROBE_REVERSE_BOMBS:-1}
 [[ $reverse_bombs == 0 || $reverse_bombs == 1 ]] || { echo "WAVEPROBE_REVERSE_BOMBS must be 0 or 1" >&2; exit 2; }
+reverse_objectives=${WAVEPROBE_REVERSE_OBJECTIVES:-1}
+[[ $reverse_objectives == 0 || $reverse_objectives == 1 ]] || { echo "WAVEPROBE_REVERSE_OBJECTIVES must be 0 or 1" >&2; exit 2; }
 reverse_flags=()
-if [[ $reverse_bombs == 1 ]]; then reverse_flags=(-reverse-bombs); fi
+if [[ $reverse_objectives == 1 ]]; then reverse_flags=(-reverse-objectives); elif [[ $reverse_bombs == 1 ]]; then reverse_flags=(-reverse-bombs); fi
 seed=${WAVEPROBE_SEED:-1}
 first_timeout=${WAVEPROBE_FIRST_PASS_TIMEOUT:-180s}
 timeout=${WAVEPROBE_TIMEOUT:-900s}
@@ -57,7 +59,7 @@ fi
 printf 'shards=%s\nspeed=%s\nseed=%s\nfirst_pass_timeout=%s\nwave_timeout=%s\nbase_port=%s\nstarted_utc=%s\nsource_commit=%s\nmain_commit=%s\n' \
     "$shards" "$speed" "$seed" "$first_timeout" "$timeout" "$base_port" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
     "$(git rev-parse HEAD)" "$(git rev-parse origin/main)" > "$run_dir/config.txt"
-printf 'reverse_bombs=%s\n' "$reverse_bombs" >> "$run_dir/config.txt"
+printf 'reverse_bombs=%s\nreverse_objectives=%s\n' "$reverse_bombs" "$reverse_objectives" >> "$run_dir/config.txt"
 
 # Build the two plugins from the current checkout before starting any shard.
 "$root/plugin/build.sh" > "$run_dir/plugin-build.log" 2>&1

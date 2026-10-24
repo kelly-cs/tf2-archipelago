@@ -75,13 +75,7 @@ def load_results(run_dir):
             return "reverse objective"
         if key in observed:
             result = classify(observed[key], load_errors.get(key[:2]))
-            objective = observed[key].get("objective") or {}
-            if not isinstance(objective, dict): objective = {}
-            captures = objective.get("captures", 0) if isinstance(objective, dict) else 0
-            combat = (key[0] == "mvm_coaltown_rev_adv_computer_crash" and key[2] == 6
-                      and objective.get("method") == "native-combat-clear"
-                      and isinstance(objective.get("target_kills"), int) and objective["target_kills"] > 0)
-            if "_rev_" in key[0] and result == "passed" and not combat and (not isinstance(captures, int) or captures < 1):
+            if "_rev_" in key[0] and result == "passed" and not reverse_completion_witness(key, observed[key]):
                 return "probe error"
             return result
         if key[:2] in load_errors:
@@ -89,6 +83,39 @@ def load_results(run_dir):
         return "not run"
 
     return plan, observed, load_errors, files, outcome
+
+
+def reverse_completion_witness(key, row):
+    """Validate native evidence independently of the controller's verdict."""
+    mission, _, wave = key
+    objective = row.get("objective") or {}
+    if not isinstance(objective, dict):
+        return False
+    def positive(name):
+        return type(objective.get(name)) is int and objective[name] > 0
+    if positive("captures"):
+        return True
+    method = objective.get("method")
+    bosses = {"mvm_coaltown_rev_adv_computer_crash", "mvm_autumnull_rc2_rev_exp_codename_omega"}
+    if mission in bosses and wave == 6 and method == "native-combat-clear":
+        return positive("target_kills")
+    if objective.get("blu_won") is not True:
+        return False
+    robotfactory = "mvm_robotfactory_b30_rev_adv_short_circuit_execution"
+    route = mission == "mvm_teien_rc6_rev_adv_shogun_slaughter" or (mission == robotfactory and wave == 3)
+    if route and method == "native-route-objective":
+        return positive("point_captures")
+    if mission == robotfactory:
+        if wave == 1 and method == "native-repair":
+            return objective.get("repairs") == 5 or objective.get("repair_completed") is True
+        if wave == 2 and method == "native-escort":
+            return objective.get("escort_stages") == 3
+    if mission == "mvm_hideout_b3_rev_adv_galois":
+        if wave == 4:
+            return positive("tank_deliveries")
+        if wave == 5 and method == "native-combat-victory":
+            return type(row.get("bots")) is int and row["bots"] > 0
+    return False
 
 
 def main(run_dir):
@@ -129,7 +156,7 @@ def main(run_dir):
           f"**tested:** {tested}/{eligible}; **missions:** {len({key[0] for key in plan})}. "
           "A pass requires the game's wave-complete event and an observed enemy spawn.\n")
     print("The stability score uses tested cases; verified coverage uses the full eligible plan, "
-          "so unrun waves cannot silently improve it. Unsupported reverse objectives are excluded; enabled bomb/carrier cases count in coverage.\n")
+          "so unrun waves cannot silently improve it. The full reverse-objective profile counts every playable reverse case, including failures. Any explicitly disabled profile cases are listed separately.\n")
     print("This score measures the current automated probe at the configured speed and "
           "kill timing. A nonpass is a reproducible probe observation, not by itself "
           "proof that a player cannot finish the wave.\n")

@@ -13,6 +13,42 @@ spec.loader.exec_module(report)
 
 
 class ReportOutcomeTest(unittest.TestCase):
+    def test_native_objective_witnesses_are_bound_to_mission_wave_and_victory(self):
+        fixtures = [
+            ("mvm_robotfactory_b30_rev_adv_short_circuit_execution", 1,
+             {"method": "native-repair", "repairs": 4, "repair_completed": True, "blu_won": True}),
+            ("mvm_teien_rc6_rev_adv_shogun_slaughter", 1,
+             {"method": "native-route-objective", "point_captures": 4, "blu_won": True}),
+            ("mvm_robotfactory_b30_rev_adv_short_circuit_execution", 1,
+             {"method": "native-repair", "repairs": 5, "blu_won": True}),
+            ("mvm_robotfactory_b30_rev_adv_short_circuit_execution", 2,
+             {"method": "native-escort", "escort_stages": 3, "blu_won": True}),
+            ("mvm_hideout_b3_rev_adv_galois", 4,
+             {"tank_deliveries": 1, "blu_won": True}),
+            ("mvm_hideout_b3_rev_adv_galois", 5,
+             {"method": "native-combat-victory", "blu_won": True}),
+        ]
+        with tempfile.TemporaryDirectory() as folder:
+            root = pathlib.Path(folder)
+            for mission, wave, objective in fixtures:
+                for target, evidence, expected in [
+                    (mission, objective, 1),
+                    (mission, {**objective, "blu_won": False}, 0),
+                    ("mvm_coaltown_rev_adv_computer_crash", objective, 0),
+                    (mission, {}, 0),
+                ]:
+                    with self.subTest(mission=mission, target=target, evidence=evidence):
+                        case = {"mission": target, "wave": wave, "mode": "normal", "map": "fixture"}
+                        (root / "plan.jsonl").write_text(json.dumps({**case, "state": "planned"}) + "\n")
+                        row = {**case, "state": "passed", "outcome": "passed", "bots": 4,
+                               "bot_spawns": 4, "objective": evidence}
+                        (root / "shard-0.jsonl").write_text(json.dumps(row) + "\n")
+                        with contextlib.redirect_stdout(io.StringIO()):
+                            report.main(root)
+                        summary = json.loads((root / "SUMMARY.json").read_text())
+                        self.assertEqual(summary["eligible_cases"], 1)
+                        self.assertEqual(summary["passed_cases"], expected)
+
     def test_supported_reverse_counts_in_score_but_missing_capture_evidence_does_not(self):
         with tempfile.TemporaryDirectory() as folder:
             root = pathlib.Path(folder)

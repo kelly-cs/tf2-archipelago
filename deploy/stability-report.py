@@ -180,7 +180,7 @@ def main(source, output, commit, run_url, check_live=False, scope="full", *, mea
               "Each mission runs every wave at the recorded speed with Bot Surge off and on. Nonpasses are retried at a 900-second "
               "wall limit; the original 180-second results remain in the evidence. A pass is a completion witness "
               "from this automated probe, not a guarantee for every player strategy.", "",
-              "The validated reverse bomb/carrier subset is included in the denominator. Other reverse objectives remain explicitly unsupported and excluded. "
+              "All playable reverse objectives are included in the full-profile denominator. Failures and missing objective evidence count against the percentage. "
               "Missions without navigation are excluded by the catalog. Neither exclusion is a pass.", "",
               "Download **stability-evidence.zip** for all environment reports, raw results, startup evidence, "
               "TF2 manifests, and server/SourceMod logs. Previous daily runs retain their evidence as Actions artifacts.", ""]

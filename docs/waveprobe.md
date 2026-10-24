@@ -4,12 +4,12 @@
 catalog mission with and without Bot Surge. It skips missions marked `no_nav`,
 which cannot run in the game. The live Compose project is never restarted.
 
-The local wrapper and daily checker enable the validated reverse bomb/carrier
-subset: Breaking Walls, Computer Crash, and Denominator (34 wave/mode cases).
-The BLU simulator respects native capture permissions and requires native flag
-capture, BLU victory and wave completion. Remaining reverse objectives stay
-unsupported and excluded. See [reverse coverage](reverse-waveprobe.md). Set
-`WAVEPROBE_REVERSE_BOMBS=0` for a local control without that subset.
+The local wrapper and daily checker enable all playable reverse missions with
+`-reverse-objectives`: 112 reverse wave/mode cases and 2,454 total cases in the
+current catalog. Reverse failures count against the percentage. See
+[reverse coverage](reverse-waveprobe.md) for the objective witnesses and limits.
+Set `WAVEPROBE_REVERSE_OBJECTIVES=0` to use the earlier bomb/carrier subset, or
+also set `WAVEPROBE_REVERSE_BOMBS=0` for a standard-only control.
 
 Each standard test starts the real wave, attempts to defeat each observed BLU
 bot or tank 15–25 game seconds after it first appears, and requires the game's
@@ -27,7 +27,7 @@ This headless fixture does not test idle hibernation or human join/wake behavior
 those need a separate real-client check.
 
 The fake RED player uses Medic for missions tagged `medic_only`, including
-Remedic, and Scout otherwise. A case is one mission wave with Bot Surge either
+Remedic, Engineer for Robotfactory, and Scout otherwise. A case is one mission wave with Bot Surge either
 off or on; the two modes have separate results and scores.
 The disposable probe prevents damage to RED participants. This keeps
 survival objectives and friendly mission NPCs alive while it measures BLU

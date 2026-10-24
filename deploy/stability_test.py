@@ -386,7 +386,7 @@ class StabilityTest(unittest.TestCase):
             self.assertIn("speed=50", (output / "config.txt").read_text())
             self.assertIn("reverse_bombs=1", (output / "config.txt").read_text())
             calls = [json.loads(line) for line in (bed / "probe-args.jsonl").read_text().splitlines()]
-            self.assertTrue(all("-reverse-bombs" in args for args in calls))
+            self.assertTrue(all("-reverse-objectives" in args for args in calls))
             self.assertTrue((output / "startup.txt").exists())
             self.assertTrue((output / "final-health.txt").exists())
 

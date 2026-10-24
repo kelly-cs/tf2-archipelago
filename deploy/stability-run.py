@@ -166,7 +166,8 @@ def main(opt):
     if not 1 <= speed <= 50:
         raise ValueError("speed must be between 1 and 50")
     reverse_bombs = getattr(opt, "reverse_bombs", True)
-    reverse_flags = ["-reverse-bombs"] if reverse_bombs else []
+    reverse_objectives = getattr(opt, "reverse_objectives", True)
+    reverse_flags = ["-reverse-objectives"] if reverse_objectives else (["-reverse-bombs"] if reverse_bombs else [])
     partition = ["-shards", str(shards), "-shard", str(shard)]
     manifest = getattr(opt, "partition", None)
     if manifest:
@@ -235,7 +236,7 @@ def main(opt):
             raise ValueError("Windows must run natively")
         run([binary("waveprobe"), "-plan", "-mode", "both", "-mission", mission, *reverse_flags, *partition], "plan.jsonl", 60)
         (out / "config.txt").write_text(
-            f"shards=1\nreverse_bombs={int(reverse_bombs)}\nspeed={speed}\nseed=1\nfirst_pass_timeout=180s\nwave_timeout=900s\n"
+            f"shards=1\nreverse_objectives={int(reverse_objectives)}\nreverse_bombs={int(reverse_bombs)}\nspeed={speed}\nseed=1\nfirst_pass_timeout=180s\nwave_timeout=900s\n"
             f"base_port={port}\nstarted_utc={meta['started_utc']}\nsource_commit={meta['commit']}\n")
         meta["latest_before"] = live_version()
         run([binary("winbed"), "-root", str(root), "-probe", str(bed / "tf2_waveprobe.smx"),
@@ -371,6 +372,8 @@ if __name__ == "__main__":
     parser.add_argument("--shards", type=int, default=1)
     parser.add_argument("--shard", type=int, default=0)
     parser.add_argument("--speed", type=int, default=50)
+    parser.add_argument("--reverse-objectives", action=argparse.BooleanOptionalAction, default=True,
+                        help="include every playable reverse mission in coverage")
     parser.add_argument("--reverse-bombs", action=argparse.BooleanOptionalAction, default=True,
                         help="include validated reverse bomb/carrier missions")
     parser.add_argument("--partition", type=Path)

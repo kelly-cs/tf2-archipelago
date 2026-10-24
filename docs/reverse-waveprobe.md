@@ -1,19 +1,22 @@
 # Experimental Reverse MvM wave probe
 
-The daily and local stability sweeps include the bomb/carrier subset through
-`-reverse-bombs`: Breaking Walls, Computer Crash, and Denominator. Their 34
-wave/mode cases count in the environment percentage. The other 78 reverse cases
-remain explicitly unsupported and excluded. The [initial investigation report](audits/reverse-probe-20261024/REPORT.md)
-records the simulator validation and payload/control-point gap.
+The daily and local stability sweeps use `-reverse-objectives` to attempt every
+playable reverse mission: 112 wave/mode cases across eleven missions, with
+Bot Surge off and on. All 2,454 playable cases count in the denominator. The
+previous profile excluded 78 reverse cases because only three bomb/carrier
+missions had been validated; that profile remains available as `-reverse-bombs`
+for comparison, but is no longer the daily default. The catalog's `no_nav`
+missions cannot be selected for play and remain outside the playable plan.
 
 ## Completion evidence
 
-`-reverse-bombs` enables only the validated mission list. `-experimental-reverse`
-is a separate opt-in for investigating the rest of the catalog; daily checks
-never pass it. Use `-reverse-only` with either flag and `-mission all` to inspect
-reverse coverage. There are 112 reverse wave/mode cases across eleven missions
-with navigation; the reverse mission tagged `no_nav` remains excluded. A bare
-waveprobe invocation without either flag keeps all reverse cases unsupported.
+Full coverage means every case is attempted and reported. It does not imply
+that every authored objective currently works, or that a missing simulator
+witness is a production defect. Missing evidence is a probe error and counts
+against verified coverage. Initial failures and longer retries are preserved.
+`-experimental-reverse` remains an alias for independent investigation.
+A bare invocation without a reverse flag retains the standard-only control.
+Use `-reverse-only` with an enabled reverse profile to inspect its plan.
 
 The probe uses a BLU fake player and defeats RED enemies using the existing
 wear-down fixture. It preserves allied BLU robots and tanks. In reverse missions
@@ -36,15 +39,16 @@ The target-death witness is serialized as `target_kills`; killing unrelated
 support bots cannot satisfy it. A native RED round win before that target
 death remains a loss. For bomb waves, a native RED round win is a failure even when
 SigMod suppresses `mvm_wave_failed`. A completion
-without capture evidence is a probe error, not accepted coverage. JSONL includes
+without its required native objective evidence is a probe error, not accepted coverage. JSONL includes
 objective visit, pickup, and capture counts; raw logs identify capture actors.
 The simulator is enabled and checked before every wave because map/plugin reloads
 can reset experimental state. Missing simulator support refuses the experiment.
-After a completed reverse mission, the controller waits for the game's natural
-mission/map transition before loading another mission. Otherwise its queued
-changelevel can overwrite a new mission after readiness appears to pass.
-Transition timeouts remain explicit load failures; automatic transitions stay
-enabled. Reverse mission readiness also waits for SourceMod's
+After a completed reverse mission, the controller allows the game's natural
+mission/map transition to settle before loading another mission. If it remains
+on its victory map, the next fixture explicitly reloads the map. Reverse waves
+use the fake player's native ready-up command rather than `mp_restartgame`,
+which can interfere with mission-spawned objectives.
+Map-load failures remain explicit; automatic transitions stay enabled. Reverse mission readiness also waits for SourceMod's
 `OnConfigsExecuted` callback. Seeing a map name before server/plugin configs
 finish is not sufficient readiness.
 
@@ -71,22 +75,21 @@ For a single mission:
 ```sh
 dist/linuxbed/waveprobe -rcon 127.0.0.1:27035 \
   -mission mvm_rottenburg_rev_int_breaking_walls \
-  -reverse-bombs -mode both -speed 50 -timeout 180s
+  -reverse-objectives -mode both -speed 50 -timeout 180s
 ```
 
-For the daily reverse-only plan (34 planned and 78 unsupported cases):
+For the daily reverse-only plan (112 planned and zero unsupported cases):
 
 ```sh
 dist/linuxbed/waveprobe -plan -mission all -mode both \
-  -reverse-bombs -reverse-only > reverse-plan.jsonl
+  -reverse-objectives -reverse-only > reverse-plan.jsonl
 ```
 
 Keep the first run's JSONL and debug snapshots before retesting a specific
 nonpass with the same profile and a longer wall budget. Hosted and local runners
-record `reverse_bombs=1` in their config, and retries preserve that flag. The
+record `reverse_objectives=1` in their config, and retries preserve that flag. The
 manual `reverse-smoke` workflow scope tests Breaking Walls on all three
-environments without publishing full-catalog badges. Broad experimental runs
-remain separate from the daily profile.
+environments without publishing full-catalog badges. The full daily profile includes all reverse missions.
 
 ## What this measures
 
@@ -102,3 +105,29 @@ The local investigation's initial kill-only baseline, candidate snapshots,
 per-wave native capture evidence and reports are saved separately under
 `docs/audits/reverse-probe-20261024/` in the original workspace. This source branch
 does not include the raw game logs or generated binaries.
+
+## Additional native objectives
+
+Shogun and Robotfactory's final wave use real control-point touch/capture logic.
+The fake player selects unlocked, unowned points and stands in the capture area;
+it never changes ownership, unlocks a point or writes capture progress.
+
+Robotfactory wave 1 selects Engineer, equips the native wrench through player
+input, aims at the current objective dispenser, and holds primary attack.
+Native repair, metal consumption, mission regeneration, shielding and authored
+Lua callbacks remain active. All five native repairs, or the authored five-building completion output,
+and native BLU victory plus wave completion are required. The observed
+`repair_completed` flag preserves completion evidence if victory removes the
+buildings before the next health sample. Wave 2 preserves the allied VIP and observes
+the three authored escort stage outputs in order; it never moves the VIP or
+fires those outputs. Missing buildings or stage outputs cannot pass.
+
+Autumnull's finale requires a native death of its named `Overseer` boss, as
+Computer Crash requires `THE CORRUPTED`. Hideout wave 4 observes the authored
+`boss_deploy_relay` output for tank delivery; its combat finale requires native
+BLU victory, observed enemy defeats and wave completion. These exceptions are
+bound to exact mission/wave keys in the independent report validator.
+
+The fixtures exercise objective completion, not a complete human playthrough.
+A local Linux Docker run cannot establish native Windows or Ubuntu startup;
+those remain separate hosted measurements using the same case plan.

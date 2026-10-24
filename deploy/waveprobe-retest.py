@@ -123,7 +123,9 @@ def main(run_dir, binary, worker_ids, source_shards=None):
                            "-start-wave", str(wave), "-end-wave", str(wave),
                            "-speed", settings.get("speed", "20"), "-timeout", wall_limit,
                            "-load-timeout", "90s"]
-                if settings.get("reverse_bombs") == "1":
+                if settings.get("reverse_objectives") == "1":
+                    command += ["-reverse-objectives"]
+                elif settings.get("reverse_bombs") == "1":
                     command += ["-reverse-bombs"]
                 if settings.get("experimental_reverse") == "1":
                     command += ["-experimental-reverse"]

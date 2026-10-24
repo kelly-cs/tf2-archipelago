@@ -57,12 +57,18 @@ jobs:
         with:
           name: extensions
           path: extensions
+      # Reuse CI's exact production dependency cache. build.sh still verifies
+      # its pin stamps and recompiles the plugins; no floating fallback compiler.
+      - uses: actions/cache/restore@v5
+        with:
+          path: deploy/bots/build
+          key: bots-${{ hashFiles('deploy/env/versions.env', 'deploy/patches/**', 'deploy/bots/*.sh', 'go.mod', 'go.sum') }}
       - name: Build the native beds with production installer assets
         env:
           BOTS_EXTENSIONS_DIR: ${{ github.workspace }}/extensions
         run: make stability-bed
       - name: Record the full canonical wave plan
-        run: dist/linuxbed/waveprobe -plan -mode both -reverse-bombs -mission "$STABILITY_MISSION" > dist/plan.jsonl
+        run: dist/linuxbed/waveprobe -plan -mode both -reverse-objectives -mission "$STABILITY_MISSION" > dist/plan.jsonl
       - name: Balance whole missions over the canonical plan
         id: partition
         run: |
@@ -153,7 +159,7 @@ jobs:
           sys.exit(subprocess.call([sys.executable, 'deploy/stability-run.py',
               '--environment', os.environ['STABILITY_ENV'], '--bed', str(bed),
               '--root', str(root), '--output', 'stability-result',
-              '--reverse-bombs', '--hours', '4.5', '--speed', os.environ['STABILITY_SPEED'],
+              '--reverse-objectives', '--hours', '4.5', '--speed', os.environ['STABILITY_SPEED'],
               '--shards', os.environ['STABILITY_SHARDS'], '--shard', os.environ['STABILITY_SHARD'],
               '--partition', 'beds/partition.json', '--mission', os.environ['STABILITY_MISSION']]))
       - name: Preserve results even when startup or waves fail

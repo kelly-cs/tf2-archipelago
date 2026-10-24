@@ -322,7 +322,9 @@ func TestReverseSelectionIsExplicitAndKeepsUnsupportedCoverageByDefault(t *testi
 			}
 			cases++
 		}
-		file.Close()
+		if err := file.Close(); err != nil {
+			t.Fatal(err)
+		}
 		if cases != 112 {
 			t.Errorf("reverse cases=%d want=112", cases)
 		}
@@ -370,7 +372,11 @@ func TestDailyReverseBombProfileIncludesOnlyValidatedMissions(t *testing.T) {
 	if _, err := file.Seek(0, 0); err != nil {
 		t.Fatal(err)
 	}
-	defer file.Close()
+	t.Cleanup(func() {
+		if err := file.Close(); err != nil {
+			t.Error(err)
+		}
+	})
 	decoder := json.NewDecoder(file)
 	counts := map[string]int{}
 	reverseCases := 0
@@ -407,5 +413,76 @@ func TestAuthoredReverseCombatWaveRequiresItsTargetDeathWitness(t *testing.T) {
 	status.TargetKills = 1
 	if got := classifyWave(status, nil); got != "passed" {
 		t.Fatalf("witnessed boss clear: %s", got)
+	}
+}
+
+func TestFullReverseProfileHasNoExcludedPlayableMissions(t *testing.T) {
+	opt := options{mission: "all", includeSig: true, reverseObjectives: true, shards: 1, startWave: 1}
+	missions, err := selectMissions(opt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	total, reverse := 0, 0
+	for _, mission := range missions {
+		cases := int(mission.Waves) * 2
+		total += cases
+		if strings.Contains(mission.PopFile, "_rev_") {
+			reverse += cases
+			if !reverseEnabled(mission.PopFile, opt) {
+				t.Fatalf("excluded %s", mission.PopFile)
+			}
+		}
+	}
+	if total != 2454 || reverse != 112 {
+		t.Fatalf("coverage changed: %d total, %d reverse; inspect the playable catalog", total, reverse)
+	}
+}
+
+func TestSpecialReverseWitnessesCannotPassWithoutNativeEvidence(t *testing.T) {
+	for _, kind := range []string{"repair", "combat-victory", "route"} {
+		st := probeStatus{State: "passed", PlayerTeam: 3, ObjectiveKind: kind, BotSpawns: 10, Bots: 10}
+		if got := classifyWave(st, nil); got == "passed" {
+			t.Fatalf("%s accepted without objective evidence", kind)
+		}
+	}
+	st := probeStatus{State: "passed", PlayerTeam: 3, ObjectiveKind: "repair", BotSpawns: 10, Bots: 10, Repairs: 5, BluWon: 1}
+	if got := classifyWave(st, nil); got != "passed" {
+		t.Fatalf("native repair completion refused: %s", got)
+	}
+	st.Repairs = 4
+	if got := classifyWave(st, nil); got == "passed" {
+		t.Fatal("unfinished repair accepted")
+	}
+}
+
+func TestNativeReverseObjectivesCannotHideMissingEnemySpawns(t *testing.T) {
+	st := probeStatus{State: "passed", PlayerTeam: 3, ObjectiveKind: "repair", Repairs: 5, BluWon: 1}
+	if got := classifyWave(st, nil); got != "no enemies spawned" {
+		t.Fatalf("empty population passed: %s", got)
+	}
+}
+
+func TestAuthoredRepairCompletionSurvivesBuildingCleanup(t *testing.T) {
+	st := probeStatus{State: "passed", PlayerTeam: 3, ObjectiveKind: "repair", Repairs: 4, RepairComplete: 1, BluWon: 1, BotSpawns: 2, Bots: 2}
+	if got := classifyWave(st, nil); got != "passed" {
+		t.Fatalf("native repair completion lost after cleanup: %s", got)
+	}
+	st.RepairComplete = 0
+	if got := classifyWave(st, nil); got == "passed" {
+		t.Fatal("four repairs without completion accepted")
+	}
+}
+
+func TestReadNativeRepairCompletionAfterWorldCleanup(t *testing.T) {
+	reply := "WAVEPROBE state=passed reason=none map=mvm_robotfactory_b30 pop=mvm_robotfactory_b30_rev_adv_short_circuit_execution max=3 gamewave=2 expected=1 observed=1 botspawns=157 tankspawns=0 bots=112 tanks=0 attempts=114 alive=0 remaining=319 initial=1125 progress=71.6 defender=10 defteam=3 defclass=9 playerteam=3 enemyteam=2 elapsed=716.4 objectives=5 pickups=0 captures=0 configsready=1 objectivekind=repair targetkills=0 pointcaps=0 repairs=4 tankdeliveries=0 bluwon=1 escortstages=0 repaircomplete=1"
+	status, err := parseStatus(reply)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if status.RepairComplete != 1 || status.Repairs != 4 || status.BluWon != 1 {
+		t.Fatalf("native completion evidence lost: %+v", status)
+	}
+	if got := classifyWave(status, nil); got != "passed" {
+		t.Fatalf("native completion after cleanup classified %s", got)
 	}
 }
