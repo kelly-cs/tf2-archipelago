@@ -41,11 +41,32 @@ class StabilityTest(unittest.TestCase):
         self.assertEqual(result["status"], "incomplete")
 
     def test_unverified_inputs_have_no_numeric_score(self):
-        for change in ({"startup": False}, {"fresh": False}, {"commit": "other"}, {"robot_limiter": False}, {"crash_free": False}):
+        for change in ({"startup": False}, {"fresh": False}, {"commit": "other"}, {"robot_limiter": False}):
             with self.subTest(change=change):
                 result = report.evaluate({**self.meta, **change}, self.summary, "abc", "123")
                 self.assertIsNone(result["score"])
         self.assertIsNone(report.evaluate(self.meta, self.summary, "abc", "124")["score"])
+
+    def test_crash_retains_percentage_without_a_passing_verdict(self):
+        result = report.evaluate({**self.meta, "crash_free": False}, self.summary, "abc", "123")
+        self.assertEqual(result["score"], 50)
+        self.assertEqual(result["status"], "engine crash recorded")
+
+    def test_all_waves_passing_after_crash_still_fails_report_and_keeps_date(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            source, output = root/"source", root/"output"
+            for environment in report.ENVIRONMENTS:
+                folder = source/environment
+                folder.mkdir(parents=True)
+                (folder/"environment.json").write_text(json.dumps({**self.meta, "crash_free": False}))
+                (folder/"SUMMARY.json").write_text(json.dumps({**self.summary, "passed_cases": 100, "tested_cases": 100}))
+            self.assertFalse(report.main(source, output, "abc", "https://example.com/run", measured_utc="2026-10-24T14:10:00+00:00", latest="123"))
+            badge = json.loads((output/"ubuntu24.json").read_text())
+            self.assertIn("100.00%", badge["message"])
+            self.assertIn("engine crash recorded", badge["message"])
+            self.assertEqual(badge["color"], "red")
+            self.assertEqual(json.loads((output/"stability.json").read_text())["measured_utc"], "2026-10-24T14:10:00+00:00")
 
     def test_bad_or_empty_plan_cannot_pass(self):
         for summary in ({}, {"eligible_cases": 1, "passed_cases": 2, "tested_cases": 1}):
@@ -283,8 +304,8 @@ class StabilityTest(unittest.TestCase):
             self.assertEqual(len(runner.crash_evidence(root)), 1)
         complete = {"eligible_cases": 1, "passed_cases": 1, "tested_cases": 1}
         result = report.evaluate({**self.meta, "crash_free": False}, complete, "abc")
-        self.assertIsNone(result["score"])
-        self.assertEqual(result["status"], "crash recorded or unverified")
+        self.assertEqual(result["score"], 100)
+        self.assertEqual(result["status"], "engine crash recorded")
 
     def test_limiter_must_be_enabled_and_readable(self):
         self.assertTrue(runner.robot_limiter_enabled('"sig_mvm_robot_limit" = "1" ( def. "0" )'))

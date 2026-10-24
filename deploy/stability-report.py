@@ -106,7 +106,7 @@ def evaluate(meta, summary, commit, latest=None):
     passed = summary.get("passed_cases", 0)
     tested = summary.get("tested_cases", 0)
     valid = (meta.get("commit") == commit and meta.get("startup") is True
-             and meta.get("fresh") is True and meta.get("robot_limiter") is True and meta.get("crash_free") is True and eligible > 0
+             and meta.get("fresh") is True and meta.get("robot_limiter") is True and eligible > 0
              and 0 <= passed <= tested <= eligible
              and (latest is None or meta.get("installed_version") == latest))
     # Missing waves remain in the denominator, including when the runner crashed.
@@ -119,8 +119,10 @@ def evaluate(meta, summary, commit, latest=None):
         status = "startup failed"
     elif not meta.get("fresh") or (latest is not None and meta.get("installed_version") != latest):
         status = "latest build unverified"
+    elif meta.get("crash_free") is False:
+        status = "engine crash recorded"
     elif meta.get("crash_free") is not True:
-        status = "crash recorded or unverified"
+        status = "crash check unverified"
     elif meta.get("robot_limiter") is not True:
         status = "robot limiter unverified"
     elif not valid:
@@ -137,10 +139,10 @@ def evaluate(meta, summary, commit, latest=None):
             "by_mode": summary.get("by_mode", {}), "evidence": meta}
 
 
-def main(source, output, commit, run_url, check_live=False, scope="full"):
+def main(source, output, commit, run_url, check_live=False, scope="full", *, measured_utc=None, latest=None):
     output.mkdir(parents=True, exist_ok=True)
-    now = dt.datetime.now(dt.timezone.utc)
-    latest = None
+    # Reformatting existing evidence must preserve its original age.
+    now = dt.datetime.fromisoformat(measured_utc) if measured_utc else dt.datetime.now(dt.timezone.utc)
     if check_live:
         spec = importlib.util.spec_from_file_location("stability_run", Path(__file__).with_name("stability-run.py"))
         runner = importlib.util.module_from_spec(spec)
@@ -172,8 +174,8 @@ def main(source, output, commit, run_url, check_live=False, scope="full"):
                  "color": "brightgreen" if result["status"] == "passed" else "red",
                  "cacheSeconds": 300}
         (output / f"{key}.json").write_text(json.dumps(badge) + "\n")
-    lines += ["", "Score = passed / every eligible planned wave/mode case, with startup, live-build, enabled robot limiter and crash-log checks required. "
-              "Unrun waves count against the score; failed startup, unverified checks or recorded engine crashes have no numeric score.", "",
+    lines += ["", "Score = passed / every eligible planned wave/mode case. Startup, live-build and enabled robot limiter checks are required for a numeric score. "
+              "Unrun waves count against the score. Engine crashes retain the measured percentage, appear in Result and keep the badge red and workflow failing, even at 100% wave completion.", "",
               "Each mission runs every wave at the recorded speed with Bot Surge off and on. Nonpasses are retried at a 900-second "
               "wall limit; the original 180-second results remain in the evidence. A pass is a completion witness "
               "from this automated probe, not a guarantee for every player strategy.", "",

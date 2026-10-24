@@ -52,8 +52,10 @@ carry spawn/kill/alive counts, progress and timeline/debug evidence.
 
 **Score = passed cases / all eligible planned cases × 100.** Missing results
 count against it. Startup failure, an empty plan, a different source commit or
-an unverified current TF2 build, an unverified robot limiter, or a recorded
-engine crash produces an unverified score. A lost, timed-out
+an unverified current TF2 build or robot limiter produces an unverified score.
+A recorded engine crash retains the measured wave pass percentage, appears in
+the Result column and keeps the badge red and workflow failing, even if every
+wave passes. A lost, timed-out
 or interrupted run fails the workflow. The report also shows raw coverage and
 each Bot Surge mode separately.
 
