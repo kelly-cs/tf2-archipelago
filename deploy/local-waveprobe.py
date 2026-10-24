@@ -49,6 +49,7 @@ def main(opt):
     workers=opt.workers or profile['recommended_workers']
     if not 1<=workers<=profile['max_workers']:
         raise ValueError(f"workers must be in [1, {profile['max_workers']}] for the available resources")
+    subprocess.run(['make','embed-placeholders'],cwd=REPO,check=True)
     rcon=out/'rcon'
     subprocess.run(['go','build','-o',str(rcon),'./launcher/cmd/rcon'],cwd=REPO,check=True)
     tag=opt.prepared_image or 'tf2ap-waveprobe:prepared'

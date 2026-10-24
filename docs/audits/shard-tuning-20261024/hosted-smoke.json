@@ -1,0 +1,218 @@
+{
+  "scope": "smoke",
+  "measured_utc": "2026-10-24T01:42:10.402871+00:00",
+  "commit": "2b5122f750c62943f479c3dd8d7019f57bfc56ec",
+  "run_url": "https://github.com/kelly-cs/tf2-archipelago/actions/runs/40048936374",
+  "stale_after_hours": 36,
+  "latest_at_report": "11138802",
+  "environments": {
+    "ubuntu24": {
+      "status": "passed",
+      "score": 100.0,
+      "startup": true,
+      "passed": 14,
+      "tested": 14,
+      "eligible": 14,
+      "unsupported_reverse": 0,
+      "by_mode": {
+        "normal": {
+          "eligible": 7,
+          "tested": 7,
+          "passed": 7,
+          "stability_percent": 100.0
+        },
+        "surge": {
+          "eligible": 7,
+          "tested": 7,
+          "passed": 7,
+          "stability_percent": 100.0
+        }
+      },
+      "evidence": {
+        "environment": "ubuntu24",
+        "commit": "2b5122f750c62943f479c3dd8d7019f57bfc56ec",
+        "startup": true,
+        "fresh": true,
+        "completed": true,
+        "robot_limiter": true,
+        "crash_free": true,
+        "shards": [
+          {
+            "environment": "ubuntu24",
+            "shard": 0,
+            "shards": 1,
+            "speed": 50,
+            "mission": "mvm_decoy_expert1",
+            "started_utc": "2026-10-24T01:35:13.920635+00:00",
+            "commit": "2b5122f750c62943f479c3dd8d7019f57bfc56ec",
+            "host": "Linux-6.17.0-1022-azure-x86_64-with-glibc2.39",
+            "run_url": "https://github.com/kelly-cs/tf2-archipelago/actions/runs/40048936374",
+            "startup": true,
+            "fresh": true,
+            "completed": true,
+            "robot_limiter": true,
+            "crash_free": true,
+            "phase_seconds": {
+              "plan.jsonl": 0.02,
+              "install.log": 329.48,
+              "shard-0.jsonl": 48.55,
+              "retest.log": 0.11
+            },
+            "latest_before": "11138802",
+            "installed_version": "11138802",
+            "rcon_host": "10.1.1.79",
+            "running_version": "11138802",
+            "latest_at_start": "11138802",
+            "latest_after": "11138802",
+            "finished_utc": "2026-10-24T01:41:55.204875+00:00"
+          }
+        ],
+        "installed_version": "11138802",
+        "running_version": "11138802",
+        "host": "Linux-6.17.0-1022-azure-x86_64-with-glibc2.39",
+        "speed": 50,
+        "started_utc": "2026-10-24T01:35:13.920635+00:00",
+        "finished_utc": "2026-10-24T01:41:55.204875+00:00"
+      }
+    },
+    "docker": {
+      "status": "passed",
+      "score": 100.0,
+      "startup": true,
+      "passed": 14,
+      "tested": 14,
+      "eligible": 14,
+      "unsupported_reverse": 0,
+      "by_mode": {
+        "normal": {
+          "eligible": 7,
+          "tested": 7,
+          "passed": 7,
+          "stability_percent": 100.0
+        },
+        "surge": {
+          "eligible": 7,
+          "tested": 7,
+          "passed": 7,
+          "stability_percent": 100.0
+        }
+      },
+      "evidence": {
+        "environment": "docker",
+        "commit": "2b5122f750c62943f479c3dd8d7019f57bfc56ec",
+        "startup": true,
+        "fresh": true,
+        "completed": true,
+        "robot_limiter": true,
+        "crash_free": true,
+        "shards": [
+          {
+            "environment": "docker",
+            "shard": 0,
+            "shards": 1,
+            "speed": 50,
+            "mission": "mvm_decoy_expert1",
+            "started_utc": "2026-10-24T01:25:02.431034+00:00",
+            "commit": "2b5122f750c62943f479c3dd8d7019f57bfc56ec",
+            "host": "Linux-6.17.0-1022-azure-x86_64-with-glibc2.39",
+            "run_url": "https://github.com/kelly-cs/tf2-archipelago/actions/runs/40048936374",
+            "startup": true,
+            "fresh": true,
+            "completed": true,
+            "robot_limiter": true,
+            "crash_free": true,
+            "phase_seconds": {
+              "plan.jsonl": 0.03,
+              "install.log": 357.94,
+              "ownership.log": 1.02,
+              "shard-0.jsonl": 79.61,
+              "retest.log": 0.21
+            },
+            "latest_before": "11138802",
+            "installed_version": "11138802",
+            "rcon_host": "127.0.0.1",
+            "running_version": "11138802",
+            "latest_at_start": "11138802",
+            "latest_after": "11138802",
+            "finished_utc": "2026-10-24T01:33:14.747460+00:00"
+          }
+        ],
+        "installed_version": "11138802",
+        "running_version": "11138802",
+        "host": "Linux-6.17.0-1022-azure-x86_64-with-glibc2.39",
+        "speed": 50,
+        "started_utc": "2026-10-24T01:25:02.431034+00:00",
+        "finished_utc": "2026-10-24T01:33:14.747460+00:00"
+      }
+    },
+    "windows": {
+      "status": "passed",
+      "score": 100.0,
+      "startup": true,
+      "passed": 14,
+      "tested": 14,
+      "eligible": 14,
+      "unsupported_reverse": 0,
+      "by_mode": {
+        "normal": {
+          "eligible": 7,
+          "tested": 7,
+          "passed": 7,
+          "stability_percent": 100.0
+        },
+        "surge": {
+          "eligible": 7,
+          "tested": 7,
+          "passed": 7,
+          "stability_percent": 100.0
+        }
+      },
+      "evidence": {
+        "environment": "windows",
+        "commit": "2b5122f750c62943f479c3dd8d7019f57bfc56ec",
+        "startup": true,
+        "fresh": true,
+        "completed": true,
+        "robot_limiter": true,
+        "crash_free": true,
+        "shards": [
+          {
+            "environment": "windows",
+            "shard": 0,
+            "shards": 1,
+            "speed": 50,
+            "mission": "mvm_decoy_expert1",
+            "started_utc": "2026-10-24T01:22:21.995812+00:00",
+            "commit": "2b5122f750c62943f479c3dd8d7019f57bfc56ec",
+            "host": "Windows-2022Server-10.0.20348-SP0",
+            "run_url": "https://github.com/kelly-cs/tf2-archipelago/actions/runs/40048936374",
+            "startup": true,
+            "fresh": true,
+            "completed": true,
+            "robot_limiter": true,
+            "crash_free": true,
+            "phase_seconds": {
+              "plan.jsonl": 0.03,
+              "install.log": 360.09,
+              "shard-0.jsonl": 84.39,
+              "retest.log": 0.17
+            },
+            "latest_before": "11138802",
+            "installed_version": "11138802",
+            "rcon_host": "172.30.192.1",
+            "running_version": "11138802",
+            "latest_at_start": "11138802",
+            "latest_after": "11138802",
+            "finished_utc": "2026-10-24T01:30:16.847463+00:00"
+          }
+        ],
+        "installed_version": "11138802",
+        "running_version": "11138802",
+        "host": "Windows-2022Server-10.0.20348-SP0",
+        "speed": 50,
+        "started_utc": "2026-10-24T01:22:21.995812+00:00",
+        "finished_utc": "2026-10-24T01:30:16.847463+00:00"
+      }
+    }
+  }
+}

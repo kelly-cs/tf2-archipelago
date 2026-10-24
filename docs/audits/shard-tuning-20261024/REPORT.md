@@ -42,3 +42,12 @@ logs remain enabled. Setup observations and full logs remain in the original
 local audit directory. Raw case records, cvar readbacks, timing/CPU and storage
 measurements are committed here. The runner source matches 21ec890; binary
 metadata records the earlier working-tree build.
+
+The strict hosted [smoke run](https://github.com/kelly-cs/tf2-archipelago/actions/runs/40048936374)
+passed startup and all fourteen cases on Ubuntu 24.04, production Docker and
+Windows: 42/42 cases, current TF2, enabled limiter and no captured engine
+crashes. It did not publish full-catalog badges. `hosted-smoke.json` preserves
+that evidence. The corrected full run is
+[40051322875](https://github.com/kelly-cs/tf2-archipelago/actions/runs/40051322875).
+Full local coverage is running separately; its nonpasses remain in the report.
+See `speed-controls/NOTES.md` for representative lower-speed diagnostics.

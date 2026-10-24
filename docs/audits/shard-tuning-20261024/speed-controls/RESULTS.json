@@ -1,0 +1,289 @@
+[
+  {
+    "mission": "mvm_akure_rc1a_exp_diamond_and_dross",
+    "speed": 20,
+    "repeat": 1,
+    "seconds": 15.102556488000118,
+    "rows": [
+      {
+        "mission": "mvm_akure_rc1a_exp_diamond_and_dross",
+        "map": "mvm_akure_rc1a",
+        "mode": "normal",
+        "wave": 1,
+        "seed": 1,
+        "state": "passed",
+        "outcome": "passed",
+        "bots": 22,
+        "tanks": 0,
+        "bot_spawns": 340,
+        "tank_spawns": 0,
+        "kill_attempts": 22,
+        "alive_at_end": 0,
+        "remaining_at_end": 81,
+        "progress_percent": 5.8,
+        "wall_seconds": 7.032864857,
+        "game_seconds": 139
+      }
+    ],
+    "status": 0
+  },
+  {
+    "mission": "mvm_akure_rc1a_exp_diamond_and_dross",
+    "speed": 50,
+    "repeat": 1,
+    "seconds": 13.431508024998038,
+    "rows": [
+      {
+        "mission": "mvm_akure_rc1a_exp_diamond_and_dross",
+        "map": "mvm_akure_rc1a",
+        "mode": "normal",
+        "wave": 1,
+        "seed": 1,
+        "state": "passed",
+        "outcome": "passed",
+        "bots": 22,
+        "tanks": 0,
+        "bot_spawns": 393,
+        "tank_spawns": 0,
+        "kill_attempts": 22,
+        "alive_at_end": 0,
+        "remaining_at_end": 81,
+        "progress_percent": 5.8,
+        "wall_seconds": 5.025086435,
+        "game_seconds": 183.6
+      }
+    ],
+    "status": 0
+  },
+  {
+    "mission": "mvm_akure_rc1a_exp_diamond_and_dross",
+    "speed": 20,
+    "repeat": 2,
+    "seconds": 82.64023606499904,
+    "rows": [
+      {
+        "mission": "mvm_akure_rc1a_exp_diamond_and_dross",
+        "map": "mvm_akure_rc1a",
+        "mode": "normal",
+        "wave": 1,
+        "seed": 1,
+        "state": "passed",
+        "outcome": "passed",
+        "bots": 46,
+        "tanks": 0,
+        "bot_spawns": 9966,
+        "tank_spawns": 0,
+        "kill_attempts": 46,
+        "alive_at_end": 0,
+        "remaining_at_end": 81,
+        "progress_percent": 5.8,
+        "wall_seconds": 74.217062579,
+        "game_seconds": 1482.7
+      }
+    ],
+    "status": 0
+  },
+  {
+    "mission": "mvm_area_52_rc3_adv_extraterrestrial_epidemic",
+    "speed": 20,
+    "repeat": 1,
+    "seconds": 190.7579217679995,
+    "rows": [
+      {
+        "mission": "mvm_area_52_rc3_adv_extraterrestrial_epidemic",
+        "map": "mvm_area_52_rc3",
+        "mode": "normal",
+        "wave": 1,
+        "seed": 1,
+        "state": "failed",
+        "outcome": "wave timed out",
+        "bots": 257,
+        "tanks": 3,
+        "bot_spawns": 15630,
+        "tank_spawns": 3,
+        "kill_attempts": 260,
+        "alive_at_end": 0,
+        "remaining_at_end": 589,
+        "progress_percent": 0,
+        "wall_seconds": 181.411752432,
+        "game_seconds": 3309.7,
+        "error": "wave exceeded wall-clock time limit: wave 1 still active after 3m0s (3309.7 game seconds)",
+        "debug_snapshot": "WAVEPROBE_DEBUG state=2 wave=1 expected=1 game=3332.8 engine=329.9 timescale=20.0 remaining=589 spawns=15633 kills=260 attempts=260 defender=10\nWAVEPROBE_DEBUG_END alive=0 listed=0\nsig_wave_dump: wave round_state=4 every_spawn_done=0 reserved_slots=0 max_invaders=22 red=1 blue=22 spectators=0 spectator_bots=0 spectator_alive=0 bots_allocated=1 time=3332.9\nsig_wave_dump: #0 name=\"W1_S1\" state=DONE support=0 waitspawned=\"\" waitdead=\"\" spawned=3 total=3 active=0 alive=0 spawn_count=1 max_active=3 squad=0 reserved_mine=0 paused=0 where=16 result=1\nsig_wave_dump: #1 name=\"W1_S1a\" state=DONE support=0 waitspawned=\"W1_S1\" waitdead=\"\" spawned=48 total=48 active=0 alive=0 spawn_count=3 max_active=9 squad=0 reserved_mine=0 paused=0 where=16 result=1\nsig_wave_dump: #2 name=\"W1_S1b\" state=DONE support=0 waitspawned=\"W1_S1\" waitdead=\"\" spawned=7 total=7 active=0 alive=0 spawn_count=1 max_active=2 squad=0 reserved_mine=0 paused=0 where=16 result=1\nsig_wave_dump: #3 name=\"W1_S2a\" state=DONE support=0 waitspawned=\"\" waitdead=\"\" spawned=1 total=1 active=1 alive=0 spawn_count=1 max_active=1 squad=0 reserved_mine=0 paused=0 where=0 result=0\nsig_wave_dump: #4 name=\"W1_S2c\" state=DONE support=0 waitspawned=\"\" waitdead=\"\" spawned=36 total=36 active=0 alive=0 spawn_count=4 max_active=8 squad=0 reserved_mine=0 paused=0 where=16 result=1\nsig_wave_dump: #5 name=\"W1_S2c\" state=DONE support=0 waitspawned=\"\" waitdead=\"W1_S2a\" spawned=24 total=24 active=0 alive=0 spawn_count=3 max_active=6 squad=0 reserved_mine=0 paused=0 where=12 result=1\nsig_wave_dump: #6 name=\"W1_S2c\" state=DONE support=0 waitspawned=\"\" waitdead=\"W1_S2a\" spawned=4 total=4 active=0 alive=0 spawn_count=1 max_active=1 squad=0 reserved_mine=0 paused=0 where=16 result=1\nsig_wave_dump: #7 name=\"W4_S1a\" state=DONE support=0 waitspawned=\"\" waitdead=\"W1_S2c\" spawned=2 total=2 active=0 alive=0 spawn_count=2 max_active=2 squad=2 reserved_mine=0 paused=0 where=16 result=1\nsig_wave_dump: #8 name=\"W4_S1c\" state=DONE support=0 waitspawned=\"\" waitdead=\"W4_S1a\" spawned=2 total=2 active=0 alive=0 spawn_count=2 max_active=2 squad=2 reserved_mine=0 paused=0 where=16 result=1\nsig_wave_dump: #9 name=\"W4_S1c\" state=DONE support=0 waitspawned=\"\" waitdead=\"W1_S2c\" spawned=12 total=12 active=0 alive=0 spawn_count=2 max_active=4 squad=0 reserved_mine=0 paused=0 where=16 result=1\nsig_wave_dump: #10 name=\"W4_S1c\" state=DONE support=0 waitspawned=\"\" waitdead=\"W1_S2c\" spawned=48 total=48 active=0 alive=0 spawn_count=4 max_active=8 squad=0 reserved_mine=0 paused=0 where=16 result=1\nsig_wave_dump: #11 name=\"W4_S3\" state=DONE support=0 waitspawned=\"\" waitdead=\"W4_S1c\" spawned=28 total=28 active=0 alive=0 spawn_count=4 max_active=8 squad=0 reserved_mine=0 paused=0 where=3 result=1\nsig_wave_dump: #12 name=\"W4_S3a\" state=DONE support=0 waitspawned=\"\" waitdead=\"W4_S1c\" spawned=12 total=12 active=0 alive=0 spawn_count=4 max_active=8 squad=2 reserved_mine=0 paused=0 where=12 result=1\nsig_wave_dump: #13 name=\"W4_S3b\" state=DONE support=0 waitspawned=\"\" waitdead=\"W4_S3a\" spawned=16 total=16 active=0 alive=0 spawn_count=4 max_active=8 squad=2 reserved_mine=0 paused=0 where=16 result=1\nsig_wave_dump: #14 name=\"W4_FuckSourceEngine\" state=DONE support=1(limited) waitspawned=\"\" waitdead=\"\" spawned=1 total=1 active=0 alive=0 spawn_count=1 max_active=1 squad=0 reserved_mine=0 paused=0 where=3 result=1\nsig_wave_dump: #15 name=\"W1_SXa\" state=DONE support=0 waitspawned=\"W4_FuckSourceEngine\" waitdead=\"\" spawned=1 total=1 active=0 alive=0 spawn_count=1 max_active=1 squad=0 reserved_mine=0 paused=0 where=12 result=1\nsig_wave_dump: #16 name=\"W1_PAUSE\" state=DONE support=0 waitspawned=\"\" waitdead=\"W1_SXa\" spawned=1 total=1 active=0 alive=0 spawn_count=1 max_active=1 squad=0 reserved_mine=0 paused=0 where=12 result=1\nsig_wave_dump: #17 name=\"W1_PAUSE\" state=DONE support=0 waitspawned=\"\" waitdead=\"W1_SXa\" spawned=1 total=1 active=0 alive=0 spawn_count=1 max_active=1 squad=0 reserved_mine=0 paused=0 where=12 result=1\nsig_wave_dump: #18 name=\"W1_PAUSE\" state=DONE support=0 waitspawned=\"\" waitdead=\"W1_SXa\" spawned=1 total=1 active=0 alive=0 spawn_count=1 max_active=1 squad=0 reserved_mine=0 paused=0 where=16 result=1\nsig_wave_dump: #19 name=\"W1_PAUSE\" state=DONE support=0 waitspawned=\"\" waitdead=\"W1_SXa\" spawned=1 total=1 active=0 alive=0 spawn_count=1 max_active=1 squad=0 reserved_mine=0 paused=0 where=12 result=1\nsig_wave_dump: #20 name=\"W1_PAUSE\" state=DONE support=0 waitspawned=\"\" waitdead=\"W1_SXa\" spawned=1 total=1 active=0 alive=0 spawn_count=1 max_active=1 squad=0 reserved_mine=0 paused=0 where=16 result=1\nsig_wave_dump: #21 name=\"W1_PAUSE\" state=DONE support=0 waitspawned=\"\" waitdead=\"W1_SXa\" spawned=1 total=1 active=0 alive=0 spawn_count=1 max_active=1 squad=0 reserved_mine=0 paused=0 where=16 result=1\nsig_wave_dump: #22 name=\"W1_PAUSE\" state=DONE support=0 waitspawned=\"\" waitdead=\"W1_SXa\" spawned=1 total=1 active=0 alive=0 spawn_count=1 max_active=1 squad=0 reserved_mine=0 paused=0 where=12 result=1\nsig_wave_dump: #23 name=\"W2_S1c\" state=DONE support=0 waitspawned=\"\" waitdead=\"W1_PAUSE\" spawned=55 total=55 active=0 alive=0 spawn_count=5 max_active=10 squad=0 reserved_mine=0 paused=0 where=16 result=1\nsig_wave_dump: #24 name=\"W2_S1b\" state=DONE support=0 waitspawned=\"\" waitdead=\"W1_SXa\" spawned=1 total=1 active=1 alive=0 spawn_count=1 max_active=1 squad=0 reserved_mine=0 paused=0 where=0 result=0\nsig_wave_dump: #25 name=\"W2_S1c\" state=DONE support=0 waitspawned=\"\" waitdead=\"W2_S1b\" spawned=1 total=1 active=1 alive=0 spawn_count=1 max_active=1 squad=0 reserved_mine=0 paused=0 where=0 result=0\nsig_wave_dump: #26 name=\"W2_S2a\" state=DONE support=0 waitspawned=\"\" waitdead=\"\" spawned=78 total=78 active=0 alive=0 spawn_count=3 max_active=9 squad=0 reserved_mine=0 paused=0 where=16 result=1\nsig_wave_dump: #27 name=\"W2_S2b\" state=DONE support=0 waitspawned=\"\" waitdead=\"\" spawned=4 total=4 active=0 alive=0 spawn_count=1 max_active=1 squad=0 reserved_mine=0 paused=0 where=12 result=1\nsig_wave_dump: #28 name=\"W2_S2b\" state=DONE support=0 waitspawned=\"\" waitdead=\"\" spawned=6 total=6 active=0 alive=0 spawn_count=1 max_active=1 squad=0 reserved_mine=0 paused=0 where=16 result=1\nsig_wave_dump: #29 name=\"W2_S3a\" state=DONE support=0 waitspawned=\"\" waitdead=\"\" spawned=4 total=4 active=0 alive=0 spawn_count=1 max_active=1 squad=2 reserved_mine=0 paused=0 where=12 result=1\nsig_wave_dump: #30 name=\"W2_S3a\" state=DONE support=0 waitspawned=\"\" waitdead=\"\" spawned=3 total=3 active=0 alive=0 spawn_count=1 max_active=1 squad=0 reserved_mine=0 paused=0 where=16 result=1\nsig_wave_dump: #31 name=\"W2_S3a\" state=DONE support=0 waitspawned=\"\" waitdead=\"\" spawned=60 total=60 active=0 alive=0 spawn_count=4 max_active=8 squad=0 reserved_mine=0 paused=0 where=16 result=1\nsig_wave_dump: #32 name=\"W2_S4a\" state=DONE support=0 waitspawned=\"\" waitdead=\"W2_S3a\" spawned=2 total=2 active=0 alive=0 spawn_count=2 max_active=2 squad=2 reserved_mine=0 paused=0 where=16 result=1\nsig_wave_dump: #33 name=\"W2_S4b\" state=DONE support=0 waitspawned=\"\" waitdead=\"W2_S4a\" spawned=2 total=2 active=0 alive=0 spawn_count=2 max_active=2 squad=2 reserved_mine=0 paused=0 where=16 result=1\nsig_wave_dump: #34 name=\"W2_S4c\" state=DONE support=0 waitspawned=\"\" waitdead=\"W2_S4b\" spawned=2 total=2 active=0 alive=0 spawn_count=2 max_active=2 squad=2 reserved_mine=0 paused=0 where=16 result=1\nsig_wave_dump: #35 name=\"W2_S4c\" state=DONE support=0 waitspawned=\"\" waitdead=\"W2_S3a\" spawned=60 total=60 active=0 alive=0 spawn_count=2 max_active=10 squad=0 reserved_mine=0 paused=0 where=16 result=1\nsig_wave_dump: #36 name=\"W3_S1\" state=SPAWNING support=1 waitspawned=\"\" waitdead=\"W2_S4c\" spawned=9213 total=1 active=0 alive=0 spawn_count=1 max_active=1 squad=0 reserved_mine=0 paused=0 where=12 result=0\nsig_wave_dump: #37 name=\"W3_S2b\" state=SPAWNING support=0 waitspawned=\"\" waitdead=\"W2_S4c\" spawned=9 total=48 active=0 alive=0 spawn_count=3 max_active=12 squad=0 reserved_mine=0 paused=0 where=16 result=0\nsig_wave_dump: #38 name=\"W3_Support\" state=PENDING support=1 waitspawned=\"\" waitdead=\"W3_S2b\" spawned=0 total=30 active=0 alive=0 spawn_count=3 max_active=9 squad=0 reserved_mine=1058362586 paused=0 where=16 result=0\nsig_wave_dump: #39 name=\"W3_S2b\" state=SPAWNING support=0 waitspawned=\"\" waitdead=\"W2_S4c\" spawned=4 total=6 active=0 alive=0 spawn_count=2 max_active=2 squad=0 reserved_mine=0 paused=0 where=16 result=0\nsig_wave_dump: #40 name=\"W3_S3a\" state=PENDING support=0 waitspawned=\"\" waitdead=\"W3_S2b\" spawned=-1084032014 total=2 active=0 alive=0 spawn_count=2 max_active=2 squad=2 reserved_mine=1048868058 paused=0 where=16 result=0\nsig_wave_dump: #41 name=\"W3_S3a\" state=PENDING support=0 waitspawned=\"\" waitdead=\"W3_S2b\" spawned=1101753895 total=2 active=0 alive=0 spawn_count=2 max_active=2 squad=2 reserved_mine=-1090622960 paused=0 where=12 result=0\nsig_wave_dump: #42 name=\"W3_S3a\" state=PENDING support=0 waitspawned=\"\" waitdead=\"W3_S2b\" spawned=1102200172 total=2 active=0 alive=0 spawn_count=2 max_active=2 squad=2 reserved_mine=855638016 paused=0 where=16 result=0",
+        "timeline": [
+          {
+            "wall_seconds": 0,
+            "game_seconds": 17.7,
+            "spawned": 37,
+            "killed": 0,
+            "alive": 10,
+            "remaining": 589,
+            "progress_percent": 0
+          },
+          {
+            "wall_seconds": 10.017570184,
+            "game_seconds": 155.1,
+            "spawned": 196,
+            "killed": 55,
+            "alive": 9,
+            "remaining": 589,
+            "progress_percent": 0
+          },
+          {
+            "wall_seconds": 20.034842122,
+            "game_seconds": 297.2,
+            "spawned": 330,
+            "killed": 94,
+            "alive": 12,
+            "remaining": 589,
+            "progress_percent": 0
+          },
+          {
+            "wall_seconds": 30.065519734,
+            "game_seconds": 484.9,
+            "spawned": 473,
+            "killed": 135,
+            "alive": 0,
+            "remaining": 589,
+            "progress_percent": 0
+          },
+          {
+            "wall_seconds": 40.082216524,
+            "game_seconds": 668.8,
+            "spawned": 621,
+            "killed": 167,
+            "alive": 10,
+            "remaining": 589,
+            "progress_percent": 0
+          },
+          {
+            "wall_seconds": 50.104226545,
+            "game_seconds": 773.2,
+            "spawned": 707,
+            "killed": 204,
+            "alive": 7,
+            "remaining": 589,
+            "progress_percent": 0
+          },
+          {
+            "wall_seconds": 60.121722423,
+            "game_seconds": 903.9,
+            "spawned": 883,
+            "killed": 242,
+            "alive": 2,
+            "remaining": 589,
+            "progress_percent": 0
+          },
+          {
+            "wall_seconds": 70.144100011,
+            "game_seconds": 1104.3,
+            "spawned": 1419,
+            "killed": 260,
+            "alive": 0,
+            "remaining": 589,
+            "progress_percent": 0
+          },
+          {
+            "wall_seconds": 80.165380868,
+            "game_seconds": 1304.8,
+            "spawned": 2711,
+            "killed": 260,
+            "alive": 0,
+            "remaining": 589,
+            "progress_percent": 0
+          },
+          {
+            "wall_seconds": 90.20156013,
+            "game_seconds": 1505.5,
+            "spawned": 4005,
+            "killed": 260,
+            "alive": 1,
+            "remaining": 589,
+            "progress_percent": 0
+          },
+          {
+            "wall_seconds": 100.216346119,
+            "game_seconds": 1705.7,
+            "spawned": 5287,
+            "killed": 260,
+            "alive": 1,
+            "remaining": 589,
+            "progress_percent": 0
+          },
+          {
+            "wall_seconds": 110.239270999,
+            "game_seconds": 1906.3,
+            "spawned": 6595,
+            "killed": 260,
+            "alive": 1,
+            "remaining": 589,
+            "progress_percent": 0
+          },
+          {
+            "wall_seconds": 120.269528319,
+            "game_seconds": 2107,
+            "spawned": 7889,
+            "killed": 260,
+            "alive": 1,
+            "remaining": 589,
+            "progress_percent": 0
+          },
+          {
+            "wall_seconds": 130.293827224,
+            "game_seconds": 2307.4,
+            "spawned": 9192,
+            "killed": 260,
+            "alive": 1,
+            "remaining": 589,
+            "progress_percent": 0
+          },
+          {
+            "wall_seconds": 140.321262849,
+            "game_seconds": 2507.9,
+            "spawned": 10472,
+            "killed": 260,
+            "alive": 0,
+            "remaining": 589,
+            "progress_percent": 0
+          },
+          {
+            "wall_seconds": 150.343526521,
+            "game_seconds": 2708.3,
+            "spawned": 11751,
+            "killed": 260,
+            "alive": 1,
+            "remaining": 589,
+            "progress_percent": 0
+          },
+          {
+            "wall_seconds": 160.372742382,
+            "game_seconds": 2909,
+            "spawned": 13044,
+            "killed": 260,
+            "alive": 0,
+            "remaining": 589,
+            "progress_percent": 0
+          },
+          {
+            "wall_seconds": 170.393482037,
+            "game_seconds": 3109.3,
+            "spawned": 14336,
+            "killed": 260,
+            "alive": 1,
+            "remaining": 589,
+            "progress_percent": 0
+          },
+          {
+            "wall_seconds": 180.407796094,
+            "game_seconds": 3309.7,
+            "spawned": 15633,
+            "killed": 260,
+            "alive": 0,
+            "remaining": 589,
+            "progress_percent": 0
+          }
+        ]
+      }
+    ],
+    "status": 1
+  }
+]
