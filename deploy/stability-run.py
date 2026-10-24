@@ -85,6 +85,22 @@ def startup_ready(evidence):
                               evidence, re.IGNORECASE))
 
 
+def wait_for_health(rcon, output, deadline):
+    """Allow an authored final-map transition to settle, without hiding crashes."""
+    last_error = "map configs or mods remained incomplete"
+    while time.monotonic() < deadline:
+        try:
+            evidence = "\n".join(rcon(command) for command in
+                                 ["version", "sm plugins list", "sm exts list", "sm_waveprobe_status"])
+            output.write_text(evidence, encoding="utf-8")
+            if startup_ready(evidence) and re.search(r"\bconfigsready=1\b", evidence):
+                return evidence
+        except (subprocess.SubprocessError, OSError) as error:
+            last_error = str(error)
+        time.sleep(2)
+    raise RuntimeError("server did not regain healthy mod/probe readiness after the final mission: " + last_error)
+
+
 def robot_limiter_enabled(reply):
     # Fail closed on an unknown cvar, changed output or a disabled production mod.
     return bool(re.search(r'^\s*"sig_mvm_robot_limit"\s*=\s*"1(?:\.0+)?"',
@@ -300,11 +316,7 @@ def main(opt):
                      "shard-0.jsonl", check=False)
         run([sys.executable, "deploy/waveprobe-retest.py", str(out), binary("waveprobe"), "0"],
             "retest.log")
-        final_health = "\n".join(rcon(cmd) for cmd in
-                                  ["version", "sm plugins list", "sm exts list", "sm_waveprobe_status"])
-        (out / "final-health.txt").write_text(final_health, encoding="utf-8")
-        if not startup_ready(final_health):
-            raise RuntimeError("server mods did not remain healthy through the sweep")
+        wait_for_health(rcon, out / "final-health.txt", min(deadline, time.monotonic() + 120))
         check_robot_limiter(rcon, out / "robot-limiter-after.txt")
         meta["robot_limiter"] = True
         meta["latest_after"] = live_version()

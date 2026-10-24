@@ -2,6 +2,7 @@
 import importlib.util
 import json
 import os
+import subprocess
 from pathlib import Path
 import sys
 import tempfile
@@ -29,6 +30,30 @@ local = module("local-waveprobe")
 
 
 class StabilityTest(unittest.TestCase):
+    def test_final_health_waits_through_transition_and_incomplete_configs(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "health.txt"
+            attempt = 0
+            def query(command):
+                nonlocal attempt
+                if command == "version":
+                    attempt += 1
+                    if attempt == 1:
+                        raise subprocess.CalledProcessError(1, ["rcon"])
+                return "TF2 MvM Archipelago\nTF2 MvM wave probe\nconfigsready=" + ("1" if attempt >= 3 else "0")
+            with mock.patch.object(runner.time, "monotonic", side_effect=[0, 1, 2]), mock.patch.object(runner.time, "sleep"):
+                result = runner.wait_for_health(query, output, 10)
+            self.assertIn("configsready=1", result)
+            self.assertEqual(output.read_text(), result)
+
+    def test_final_health_timeout_retains_unhealthy_evidence(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "health.txt"
+            with mock.patch.object(runner.time, "monotonic", side_effect=[0, 11]), mock.patch.object(runner.time, "sleep"):
+                with self.assertRaisesRegex(RuntimeError, "final mission"):
+                    runner.wait_for_health(lambda _: "Unknown command", output, 10)
+            self.assertIn("Unknown command", output.read_text())
+
     def setUp(self):
         self.meta = {"commit": "abc", "startup": True, "fresh": True,
                      "completed": True, "robot_limiter": True, "crash_free": True, "speed": 50, "installed_version": "123"}
@@ -352,7 +377,7 @@ class StabilityTest(unittest.TestCase):
                 elif name == 'rcon' and args == ['sig_mvm_robot_limit']:
                     print('\"sig_mvm_robot_limit\" = \"1\" ( def. \"0\" )')
                 elif name == 'rcon':
-                    print('TF2 MvM Archipelago\\nTF2 MvM wave probe\\nstatus: idle')
+                    print('TF2 MvM Archipelago\\nTF2 MvM wave probe\\nstatus: idle configsready=1')
                 elif name == 'docker':
                     print(json.dumps(args), flush=True)
                     if args[0] == 'run' and '--entrypoint' not in args:
