@@ -4,10 +4,12 @@
 catalog mission with and without Bot Surge. It skips missions marked `no_nav`,
 which cannot run in the game. The live Compose project is never restarted.
 
-The report marks Reverse MvM missions separately. They force players to BLU
-and finish through BLU's objective; defeating RED robots alone cannot prove
-their waves can complete. A separate objective simulator is needed for those
-missions.
+The local wrapper and daily checker enable all playable reverse missions with
+`-reverse-objectives`: 112 reverse wave/mode cases and 2,454 total cases in the
+current catalog. Reverse failures count against the percentage. See
+[reverse coverage](reverse-waveprobe.md) for the objective witnesses and limits.
+Set `WAVEPROBE_REVERSE_OBJECTIVES=0` to use the earlier bomb/carrier subset, or
+also set `WAVEPROBE_REVERSE_BOMBS=0` for a standard-only control.
 
 Each standard test starts the real wave, attempts to defeat each observed BLU
 bot or tank 15–25 game seconds after it first appears, and requires the game's
@@ -25,7 +27,7 @@ This headless fixture does not test idle hibernation or human join/wake behavior
 those need a separate real-client check.
 
 The fake RED player uses Medic for missions tagged `medic_only`, including
-Remedic, and Scout otherwise. A case is one mission wave with Bot Surge either
+Remedic, Engineer for Robotfactory, and Scout otherwise. A case is one mission wave with Bot Surge either
 off or on; the two modes have separate results and scores.
 The disposable probe prevents damage to RED participants. This keeps
 survival objectives and friendly mission NPCs alive while it measures BLU
@@ -169,7 +171,7 @@ number of planned wave/mode cases instead of hashing mission names. First
 passes and retries use the same manifest. Old run directories without a
 manifest retain their original CRC32 partition on resume.
 
-The [measured concurrency comparison](audits/shard-tuning-20261024/REPORT.md)
+The [measured concurrency comparison](https://github.com/kelly-cs/tf2-archipelago/blob/e7ecb0f/docs/audits/shard-tuning-20261024/REPORT.md)
 passed 798/798 Decoy wave/mode cases. Twelve workers achieved 157 cases/minute;
 sixteen achieved 176–177 cases/minute in two seeds. Twelve remains the default
 with host headroom; `--workers 16` is the measured maximum-throughput option

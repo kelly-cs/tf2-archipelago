@@ -74,12 +74,48 @@ def load_results(run_dir):
         if plan[key]["state"] == "unsupported_reverse":
             return "reverse objective"
         if key in observed:
-            return classify(observed[key], load_errors.get(key[:2]))
+            result = classify(observed[key], load_errors.get(key[:2]))
+            if "_rev_" in key[0] and result == "passed" and not reverse_completion_witness(key, observed[key]):
+                return "probe error"
+            return result
         if key[:2] in load_errors:
             return classify(load_errors[key[:2]])
         return "not run"
 
     return plan, observed, load_errors, files, outcome
+
+
+def reverse_completion_witness(key, row):
+    """Validate native evidence independently of the controller's verdict."""
+    mission, _, wave = key
+    objective = row.get("objective") or {}
+    if not isinstance(objective, dict):
+        return False
+    def positive(name):
+        return type(objective.get(name)) is int and objective[name] > 0
+    if positive("captures"):
+        return True
+    method = objective.get("method")
+    bosses = {"mvm_coaltown_rev_adv_computer_crash", "mvm_autumnull_rc2_rev_exp_codename_omega"}
+    if mission in bosses and wave == 6 and method == "native-combat-clear":
+        return positive("target_kills")
+    if objective.get("blu_won") is not True:
+        return False
+    robotfactory = "mvm_robotfactory_b30_rev_adv_short_circuit_execution"
+    route = mission == "mvm_teien_rc6_rev_adv_shogun_slaughter" or (mission == robotfactory and wave == 3)
+    if route and method == "native-route-objective":
+        return positive("point_captures")
+    if mission == robotfactory:
+        if wave == 1 and method == "native-repair":
+            return objective.get("repairs") == 5 or objective.get("repair_completed") is True
+        if wave == 2 and method == "native-escort":
+            return objective.get("escort_stages") == 3
+    if mission == "mvm_hideout_b3_rev_adv_galois":
+        if wave == 4:
+            return positive("tank_deliveries")
+        if wave == 5 and method == "native-combat-victory":
+            return type(row.get("bots")) is int and row["bots"] > 0
+    return False
 
 
 def main(run_dir):
@@ -101,7 +137,11 @@ def main(run_dir):
         per_mode[mode] = {"eligible": len(keys), "tested": mode_tested,
                           "passed": mode_passed,
                           "stability_percent": round(100 * mode_passed / mode_tested, 2) if mode_tested else None}
-    summary = {"planned_cases": len(plan), "eligible_cases": eligible,
+    reverse = [key for key in plan if "_rev_" in key[0] and plan[key]["state"] != "unsupported_reverse"]
+    summary = {"reverse_cases": {"eligible": len(reverse),
+                                "tested": sum(outcomes[key] != "not run" for key in reverse),
+                                "passed": sum(outcomes[key] == "passed" for key in reverse)},
+               "planned_cases": len(plan), "eligible_cases": eligible,
                "tested_cases": tested, "passed_cases": passed,
                "stability_percent": round(100 * passed / tested, 2) if tested else None,
                "verified_coverage_percent": round(100 * passed / eligible, 2) if eligible else None,
@@ -116,7 +156,7 @@ def main(run_dir):
           f"**tested:** {tested}/{eligible}; **missions:** {len({key[0] for key in plan})}. "
           "A pass requires the game's wave-complete event and an observed enemy spawn.\n")
     print("The stability score uses tested cases; verified coverage uses the full eligible plan, "
-          "so unrun waves cannot silently improve it. Reverse objectives are excluded.\n")
+          "so unrun waves cannot silently improve it. The full reverse-objective profile counts every playable reverse case, including failures. Any explicitly disabled profile cases are listed separately.\n")
     print("This score measures the current automated probe at the configured speed and "
           "kill timing. A nonpass is a reproducible probe observation, not by itself "
           "proof that a player cannot finish the wave.\n")
@@ -203,7 +243,7 @@ def main(run_dir):
         print(f"## Not run\n\n{counts['not run']} eligible cases have no result; see `plan.jsonl`.\n")
     reverse = {key[0] for key, value in outcomes.items() if value == "reverse objective"}
     if reverse:
-        print(f"## Reverse objectives\n\n{len(reverse)} missions need a separate BLU objective simulator "
+        print(f"## Reverse objectives\n\n{len(reverse)} missions require objective simulators or validation beyond the enabled bomb/carrier subset "
               "and are excluded from the score.\n")
     print("## Files\n\n- [Machine-readable summary](SUMMARY.json)")
     for path in files:

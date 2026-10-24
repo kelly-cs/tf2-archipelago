@@ -83,7 +83,7 @@ def combine_shards(source, plan_path, shards, commit, partition_path=None):
                 with destination.open("w", encoding="utf-8") as stream:
                     for file in sorted(path.glob(f"{phase}-*.jsonl")):
                         stream.write(file.read_text(encoding="utf-8"))
-        for field in ("installed_version", "running_version", "host", "speed"):
+        for field in ("installed_version", "running_version", "host", "speed", "mission"):
             values = {part.get(field) for part in meta["shards"] if part.get(field)}
             meta[field] = next(iter(values)) if len(values) == 1 else "mixed or unknown"
             if (field.endswith("version") or field == "speed") and len(values) != 1:
@@ -135,6 +135,7 @@ def evaluate(meta, summary, commit, latest=None):
         status = "passed"
     return {"status": status, "score": score, "startup": bool(meta.get("startup")),
             "passed": passed, "tested": tested, "eligible": eligible,
+            "reverse_cases": summary.get("reverse_cases", {"eligible": 0, "tested": 0, "passed": 0}),
             "unsupported_reverse": summary.get("outcomes", {}).get("reverse objective", 0),
             "by_mode": summary.get("by_mode", {}), "evidence": meta}
 
@@ -157,7 +158,7 @@ def main(source, output, commit, run_url, check_live=False, scope="full", *, mea
     dashboard = {"scope": scope, "measured_utc": now.isoformat(), "commit": commit, "run_url": run_url,
                  "stale_after_hours": 36, "latest_at_report": latest, "environments": results}
     (output / "stability.json").write_text(json.dumps(dashboard, indent=2) + "\n")
-    lines = ["# TF2-AP daily stability" if scope == "full" else "# TF2-AP startup and Decoy smoke check", "",
+    lines = ["# TF2-AP daily stability" if scope == "full" else "# TF2-AP startup and wave smoke check", "",
              "Full-catalog measurement." if scope == "full" else "Smoke check only; this is not full-catalog stability and does not publish badges.", "",
              f"Updated **{now:%Y-%m-%d %H:%M UTC}** · commit `{commit}` · [Actions run]({run_url})", "",
              "Results more than 36 hours old are stale. Check the date before relying on a badge.", "",
@@ -179,17 +180,20 @@ def main(source, output, commit, run_url, check_live=False, scope="full", *, mea
               "Each mission runs every wave at the recorded speed with Bot Surge off and on. Nonpasses are retried at a 900-second "
               "wall limit; the original 180-second results remain in the evidence. A pass is a completion witness "
               "from this automated probe, not a guarantee for every player strategy.", "",
-              "Reverse MvM objectives are unsupported by this probe and excluded from the denominator. "
+              "All playable reverse objectives are included in the full-profile denominator. Failures and missing objective evidence count against the percentage. "
               "Missions without navigation are excluded by the catalog. Neither exclusion is a pass.", "",
               "Download **stability-evidence.zip** for all environment reports, raw results, startup evidence, "
               "TF2 manifests, and server/SourceMod logs. Previous daily runs retain their evidence as Actions artifacts.", ""]
     for key, label in ENVIRONMENTS.items():
         result = results[key]
         lines += [f"## {label}", "", f"Unsupported Reverse MvM cases: {result['unsupported_reverse']}.", ""]
+        reverse = result["reverse_cases"]
+        lines += [f"Supported reverse mission cases: {reverse['passed']} / {reverse['eligible']} passed; {reverse['tested']} tested.", ""]
         meta = result["evidence"]
         lines += [f"Started: {meta.get('started_utc', 'unknown')}. Finished: {meta.get('finished_utc', 'unknown')}.",
                   f"Host: `{meta.get('host', 'unknown')}`. Running engine: `{meta.get('running_version', 'unknown')}`. "
-                  f"Requested speed: `{meta.get('speed', 'unknown')}×`.", ""]
+                  f"Requested speed: `{meta.get('speed', 'unknown')}×`. "
+                  f"Mission selection: `{meta.get('mission', 'unknown')}`.", ""]
         lines += [f"Robot limiter enabled at both endpoint checks: {meta.get('robot_limiter') is True}. "
                   f"No fatal engine errors in captured logs: {meta.get('crash_free') is True}.", ""]
         if result["evidence"].get("error"):

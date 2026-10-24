@@ -44,8 +44,6 @@ def main(opt):
     out=opt.output.resolve() if opt.output else REPO/'docs/audits'/dt.datetime.now(dt.timezone.utc).strftime('waveprobe-local-%Y%m%d-%H%M%S')
     out.mkdir(parents=True,exist_ok=False)
     (out/'resources.json').write_text(json.dumps(profile,indent=2)+'\n')
-    if profile['free_disk_gib']<60:
-        raise RuntimeError('at least 60 GiB free Docker storage is needed to prepare and run the shared image')
     workers=opt.workers or profile['recommended_workers']
     if not 1<=workers<=profile['max_workers']:
         raise ValueError(f"workers must be in [1, {profile['max_workers']}] for the available resources")
@@ -60,6 +58,8 @@ def main(opt):
     base=subprocess.check_output(['docker','image','inspect','--format','{{.Id}}',opt.image],text=True).strip()
     rebuild=opt.rebuild or not labels or labels.get('tf2ap.prepared-version')!=latest or labels.get('tf2ap.base-image')!=base
     need_packs=rebuild or labels.get('tf2ap.community-spec')!=images.community_spec()
+    if (rebuild or need_packs) and profile['free_disk_gib']<60:
+        raise RuntimeError('at least 60 GiB free Docker storage is needed to prepare the shared image')
     packs=opt.community_dir or Path(labels.get('tf2ap.community-dir',str(REPO/'community-content')))
     if need_packs:
         tool=out/'communityfiles'

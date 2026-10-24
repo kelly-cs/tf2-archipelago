@@ -358,6 +358,8 @@ class StabilityTest(unittest.TestCase):
                     if args[0] == 'run' and '--entrypoint' not in args:
                         time.sleep(300)
                 else:
+                    with pathlib.Path(__file__).with_name('probe-args.jsonl').open('a') as f:
+                        f.write(json.dumps(args) + '\\n')
                     for mode in ('normal', 'surge'):
                         print(json.dumps({'mission': 'fixture', 'map': 'mvm_decoy',
                             'wave': 1, 'mode': mode,
@@ -382,6 +384,9 @@ class StabilityTest(unittest.TestCase):
             self.assertIn("Retesting 0", (output / "retest.log").read_text())
             self.assertIn("SRCDS_MOD_LOADING=always", (output / "server.log").read_text())
             self.assertIn("speed=50", (output / "config.txt").read_text())
+            self.assertIn("reverse_bombs=1", (output / "config.txt").read_text())
+            calls = [json.loads(line) for line in (bed / "probe-args.jsonl").read_text().splitlines()]
+            self.assertTrue(all("-reverse-objectives" in args for args in calls))
             self.assertTrue((output / "startup.txt").exists())
             self.assertTrue((output / "final-health.txt").exists())
 

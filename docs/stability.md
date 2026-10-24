@@ -1,12 +1,14 @@
 # Daily stability
 
 The [daily report](https://github.com/kelly-cs/tf2-archipelago/releases/tag/stability)
-measures the fork’s `main` branch on native **Ubuntu 24.04**, **Windows**, and
+measures the repository’s `main` branch on native **Ubuntu 24.04**, **Windows**, and
 the **production Docker image** built from that commit. It runs daily at 05:17
 UTC. Start it manually through Actions → Daily stability → Run workflow,
 selecting `main`. Use **scope: full** for the real checker. **scope: smoke**
 checks startup and Decoy Expert in both modes on one runner per environment;
 it publishes an explicitly scoped Actions report and never updates the badges.
+**scope: reverse-smoke** runs every Breaking Walls wave in both modes on one
+runner per environment, also without publishing badges.
 The README widgets link to the report. They show the measurement date; results
 older than 36 hours are stale, including when scheduling stops. A green badge
 from a previous day is not evidence about a subsequent TF2 update.
@@ -26,10 +28,10 @@ Startup is checked before the wave runner applies its headless wake-up fixture
 (`tf_allow_server_hibernation 0`). The sweep keeps `sig_mvm_robot_limit` enabled
 and records its readback before and after testing; a disabled or unreadable
 limiter prevents a numeric score. The invader cap, population files, mod code
-and 20× speed are unchanged. This fixture models an awake server with a human
+and mod settings are unchanged. This fixture models an awake server with a human
 connected; it does not validate idle hibernation or real-client wake-up.
-Fatal errors and segmentation faults in the captured engine logs invalidate the
-score, including when `srcds_run` restarts the engine and later checks succeed.
+Fatal errors and segmentation faults in the captured engine logs prevent a
+passing verdict, including when `srcds_run` restarts the engine and later checks succeed.
 
 SteamCMD installs the current public TF2 server, without a game version pin.
 The measurement compares `tf/steam.inf`'s `ServerVersion` with Valve's live
@@ -63,14 +65,21 @@ The existing detailed wave report calls `passed / tested` its stability score.
 The repository dashboard deliberately uses `passed / eligible` so an interrupted
 run cannot inflate its badge. Both counts appear in the evidence.
 
-Reverse MvM requires an objective simulator the existing probe does not have;
-those cases are counted as unsupported and excluded, never reported as passing.
-Missions tagged `no_nav` cannot run and are excluded by the catalog. The score
+The daily and local sweeps enable `-reverse-objectives`: all 112 playable
+reverse wave/mode cases count in the score, with zero reverse exclusions.
+The probe observes native bomb capture, control-point capture, authored boss
+deaths, building repair, escort stages, and tank delivery as appropriate to the
+mission. Missing objective evidence is a probe error and counts against the
+percentage. No winning relays, capture outputs, building health or ownership
+are forced. See [reverse coverage](reverse-waveprobe.md) for exact witnesses and
+fixture limitations.
+The catalog marks 16 missions (174 wave/mode cases) as `no_nav`; those remain
+outside its playable plan. The score
 measures wave completion under this probe's strategy. It does not measure
 human client joins, multiworld connectivity, performance, or every bot shopping
 and combat path. The separate defender-bot release gate remains useful.
 
-The [local speed comparison](audits/speedprobe-wake-20261023/REPORT.md) tested
+The [local speed comparison](https://github.com/kelly-cs/tf2-archipelago/blob/e7ecb0f/docs/audits/speedprobe-wake-20261023/REPORT.md) tested
 Decoy Expert with the wake-up fix and production robot limiter enabled. 50×
 passed five full runs across four seeds, averaging 48.4 seconds versus 89.4 at
 20×. Higher tested settings intermittently lost the last wave's completion
@@ -78,25 +87,30 @@ during automatic map changes. This is one-map evidence; the daily sweep now uses
 
 ## Hosted runner setup
 
-The fork has no self-hosted runner requirement. Twelve balanced mission shards run for each
+No self-hosted runners are required. Twelve balanced mission shards run for each
 of Ubuntu 24.04, Docker on Ubuntu 24.04, and native Windows Server 2022, using
-standard GitHub-hosted runners. At most eighteen measurement jobs run together.
+standard GitHub-hosted runners. At most twelve measurement jobs run together.
 A deterministic manifest assigns whole missions by planned wave/mode count,
-longest first, to the least-loaded shard. The current catalog has 2,342 planned
-cases; twelve shards receive 194–196 each. Both Bot Surge modes stay together.
+longest first, to the least-loaded shard. The current catalog has 2,454 eligible
+cases (including all 112 reverse cases); twelve shards receive 204–206 each. Both Bot Surge modes stay together.
 The workflow's Run dialog can select 6, 12, 18 or 20 shards per environment and
-12, 18 or 20 concurrent jobs. The daily defaults are twelve and eighteen;
+12, 18 or 20 concurrent jobs. The daily defaults are twelve shards per environment and twelve concurrent jobs;
 standard [Free accounts allow twenty concurrent hosted jobs](https://docs.github.com/en/actions/reference/limits#job-concurrency-limits-for-github-hosted-runners) across workflows.
 GitHub supplies a separate VM to each matrix job; these are not multiple game
 servers competing for a single runner. More shards add fresh-install overhead,
-so the default avoids a third batch of downloads.
+so shards and concurrency are separate controls. Twelve concurrent workers leave
+eight slots on a Free account for the existing CI and release builds.
+The build restores the same exact dependency-cache key as production CI, then
+checks the pinned build stamps and recompiles the plugins. This retains the
+pinned compiler when its original download is temporarily unavailable; a cold
+cache still requires the original pinned upstream artifact.
 The build emits the complete canonical plan; aggregation checks every returned
 shard against its assigned partition and reconstructs coverage from that full
 plan. A missing or failed shard cannot shrink the denominator or become green.
 
 Before installing TF2, jobs reclaim optional SDK space only until the game
 volume has its required space plus a 5 GiB reserve, and
-install Linux’s 32-bit runtime libraries. Host preparation is bounded at 20 minutes; game-wave
+install Linux’s 32-bit runtime libraries. Host preparation is bounded at 30 minutes; game-wave
 and retry budgets are unchanged. Cleanup refuses to run on a personal
 or self-hosted machine. Disk checks require 35 GiB free for native installs and
 45 GiB for Docker. A runner that cannot meet that check produces an explicit
@@ -106,13 +120,12 @@ not waste space reclaimed on the system drive.
 
 GitHub-hosted jobs have a [six-hour execution limit](https://docs.github.com/en/actions/reference/limits).
 Each measurement job is capped at 350 minutes, with a 4.5-hour test/install
-budget. Timeouts preserve partial results and remain failures. Six shards are
-the initial capacity choice; adjust the matrix, shard arguments and report
-shard count together after inspecting a complete run. Standard hosted runner
-availability and the fork’s Actions settings still apply.
+budget. Timeouts preserve partial results and remain failures. Twelve shards
+are the default capacity choice. Adjust shard count and concurrency through the
+dispatch inputs after inspecting a complete run.
+Standard hosted runner availability and account-wide Actions limits still apply.
 
-The fork’s main now includes the parent’s latest main and the stability
-implementation. Every report identifies the exact merged source commit.
+Every report identifies the exact tested source commit.
 The report job publishes the full report to a dedicated prerelease, leaving
 `releases/latest` alone. Its three badge JSON endpoints are also published in
 one commit to `stability-badges`, served through `raw.githubusercontent.com`.
@@ -132,7 +145,7 @@ extension lists, server logs, SourceMod logs and TF2 manifest/version files.
 The Actions run has the same evidence retained for 30 days, so previous daily
 measurements remain available even when the latest assets are replaced.
 
-Check out the fork’s `main` first. Build the beds with `BOTS_EXTENSIONS_DIR=/path/to/extensions make stability-bed`.
+Check out the repository’s `main` first. Build the beds with `BOTS_EXTENSIONS_DIR=/path/to/extensions make stability-bed`.
 Then, from the repository root, on the environment being measured:
 
 ```sh
