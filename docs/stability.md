@@ -92,8 +92,10 @@ The build emits the complete canonical plan; aggregation checks every returned
 shard against its assigned partition and reconstructs coverage from that full
 plan. A missing or failed shard cannot shrink the denominator or become green.
 
-Before installing TF2, jobs remove optional SDKs from the ephemeral runner and
-install Linux’s 32-bit runtime libraries. Cleanup refuses to run on a personal
+Before installing TF2, jobs reclaim optional SDK space only until the game
+volume has its required space plus a 5 GiB reserve, and
+install Linux’s 32-bit runtime libraries. Host preparation is bounded at 20 minutes; game-wave
+and retry budgets are unchanged. Cleanup refuses to run on a personal
 or self-hosted machine. Disk checks require 35 GiB free for native installs and
 45 GiB for Docker. A runner that cannot meet that check produces an explicit
 host-setup error; it never silently drops community maps to fit.

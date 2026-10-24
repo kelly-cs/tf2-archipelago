@@ -90,6 +90,19 @@ class StabilityTest(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "only on an ephemeral"):
                 host.main()
 
+    @unittest.skipIf(os.name == "nt", "Linux package setup fixture")
+    def test_host_with_sufficient_space_keeps_sdks_and_installs_runtime_libraries(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp)
+            with mock.patch.dict(os.environ,{"STABILITY_RUNNER_ENVIRONMENT":"github-hosted",
+                    "STABILITY_ENV":"docker","RUNNER_TEMP":str(root/"game"),"GITHUB_ENV":str(root/"env")}), \
+                    mock.patch.object(host.shutil,"disk_usage",return_value=SimpleNamespace(free=100*1024**3)), \
+                    mock.patch.object(host.subprocess,"run") as run:
+                host.main()
+            self.assertFalse(any("rm" in call.args[0] for call in run.call_args_list))
+            self.assertTrue(any("libcurl4t64:i386" in call.args[0] for call in run.call_args_list))
+            self.assertIn("STABILITY_GAME_PARENT=",(root/"env").read_text())
+
     def test_badge_update_is_one_commit_with_all_environments(self):
         with tempfile.TemporaryDirectory() as temp:
             directory = Path(temp)

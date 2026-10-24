@@ -79,7 +79,21 @@ def main(opt):
          'WAVEPROBE_SRCDS_IMAGE':tag,'WAVEPROBE_SHARDS':str(workers),'WAVEPROBE_SPEED':'50',
          'WAVEPROBE_RUN_DIR':str(out),'WAVEPROBE_CPUS':'2','WAVEPROBE_MEMORY':'3g'}
     print(f'Starting {workers} isolated workers at 50x; game files share image layers.',flush=True)
-    raise SystemExit(subprocess.call(['bash','deploy/run-waveprobe.sh'],cwd=REPO,env=env))
+    status=subprocess.call(['bash','deploy/run-waveprobe.sh'],cwd=REPO,env=env)
+    verification={'expected_server_version':latest,'fresh':False}
+    try:
+        verification['latest_after']=images.runner.live_version()
+        verification['fresh']=verification['latest_after']==latest
+    except (OSError,ValueError,KeyError,TypeError) as error:
+        verification['error']=str(error)
+    (out/'game-build.json').write_text(json.dumps(verification,indent=2)+'\n')
+    if not verification['fresh']:
+        report=out/'REPORT.md'
+        prior=report.read_text() if report.exists() else ''
+        report.write_text('**Current TF2 build unverified or changed during this run. The wave results below are not a current-build stability result.**\n\n'+prior)
+        print('TF2 build changed or could not be verified after the sweep; rerun against the current build.',flush=True)
+        status=1
+    raise SystemExit(status)
 
 
 if __name__=='__main__':
