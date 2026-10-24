@@ -4,10 +4,12 @@
 catalog mission with and without Bot Surge. It skips missions marked `no_nav`,
 which cannot run in the game. The live Compose project is never restarted.
 
-The report marks Reverse MvM missions separately. They force players to BLU
-and finish through BLU's objective; defeating RED robots alone cannot prove
-their waves can complete. A separate objective simulator is needed for those
-missions.
+The local wrapper and daily checker enable the validated reverse bomb/carrier
+subset: Breaking Walls, Computer Crash, and Denominator (34 wave/mode cases).
+The BLU simulator respects native capture permissions and requires native flag
+capture, BLU victory and wave completion. Remaining reverse objectives stay
+unsupported and excluded. See [reverse coverage](reverse-waveprobe.md). Set
+`WAVEPROBE_REVERSE_BOMBS=0` for a local control without that subset.
 
 Each standard test starts the real wave, attempts to defeat each observed BLU
 bot or tank 15–25 game seconds after it first appears, and requires the game's

@@ -52,3 +52,35 @@ Raw local evidence: `/mnt/b/tf2-archipelago/docs/audits/reverse-probe-20261024/`
 `objective-inventory.json` records declarations and entity mentions from the twelve reverse population files, including the excluded no-navigation mission. Declarations may be inherited; runtime readbacks and native events are authoritative.
 
 Go waveprobe tests/vet, 27 stability harness tests, 20 probe report/retry tests and the pinned SourcePawn compiler pass. Payload/control-point simulation and broader catalog/platform validation remain outside this prototype.
+
+## PR integration follow-up
+
+The integration adds a daily/local `-reverse-bombs` profile for Breaking Walls,
+Computer Crash, and Denominator. This enables 34 reverse cases alongside 2,342
+standard cases; 78 reverse cases remain unsupported. The initial investigation
+above predates this integration and remains recorded as measured.
+
+Full 50× integration screens tested all 12 Computer Crash cases (seed 12) and
+all 10 Denominator cases (seed 13). Denominator passed 10/10. The initial
+Computer Crash screen passed 9/12: wave 4 Surge lost its objective, and both
+wave-6 cases lacked bomb-capture evidence. Population-file inspection showed
+wave 6 is an authored combat finale, not a bomb objective.
+
+The combat finale now requires the native death of `THE CORRUPTED` plus
+`mvm_wave_complete`. The target-death count is recorded; unrelated kills cannot
+satisfy it. A targeted 50× rerun passed both wave-6 modes (seed 14), each with
+one target-death witness. A new-seed wave-4 rerun passed both modes (seed 15).
+The original Surge loss remains preserved; this does not establish that the
+wave is reliable at every timing.
+
+The report independently refuses reverse passes without their required capture
+or specifically allowlisted combat witness. Plans, measurements and retries
+use the same profile. Manual `reverse-smoke` checks run Breaking Walls on all
+three hosted environments without publishing full-catalog badges. Native
+Ubuntu/Windows reverse validation is pending the hosted check.
+
+Follow-up local evidence is saved under `integration-complete-missions/` and
+`integration-combat-witness/` in the original raw evidence directory. Staged and
+installed plugin hashes were checked throughout. The daily score still exposes
+real wave failures; no robot limits, mission timers or winning relays were
+changed to obtain these results.

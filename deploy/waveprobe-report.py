@@ -74,7 +74,16 @@ def load_results(run_dir):
         if plan[key]["state"] == "unsupported_reverse":
             return "reverse objective"
         if key in observed:
-            return classify(observed[key], load_errors.get(key[:2]))
+            result = classify(observed[key], load_errors.get(key[:2]))
+            objective = observed[key].get("objective") or {}
+            if not isinstance(objective, dict): objective = {}
+            captures = objective.get("captures", 0) if isinstance(objective, dict) else 0
+            combat = (key[0] == "mvm_coaltown_rev_adv_computer_crash" and key[2] == 6
+                      and objective.get("method") == "native-combat-clear"
+                      and isinstance(objective.get("target_kills"), int) and objective["target_kills"] > 0)
+            if "_rev_" in key[0] and result == "passed" and not combat and (not isinstance(captures, int) or captures < 1):
+                return "probe error"
+            return result
         if key[:2] in load_errors:
             return classify(load_errors[key[:2]])
         return "not run"
@@ -101,7 +110,11 @@ def main(run_dir):
         per_mode[mode] = {"eligible": len(keys), "tested": mode_tested,
                           "passed": mode_passed,
                           "stability_percent": round(100 * mode_passed / mode_tested, 2) if mode_tested else None}
-    summary = {"planned_cases": len(plan), "eligible_cases": eligible,
+    reverse = [key for key in plan if "_rev_" in key[0] and plan[key]["state"] != "unsupported_reverse"]
+    summary = {"reverse_cases": {"eligible": len(reverse),
+                                "tested": sum(outcomes[key] != "not run" for key in reverse),
+                                "passed": sum(outcomes[key] == "passed" for key in reverse)},
+               "planned_cases": len(plan), "eligible_cases": eligible,
                "tested_cases": tested, "passed_cases": passed,
                "stability_percent": round(100 * passed / tested, 2) if tested else None,
                "verified_coverage_percent": round(100 * passed / eligible, 2) if eligible else None,
@@ -116,7 +129,7 @@ def main(run_dir):
           f"**tested:** {tested}/{eligible}; **missions:** {len({key[0] for key in plan})}. "
           "A pass requires the game's wave-complete event and an observed enemy spawn.\n")
     print("The stability score uses tested cases; verified coverage uses the full eligible plan, "
-          "so unrun waves cannot silently improve it. Reverse objectives are excluded.\n")
+          "so unrun waves cannot silently improve it. Unsupported reverse objectives are excluded; enabled bomb/carrier cases count in coverage.\n")
     print("This score measures the current automated probe at the configured speed and "
           "kill timing. A nonpass is a reproducible probe observation, not by itself "
           "proof that a player cannot finish the wave.\n")
@@ -203,7 +216,7 @@ def main(run_dir):
         print(f"## Not run\n\n{counts['not run']} eligible cases have no result; see `plan.jsonl`.\n")
     reverse = {key[0] for key, value in outcomes.items() if value == "reverse objective"}
     if reverse:
-        print(f"## Reverse objectives\n\n{len(reverse)} missions need a separate BLU objective simulator "
+        print(f"## Reverse objectives\n\n{len(reverse)} missions require objective simulators or validation beyond the enabled bomb/carrier subset "
               "and are excluded from the score.\n")
     print("## Files\n\n- [Machine-readable summary](SUMMARY.json)")
     for path in files:

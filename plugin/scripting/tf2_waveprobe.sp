@@ -41,10 +41,12 @@ TFClassType g_DefenderClass = TFClass_Scout;
 int g_PlayerTeam = 2;
 int g_EnemyTeam = 3;
 bool g_ReverseObjectives;
+bool g_ReverseCombat;
 float g_ObjectiveVisitAt;
 int g_ObjectiveVisits;
 int g_ObjectivePickups;
 int g_ObjectiveCaptures;
+int g_ObjectiveTargetKills;
 bool g_ReverseBluWon;
 bool g_ConfigsReady;
 int g_SpawnSerial;
@@ -198,6 +200,7 @@ static void ResetProbe()
     g_ObjectiveVisits = 0;
     g_ObjectivePickups = 0;
     g_ObjectiveCaptures = 0;
+    g_ObjectiveTargetKills = 0;
     g_ReverseBluWon = false;
     g_State = Probe_Idle;
     g_ExpectedWave = 0;
@@ -430,7 +433,7 @@ public Action Command_Status(int client, int argc)
         if (progress > 100.0) progress = 100.0;
     }
     ReplyToCommand(client,
-        "WAVEPROBE state=%s reason=%s map=%s pop=%s max=%d gamewave=%d expected=%d observed=%d botspawns=%d tankspawns=%d bots=%d tanks=%d attempts=%d alive=%d remaining=%d initial=%d progress=%.1f red=%d blue=%d defender=%d defteam=%d defclass=%d playerteam=%d enemyteam=%d elapsed=%.1f objectives=%d pickups=%d captures=%d configsready=%d",
+        "WAVEPROBE state=%s reason=%s map=%s pop=%s max=%d gamewave=%d expected=%d observed=%d botspawns=%d tankspawns=%d bots=%d tanks=%d attempts=%d alive=%d remaining=%d initial=%d progress=%.1f red=%d blue=%d defender=%d defteam=%d defclass=%d playerteam=%d enemyteam=%d elapsed=%.1f objectives=%d pickups=%d captures=%d configsready=%d objectivekind=%s targetkills=%d",
         state, g_FailureReason[0] == '\0' ? "none" : g_FailureReason,
         map, pop, maxWaves, gameWave, g_ExpectedWave,
         g_ObservedWave, g_BotSpawns, g_TankSpawns, g_BotKills, g_TankKills,
@@ -439,7 +442,7 @@ public Action Command_Status(int client, int argc)
         g_Defender, g_Defender > 0 && IsClientInGame(g_Defender) ? GetClientTeam(g_Defender) : 0,
         g_Defender > 0 && IsClientInGame(g_Defender) ? view_as<int>(TF2_GetPlayerClass(g_Defender)) : 0,
         g_PlayerTeam, g_EnemyTeam,
-        GetGameTime() - (g_StartedAt > 0.0 ? g_StartedAt : g_ArmedAt), g_ObjectiveVisits, g_ObjectivePickups, g_ObjectiveCaptures, g_ConfigsReady);
+        GetGameTime() - (g_StartedAt > 0.0 ? g_StartedAt : g_ArmedAt), g_ObjectiveVisits, g_ObjectivePickups, g_ObjectiveCaptures, g_ConfigsReady, g_ReverseCombat ? "combat" : "bomb", g_ObjectiveTargetKills);
     return Plugin_Handled;
 }
 
@@ -447,13 +450,25 @@ public Action Command_ReverseObjectives(int client, int argc)
 {
     char arg[8];
     GetCmdArg(1, arg, sizeof(arg));
-    if (argc != 1 || (!StrEqual(arg, "0") && !StrEqual(arg, "1")))
+    if (argc < 1 || argc > 2 || (!StrEqual(arg, "0") && !StrEqual(arg, "1")))
     {
-        ReplyToCommand(client, "usage: sm_waveprobe_reverse_objectives <0|1>");
+        ReplyToCommand(client, "usage: sm_waveprobe_reverse_objectives <0|1> [bomb|combat]");
         return Plugin_Handled;
     }
-    g_ReverseObjectives = StrEqual(arg, "1");
-    ReplyToCommand(client, "WAVEPROBE reverse_objectives=%d", g_ReverseObjectives);
+    bool enabled = StrEqual(arg, "1");
+    g_ReverseCombat = false;
+    if (argc == 2)
+    {
+        char kind[16]; GetCmdArg(2, kind, sizeof(kind));
+        if (!StrEqual(kind, "bomb") && !StrEqual(kind, "combat"))
+        {
+            ReplyToCommand(client, "unknown reverse objective kind");
+            return Plugin_Handled;
+        }
+        g_ReverseCombat = StrEqual(kind, "combat");
+    }
+    g_ReverseObjectives = enabled;
+    ReplyToCommand(client, "WAVEPROBE reverse_objectives=%d objectivekind=%s", g_ReverseObjectives, g_ReverseCombat ? "combat" : "bomb");
     return Plugin_Handled;
 }
 
@@ -472,7 +487,7 @@ static void VisitObjective(int entity)
 // its hatch accepts a real flag-carrying player entering the enabled volume.
 static void SimulateReverseObjectives(float now)
 {
-    if (!g_ReverseObjectives || g_PlayerTeam != 3 || g_Defender < 1
+    if (!g_ReverseObjectives || g_ReverseCombat || g_PlayerTeam != 3 || g_Defender < 1
         || !IsClientInGame(g_Defender) || !IsPlayerAlive(g_Defender)
         || now - g_StartedAt < 30.0 || now < g_ObjectiveVisitAt) return;
     g_ObjectiveVisitAt = now + 10.0;
@@ -608,7 +623,8 @@ public void Event_WaveComplete(Event event, const char[] name, bool dontBroadcas
     {
         return;
     }
-    if (g_PlayerTeam == 3 && g_ReverseObjectives && (g_ObjectiveCaptures < 1 || !g_ReverseBluWon))
+    if (g_PlayerTeam == 3 && g_ReverseObjectives
+        && (g_ReverseCombat ? (g_ObjectiveTargetKills < 1) : (g_ObjectiveCaptures < 1 || !g_ReverseBluWon)))
     {
         g_State = Probe_Failed;
         strcopy(g_FailureReason, sizeof(g_FailureReason), "objective_unwitnessed");
@@ -633,6 +649,16 @@ public void Event_WaveFailed(Event event, const char[] name, bool dontBroadcast)
 public void Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 {
     int bot = GetClientOfUserId(event.GetInt("userid"));
+    if (g_State == Probe_Running && g_ReverseCombat && bot > 0 && IsClientInGame(bot)
+        && GetClientTeam(bot) == g_EnemyTeam)
+    {
+        char killed[64]; GetClientName(bot, killed, sizeof(killed));
+        if (StrEqual(killed, "THE CORRUPTED"))
+        {
+            g_ObjectiveTargetKills++;
+            LogMessage("WAVEPROBE authored combat target died: %s", killed);
+        }
+    }
     if (bot > 0 && g_BotKillPending[bot])
     {
         g_BotKills++;
@@ -658,7 +684,7 @@ public void Event_ReverseRoundWin(Event event, const char[] name, bool dontBroad
     if (!g_ReverseObjectives || g_State != Probe_Running) return;
     int winner = event.GetInt("team");
     if (winner == g_PlayerTeam) g_ReverseBluWon = true;
-    else if (winner == g_EnemyTeam)
+    else if (winner == g_EnemyTeam && (!g_ReverseCombat || g_ObjectiveTargetKills < 1))
     {
         // SigMod's reverse bookkeeping can suppress mvm_wave_failed. The
         // native winning team remains authoritative about a lost objective.

@@ -1,18 +1,19 @@
 # Experimental Reverse MvM wave probe
 
-This investigation is stacked on the daily stability feature and stays opt-in.
-The [measured investigation report](audits/reverse-probe-20261024/REPORT.md)
-records the supported cases and failures. The daily workflow, README badges,
-and default wave plan still exclude Reverse
-MvM. This prototype is not a claim of full reverse-catalog coverage.
+The daily and local stability sweeps include the bomb/carrier subset through
+`-reverse-bombs`: Breaking Walls, Computer Crash, and Denominator. Their 34
+wave/mode cases count in the environment percentage. The other 78 reverse cases
+remain explicitly unsupported and excluded. The [initial investigation report](audits/reverse-probe-20261024/REPORT.md)
+records the simulator validation and payload/control-point gap.
 
 ## Completion evidence
 
-Use `-experimental-reverse` to enable the candidate simulator and
-`-reverse-only` with `-mission all` to select reverse missions. The catalog
-currently contributes 112 wave/mode cases across eleven missions with navigation.
-The reverse mission tagged `no_nav` remains excluded by the normal selection.
-Without the opt-in, reverse cases remain `unsupported_reverse`.
+`-reverse-bombs` enables only the validated mission list. `-experimental-reverse`
+is a separate opt-in for investigating the rest of the catalog; daily checks
+never pass it. Use `-reverse-only` with either flag and `-mission all` to inspect
+reverse coverage. There are 112 reverse wave/mode cases across eleven missions
+with navigation; the reverse mission tagged `no_nav` remains excluded. A bare
+waveprobe invocation without either flag keeps all reverse cases unsupported.
 
 The probe uses a BLU fake player and defeats RED enemies using the existing
 wear-down fixture. It preserves allied BLU robots and tanks. In reverse missions
@@ -27,9 +28,13 @@ its authored allied carriers. It does not change those permissions, enable
 capture zones, fire capture outputs, or call winning relays. The ordinary probe's
 capture-output stall workaround is disabled for BLU-player tests.
 
-A reverse pass requires the native `mvm_wave_complete` event, a BLU
+A reverse bomb pass requires the native `mvm_wave_complete` event, a BLU
 `teamplay_round_win`, and a native `teamplay_flag_event` capture by a BLU
-participant in that wave. A native RED round win is a wave failure even when
+participant in that wave. Computer Crash wave 6 is an authored combat finale:
+it instead requires a native death of `THE CORRUPTED` and `mvm_wave_complete`.
+The target-death witness is serialized as `target_kills`; killing unrelated
+support bots cannot satisfy it. A native RED round win before that target
+death remains a loss. For bomb waves, a native RED round win is a failure even when
 SigMod suppresses `mvm_wave_failed`. A completion
 without capture evidence is a probe error, not accepted coverage. JSONL includes
 objective visit, pickup, and capture counts; raw logs identify capture actors.
@@ -66,20 +71,22 @@ For a single mission:
 ```sh
 dist/linuxbed/waveprobe -rcon 127.0.0.1:27035 \
   -mission mvm_rottenburg_rev_int_breaking_walls \
-  -experimental-reverse -mode both -speed 20 -timeout 180s
+  -reverse-bombs -mode both -speed 50 -timeout 180s
 ```
 
-For an experimental reverse-only plan:
+For the daily reverse-only plan (34 planned and 78 unsupported cases):
 
 ```sh
 dist/linuxbed/waveprobe -plan -mission all -mode both \
-  -experimental-reverse -reverse-only > reverse-plan.jsonl
+  -reverse-bombs -reverse-only > reverse-plan.jsonl
 ```
 
 Keep the first run's JSONL and debug snapshots before retesting a specific
-nonpass with the same opt-in and a longer wall budget. The existing daily runner
-and automatic retry wrapper do not yet propagate this opt-in. Experimental
-results must stay separate from the published daily badges.
+nonpass with the same profile and a longer wall budget. Hosted and local runners
+record `reverse_bombs=1` in their config, and retries preserve that flag. The
+manual `reverse-smoke` workflow scope tests Breaking Walls on all three
+environments without publishing full-catalog badges. Broad experimental runs
+remain separate from the daily profile.
 
 ## What this measures
 

@@ -7,6 +7,8 @@ UTC. Start it manually through Actions → Daily stability → Run workflow,
 selecting `main`. Use **scope: full** for the real checker. **scope: smoke**
 checks startup and Decoy Expert in both modes on one runner per environment;
 it publishes an explicitly scoped Actions report and never updates the badges.
+**scope: reverse-smoke** runs every Breaking Walls wave in both modes on one
+runner per environment, also without publishing badges.
 The README widgets link to the report. They show the measurement date; results
 older than 36 hours are stale, including when scheduling stops. A green badge
 from a previous day is not evidence about a subsequent TF2 update.
@@ -63,8 +65,14 @@ The existing detailed wave report calls `passed / tested` its stability score.
 The repository dashboard deliberately uses `passed / eligible` so an interrupted
 run cannot inflate its badge. Both counts appear in the evidence.
 
-Reverse MvM requires an objective simulator the existing probe does not have;
-those cases are counted as unsupported and excluded, never reported as passing.
+The daily and local sweeps enable `-reverse-bombs`: Breaking Walls, Computer
+Crash, and Denominator contribute 34 reverse wave/mode cases to the score.
+Reverse bomb waves require native BLU flag capture, BLU round win and wave
+completion. Computer Crash wave 6 requires its authored boss-death witness and
+wave completion instead. The simulator respects authored human pickup/deployment permissions and
+preserves allied carriers. Other reverse objectives contribute 78 unsupported
+cases, excluded rather than reported as passing. Payload and control-point
+simulation remain outside the enabled subset; see [reverse coverage](reverse-waveprobe.md).
 Missions tagged `no_nav` cannot run and are excluded by the catalog. The score
 measures wave completion under this probe's strategy. It does not measure
 human client joins, multiworld connectivity, performance, or every bot shopping
@@ -82,8 +90,8 @@ No self-hosted runners are required. Twelve balanced mission shards run for each
 of Ubuntu 24.04, Docker on Ubuntu 24.04, and native Windows Server 2022, using
 standard GitHub-hosted runners. At most twelve measurement jobs run together.
 A deterministic manifest assigns whole missions by planned wave/mode count,
-longest first, to the least-loaded shard. The current catalog has 2,342 planned
-cases; twelve shards receive 194–196 each. Both Bot Surge modes stay together.
+longest first, to the least-loaded shard. The current catalog has 2,376 eligible
+cases (including 34 reverse cases); twelve shards receive 196–200 each. Both Bot Surge modes stay together.
 The workflow's Run dialog can select 6, 12, 18 or 20 shards per environment and
 12, 18 or 20 concurrent jobs. The daily defaults are twelve shards per environment and twelve concurrent jobs;
 standard [Free accounts allow twenty concurrent hosted jobs](https://docs.github.com/en/actions/reference/limits#job-concurrency-limits-for-github-hosted-runners) across workflows.

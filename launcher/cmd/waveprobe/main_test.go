@@ -273,7 +273,7 @@ func TestReverseCompletionNeedsNativeFlagCaptureEvidence(t *testing.T) {
 }
 
 func TestReverseSelectionIsExplicitAndKeepsUnsupportedCoverageByDefault(t *testing.T) {
-	if err := run(options{reverseOnly: true}); err == nil || !strings.Contains(err.Error(), "requires -experimental-reverse") {
+	if err := run(options{reverseOnly: true}); err == nil || !strings.Contains(err.Error(), "requires -reverse-bombs") {
 		t.Fatalf("reverse-only without opt-in: %v", err)
 	}
 	opt := options{mission: "all", shards: 1, includeSig: true, reverseOnly: true, startWave: 1}
@@ -347,5 +347,65 @@ func TestOnlyCompletedReverseMissionsNeedTransitionSynchronization(t *testing.T)
 		if reverseMissionTransitionPending(status) {
 			t.Fatalf("unnecessary transition wait: %+v", status)
 		}
+	}
+}
+
+func TestDailyReverseBombProfileIncludesOnlyValidatedMissions(t *testing.T) {
+	opt := options{mission: "all", shards: 1, includeSig: true, startWave: 1, reverseBombs: true}
+	missions, err := selectMissions(opt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	file, err := os.CreateTemp(t.TempDir(), "daily-plan")
+	if err != nil {
+		t.Fatal(err)
+	}
+	previous := os.Stdout
+	os.Stdout = file
+	err = writePlan(missions, []string{"normal", "surge"}, opt)
+	os.Stdout = previous
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := file.Seek(0, 0); err != nil {
+		t.Fatal(err)
+	}
+	defer file.Close()
+	decoder := json.NewDecoder(file)
+	counts := map[string]int{}
+	reverseCases := 0
+	for {
+		var row result
+		err := decoder.Decode(&row)
+		if errors.Is(err, io.EOF) {
+			break
+		}
+		if err != nil {
+			t.Fatal(err)
+		}
+		counts[row.State]++
+		if row.State == "planned" && strings.Contains(row.Mission, "_rev_") {
+			reverseCases++
+		}
+		if row.Mission == "mvm_teien_rc6_rev_adv_shogun_slaughter" && row.State != "unsupported_reverse" {
+			t.Fatal("payload mission was enabled by the bomb profile")
+		}
+	}
+	if reverseCases != 34 || counts["planned"] != 2376 || counts["unsupported_reverse"] != 78 {
+		t.Fatalf("reverse=%d, plan=%v", reverseCases, counts)
+	}
+}
+
+func TestAuthoredReverseCombatWaveRequiresItsTargetDeathWitness(t *testing.T) {
+	if reverseObjectiveKind("mvm_coaltown_rev_adv_computer_crash", 6) != "combat" || reverseObjectiveKind("mvm_coaltown_rev_adv_computer_crash", 5) != "bomb" {
+		t.Fatal("authored final-wave objective differs from bomb waves")
+	}
+	status := probeStatus{State: "passed", PlayerTeam: 3, ObjectiveKind: "combat", BotSpawns: 12, Bots: 7}
+	if got := classifyWave(status, nil); got != "probe error" {
+		t.Fatalf("unwitnessed boss clear: %s", got)
+	}
+	status.TargetKills = 1
+	if got := classifyWave(status, nil); got != "passed" {
+		t.Fatalf("witnessed boss clear: %s", got)
 	}
 }

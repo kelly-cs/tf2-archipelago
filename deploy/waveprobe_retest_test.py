@@ -40,7 +40,7 @@ class RetestRecoveryTest(unittest.TestCase):
     def test_balanced_partition_and_native_rcon_host_survive_retries(self):
         with tempfile.TemporaryDirectory() as folder:
             root = pathlib.Path(folder)
-            (root/"config.txt").write_text("shards=2\nspeed=50\nwave_timeout=1s\nrcon_host=172.20.144.1\n")
+            (root/"config.txt").write_text("shards=2\nspeed=50\nwave_timeout=1s\nrcon_host=172.20.144.1\nreverse_bombs=1\n")
             (root/"partition.json").write_text(json.dumps({"shards":2,"missions":{"first":0,"second":1}}))
             base = {"map":"mvm_decoy", "mode":"normal", "wave":1}
             (root/"plan.jsonl").write_text("".join(json.dumps({**base,"mission":m,"state":"planned"})+"\n" for m in ["first","second"]))
@@ -53,6 +53,7 @@ class RetestRecoveryTest(unittest.TestCase):
             args = (root/"args").read_text().splitlines()
             self.assertEqual(args[args.index("-rcon")+1],"172.20.144.1:27035")
             self.assertEqual(args[args.index("-speed")+1],"50")
+            self.assertIn("-reverse-bombs", args)
 
     def test_queue_spreads_map_loads(self):
         cases = [("a1", "map_a"), ("a2", "map_a"),

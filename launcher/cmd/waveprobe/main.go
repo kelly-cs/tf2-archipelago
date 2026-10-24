@@ -43,8 +43,9 @@ type options struct {
 	onePerMap  bool
 	pops       string
 
-	reverse     bool
-	reverseOnly bool
+	reverseBombs bool
+	reverse      bool
+	reverseOnly  bool
 }
 
 type probeStatus struct {
@@ -72,7 +73,9 @@ type probeStatus struct {
 	Progress   float64
 
 	ObjectiveVisits int
+	TargetKills     int
 	FlagPickups     int
+	ObjectiveKind   string
 	ConfigsReady    int
 	FlagCaptures    int
 }
@@ -88,10 +91,11 @@ type sample struct {
 }
 
 type objectiveEvidence struct {
-	Method   string `json:"method"`
-	Visits   int    `json:"visits"`
-	Pickups  int    `json:"pickups"`
-	Captures int    `json:"captures"`
+	TargetKills int    `json:"target_kills,omitempty"`
+	Method      string `json:"method"`
+	Visits      int    `json:"visits"`
+	Pickups     int    `json:"pickups"`
+	Captures    int    `json:"captures"`
 }
 
 type result struct {
@@ -220,6 +224,7 @@ func main() {
 	flag.BoolVar(&opt.failFast, "fail-fast", false, "stop after the first failed wave")
 	flag.BoolVar(&opt.includeSig, "include-sigmod", true, "test SigMod missions")
 	flag.BoolVar(&opt.onlySig, "only-sigmod", false, "test SigMod missions and nothing else")
+	flag.BoolVar(&opt.reverseBombs, "reverse-bombs", false, "enable validated reverse bomb/carrier missions; other reverse objectives remain excluded")
 	flag.BoolVar(&opt.reverseOnly, "reverse-only", false, "select only reverse missions; requires -experimental-reverse")
 	flag.BoolVar(&opt.reverse, "experimental-reverse", false, "opt in to experimental reverse objective tests (excluded by default)")
 	flag.BoolVar(&opt.plan, "plan", false, "print planned wave tests without connecting to a server")
@@ -236,8 +241,8 @@ func main() {
 }
 
 func run(opt options) error {
-	if opt.reverseOnly && !opt.reverse {
-		return errors.New("-reverse-only requires -experimental-reverse")
+	if opt.reverseOnly && !opt.reverse && !opt.reverseBombs {
+		return errors.New("-reverse-only requires -reverse-bombs or -experimental-reverse")
 	}
 	if opt.shards < 1 || opt.shard < 0 || opt.shard >= opt.shards {
 		return errors.New("shard must be in [0, shards)")
@@ -267,8 +272,8 @@ func run(opt options) error {
 	if opt.plan {
 		return writePlan(missions, modes, opt)
 	}
-	if !opt.reverse && opt.mission != "all" && strings.Contains(opt.mission, "_rev_") {
-		return errors.New("reverse MvM needs a BLU objective simulator; kill-only waveprobe cannot validate it")
+	if opt.mission != "all" && strings.Contains(opt.mission, "_rev_") && !reverseEnabled(opt.mission, opt) {
+		return errors.New("reverse mission is outside the enabled objective profile; use -experimental-reverse for independent investigation")
 	}
 	password := os.Getenv("WAVEPROBE_RCONPW")
 	if password == "" {
@@ -282,6 +287,29 @@ func run(opt options) error {
 	return runMissions(server, opt, missions, modes)
 }
 
+func reverseObjectiveKind(pop string, wave int) string {
+	if pop == "mvm_coaltown_rev_adv_computer_crash" && wave == 6 {
+		return "combat"
+	}
+	return "bomb"
+}
+
+// Keep daily coverage explicit until other reverse objective types are proven.
+func reverseEnabled(pop string, opt options) bool {
+	if opt.reverse {
+		return true
+	}
+	if !opt.reverseBombs {
+		return false
+	}
+	switch pop {
+	case "mvm_rottenburg_rev_int_breaking_walls", "mvm_coaltown_rev_adv_computer_crash", "mvm_bigrock_rev_adv_denominator":
+		return true
+	default:
+		return false
+	}
+}
+
 func writePlan(missions []gamedata.Mission, modes []string, opt options) error {
 	for _, mission := range missions {
 		played, ok := gamedata.MapByID(mission.Map)
@@ -291,7 +319,7 @@ func writePlan(missions []gamedata.Mission, modes []string, opt options) error {
 		for _, mode := range modes {
 			for wave := opt.startWave; wave <= lastWave(mission, opt); wave++ {
 				state := "planned"
-				if !opt.reverse && strings.Contains(mission.PopFile, "_rev_") {
+				if strings.Contains(mission.PopFile, "_rev_") && !reverseEnabled(mission.PopFile, opt) {
 					state = "unsupported_reverse"
 				}
 				writeResult(result{
@@ -308,7 +336,7 @@ func (s *server) prepare(opt options) error {
 	if err := s.await(3*time.Minute, func(probeStatus) bool { return true }); err != nil {
 		return fmt.Errorf("test plugin is unavailable at %s: %w", opt.address, err)
 	}
-	if opt.reverse {
+	if opt.reverse || opt.reverseBombs {
 		reply, err := s.exec("sm_waveprobe_reverse_objectives 1")
 		if err != nil {
 			return err
@@ -335,7 +363,7 @@ func (s *server) prepare(opt options) error {
 	// Ordinary waves use Valve's kill-on-pickup test fixture. Reverse
 	// objectives need their allied carriers alive, including between runs.
 	pickupKill := "1"
-	if opt.reverse {
+	if opt.reverse || opt.reverseBombs {
 		pickupKill = "0"
 	}
 	if _, err := s.exec("tf_bot_flag_kill_on_touch " + pickupKill); err != nil {
@@ -362,7 +390,7 @@ func (s *server) prepare(opt options) error {
 func runMissions(s *server, opt options, missions []gamedata.Mission, modes []string) error {
 	failures := 0
 	for _, mission := range missions {
-		if !opt.reverse && strings.Contains(mission.PopFile, "_rev_") {
+		if strings.Contains(mission.PopFile, "_rev_") && !reverseEnabled(mission.PopFile, opt) {
 			continue
 		}
 		played, ok := gamedata.MapByID(mission.Map)
@@ -464,6 +492,10 @@ func (s *server) recordWave(opt options, mapName string, mission gamedata.Missio
 	if strings.Contains(mission.PopFile, "_rev_") {
 		row.Objective = &objectiveEvidence{Method: "bomb-delivery-and-allied-carrier", Visits: status.ObjectiveVisits, Pickups: status.FlagPickups, Captures: status.FlagCaptures}
 	}
+	if row.Objective != nil && reverseObjectiveKind(mission.PopFile, wave) == "combat" {
+		row.Objective.Method = "native-combat-clear"
+		row.Objective.TargetKills = status.TargetKills
+	}
 	row.Outcome = classifyWave(status, err)
 	if opt.defenders {
 		row.StartedUTC = started.UTC().Format(time.RFC3339)
@@ -505,6 +537,8 @@ func classifyWave(status probeStatus, err error) string {
 		return "wave 0"
 	case status.Reason == "wave_failed":
 		return "wave failed"
+	case status.State == "passed" && err == nil && status.PlayerTeam == 3 && status.ObjectiveKind == "combat" && status.TargetKills > 0:
+		return "passed"
 	case status.State == "passed" && status.PlayerTeam == 3 && status.FlagCaptures == 0:
 		return "probe error"
 	case status.State == "passed" && err == nil && status.BotSpawns+status.TankSpawns > 0:
@@ -670,6 +704,7 @@ func parseStatus(reply string) (probeStatus, error) {
 		}
 	}
 	var status probeStatus
+	status.ObjectiveKind = fields["objectivekind"]
 	status.State = fields["state"]
 	status.Reason = fields["reason"]
 	status.Map = fields["map"]
@@ -701,7 +736,7 @@ func parseStatus(reply string) (probeStatus, error) {
 			return probeStatus{}, fmt.Errorf("invalid %s in probe reply %q: %w", field.name, reply, err)
 		}
 	}
-	for name, dest := range map[string]*int{"objectives": &status.ObjectiveVisits, "pickups": &status.FlagPickups, "captures": &status.FlagCaptures, "configsready": &status.ConfigsReady} {
+	for name, dest := range map[string]*int{"objectives": &status.ObjectiveVisits, "pickups": &status.FlagPickups, "captures": &status.FlagCaptures, "configsready": &status.ConfigsReady, "targetkills": &status.TargetKills} {
 		if value, ok := fields[name]; ok {
 			parsed, err := strconv.Atoi(value)
 			if err != nil {
@@ -955,11 +990,12 @@ func (s *server) testWave(mission gamedata.Mission, wave, seed int, timeout, loa
 		return status, nil, fmt.Errorf("wave %d was not initialized: %w", wave, err)
 	}
 	if strings.Contains(mission.PopFile, "_rev_") {
-		reply, err := s.exec("sm_waveprobe_reverse_objectives 1")
+		kind := reverseObjectiveKind(mission.PopFile, wave)
+		reply, err := s.exec("sm_waveprobe_reverse_objectives 1 " + kind)
 		if err != nil {
 			return probeStatus{}, nil, err
 		}
-		if !strings.Contains(reply, "WAVEPROBE reverse_objectives=1") {
+		if !strings.Contains(reply, "WAVEPROBE reverse_objectives=1") || !strings.Contains(reply, "objectivekind="+kind) {
 			return probeStatus{}, nil, errors.New("reverse objective simulator unavailable after map load")
 		}
 	}

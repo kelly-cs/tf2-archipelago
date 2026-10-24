@@ -4,7 +4,8 @@
 [![Docker stability](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fm-this%2Ftf2-archipelago%2Fstability-badges%2Fdocker.json)](https://github.com/m-this/tf2-archipelago/releases/tag/stability)
 [![Windows stability](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fm-this%2Ftf2-archipelago%2Fstability-badges%2Fwindows.json)](https://github.com/m-this/tf2-archipelago/releases/tag/stability)
 
-Daily startup and full wave checks against the latest TF2 server.
+Daily startup and wave checks against the latest TF2 server, including validated
+reverse bomb/carrier missions. Unsupported objectives are listed in the report.
 Badges show the measurement date; results older than 36 hours are stale.
 [Coverage, score and runner setup](docs/stability.md).
 
