@@ -1,0 +1,22 @@
+{
+  "environment": "docker",
+  "shard": 0,
+  "shards": 12,
+  "speed": 50,
+  "started_utc": "2026-10-24T00:49:56.236244+00:00",
+  "commit": "21ec890ba6c7c7c5aaee29ba0683ab56c698e2ec",
+  "host": "Linux-6.17.0-1022-azure-x86_64-with-glibc2.39",
+  "run_url": "https://github.com/kelly-cs/tf2-archipelago/actions/runs/40046227486",
+  "startup": true,
+  "fresh": true,
+  "completed": false,
+  "robot_limiter": false,
+  "crash_free": true,
+  "latest_before": "11138802",
+  "installed_version": "11138802",
+  "rcon_host": "127.0.0.1",
+  "running_version": "11138802",
+  "latest_at_start": "11138802",
+  "error": "production robot limiter is disabled or unverified",
+  "finished_utc": "2026-10-24T00:56:19.718338+00:00"
+}

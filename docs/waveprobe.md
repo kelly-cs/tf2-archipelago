@@ -134,7 +134,12 @@ until you no longer need new sweeps. It is never used as a shard volume.
 `make waveprobe-local` prepares a local image, then runs a resource-bounded
 number of isolated workers at 50×. Set `WAVEPROBE_SRCDS_IMAGE` to the production
 image to test and `WAVEPROBE_SOURCE_VOLUME` to a pristine test game volume;
-the source is read-only. The current Ryzen 9950X3D/61 GiB machine's resource
+the source is read-only. On first preparation, provide the existing full
+archives with `--community-dir /path/to/community-content` (or
+`WAVEPROBE_COMMUNITY_DIR`). Both archives are validated and installed once into
+the image by the launcher's own installer. Their catalog fingerprint invalidates
+the cache when the required content changes. The archive location is remembered
+locally for later rebuilds. The current Ryzen 9950X3D/61 GiB machine's resource
 plan selects twelve workers, each limited to two CPUs and 3 GiB RAM, leaving
 four physical cores, eight GiB RAM and a disk reserve for the host.
 
@@ -142,7 +147,9 @@ Each worker shares immutable game image layers and writes into its private
 container layer. No writable game directory is shared between workers. This
 avoids a full game copy per shard. The first preparation needs space for both
 the copy and image commit plus a 30 GiB reserve; later runs reuse the image
-only while its base image and live TF2 version still match. Every worker still
+only while its base image and live TF2 version still match. After preparation,
+the default command reuses the recorded base image; pass `--image` to select a
+new production build when updating the mod. Every worker still
 runs the production entrypoint's normal SteamCMD update. The prepared image
 is a warm wave fixture; fresh-install startup remains the separate daily CI
 check, and preparation logs remain in the run directory.
@@ -152,13 +159,21 @@ The direct command allows a lower worker count or a forced image rebuild:
 ```sh
 python3 deploy/local-waveprobe.py --plan
 python3 deploy/local-waveprobe.py --workers 8
-python3 deploy/local-waveprobe.py --rebuild
+# Maximum-throughput option on the measured 16-core machine:
+python3 deploy/local-waveprobe.py --workers 16
+python3 deploy/local-waveprobe.py --community-dir /path/to/community-content --rebuild
 ```
 
 Whole missions are assigned by the recorded `partition.json`, balancing the
 number of planned wave/mode cases instead of hashing mission names. First
 passes and retries use the same manifest. Old run directories without a
 manifest retain their original CRC32 partition on resume.
+
+The [measured concurrency comparison](audits/shard-tuning-20261024/REPORT.md)
+passed 798/798 Decoy wave/mode cases. Twelve workers achieved 157 cases/minute;
+sixteen achieved 176–177 cases/minute in two seeds. Twelve remains the default
+with host headroom; `--workers 16` is the measured maximum-throughput option
+on that machine. These measurements do not certify the full community catalog.
 
 The sweep stops its own workers and keeps them for resuming. After finishing,
 remove only the containers named in that run's `projects.txt`; their writable

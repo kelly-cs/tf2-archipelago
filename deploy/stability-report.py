@@ -137,7 +137,7 @@ def evaluate(meta, summary, commit, latest=None):
             "by_mode": summary.get("by_mode", {}), "evidence": meta}
 
 
-def main(source, output, commit, run_url, check_live=False):
+def main(source, output, commit, run_url, check_live=False, scope="full"):
     output.mkdir(parents=True, exist_ok=True)
     now = dt.datetime.now(dt.timezone.utc)
     latest = None
@@ -152,10 +152,11 @@ def main(source, output, commit, run_url, check_live=False):
     results = {key: evaluate(read_json(source / key / "environment.json"),
                              read_json(source / key / "SUMMARY.json"), commit, latest)
                for key in ENVIRONMENTS}
-    dashboard = {"measured_utc": now.isoformat(), "commit": commit, "run_url": run_url,
+    dashboard = {"scope": scope, "measured_utc": now.isoformat(), "commit": commit, "run_url": run_url,
                  "stale_after_hours": 36, "latest_at_report": latest, "environments": results}
     (output / "stability.json").write_text(json.dumps(dashboard, indent=2) + "\n")
-    lines = ["# TF2-AP daily stability", "",
+    lines = ["# TF2-AP daily stability" if scope == "full" else "# TF2-AP startup and Decoy smoke check", "",
+             "Full-catalog measurement." if scope == "full" else "Smoke check only; this is not full-catalog stability and does not publish badges.", "",
              f"Updated **{now:%Y-%m-%d %H:%M UTC}** · commit `{commit}` · [Actions run]({run_url})", "",
              "Results more than 36 hours old are stale. Check the date before relying on a badge.", "",
              "| Environment | Startup | TF2 ServerVersion | Stability | Passed / planned | Tested | Result |",
@@ -185,7 +186,8 @@ def main(source, output, commit, run_url, check_live=False):
         lines += [f"## {label}", "", f"Unsupported Reverse MvM cases: {result['unsupported_reverse']}.", ""]
         meta = result["evidence"]
         lines += [f"Started: {meta.get('started_utc', 'unknown')}. Finished: {meta.get('finished_utc', 'unknown')}.",
-                  f"Host: `{meta.get('host', 'unknown')}`. Running engine: `{meta.get('running_version', 'unknown')}`.", ""]
+                  f"Host: `{meta.get('host', 'unknown')}`. Running engine: `{meta.get('running_version', 'unknown')}`. "
+                  f"Requested speed: `{meta.get('speed', 'unknown')}×`.", ""]
         lines += [f"Robot limiter enabled at both endpoint checks: {meta.get('robot_limiter') is True}. "
                   f"No fatal engine errors in captured logs: {meta.get('crash_free') is True}.", ""]
         if result["evidence"].get("error"):
@@ -217,9 +219,10 @@ if __name__ == "__main__":
     parser.add_argument("--shards", type=int, default=1)
     parser.add_argument("--plan", type=Path, help="canonical full plan emitted by the build job")
     parser.add_argument("--partition", type=Path, help="balanced mission manifest from the same build")
+    parser.add_argument("--scope", choices=["full", "smoke"], default="full")
     args = parser.parse_args()
-    if args.shards > 1:
-        if args.plan is None:
-            parser.error("--plan is required with --shards")
+    if args.plan is not None:
         combine_shards(args.source, args.plan, args.shards, args.commit, args.partition)
-    raise SystemExit(0 if main(args.source, args.output, args.commit, args.run_url, args.check_live) else 1)
+    elif args.shards > 1:
+        parser.error("--plan is required with --shards")
+    raise SystemExit(0 if main(args.source, args.output, args.commit, args.run_url, args.check_live, args.scope) else 1)

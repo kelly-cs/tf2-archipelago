@@ -1,0 +1,17 @@
+/mnt/b/tf2-archipelago/docs/audits/shard-tuning-20261024-002429/waveprobe: go1.27.0
+	path	github.com/m-this/tf2-archipelago/launcher/cmd/waveprobe
+	mod	github.com/m-this/tf2-archipelago	v1.18.5-0.20261024000008-0fc94cdf7141+dirty
+	build	-buildmode=exe
+	build	-compiler=gc
+	build	CGO_ENABLED=1
+	build	CGO_CFLAGS=
+	build	CGO_CPPFLAGS=
+	build	CGO_CXXFLAGS=
+	build	CGO_LDFLAGS=
+	build	GOARCH=amd64
+	build	GOOS=linux
+	build	GOAMD64=v1
+	build	vcs=git
+	build	vcs.revision=0fc94cdf71414dc57f31ec39902f1c279c0476c2
+	build	vcs.time=2026-10-24T00:00:08Z
+	build	vcs.modified=true

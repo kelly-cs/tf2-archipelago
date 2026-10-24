@@ -4,6 +4,7 @@ import argparse
 import datetime as dt
 import importlib.util
 import json
+import hashlib
 import os
 import re
 from pathlib import Path
@@ -17,6 +18,34 @@ REPO = Path(__file__).resolve().parent.parent
 spec = importlib.util.spec_from_file_location('stability_run', REPO / 'deploy/stability-run.py')
 runner = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(runner)
+
+
+def community_spec():
+    files=[REPO/'gamedata/community.json',REPO/'launcher/internal/installer/community_hash.go']
+    return hashlib.sha256(b''.join(path.read_bytes() for path in files)).hexdigest()
+
+
+def add_community(tag, archives, binary, output):
+    """Append validated packs once; no per-worker extraction or writable sharing."""
+    name='tf2ap-community-'+uuid.uuid4().hex[:12]
+    config=json.loads(subprocess.check_output(['docker','image','inspect','--format','{{json .Config}}',tag],text=True))
+    output.mkdir(parents=True,exist_ok=True)
+    subprocess.run(['docker','run','-d','--name',name,'-v',str(archives.resolve())+':/tf2ap-packs:ro',
+                    '--entrypoint','sleep',tag,'infinity'],check=True,stdout=subprocess.DEVNULL)
+    try:
+        subprocess.run(['docker','cp',str(binary),name+':/tmp/tf2ap-communityfiles'],check=True)
+        with (output/'community-install.log').open('w') as logs:
+            subprocess.run(['docker','exec',name,'/tmp/tf2ap-communityfiles','-archives','/tf2ap-packs',
+                            '-tf','/home/steam/tf-dedicated/tf'],stdout=logs,stderr=logs,check=True,timeout=1200)
+        subprocess.run(['docker','exec',name,'rm','-f','/tmp/tf2ap-communityfiles'],check=True)
+        subprocess.run(['docker','stop',name],check=True,stdout=subprocess.DEVNULL,timeout=60)
+        subprocess.run(['docker','commit','--change','ENTRYPOINT '+json.dumps(config.get('Entrypoint') or ['/usr/bin/env']),
+                        '--change','CMD '+json.dumps(config.get('Cmd') or []),
+                        '--change','LABEL tf2ap.community-spec='+community_spec(),
+                        '--change','LABEL tf2ap.community-dir='+json.dumps(str(archives.resolve())),name,tag],
+                        check=True,stdout=subprocess.DEVNULL,timeout=1200)
+    finally:
+        subprocess.run(['docker','rm','-f',name],capture_output=True,timeout=60,check=False)
 
 
 def prepare(image, source_volume, tag, rcon_binary, output, port=27195):
@@ -69,7 +98,7 @@ def prepare(image, source_volume, tag, rcon_binary, output, port=27195):
             args=['docker','exec']
             settings={'SRCDS_RCONPW':password,'SRCDS_PORT':'27015','SRCDS_STARTMAP':'mvm_decoy',
                       'SRCDS_REACH':'lan','SRCDS_LAN':'1','SRCDS_MAXPLAYERS':'32','SRCDS_BOTS':'0',
-                      'SRCDS_MODS':'sigsegv-mvm','TF2AP_TEST_MODE':'0'}
+                      'SRCDS_MODS':'sigsegv-mvm','SRCDS_MOD_LOADING':'always','TF2AP_TEST_MODE':'0'}
             # Password comes through the subprocess environment, never the image config.
             env.update(settings); env['SRCDS_RCON_HOST']='127.0.0.1'
             for key in settings: args += ['-e',key]

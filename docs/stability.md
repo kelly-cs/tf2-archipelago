@@ -4,7 +4,9 @@ The [daily report](https://github.com/kelly-cs/tf2-archipelago/releases/tag/stab
 measures the fork’s `main` branch on native **Ubuntu 24.04**, **Windows**, and
 the **production Docker image** built from that commit. It runs daily at 05:17
 UTC. Start it manually through Actions → Daily stability → Run workflow,
-selecting `main`.
+selecting `main`. Use **scope: full** for the real checker. **scope: smoke**
+checks startup and Decoy Expert in both modes on one runner per environment;
+it publishes an explicitly scoped Actions report and never updates the badges.
 The README widgets link to the report. They show the measurement date; results
 older than 36 hours are stale, including when scheduling stops. A green badge
 from a previous day is not evidence about a subsequent TF2 update.
@@ -12,7 +14,11 @@ from a previous day is not evidence about a subsequent TF2 update.
 Each of twelve shards per environment gets a fresh disposable install of TF2 and both community
 packs, using the launcher's installer and pinned mod dependencies. Startup
 requires RCON, SourceMod, the Archipelago plugin, the wave probe, and no failed
-plugin or extension loads. The Docker check runs the production entrypoint,
+plugin or extension loads. The fixture explicitly sets
+`SRCDS_MOD_LOADING=always` for its entire mission catalog, matching the native
+bed: without a seeded mission pool, the production image's normal "when needed"
+policy would start stock Decoy without SigMod. The limiter guard rejects that
+configuration instead of scoring an unmodded sweep. The Docker check runs the production entrypoint,
 including its own SteamCMD update; the launcher-prepared tree supplies the
 community packs. It never mounts a live server's files.
 
@@ -78,7 +84,7 @@ longest first, to the least-loaded shard. The current catalog has 2,342 planned
 cases; twelve shards receive 194–196 each. Both Bot Surge modes stay together.
 The workflow's Run dialog can select 6, 12, 18 or 20 shards per environment and
 12, 18 or 20 concurrent jobs. The daily defaults are twelve and eighteen;
-standard Free accounts allow twenty concurrent hosted jobs across workflows.
+standard [Free accounts allow twenty concurrent hosted jobs](https://docs.github.com/en/actions/reference/limits#job-concurrency-limits-for-github-hosted-runners) across workflows.
 GitHub supplies a separate VM to each matrix job; these are not multiple game
 servers competing for a single runner. More shards add fresh-install overhead,
 so the default avoids a third batch of downloads.

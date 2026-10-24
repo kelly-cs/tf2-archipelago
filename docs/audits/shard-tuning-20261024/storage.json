@@ -1,0 +1,70 @@
+{
+  "prepared_image_bytes": 14548750889,
+  "worker_writes": [
+    {
+      "worker": 0,
+      "writable_bytes": 217104384
+    },
+    {
+      "worker": 1,
+      "writable_bytes": 216584192
+    },
+    {
+      "worker": 2,
+      "writable_bytes": 216629248
+    },
+    {
+      "worker": 3,
+      "writable_bytes": 216563712
+    },
+    {
+      "worker": 4,
+      "writable_bytes": 215949312
+    },
+    {
+      "worker": 5,
+      "writable_bytes": 215818240
+    },
+    {
+      "worker": 6,
+      "writable_bytes": 215834624
+    },
+    {
+      "worker": 7,
+      "writable_bytes": 215982080
+    },
+    {
+      "worker": 8,
+      "writable_bytes": 215216128
+    },
+    {
+      "worker": 9,
+      "writable_bytes": 215203840
+    },
+    {
+      "worker": 10,
+      "writable_bytes": 215207936
+    },
+    {
+      "worker": 11,
+      "writable_bytes": 215134208
+    },
+    {
+      "worker": 12,
+      "writable_bytes": 214454272
+    },
+    {
+      "worker": 13,
+      "writable_bytes": 214380544
+    },
+    {
+      "worker": 14,
+      "writable_bytes": 214482944
+    },
+    {
+      "worker": 15,
+      "writable_bytes": 214470656
+    }
+  ],
+  "all_worker_writable_bytes": 3449016320
+}

@@ -67,15 +67,23 @@ class StabilityTest(unittest.TestCase):
 
     def test_local_worker_limit_respects_memory_disk_and_host_reserve(self):
         self.assertEqual(local.capacity(32, 58, 100, 16), 12)
+        self.assertEqual(local.capacity(32, 58, 100, 16, reserve_cores=0), 16)
         self.assertEqual(local.capacity(32, 14, 100, 16), 2)
         self.assertEqual(local.capacity(32, 58, 34, 16), 2)
         self.assertEqual(local.capacity(32, 7, 100, 16), 0)
         self.assertEqual(local.capacity(32, 58, 29, 16), 0)
 
     def test_native_rcon_uses_local_interfaces_and_docker_uses_only_published_loopback(self):
-        with mock.patch.object(runner.socket, "getaddrinfo", return_value=[(None,None,None,None,("172.20.144.1",0))]):
-            self.assertEqual(runner.rcon_hosts("windows"), ["127.0.0.1", "172.20.144.1"])
+        with mock.patch.object(runner.socket, "getaddrinfo", return_value=[(None,None,None,None,("172.20.144.1",0))]), \
+                mock.patch.object(runner.subprocess, "run", return_value=SimpleNamespace(stdout="172.20.144.1 10.0.0.2 ::1")) as call:
+            self.assertEqual(runner.rcon_hosts("ubuntu24"), ["127.0.0.1", "172.20.144.1", "10.0.0.2"])
+            call.reset_mock()
             self.assertEqual(runner.rcon_hosts("docker"), ["127.0.0.1"])
+            call.assert_not_called()
+        with mock.patch.object(runner.os, "name", "nt"), \
+                mock.patch.object(runner.socket, "getaddrinfo", return_value=[]), \
+                mock.patch.object(runner.subprocess, "run", return_value=SimpleNamespace(stdout='["127.0.0.1","172.20.144.1"]')):
+            self.assertEqual(runner.rcon_hosts("windows"), ["127.0.0.1", "172.20.144.1"])
 
     def test_host_cleanup_refuses_a_personal_machine(self):
         with mock.patch.dict(os.environ, {"STABILITY_RUNNER_ENVIRONMENT": "self-hosted"}):
@@ -146,6 +154,27 @@ class StabilityTest(unittest.TestCase):
             summary = json.loads((root/"evidence/docker/SUMMARY.json").read_text())
             self.assertEqual(summary["eligible_cases"], 1)
             self.assertEqual(summary["passed_cases"], 0)
+
+    def test_single_shard_smoke_aggregates_without_claiming_full_catalog(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            plan = root/"plan.jsonl"
+            row = {"mission":"fixture","wave":1,"mode":"normal","map":"mvm_decoy","state":"planned"}
+            plan.write_text(json.dumps(row)+"\n")
+            manifest=root/"partition.json"
+            manifest.write_text(json.dumps(partitioner.partition([row],1)))
+            for environment in report.ENVIRONMENTS:
+                out=root/"input"/environment/"part-0"
+                out.mkdir(parents=True)
+                (out/"plan.jsonl").write_text(plan.read_text())
+                (out/"environment.json").write_text(json.dumps({**self.meta,"shard":0,"shards":1,"running_version":"123"}))
+                (out/"shard-0.jsonl").write_text(json.dumps({**row,"state":"passed"})+"\n")
+            report.combine_shards(root/"input",plan,1,"abc",manifest)
+            self.assertTrue(report.main(root/"input",root/"report","abc","https://example.com",scope="smoke"))
+            data=json.loads((root/"report/stability.json").read_text())
+            self.assertEqual(data["scope"],"smoke")
+            self.assertEqual(data["environments"]["docker"]["passed"],1)
+            self.assertIn("not full-catalog stability",(root/"report/REPORT.md").read_text())
 
     def test_no_results_are_rendered_and_archived_as_failures(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -263,6 +292,7 @@ class StabilityTest(unittest.TestCase):
                 elif name == 'rcon':
                     print('TF2 MvM Archipelago\\nTF2 MvM wave probe\\nstatus: idle')
                 elif name == 'docker':
+                    print(json.dumps(args), flush=True)
                     if args[0] == 'run' and '--entrypoint' not in args:
                         time.sleep(300)
                 else:
@@ -288,6 +318,8 @@ class StabilityTest(unittest.TestCase):
             self.assertEqual(summary["passed_cases"], 2)
             self.assertEqual(summary["tested_cases"], summary["eligible_cases"])
             self.assertIn("Retesting 0", (output / "retest.log").read_text())
+            self.assertIn("SRCDS_MOD_LOADING=always", (output / "server.log").read_text())
+            self.assertIn("speed=50", (output / "config.txt").read_text())
             self.assertTrue((output / "startup.txt").exists())
             self.assertTrue((output / "final-health.txt").exists())
 

@@ -1,0 +1,10 @@
+{
+  "image_id": "sha256:4756773e26b3a3b6453916ecc8922d00dfc055b4c02365973702ec36ce545a41",
+  "entrypoint": [
+    "/usr/bin/env"
+  ],
+  "cmd": [
+    "bash",
+    "/usr/local/bin/entrypoint.sh"
+  ]
+}

@@ -115,6 +115,17 @@ def rcon_hosts(environment):
     hosts = ["127.0.0.1"]
     if environment != "docker":
         hosts += sorted({row[4][0] for row in socket.getaddrinfo(socket.gethostname(), None, socket.AF_INET)})
+        if os.name == "nt":
+            command = ["powershell", "-NoProfile", "-Command",
+                       "@(Get-NetIPAddress -AddressFamily IPv4 | ForEach-Object { $_.IPAddress }) | ConvertTo-Json -Compress"]
+        else:
+            command = ["hostname", "-I"]
+        result = subprocess.run(command, capture_output=True, text=True, timeout=15, check=True)
+        if os.name == "nt":
+            addresses = json.loads(result.stdout)
+            hosts += [addresses] if isinstance(addresses, str) else (addresses or [])
+        else:
+            hosts += [address for address in result.stdout.split() if ":" not in address]
     return list(dict.fromkeys(hosts))
 
 
@@ -137,6 +148,7 @@ def main(opt):
     shards = getattr(opt, "shards", 1)
     if shards < 1 or not 0 <= shard < shards:
         raise ValueError("shard must be in [0, shards)")
+    mission = getattr(opt, "mission", "all")
     speed = getattr(opt, "speed", 50)
     if not 1 <= speed <= 50:
         raise ValueError("speed must be between 1 and 50")
@@ -145,7 +157,7 @@ def main(opt):
     if manifest:
         shutil.copy2(manifest, out / "global-partition.json")
         partition += ["-partition", str((out / "global-partition.json").resolve())]
-    meta = {"environment": opt.environment, "shard": shard, "shards": shards, "speed": speed,
+    meta = {"environment": opt.environment, "shard": shard, "shards": shards, "speed": speed, "mission": mission,
             "started_utc": dt.datetime.now(dt.timezone.utc).isoformat(),
             "commit": os.environ.get("GITHUB_SHA", "local"), "host": platform.platform(),
             "run_url": os.environ.get("STABILITY_RUN_URL", ""), "startup": False,
@@ -160,11 +172,35 @@ def main(opt):
             with (out / (filename + ".err")).open("w", encoding="utf-8") as errors:
                 command = subprocess.Popen(args, stdout=stream, stderr=errors,
                                            start_new_session=os.name != "nt")
+                began = time.monotonic()
+                operation_deadline = began + min(remaining, limit or remaining)
                 try:
-                    status = command.wait(timeout=min(remaining, limit or remaining))
+                    while True:
+                        left = operation_deadline - time.monotonic()
+                        if left <= 0:
+                            raise subprocess.TimeoutExpired(args, operation_deadline - began)
+                        try:
+                            status = command.wait(timeout=min(30, left))
+                            break
+                        except subprocess.TimeoutExpired:
+                            elapsed = time.monotonic() - began
+                            detail = ""
+                            if filename.endswith(".jsonl"):
+                                rows = []
+                                for line in (out / filename).read_text(encoding="utf-8").splitlines():
+                                    try:
+                                        rows.append(json.loads(line))
+                                    except ValueError:
+                                        pass  # The child can be writing the next record.
+                                detail = f"; {len(rows)} records, {sum(row.get('state') == 'passed' for row in rows)} passed"
+                            print(f"stability {filename}: {elapsed:.0f}s{detail}", flush=True)
                 except BaseException:
                     stop_process(command)
                     raise
+                finally:
+                    elapsed = time.monotonic() - began
+                    meta.setdefault("phase_seconds", {})[filename] = round(elapsed, 2)
+                    print(f"stability {filename}: finished after {elapsed:.1f}s", flush=True)
                 if check and status:
                     raise subprocess.CalledProcessError(status, args)
                 return status
@@ -182,7 +218,7 @@ def main(opt):
                 raise ValueError("ubuntu24 requires native Ubuntu 24.04")
         if opt.environment == "windows" and os.name != "nt":
             raise ValueError("Windows must run natively")
-        run([binary("waveprobe"), "-plan", "-mode", "both", *partition], "plan.jsonl", 60)
+        run([binary("waveprobe"), "-plan", "-mode", "both", "-mission", mission, *partition], "plan.jsonl", 60)
         (out / "config.txt").write_text(
             f"shards=1\nspeed={speed}\nseed=1\nfirst_pass_timeout=180s\nwave_timeout=900s\n"
             f"base_port={port}\nstarted_utc={meta['started_utc']}\nsource_commit={meta['commit']}\n")
@@ -204,7 +240,7 @@ def main(opt):
                     "-v", f"{bed / 'tf2_waveprobe.smx'}:/opt/tf2-archipelago/addons/sourcemod/plugins/tf2_waveprobe.smx:ro"]
             for value in ["SRCDS_REACH=lan", "SRCDS_LAN=1", "SRCDS_STARTMAP=mvm_decoy",
                           "SRCDS_MAXPLAYERS=32", "SRCDS_PORT=27015", "SRCDS_BOTS=0",
-                          "SRCDS_MODS=sigsegv-mvm", "SRCDS_RCONPW", "TF2AP_TEST_MODE=0"]:
+                          "SRCDS_MODS=sigsegv-mvm", "SRCDS_MOD_LOADING=always", "SRCDS_RCONPW", "TF2AP_TEST_MODE=0"]:
                 args += ["-e", value]
             args += [opt.image]
         else:
@@ -243,7 +279,7 @@ def main(opt):
             raise ValueError("TF2 changed during setup; rerun against the new build")
         meta["fresh"] = True
         check_robot_limiter(rcon, out / "robot-limiter-before.txt")
-        run([binary("waveprobe"), "-rcon", f"{address}:{port}", "-mission", "all",
+        run([binary("waveprobe"), "-rcon", f"{address}:{port}", "-mission", mission,
                       "-mode", "both", "-speed", str(speed), "-seed", "1", "-timeout", "180s", *partition],
                      "shard-0.jsonl", check=False)
         run([sys.executable, "deploy/waveprobe-retest.py", str(out), binary("waveprobe"), "0"],
@@ -311,4 +347,5 @@ if __name__ == "__main__":
     parser.add_argument("--shard", type=int, default=0)
     parser.add_argument("--speed", type=int, default=50)
     parser.add_argument("--partition", type=Path)
+    parser.add_argument("--mission", default="all")
     sys.exit(main(parser.parse_args()))

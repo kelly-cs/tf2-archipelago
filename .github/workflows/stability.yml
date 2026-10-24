@@ -5,6 +5,11 @@ on:
     - cron: '17 5 * * *'
   workflow_dispatch:
     inputs:
+      scope:
+        description: Full catalog or startup and Decoy smoke check
+        type: choice
+        options: ['full', 'smoke']
+        default: 'full'
       shards:
         description: Mission shards per environment
         type: choice
@@ -21,7 +26,9 @@ permissions:
 
 env:
   STABILITY_PUBLISH_REF: refs/heads/main
-  STABILITY_SHARDS: ${{ inputs.shards || '12' }}
+  STABILITY_SCOPE: ${{ inputs.scope || 'full' }}
+  STABILITY_MISSION: ${{ inputs.scope == 'smoke' && 'mvm_decoy_expert1' || 'all' }}
+  STABILITY_SHARDS: ${{ inputs.scope == 'smoke' && '1' || inputs.shards || '12' }}
   STABILITY_PARALLEL: ${{ inputs.parallel || '18' }}
   STABILITY_SPEED: '50'
 
@@ -55,7 +62,7 @@ jobs:
           BOTS_EXTENSIONS_DIR: ${{ github.workspace }}/extensions
         run: make stability-bed
       - name: Record the full canonical wave plan
-        run: dist/linuxbed/waveprobe -plan -mode both > dist/plan.jsonl
+        run: dist/linuxbed/waveprobe -plan -mode both -mission "$STABILITY_MISSION" > dist/plan.jsonl
       - name: Balance whole missions over the canonical plan
         id: partition
         run: |
@@ -147,7 +154,7 @@ jobs:
               '--root', str(root), '--output', 'stability-result',
               '--hours', '4.5', '--speed', os.environ['STABILITY_SPEED'],
               '--shards', os.environ['STABILITY_SHARDS'], '--shard', os.environ['STABILITY_SHARD'],
-              '--partition', 'beds/partition.json']))
+              '--partition', 'beds/partition.json', '--mission', os.environ['STABILITY_MISSION']]))
       - name: Preserve results even when startup or waves fail
         if: always()
         uses: actions/upload-artifact@v7
@@ -205,7 +212,7 @@ jobs:
         run: |
           python3 deploy/stability-report.py evidence dashboard --commit "$GITHUB_SHA" --run-url "$RUN_URL" --check-live \
             --shards "$STABILITY_SHARDS" --plan measurements/stability-beds/plan.jsonl \
-            --partition measurements/stability-beds/partition.json
+            --partition measurements/stability-beds/partition.json --scope "$STABILITY_SCOPE"
       - name: Show the consolidated dashboard
         if: always()
         run: cat dashboard/REPORT.md >> "$GITHUB_STEP_SUMMARY"
@@ -219,7 +226,7 @@ jobs:
       # A dedicated prerelease keeps stable URLs for the README widgets and
       # reports. No commits on main and no effect on releases/latest.
       - name: Publish the dated dashboard and widgets
-        if: github.ref == env.STABILITY_PUBLISH_REF
+        if: github.ref == env.STABILITY_PUBLISH_REF && env.STABILITY_SCOPE == 'full'
         run: |
           if ! gh release view stability >/dev/null 2>&1; then
             gh release create stability --target "$GITHUB_SHA" --prerelease --latest=false \

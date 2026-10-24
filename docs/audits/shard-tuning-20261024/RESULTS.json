@@ -1,0 +1,92 @@
+{
+  "trials": [
+    {
+      "workers": 1,
+      "repeat": 1,
+      "seed": 1,
+      "makespan_seconds": 47.43648514099914,
+      "phase_seconds": 54.15468230099941,
+      "cases": 14,
+      "passed": 14,
+      "clean": true,
+      "cases_per_minute": 17.70788871694863,
+      "mean_cpu_percent_per_worker": 84.39666666666666,
+      "peak_cpu_percent_per_worker": 113.75
+    },
+    {
+      "workers": 4,
+      "repeat": 1,
+      "seed": 1,
+      "makespan_seconds": 51.549005640998075,
+      "phase_seconds": 56.23550355200132,
+      "cases": 56,
+      "passed": 56,
+      "clean": true,
+      "cases_per_minute": 65.18069472377402,
+      "mean_cpu_percent_per_worker": 77.8584375,
+      "peak_cpu_percent_per_worker": 116.47
+    },
+    {
+      "workers": 8,
+      "repeat": 1,
+      "seed": 1,
+      "makespan_seconds": 57.01121681800214,
+      "phase_seconds": 63.57011090200103,
+      "cases": 112,
+      "passed": 112,
+      "clean": true,
+      "cases_per_minute": 117.87154133987998,
+      "mean_cpu_percent_per_worker": 85.07444444444444,
+      "peak_cpu_percent_per_worker": 119.63
+    },
+    {
+      "workers": 12,
+      "repeat": 1,
+      "seed": 1,
+      "makespan_seconds": 64.18242732499857,
+      "phase_seconds": 70.73299364799823,
+      "cases": 168,
+      "passed": 168,
+      "clean": true,
+      "cases_per_minute": 157.0523337947039,
+      "mean_cpu_percent_per_worker": 101.18333333333334,
+      "peak_cpu_percent_per_worker": 152.46
+    },
+    {
+      "workers": 16,
+      "repeat": 1,
+      "seed": 1,
+      "makespan_seconds": 76.53093234300104,
+      "phase_seconds": 85.10145765699781,
+      "cases": 224,
+      "passed": 224,
+      "clean": true,
+      "cases_per_minute": 175.6152654689189,
+      "mean_cpu_percent_per_worker": 105.41614583333333,
+      "peak_cpu_percent_per_worker": 177.37
+    },
+    {
+      "workers": 16,
+      "repeat": 2,
+      "seed": 2,
+      "makespan_seconds": 76.02722391499992,
+      "phase_seconds": 92.1388067959997,
+      "cases": 224,
+      "passed": 224,
+      "clean": true,
+      "cases_per_minute": 176.7787814405299,
+      "mean_cpu_percent_per_worker": 98.295625,
+      "peak_cpu_percent_per_worker": 153.19
+    }
+  ],
+  "total_cases": 798,
+  "total_passed": 798,
+  "default_workers": 12,
+  "maximum_tested_workers": 16,
+  "speed": 50,
+  "cpus_per_worker": 2,
+  "memory_per_worker": "3 GiB",
+  "server_version": "11138802",
+  "runner_source_equivalent_commit": "21ec890",
+  "binary_sha256": "c7cdf4cddbdb5eee8a37c9cd80bec0bfd30f7e9979c044efbd8b48c81326d954"
+}
