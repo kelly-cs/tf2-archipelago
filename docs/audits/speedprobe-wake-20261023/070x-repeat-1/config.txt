@@ -1,0 +1,8 @@
+scope=Decoy Expert speed comparison; repeat 1
+shards=1
+speed=70
+seed=1
+started_utc=2026-10-23T23:38:54.039905+00:00
+first_pass_timeout=180s
+wave_timeout=900s
+source_commit=c462fda6cfaed9074b0ee27ea8f69005f96fa883

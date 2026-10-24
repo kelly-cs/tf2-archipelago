@@ -1,0 +1,18 @@
+$ sig_mvm_robot_limit
+[AP] debug: Robot health scale applied: tf2ap 1.00, defender bots 1.00.
+L 10/23/2026 - 23:49:05: [tf2_archipelago.smx] Robot health scale applied: tf2ap 1.00, defender bots 1.00.
+[AP] debug: This map is not Mann vs Machine. The plugin waits for the run's mission list.
+L 10/23/2026 - 23:49:05: [tf2_archipelago.smx] This map is not Mann vs Machine. The plugin waits for the run's mission list.
+"sig_mvm_robot_limit" = "1" ( def. "0" )
+ notify
+ - Mod: modify/enhance/fix some population manager code related to the robot limit in MvM
+$ tf_mvm_max_invaders
+[AP] debug: Robot health scale applied: tf2ap 1.00, defender bots 1.00.
+L 10/23/2026 - 23:49:10: [tf2_archipelago.smx] Robot health scale applied: tf2ap 1.00, defender bots 1.00.
+"tf_mvm_max_invaders" = "22"
+ game
+ - Maximum number of invaders in MvM
+$ tf_allow_server_hibernation
+"tf_allow_server_hibernation" = "0" ( def. "1" )
+ game
+ - Allow the server to hibernate when empty.

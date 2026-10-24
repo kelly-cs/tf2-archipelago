@@ -1,0 +1,13 @@
+--- launcher/cmd/waveprobe/main.go
++++ experimental-overlay/main.go
+@@ -43,0 +44 @@
++	fastSpeed bool
+@@ -194,0 +196 @@
++	flag.BoolVar(&opt.fastSpeed, "experimental-speed", false, "allow up to 100x for isolated comparison runs")
+@@ -221,2 +223,4 @@
+-	if opt.speed < 1 || opt.speed > 20 {
+-		return errors.New("speed must be between 1 and 20")
++	limit := 20
++	if opt.fastSpeed { limit = 100 }
++	if opt.speed < 1 || opt.speed > limit {
++		return fmt.Errorf("speed must be between 1 and %d", limit)

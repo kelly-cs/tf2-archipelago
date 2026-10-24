@@ -1,0 +1,8 @@
+$ sig_mvm_robot_limit
+"sig_mvm_robot_limit" = "1" ( def. "0" )
+ notify
+ - Mod: modify/enhance/fix some population manager code related to the robot limit in MvM
+$ tf_mvm_max_invaders
+"tf_mvm_max_invaders" = "22"
+ game
+ - Maximum number of invaders in MvM

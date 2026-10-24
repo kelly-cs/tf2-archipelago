@@ -1,0 +1,26 @@
+Excerpt from the preserved full local server log.
+
+CTFTankBoss: Can't find target entity 'boss_dead_relay' for event
+[AP] error: The objective queue is full at 512. The plugin dropped tank_destroyed mvm_decoy_expert1 wave 7 #2.
+L 10/23/2026 - 23:39:12: [tf2_archipelago.smx] The objective queue is full at 512. The plugin dropped tank_destroyed mvm_decoy_expert1 wave 7 #2.
+L 10/23/2026 - 23:39:12: [tf2_waveprobe.smx] WAVEPROBE passed wave=7 seconds=243.5 bots=22 tanks=2
+[AP] error: The objective queue is full at 512. The plugin dropped tally_robots 76.
+L 10/23/2026 - 23:39:12: [tf2_archipelago.smx] The objective queue is full at 512. The plugin dropped tally_robots 76.
+[AP] error: The objective queue is full at 512. The plugin dropped tally_giants 28.
+L 10/23/2026 - 23:39:12: [tf2_archipelago.smx] The objective queue is full at 512. The plugin dropped tally_giants 28.
+L 10/23/2026 - 23:39:37: [tf2_archipelago.smx] The objective queue is full at 512. The plugin dropped giant_killed mvm_decoy_expert1 wave 7 #602.
+[AP] error: The objective queue is full at 512. The plugin dropped giant_killed mvm_decoy_expert1 wave 7 #603.
+L 10/23/2026 - 23:39:37: [tf2_archipelago.smx] The objective queue is full at 512. The plugin dropped giant_killed mvm_decoy_expert1 wave 7 #603.
+L 10/23/2026 - 23:39:37: [tf2_waveprobe.smx] WAVEPROBE passed wave=7 seconds=232.2 bots=16 tanks=2
+[AP] error: The objective queue is full at 512. The plugin dropped tally_robots 647.
+L 10/23/2026 - 23:39:37: [tf2_archipelago.smx] The objective queue is full at 512. The plugin dropped tally_robots 647.
+[AP] error: The objective queue is full at 512. The plugin dropped tally_giants 603.
+L 10/23/2026 - 23:39:37: [tf2_archipelago.smx] The objective queue is full at 512. The plugin dropped tally_giants 603.
+[META] Loaded 0 plugins (1 already loaded)
+SOLID_VPHYSICS static prop with no vphysics model! (models/props_mining/conveyor_belt.mdl)
+SOLID_VPHYSICS static prop with no vphysics model! (models/props_mining/conveyor_belt.mdl)
+L 10/23/2026 - 23:39:39: -------- Mapchange to mvm_coaltown --------
+L 10/23/2026 - 23:39:39: Error log file session closed.
+ConVarRef room_type doesn't point to an existing ConVar
+Executing dedicated server config file server.cfg
+VSCRIPT: Started VScript virtual machine using script language 'Squirrel'

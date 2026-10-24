@@ -62,6 +62,13 @@ measures wave completion under this probe's strategy. It does not measure
 human client joins, multiworld connectivity, performance, or every bot shopping
 and combat path. The separate defender-bot release gate remains useful.
 
+The [local speed comparison](audits/speedprobe-wake-20261023/REPORT.md) tested
+Decoy Expert with the wake-up fix and production robot limiter enabled. 50×
+passed five full runs across four seeds, averaging 48.4 seconds versus 89.4 at
+20×. Higher tested settings intermittently lost the last wave's completion
+during automatic map changes. This is one-map evidence; the daily sweep stays
+at 20× pending validation across the full catalog and environments.
+
 ## Hosted runner setup
 
 The fork has no self-hosted runner requirement. Six mission shards run for each

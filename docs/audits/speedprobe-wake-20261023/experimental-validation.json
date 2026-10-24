@@ -1,0 +1,6 @@
+{
+  "without_opt_in_exit": 1,
+  "without_opt_in_error": "waveprobe: speed must be between 1 and 20\n",
+  "with_opt_in_exit": 0,
+  "planned_cases": 14
+}

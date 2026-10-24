@@ -1,0 +1,220 @@
+{
+  "configuration": {
+    "image": "ghcr.io/m-this/tf2-archipelago/srcds@sha256:c388d649573d8773d96c639ed46d4f5f6f2ebb8a23faa237e5b868fd8ef73684",
+    "source_volume": "tf2-archipelago-waveprobe_tf2game_waveprobe",
+    "map": "mvm_decoy",
+    "mission": "mvm_decoy_expert1",
+    "seed": 4,
+    "cpus": 4,
+    "project": "tf2ap-speed-wake-20261023232829",
+    "port": 27185,
+    "speeds": [
+      20,
+      30,
+      40,
+      50,
+      60,
+      70,
+      80,
+      100
+    ],
+    "started_utc": "2026-10-23T23:28:44.696725+00:00",
+    "source_commit": "c462fda6cfaed9074b0ee27ea8f69005f96fa883",
+    "image_id": "sha256:c388d649573d8773d96c639ed46d4f5f6f2ebb8a23faa237e5b868fd8ef73684",
+    "binary_sha256": "79b675b374c60c484fc9a5fe99233bd3778650b26ebe5a85630b54c18447922d",
+    "running_version": "11138802",
+    "latest_before": "11138802",
+    "first_failure": 70,
+    "fastest_confirmed": 50,
+    "latest_after": "11138802",
+    "fresh": true,
+    "finished_utc": "2026-10-23T23:58:06.916796+00:00",
+    "confirmation_started_utc": "2026-10-23T23:52:33.335133+00:00",
+    "plugin_sha256": {
+      "tf2_archipelago.smx": "a4bbbb9b61342d906d705d601f8885d27523b256563aefd79ec9c6fc5e76b9e3",
+      "tf2_waveprobe.smx": "28725ce77df7b4d86ffb6a0420989aae14426d395619d001dfe14f0dc45f2def"
+    }
+  },
+  "speeds": [
+    {
+      "speed": 20,
+      "runs": 3,
+      "complete_clean_runs": 3,
+      "passed": 42,
+      "expected": 42,
+      "outcomes": {
+        "passed": 42
+      },
+      "mean_seconds": 89.35757460500038,
+      "min_seconds": 88.02419025399831,
+      "max_seconds": 90.02507092700034,
+      "seeds": [
+        1
+      ],
+      "by_mode": {
+        "normal": {
+          "passed": 21
+        },
+        "surge": {
+          "passed": 21
+        }
+      }
+    },
+    {
+      "speed": 30,
+      "runs": 2,
+      "complete_clean_runs": 2,
+      "passed": 28,
+      "expected": 28,
+      "outcomes": {
+        "passed": 28
+      },
+      "mean_seconds": 65.02275616000043,
+      "min_seconds": 64.02318019599988,
+      "max_seconds": 66.02233212400097,
+      "seeds": [
+        1
+      ],
+      "by_mode": {
+        "normal": {
+          "passed": 14
+        },
+        "surge": {
+          "passed": 14
+        }
+      }
+    },
+    {
+      "speed": 40,
+      "runs": 2,
+      "complete_clean_runs": 2,
+      "passed": 28,
+      "expected": 28,
+      "outcomes": {
+        "passed": 28
+      },
+      "mean_seconds": 53.01687696249974,
+      "min_seconds": 52.01768348100086,
+      "max_seconds": 54.016070443998615,
+      "seeds": [
+        1
+      ],
+      "by_mode": {
+        "normal": {
+          "passed": 14
+        },
+        "surge": {
+          "passed": 14
+        }
+      }
+    },
+    {
+      "speed": 50,
+      "runs": 5,
+      "complete_clean_runs": 5,
+      "passed": 70,
+      "expected": 70,
+      "outcomes": {
+        "passed": 70
+      },
+      "mean_seconds": 48.41848989039936,
+      "min_seconds": 48.013550624000345,
+      "max_seconds": 50.014507424999465,
+      "seeds": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "by_mode": {
+        "normal": {
+          "passed": 35
+        },
+        "surge": {
+          "passed": 35
+        }
+      }
+    },
+    {
+      "speed": 60,
+      "runs": 4,
+      "complete_clean_runs": 3,
+      "passed": 55,
+      "expected": 56,
+      "outcomes": {
+        "passed": 55,
+        "probe error": 1
+      },
+      "mean_seconds": 47.01531956125018,
+      "min_seconds": 44.01411996100069,
+      "max_seconds": 50.014703009001096,
+      "seeds": [
+        1,
+        2,
+        3
+      ],
+      "by_mode": {
+        "normal": {
+          "passed": 28
+        },
+        "surge": {
+          "passed": 27,
+          "probe error": 1
+        }
+      }
+    },
+    {
+      "speed": 65,
+      "runs": 3,
+      "complete_clean_runs": 2,
+      "passed": 41,
+      "expected": 42,
+      "outcomes": {
+        "passed": 41,
+        "probe error": 1
+      },
+      "mean_seconds": 46.682580198333504,
+      "min_seconds": 44.018912593001005,
+      "max_seconds": 50.01395149399832,
+      "seeds": [
+        1,
+        2
+      ],
+      "by_mode": {
+        "normal": {
+          "passed": 21
+        },
+        "surge": {
+          "passed": 20,
+          "probe error": 1
+        }
+      }
+    },
+    {
+      "speed": 70,
+      "runs": 2,
+      "complete_clean_runs": 1,
+      "passed": 27,
+      "expected": 28,
+      "outcomes": {
+        "passed": 27,
+        "probe error": 1
+      },
+      "mean_seconds": 48.0165181225002,
+      "min_seconds": 46.01778769700104,
+      "max_seconds": 50.01524854799936,
+      "seeds": [
+        1
+      ],
+      "by_mode": {
+        "normal": {
+          "passed": 14
+        },
+        "surge": {
+          "passed": 13,
+          "probe error": 1
+        }
+      }
+    }
+  ]
+}
