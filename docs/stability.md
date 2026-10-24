@@ -65,7 +65,7 @@ The existing detailed wave report calls `passed / tested` its stability score.
 The repository dashboard deliberately uses `passed / eligible` so an interrupted
 run cannot inflate its badge. Both counts appear in the evidence.
 
-The daily and local sweeps enable `-reverse-objectives`: all 112 playable
+The daily and local sweeps enable `-reverse-objectives`: all 122 catalog
 reverse wave/mode cases count in the score, with zero reverse exclusions.
 The probe observes native bomb capture, control-point capture, authored boss
 deaths, building repair, escort stages, and tank delivery as appropriate to the
@@ -73,8 +73,10 @@ mission. Missing objective evidence is a probe error and counts against the
 percentage. No winning relays, capture outputs, building health or ownership
 are forced. See [reverse coverage](reverse-waveprobe.md) for exact witnesses and
 fixture limitations.
-The catalog marks 16 missions (174 wave/mode cases) as `no_nav`; those remain
-outside its playable plan. The score
+The catalog audit recovered 16 missions (174 wave/mode cases) whose navigation
+was embedded in their BSPs. All 2,628 catalog cases now enter the plan; no current
+mission is excluded for navigation. Archive installation receipts include the
+catalog identity so existing installs receive those recovered popfiles. The score
 measures wave completion under this probe's strategy. It does not measure
 human client joins, multiworld connectivity, performance, or every bot shopping
 and combat path. The separate defender-bot release gate remains useful.
@@ -91,8 +93,8 @@ No self-hosted runners are required. Twelve balanced mission shards run for each
 of Ubuntu 24.04, Docker on Ubuntu 24.04, and native Windows Server 2022, using
 standard GitHub-hosted runners. At most twelve measurement jobs run together.
 A deterministic manifest assigns whole missions by planned wave/mode count,
-longest first, to the least-loaded shard. The current catalog has 2,454 eligible
-cases (including all 112 reverse cases); twelve shards receive 204–206 each. Both Bot Surge modes stay together.
+longest first, to the least-loaded shard. The current catalog has 2,628 eligible
+cases (including all 122 reverse cases); twelve shards receive 218–220 each. Both Bot Surge modes stay together.
 The workflow's Run dialog can select 6, 12, 18 or 20 shards per environment and
 12, 18 or 20 concurrent jobs. The daily defaults are twelve shards per environment and twelve concurrent jobs;
 standard [Free accounts allow twenty concurrent hosted jobs](https://docs.github.com/en/actions/reference/limits#job-concurrency-limits-for-github-hosted-runners) across workflows.
@@ -137,6 +139,11 @@ to update the report assets and badge branch. No extra secrets or Steam account
 are needed. The prerelease’s assets must remain mutable.
 
 ## Evidence and local use
+
+The [full local validation report](audits/full-reverse-20261024/REPORT.md) records
+the complete playable sweep and final reverse-objective validation. It includes
+first-screen and extended-retry percentages, crash findings, and the recovered
+missions with embedded navigation.
 
 The prerelease contains `REPORT.md`, `stability.json`, three Shields endpoint
 JSON files, and `stability-evidence.zip`. The ZIP contains each environment's
