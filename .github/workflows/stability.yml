@@ -58,6 +58,8 @@ jobs:
           apt-get update
           apt-get install --yes --no-install-recommends nodejs git ca-certificates curl unzip make
       - uses: actions/checkout@v7
+      - name: Trust the checked-out workspace for Go VCS stamping
+        run: git config --global --add safe.directory "$(pwd -P)"
       - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
