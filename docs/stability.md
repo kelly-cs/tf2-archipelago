@@ -105,9 +105,14 @@ eight slots on a Free account for the existing CI and release builds.
 The build uses production CI's Debian container and cache action, matching its
 gzip cache format as well as the exact dependency key. GitHub includes compression
 in a cache's version; a zstd-capable Ubuntu VM misses the gzip entry. The build then
-checks the pinned build stamps and recompiles the plugins. This retains the
-pinned compiler when its original download is temporarily unavailable; a cold
-cache still requires the original pinned upstream artifact.
+checks the pinned build stamps and recompiles the plugins. If a pinned compiler download has been pruned, a cold build resolves that exact
+SourceMod build number in the official branch history, checks its product version,
+and builds its pinned SourcePawn submodule with the pinned AMBuild tool. It records
+the source commits alongside the compiler; it never substitutes the latest compiler.
+Python's packaging module replaces the removed pkg_resources version parser during
+bootstrap, and old compiler warnings remain visible without becoming build errors.
+The production Docker image is built once and distributed to all Docker shards;
+the report downloads measurement evidence and the canonical plan separately.
 The build emits the complete canonical plan; aggregation checks every returned
 shard against its assigned partition and reconstructs coverage from that full
 plan. A missing or failed shard cannot shrink the denominator or become green.
@@ -119,6 +124,13 @@ and retry budgets are unchanged. Cleanup refuses to run on a personal
 or self-hosted machine. Disk checks require 35 GiB free for native installs and
 45 GiB for Docker. A runner that cannot meet that check produces an explicit
 host-setup error; it never silently drops community maps to fit.
+Unexpected native server exits are recorded as crashes, including Windows fatal
+status codes such as 0xc0000409. The checker restarts only its disposable server
+and lets the probe reconnect, preserving the first screen, retries, logs and crash
+verdict. More than three exits in one minute stops recovery. Passing later cases
+never clears a crash; this allows coverage to continue without disguising a
+production failure or spending hours retrying a dead server.
+
 Windows uses the roomiest available volume, so a small workspace drive does
 not waste space reclaimed on the system drive.
 

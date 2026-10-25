@@ -79,6 +79,41 @@ def stop_process(process):
     process.wait(timeout=30)
 
 
+class NativeServer:
+    """Restart only this disposable server; never erase an unexpected exit."""
+    def __init__(self, args, logfile, max_restarts):
+        self.args, self.logfile, self.max_restarts = args, logfile, max_restarts
+        self.events = []
+        self.closed = False
+        self.process = self.spawn("w")
+
+    def spawn(self, mode):
+        with self.logfile.open(mode, encoding="utf-8") as log:
+            return subprocess.Popen(self.args, stdout=log, stderr=log,
+                                    start_new_session=os.name != "nt",
+                                    creationflags=subprocess.CREATE_NEW_CONSOLE if os.name == "nt" else 0)
+
+    def recover(self, phase):
+        if self.closed or self.process.poll() is None:
+            return self.process
+        event = {"exit_code": self.process.returncode, "phase": phase,
+                 "utc": dt.datetime.now(dt.timezone.utc).isoformat(), "monotonic": time.monotonic()}
+        self.events.append(event)
+        with self.logfile.open("a", encoding="utf-8") as log:
+            log.write("\nstability unexpected server exit: " + json.dumps(event) + "\n")
+        recent = sum(event["monotonic"] - prior["monotonic"] < 60 for prior in self.events)
+        if len(self.events) > self.max_restarts or recent > 3:
+            self.closed = True
+            raise RuntimeError("isolated server repeatedly exited; stopping recovery, crash evidence retained")
+        print(f"stability: native server exited ({event['exit_code']}); restarting isolated server", flush=True)
+        self.process = self.spawn("a")
+        return self.process
+
+    def stop(self):
+        self.closed = True
+        stop_process(self.process)
+
+
 def startup_ready(evidence):
     return ("TF2 MvM Archipelago" in evidence and "TF2 MvM wave probe" in evidence
             and not re.search(r"<Failed>|<Error>|<Bad Load>|failed to load|Unknown command",
@@ -122,7 +157,7 @@ def crash_evidence(output):
         path = output / name
         if path.exists():
             for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
-                if re.search(r"Segmentation fault|FATAL ERROR|EXCEPTION_ACCESS_VIOLATION", line, re.IGNORECASE):
+                if re.search(r"Segmentation fault|FATAL ERROR|EXCEPTION_ACCESS_VIOLATION|stability unexpected server exit|0x(?:c0000005|c0000409|c0000374|c000001d|c0000094|c00000fd)", line, re.IGNORECASE):
                     failures.append(f"{name}: {line}")
     return failures
 
@@ -195,8 +230,14 @@ def main(opt):
             "run_url": os.environ.get("STABILITY_RUN_URL", ""), "startup": False,
             "fresh": False, "completed": False, "robot_limiter": False, "crash_free": False}
     process = None
+    native_server = None
     container = "tf2ap-stability-" + uuid.uuid4().hex[:12]
     deadline = time.monotonic() + opt.hours * 3600
+
+    def recover_server(phase):
+        nonlocal process
+        if native_server is not None and meta["startup"]:
+            process = native_server.recover(phase)
 
     def run(args, filename, limit=None, check=True):
         remaining = max(1, deadline - time.monotonic())
@@ -205,16 +246,21 @@ def main(opt):
                 command = subprocess.Popen(args, stdout=stream, stderr=errors,
                                            start_new_session=os.name != "nt")
                 began = time.monotonic()
+                next_progress = began + 30
                 operation_deadline = began + min(remaining, limit or remaining)
                 try:
                     while True:
+                        recover_server(filename)
                         left = operation_deadline - time.monotonic()
                         if left <= 0:
                             raise subprocess.TimeoutExpired(args, operation_deadline - began)
                         try:
-                            status = command.wait(timeout=min(30, left))
+                            status = command.wait(timeout=min(1, left))
                             break
                         except subprocess.TimeoutExpired:
+                            if time.monotonic() < next_progress:
+                                continue
+                            next_progress = time.monotonic() + 30
                             elapsed = time.monotonic() - began
                             detail = ""
                             if filename.endswith(".jsonl"):
@@ -233,11 +279,13 @@ def main(opt):
                     elapsed = time.monotonic() - began
                     meta.setdefault("phase_seconds", {})[filename] = round(elapsed, 2)
                     print(f"stability {filename}: finished after {elapsed:.1f}s", flush=True)
+                recover_server(filename)
                 if check and status:
                     raise subprocess.CalledProcessError(status, args)
                 return status
 
     def rcon(command):
+        recover_server("health")
         result = subprocess.run([binary("rcon"), command], capture_output=True,
                                 text=True, timeout=15, check=True)
         return result.stdout
@@ -277,9 +325,14 @@ def main(opt):
             args += [opt.image]
         else:
             args = [binary("winbed"), "-root", str(root), "-port", port, "-serve"]
-        with (out / "server.log").open("w", encoding="utf-8") as log:
-            process = subprocess.Popen(args, stdout=log, stderr=log, start_new_session=os.name != "nt",
-                                       creationflags=subprocess.CREATE_NEW_CONSOLE if os.name == "nt" else 0)
+        if opt.environment == "docker":
+            with (out / "server.log").open("w", encoding="utf-8") as log:
+                process = subprocess.Popen(args, stdout=log, stderr=log, start_new_session=True)
+        else:
+            missions = {json.loads(line)["mission"] for line in (out / "plan.jsonl").read_text().splitlines() if line}
+            native_server = NativeServer(args, out / "server.log", max(3, len(missions) * 2))
+            process = native_server.process
+            meta["server_exits"] = native_server.events
         hosts = rcon_hosts(opt.environment)
         host_index = 0
         ready_limit = min(deadline, time.monotonic() + 900)
@@ -311,6 +364,7 @@ def main(opt):
             raise ValueError("TF2 changed during setup; rerun against the new build")
         meta["fresh"] = True
         check_robot_limiter(rcon, out / "robot-limiter-before.txt")
+        meta["robot_limiter_before"] = True
         run([binary("waveprobe"), "-rcon", f"{address}:{port}", "-mission", mission,
                       "-mode", "both", "-speed", str(speed), "-seed", "1", "-timeout", "180s", *reverse_flags, *partition],
                      "shard-0.jsonl", check=False)
@@ -337,7 +391,9 @@ def main(opt):
                 subprocess.run(["docker", "rm", "-f", container], capture_output=True, timeout=30, check=False)
             except (OSError, subprocess.SubprocessError) as error:
                 meta["cleanup_error"] = str(error)
-        if process:
+        if native_server is not None:
+            native_server.stop()
+        elif process:
             stop_process(process)
         for relative in ["tf/console.log", "tf/steam.inf", "steamapps/appmanifest_232250.acf"]:
             source = game / relative
