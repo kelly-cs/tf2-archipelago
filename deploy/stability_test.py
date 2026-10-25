@@ -30,6 +30,53 @@ local = module("local-waveprobe")
 
 
 class StabilityTest(unittest.TestCase):
+    def test_native_crash_loop_is_bounded_and_never_cleared_by_cleanup(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            server = runner.NativeServer([sys.executable, "-c", "raise SystemExit(43)"], root / "server.log", 1)
+            try:
+                server.process.wait(timeout=5)
+                server.recover("screen")
+                server.process.wait(timeout=5)
+                with self.assertRaisesRegex(RuntimeError, "repeatedly exited"):
+                    server.recover("retest")
+            finally:
+                server.stop()
+            self.assertEqual(len(server.events), 2)
+            self.assertTrue(runner.crash_evidence(root))
+
+    def test_native_crash_restarts_only_owned_server_and_retains_evidence(self):
+        import time
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            counter = root / "starts"
+            script = root / "server.py"
+            script.write_text("import pathlib,sys,time\np=pathlib.Path(sys.argv[1])\nn=int(p.read_text())+1 if p.exists() else 1\np.write_text(str(n))\nprint('boot',n,flush=True)\nif n==1:sys.exit(41)\ntime.sleep(60)\n")
+            server = runner.NativeServer([sys.executable, str(script), str(counter)], root / "server.log", 3)
+            try:
+                server.process.wait(timeout=5)
+                server.recover("screen")
+                deadline = time.monotonic() + 5
+                while time.monotonic() < deadline and counter.read_text() != "2":
+                    time.sleep(0.01)
+                self.assertEqual(counter.read_text(), "2")
+                self.assertIsNone(server.process.poll())
+                self.assertEqual(server.events[0]["exit_code"], 41)
+                self.assertTrue(runner.crash_evidence(root))
+                self.assertIn("boot 1", (root / "server.log").read_text())
+            finally:
+                server.stop()
+            self.assertEqual(len(server.events), 1)
+
+    def test_windows_fast_fail_is_a_crash_but_ctrl_c_is_not(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            log = root / "server.log"
+            log.write_text("winbed: exit status 0xc0000409\n")
+            self.assertTrue(runner.crash_evidence(root))
+            log.write_text("winbed: exit status 0xc000013a\n")
+            self.assertFalse(runner.crash_evidence(root))
+
     def test_final_health_waits_through_transition_and_incomplete_configs(self):
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory) / "health.txt"

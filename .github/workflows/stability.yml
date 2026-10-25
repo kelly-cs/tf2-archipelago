@@ -56,7 +56,7 @@ jobs:
       - name: Prepare the production CI build environment
         run: |
           apt-get update
-          apt-get install --yes --no-install-recommends nodejs git ca-certificates curl unzip make python3
+          apt-get install --yes --no-install-recommends nodejs git ca-certificates curl unzip make python3 python3-packaging g++
       - uses: actions/checkout@v7
       - name: Trust the checked-out workspace for Go VCS stamping
         run: git config --global --add safe.directory "$(pwd -P)"
@@ -69,10 +69,10 @@ jobs:
           path: extensions
       # Reuse CI's exact production dependency cache. build.sh still verifies
       # its pin stamps and recompiles the plugins; no floating fallback compiler.
-      - uses: actions/cache/restore@v6
+      - uses: actions/cache@v6
         with:
           path: deploy/bots/build
-          key: bots-${{ hashFiles('deploy/env/versions.env', 'deploy/patches/**', 'deploy/bots/*.sh', 'go.mod', 'go.sum') }}
+          key: bots-${{ hashFiles('deploy/env/versions.env', 'deploy/patches/**', 'deploy/bots/*.sh', 'deploy/bots/*.py', 'go.mod', 'go.sum') }}
       - name: Build the native beds with production installer assets
         env:
           BOTS_EXTENSIONS_DIR: ${{ github.workspace }}/extensions
@@ -99,8 +99,33 @@ jobs:
             dist/partition.json
           if-no-files-found: error
 
+  image:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build the production image once for every Docker shard
+        run: |
+          . deploy/env/versions.env
+          docker build -f deploy/Dockerfile.srcds -t tf2ap-stability:current \
+            --build-arg "RIPEXT_VERSION=$RIPEXT_VERSION" \
+            --build-arg "SOURCEMOD_VERSION=$SOURCEMOD_VERSION" \
+            --build-arg "MMSOURCE_VERSION=$MMSOURCE_VERSION" \
+            --build-arg "SIGSEGV_MVM_VERSION=$SIGSEGV_MVM_VERSION" \
+            --build-arg "SIGSEGV_MVM_SHA256=$SIGSEGV_MVM_SHA256" .
+      - name: Export the exact measured image
+        run: docker image save tf2ap-stability:current | gzip > stability-image.tar.gz
+      - uses: actions/upload-artifact@v7
+        with:
+          name: stability-image
+          path: stability-image.tar.gz
+          compression-level: 0
+          retention-days: 7
+          if-no-files-found: error
+
   measure:
-    needs: build
+    needs: [build, image]
+    if: always() && needs.build.result == 'success'
     strategy:
       fail-fast: false
       max-parallel: ${{ fromJSON(needs.build.outputs.parallel) }}
@@ -141,17 +166,14 @@ jobs:
         with:
           name: stability-beds
           path: beds
-      - name: Build the production Docker image from this commit
+      - uses: actions/download-artifact@v8
         if: matrix.environment == 'docker'
-        shell: bash
-        run: |
-          . deploy/env/versions.env
-          docker build -f deploy/Dockerfile.srcds -t tf2ap-stability:current \
-            --build-arg "RIPEXT_VERSION=$RIPEXT_VERSION" \
-            --build-arg "SOURCEMOD_VERSION=$SOURCEMOD_VERSION" \
-            --build-arg "MMSOURCE_VERSION=$MMSOURCE_VERSION" \
-            --build-arg "SIGSEGV_MVM_VERSION=$SIGSEGV_MVM_VERSION" \
-            --build-arg "SIGSEGV_MVM_SHA256=$SIGSEGV_MVM_SHA256" .
+        with:
+          name: stability-image
+          path: image
+      - name: Load the shared production Docker image
+        if: matrix.environment == 'docker'
+        run: docker image load --input image/stability-image.tar.gz
       - name: Start the mod and run every eligible wave in both modes
         shell: python
         run: |
@@ -194,7 +216,7 @@ jobs:
               shutil.rmtree(root, ignore_errors=False) if root.exists() else None
 
   report:
-    needs: [extensions, build, measure]
+    needs: [extensions, build, image, measure]
     if: always() && github.server_url == 'https://github.com'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
@@ -209,8 +231,13 @@ jobs:
       - uses: actions/download-artifact@v8
         continue-on-error: true
         with:
-          pattern: stability-*
+          pattern: stability-*-*
           path: measurements
+      - uses: actions/download-artifact@v8
+        continue-on-error: true
+        with:
+          name: stability-beds
+          path: measurements/stability-beds
       - name: Collect environment evidence
         run: |
           python3 - <<'PY'
