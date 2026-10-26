@@ -9,8 +9,8 @@ checks startup and Decoy Expert in both modes on one runner per environment;
 it publishes an explicitly scoped Actions report and never updates the badges.
 **scope: reverse-smoke** runs every Breaking Walls wave in both modes on one
 runner per environment, also without publishing badges.
-The README widgets link to the report. They show the measurement date; results
-older than 36 hours are stale, including when scheduling stops. A green badge
+The README widgets link to the report. They show passed / planned percentages; the report carries the measurement date.
+Results older than 36 hours are stale, including when scheduling stops. A green badge
 from a previous day is not evidence about a subsequent TF2 update.
 
 Each of twelve shards per environment gets a fresh disposable install of TF2 and both community
@@ -53,17 +53,18 @@ event is the pass criterion. First-pass records survive retries. Nonpasses
 carry spawn/kill/alive counts, progress and timeline/debug evidence.
 
 **Score = passed cases / all eligible planned cases × 100.** Missing results
-count against it. Startup failure, an empty plan, a different source commit or
-an unverified current TF2 build or robot limiter produces an unverified score.
-A recorded engine crash retains the measured wave pass percentage, appears in
-the Result column and keeps the badge red and workflow failing, even if every
-wave passes. A lost, timed-out
-or interrupted run fails the workflow. The report also shows raw coverage and
-each Bot Surge mode separately.
+count against it. Every environment with valid counts displays a percentage,
+even when startup, freshness, limiter or crash checks fail. Those checks appear
+in Result, keep badges red, and fail the workflow. An absent or invalid plan
+shows `n/a`; it cannot become a passing result.
 
-The existing detailed wave report calls `passed / tested` its stability score.
-The repository dashboard deliberately uses `passed / eligible` so an interrupted
-run cannot inflate its badge. Both counts appear in the evidence.
+The dashboard and detailed wave reports use the same denominator. The compact
+release page links to a full report and `issues.csv`, listing environment, map,
+mission, wave, mode, shard, stage and error for every failed or missing case.
+Earlier failures recovered by retries remain in a separate expandable table.
+Crashes include the last observed map/mission/wave when captured; that context
+does not establish which code caused the crash. Raw logs and timelines remain
+in the evidence archive. Release notes stay small even when many cases fail.
 
 The daily and local sweeps enable `-reverse-objectives`: all 122 catalog
 reverse wave/mode cases count in the score, with zero reverse exclusions.
@@ -126,8 +127,10 @@ or self-hosted machine. Disk checks require 35 GiB free for native installs and
 host-setup error; it never silently drops community maps to fit.
 Unexpected native server exits are recorded as crashes, including Windows fatal
 status codes such as 0xc0000409. The checker restarts only its disposable server
-and lets the probe reconnect, preserving the first screen, retries, logs and crash
-verdict. More than three exits in one minute stops recovery. Passing later cases
+and lets the probe reconnect. Before every mission load, the controller reapplies
+and verifies speed, cheat enablement, headless wake-up and reverse support;
+mission configuration then selects the appropriate team and bomb handling.
+First-screen results, retries, logs and the crash verdict are preserved. More than three exits in one minute stops recovery. Passing later cases
 never clears a crash; this allows coverage to continue without disguising a
 production failure or spending hours retrying a dead server.
 

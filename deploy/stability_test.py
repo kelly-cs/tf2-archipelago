@@ -112,12 +112,13 @@ class StabilityTest(unittest.TestCase):
         self.assertEqual(result["score"], 50)
         self.assertEqual(result["status"], "incomplete")
 
-    def test_unverified_inputs_have_no_numeric_score(self):
+    def test_failed_health_checks_retain_passed_over_planned_score(self):
         for change in ({"startup": False}, {"fresh": False}, {"commit": "other"}, {"robot_limiter": False}):
             with self.subTest(change=change):
                 result = report.evaluate({**self.meta, **change}, self.summary, "abc", "123")
-                self.assertIsNone(result["score"])
-        self.assertIsNone(report.evaluate(self.meta, self.summary, "abc", "124")["score"])
+                self.assertEqual(result["score"], 50)
+                self.assertNotEqual(result["status"], "passed")
+        self.assertEqual(report.evaluate(self.meta, self.summary, "abc", "124")["score"], 50)
 
     def test_crash_retains_percentage_without_a_passing_verdict(self):
         result = report.evaluate({**self.meta, "crash_free": False}, self.summary, "abc", "123")
@@ -136,9 +137,61 @@ class StabilityTest(unittest.TestCase):
             self.assertFalse(report.main(source, output, "abc", "https://example.com/run", measured_utc="2026-10-24T14:10:00+00:00", latest="123"))
             badge = json.loads((output/"ubuntu24.json").read_text())
             self.assertIn("100.00%", badge["message"])
-            self.assertIn("engine crash recorded", badge["message"])
+            self.assertEqual(badge["message"], "100.00%")
+            self.assertIn("engine crash recorded", (output / "REPORT.md").read_text())
             self.assertEqual(badge["color"], "red")
             self.assertEqual(json.loads((output/"stability.json").read_text())["measured_utc"], "2026-10-24T14:10:00+00:00")
+
+    def test_real_run_ratios_survive_failed_startup_and_limiter_checks(self):
+        for passed, tested, change, expected in (
+                (2574, 2628, {"crash_free": False}, 97.95),
+                (2350, 2408, {"startup": False}, 89.42),
+                (1547, 2499, {"robot_limiter": False, "crash_free": False}, 58.87)):
+            with self.subTest(passed=passed):
+                result = report.evaluate({**self.meta, **change},
+                    {"eligible_cases":2628,"passed_cases":passed,"tested_cases":tested}, "abc", "123")
+                self.assertEqual(result["score"], expected)
+                self.assertNotEqual(result["status"], "passed")
+
+    def test_issue_exports_include_missing_cases_crashes_and_recovered_retries(self):
+        import csv
+        with tempfile.TemporaryDirectory() as temp:
+            source, output = Path(temp)/"input", Path(temp)/"output"
+            root = source/"windows"
+            root.mkdir(parents=True)
+            plan = [{"mission":"mission","map":"mvm_map","wave":wave,"mode":"normal","state":"planned"}
+                    for wave in (1,2,3)]
+            (root/"plan.jsonl").write_text(''.join(json.dumps(row)+'\n' for row in plan))
+            failure = {**plan[0], "state":"failed","outcome":"wave timed out","error":"delay | <unsafe>\nsecond line"}
+            failed = {**plan[1], "state":"failed","outcome":"wave failed","error":"loss"}
+            (root/"shard-0.jsonl").write_text(json.dumps(failure)+'\n'+json.dumps(failed)+'\n')
+            (root/"retest-0.jsonl").write_text(json.dumps({**plan[0],"state":"passed"})+'\n')
+            (root/"server.log").write_text('WAVEPROBE state=running map=mvm_map pop=mission gamewave=2\nwinbed: exit status 0xc0000409\n')
+            (root/"SUMMARY.json").write_text(json.dumps({"eligible_cases":3,"tested_cases":2,"passed_cases":1}))
+            (root/"environment.json").write_text(json.dumps({**self.meta,"crash_free":False}))
+            (source/"REPORT.md").write_text("obsolete report")
+            (source/"stability.json").write_text("{}")
+            self.assertFalse(report.main(source,output,"abc","https://github.com/example/repo/actions/runs/1"))
+            with (output/"issues.csv").open(newline='') as stream:issues=list(csv.DictReader(stream))
+            self.assertEqual(sum(row["environment"] == "Windows" for row in issues),4)
+            crash = next(row for row in issues if row['stage'].startswith('crash'))
+            self.assertEqual((crash['map'],crash['mission'],crash['wave']),('mvm_map','mission','2'))
+            self.assertTrue(any(row['wave']=='3' and 'not run' in row['error'] for row in issues))
+            self.assertTrue(any(row['stage']=='recovered retry' and '<unsafe>' in row['error'] for row in issues))
+            markdown=(output/"REPORT.md").read_text()
+            self.assertIn('&lt;unsafe&gt;',markdown)
+            self.assertIn('&#124;',markdown)
+            self.assertNotIn('Unsupported Reverse',markdown)
+            self.assertIn('| Environment | Map | Mission | Wave |',markdown)
+            self.assertLess(len((output/"RELEASE.md").read_text()),3000)
+            self.assertIn('/releases/download/stability/issues.csv',(output/'RELEASE.md').read_text())
+            badge=json.loads((output/'windows.json').read_text())
+            self.assertEqual(badge['message'],'33.33%')
+            self.assertEqual(badge['color'],'red')
+            with zipfile.ZipFile(output/'stability-evidence.zip') as archive:
+                self.assertIn('issues.csv',archive.namelist())
+                self.assertEqual(archive.namelist().count('REPORT.md'),1)
+                self.assertNotIn(b'obsolete report',archive.read('REPORT.md'))
 
     def test_bad_or_empty_plan_cannot_pass(self):
         for summary in ({}, {"eligible_cases": 1, "passed_cases": 2, "tested_cases": 1}):
@@ -274,7 +327,7 @@ class StabilityTest(unittest.TestCase):
             meta = json.loads((source / "windows/environment.json").read_text())
             self.assertFalse(meta["completed"])
             self.assertIn("shard 1: missing result", meta["error"])
-            self.assertIsNone(report.evaluate(meta, partial, "abc", "123")["score"])
+            self.assertEqual(report.evaluate(meta, partial, "abc", "123")["score"], 50)
 
     def test_missing_partition_never_falls_back_to_hash_or_stale_passes(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -308,7 +361,7 @@ class StabilityTest(unittest.TestCase):
             data=json.loads((root/"report/stability.json").read_text())
             self.assertEqual(data["scope"],"smoke")
             self.assertEqual(data["environments"]["docker"]["passed"],1)
-            self.assertIn("not full-catalog stability",(root/"report/REPORT.md").read_text())
+            self.assertIn("Smoke subset",(root/"report/REPORT.md").read_text())
 
     def test_no_results_are_rendered_and_archived_as_failures(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -318,7 +371,7 @@ class StabilityTest(unittest.TestCase):
             result = json.loads((output / "stability.json").read_text())
             self.assertEqual(len(result["environments"]), 3)
             self.assertTrue(all(row["status"] == "no result" for row in result["environments"].values()))
-            self.assertIn("unverified", (output / "REPORT.md").read_text())
+            self.assertIn("no result", (output / "REPORT.md").read_text())
             with zipfile.ZipFile(output / "stability-evidence.zip") as archive:
                 self.assertIn("REPORT.md", archive.namelist())
 
@@ -391,7 +444,8 @@ class StabilityTest(unittest.TestCase):
                 runner.check_robot_limiter(lambda _: '"sig_mvm_robot_limit" = "0"', evidence)
             self.assertIn('"0"', evidence.read_text())
         self.meta.pop("robot_limiter")
-        self.assertIsNone(report.evaluate(self.meta, self.summary, "abc")["score"])
+        self.assertEqual(report.evaluate(self.meta, self.summary, "abc")["score"], 50)
+        self.assertNotEqual(report.evaluate(self.meta, self.summary, "abc")["status"], "passed")
 
     def test_reads_server_version_instead_of_steam_depot_buildid(self):
         with tempfile.TemporaryDirectory() as temp:

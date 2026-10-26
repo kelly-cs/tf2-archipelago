@@ -420,6 +420,16 @@ func (s *server) prepare(opt options) error {
 	return nil
 }
 
+// A native server can restart after an engine crash while this controller stays
+// alive. Reapply the verified headless fixture before every mission load,
+// including recovery loads; the server's defaults cannot carry a 50x sweep.
+func (s *server) loadPrepared(opt options, mapName string, mission gamedata.Mission, mode string, force bool) error {
+	if err := s.prepare(opt); err != nil {
+		return fmt.Errorf("restore probe fixture: %w", err)
+	}
+	return s.load(mapName, mission, mode, opt.loadWait, force)
+}
+
 func runMissions(s *server, opt options, missions []gamedata.Mission, modes []string) error {
 	failures := 0
 	for _, mission := range missions {
@@ -431,7 +441,7 @@ func runMissions(s *server, opt options, missions []gamedata.Mission, modes []st
 			return fmt.Errorf("unknown map for %s", mission.PopFile)
 		}
 		for _, mode := range modes {
-			if err := s.load(played.Name, mission, mode, opt.loadWait, false); err != nil {
+			if err := s.loadPrepared(opt, played.Name, mission, mode, false); err != nil {
 				writeResult(loadFailure(mission.PopFile, played.Name, mode, err))
 				failures++
 				if opt.failFast {
@@ -481,7 +491,7 @@ func (s *server) runWaves(opt options, mapName string, mission gamedata.Mission,
 		}
 		// The failed wave may still be running. Reload the mission and jump
 		// ahead so later waves are tested independently too.
-		if err := s.load(mapName, mission, mode, opt.loadWait, true); err != nil {
+		if err := s.loadPrepared(opt, mapName, mission, mode, true); err != nil {
 			writeResult(loadFailure(mission.PopFile, mapName, mode, err))
 			failures++
 			break
