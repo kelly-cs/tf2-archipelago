@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 """Combine independent environment evidence into a dated repository dashboard."""
 import argparse
+import csv
+import html
 import datetime as dt
 import importlib.util
 import json
+import re
 from pathlib import Path
 import shutil
 import subprocess
@@ -12,7 +15,7 @@ import zipfile
 import zlib
 from waveprobe_partition import assignment
 
-ENVIRONMENTS = {"ubuntu24": "Ubuntu 24.04", "docker": "Docker", "windows": "Windows"}
+ENVIRONMENTS = {"ubuntu24": "Ubuntu 24.04", "windows": "Windows", "docker": "Docker"}
 
 
 def read_json(path):
@@ -105,12 +108,14 @@ def evaluate(meta, summary, commit, latest=None):
     eligible = summary.get("eligible_cases", 0)
     passed = summary.get("passed_cases", 0)
     tested = summary.get("tested_cases", 0)
+    counts_valid = (all(type(n) is int for n in (passed, tested, eligible))
+                    and eligible > 0 and 0 <= passed <= tested <= eligible)
     valid = (meta.get("commit") == commit and meta.get("startup") is True
-             and meta.get("fresh") is True and meta.get("robot_limiter") is True and eligible > 0
-             and 0 <= passed <= tested <= eligible
+             and meta.get("fresh") is True and meta.get("robot_limiter") is True
+             and counts_valid
              and (latest is None or meta.get("installed_version") == latest))
     # Missing waves remain in the denominator, including when the runner crashed.
-    score = round(100 * passed / eligible, 2) if valid else None
+    score = round(100 * passed / eligible, 2) if counts_valid else None
     if not meta:
         status = "no result"
     elif meta.get("commit") != commit:
@@ -140,6 +145,105 @@ def evaluate(meta, summary, commit, latest=None):
             "by_mode": summary.get("by_mode", {}), "evidence": meta}
 
 
+def safe(value):
+    return html.escape(str(value), quote=False).replace("|", "&#124;").replace("\r", " ").replace("\n", " ").replace("`", "&#96;")
+
+
+def server_issues(root, environment, shard):
+    """Attach crashes to the last observed case, without claiming it caused them."""
+    path = root / "server.log"
+    if not path.exists():
+        return []
+    issues, context = [], {}
+    crash = re.compile(r"Segmentation fault.*|FATAL ERROR.*|EXCEPTION_ACCESS_VIOLATION.*|SigMod: fault 0x[0-9a-f]+.*|winbed: exit status 0x(?:c0000005|c0000409|c0000374|c000001d|c0000094|c00000fd).*|stability unexpected server exit:.*", re.IGNORECASE)
+    with path.open(encoding="utf-8", errors="replace") as stream:
+        for line in stream:
+            if "WAVEPROBE state=" in line:
+                context = dict(re.findall(r"\b(map|pop|gamewave)=([^\s\"]+)", line))
+            match = crash.search(line)
+            if match:
+                issues.append(dict(environment=environment, map=context.get("map", "—"),
+                                   mission=context.get("pop", "—"), wave=context.get("gamewave", "—"),
+                                   mode="—", shard=shard, stage="crash (last observed case)",
+                                   error=match[0].rstrip('"')))
+    return issues
+
+
+def collect_issues(root, environment, meta):
+    issues = []
+    if not meta:
+        issues.append(dict(environment=environment, map="—", mission="—", wave="—", mode="—",
+                           shard="", stage="server / setup", error="no environment result returned"))
+    parts = meta.get("shards") or [meta]
+    mission_shards = {}
+    for path in root.glob("part-*/global-partition.json"):
+        mission_shards.update(read_json(path).get("missions", {}))
+        break
+    for part in parts:
+        number = part.get("shard", "")
+        path = root / f"part-{number}"
+        if (path / "plan.jsonl").exists():
+            mission_shards.update({row["mission"]: number for row in records(path / "plan.jsonl")})
+        crash_rows = server_issues(path if path.exists() else root, environment, number)
+        issues.extend(crash_rows)
+        errors = [] if crash_rows else list(dict.fromkeys(part.get("crashes", [])))
+        if part.get("error"):
+            errors.append(part["error"])
+        for error in errors:
+            issues.append(dict(environment=environment, map="—", mission="—", wave="—", mode="—",
+                               shard=number, stage="server / setup", error=error))
+    if not (root / "plan.jsonl").exists():
+        return issues
+    spec = importlib.util.spec_from_file_location("wave_report", Path(__file__).with_name("waveprobe-report.py"))
+    wave = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(wave)
+    plan, observed, loads, files, outcome = wave.load_results(root)
+    def finding(key, row, result, stage):
+        error = row.get("error") or result
+        if result == "probe error" and row.get("state") == "passed":
+            error = "reverse completion witness missing or invalid"
+        shard = mission_shards.get(key[0], "")
+        if result == "not run":
+            part = next((p for p in parts if p.get("shard") == shard), {})
+            error = part.get("error", "no case result returned")
+        return dict(environment=environment, map=plan[key]["map"], mission=key[0], wave=key[2],
+                    mode=key[1], shard=shard, stage=stage, error=f"{result}: {error}" if error != result else result)
+    for key in sorted(plan, key=lambda k: (plan[k]["map"], k[0], k[2], k[1])):
+        result = outcome(key)
+        if result not in ("passed", "reverse objective"):
+            row = observed.get(key) or loads.get(key[:2], {})
+            issues.append(finding(key, row, result, "final"))
+    # A passing retry never erases its first failure. Deduplicate repeated errors.
+    seen = set()
+    for path in files:
+        for row in wave.rows(path):
+            key = row["mission"], row["mode"], row["wave"]
+            if key not in plan or outcome(key) != "passed" or wave.classify(row) == "passed":
+                continue
+            issue = finding(key, row, wave.classify(row), "recovered retry")
+            identity = key, issue["error"]
+            if identity not in seen:
+                seen.add(identity)
+                issues.append(issue)
+    return issues
+
+
+def issue_table(issues, title):
+    if not issues:
+        return []
+    lines = [f"<details><summary>{title}</summary>", "",
+             "| Environment | Map | Mission | Wave | Mode | Shard | Stage | Error |",
+             "| --- | --- | --- | ---: | --- | --- | --- | --- |"]
+    for issue in issues:
+        # The CSV and JSON retain the complete error; keep Markdown readable.
+        error = issue["error"]
+        if len(error) > 350:
+            error = error[:347] + "…"
+        lines.append("| " + " | ".join(safe(issue.get(field, "")) for field in
+                     ("environment", "map", "mission", "wave", "mode", "shard", "stage")) + f" | {safe(error)} |")
+    return lines + ["", "</details>", ""]
+
+
 def main(source, output, commit, run_url, check_live=False, scope="full", *, measured_utc=None, latest=None):
     output.mkdir(parents=True, exist_ok=True)
     # Reformatting existing evidence must preserve its original age.
@@ -157,60 +261,61 @@ def main(source, output, commit, run_url, check_live=False, scope="full", *, mea
                for key in ENVIRONMENTS}
     dashboard = {"scope": scope, "measured_utc": now.isoformat(), "commit": commit, "run_url": run_url,
                  "stale_after_hours": 36, "latest_at_report": latest, "environments": results}
-    (output / "stability.json").write_text(json.dumps(dashboard, indent=2) + "\n")
-    lines = ["# TF2-AP daily stability" if scope == "full" else "# TF2-AP startup and wave smoke check", "",
-             "Full-catalog measurement." if scope == "full" else "Smoke check only; this is not full-catalog stability and does not publish badges.", "",
-             f"Updated **{now:%Y-%m-%d %H:%M UTC}** · commit `{commit}` · [Actions run]({run_url})", "",
-             "Results more than 36 hours old are stale. Check the date before relying on a badge.", "",
-             "| Environment | Startup | TF2 ServerVersion | Stability | Passed / planned | Tested | Result |",
+    lines = ["# TF2-AP stability" if scope == "full" else "# TF2-AP smoke check", "",
+             f"Measured **{now:%Y-%m-%d %H:%M UTC}** · [Actions run]({run_url}) · commit `{commit[:12]}`", "",
+             "Percentage = passed / planned; missing cases count against it. Red means a check failed. Results expire after 36 hours.", "",
+             "| Environment | Startup | TF2 build | Passed / planned | Tested | Stability | Result |",
              "| --- | --- | --- | ---: | ---: | ---: | --- |"]
+    if scope != "full":
+        lines.insert(2, "**Smoke subset; does not update full-catalog badges.**\n")
+    all_issues = []
     for key, label in ENVIRONMENTS.items():
         result = results[key]
-        score = f"{result['score']:.2f}%" if result["score"] is not None else "unverified"
-        version = result["evidence"].get("installed_version", "unknown")
-        lines.append(f"| {label} | {'pass' if result['startup'] else 'unverified'} | {version} | "
-                     f"{score} | {result['passed']} / {result['eligible']} | {result['tested']} | {result['status']} |")
-        badge = {"schemaVersion": 1, "label": label,
-                 "message": f"{score} · {result['status']} · {now:%Y-%m-%d}",
-                 "color": "brightgreen" if result["status"] == "passed" else "red",
-                 "cacheSeconds": 300}
-        (output / f"{key}.json").write_text(json.dumps(badge) + "\n")
-    lines += ["", "Score = passed / every eligible planned wave/mode case. Startup, live-build and enabled robot limiter checks are required for a numeric score. "
-              "Unrun waves count against the score. Engine crashes retain the measured percentage, appear in Result and keep the badge red and workflow failing, even at 100% wave completion.", "",
-              "Each mission runs every wave at the recorded speed with Bot Surge off and on. Nonpasses are retried at a 900-second "
-              "wall limit; the original 180-second results remain in the evidence. A pass is a completion witness "
-              "from this automated probe, not a guarantee for every player strategy.", "",
-              "All playable reverse objectives are included in the full-profile denominator. Failures and missing objective evidence count against the percentage. "
-              "Missions without navigation are outside the catalog's playable plan; those blocked entries are not passes.", "",
-              "Download **stability-evidence.zip** for all environment reports, raw results, startup evidence, "
-              "TF2 manifests, and server/SourceMod logs. Previous daily runs retain their evidence as Actions artifacts.", ""]
-    for key, label in ENVIRONMENTS.items():
-        result = results[key]
-        lines += [f"## {label}", "", f"Unsupported Reverse MvM cases: {result['unsupported_reverse']}.", ""]
-        reverse = result["reverse_cases"]
-        lines += [f"Supported reverse mission cases: {reverse['passed']} / {reverse['eligible']} passed; {reverse['tested']} tested.", ""]
+        score = f"{result['score']:.2f}%" if result["score"] is not None else "n/a"
         meta = result["evidence"]
-        lines += [f"Started: {meta.get('started_utc', 'unknown')}. Finished: {meta.get('finished_utc', 'unknown')}.",
-                  f"Host: `{meta.get('host', 'unknown')}`. Running engine: `{meta.get('running_version', 'unknown')}`. "
-                  f"Requested speed: `{meta.get('speed', 'unknown')}×`. "
-                  f"Mission selection: `{meta.get('mission', 'unknown')}`.", ""]
-        lines += [f"Robot limiter enabled at both endpoint checks: {meta.get('robot_limiter') is True}. "
-                  f"No fatal engine errors in captured logs: {meta.get('crash_free') is True}.", ""]
-        if result["evidence"].get("error"):
-            # Escape report content so runner error text cannot inject Markdown.
-            error = str(result["evidence"]["error"]).replace("`", "'").replace("\n", " ")
-            lines += [f"Runner error: `{error}`", ""]
-        lines += ["| Mode | Passed / planned | Tested |", "| --- | ---: | ---: |"]
-        for mode, part in result["by_mode"].items():
-            lines.append(f"| {mode} | {part['passed']} / {part['eligible']} | {part['tested']} |")
-        lines.append("")
+        version = meta.get("installed_version", "unknown")
+        parts = meta.get("shards", [])
+        startup = f"{sum(part.get('startup') is True for part in parts)}/{len(parts)}" if parts else ("pass" if result["startup"] else "failed")
+        lines.append(f"| {label} | {startup} | {safe(version)} | {result['passed']} / {result['eligible']} | "
+                     f"{result['tested']} | {score} | {result['status']} |")
+        badge = {"schemaVersion": 1, "label": label, "message": score,
+                 "color": "brightgreen" if result["status"] == "passed" else "red", "cacheSeconds": 300}
+        (output / f"{key}.json").write_text(json.dumps(badge) + "\n")
+        all_issues.extend(collect_issues(source / key, label, meta))
+    asset_base = run_url.split("/actions/runs/")[0] + "/releases/download/stability/" if "/actions/runs/" in run_url and scope == "full" else ""
+    release_lines = lines + ["", f"[Full report]({asset_base}REPORT.md) · [All issues (CSV)]({asset_base}issues.csv) · [Raw evidence]({asset_base}stability-evidence.zip)", ""]
+    # Release notes have a size limit; full case tables are downloadable assets.
+    (output / "RELEASE.md").write_text("\n".join(release_lines), encoding="utf-8")
+    lines += ["", f"[All issues (CSV)]({asset_base}issues.csv) · Raw logs, retries and wave timelines: `stability-evidence.zip`.", ""]
+    fields = ["environment", "map", "mission", "wave", "mode", "shard", "stage", "error"]
+    with (output / "issues.csv").open("w", newline="", encoding="utf-8") as stream:
+        writer = csv.DictWriter(stream, fieldnames=fields)
+        writer.writeheader()
+        writer.writerows({field: issue.get(field, "") for field in fields} for issue in all_issues)
+    dashboard["issues"] = all_issues
+    (output / "stability.json").write_text(json.dumps(dashboard, indent=2) + "\n")
+    if any(issue["stage"].startswith("crash") for issue in all_issues):
+        lines += ["Crash context is the last observed case, not proof of its cause.", ""]
+    for key, label in ENVIRONMENTS.items():
+        issues = [issue for issue in all_issues if issue["environment"] == label]
+        final = [issue for issue in issues if issue["stage"] != "recovered retry"]
+        recovered = [issue for issue in issues if issue["stage"] == "recovered retry"]
+        lines += [f"## {label}", ""]
+        if not issues:
+            lines += ["No issues recorded.", ""]
+            continue
+        lines += issue_table(final, f"{len(final)} issues")
+        if recovered:
+            lines += issue_table(recovered, f"{len(recovered)} earlier failures recovered on retry")
     report = "\n".join(lines)
     (output / "REPORT.md").write_text(report, encoding="utf-8")
     with zipfile.ZipFile(output / "stability-evidence.zip", "w", zipfile.ZIP_DEFLATED) as archive:
         archive.write(output / "REPORT.md", "REPORT.md")
         archive.write(output / "stability.json", "stability.json")
+        archive.write(output / "issues.csv", "issues.csv")
         for path in sorted(source.rglob("*")):
-            if path.is_file():
+            if path.is_file() and path.relative_to(source).as_posix() not in {
+                    "REPORT.md", "stability.json", "issues.csv", "RELEASE.md", "stability-evidence.zip"}:
                 archive.write(path, path.relative_to(source))
     return all(value["status"] == "passed" for value in results.values())
 

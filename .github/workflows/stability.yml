@@ -259,7 +259,7 @@ jobs:
             --partition measurements/stability-beds/partition.json --scope "$STABILITY_SCOPE"
       - name: Show the consolidated dashboard
         if: always()
-        run: cat dashboard/REPORT.md >> "$GITHUB_STEP_SUMMARY"
+        run: cat dashboard/RELEASE.md >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v7
         if: always()
         with:
@@ -274,10 +274,10 @@ jobs:
         run: |
           if ! gh release view stability >/dev/null 2>&1; then
             gh release create stability --target "$GITHUB_SHA" --prerelease --latest=false \
-              --title 'Daily stability' --notes-file dashboard/REPORT.md
+              --title 'Daily stability' --notes-file dashboard/RELEASE.md
           fi
           gh release upload stability dashboard/* --clobber
-          gh release edit stability --prerelease --latest=false --notes-file dashboard/REPORT.md
+          gh release edit stability --prerelease --latest=false --notes-file dashboard/RELEASE.md
           python3 deploy/stability-publish.py dashboard --repository "$GITHUB_REPOSITORY"
       - name: Fail the daily check when any environment is unverified or failing
         if: steps.score.outcome != 'success'

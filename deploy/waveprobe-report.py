@@ -137,14 +137,15 @@ def main(run_dir):
         mode_passed = sum(outcomes[key] == "passed" for key in keys)
         per_mode[mode] = {"eligible": len(keys), "tested": mode_tested,
                           "passed": mode_passed,
-                          "stability_percent": round(100 * mode_passed / mode_tested, 2) if mode_tested else None}
+                          "stability_percent": round(100 * mode_passed / len(keys), 2) if keys else None}
     reverse = [key for key in plan if "_rev_" in key[0] and plan[key]["state"] != "unsupported_reverse"]
     summary = {"reverse_cases": {"eligible": len(reverse),
                                 "tested": sum(outcomes[key] != "not run" for key in reverse),
                                 "passed": sum(outcomes[key] == "passed" for key in reverse)},
                "planned_cases": len(plan), "eligible_cases": eligible,
                "tested_cases": tested, "passed_cases": passed,
-               "stability_percent": round(100 * passed / tested, 2) if tested else None,
+               "stability_percent": round(100 * passed / eligible, 2) if eligible else None,
+               "tested_pass_percent": round(100 * passed / tested, 2) if tested else None,
                "verified_coverage_percent": round(100 * passed / eligible, 2) if eligible else None,
                "outcomes": {name: counts[name] for name in RESULTS}, "by_mode": per_mode}
     (run_dir / "SUMMARY.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
@@ -152,21 +153,10 @@ def main(run_dir):
     print("# MvM wave smoke probe\n")
     if settings.get("scope"):
         print(f"Subset: {safe(settings['scope'])}.\n")
-    print(f"## Stability score: **{pct(passed, tested)}** ({passed}/{tested} tested wave/mode cases passed)\n")
-    print(f"**Verified coverage:** {pct(passed, eligible)} ({passed}/{eligible} eligible cases); "
-          f"**tested:** {tested}/{eligible}; **missions:** {len({key[0] for key in plan})}. "
-          "A pass requires the game's wave-complete event and an observed enemy spawn.\n")
-    print("The stability score uses tested cases; verified coverage uses the full eligible plan, "
-          "so unrun waves cannot silently improve it. The full reverse-objective profile counts every playable reverse case, including failures. Any explicitly disabled profile cases are listed separately.\n")
-    print("This score measures the current automated probe at the configured speed and "
-          "kill timing. A nonpass is a reproducible probe observation, not by itself "
-          "proof that a player cannot finish the wave.\n")
-    print(f"Started {settings.get('started_utc', 'unknown')} · {settings.get('shards', '?')} isolated servers · "
-          f"requested speed {settings.get('speed', '?')}× · {settings.get('wave_timeout', '?')} "
-          f"**real-time** limit after wave start · seed {settings.get('seed', '1')}.\n")
-    if settings.get("first_pass_timeout"):
-        print(f"Every wave gets a {settings['first_pass_timeout']} first pass; every nonpass is "
-              f"retried with the {settings.get('wave_timeout', '?')} real-time limit before the final score.\n")
+    print(f"## Stability score: **{pct(passed, eligible)}** ({passed}/{eligible} planned cases passed)\n")
+    print(f"Tested **{tested}/{eligible}** · {len({key[0] for key in plan})} missions · "
+          f"{settings.get('speed', '?')}× · seed {settings.get('seed', '1')} · "
+          f"screen {settings.get('first_pass_timeout', '?')}, retry {settings.get('wave_timeout', '?')} wall time.\n")
     if settings.get("source_commit") or settings.get("main_commit"):
         print(f"Source commit `{settings.get('source_commit', 'unknown')}` · "
               f"upstream main `{settings.get('main_commit', 'unknown')}`.\n")
@@ -174,25 +164,21 @@ def main(run_dir):
         print(f"Retry runner commit `{settings['retry_commit']}`. The first pass used the source commit above.\n")
     print("| Result | Bot Surge off | Bot Surge on | Total |\n| --- | ---: | ---: | ---: |")
     for name in RESULTS:
+        if not counts[name]:
+            continue
         normal = sum(value == name for key, value in outcomes.items() if key[1] == "normal")
         surge = sum(value == name for key, value in outcomes.items() if key[1] == "surge")
         print(f"| {name.title()} | {normal} | {surge} | **{counts[name]}** |")
     print()
-    print("**Wave failed** is the game's loss event; **Wave 0** means the population manager did "
-          "not initialize a wave; **No enemies spawned** means no BLU bot or tank was observed "
-          "in a standard wave. **Wave timed out** means no completion after the real-time limit "
-          "despite observed enemies. **Changelevel failure** means the responsive server "
-          "remained on a different map after the load deadline; the command reply and map "
-          "states are recorded below. Probe errors and other load blocks are separate.\n")
     print("| Mode | Stability | Passed | Tested | Eligible |\n| --- | ---: | ---: | ---: | ---: |")
     for mode in modes:
         part = per_mode[mode]
-        print(f"| {MODES[mode]} | {pct(part['passed'], part['tested'])} | "
+        print(f"| {MODES[mode]} | {pct(part['passed'], part['eligible'])} | "
               f"{part['passed']} | {part['tested']} | {part['eligible']} |")
     print()
 
     issue_names = set(RESULTS[1:-2])
-    issues = sorted((key for key, value in outcomes.items() if value in issue_names),
+    issues = sorted((key for key, value in outcomes.items() if value in issue_names or value == "not run"),
                     key=lambda key: (plan[key]["map"], key[0], key[2], key[1]))
     if issues:
         print("## Waves to inspect\n")
