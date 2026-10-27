@@ -27,7 +27,8 @@ def install_error(path):
         line = re.sub(r"(?:\x1b|\\x1b)\[[0-9;]*m", "", line)
         if "ERROR!" in line:
             messages.append(line[line.index("ERROR!") + 6:].strip())
-    if "SteamCMD could not install" in stderr and messages:
+    steam_metadata_error = re.search(r"Info request for AppId \d+ returned error Timeout|Failed to load platform info", text(path))
+    if messages and ("SteamCMD could not install" in stderr or steam_metadata_error):
         return "SteamCMD: " + "; ".join(list(dict.fromkeys(messages))[-4:])
     # The first stderr line carries winbed's cause; joined follow-on errors can
     # merely say the probe's destination does not exist after a failed install.
