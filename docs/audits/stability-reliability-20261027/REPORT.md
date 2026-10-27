@@ -40,5 +40,12 @@ then verifies startup, current build, game results, final health and limiter.
 
 Validation: 72 Python tests, workflow actionlint, Python syntax and whitespace
 checks pass. Regression tests cover preserved partial package caches, cache path
-confinement, mirror priorities and crashes after a Docker startup retry. Native
-Ubuntu mirror/cache validation is performed by the next hosted smoke run.
+confinement, mirror priorities and crashes after a Docker startup retry. The follow-up [hosted smoke 40435744059](https://github.com/kelly-cs/tf2-archipelago/actions/runs/40435744059)
+is green on all three environments: **42/42** cases. Startup, latest build
+11138802, final health, crash and production limiter checks all pass. Ubuntu
+host setup completed in **52 seconds**, Docker in **21 seconds**, versus the
+previous native Ubuntu 20-minute package timeout. Both Linux package caches
+saved successfully (90,219,514 bytes Ubuntu; 1,015,202 bytes Docker), ready for
+later shards/runs. Exact timing and source provenance are recorded in
+`verified-smoke.json`. This smoke verifies one standard mission per environment,
+not a full-catalog stability score.
