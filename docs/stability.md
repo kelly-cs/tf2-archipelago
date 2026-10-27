@@ -120,7 +120,12 @@ plan. A missing or failed shard cannot shrink the denominator or become green.
 
 Before installing TF2, jobs reclaim optional SDK space only until the game
 volume has its required space plus a 5 GiB reserve, and
-install Linux’s 32-bit runtime libraries. Docker hosts install only SteamCMD’s
+install Linux’s 32-bit runtime libraries. Linux runners prefer Ubuntu's existing
+HTTPS archive over the slow Azure HTTP mirror, retaining both fallback mirrors.
+Downloaded `.deb` files are cached per environment with a daily key; APT still
+checks current repository versions and hashes. Complete downloads from a timed-out
+attempt are retained, and cache failures do not block the checks. This cache holds
+OS packages, not TF2: every game install/update and current-build check still runs. Docker hosts install only SteamCMD’s
 compatibility libraries; the production image supplies the engine libraries. Host preparation is bounded at 30 minutes; game-wave
 and retry budgets are unchanged. Cleanup refuses to run on a personal
 or self-hosted machine. Disk checks require 35 GiB free for native installs and
@@ -135,6 +140,11 @@ Steam metadata/login timeouts get at most three installation attempts with
 staggered backoff inside the original two-hour setup budget. Each attempt keeps
 its logs; bad pins, missing libraries and game failures are not network retries.
 Reports show the captured installer cause, and explicitly say when no waves ran.
+Docker's entrypoint can hit the same Steam timeout after the launcher installer
+succeeds. Before readiness only, those specific metadata/login timeouts get up to
+three logged startup attempts inside the original 15-minute readiness window.
+Failed mod loads and engine crashes are not startup network retries. Crashes in
+any retry log still fail the measurement.
 
 First-screen results, retries, logs and the crash verdict are preserved. More than three exits in one minute stops recovery. Passing later cases
 never clears a crash; this allows coverage to continue without disguising a

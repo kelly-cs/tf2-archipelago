@@ -16,7 +16,7 @@ import time
 import urllib.request
 import uuid
 
-from stability_errors import install_error, transient_install_error
+from stability_errors import install_error, steam_network_timeout, transient_install_error
 
 
 def live_version():
@@ -155,7 +155,8 @@ def crash_evidence(output):
     # srcds_run restarts a crashed engine. A later healthy RCON reply must not
     # erase a fatal error from startup or an earlier wave in this measurement.
     failures = []
-    for name in ("server.log", "docker.log", "console.log"):
+    for name in ["server.log", "docker.log", "console.log",
+                 *(p.name for p in sorted(output.glob("server-attempt-*.log")))]:
         path = output / name
         if path.exists():
             for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
@@ -360,19 +361,35 @@ def main(opt):
             native_server = NativeServer(args, out / "server.log", max(3, len(missions) * 2))
             process = native_server.process
             meta["server_exits"] = native_server.events
+        startup_log = out / "server.log"
+        meta["startup_attempts"] = 1
         hosts = rcon_hosts(opt.environment)
         host_index = 0
         ready_limit = min(deadline, time.monotonic() + 900)
         while time.monotonic() < ready_limit:
             if process.poll() is not None:
-                raise RuntimeError("server exited before readiness")
+                attempt = meta["startup_attempts"]
+                delay = (30 if attempt == 1 else 90) + shard * 3
+                if (opt.environment == "docker" and attempt < 3 and steam_network_timeout(startup_log)
+                        and time.monotonic() + delay + 30 < ready_limit):
+                    meta.setdefault("startup_retries", []).append({
+                        "attempt": attempt, "error": install_error(startup_log), "log": startup_log.name})
+                    print(f"stability: Docker Steam update timed out; startup retry {attempt + 1}/3 in {delay}s; logs retained", flush=True)
+                    time.sleep(delay)
+                    meta["startup_attempts"] += 1
+                    startup_log = out / f"server-attempt-{meta['startup_attempts']}.log"
+                    with startup_log.open("w", encoding="utf-8") as log:
+                        process = subprocess.Popen(args, stdout=log, stderr=log, start_new_session=True)
+                    continue
+                raise PhaseFailure(startup_log.name, process.returncode,
+                                   install_error(startup_log) or "server exited before readiness")
             os.environ["SRCDS_RCON_HOST"] = hosts[host_index % len(hosts)]
             host_index += 1
             try:
                 evidence = "\n".join(rcon(cmd) for cmd in
                                      ["version", "sm plugins list", "sm exts list", "sm_waveprobe_status"])
                 (out / "startup.txt").write_text(evidence, encoding="utf-8")
-                if startup_ready(evidence):
+                if startup_ready(evidence) and process.poll() is None:
                     break
             except (subprocess.SubprocessError, OSError):
                 pass

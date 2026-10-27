@@ -38,9 +38,11 @@ def install_error(path):
     return None
 
 
-def transient_install_error(path):
-    stderr = text(str(path) + ".err")
-    if "SteamCMD could not install" not in stderr:
-        return False
+def steam_network_timeout(path):
     return bool(re.search(r"Info request for AppId \d+ returned error Timeout|Failed to load platform info|ERROR! \(Timed out\)|No Connection",
                           text(path), re.IGNORECASE))
+
+
+def transient_install_error(path):
+    stderr = text(str(path) + ".err")
+    return "SteamCMD could not install" in stderr and steam_network_timeout(path)

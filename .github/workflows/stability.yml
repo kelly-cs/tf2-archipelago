@@ -151,14 +151,35 @@ jobs:
       STABILITY_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
     steps:
       - uses: actions/checkout@v7
+      - name: Set the daily package cache key
+        if: runner.os == 'Linux'
+        id: apt-key
+        shell: bash
+        run: echo "day=$(date -u +%F)" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache/restore@v6
+        continue-on-error: true
+        if: runner.os == 'Linux'
+        id: apt-restore
+        with:
+          path: ${{ runner.temp }}/tf2ap-apt-cache
+          key: stability-apt-${{ matrix.environment }}-${{ hashFiles('deploy/stability-host.py') }}-${{ steps.apt-key.outputs.day }}
+          restore-keys: stability-apt-${{ matrix.environment }}-${{ hashFiles('deploy/stability-host.py') }}-
       - name: Reclaim optional SDK space and check the game volume
+        id: host
         timeout-minutes: 30
         env:
           STABILITY_RUNNER_ENVIRONMENT: ${{ runner.environment }}
+          STABILITY_APT_CACHE: ${{ runner.temp }}/tf2ap-apt-cache
         shell: python
         run: |
           import runpy
           runpy.run_path("deploy/stability-host.py", run_name="__main__")
+      - uses: actions/cache/save@v6
+        continue-on-error: true
+        if: always() && runner.os == 'Linux' && steps.apt-restore.outputs.cache-hit != 'true' && steps.host.outputs.apt_cache_files == 'true' && steps.apt-restore.outputs.cache-primary-key != ''
+        with:
+          path: ${{ runner.temp }}/tf2ap-apt-cache
+          key: ${{ steps.apt-restore.outputs.cache-primary-key }}
       - uses: actions/setup-python@v7
         with:
           python-version: '3.13'

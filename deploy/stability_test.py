@@ -276,6 +276,56 @@ class StabilityTest(unittest.TestCase):
             self.assertTrue(any("libsdl2-2.0-0:i386" in call.args[0] for call in run.call_args_list))
             self.assertTrue(any("--add-architecture" in call.args[0] for call in run.call_args_list))
 
+    @unittest.skipIf(os.name == "nt", "Linux package fixture")
+    def test_package_cache_preserves_complete_downloads_after_timeout(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            cache=root/'tf2ap-apt-cache'
+            cache.mkdir()
+            (cache/'downloaded.deb').write_text('fixture')
+            def command(args, **kwargs):
+                if 'install' in args:
+                    raise subprocess.CalledProcessError(124,args)
+            with mock.patch.dict(os.environ, {'STABILITY_RUNNER_ENVIRONMENT':'github-hosted','STABILITY_ENV':'ubuntu24',
+                    'RUNNER_TEMP':str(root),'GITHUB_ENV':str(root/'env'),'GITHUB_OUTPUT':str(root/'output'),'STABILITY_APT_CACHE':str(cache)}), \
+                    mock.patch.object(host.shutil,'disk_usage',return_value=SimpleNamespace(free=100*1024**3)), \
+                    mock.patch.object(host.subprocess,'run',side_effect=command) as run:
+                with self.assertRaises(subprocess.CalledProcessError):host.main()
+            self.assertIn('apt_cache_files=true',(root/'output').read_text())
+            self.assertTrue(any(f'Dir::Cache::archives={cache}' in call.args[0] for call in run.call_args_list))
+            self.assertTrue(any('chmod' in call.args[0] for call in run.call_args_list))
+            self.assertFalse((root/'env').exists())
+
+    @unittest.skipIf(os.name == "nt", "Linux package fixture")
+    def test_package_cache_must_stay_in_ephemeral_job_directory(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            with mock.patch.dict(os.environ, {'STABILITY_RUNNER_ENVIRONMENT':'github-hosted','STABILITY_ENV':'docker',
+                    'RUNNER_TEMP':str(root/'job'),'GITHUB_ENV':str(root/'env'),'STABILITY_APT_CACHE':str(root/'outside')}), \
+                    mock.patch.object(host.shutil,'disk_usage',return_value=SimpleNamespace(free=100*1024**3)), \
+                    mock.patch.object(host.subprocess,'run'):
+                with self.assertRaisesRegex(ValueError,'inside this job'):host.main()
+
+    def test_mirror_preference_keeps_the_existing_signed_ubuntu_repositories(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path=Path(directory)/'mirrors.txt'
+            path.write_text('http://azure.archive.ubuntu.com/ubuntu/\tpriority:1\nhttps://archive.ubuntu.com/ubuntu/\tpriority:2\nhttps://security.ubuntu.com/ubuntu/\tpriority:3\n')
+            with mock.patch.object(host.subprocess,'run') as run:
+                host.prefer_ubuntu_archive(path)
+            update=run.call_args.kwargs['input']
+            self.assertIn('https://archive.ubuntu.com/ubuntu/\tpriority:1',update)
+            self.assertIn('http://azure.archive.ubuntu.com/ubuntu/\tpriority:2',update)
+            self.assertIn('https://security.ubuntu.com/ubuntu/\tpriority:3',update)
+
+    def test_crash_after_docker_startup_retry_still_fails(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            (root/'server.log').write_text('ERROR! Failed to load platform info\n')
+            (root/'server-attempt-2.log').write_text('WAVEPROBE state=running map=mvm_decoy pop=mission gamewave=2\nSegmentation fault (core dumped)\n')
+            self.assertTrue(runner.crash_evidence(root))
+            issue=report.server_issues(root,'Docker',0)[0]
+            self.assertEqual((issue['map'],issue['mission'],issue['wave']),('mvm_decoy','mission','2'))
+
     @unittest.skipIf(os.name == "nt", "Linux package setup fixture")
     def test_failed_dependency_install_cannot_export_a_ready_game_root(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -504,6 +554,12 @@ class StabilityTest(unittest.TestCase):
                 elif name == 'docker':
                     print(json.dumps(args), flush=True)
                     if args[0] == 'run' and '--entrypoint' not in args:
+                        marker = pathlib.Path(__file__).with_name('first-start-failed')
+                        if not marker.exists():
+                            marker.touch()
+                            print('ERROR! Info request for AppId 7 returned error Timeout.', flush=True)
+                            print('ERROR! Failed to load platform info', flush=True)
+                            sys.exit(5)
                         time.sleep(300)
                 else:
                     with pathlib.Path(__file__).with_name('probe-args.jsonl').open('a') as f:
@@ -527,6 +583,9 @@ class StabilityTest(unittest.TestCase):
                 self.assertEqual(runner.main(opt), 0)
             meta = json.loads((output / "environment.json").read_text())
             summary = json.loads((output / "SUMMARY.json").read_text())
+            self.assertEqual(meta["startup_attempts"], 2)
+            self.assertEqual(len(meta["startup_retries"]), 1)
+            self.assertIn("SteamCMD", meta["startup_retries"][0]["error"])
             self.assertEqual(meta["install_attempts"], 2)
             self.assertIn("Failed to load platform info", (output / "install.log").read_text())
             self.assertTrue((output / "install-attempt-2.log").exists())
@@ -536,7 +595,7 @@ class StabilityTest(unittest.TestCase):
             self.assertEqual(summary["passed_cases"], 2)
             self.assertEqual(summary["tested_cases"], summary["eligible_cases"])
             self.assertIn("Retesting 0", (output / "retest.log").read_text())
-            self.assertIn("SRCDS_MOD_LOADING=always", (output / "server.log").read_text())
+            self.assertIn("SRCDS_MOD_LOADING=always", (output / "server-attempt-2.log").read_text())
             self.assertIn("speed=50", (output / "config.txt").read_text())
             self.assertIn("reverse_bombs=1", (output / "config.txt").read_text())
             calls = [json.loads(line) for line in (bed / "probe-args.jsonl").read_text().splitlines()]
