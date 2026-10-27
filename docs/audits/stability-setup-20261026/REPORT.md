@@ -10,7 +10,8 @@ planned, not 2,628 observed wave losses per environment.
 | Windows | 12 | 0 | 0 |
 | Docker | 6 | 6 | 0 |
 
-All 29 game-install failures contain Steam metadata/login timeouts. Most show
+All 29 Steam-related setup failures contain metadata/login timeouts: 28 game
+installs and one Docker entrypoint update after installation succeeded. Most show
 `Info request for AppId 7 returned error Timeout` followed by `Failed to load
 platform info`; one Windows runner timed out requesting AppId 232250, and one
 Docker runner also timed out waiting for user info. SteamCMD exited 5 or 8.
@@ -35,7 +36,7 @@ existing setup deadline; retain every attempt's logs; stop winbed immediately
 after failed game installation; install only SteamCMD compatibility libraries
 on Docker hosts while keeping all native Ubuntu engine dependencies.
 
-Validation: 67 Python tests pass, including a real child-process first-install
+Validation: 68 Python tests pass, including a real child-process first-install
 failure followed by recovery, persistent service failure, deadline exhaustion,
 non-retryable dependency errors and extraction of the captured Linux/Windows
 log formats. Full Go race/shuffle tests, Go lint, Windows winbed cross-build,

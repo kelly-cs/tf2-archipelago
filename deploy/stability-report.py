@@ -197,6 +197,8 @@ def collect_issues(root, environment, meta):
                     if cause:
                         error = cause
                         break
+            if error == "server exited before readiness":
+                error = install_error(path / "server.log") or error
             if error.startswith("host setup failed:") and "exit status 124" in error:
                 error = "Host package installation exceeded its 20-minute limit (apt-get)."
             part_errors[number] = error

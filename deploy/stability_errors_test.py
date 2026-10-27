@@ -31,6 +31,12 @@ class SetupFailureTest(unittest.TestCase):
             path.write_text(path.read_text().replace(r"\\x1b", r"\x1b"))
             self.assertEqual(install_error(path), 'SteamCMD: Info request for AppId 7 returned error Timeout.; Failed to load platform info')
 
+    def test_docker_entrypoint_metadata_failure_does_not_need_wrapper_stderr(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory)/'server.log'
+            path.write_text('Waiting for client config...ERROR! Info request for AppId 7 returned error Timeout.\nERROR! Failed to load platform info\n[AP] the TF2 update failed, SteamCMD exited 5\n')
+            self.assertEqual(install_error(path),'SteamCMD: Info request for AppId 7 returned error Timeout.; Failed to load platform info')
+
     def test_missing_case_reports_steam_cause_from_legacy_installer_logs(self):
         spec = importlib.util.spec_from_file_location('setup_report', Path(__file__).with_name('stability-report.py'))
         report = importlib.util.module_from_spec(spec)
