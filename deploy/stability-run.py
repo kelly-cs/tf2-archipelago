@@ -16,6 +16,8 @@ import time
 import urllib.request
 import uuid
 
+from stability_errors import install_error, transient_install_error
+
 
 def live_version():
     url = "https://api.steampowered.com/ISteamApps/UpToDateCheck/v1/?appid=440&version=1"
@@ -193,6 +195,30 @@ def rcon_hosts(environment):
     return list(dict.fromkeys(hosts))
 
 
+class PhaseFailure(RuntimeError):
+    def __init__(self, phase, status, detail):
+        self.phase = phase
+        super().__init__(f"{phase} exited {status}: {detail or 'see captured logs'}")
+
+
+def install_with_retries(run, args, output, deadline, shard):
+    # Preserve caches and failed logs. Never retry bad pins, missing libraries,
+    # corrupt assets or game failures as if they were Steam network failures.
+    deadline = min(deadline, time.monotonic() + 7200)
+    for attempt in range(1, 4):
+        filename = "install.log" if attempt == 1 else f"install-attempt-{attempt}.log"
+        try:
+            run(args, filename, max(1, deadline - time.monotonic()))
+            return attempt
+        except PhaseFailure:
+            delay = (30 if attempt == 1 else 90) + shard * 3
+            if (attempt == 3 or not transient_install_error(output / filename)
+                    or time.monotonic() + delay >= deadline):
+                raise
+            print(f"stability: transient Steam install failure; retry {attempt + 1}/3 in {delay}s; logs retained", flush=True)
+            time.sleep(delay)
+
+
 def main(opt):
     out = opt.output.resolve()
     out.mkdir(parents=True, exist_ok=True)
@@ -281,7 +307,7 @@ def main(opt):
                     print(f"stability {filename}: finished after {elapsed:.1f}s", flush=True)
                 recover_server(filename)
                 if check and status:
-                    raise subprocess.CalledProcessError(status, args)
+                    raise PhaseFailure(filename, status, install_error(out / filename))
                 return status
 
     def rcon(command):
@@ -303,8 +329,9 @@ def main(opt):
             f"shards=1\nreverse_objectives={int(reverse_objectives)}\nreverse_bombs={int(reverse_bombs)}\nspeed={speed}\nseed=1\nfirst_pass_timeout=180s\nwave_timeout=900s\n"
             f"base_port={port}\nstarted_utc={meta['started_utc']}\nsource_commit={meta['commit']}\n")
         meta["latest_before"] = live_version()
-        run([binary("winbed"), "-root", str(root), "-probe", str(bed / "tf2_waveprobe.smx"),
-             "-install"], "install.log", 7200)
+        meta["install_attempts"] = install_with_retries(run,
+            [binary("winbed"), "-root", str(root), "-probe", str(bed / "tf2_waveprobe.smx"), "-install"],
+            out, deadline, shard)
         # The player launcher tolerates a failed update; the measurement cannot.
         meta["installed_version"] = installed_version(game)
         if meta["installed_version"] != meta["latest_before"]:
@@ -381,6 +408,8 @@ def main(opt):
         meta["completed"] = True
     except (Exception, KeyboardInterrupt) as error:
         meta["error"] = str(error)
+        if isinstance(error, PhaseFailure):
+            meta["failure_phase"] = error.phase
         print(f"stability: {error}", file=sys.stderr)
     finally:
         if opt.environment == "docker":

@@ -14,6 +14,7 @@ import sys
 import zipfile
 import zlib
 from waveprobe_partition import assignment
+from stability_errors import install_error
 
 ENVIRONMENTS = {"ubuntu24": "Ubuntu 24.04", "windows": "Windows", "docker": "Docker"}
 
@@ -121,7 +122,7 @@ def evaluate(meta, summary, commit, latest=None):
     elif meta.get("commit") != commit:
         status = "wrong commit"
     elif not meta.get("startup"):
-        status = "startup failed"
+        status = "setup failed (no waves tested)" if tested == 0 else "startup failed"
     elif not meta.get("fresh") or (latest is not None and meta.get("installed_version") != latest):
         status = "latest build unverified"
     elif meta.get("crash_free") is False:
@@ -175,7 +176,7 @@ def collect_issues(root, environment, meta):
         issues.append(dict(environment=environment, map="—", mission="—", wave="—", mode="—",
                            shard="", stage="server / setup", error="no environment result returned"))
     parts = meta.get("shards") or [meta]
-    mission_shards = {}
+    mission_shards, part_errors = {}, {}
     for path in root.glob("part-*/global-partition.json"):
         mission_shards.update(read_json(path).get("missions", {}))
         break
@@ -188,7 +189,25 @@ def collect_issues(root, environment, meta):
         issues.extend(crash_rows)
         errors = [] if crash_rows else list(dict.fromkeys(part.get("crashes", [])))
         if part.get("error"):
-            errors.append(part["error"])
+            error = part["error"]
+            if not part.get("startup") and ("-install" in error or str(part.get("failure_phase", "")).startswith("install")):
+                logs = list(reversed(sorted(path.glob("install-attempt-*.log")))) + [path / "install.log"]
+                for logfile in logs:
+                    cause = install_error(logfile)
+                    if cause:
+                        error = cause
+                        break
+            if error.startswith("host setup failed:") and "exit status 124" in error:
+                error = "Host package installation exceeded its 20-minute limit (apt-get)."
+            part_errors[number] = error
+            errors.append(error)
+        if part.get("install_attempts", 1) > 1:
+            for attempt in range(1, part["install_attempts"]):
+                logfile = path / ("install.log" if attempt == 1 else f"install-attempt-{attempt}.log")
+                cause = install_error(logfile)
+                if cause:
+                    issues.append(dict(environment=environment, map="—", mission="—", wave="—", mode="—",
+                                       shard=number, stage="recovered retry", error=f"install attempt {attempt}: {cause}"))
         for error in errors:
             issues.append(dict(environment=environment, map="—", mission="—", wave="—", mode="—",
                                shard=number, stage="server / setup", error=error))
@@ -205,7 +224,7 @@ def collect_issues(root, environment, meta):
         shard = mission_shards.get(key[0], "")
         if result == "not run":
             part = next((p for p in parts if p.get("shard") == shard), {})
-            error = part.get("error", "no case result returned")
+            error = part_errors.get(shard, part.get("error", "no case result returned"))
         return dict(environment=environment, map=plan[key]["map"], mission=key[0], wave=key[2],
                     mode=key[1], shard=shard, stage=stage, error=f"{result}: {error}" if error != result else result)
     for key in sorted(plan, key=lambda k: (plan[k]["map"], k[0], k[2], k[1])):
@@ -268,6 +287,8 @@ def main(source, output, commit, run_url, check_live=False, scope="full", *, mea
              "| --- | --- | --- | ---: | ---: | ---: | --- |"]
     if scope != "full":
         lines.insert(2, "**Smoke subset; does not update full-catalog badges.**\n")
+    if all(result["tested"] == 0 for result in results.values()):
+        lines.insert(2, "**No waves ran: setup did not complete.**\n")
     all_issues = []
     for key, label in ENVIRONMENTS.items():
         result = results[key]

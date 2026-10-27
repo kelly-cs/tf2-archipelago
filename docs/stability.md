@@ -120,7 +120,8 @@ plan. A missing or failed shard cannot shrink the denominator or become green.
 
 Before installing TF2, jobs reclaim optional SDK space only until the game
 volume has its required space plus a 5 GiB reserve, and
-install Linux’s 32-bit runtime libraries. Host preparation is bounded at 30 minutes; game-wave
+install Linux’s 32-bit runtime libraries. Docker hosts install only SteamCMD’s
+compatibility libraries; the production image supplies the engine libraries. Host preparation is bounded at 30 minutes; game-wave
 and retry budgets are unchanged. Cleanup refuses to run on a personal
 or self-hosted machine. Disk checks require 35 GiB free for native installs and
 45 GiB for Docker. A runner that cannot meet that check produces an explicit
@@ -130,6 +131,11 @@ status codes such as 0xc0000409. The checker restarts only its disposable server
 and lets the probe reconnect. Before every mission load, the controller reapplies
 and verifies speed, cheat enablement, headless wake-up and reverse support;
 mission configuration then selects the appropriate team and bomb handling.
+Steam metadata/login timeouts get at most three installation attempts with
+staggered backoff inside the original two-hour setup budget. Each attempt keeps
+its logs; bad pins, missing libraries and game failures are not network retries.
+Reports show the captured installer cause, and explicitly say when no waves ran.
+
 First-screen results, retries, logs and the crash verdict are preserved. More than three exits in one minute stops recovery. Passing later cases
 never clears a crash; this allows coverage to continue without disguising a
 production failure or spending hours retrying a dead server.

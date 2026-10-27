@@ -259,8 +259,22 @@ class StabilityTest(unittest.TestCase):
                     mock.patch.object(host.subprocess,"run") as run:
                 host.main()
             self.assertFalse(any("rm" in call.args[0] for call in run.call_args_list))
-            self.assertTrue(any("libcurl4t64:i386" in call.args[0] for call in run.call_args_list))
+            self.assertTrue(any("lib32gcc-s1" in call.args[0] for call in run.call_args_list))
+            self.assertFalse(any("libsdl2-2.0-0:i386" in call.args[0] for call in run.call_args_list))
+            self.assertFalse(any("--add-architecture" in call.args[0] for call in run.call_args_list))
             self.assertIn("STABILITY_GAME_PARENT=",(root/"env").read_text())
+
+    @unittest.skipIf(os.name == "nt", "Linux package setup fixture")
+    def test_native_ubuntu_keeps_all_engine_runtime_libraries(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            with mock.patch.dict(os.environ, {"STABILITY_RUNNER_ENVIRONMENT":"github-hosted",
+                    "STABILITY_ENV":"ubuntu24","RUNNER_TEMP":str(root/"game"),"GITHUB_ENV":str(root/"env")}), \
+                    mock.patch.object(host.shutil,"disk_usage",return_value=SimpleNamespace(free=100*1024**3)), \
+                    mock.patch.object(host.subprocess,"run") as run:
+                host.main()
+            self.assertTrue(any("libsdl2-2.0-0:i386" in call.args[0] for call in run.call_args_list))
+            self.assertTrue(any("--add-architecture" in call.args[0] for call in run.call_args_list))
 
     @unittest.skipIf(os.name == "nt", "Linux package setup fixture")
     def test_failed_dependency_install_cannot_export_a_ready_game_root(self):
@@ -472,6 +486,14 @@ class StabilityTest(unittest.TestCase):
                 args = sys.argv[1:]
                 if name == 'winbed':
                     root = pathlib.Path(args[args.index('-root') + 1])
+                    root.mkdir(parents=True, exist_ok=True)
+                    marker = root / 'first-install-failed'
+                    if not marker.exists():
+                        marker.touch()
+                        print('ERROR! Info request for AppId 7 returned error Timeout.')
+                        print('ERROR! Failed to load platform info')
+                        print('winbed: SteamCMD could not install app 232250: exit status 5', file=sys.stderr)
+                        sys.exit(1)
                     (root / 'tf-dedicated/tf').mkdir(parents=True)
                     (root / 'tf-dedicated/tf/steam.inf').write_text('ServerVersion=123\\n')
                     (root / 'tf-dedicated/tf/console.log').write_text('Using Breakpad minidump system. Version: 123\\n')
@@ -500,10 +522,14 @@ class StabilityTest(unittest.TestCase):
                                   environment="docker", image="fixture")
             with mock.patch.dict(os.environ, {"PATH": str(bed) + os.pathsep + os.environ["PATH"],
                                               "WAVEPROBE_RCONPW": "fixture", "GITHUB_SHA": "abc"}), \
-                    mock.patch.object(runner, "live_version", return_value="123"):
+                    mock.patch.object(runner, "live_version", return_value="123"), \
+                    mock.patch.object(runner.time, "sleep"):
                 self.assertEqual(runner.main(opt), 0)
             meta = json.loads((output / "environment.json").read_text())
             summary = json.loads((output / "SUMMARY.json").read_text())
+            self.assertEqual(meta["install_attempts"], 2)
+            self.assertIn("Failed to load platform info", (output / "install.log").read_text())
+            self.assertTrue((output / "install-attempt-2.log").exists())
             self.assertTrue(meta["startup"] and meta["fresh"] and meta["completed"])
             self.assertEqual(meta["running_version_after"], "123")
             self.assertEqual(meta["installed_version_after"], "123")
