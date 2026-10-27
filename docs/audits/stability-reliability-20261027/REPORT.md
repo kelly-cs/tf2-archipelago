@@ -27,7 +27,9 @@ unchanged. The mirror-list format comes from GitHub's official
 Complete package downloads are cached across shards and daily runs; current APT
 metadata, package versions and hashes are still checked. Cache restore/save is
 optional, and even a failed APT attempt can preserve complete package downloads.
-No TF2 game content or stale game build is substituted.
+No TF2 game content or stale game build is substituted. The image job also
+reuses the production nightly/release BuildKit cache, checks base-image updates,
+and allows cache export failure without failing an otherwise valid image build.
 
 Docker startup now retries only observed Steam metadata/login failures before
 readiness, keeping every attempt and the original readiness deadline. Engine

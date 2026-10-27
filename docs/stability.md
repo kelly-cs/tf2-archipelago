@@ -112,7 +112,9 @@ and builds its pinned SourcePawn submodule with the pinned AMBuild tool. It reco
 the source commits alongside the compiler; it never substitutes the latest compiler.
 Python's packaging module replaces the removed pkg_resources version parser during
 bootstrap, and old compiler warnings remain visible without becoming build errors.
-The production Docker image is built once and distributed to all Docker shards;
+The production Docker image is built once and distributed to all Docker shards.
+It reuses the nightly/release BuildKit layers, checks base-image updates, and
+builds cold when no cache exists. Cache export failures do not fail a valid build;
 the report downloads measurement evidence and the canonical plan separately.
 The build emits the complete canonical plan; aggregation checks every returned
 shard against its assigned partition and reconstructs coverage from that full
