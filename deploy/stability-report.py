@@ -152,21 +152,22 @@ def safe(value):
 
 def server_issues(root, environment, shard):
     """Attach crashes to the last observed case, without claiming it caused them."""
-    path = root / "server.log"
-    if not path.exists():
-        return []
-    issues, context = [], {}
+    issues = []
     crash = re.compile(r"Segmentation fault.*|FATAL ERROR.*|EXCEPTION_ACCESS_VIOLATION.*|SigMod: fault 0x[0-9a-f]+.*|winbed: exit status 0x(?:c0000005|c0000409|c0000374|c000001d|c0000094|c00000fd).*|stability unexpected server exit:.*", re.IGNORECASE)
-    with path.open(encoding="utf-8", errors="replace") as stream:
-        for line in stream:
-            if "WAVEPROBE state=" in line:
-                context = dict(re.findall(r"\b(map|pop|gamewave)=([^\s\"]+)", line))
-            match = crash.search(line)
-            if match:
-                issues.append(dict(environment=environment, map=context.get("map", "—"),
-                                   mission=context.get("pop", "—"), wave=context.get("gamewave", "—"),
-                                   mode="—", shard=shard, stage="crash (last observed case)",
-                                   error=match[0].rstrip('"')))
+    for path in [root / "server.log", *sorted(root.glob("server-attempt-*.log"))]:
+        if not path.exists():
+            continue
+        context = {}
+        with path.open(encoding="utf-8", errors="replace") as stream:
+            for line in stream:
+                if "WAVEPROBE state=" in line:
+                    context = dict(re.findall(r"\b(map|pop|gamewave)=([^\s\"]+)", line))
+                match = crash.search(line)
+                if match:
+                    issues.append(dict(environment=environment, map=context.get("map", "—"),
+                                       mission=context.get("pop", "—"), wave=context.get("gamewave", "—"),
+                                       mode="—", shard=shard, stage="crash (last observed case)",
+                                       error=match[0].rstrip('"')))
     return issues
 
 
@@ -210,6 +211,10 @@ def collect_issues(root, environment, meta):
                 if cause:
                     issues.append(dict(environment=environment, map="—", mission="—", wave="—", mode="—",
                                        shard=number, stage="recovered retry", error=f"install attempt {attempt}: {cause}"))
+        for retry in part.get("startup_retries", []):
+            issues.append(dict(environment=environment, map="—", mission="—", wave="—", mode="—", shard=number,
+                               stage="recovered retry" if part.get("startup") else "server / setup",
+                               error=f"startup attempt {retry['attempt']}: {retry.get('error') or 'see startup log'}"))
         for error in errors:
             issues.append(dict(environment=environment, map="—", mission="—", wave="—", mode="—",
                                shard=number, stage="server / setup", error=error))
