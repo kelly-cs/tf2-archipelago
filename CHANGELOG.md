@@ -8,6 +8,18 @@ in the release notes, so this file is the only place to write it.
 
 ### Fixed
 
+- **Attribute lookups on the server read the right memory.** The plugin's
+  TF2Attributes lookup handed over its result in the form SourceMod 1.13
+  uses, to a TF2Attributes that did not read it that way. TF2Attributes is now
+  the int64 port, compiled for 1.13.
+- **The defender bots run on SourceMod 1.13**, the same build as the server,
+  with the current Actions (v4.0.1) and TF Econ Data. Before, the bots were
+  compiled with 1.12 because their dependencies did not compile on 1.13.
+- **Max ammo and max metal buffs fill you up again when you spawn.** Since
+  1.18.3 an Engineer with a max metal buff started on 200 metal and only got
+  300 at the next resupply. Spawning and resupplying now give the buffed
+  amount. A buff rebuild in the middle of a life still never adds ammo, so
+  the Windows pile-up stays fixed.
 - **The Docker stack only draws from the community packs you ticked.** With
   `MVM_EXCLUDED_MISSIONS` empty, `make seed` and the self-hosted multiworld
   could pick a mission from a pack unticked in the admin page, and the admin
