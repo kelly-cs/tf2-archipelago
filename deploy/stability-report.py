@@ -270,7 +270,9 @@ def issue_table(issues, title):
     return lines + ["", "</details>", ""]
 
 
-def main(source, output, commit, run_url, check_live=False, scope="full", *, measured_utc=None, latest=None):
+def main(source, output, commit, run_url, check_live=False, scope="full", *, measured_utc=None, latest=None, run_attempt=1):
+    if run_attempt < 1:
+        raise ValueError("run attempt must be positive")
     output.mkdir(parents=True, exist_ok=True)
     # Reformatting existing evidence must preserve its original age.
     now = dt.datetime.fromisoformat(measured_utc) if measured_utc else dt.datetime.now(dt.timezone.utc)
@@ -286,7 +288,7 @@ def main(source, output, commit, run_url, check_live=False, scope="full", *, mea
                              read_json(source / key / "SUMMARY.json"), commit, latest)
                for key in ENVIRONMENTS}
     dashboard = {"scope": scope, "measured_utc": now.isoformat(), "commit": commit, "run_url": run_url,
-                 "stale_after_hours": 36, "latest_at_report": latest, "environments": results}
+                 "run_attempt": run_attempt, "stale_after_hours": 36, "latest_at_report": latest, "environments": results}
     lines = ["# TF2-AP stability" if scope == "full" else "# TF2-AP smoke check", "",
              f"Measured **{now:%Y-%m-%d %H:%M UTC}** · [Actions run]({run_url}) · commit `{commit[:12]}`", "",
              "Percentage = passed / planned; missing cases count against it. Red means a check failed. Results expire after 36 hours.", "",
@@ -310,7 +312,11 @@ def main(source, output, commit, run_url, check_live=False, scope="full", *, mea
                  "color": "brightgreen" if result["status"] == "passed" else "red", "cacheSeconds": 300}
         (output / f"{key}.json").write_text(json.dumps(badge) + "\n")
         all_issues.extend(collect_issues(source / key, label, meta))
-    asset_base = run_url.split("/actions/runs/")[0] + "/releases/download/stability/" if "/actions/runs/" in run_url and scope == "full" else ""
+    # A release per run AND attempt keeps old summaries and downloaded reports
+    # tied to their evidence after the rolling dashboard advances or a run retries.
+    run = re.fullmatch(r"(https?://[^/]+/[^/]+/[^/]+)/actions/runs/(\d+)(?:/attempts/\d+)?/?", run_url)
+    asset_base = (f"{run[1]}/releases/download/stability-{run[2]}-{run_attempt}/"
+                  if run and scope == "full" else "")
     release_lines = lines + ["", f"[Full report]({asset_base}REPORT.md) · [All issues (CSV)]({asset_base}issues.csv) · [Raw evidence]({asset_base}stability-evidence.zip)", ""]
     # Release notes have a size limit; full case tables are downloadable assets.
     (output / "RELEASE.md").write_text("\n".join(release_lines), encoding="utf-8")
@@ -354,6 +360,7 @@ if __name__ == "__main__":
     parser.add_argument("output", type=Path)
     parser.add_argument("--commit", required=True)
     parser.add_argument("--run-url", required=True)
+    parser.add_argument("--run-attempt", type=int, default=1)
     parser.add_argument("--check-live", action="store_true", help="verify Valve's live build again at publication")
     parser.add_argument("--shards", type=int, default=1)
     parser.add_argument("--plan", type=Path, help="canonical full plan emitted by the build job")
@@ -364,4 +371,4 @@ if __name__ == "__main__":
         combine_shards(args.source, args.plan, args.shards, args.commit, args.partition)
     elif args.shards > 1:
         parser.error("--plan is required with --shards")
-    raise SystemExit(0 if main(args.source, args.output, args.commit, args.run_url, args.check_live, args.scope) else 1)
+    raise SystemExit(0 if main(args.source, args.output, args.commit, args.run_url, args.check_live, args.scope, run_attempt=args.run_attempt) else 1)
