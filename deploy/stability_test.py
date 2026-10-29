@@ -184,7 +184,7 @@ class StabilityTest(unittest.TestCase):
             self.assertNotIn('Unsupported Reverse',markdown)
             self.assertIn('| Environment | Map | Mission | Wave |',markdown)
             self.assertLess(len((output/"RELEASE.md").read_text()),3000)
-            self.assertIn('/releases/download/stability/issues.csv',(output/'RELEASE.md').read_text())
+            self.assertIn('/releases/download/stability-1-1/issues.csv',(output/'RELEASE.md').read_text())
             badge=json.loads((output/'windows.json').read_text())
             self.assertEqual(badge['message'],'33.33%')
             self.assertEqual(badge['color'],'red')
@@ -192,6 +192,24 @@ class StabilityTest(unittest.TestCase):
                 self.assertIn('issues.csv',archive.namelist())
                 self.assertEqual(archive.namelist().count('REPORT.md'),1)
                 self.assertNotIn(b'obsolete report',archive.read('REPORT.md'))
+
+    def test_historical_links_identify_run_and_attempt(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            for run_id, attempt in ((101, 1), (102, 1), (101, 2)):
+                output = root / f"{run_id}-{attempt}"
+                report.main(root / "missing", output, "abc",
+                            f"https://github.com/example/repo/actions/runs/{run_id}",
+                            run_attempt=attempt)
+                base = f"https://github.com/example/repo/releases/download/stability-{run_id}-{attempt}/"
+                summary = (output / "RELEASE.md").read_text()
+                for asset in ("REPORT.md", "issues.csv", "stability-evidence.zip"):
+                    self.assertIn(f"({base}{asset})", summary)
+                self.assertIn(f"({base}issues.csv)", (output / "REPORT.md").read_text())
+                self.assertNotIn("/releases/download/stability/", summary)
+                self.assertEqual(json.loads((output / "stability.json").read_text())["run_attempt"], attempt)
+                with zipfile.ZipFile(output / "stability-evidence.zip") as archive:
+                    self.assertEqual(archive.read("REPORT.md").decode(), (output / "REPORT.md").read_text())
 
     def test_bad_or_empty_plan_cannot_pass(self):
         for summary in ({}, {"eligible_cases": 1, "passed_cases": 2, "tested_cases": 1}):

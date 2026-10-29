@@ -171,7 +171,11 @@ are supported. The badge branch contains generated JSON only.
 
 Actions defaults remain read-only; only the report job receives `contents: write`
 to update the report assets and badge branch. No extra secrets or Steam account
-are needed. The prerelease’s assets must remain mutable.
+are needed. Each full run is archived first under `stability-<run ID>-<attempt>`;
+its summary links to that attempt's report, CSV and evidence, so previous runs
+remain inspectable after the latest dashboard changes. These archive assets are
+never overwritten. The rolling `stability` prerelease stays mutable for README
+links. Actions artifacts are also retained for 30 days.
 
 ## Evidence and local use
 

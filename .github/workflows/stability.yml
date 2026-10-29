@@ -287,7 +287,8 @@ jobs:
         run: |
           python3 deploy/stability-report.py evidence dashboard --commit "$GITHUB_SHA" --run-url "$RUN_URL" --check-live \
             --shards "$STABILITY_SHARDS" --plan measurements/stability-beds/plan.jsonl \
-            --partition measurements/stability-beds/partition.json --scope "$STABILITY_SCOPE"
+            --partition measurements/stability-beds/partition.json --scope "$STABILITY_SCOPE" \
+            --run-attempt "$GITHUB_RUN_ATTEMPT"
       - name: Show the consolidated dashboard
         if: always()
         run: cat dashboard/RELEASE.md >> "$GITHUB_STEP_SUMMARY"
@@ -298,6 +299,15 @@ jobs:
           path: dashboard
           retention-days: 30
           if-no-files-found: error
+      # Preserve each attempt before updating the rolling README dashboard.
+      # Do not clobber historical assets: reruns have a different attempt tag.
+      - name: Archive this run's report and evidence
+        if: github.ref == env.STABILITY_PUBLISH_REF && env.STABILITY_SCOPE == 'full'
+        run: |
+          gh release create "stability-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" dashboard/* \
+            --target "$GITHUB_SHA" --prerelease --latest=false \
+            --title "Stability run ${GITHUB_RUN_ID}, attempt ${GITHUB_RUN_ATTEMPT}" \
+            --notes-file dashboard/RELEASE.md
       # A dedicated prerelease keeps stable URLs for the README widgets and
       # reports. No commits on main and no effect on releases/latest.
       - name: Publish the dated dashboard and widgets
